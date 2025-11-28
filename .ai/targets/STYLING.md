@@ -1,3 +1,4 @@
+<!-- @standalone -->
 # Styling Guidelines
 
 ## AI WORKFLOW (REQUIRED)

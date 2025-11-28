@@ -1,3 +1,4 @@
+<!-- @standalone -->
 # Chrome MCP Troubleshooting
 
 ## CRITICAL RULES

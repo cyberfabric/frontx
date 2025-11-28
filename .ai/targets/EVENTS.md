@@ -1,3 +1,4 @@
+<!-- @standalone -->
 # Event-Driven Architecture (Canonical)
 
 ## AI WORKFLOW (REQUIRED)

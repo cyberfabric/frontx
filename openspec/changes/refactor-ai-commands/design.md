@@ -23,12 +23,12 @@ This refactoring directly supports this mission by ensuring AI assistants receiv
 ## Goals / Non-Goals
 
 ### Goals
-- Single source of truth for AI rules per context
-- Clear separation: standalone vs monorepo rules
+- Single source of truth for AI rules (root `.ai/`)
+- Clear separation: standalone vs monorepo rules via markers
 - AI-optimized format (under 100 lines, keyword-driven, ASCII only)
-- Consistent `hai3:` prefix for standalone commands
+- Consistent `hai3-` prefix for standalone commands
 - CLI-driven AI config updates via `hai3 update`
-- Template-based (no inline modifications in scripts)
+- Marker-based generation (no duplication)
 
 ### Non-Goals
 - Runtime AI command execution
@@ -37,190 +37,133 @@ This refactoring directly supports this mission by ensuring AI assistants receiv
 
 ## Decisions
 
-### Decision 1: Rule Classification by File
+### Decision 1: Marker-Based Architecture
 
-| File | Standalone | Monorepo | Rationale |
-|------|-----------|----------|-----------|
-| **GUIDELINES.md** | Subset | Full | Routing differs by context |
-| **SCREENSETS.md** | YES | YES | Core pattern for app development |
-| **EVENTS.md** | YES | YES | Core architecture pattern |
-| **API.md** | Modified | Full | Remove package scope for standalone |
-| **STYLING.md** | YES | YES | Applies to all styling |
-| **THEMES.md** | Modified | Full | Remove package references |
-| **UICORE.md** | NO | YES | Framework internals only |
-| **UIKIT.md** | NO | YES | Framework internals only |
-| **UIKIT_CONTRACTS.md** | NO | YES | Framework internals only |
-| **STUDIO.md** | NO | YES | Framework internals only |
-| **CLI.md** | NO | YES | Framework internals only |
-| **AI.md** | NO | YES | Meta-rules for AI doc format |
-| **MCP_TROUBLESHOOTING.md** | YES | YES | Browser testing applies to all |
+**Root `.ai/` is the single source of truth for ALL rules.**
 
-### Decision 2: GUIDELINES.md Modifications for Standalone
+Files use HTML comment markers at the top:
+- `<!-- @standalone -->` - Copy verbatim to standalone projects
+- `<!-- @standalone:override -->` - Standalone has a different version in `presets/standalone/ai/.ai/`
+- No marker - Monorepo-only (not copied to standalone)
 
-**Remove from ROUTING:**
-```
-- API base classes (uicore) -> .ai/targets/API.md
-- packages/uicore -> .ai/targets/UICORE.md
-- packages/uikit -> .ai/targets/UIKIT.md
-- packages/uikit-contracts -> .ai/targets/UIKIT_CONTRACTS.md
-- packages/studio -> .ai/targets/STUDIO.md
-- packages/cli -> .ai/targets/CLI.md
-- presets/standalone, presets/monorepo -> .ai/targets/CLI.md
-- .ai documentation -> .ai/targets/AI.md
-```
+This eliminates duplication and ensures a single place to edit rules.
 
-**Remove from STOP CONDITIONS:**
-```
-- Editing /core/runtime or /sdk.
-- Changing contracts in @hai3/uikit-contracts.
-```
+### Decision 2: File Classification
 
-**Keep unchanged:**
-```
-- Modifying registry root files.
-- Adding new top-level dependencies.
-- Bypassing rules in EVENTS.md.
-- Killing MCP server processes.
-```
+| File | Marker | Rationale |
+|------|--------|-----------|
+| **GUIDELINES.md** | `@standalone:override` | Routing differs by context |
+| **SCREENSETS.md** | `@standalone` | Core pattern for app development |
+| **EVENTS.md** | `@standalone` | Core architecture pattern |
+| **API.md** | `@standalone:override` | Standalone has simplified version |
+| **STYLING.md** | `@standalone` | Applies to all styling |
+| **THEMES.md** | `@standalone:override` | Standalone has simplified version |
+| **MCP_TROUBLESHOOTING.md** | `@standalone` | Browser testing applies to all |
+| **UICORE.md** | (none) | Framework internals only |
+| **UIKIT.md** | (none) | Framework internals only |
+| **UIKIT_CONTRACTS.md** | (none) | Framework internals only |
+| **STUDIO.md** | (none) | Framework internals only |
+| **CLI.md** | (none) | Framework internals only |
+| **AI.md** | (none) | Meta-rules for AI doc format |
 
-### Decision 3: API.md Modifications for Standalone
+### Decision 3: Command Classification
 
-**Remove SCOPE section** (references packages/uicore/src/api/**)
+| Command | Marker | Rationale |
+|---------|--------|-----------|
+| hai3-validate.md | `@standalone` | App development |
+| hai3-fix-violation.md | `@standalone` | App development |
+| hai3-new-screenset.md | `@standalone` | App development |
+| hai3-new-screen.md | `@standalone` | App development |
+| hai3-new-component.md | `@standalone` | App development |
+| hai3-new-action.md | `@standalone` | App development |
+| hai3-new-api-service.md | `@standalone` | App development |
+| hai3-quick-ref.md | `@standalone` | App development |
+| hai3-duplicate-screenset.md | `@standalone` | App development |
+| hai3-update-guidelines.md | `@standalone` | App development |
+| hai3-arch-explain.md | (none) | References monorepo concepts |
+| hai3-review-pr.md | (none) | References monorepo targets |
+| hai3-rules.md | (none) | References monorepo targets |
+| hai3dev-publish.md | (none) | Framework development |
+| hai3dev-test-packages.md | (none) | Framework development |
+| hai3dev-release.md | (none) | Framework development |
 
-**Remove STOP CONDITIONS:**
-- Editing BaseApiService or apiRegistry.ts (standalone can't edit these)
-
-**Keep:**
-- Usage rules about apiRegistry.getService()
-- Mock data rules
-- Service creation patterns (reference SCREENSETS.md)
-
-### Decision 4: Commands-Only Approach (No Workflows)
-
-**Current problem:**
-- `.ai/workflows/VALIDATE_CHANGES.md` - 24 lines, declarative (WHEN/GOAL/CHECKS)
-- `.claude/commands/validate.md` - 25 lines, procedural steps
-- Both describe the same thing in different formats
-- Commands duplicate workflow content + add own details
-- `fix-violation.md` duplicates GUIDELINES.md routing table
-
-**Solution: Eliminate workflows, use commands as single source**
-- `.ai/commands/` contains the canonical command content
-- IDE folders (`.claude/`, `.cursor/`, etc.) contain thin adapters
-- No separate "workflows" concept - commands ARE the workflows
-
-**Benefits:**
-- Single source of truth for each operation
-- No duplication between workflow and command files
-- Clearer mental model: everything is a "command"
-- DRY across IDEs: one content file, multiple adapters
-
-### Decision 5: Directory Structure
+### Decision 4: Directory Structure
 
 ```
-presets/
-  standalone/
-    ai/                           # NEW: Standalone AI preset
-      .ai/
-        GUIDELINES.md             # Standalone routing (subset)
-        MCP_TROUBLESHOOTING.md
-        targets/
-          SCREENSETS.md           # Full copy
-          EVENTS.md               # Full copy
-          API.md                  # Modified (no package scope)
-          STYLING.md              # Full copy
-          THEMES.md               # Modified (app scope only)
-        commands/                 # Canonical command content (replaces workflows/)
-          hai3-validate.md        # Full validation steps (was VALIDATE_CHANGES.md)
-          hai3-fix-violation.md   # Full fix steps (was FIX_RULE_VIOLATION.md)
-          hai3-new-screenset.md
-          hai3-new-screen.md
-          hai3-new-component.md
-          hai3-new-action.md
-          hai3-new-api-service.md
-          hai3-quick-ref.md
-          hai3-duplicate-screenset.md
-          hai3-update-guidelines.md
-      .claude/commands/           # Claude adapters (thin wrappers)
-      .cursor/rules/, commands/   # Cursor adapters
-      .windsurf/rules/            # Windsurf adapters (no workflows/ subfolder)
-      .cline/                     # Cline config
-      .aider/                     # Aider config
-      openspec/                   # OpenSpec for standalone
-        project.md                # Template project context
-        AGENTS.md                 # OpenSpec instructions
-
-  monorepo/
-    ai/                           # Extends standalone conceptually
-      .ai/
-        GUIDELINES.md             # Full routing table
-        targets/
-          UICORE.md
-          UIKIT.md
-          UIKIT_CONTRACTS.md
-          STUDIO.md
-          CLI.md
-          AI.md
-        commands/
-          hai3dev-publish.md
-          hai3dev-test-packages.md
-          hai3dev-release.md
+HAI3/
+├── .ai/                              # Canonical source (with markers)
+│   ├── GUIDELINES.md                 # <!-- @standalone:override -->
+│   ├── MCP_TROUBLESHOOTING.md        # <!-- @standalone -->
+│   ├── targets/
+│   │   ├── SCREENSETS.md             # <!-- @standalone -->
+│   │   ├── EVENTS.md                 # <!-- @standalone -->
+│   │   ├── API.md                    # <!-- @standalone:override -->
+│   │   ├── STYLING.md                # <!-- @standalone -->
+│   │   ├── THEMES.md                 # <!-- @standalone:override -->
+│   │   ├── UICORE.md                 # (no marker - monorepo only)
+│   │   ├── UIKIT.md                  # (no marker)
+│   │   ├── UIKIT_CONTRACTS.md        # (no marker)
+│   │   ├── STUDIO.md                 # (no marker)
+│   │   ├── CLI.md                    # (no marker)
+│   │   ├── AI.md                     # (no marker)
+│   │   └── AI_COMMANDS.md            # (no marker)
+│   └── commands/
+│       ├── hai3-*.md                 # <!-- @standalone --> (most)
+│       └── hai3dev-*.md              # (no marker - monorepo only)
+│
+├── presets/
+│   └── standalone/
+│       └── ai/                       # Override files + IDE global configs
+│           ├── .ai/                  # 3 override files only
+│           │   ├── GUIDELINES.md     # Standalone version
+│           │   └── targets/
+│           │       ├── API.md        # Standalone version
+│           │       └── THEMES.md     # Standalone version
+│           ├── .claude/commands/     # OpenSpec adapters only (hai3-* GENERATED)
+│           │   └── openspec/         # Copied as-is
+│           ├── .cursor/rules/        # IDE global rules (stored)
+│           ├── .windsurf/rules/      # IDE global rules (stored)
+│           ├── .cline/               # IDE config (stored)
+│           ├── .aider/               # IDE config (stored)
+│           └── openspec/             # OpenSpec template
+│
+├── packages/cli/templates/           # Generated output
+│   ├── .ai/                          # 14 standalone + 3 override files
+│   └── .claude/commands/             # 10 GENERATED adapters + openspec/
 ```
 
-### Decision 6: Template Integration in copy-templates.ts
+### Decision 5: Template Integration (copy-templates.ts)
 
 ```typescript
-const config = {
-  // Existing directories (REMOVE .ai, .cursor, .windsurf)
-  directories: [
-    'src/themes',
-    'src/uikit',
-    'src/icons',
-    'eslint-plugin-local',
-    'presets/standalone',  // Already includes configs/, scripts/
-  ],
+// Marker-based AI config generation
+async function scanForMarkedFiles(dir: string): Promise<MarkedFile[]> {
+  // Scan .md files for markers
+  // Return files with 'standalone' or 'override' markers
+}
 
-  // NEW: AI configuration from standalone preset
-  standaloneAiConfig: [
-    { src: 'presets/standalone/ai/.ai', dest: '.ai' },
-    { src: 'presets/standalone/ai/.claude', dest: '.claude' },
-    { src: 'presets/standalone/ai/.cursor', dest: '.cursor' },
-    { src: 'presets/standalone/ai/.windsurf', dest: '.windsurf' },
-    { src: 'presets/standalone/ai/.cline', dest: '.cline' },
-    { src: 'presets/standalone/ai/.aider', dest: '.aider' },
-    { src: 'presets/standalone/ai/openspec', dest: 'openspec' },
-  ],
-};
+async function generateCommandAdapters(commands: string[], dest: string) {
+  // Generate .claude/commands/hai3-*.md from @standalone commands
+  // Extract description from command file's H1 header
+  // Create thin adapter referencing .ai/commands/
+}
+
+// Build process:
+// 1. Scan root .ai/ for @standalone markers -> copy verbatim
+// 2. For @standalone:override markers -> copy from presets/standalone/ai/.ai/
+// 3. Skip files without markers (monorepo-only)
+// 4. Copy IDE global configs from presets/standalone/ai/ (.cursor/, .cline/, etc.)
+// 5. GENERATE command adapters (.claude/commands/hai3-*.md) from marker list
+// 6. Copy OpenSpec adapters from presets/standalone/ai/.claude/commands/openspec/
 ```
 
-### Decision 7: Command Naming Convention
+### Decision 6: Commands-Only Approach (No Workflows)
 
-| Context | Prefix | Example | Updated By |
-|---------|--------|---------|------------|
-| Standalone commands | `hai3:` | `hai3:new-screenset` | `hai3 update` |
-| OpenSpec commands | `openspec:` | `openspec:proposal` | `openspec update` |
-| Monorepo-only | `hai3dev:` | `hai3dev:publish` | Manual |
+**Problem solved:**
+- Eliminated `.ai/workflows/` directory
+- Commands in `.ai/commands/` are self-contained with full procedural steps
+- IDE folders contain thin adapters only
 
-**Rationale:**
-- `hai3:` clearly identifies HAI3 framework commands, updated by CLI
-- `openspec:` stays unchanged so `openspec update` can manage them
-- `hai3dev:` indicates framework development commands (not shipped to standalone)
-
-### Decision 8: AI.md Compliance Requirements
-
-All AI documentation files MUST comply with:
-- Under 100 lines per file
-- ASCII only (no unicode, emojis, smart quotes)
-- One concern per file
-- Keywords: MUST, REQUIRED, FORBIDDEN, STOP, DETECT, BAD, GOOD
-- Rule format: single-line bullets, no multi-line examples
-- No duplicated rules across files
-- Section structure starts with AI WORKFLOW or CRITICAL RULES
-
-### Decision 9: IDE Adapter Pattern
-
-Each IDE folder contains minimal adapters that reference canonical `.ai/commands/`:
-
+**IDE Adapter Pattern:**
 ```markdown
 # .claude/commands/hai3-validate.md
 ---
@@ -229,61 +172,41 @@ description: Validate changes before commit following HAI3 guidelines
 Use `.ai/commands/hai3-validate.md` as the single source of truth.
 ```
 
-### Decision 10: AI Command Maintenance Rules (for AI.md)
+### Decision 7: Command Naming Convention
 
-The following rules SHALL be added to `.ai/targets/AI.md` to guide future command creation/modification:
+| Context | Prefix | Example | Updated By |
+|---------|--------|---------|------------|
+| Standalone commands | `hai3-` | `hai3-new-screenset` | `hai3 update` |
+| OpenSpec commands | `openspec:` | `openspec:proposal` | `openspec update` |
+| Monorepo-only | `hai3dev-` | `hai3dev-publish` | Manual |
 
-**COMMAND LOCATION**
-- REQUIRED: All canonical command content in `.ai/commands/` (not IDE folders)
-- REQUIRED: IDE folders (`.claude/`, `.cursor/`, etc.) contain thin adapters only
-- FORBIDDEN: Command logic in IDE-specific folders
+### Decision 8: No Separate Monorepo Preset
 
-**NAMING CONVENTIONS**
-- REQUIRED: Standalone commands use `hai3-` filename prefix (e.g., `hai3-validate.md`)
-- REQUIRED: Monorepo-only commands use `hai3dev-` prefix (e.g., `hai3dev-publish.md`)
-- FORBIDDEN: Unprefixed command files (except openspec: commands)
-- FORBIDDEN: Changing openspec: prefix (managed by openspec update)
+**Eliminated `presets/monorepo/ai/`** - it was redundant because:
+- HAI3 is the only monorepo using these rules
+- Root `.ai/` IS the monorepo configuration
+- No need for a "monorepo template"
 
-**COMMAND STRUCTURE**
-- REQUIRED: Commands are self-contained with full procedural steps
-- FORBIDDEN: References to external workflow files
-- FORBIDDEN: Duplicating GUIDELINES.md routing table in commands
-- REQUIRED: Commands follow AI.md format rules (under 100 lines, ASCII, keywords)
+### Decision 9: Maintenance Model
 
-**STANDALONE VS MONOREPO**
-- Standalone commands: Operations for HAI3-based app development
-  - Screenset creation, validation, component creation, API services
-- Monorepo commands: Operations for HAI3 framework development
-  - Publishing, package testing, release management
-- REQUIRED: Standalone commands must not reference packages/* paths
+```
+Editing rules:
+1. Edit root .ai/ (canonical source)
+2. If file has @standalone marker, changes propagate automatically
+3. If file has @standalone:override marker, edit presets/standalone/ai/.ai/ too
+4. Files without markers are monorepo-only
 
-**IDE ADAPTER PATTERN**
-```markdown
-# .claude/commands/hai3-example.md
----
-description: Short description for IDE autocomplete
----
-Use `.ai/commands/hai3-example.md` as the single source of truth.
+Building templates:
+1. npm run build:packages triggers copy-templates.ts
+2. Script scans root .ai/ for markers
+3. Copies @standalone files verbatim to templates/.ai/
+4. Copies override versions for @standalone:override files
+5. Copies IDE global configs from presets/standalone/ai/
+6. GENERATES .claude/commands/hai3-*.md adapters from @standalone commands
+7. Copies OpenSpec adapters from presets/standalone/ai/.claude/commands/openspec/
 ```
 
-**UPDATE MECHANISM**
-- `hai3:` commands → Updated by `hai3 update`
-- `openspec:` commands → Updated by `openspec update`
-- `hai3dev:` commands → Manual updates (not shipped to standalone)
-
-**ADDING A NEW COMMAND**
-1. Create canonical file in `.ai/commands/hai3-<name>.md`
-2. Follow AI.md format rules
-3. Create adapter in each IDE folder
-4. Add to copy-templates.ts standaloneAiConfig (if standalone)
-5. Verify with `npm run arch:check`
-
-**MODIFYING EXISTING COMMANDS**
-1. Edit ONLY the canonical file in `.ai/commands/`
-2. IDE adapters auto-update (they just reference canonical)
-3. Changes propagate via `hai3 update` to standalone projects
-
-### Decision 11: Update Command AI Sync
+### Decision 10: Update Command AI Sync
 
 ```typescript
 // hai3 update behavior
@@ -291,7 +214,8 @@ interface UpdateCommandResult {
   cliUpdated: boolean;
   projectUpdated: boolean;
   updatedPackages: string[];
-  aiConfigsUpdated: boolean;  // NEW
+  aiConfigsUpdated: boolean;
+  aiConfigFiles: string[];
   channel: 'alpha' | 'stable';
 }
 
@@ -302,53 +226,36 @@ interface UpdateCommandResult {
 // 4. Report which files were updated
 ```
 
+### Decision 11: Generated vs Stored Adapters
+
+**Command adapters are GENERATED, not stored.**
+
+| Type | Source | Approach |
+|------|--------|----------|
+| hai3-* command adapters | Root .ai/commands/ | Generated from @standalone markers |
+| OpenSpec command adapters | presets/standalone/ai/.claude/commands/openspec/ | Stored (managed by openspec) |
+| IDE global configs | presets/standalone/ai/.cursor/, .cline/, etc. | Stored (IDE-specific formats) |
+
+**Benefits:**
+- Zero duplication for hai3-* commands
+- Single edit point for command descriptions
+- Automatic sync on build
+
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
 |------|------------|
-| Breaking existing workflows | Gradual migration with deprecation warnings |
-| Rules drift between contexts | Automated compliance verification script |
+| Override drift | Clear documentation, minimal override files |
+| Marker maintenance | Only 3 override files to maintain |
 | IDE format incompatibility | Testing across all supported IDEs |
 | Template sync issues | Version tracking in hai3.config.json |
+| Generated adapter format | Simple pattern, extracted from H1 header |
 
-## Migration Plan
+## Summary
 
-### Phase 1: Create Standalone AI Preset
-1. Create `presets/standalone/ai/` directory structure
-2. Create standalone GUIDELINES.md with subset routing
-3. Modify API.md and THEMES.md for standalone context
-4. Copy applicable targets: SCREENSETS.md, EVENTS.md, STYLING.md
-5. Create hai3-prefixed commands
-6. Verify AI.md compliance for all files
-
-### Phase 2: Create IDE Adapters
-1. Create Claude Code adapters in `.claude/commands/`
-2. Create Cursor adapters in `.cursor/`
-3. Create Windsurf adapters in `.windsurf/`
-4. Create Cline configuration
-5. Create Aider configuration
-
-### Phase 3: Update CLI
-1. Modify copy-templates.ts to use standalone AI preset
-2. Update project.ts if needed for new structure
-3. Add AI config sync to `hai3 update`
-4. Test project creation and update flows
-
-### Phase 4: Create Monorepo AI Preset
-1. Create `presets/monorepo/ai/` with framework-specific targets
-2. Create hai3dev-prefixed commands
-3. Update HAI3 repo to use monorepo preset
-
-### Phase 5: Migrate HAI3 Repo
-1. Update root `.claude/`, `.cursor/`, `.windsurf/` to reference presets
-2. Rename commands with new prefixes
-3. Remove deprecated files
-4. Verify all IDEs work correctly
-
-## Open Questions
-
-1. Should we version AI configs independently from CLI version?
-   - Current decision: No, tightly coupled for simplicity
-
-2. Should standalone projects get openspec integration by default?
-   - Decision: YES, shipped with openspec: prefix unchanged
+The marker-based architecture provides:
+1. **Single source of truth** - Root `.ai/` is canonical
+2. **No duplication** - Standalone .ai/ generated, command adapters generated
+3. **Clear overrides** - Only 3 files need standalone-specific versions
+4. **Automatic propagation** - Changes to root propagate to templates on build
+5. **Generated adapters** - .claude/commands/hai3-*.md generated from markers

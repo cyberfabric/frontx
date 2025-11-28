@@ -77,19 +77,19 @@ npm run arch:deps
 
 Provide review summary:
 
-### ✅ Passes
+### Passes
 [List what looks good]
 
-### ⚠️ Warnings
+### Warnings
 [List potential issues]
 
-### ❌ Violations
+### Violations
 [List rule violations with file:line references]
 
-### 🔧 Recommended Fixes
+### Recommended Fixes
 [Provide specific fixes for each violation]
 
-### 📋 Checklist Status
+### Checklist Status
 [Show checklist completion]
 
 ## 6. VERDICT

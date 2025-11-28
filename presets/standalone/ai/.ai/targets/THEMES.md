@@ -1,12 +1,11 @@
-<!-- @standalone:override -->
-# Theme Guidelines
+# Theme Guidelines (Standalone)
 
 ## AI WORKFLOW (REQUIRED)
 1) Summarize 3-5 rules from this file before proposing changes.
 2) STOP if you modify theme objects outside the designated theme locations.
 
 ## SCOPE
-- Theme objects and theme registration in packages and app code.
+- Theme objects and theme registration in app code.
 - Contracts for theme shape live in @hai3/uikit-contracts.
 
 ## CRITICAL RULES
@@ -21,7 +20,6 @@
 ## STOP CONDITIONS
 - Editing theme values inside screensets or feature modules.
 - Adding CSS variables that do not exist in the Theme interface.
-- Changing the Theme interface without a version bump in @hai3/uikit-contracts.
 
 ## PRE-DIFF CHECKLIST
 - [ ] Theme object matches contract exactly.

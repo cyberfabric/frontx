@@ -1,3 +1,4 @@
+<!-- @standalone:override -->
 # API Base Classes Guidelines
 
 ## AI WORKFLOW (REQUIRED)

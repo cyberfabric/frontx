@@ -1,5 +1,4 @@
-<!-- @standalone:override -->
-# HAI3 AI Guidelines (Canonical)
+# HAI3 AI Guidelines (Standalone)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.
@@ -15,18 +14,9 @@
 ## ROUTING
 - Data flow / events -> .ai/targets/EVENTS.md
 - API services (screenset-owned) -> .ai/targets/SCREENSETS.md
-- API base classes (uicore) -> .ai/targets/API.md
-- packages/uicore -> .ai/targets/UICORE.md
-- packages/uikit -> .ai/targets/UIKIT.md
-- packages/uikit-contracts -> .ai/targets/UIKIT_CONTRACTS.md
-- packages/studio -> .ai/targets/STUDIO.md
-- packages/cli -> .ai/targets/CLI.md
-- presets/standalone, presets/monorepo -> .ai/targets/CLI.md
 - src/screensets -> .ai/targets/SCREENSETS.md
 - src/themes -> .ai/targets/THEMES.md
 - Styling anywhere -> .ai/targets/STYLING.md
-- .ai documentation -> .ai/targets/AI.md
-- .ai/commands, .claude/commands -> .ai/targets/AI_COMMANDS.md
 
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).
@@ -51,9 +41,7 @@
 - Class member order: properties -> constructor -> methods.
 
 ## STOP CONDITIONS
-- Editing /core/runtime or /sdk.
 - Modifying registry root files.
-- Changing contracts in @hai3/uikit-contracts.
 - Adding new top-level dependencies.
 - Bypassing rules in EVENTS.md.
 - Killing MCP server processes (see MCP_TROUBLESHOOTING.md).
@@ -90,7 +78,6 @@
 - Add or update a rule here (short and focused).
 - Update the matching target file.
 - Store memory of the correction.
-- Re-validate using .ai/targets/AI.md.
 
 ## FEATURE CREATION POLICY
 - Reuse existing patterns where possible.

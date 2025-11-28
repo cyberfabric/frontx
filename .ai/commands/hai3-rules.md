@@ -35,7 +35,7 @@ Format output as:
 [When to stop and ask]
 
 ## Common Violations
-[Show BAD → GOOD examples]
+[Show BAD -> GOOD examples]
 
 ## Pre-Diff Checklist
 [Checklist from target file]

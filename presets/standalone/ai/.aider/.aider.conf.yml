@@ -1,0 +1,19 @@
+# Aider configuration for HAI3 projects
+
+# Always include AI guidelines in context
+read:
+  - .ai/GUIDELINES.md
+  - .ai/targets/SCREENSETS.md
+  - .ai/targets/EVENTS.md
+
+# Model settings
+model: claude-sonnet-4-20250514
+
+# Auto-commit settings
+auto-commits: false
+
+# Lint command
+lint-cmd: npm run lint
+
+# Map refresh strategy
+map-refresh: auto

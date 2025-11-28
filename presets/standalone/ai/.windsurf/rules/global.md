@@ -1,0 +1,28 @@
+# HAI3 Guidelines for Windsurf
+
+Always read `.ai/GUIDELINES.md` before making changes.
+
+## Routing
+Use the ROUTING section in `.ai/GUIDELINES.md` to find the correct target file:
+- Data flow / events -> .ai/targets/EVENTS.md
+- API services -> .ai/targets/SCREENSETS.md
+- src/screensets -> .ai/targets/SCREENSETS.md
+- src/themes -> .ai/targets/THEMES.md
+- Styling -> .ai/targets/STYLING.md
+
+## Critical Rules
+- REQUIRED: Read target file before changing code
+- REQUIRED: Event-driven architecture only
+- FORBIDDEN: Direct slice dispatch
+- FORBIDDEN: Hardcoded colors or inline styles
+- REQUIRED: Use @hai3/uikit components
+- REQUIRED: npm run arch:check must pass
+
+## Commands
+Available hai3: commands are in `.ai/commands/`:
+- hai3:validate - Validate changes
+- hai3:new-screenset - Create screenset
+- hai3:new-screen - Add screen
+- hai3:new-action - Create action
+- hai3:new-api-service - Add API service
+- hai3:quick-ref - Quick reference

@@ -1,3 +1,4 @@
+<!-- @standalone -->
 # Screensets Guidelines
 
 ## AI WORKFLOW (REQUIRED)

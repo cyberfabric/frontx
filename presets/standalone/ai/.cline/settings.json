@@ -1,0 +1,9 @@
+{
+  "customInstructions": "Always read `.ai/GUIDELINES.md` before making changes. Use the ROUTING section to find the correct target file. Read target file before proposing code changes.",
+  "contextFiles": [
+    ".ai/GUIDELINES.md",
+    ".ai/targets/SCREENSETS.md",
+    ".ai/targets/EVENTS.md"
+  ],
+  "autoApprove": false
+}
