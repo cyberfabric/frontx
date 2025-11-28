@@ -29,9 +29,9 @@ The command SHALL support channel selection:
 - Skip NPM package updates
 - Only sync AI configuration files from bundled templates
 
-### Requirement: Template Copy Script (copy-templates.ts)
+### Requirement: Template-Based Code Generation
 
-The CLI SHALL use a template-based approach for all file generation, with `copy-templates.ts` copying files at build time from the project root to the CLI package templates directory.
+The CLI SHALL use a template-based approach where real project files are copied at build time and transformed at runtime, ensuring templates never drift from framework patterns.
 
 #### Scenario: Template configuration with standalone AI preset
 
