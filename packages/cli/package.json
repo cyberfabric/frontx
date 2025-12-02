@@ -1,6 +1,6 @@
 {
   "name": "@hai3/cli",
-  "version": "0.1.0-alpha.6",
+  "version": "0.1.0-alpha.7",
   "description": "HAI3 CLI - Project scaffolding and screenset management tools",
   "bin": {
     "hai3": "./dist/index.cjs"
