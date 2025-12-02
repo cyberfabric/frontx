@@ -51,12 +51,12 @@ function detectCurrentChannel(): 'alpha' | 'stable' {
  * Get the path to the CLI's bundled templates directory
  */
 function getTemplatesDir(): string {
-  // This file is at packages/cli/dist/commands/update/index.js when built
-  // Templates are at packages/cli/templates/
+  // tsup bundles to flat structure: dist/index.cjs
+  // Templates are at templates/ (sibling to dist/)
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  // Navigate from dist/commands/update/ to templates/
-  return path.resolve(__dirname, '../../..', 'templates');
+  // Navigate from dist/ to templates/
+  return path.resolve(__dirname, '..', 'templates');
 }
 
 /**
