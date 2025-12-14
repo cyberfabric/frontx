@@ -567,5 +567,13 @@
   "table_method_credit": "Karta kredytowa",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Przelew",
-  "table_total": "Suma"
+  "table_total": "Suma",
+  "data_table_heading": "Tabela Danych",
+  "data_table_select_all": "Zaznacz wszystko",
+  "data_table_select_row": "Zaznacz wiersz",
+  "data_table_status": "Status",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Kwota",
+  "data_table_filter_placeholder": "Filtruj e-maile...",
+  "data_table_no_results": "Brak wyników."
 }

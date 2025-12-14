@@ -563,5 +563,13 @@
   "table_method_credit": "Tarjeta de Crédito",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Transferencia",
-  "table_total": "Total"
+  "table_total": "Total",
+  "data_table_heading": "Tabla de Datos",
+  "data_table_select_all": "Seleccionar todo",
+  "data_table_select_row": "Seleccionar fila",
+  "data_table_status": "Estado",
+  "data_table_email": "Correo",
+  "data_table_amount": "Monto",
+  "data_table_filter_placeholder": "Filtrar correos...",
+  "data_table_no_results": "Sin resultados."
 }

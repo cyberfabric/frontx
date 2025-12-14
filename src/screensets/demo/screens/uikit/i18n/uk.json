@@ -567,5 +567,13 @@
   "table_method_credit": "Кредитна картка",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Переказ",
-  "table_total": "Всього"
+  "table_total": "Всього",
+  "data_table_heading": "Таблиця даних",
+  "data_table_select_all": "Вибрати все",
+  "data_table_select_row": "Вибрати рядок",
+  "data_table_status": "Статус",
+  "data_table_email": "Email",
+  "data_table_amount": "Сума",
+  "data_table_filter_placeholder": "Фільтр email...",
+  "data_table_no_results": "Немає результатів."
 }

@@ -567,5 +567,13 @@
   "table_method_credit": "Thẻ tín dụng",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Chuyển khoản",
-  "table_total": "Tổng"
+  "table_total": "Tổng",
+  "data_table_heading": "Bảng Dữ Liệu",
+  "data_table_select_all": "Chọn tất cả",
+  "data_table_select_row": "Chọn hàng",
+  "data_table_status": "Trạng thái",
+  "data_table_email": "Email",
+  "data_table_amount": "Số tiền",
+  "data_table_filter_placeholder": "Lọc email...",
+  "data_table_no_results": "Không có kết quả."
 }

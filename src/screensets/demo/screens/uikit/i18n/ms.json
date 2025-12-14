@@ -567,5 +567,13 @@
   "table_method_credit": "Kad Kredit",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Pindahan Bank",
-  "table_total": "Jumlah"
+  "table_total": "Jumlah",
+  "data_table_heading": "Jadual Data",
+  "data_table_select_all": "Pilih semua",
+  "data_table_select_row": "Pilih baris",
+  "data_table_status": "Status",
+  "data_table_email": "E-mel",
+  "data_table_amount": "Jumlah",
+  "data_table_filter_placeholder": "Tapis e-mel...",
+  "data_table_no_results": "Tiada keputusan."
 }

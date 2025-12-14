@@ -51,6 +51,29 @@ export {
   TableCell,
   TableCaption,
 } from './base/table';
+export {
+  DataTable,
+  DataTablePagination,
+  DataTableColumnHeader,
+  DataTableViewOptions,
+  type DataTableProps,
+  type DataTablePaginationProps,
+  type DataTableColumnHeaderProps,
+  type DataTableViewOptionsProps,
+  type ColumnDef,
+  type ColumnFiltersState,
+  type SortingState,
+  type VisibilityState,
+  type Row,
+  type Table as ReactTable,
+  type Column,
+  flexRender,
+  getCoreRowModel,
+  getFilteredRowModel,
+  getPaginationRowModel,
+  getSortedRowModel,
+  useReactTable,
+} from './base/data-table';
 export { Skeleton } from './base/skeleton';
 export { Spinner, type SpinnerProps } from './base/spinner';
 export { Slider, SliderTrack, SliderRange, SliderThumb } from './base/slider';

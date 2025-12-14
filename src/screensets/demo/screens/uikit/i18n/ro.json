@@ -567,5 +567,13 @@
   "table_method_credit": "Card de credit",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Transfer",
-  "table_total": "Total"
+  "table_total": "Total",
+  "data_table_heading": "Tabel de Date",
+  "data_table_select_all": "Selectează tot",
+  "data_table_select_row": "Selectează rând",
+  "data_table_status": "Status",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Sumă",
+  "data_table_filter_placeholder": "Filtrează e-mailuri...",
+  "data_table_no_results": "Niciun rezultat."
 }

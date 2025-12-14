@@ -567,5 +567,13 @@
   "table_method_credit": "クレジットカード",
   "table_method_paypal": "PayPal",
   "table_method_bank": "銀行振込",
-  "table_total": "合計"
+  "table_total": "合計",
+  "data_table_heading": "データテーブル",
+  "data_table_select_all": "すべて選択",
+  "data_table_select_row": "行を選択",
+  "data_table_status": "ステータス",
+  "data_table_email": "メール",
+  "data_table_amount": "金額",
+  "data_table_filter_placeholder": "メールをフィルター...",
+  "data_table_no_results": "結果がありません。"
 }

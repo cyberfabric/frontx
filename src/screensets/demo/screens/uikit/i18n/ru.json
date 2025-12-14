@@ -567,5 +567,13 @@
   "table_method_credit": "Кредитная карта",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Перевод",
-  "table_total": "Итого"
+  "table_total": "Итого",
+  "data_table_heading": "Таблица данных",
+  "data_table_select_all": "Выбрать все",
+  "data_table_select_row": "Выбрать строку",
+  "data_table_status": "Статус",
+  "data_table_email": "Email",
+  "data_table_amount": "Сумма",
+  "data_table_filter_placeholder": "Фильтр по email...",
+  "data_table_no_results": "Нет результатов."
 }

@@ -567,5 +567,13 @@
   "table_method_credit": "கிரெடிட் கார்டு",
   "table_method_paypal": "PayPal",
   "table_method_bank": "வங்கி பரிமாற்றம்",
-  "table_total": "மொத்தம்"
+  "table_total": "மொத்தம்",
+  "data_table_heading": "தரவு அட்டவணை",
+  "data_table_select_all": "அனைத்தையும் தேர்ந்தெடு",
+  "data_table_select_row": "வரிசை தேர்வு",
+  "data_table_status": "நிலை",
+  "data_table_email": "மின்னஞ்சல்",
+  "data_table_amount": "தொகை",
+  "data_table_filter_placeholder": "மின்னஞ்சல் வடிகட்டு...",
+  "data_table_no_results": "முடிவுகள் இல்லை."
 }

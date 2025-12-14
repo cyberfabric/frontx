@@ -567,5 +567,13 @@
   "table_method_credit": "Creditcard",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Overboeking",
-  "table_total": "Totaal"
+  "table_total": "Totaal",
+  "data_table_heading": "Gegevenstabel",
+  "data_table_select_all": "Alles selecteren",
+  "data_table_select_row": "Rij selecteren",
+  "data_table_status": "Status",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Bedrag",
+  "data_table_filter_placeholder": "E-mails filteren...",
+  "data_table_no_results": "Geen resultaten."
 }

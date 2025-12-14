@@ -567,5 +567,13 @@
   "table_method_credit": "Kreditkarte",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Überweisung",
-  "table_total": "Gesamt"
+  "table_total": "Gesamt",
+  "data_table_heading": "Datentabelle",
+  "data_table_select_all": "Alle auswählen",
+  "data_table_select_row": "Zeile auswählen",
+  "data_table_status": "Status",
+  "data_table_email": "E-Mail",
+  "data_table_amount": "Betrag",
+  "data_table_filter_placeholder": "E-Mails filtern...",
+  "data_table_no_results": "Keine Ergebnisse."
 }

@@ -567,5 +567,13 @@
   "table_method_credit": "क्रेडिट कार्ड",
   "table_method_paypal": "PayPal",
   "table_method_bank": "बैंक ट्रांसफर",
-  "table_total": "कुल"
+  "table_total": "कुल",
+  "data_table_heading": "डेटा टेबल",
+  "data_table_select_all": "सभी चुनें",
+  "data_table_select_row": "पंक्ति चुनें",
+  "data_table_status": "स्थिति",
+  "data_table_email": "ईमेल",
+  "data_table_amount": "राशि",
+  "data_table_filter_placeholder": "ईमेल फ़िल्टर...",
+  "data_table_no_results": "कोई परिणाम नहीं।"
 }

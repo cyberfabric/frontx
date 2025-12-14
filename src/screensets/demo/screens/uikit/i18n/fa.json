@@ -567,5 +567,13 @@
   "table_method_credit": "کارت اعتباری",
   "table_method_paypal": "PayPal",
   "table_method_bank": "انتقال بانکی",
-  "table_total": "مجموع"
+  "table_total": "مجموع",
+  "data_table_heading": "جدول داده",
+  "data_table_select_all": "انتخاب همه",
+  "data_table_select_row": "انتخاب ردیف",
+  "data_table_status": "وضعیت",
+  "data_table_email": "ایمیل",
+  "data_table_amount": "مبلغ",
+  "data_table_filter_placeholder": "فیلتر ایمیل...",
+  "data_table_no_results": "نتیجه‌ای یافت نشد."
 }

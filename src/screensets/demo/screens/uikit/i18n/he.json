@@ -567,5 +567,13 @@
   "table_method_credit": "כרטיס אשראי",
   "table_method_paypal": "PayPal",
   "table_method_bank": "העברה בנקאית",
-  "table_total": "סה״כ"
+  "table_total": "סה״כ",
+  "data_table_heading": "טבלת נתונים",
+  "data_table_select_all": "בחר הכל",
+  "data_table_select_row": "בחר שורה",
+  "data_table_status": "סטטוס",
+  "data_table_email": "אימייל",
+  "data_table_amount": "סכום",
+  "data_table_filter_placeholder": "סנן אימיילים...",
+  "data_table_no_results": "אין תוצאות."
 }

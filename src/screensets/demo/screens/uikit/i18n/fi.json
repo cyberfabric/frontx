@@ -567,5 +567,13 @@
   "table_method_credit": "Luottokortti",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Tilisiirto",
-  "table_total": "Yhteensä"
+  "table_total": "Yhteensä",
+  "data_table_heading": "Tietotaulukko",
+  "data_table_select_all": "Valitse kaikki",
+  "data_table_select_row": "Valitse rivi",
+  "data_table_status": "Tila",
+  "data_table_email": "Sähköposti",
+  "data_table_amount": "Summa",
+  "data_table_filter_placeholder": "Suodata sähköpostit...",
+  "data_table_no_results": "Ei tuloksia."
 }

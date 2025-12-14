@@ -567,5 +567,13 @@
   "table_method_credit": "ক্রেডিট কার্ড",
   "table_method_paypal": "PayPal",
   "table_method_bank": "ব্যাংক ট্রান্সফার",
-  "table_total": "মোট"
+  "table_total": "মোট",
+  "data_table_heading": "ডেটা টেবিল",
+  "data_table_select_all": "সব নির্বাচন",
+  "data_table_select_row": "সারি নির্বাচন",
+  "data_table_status": "অবস্থা",
+  "data_table_email": "ইমেইল",
+  "data_table_amount": "পরিমাণ",
+  "data_table_filter_placeholder": "ইমেইল ফিল্টার...",
+  "data_table_no_results": "কোন ফলাফল নেই।"
 }

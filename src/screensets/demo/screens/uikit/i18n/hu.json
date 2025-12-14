@@ -567,5 +567,13 @@
   "table_method_credit": "Hitelkártya",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Átutalás",
-  "table_total": "Összesen"
+  "table_total": "Összesen",
+  "data_table_heading": "Adattábla",
+  "data_table_select_all": "Összes kijelölése",
+  "data_table_select_row": "Sor kijelölése",
+  "data_table_status": "Állapot",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Összeg",
+  "data_table_filter_placeholder": "E-mailek szűrése...",
+  "data_table_no_results": "Nincs találat."
 }

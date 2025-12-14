@@ -567,5 +567,13 @@
   "table_method_credit": "Carta di Credito",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Bonifico",
-  "table_total": "Totale"
+  "table_total": "Totale",
+  "data_table_heading": "Tabella Dati",
+  "data_table_select_all": "Seleziona tutto",
+  "data_table_select_row": "Seleziona riga",
+  "data_table_status": "Stato",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Importo",
+  "data_table_filter_placeholder": "Filtra e-mail...",
+  "data_table_no_results": "Nessun risultato."
 }

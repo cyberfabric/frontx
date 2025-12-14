@@ -567,5 +567,13 @@
   "table_method_credit": "Πιστωτική κάρτα",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Μεταφορά",
-  "table_total": "Σύνολο"
+  "table_total": "Σύνολο",
+  "data_table_heading": "Πίνακας Δεδομένων",
+  "data_table_select_all": "Επιλογή όλων",
+  "data_table_select_row": "Επιλογή γραμμής",
+  "data_table_status": "Κατάσταση",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Ποσό",
+  "data_table_filter_placeholder": "Φίλτρο e-mail...",
+  "data_table_no_results": "Κανένα αποτέλεσμα."
 }

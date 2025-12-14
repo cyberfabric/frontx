@@ -567,5 +567,13 @@
   "table_method_credit": "Credit Card",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Bank Transfer",
-  "table_total": "Kabuuan"
+  "table_total": "Kabuuan",
+  "data_table_heading": "Talahanayan ng Data",
+  "data_table_select_all": "Piliin lahat",
+  "data_table_select_row": "Piliin hilera",
+  "data_table_status": "Status",
+  "data_table_email": "Email",
+  "data_table_amount": "Halaga",
+  "data_table_filter_placeholder": "I-filter ang email...",
+  "data_table_no_results": "Walang resulta."
 }

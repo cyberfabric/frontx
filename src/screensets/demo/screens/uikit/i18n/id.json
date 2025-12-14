@@ -567,5 +567,13 @@
   "table_method_credit": "Kartu Kredit",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Transfer Bank",
-  "table_total": "Total"
+  "table_total": "Total",
+  "data_table_heading": "Tabel Data",
+  "data_table_select_all": "Pilih semua",
+  "data_table_select_row": "Pilih baris",
+  "data_table_status": "Status",
+  "data_table_email": "Email",
+  "data_table_amount": "Jumlah",
+  "data_table_filter_placeholder": "Filter email...",
+  "data_table_no_results": "Tidak ada hasil."
 }

@@ -567,5 +567,13 @@
   "table_method_credit": "Kreditní karta",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Převod",
-  "table_total": "Celkem"
+  "table_total": "Celkem",
+  "data_table_heading": "Datová tabulka",
+  "data_table_select_all": "Vybrat vše",
+  "data_table_select_row": "Vybrat řádek",
+  "data_table_status": "Stav",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Částka",
+  "data_table_filter_placeholder": "Filtrovat e-maily...",
+  "data_table_no_results": "Žádné výsledky."
 }

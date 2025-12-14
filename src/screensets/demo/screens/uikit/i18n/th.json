@@ -567,5 +567,13 @@
   "table_method_credit": "บัตรเครดิต",
   "table_method_paypal": "PayPal",
   "table_method_bank": "โอนเงิน",
-  "table_total": "รวม"
+  "table_total": "รวม",
+  "data_table_heading": "ตารางข้อมูล",
+  "data_table_select_all": "เลือกทั้งหมด",
+  "data_table_select_row": "เลือกแถว",
+  "data_table_status": "สถานะ",
+  "data_table_email": "อีเมล",
+  "data_table_amount": "จำนวน",
+  "data_table_filter_placeholder": "กรองอีเมล...",
+  "data_table_no_results": "ไม่พบผลลัพธ์"
 }

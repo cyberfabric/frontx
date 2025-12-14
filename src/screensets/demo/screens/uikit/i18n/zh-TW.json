@@ -567,5 +567,13 @@
   "table_method_credit": "信用卡",
   "table_method_paypal": "PayPal",
   "table_method_bank": "銀行轉帳",
-  "table_total": "總計"
+  "table_total": "總計",
+  "data_table_heading": "資料表格",
+  "data_table_select_all": "全選",
+  "data_table_select_row": "選擇行",
+  "data_table_status": "狀態",
+  "data_table_email": "信箱",
+  "data_table_amount": "金額",
+  "data_table_filter_placeholder": "篩選信箱...",
+  "data_table_no_results": "無結果。"
 }

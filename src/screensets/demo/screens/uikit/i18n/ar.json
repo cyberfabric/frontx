@@ -563,5 +563,13 @@
   "table_method_credit": "بطاقة ائتمان",
   "table_method_paypal": "PayPal",
   "table_method_bank": "تحويل بنكي",
-  "table_total": "المجموع"
+  "table_total": "المجموع",
+  "data_table_heading": "جدول البيانات",
+  "data_table_select_all": "تحديد الكل",
+  "data_table_select_row": "تحديد الصف",
+  "data_table_status": "الحالة",
+  "data_table_email": "البريد الإلكتروني",
+  "data_table_amount": "المبلغ",
+  "data_table_filter_placeholder": "تصفية البريد...",
+  "data_table_no_results": "لا توجد نتائج."
 }

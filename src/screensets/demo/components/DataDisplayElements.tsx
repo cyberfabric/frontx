@@ -47,6 +47,7 @@ import { useTranslation, TextLoader } from '@hai3/uicore';
 import { BadgeCheckIcon } from 'lucide-react';
 import { DEMO_SCREENSET_ID } from "../ids";
 import { UI_KIT_ELEMENTS_SCREEN_ID } from "../ids";
+import { PaymentsDataTable } from '../uikit/data/PaymentsDataTable';
 
 /**
  * Get chart colors from CSS variables (theme-aware)
@@ -548,6 +549,18 @@ export const DataDisplayElements: React.FC = () => {
               </TableRow>
             </TableFooter>
           </Table>
+        </div>
+      </div>
+
+      {/* Data Table Element Block */}
+      <div data-element-id="element-data-table" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-32">
+          <h2 className="text-2xl font-semibold">
+            {tk('data_table_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background">
+          <PaymentsDataTable tk={tk} />
         </div>
       </div>
     </>

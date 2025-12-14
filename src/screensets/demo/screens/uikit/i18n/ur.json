@@ -567,5 +567,13 @@
   "table_method_credit": "کریڈٹ کارڈ",
   "table_method_paypal": "PayPal",
   "table_method_bank": "بینک ٹرانسفر",
-  "table_total": "کل"
+  "table_total": "کل",
+  "data_table_heading": "ڈیٹا ٹیبل",
+  "data_table_select_all": "سب منتخب کریں",
+  "data_table_select_row": "قطار منتخب کریں",
+  "data_table_status": "حیثیت",
+  "data_table_email": "ای میل",
+  "data_table_amount": "رقم",
+  "data_table_filter_placeholder": "ای میل فلٹر...",
+  "data_table_no_results": "کوئی نتائج نہیں۔"
 }

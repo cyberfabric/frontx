@@ -567,5 +567,13 @@
   "table_method_credit": "Kreditkort",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Bankoverførsel",
-  "table_total": "Total"
+  "table_total": "Total",
+  "data_table_heading": "Datatabel",
+  "data_table_select_all": "Vælg alle",
+  "data_table_select_row": "Vælg række",
+  "data_table_status": "Status",
+  "data_table_email": "E-mail",
+  "data_table_amount": "Beløb",
+  "data_table_filter_placeholder": "Filtrer e-mails...",
+  "data_table_no_results": "Ingen resultater."
 }

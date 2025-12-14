@@ -567,5 +567,13 @@
   "table_method_credit": "Kadi ya Mkopo",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Uhamisho wa Benki",
-  "table_total": "Jumla"
+  "table_total": "Jumla",
+  "data_table_heading": "Jedwali la Data",
+  "data_table_select_all": "Chagua zote",
+  "data_table_select_row": "Chagua safu",
+  "data_table_status": "Hali",
+  "data_table_email": "Barua pepe",
+  "data_table_amount": "Kiasi",
+  "data_table_filter_placeholder": "Chuja barua pepe...",
+  "data_table_no_results": "Hakuna matokeo."
 }

@@ -567,5 +567,13 @@
   "table_method_credit": "Kredi Kartı",
   "table_method_paypal": "PayPal",
   "table_method_bank": "Banka Havalesi",
-  "table_total": "Toplam"
+  "table_total": "Toplam",
+  "data_table_heading": "Veri Tablosu",
+  "data_table_select_all": "Tümünü seç",
+  "data_table_select_row": "Satır seç",
+  "data_table_status": "Durum",
+  "data_table_email": "E-posta",
+  "data_table_amount": "Tutar",
+  "data_table_filter_placeholder": "E-posta filtrele...",
+  "data_table_no_results": "Sonuç yok."
 }
