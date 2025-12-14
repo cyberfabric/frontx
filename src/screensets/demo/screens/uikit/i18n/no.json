@@ -554,5 +554,18 @@
   "form_username_label": "Brukernavn",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Dette er ditt offentlige visningsnavn.",
-  "form_submit_button": "Send inn"
+  "form_submit_button": "Send inn",
+  "table_heading": "Tabell",
+  "table_caption": "En liste over dine siste fakturaer.",
+  "table_invoice_header": "Faktura",
+  "table_status_header": "Status",
+  "table_method_header": "Metode",
+  "table_amount_header": "Beløp",
+  "table_status_paid": "Betalt",
+  "table_status_pending": "Venter",
+  "table_status_unpaid": "Ubetalt",
+  "table_method_credit": "Kredittkort",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Bankoverføring",
+  "table_total": "Totalt"
 }

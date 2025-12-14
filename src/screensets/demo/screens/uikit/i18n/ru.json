@@ -554,5 +554,18 @@
   "form_username_label": "Имя пользователя",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Это ваше публичное отображаемое имя.",
-  "form_submit_button": "Отправить"
+  "form_submit_button": "Отправить",
+  "table_heading": "Таблица",
+  "table_caption": "Список ваших недавних счетов",
+  "table_invoice_header": "Счёт",
+  "table_status_header": "Статус",
+  "table_method_header": "Метод",
+  "table_amount_header": "Сумма",
+  "table_status_paid": "Оплачено",
+  "table_status_pending": "Ожидание",
+  "table_status_unpaid": "Не оплачено",
+  "table_method_credit": "Кредитная карта",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Перевод",
+  "table_total": "Итого"
 }

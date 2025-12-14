@@ -554,5 +554,18 @@
   "form_username_label": "ชื่อผู้ใช้",
   "form_username_placeholder": "shadcn",
   "form_username_description": "นี่คือชื่อที่แสดงสาธารณะของคุณ",
-  "form_submit_button": "ส่ง"
+  "form_submit_button": "ส่ง",
+  "table_heading": "ตาราง",
+  "table_caption": "รายการใบแจ้งหนี้ล่าสุดของคุณ",
+  "table_invoice_header": "ใบแจ้งหนี้",
+  "table_status_header": "สถานะ",
+  "table_method_header": "วิธี",
+  "table_amount_header": "จำนวน",
+  "table_status_paid": "ชำระแล้ว",
+  "table_status_pending": "รอดำเนินการ",
+  "table_status_unpaid": "ยังไม่ชำระ",
+  "table_method_credit": "บัตรเครดิต",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "โอนเงิน",
+  "table_total": "รวม"
 }

@@ -554,5 +554,18 @@
   "form_username_label": "Benutzername",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Dies ist Ihr öffentlicher Anzeigename.",
-  "form_submit_button": "Absenden"
+  "form_submit_button": "Absenden",
+  "table_heading": "Tabelle",
+  "table_caption": "Eine Liste Ihrer letzten Rechnungen.",
+  "table_invoice_header": "Rechnung",
+  "table_status_header": "Status",
+  "table_method_header": "Methode",
+  "table_amount_header": "Betrag",
+  "table_status_paid": "Bezahlt",
+  "table_status_pending": "Ausstehend",
+  "table_status_unpaid": "Unbezahlt",
+  "table_method_credit": "Kreditkarte",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Überweisung",
+  "table_total": "Gesamt"
 }

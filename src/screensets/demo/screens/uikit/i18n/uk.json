@@ -554,5 +554,18 @@
   "form_username_label": "Ім'я користувача",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Це ваше публічне відображуване ім'я.",
-  "form_submit_button": "Надіслати"
+  "form_submit_button": "Надіслати",
+  "table_heading": "Таблиця",
+  "table_caption": "Список ваших останніх рахунків",
+  "table_invoice_header": "Рахунок",
+  "table_status_header": "Статус",
+  "table_method_header": "Метод",
+  "table_amount_header": "Сума",
+  "table_status_paid": "Сплачено",
+  "table_status_pending": "Очікує",
+  "table_status_unpaid": "Не сплачено",
+  "table_method_credit": "Кредитна картка",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Переказ",
+  "table_total": "Всього"
 }

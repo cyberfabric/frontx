@@ -554,5 +554,18 @@
   "form_username_label": "Felhasználónév",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Ez a nyilvános megjelenítési neved.",
-  "form_submit_button": "Küldés"
+  "form_submit_button": "Küldés",
+  "table_heading": "Táblázat",
+  "table_caption": "A legutóbbi számlák listája.",
+  "table_invoice_header": "Számla",
+  "table_status_header": "Állapot",
+  "table_method_header": "Módszer",
+  "table_amount_header": "Összeg",
+  "table_status_paid": "Fizetve",
+  "table_status_pending": "Függőben",
+  "table_status_unpaid": "Fizetetlen",
+  "table_method_credit": "Hitelkártya",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Átutalás",
+  "table_total": "Összesen"
 }

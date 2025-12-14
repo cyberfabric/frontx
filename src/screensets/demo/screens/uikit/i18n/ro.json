@@ -554,5 +554,18 @@
   "form_username_label": "Nume de utilizator",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Acesta este numele tău de afișare public.",
-  "form_submit_button": "Trimite"
+  "form_submit_button": "Trimite",
+  "table_heading": "Tabel",
+  "table_caption": "O listă a facturilor recente.",
+  "table_invoice_header": "Factură",
+  "table_status_header": "Status",
+  "table_method_header": "Metodă",
+  "table_amount_header": "Sumă",
+  "table_status_paid": "Plătit",
+  "table_status_pending": "În așteptare",
+  "table_status_unpaid": "Neplătit",
+  "table_method_credit": "Card de credit",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Transfer",
+  "table_total": "Total"
 }

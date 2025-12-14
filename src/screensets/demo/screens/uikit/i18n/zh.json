@@ -554,5 +554,18 @@
   "form_username_label": "用户名",
   "form_username_placeholder": "shadcn",
   "form_username_description": "这是您的公开显示名称。",
-  "form_submit_button": "提交"
+  "form_submit_button": "提交",
+  "table_heading": "表格",
+  "table_caption": "您最近的发票列表",
+  "table_invoice_header": "发票",
+  "table_status_header": "状态",
+  "table_method_header": "方式",
+  "table_amount_header": "金额",
+  "table_status_paid": "已付款",
+  "table_status_pending": "待处理",
+  "table_status_unpaid": "未付款",
+  "table_method_credit": "信用卡",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "银行转账",
+  "table_total": "总计"
 }

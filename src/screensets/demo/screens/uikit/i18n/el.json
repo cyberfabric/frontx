@@ -554,5 +554,18 @@
   "form_username_label": "Όνομα χρήστη",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Αυτό είναι το δημόσιο όνομα εμφάνισής σας.",
-  "form_submit_button": "Υποβολή"
+  "form_submit_button": "Υποβολή",
+  "table_heading": "Πίνακας",
+  "table_caption": "Λίστα των πρόσφατων τιμολογίων σας.",
+  "table_invoice_header": "Τιμολόγιο",
+  "table_status_header": "Κατάσταση",
+  "table_method_header": "Μέθοδος",
+  "table_amount_header": "Ποσό",
+  "table_status_paid": "Πληρωμένο",
+  "table_status_pending": "Εκκρεμεί",
+  "table_status_unpaid": "Απλήρωτο",
+  "table_method_credit": "Πιστωτική κάρτα",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Μεταφορά",
+  "table_total": "Σύνολο"
 }

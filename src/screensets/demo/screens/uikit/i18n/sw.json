@@ -554,5 +554,18 @@
   "form_username_label": "Jina la mtumiaji",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Hii ni jina lako la kuonyesha hadharani.",
-  "form_submit_button": "Wasilisha"
+  "form_submit_button": "Wasilisha",
+  "table_heading": "Jedwali",
+  "table_caption": "Orodha ya ankara zako za hivi karibuni.",
+  "table_invoice_header": "Ankara",
+  "table_status_header": "Hali",
+  "table_method_header": "Njia",
+  "table_amount_header": "Kiasi",
+  "table_status_paid": "Imelipwa",
+  "table_status_pending": "Inasubiri",
+  "table_status_unpaid": "Haijalipwa",
+  "table_method_credit": "Kadi ya Mkopo",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Uhamisho wa Benki",
+  "table_total": "Jumla"
 }

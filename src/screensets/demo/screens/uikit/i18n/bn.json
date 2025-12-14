@@ -554,5 +554,18 @@
   "form_username_label": "ব্যবহারকারীর নাম",
   "form_username_placeholder": "shadcn",
   "form_username_description": "এটি আপনার সর্বজনীন প্রদর্শন নাম।",
-  "form_submit_button": "জমা দিন"
+  "form_submit_button": "জমা দিন",
+  "table_heading": "টেবিল",
+  "table_caption": "আপনার সাম্প্রতিক চালানের তালিকা",
+  "table_invoice_header": "চালান",
+  "table_status_header": "অবস্থা",
+  "table_method_header": "পদ্ধতি",
+  "table_amount_header": "পরিমাণ",
+  "table_status_paid": "পরিশোধিত",
+  "table_status_pending": "মুলতুবি",
+  "table_status_unpaid": "অপরিশোধিত",
+  "table_method_credit": "ক্রেডিট কার্ড",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "ব্যাংক ট্রান্সফার",
+  "table_total": "মোট"
 }

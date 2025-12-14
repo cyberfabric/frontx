@@ -554,5 +554,18 @@
   "form_username_label": "Nome de usuário",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Este é o seu nome de exibição público.",
-  "form_submit_button": "Enviar"
+  "form_submit_button": "Enviar",
+  "table_heading": "Tabela",
+  "table_caption": "Uma lista de suas faturas recentes.",
+  "table_invoice_header": "Fatura",
+  "table_status_header": "Status",
+  "table_method_header": "Método",
+  "table_amount_header": "Valor",
+  "table_status_paid": "Pago",
+  "table_status_pending": "Pendente",
+  "table_status_unpaid": "Não pago",
+  "table_method_credit": "Cartão de Crédito",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Transferência",
+  "table_total": "Total"
 }

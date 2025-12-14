@@ -554,5 +554,18 @@
   "form_username_label": "نام کاربری",
   "form_username_placeholder": "shadcn",
   "form_username_description": "این نام نمایش عمومی شماست.",
-  "form_submit_button": "ارسال"
+  "form_submit_button": "ارسال",
+  "table_heading": "جدول",
+  "table_caption": "لیست فاکتورهای اخیر شما",
+  "table_invoice_header": "فاکتور",
+  "table_status_header": "وضعیت",
+  "table_method_header": "روش",
+  "table_amount_header": "مبلغ",
+  "table_status_paid": "پرداخت شده",
+  "table_status_pending": "در انتظار",
+  "table_status_unpaid": "پرداخت نشده",
+  "table_method_credit": "کارت اعتباری",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "انتقال بانکی",
+  "table_total": "مجموع"
 }

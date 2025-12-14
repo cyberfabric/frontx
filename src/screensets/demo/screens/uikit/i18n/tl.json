@@ -554,5 +554,18 @@
   "form_username_label": "Username",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Ito ang iyong pampublikong display name.",
-  "form_submit_button": "Isumite"
+  "form_submit_button": "Isumite",
+  "table_heading": "Talahanayan",
+  "table_caption": "Listahan ng iyong mga kamakailan na invoice.",
+  "table_invoice_header": "Invoice",
+  "table_status_header": "Status",
+  "table_method_header": "Paraan",
+  "table_amount_header": "Halaga",
+  "table_status_paid": "Bayad",
+  "table_status_pending": "Naghihintay",
+  "table_status_unpaid": "Hindi pa bayad",
+  "table_method_credit": "Credit Card",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Bank Transfer",
+  "table_total": "Kabuuan"
 }

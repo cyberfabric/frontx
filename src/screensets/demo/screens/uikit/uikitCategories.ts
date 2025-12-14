@@ -206,6 +206,7 @@ export const IMPLEMENTED_ELEMENTS = [
   'Slider',
   'Spinner',
   'Switch',
+  'Table',
   'Tabs',
   'Textarea',
   'Tooltip',

@@ -554,5 +554,18 @@
   "form_username_label": "Gebruikersnaam",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Dit is je openbare weergavenaam.",
-  "form_submit_button": "Verzenden"
+  "form_submit_button": "Verzenden",
+  "table_heading": "Tabel",
+  "table_caption": "Een lijst van uw recente facturen.",
+  "table_invoice_header": "Factuur",
+  "table_status_header": "Status",
+  "table_method_header": "Methode",
+  "table_amount_header": "Bedrag",
+  "table_status_paid": "Betaald",
+  "table_status_pending": "In afwachting",
+  "table_status_unpaid": "Onbetaald",
+  "table_method_credit": "Creditcard",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Overboeking",
+  "table_total": "Totaal"
 }

@@ -554,5 +554,18 @@
   "form_username_label": "ユーザー名",
   "form_username_placeholder": "shadcn",
   "form_username_description": "これはあなたの公開表示名です。",
-  "form_submit_button": "送信"
+  "form_submit_button": "送信",
+  "table_heading": "テーブル",
+  "table_caption": "最近の請求書一覧",
+  "table_invoice_header": "請求書",
+  "table_status_header": "ステータス",
+  "table_method_header": "方法",
+  "table_amount_header": "金額",
+  "table_status_paid": "支払済",
+  "table_status_pending": "保留中",
+  "table_status_unpaid": "未払い",
+  "table_method_credit": "クレジットカード",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "銀行振込",
+  "table_total": "合計"
 }

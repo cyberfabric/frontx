@@ -554,5 +554,18 @@
   "form_username_label": "Username",
   "form_username_placeholder": "shadcn",
   "form_username_description": "This is your public display name.",
-  "form_submit_button": "Submit"
+  "form_submit_button": "Submit",
+  "table_heading": "Table",
+  "table_caption": "A list of your recent invoices.",
+  "table_invoice_header": "Invoice",
+  "table_status_header": "Status",
+  "table_method_header": "Method",
+  "table_amount_header": "Amount",
+  "table_status_paid": "Paid",
+  "table_status_pending": "Pending",
+  "table_status_unpaid": "Unpaid",
+  "table_method_credit": "Credit Card",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Bank Transfer",
+  "table_total": "Total"
 }

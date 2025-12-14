@@ -554,5 +554,18 @@
   "form_username_label": "صارف نام",
   "form_username_placeholder": "shadcn",
   "form_username_description": "یہ آپ کا عوامی ڈسپلے نام ہے۔",
-  "form_submit_button": "جمع کرائیں"
+  "form_submit_button": "جمع کرائیں",
+  "table_heading": "ٹیبل",
+  "table_caption": "آپ کے حالیہ انوائسز کی فہرست",
+  "table_invoice_header": "انوائس",
+  "table_status_header": "حیثیت",
+  "table_method_header": "طریقہ",
+  "table_amount_header": "رقم",
+  "table_status_paid": "ادا شدہ",
+  "table_status_pending": "زیر التواء",
+  "table_status_unpaid": "غیر ادا شدہ",
+  "table_method_credit": "کریڈٹ کارڈ",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "بینک ٹرانسفر",
+  "table_total": "کل"
 }

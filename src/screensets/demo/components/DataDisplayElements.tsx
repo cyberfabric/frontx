@@ -34,6 +34,14 @@ import {
   ButtonVariant,
   ButtonSize,
   ChevronRightIcon,
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from '@hai3/uikit';
 import { useTranslation, TextLoader } from '@hai3/uicore';
 import { BadgeCheckIcon } from 'lucide-react';
@@ -456,6 +464,90 @@ export const DataDisplayElements: React.FC = () => {
               </Item>
             </ItemGroup>
           </div>
+        </div>
+      </div>
+
+      {/* Table Element Block */}
+      <div data-element-id="element-table" className="flex flex-col gap-4">
+        <TextLoader skeletonClassName="h-8 w-24">
+          <h2 className="text-2xl font-semibold">
+            {tk('table_heading')}
+          </h2>
+        </TextLoader>
+        <div className="flex flex-col gap-6 p-6 border border-border rounded-lg bg-background">
+          <Table>
+            <TableCaption>
+              <TextLoader skeletonClassName="h-4 w-48" inheritColor>
+                {tk('table_caption')}
+              </TextLoader>
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">
+                  <TextLoader skeletonClassName="h-4 w-14" inheritColor>
+                    {tk('table_invoice_header')}
+                  </TextLoader>
+                </TableHead>
+                <TableHead>
+                  <TextLoader skeletonClassName="h-4 w-12" inheritColor>
+                    {tk('table_status_header')}
+                  </TextLoader>
+                </TableHead>
+                <TableHead>
+                  <TextLoader skeletonClassName="h-4 w-14" inheritColor>
+                    {tk('table_method_header')}
+                  </TextLoader>
+                </TableHead>
+                <TableHead className="text-right">
+                  <TextLoader skeletonClassName="h-4 w-14" inheritColor>
+                    {tk('table_amount_header')}
+                  </TextLoader>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              <TableRow>
+                <TableCell className="font-medium">INV001</TableCell>
+                <TableCell>{tk('table_status_paid')}</TableCell>
+                <TableCell>{tk('table_method_credit')}</TableCell>
+                <TableCell className="text-right">$250.00</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">INV002</TableCell>
+                <TableCell>{tk('table_status_pending')}</TableCell>
+                <TableCell>{tk('table_method_paypal')}</TableCell>
+                <TableCell className="text-right">$150.00</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">INV003</TableCell>
+                <TableCell>{tk('table_status_unpaid')}</TableCell>
+                <TableCell>{tk('table_method_bank')}</TableCell>
+                <TableCell className="text-right">$350.00</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">INV004</TableCell>
+                <TableCell>{tk('table_status_paid')}</TableCell>
+                <TableCell>{tk('table_method_credit')}</TableCell>
+                <TableCell className="text-right">$450.00</TableCell>
+              </TableRow>
+              <TableRow>
+                <TableCell className="font-medium">INV005</TableCell>
+                <TableCell>{tk('table_status_paid')}</TableCell>
+                <TableCell>{tk('table_method_paypal')}</TableCell>
+                <TableCell className="text-right">$550.00</TableCell>
+              </TableRow>
+            </TableBody>
+            <TableFooter>
+              <TableRow>
+                <TableCell colSpan={3}>
+                  <TextLoader skeletonClassName="h-4 w-10" inheritColor>
+                    {tk('table_total')}
+                  </TextLoader>
+                </TableCell>
+                <TableCell className="text-right">$1,750.00</TableCell>
+              </TableRow>
+            </TableFooter>
+          </Table>
         </div>
       </div>
     </>

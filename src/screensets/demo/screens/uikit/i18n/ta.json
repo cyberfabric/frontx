@@ -554,5 +554,18 @@
   "form_username_label": "பயனர்பெயர்",
   "form_username_placeholder": "shadcn",
   "form_username_description": "இது உங்கள் பொது காட்சி பெயர்.",
-  "form_submit_button": "சமர்ப்பி"
+  "form_submit_button": "சமர்ப்பி",
+  "table_heading": "அட்டவணை",
+  "table_caption": "உங்கள் சமீபத்திய விலைப்பட்டியல்கள்",
+  "table_invoice_header": "விலைப்பட்டியல்",
+  "table_status_header": "நிலை",
+  "table_method_header": "முறை",
+  "table_amount_header": "தொகை",
+  "table_status_paid": "செலுத்தப்பட்டது",
+  "table_status_pending": "நிலுவையில்",
+  "table_status_unpaid": "செலுத்தவில்லை",
+  "table_method_credit": "கிரெடிட் கார்டு",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "வங்கி பரிமாற்றம்",
+  "table_total": "மொத்தம்"
 }

@@ -554,5 +554,18 @@
   "form_username_label": "Käyttäjänimi",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Tämä on julkinen näyttönimesi.",
-  "form_submit_button": "Lähetä"
+  "form_submit_button": "Lähetä",
+  "table_heading": "Taulukko",
+  "table_caption": "Luettelo viimeisimmistä laskuistasi.",
+  "table_invoice_header": "Lasku",
+  "table_status_header": "Tila",
+  "table_method_header": "Menetelmä",
+  "table_amount_header": "Summa",
+  "table_status_paid": "Maksettu",
+  "table_status_pending": "Odottaa",
+  "table_status_unpaid": "Maksamaton",
+  "table_method_credit": "Luottokortti",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Tilisiirto",
+  "table_total": "Yhteensä"
 }

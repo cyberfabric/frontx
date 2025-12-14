@@ -554,5 +554,18 @@
   "form_username_label": "Tên người dùng",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Đây là tên hiển thị công khai của bạn.",
-  "form_submit_button": "Gửi"
+  "form_submit_button": "Gửi",
+  "table_heading": "Bảng",
+  "table_caption": "Danh sách hóa đơn gần đây.",
+  "table_invoice_header": "Hóa đơn",
+  "table_status_header": "Trạng thái",
+  "table_method_header": "Phương thức",
+  "table_amount_header": "Số tiền",
+  "table_status_paid": "Đã thanh toán",
+  "table_status_pending": "Đang chờ",
+  "table_status_unpaid": "Chưa thanh toán",
+  "table_method_credit": "Thẻ tín dụng",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Chuyển khoản",
+  "table_total": "Tổng"
 }

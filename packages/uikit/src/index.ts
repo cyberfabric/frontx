@@ -41,6 +41,16 @@ export {
 } from './base/form';
 export { Textarea } from './base/textarea';
 export { Switch } from './base/switch';
+export {
+  Table,
+  TableHeader,
+  TableBody,
+  TableFooter,
+  TableHead,
+  TableRow,
+  TableCell,
+  TableCaption,
+} from './base/table';
 export { Skeleton } from './base/skeleton';
 export { Spinner, type SpinnerProps } from './base/spinner';
 export { Slider, SliderTrack, SliderRange, SliderThumb } from './base/slider';

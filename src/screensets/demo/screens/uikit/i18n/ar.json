@@ -550,5 +550,18 @@
   "form_username_label": "اسم المستخدم",
   "form_username_placeholder": "shadcn",
   "form_username_description": "هذا هو اسم العرض العام الخاص بك.",
-  "form_submit_button": "إرسال"
+  "form_submit_button": "إرسال",
+  "table_heading": "جدول",
+  "table_caption": "قائمة بفواتيرك الأخيرة",
+  "table_invoice_header": "فاتورة",
+  "table_status_header": "الحالة",
+  "table_method_header": "الطريقة",
+  "table_amount_header": "المبلغ",
+  "table_status_paid": "مدفوع",
+  "table_status_pending": "قيد الانتظار",
+  "table_status_unpaid": "غير مدفوع",
+  "table_method_credit": "بطاقة ائتمان",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "تحويل بنكي",
+  "table_total": "المجموع"
 }

@@ -554,5 +554,18 @@
   "form_username_label": "Kullanıcı adı",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Bu, herkese açık görünen adınızdır.",
-  "form_submit_button": "Gönder"
+  "form_submit_button": "Gönder",
+  "table_heading": "Tablo",
+  "table_caption": "Son faturalarınızın listesi.",
+  "table_invoice_header": "Fatura",
+  "table_status_header": "Durum",
+  "table_method_header": "Yöntem",
+  "table_amount_header": "Tutar",
+  "table_status_paid": "Ödendi",
+  "table_status_pending": "Bekliyor",
+  "table_status_unpaid": "Ödenmedi",
+  "table_method_credit": "Kredi Kartı",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Banka Havalesi",
+  "table_total": "Toplam"
 }

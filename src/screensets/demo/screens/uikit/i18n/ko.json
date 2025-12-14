@@ -554,5 +554,18 @@
   "form_username_label": "사용자 이름",
   "form_username_placeholder": "shadcn",
   "form_username_description": "이것은 공개 표시 이름입니다.",
-  "form_submit_button": "제출"
+  "form_submit_button": "제출",
+  "table_heading": "테이블",
+  "table_caption": "최근 청구서 목록",
+  "table_invoice_header": "청구서",
+  "table_status_header": "상태",
+  "table_method_header": "방법",
+  "table_amount_header": "금액",
+  "table_status_paid": "결제완료",
+  "table_status_pending": "대기중",
+  "table_status_unpaid": "미결제",
+  "table_method_credit": "신용카드",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "계좌이체",
+  "table_total": "합계"
 }

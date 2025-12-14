@@ -554,5 +554,18 @@
   "form_username_label": "Uživatelské jméno",
   "form_username_placeholder": "shadcn",
   "form_username_description": "Toto je vaše veřejné zobrazované jméno.",
-  "form_submit_button": "Odeslat"
+  "form_submit_button": "Odeslat",
+  "table_heading": "Tabulka",
+  "table_caption": "Seznam vašich posledních faktur.",
+  "table_invoice_header": "Faktura",
+  "table_status_header": "Stav",
+  "table_method_header": "Metoda",
+  "table_amount_header": "Částka",
+  "table_status_paid": "Zaplaceno",
+  "table_status_pending": "Čeká",
+  "table_status_unpaid": "Nezaplaceno",
+  "table_method_credit": "Kreditní karta",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Převod",
+  "table_total": "Celkem"
 }

@@ -554,5 +554,18 @@
   "form_username_label": "उपयोगकर्ता नाम",
   "form_username_placeholder": "shadcn",
   "form_username_description": "यह आपका सार्वजनिक प्रदर्शन नाम है।",
-  "form_submit_button": "जमा करें"
+  "form_submit_button": "जमा करें",
+  "table_heading": "तालिका",
+  "table_caption": "आपके हाल के चालानों की सूची",
+  "table_invoice_header": "चालान",
+  "table_status_header": "स्थिति",
+  "table_method_header": "विधि",
+  "table_amount_header": "राशि",
+  "table_status_paid": "भुगतान किया",
+  "table_status_pending": "लंबित",
+  "table_status_unpaid": "अवैतनिक",
+  "table_method_credit": "क्रेडिट कार्ड",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "बैंक ट्रांसफर",
+  "table_total": "कुल"
 }

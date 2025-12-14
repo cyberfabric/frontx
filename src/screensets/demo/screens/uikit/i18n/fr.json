@@ -554,5 +554,18 @@
   "form_username_label": "Nom d'utilisateur",
   "form_username_placeholder": "shadcn",
   "form_username_description": "C'est votre nom d'affichage public.",
-  "form_submit_button": "Soumettre"
+  "form_submit_button": "Soumettre",
+  "table_heading": "Tableau",
+  "table_caption": "Une liste de vos factures récentes.",
+  "table_invoice_header": "Facture",
+  "table_status_header": "Statut",
+  "table_method_header": "Méthode",
+  "table_amount_header": "Montant",
+  "table_status_paid": "Payé",
+  "table_status_pending": "En attente",
+  "table_status_unpaid": "Impayé",
+  "table_method_credit": "Carte de Crédit",
+  "table_method_paypal": "PayPal",
+  "table_method_bank": "Virement",
+  "table_total": "Total"
 }
