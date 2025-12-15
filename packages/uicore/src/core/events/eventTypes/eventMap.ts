@@ -13,6 +13,7 @@ import type { ThemeEventPayloadMap } from './themeEvents';
 import type { NavigationEventPayloadMap } from './navigationEvents';
 import type { ScreensetEventPayloadMap } from './screensetEvents';
 import type { I18nEventPayloadMap } from './i18nEvents';
+import type { TenantEventPayloadMap } from './tenantEvents';
 
 /**
  * Global Event Payload Map
@@ -43,7 +44,8 @@ export interface EventPayloadMap
     ThemeEventPayloadMap,
     NavigationEventPayloadMap,
     ScreensetEventPayloadMap,
-    I18nEventPayloadMap {}
+    I18nEventPayloadMap,
+    TenantEventPayloadMap {}
 
 /**
  * Event Key Type

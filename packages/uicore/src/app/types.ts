@@ -17,10 +17,4 @@ export interface User {
 
 export interface Tenant {
   id: string;
-  name: string;
-  branding: {
-    logo?: string;
-    primaryColor?: string;
-    secondaryColor?: string;
-  };
 }

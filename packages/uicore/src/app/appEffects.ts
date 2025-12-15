@@ -13,7 +13,8 @@ import { UserEvents } from '../core/events/eventTypes/userEvents';
 import { ApiEvents } from '../core/events/eventTypes/apiEvents';
 import { I18nEvents } from '../core/events/eventTypes/i18nEvents';
 import { ScreensetEvents } from '../core/events/eventTypes/screensetEvents';
-import { setUser, setError, setLoading, setUseMockApi, setLanguage, setTranslationsReady } from './appSlice';
+import { TenantEvents } from '../core/events/eventTypes/tenantEvents';
+import { setUser, setError, setLoading, setUseMockApi, setLanguage, setTranslationsReady, setTenant } from './appSlice';
 import { i18nRegistry } from '../i18n/i18nRegistry';
 import { apiRegistry } from '../api/apiRegistry';
 
@@ -84,6 +85,11 @@ export function initAppEffects(store: Store): void {
 
     // Mark translations as ready after loading
     store.dispatch(setTranslationsReady(true));
+  });
+
+  // Tenant events
+  eventBus.on(TenantEvents.Changed, ({ tenant }) => {
+    store.dispatch(setTenant(tenant));
   });
 
   // Screenset change events - load translations for newly selected screenset

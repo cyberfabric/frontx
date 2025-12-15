@@ -2,6 +2,7 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { ApiUser } from '../api/services/accounts/api';
 import { Language } from '../i18n/types';
 import { UICORE_ID } from '../core/constants';
+import type { Tenant } from './types';
 
 /**
  * App Slice - Application-level state
@@ -14,7 +15,7 @@ const SLICE_KEY = `${UICORE_ID}/${DOMAIN_ID}` as const;
 
 export interface AppState {
   user: ApiUser | null;
-  tenant: unknown | null; // TODO: Define Tenant type in accounts/api.ts
+  tenant: Tenant | null;
   language: Language | null; // User's language preference (null until determined)
   translationsReady: boolean; // Whether current language translations are loaded
   screenTranslationsVersion: number; // Incremented when screen translations load (triggers re-render)
@@ -41,7 +42,7 @@ const appSlice = createSlice({
     setUser: (state, action: PayloadAction<ApiUser | null>) => {
       state.user = action.payload;
     },
-    setTenant: (state, action: PayloadAction<unknown | null>) => {
+    setTenant: (state, action: PayloadAction<Tenant | null>) => {
       state.tenant = action.payload;
     },
     setLoading: (state, action: PayloadAction<boolean>) => {

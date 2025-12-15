@@ -59,7 +59,7 @@ export { routeRegistry, type RouteInfo } from './core/routing/routeRegistry';
 // Event-driven actions (AI: READ THIS - use these, NOT slice actions)
 // Note: bootstrapApp is internal to uicore, dispatched automatically by Layout
 // Actions use imperative names (change, select, toggle, fetch) - NOT "set" prefix
-export { changeTheme, selectScreenset, toggleMenu, navigateToScreen, fetchCurrentUser, setApiMode } from './core/actions';
+export { changeTheme, selectScreenset, toggleMenu, navigateToScreen, fetchCurrentUser, setApiMode, changeTenant } from './core/actions';
 export { setSelectedScreen } from './layout/layoutSlice'; // Direct action (Menu internal use)
 
 // API (SOLID architecture with domain-driven, self-registering services)
@@ -83,6 +83,7 @@ export { TextLoader, type TextLoaderProps } from './i18n/TextLoader';
 export { changeLanguage } from './core/actions/i18nActions';
 export { Language, TextDirection, LanguageDisplayMode, SUPPORTED_LANGUAGES, type LanguageMetadata, type TranslationDictionary, type TranslationLoader, type I18nConfig } from './i18n/types';
 export { I18nEvents, type LanguageChangedPayload } from './core/events/eventTypes/i18nEvents';
+export { TenantEvents, type TenantChangedPayload } from './core/events/eventTypes/tenantEvents';
 
 // Event system (bus, types, enums)
 export { eventBus } from './core/events/eventBus';

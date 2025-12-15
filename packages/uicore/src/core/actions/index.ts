@@ -16,3 +16,4 @@ export { navigateToScreen } from './navigationActions';
 export { setApiMode } from './apiActions';
 export { fetchCurrentUser } from './userActions';
 export { changeLanguage } from './i18nActions';
+export { changeTenant } from './tenantActions';
