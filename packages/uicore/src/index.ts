@@ -20,7 +20,9 @@ export { Layout } from './layout';
 
 // Layout domains
 export { Header } from './layout/domains/header/Header';
+export { setHeaderConfig } from './layout/domains/header/headerSlice';
 export { Footer } from './layout/domains/footer/Footer';
+export { setFooterConfig } from './layout/domains/footer/footerSlice';
 export { Menu } from './layout/domains/menu/Menu';
 export { setMenuConfig, type MenuItem } from './layout/domains/menu/menuSlice';
 export { Sidebar } from './layout/domains/sidebar/Sidebar';
@@ -50,7 +52,7 @@ export type { UiKitComponentMap, ComponentName, Theme } from '@hai3/uikit-contra
 export { UiKitComponent, UiKitIcon } from '@hai3/uikit-contracts';
 
 // HAI3Provider - Main entry point for apps
-export { HAI3Provider, type HAI3ProviderProps } from './core/HAI3Provider';
+export { HAI3Provider, type HAI3ProviderProps, type RouterConfig, type RouterType, type LayoutConfig } from './core/HAI3Provider';
 
 // Routing
 export { AppRouter } from './core/routing/AppRouter';

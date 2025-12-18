@@ -1,25 +1,35 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { UICORE_ID } from '../../../core/constants';
 import { LAYOUT_DOMAINS } from '../../layoutSlice';
 
 /**
  * Header slice for managing header configuration
- * Note: Header currently has no state - purely presentational
  */
 
 const DOMAIN_ID = LAYOUT_DOMAINS.HEADER;
 const SLICE_KEY = `${UICORE_ID}/${DOMAIN_ID}` as const;
 
-export interface HeaderState {}
+export interface HeaderState {
+  visible: boolean;
+}
 
-const initialState: HeaderState = {};
+const initialState: HeaderState = {
+  visible: true,
+};
 
 const headerSlice = createSlice({
   name: SLICE_KEY,
   initialState,
-  reducers: {},
+  reducers: {
+    setHeaderVisible: (state, action: PayloadAction<boolean>) => {
+      state.visible = action.payload;
+    },
+    setHeaderConfig: (state, action: PayloadAction<Partial<HeaderState>>) => {
+      return { ...state, ...action.payload };
+    },
+  },
 });
 
-// No actions currently exported
+export const { setHeaderVisible, setHeaderConfig } = headerSlice.actions;
 
 export default headerSlice.reducer;

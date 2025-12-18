@@ -4,10 +4,34 @@
  * Includes Redux Provider and AppRouter - apps just need to register themes/screensets
  */
 
-import React, { Suspense, lazy } from 'react';
-import { Provider } from 'react-redux';
-import { store } from '../store';
+import React, { Suspense, lazy, useEffect } from 'react';
+import { Provider, useDispatch } from 'react-redux';
+import { store, type AppDispatch } from '../store';
+import { setHeaderConfig } from '../layout/domains/header/headerSlice';
+import { setMenuConfig } from '../layout/domains/menu/menuSlice';
+import { setFooterConfig } from '../layout/domains/footer/footerSlice';
+import { setSidebarConfig } from '../layout/domains/sidebar/sidebarSlice';
 import { AppRouter } from './routing/AppRouter';
+
+/**
+ * Router configuration type
+ */
+export type RouterType = 'browser' | 'hash' | 'memory';
+
+export type RouterConfig = {
+  type: RouterType;
+};
+
+/**
+ * Layout configuration type
+ * Each domain accepts an object with visible field
+ */
+export type LayoutConfig = {
+  header?: { visible?: boolean };
+  menu?: { visible?: boolean };
+  footer?: { visible?: boolean };
+  sidebar?: { visible?: boolean };
+};
 
 /**
  * Check if we're in development mode
@@ -39,7 +63,50 @@ const StudioOverlay = isDevelopment
 
 export interface HAI3ProviderProps {
   children?: React.ReactNode;
+  router?: RouterConfig;
+  layout?: LayoutConfig;
 }
+
+const useApplyLayoutConfig = (layout?: LayoutConfig) => {
+   const dispatch = useDispatch<AppDispatch>();
+
+   useEffect(() => {
+    if (!layout) {
+      return;
+    }
+
+    const actions = {
+      header: setHeaderConfig,
+      menu: setMenuConfig,
+      footer: setFooterConfig,
+      sidebar: setSidebarConfig,
+    } as const;
+
+    (Object.keys(actions) as (keyof typeof actions)[]).forEach((key) => {
+      const config = layout[key];
+
+      if (config) {
+        dispatch(actions[key](config));
+      }
+    });
+   }, [dispatch, layout]);
+};
+
+const HAI3ProviderInner: React.FC<HAI3ProviderProps> = ({ children, router, layout }) => {
+  useApplyLayoutConfig(layout);
+
+  return (
+    <>
+      {children}
+      <AppRouter routerType={router?.type} />
+      {StudioOverlay && (
+        <Suspense fallback={null}>
+          <StudioOverlay />
+        </Suspense>
+      )}
+    </>
+  );
+};
 
 /**
  * HAI3Provider - Main wrapper for HAI3 applications
@@ -73,18 +140,8 @@ export interface HAI3ProviderProps {
  * };
  * ```
  */
-export const HAI3Provider: React.FC<HAI3ProviderProps> = ({ children }) => {
-  return (
-    <Provider store={store}>
-      {children}
-      <AppRouter />
-
-      {/* Auto-inject Studio in development mode if package is installed */}
-      {StudioOverlay && (
-        <Suspense fallback={null}>
-          <StudioOverlay />
-        </Suspense>
-      )}
-    </Provider>
-  );
-};
+export const HAI3Provider: React.FC<HAI3ProviderProps> = (props) => (
+  <Provider store={store}>
+    <HAI3ProviderInner {...props} />
+  </Provider>
+);
