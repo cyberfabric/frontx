@@ -1,6 +1,6 @@
 {
   "name": "@hai3/uicore",
-  "version": "0.1.0-alpha.1",
+  "version": "0.1.0-alpha.3",
   "description": "HAI3 UI Core - Layout system and Redux architecture for SaaS control panels",
   "type": "module",
   "main": "./dist/index.cjs",
