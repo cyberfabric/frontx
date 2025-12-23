@@ -1,6 +1,6 @@
 {
   "name": "@hai3/uikit",
-  "version": "0.1.0-alpha.10",
+  "version": "0.1.0-alpha.11",
   "description": "HAI3 UI Kit - Reusable React components built on shadcn/ui",
   "type": "module",
   "main": "./dist/index.cjs",
