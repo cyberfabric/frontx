@@ -26,11 +26,11 @@
 
 ## 4. Command Layer Variants
 
-- [ ] 4.1 Create `hai3-new-api-service.framework.md` with action/store guidance
-- [ ] 4.2 Create `hai3-new-api-service.react.md` with hooks/component guidance
-- [ ] 4.3 Update base `hai3-new-api-service.md` to focus on SDK patterns
-- [ ] 4.4 Review `hai3-new-action.md` - verify framework-appropriate (may need variants)
-- [ ] 4.5 Verify React package commands are react-layer specific (no variants needed)
+- [x] 4.1 Create `hai3-new-api-service.framework.md` with action/store guidance
+- [x] 4.2 Create `hai3-new-api-service.react.md` with hooks/component guidance
+- [x] 4.3 Update base `hai3-new-api-service.md` to focus on SDK patterns
+- [x] 4.4 Review `hai3-new-action.md` - verify framework-appropriate (may need variants)
+- [x] 4.5 Verify React package commands are react-layer specific (no variants needed)
 
 ## 5. Build Pipeline Updates
 
