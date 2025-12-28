@@ -68,14 +68,14 @@ This roadmap outlines practical, actionable tasks. V#1 defines the core dual-mod
 
 ---
 
-## V#1 - 3-Layer SDK Architecture ✅ COMPLETE
+## V#1 - 4-Layer SDK Architecture ✅ COMPLETE
 
-**Goal**: HAI3 operates with a layered architecture - SDK packages (L1) for pure data flow, Framework (L2) for plugin system and registries, and React (L3) for UI bindings.
+**Goal**: HAI3 operates with a layered architecture - SDK packages (L1) for pure data flow, Framework (L2) for plugin system and registries, React (L3) for UI bindings, and App (L4) for user application code.
 
-### 3-Layer Package Structure ✅
+### 4-Layer Package Structure ✅
 
 ```
-L1 (SDK)        @hai3/events, @hai3/store, @hai3/layout, @hai3/api, @hai3/i18n
+L1 (SDK)        @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
                 Zero cross-dependencies, no React, use anywhere
                     ↓
 L2 (Framework)  @hai3/framework
@@ -83,14 +83,16 @@ L2 (Framework)  @hai3/framework
                     ↓
 L3 (React)      @hai3/react
                 React bindings, hooks, providers
+                    ↓
+L4 (App)        User application code
+                Screensets, themes, custom components
 ```
 
 ### Phase 1: SDK Package Implementation ✅
-- [x] Create @hai3/events package (EventBus, createAction, type-safe events)
-- [x] Create @hai3/store package (Redux primitives, registerSlice)
-- [x] Create @hai3/layout package (domain slices: header, menu, screen, etc.)
+- [x] Create @hai3/state package (EventBus, store, slices, registerSlice)
 - [x] Create @hai3/api package (BaseApiService, RestProtocol, MockPlugin)
 - [x] Create @hai3/i18n package (Language enum, translation loading)
+- [x] Create @hai3/screensets package (screenset types and utilities)
 - [x] All SDK packages have zero @hai3 dependencies
 - [x] All SDK packages work without React
 
@@ -178,6 +180,10 @@ L3 (React)      @hai3/react
 - [x] Command prefixing strategy (hai3:, openspec:, hai3dev:)
 - [x] Split AI rules by context (standalone vs monorepo)
 - [x] Commands-only architecture (eliminated workflows)
+- [x] Layer-aware AI configuration (targets filtered by project layer)
+- [x] Layer-specific GUIDELINES variants (sdk, framework, react/app)
+- [x] Command variant selection with fallback chain (react → framework → sdk → base)
+- [x] Layer stored in hai3.config.json for `hai3 update` to use
 - [ ] Implement AI-guidelines validation in CI
 
 ---

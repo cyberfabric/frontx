@@ -176,13 +176,34 @@ HAI3 defines a **three-stage development workflow** that maximizes AI efficiency
 # Install HAI3 CLI globally
 npm install -g @hai3/cli
 
-# Create a new project
+# Create a new project (full app with UI)
 hai3 create my-app
 
 # Navigate to project and start development
 cd my-app
 npm run dev
 ```
+
+#### Creating Layer-Specific Packages
+
+For building SDK packages that integrate with the HAI3 ecosystem:
+
+```bash
+# Create an SDK-layer package (no HAI3 dependencies, no React)
+hai3 create my-sdk-package --layer sdk
+
+# Create a framework-layer package (depends on SDK packages only)
+hai3 create my-framework-package --layer framework
+
+# Create a React-layer package (depends on @hai3/framework)
+hai3 create my-react-package --layer react
+```
+
+Each layer package includes:
+- Layer-appropriate `.ai/GUIDELINES.md` with filtered routing rules
+- Layer-filtered `.ai/targets/` (only targets applicable to that layer)
+- Layer-specific AI commands (with variant selection fallback chain)
+- Pre-configured ESLint with layer restrictions (e.g., no React imports in SDK layer)
 
 #### Option 2: Clone this repository
 
@@ -212,16 +233,13 @@ HAI3/                               # Repository root
 │   └── ROADMAP.md                  # Planned milestones
 ├── index.html                      # Vite HTML entry
 ├── packages/                       # Workspaces with reusable libraries
-│   ├── events/                     # SDK L1: Event bus and actions
-│   ├── store/                      # SDK L1: Redux store primitives
-│   ├── layout/                     # SDK L1: Layout domain slices
+│   ├── state/                      # SDK L1: Event bus, store, and slices
 │   ├── api/                        # SDK L1: API services and protocols
 │   ├── i18n/                       # SDK L1: Internationalization
+│   ├── screensets/                 # SDK L1: Screenset types and utilities
 │   ├── framework/                  # L2: Plugin system and registries
 │   ├── react/                      # L3: React bindings and hooks
 │   ├── uikit/                      # React component library
-│   ├── uicore/                     # [DEPRECATED] Use @hai3/react instead
-│   ├── uikit-contracts/            # [DEPRECATED] Use @hai3/uikit instead
 │   ├── studio/                     # Development overlay (optional)
 │   └── cli/                        # CLI tool for project scaffolding
 ├── src/                            # App source code
@@ -238,12 +256,12 @@ HAI3/                               # Repository root
 └── vite.config.ts                  # Vite build/dev configuration
 ```
 
-### SDK Architecture (3-Layer)
+### SDK Architecture (4-Layer)
 
 HAI3 follows a layered architecture for maximum flexibility:
 
 ```
-L1 (SDK)        @hai3/events, @hai3/store, @hai3/layout, @hai3/api, @hai3/i18n
+L1 (SDK)        @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
                 Zero cross-dependencies, no React, use anywhere
                     ↓
 L2 (Framework)  @hai3/framework
@@ -252,7 +270,8 @@ L2 (Framework)  @hai3/framework
 L3 (React)      @hai3/react
                 React bindings, hooks, providers
                     ↓
-User Code       Screensets, themes, custom components
+L4 (App)        User application code
+                Screensets, themes, custom components
 ```
 
 **Use Cases:**
@@ -276,6 +295,17 @@ After creation:
 1. Add new screens using your favorite AI agent or IDE
 2. The screenset auto-registers via Vite glob pattern
 3. Run `npm run dev` and switch to the new screenset via the UI selector
+
+### Updating AI Configuration
+
+When HAI3 updates are released, use the update command to sync your project:
+
+```bash
+# Update AI configuration and templates
+hai3 update
+```
+
+For layer packages, the update respects your project's layer (stored in `hai3.config.json`) and only syncs layer-appropriate targets and commands.
 
 See [GUIDELINES.md](.ai/GUIDELINES.md) for detailed development guidelines.
 
