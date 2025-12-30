@@ -200,6 +200,15 @@ export type ShortCircuitResponse = {
  * @template T - Plugin type (defaults to ApiPluginBase)
  */
 export type PluginClass<T extends ApiPluginBase = ApiPluginBase> = abstract new (...args: any[]) => T;
+
+/**
+ * Connection state for SseProtocol connections.
+ * Proper union type for type safety instead of implicit EventSource | string.
+ *
+ * - EventSource: Active real SSE connection
+ * - 'short-circuit': Mock/simulated connection from short-circuit plugin
+ */
+export type ConnectionState = EventSource | 'short-circuit';
 ```
 
 ### Plugin Base Classes (DRY Hierarchy)
@@ -980,23 +989,427 @@ adminService.plugins.add(new RateLimitPlugin({ limit: 1000 }));
 - (+) Enables per-service configuration patterns
 - (-) Asymmetric behavior between scopes
 
-### Decision 11: Clean Break (No Backward Compatibility)
+### Decision 11: Clean Break Policy - No Deprecation
 
-**What:** No deprecated methods, no backward compatibility shims.
+**What:** No deprecated methods, no backward compatibility shims. If something is deprecated, it should be deleted. Deprecation is just postponed deletion that creates technical debt.
+
+**Policy:** Avoid deprecation in favor of deletion. Clean break, no backward compatibility cruft.
 
 **Why:**
 - **Simpler codebase** - No maintenance burden for old patterns
 - **Clearer API** - Users see only the new patterns
 - **No confusion** - No mixing old and new approaches
+- **No deferred cleanup** - Deprecation creates "someday" tasks that never get done
+- **Forces migration** - Users upgrade immediately rather than lingering on deprecated APIs
 
 **Alternatives Considered:**
-1. Deprecation warnings - Rejected: Adds complexity, delays migration
-2. Adapter layer - Rejected: More code to maintain
+1. Deprecation warnings - Rejected: Adds complexity, delays migration, creates tech debt
+2. Adapter layer - Rejected: More code to maintain, hides underlying changes
+3. Gradual deprecation cycle - Rejected: Extends maintenance burden indefinitely
 
 **Trade-offs:**
 - (+) Cleaner implementation
 - (+) No technical debt
-- (-) Breaking change for existing code
+- (+) Smaller package size (no legacy code)
+- (+) Easier to understand codebase
+- (-) Breaking change for existing code (acceptable for this project)
+
+**Audit of Existing Deprecated Types:**
+
+The following deprecated types exist in the codebase and MUST be deleted (not kept for compatibility):
+
+| Package | File | Line | Deprecated Item | Replacement |
+|---------|------|------|-----------------|-------------|
+| @hai3/api | types.ts | 153 | `ApiPluginRequestContext` | `ApiRequestContext` |
+| @hai3/api | types.ts | 168 | `ApiPluginResponseContext` | `ApiResponseContext` |
+| @hai3/api | types.ts | 378 | `LegacyApiPlugin` | `ApiPluginBase` / `ApiPlugin<TConfig>` |
+| @hai3/framework | migration.ts | 219 | `legacySelectors` | `useAppSelector((state) => ...)` |
+| @hai3/framework | types.ts | 325 | `setApplyFunction` | Constructor injection |
+| @hai3/framework | compat.ts | 39 | `themeRegistry` (singleton) | `app.themeRegistry` |
+| @hai3/framework | compat.ts | 46 | `routeRegistry` (singleton) | `app.routeRegistry` |
+| @hai3/framework | compat.ts | 64 | `navigateToScreen` | `useNavigation()` / `app.actions.navigateToScreen()` |
+| @hai3/framework | compat.ts | 79 | `fetchCurrentUser` | Direct service call |
+
+**Removal Strategy:**
+1. Delete the deprecated type/function entirely
+2. Remove any `@deprecated` JSDoc annotations
+3. Update any code still using deprecated types to use replacements
+4. Remove exports from index.ts files
+5. Validate: `grep -rn "@deprecated" packages/` must return 0 results
+
+**Validation Command:**
+```bash
+grep -rn "@deprecated" packages/api/src/ packages/framework/src/ packages/react/src/
+# Expected output: (empty - no results)
+```
+
+## Implementation Corrections (Post-Review)
+
+This section documents architectural corrections identified during implementation review.
+
+### Correction 1: Per-Service MockPlugin (Not Global)
+
+**Issue:** The initial implementation used MockPlugin globally via `apiRegistry.plugins.add(new MockPlugin({ mockMap }))`. This violates the vertical slice architecture principle.
+
+**Problem Statement:**
+- Screensets are true vertical slices with zero footprint outside their folder
+- If MockPlugin is registered globally, screensets cannot be self-contained
+- Screensets would need to contribute their mocks to a global mock map
+
+**Required Solution:**
+MockPlugin should be used per-service, not globally. Each service can have its own MockPlugin instance.
+
+**Design Pattern:**
+```typescript
+// WRONG: Global MockPlugin (violates vertical slice)
+apiRegistry.plugins.add(new MockPlugin({
+  mockMap: { /* ALL mocks from ALL screensets */ }
+}));
+
+// CORRECT: Per-service MockPlugin (vertical slice compliant)
+class BillingApiService extends BaseApiService {
+  constructor() {
+    super({ baseURL: '/api/billing' }, new RestProtocol());
+
+    // Each service registers its own MockPlugin
+    this.plugins.add(new MockPlugin({
+      mockMap: {
+        'GET /api/billing/invoices': () => mockInvoices,
+        'POST /api/billing/payment': (body) => mockPaymentResult(body),
+      },
+      delay: 100,
+    }));
+  }
+}
+```
+
+**Implications:**
+- Services are self-contained with their own mock configuration
+- No global mock state coordination needed
+- Screensets can be fully independent
+- `apiRegistry.plugins.add(new MockPlugin(...))` is still valid for cross-cutting mocks, but per-service is the preferred pattern for vertical slices
+
+### Correction 2: Protocol Plugin Agnosticism (OCP/DIP Compliance)
+
+**Issue:** SseProtocol has direct knowledge of MockPlugin, violating OCP and DIP.
+
+**Current Violation in SseProtocol:**
+```typescript
+// BAD: Protocol knows about specific plugin type
+const mockPlugin = this.getPlugins().find((p) => p instanceof MockPlugin) as MockPlugin | undefined;
+
+if (mockPlugin) {
+  this.simulateMockStream(connectionId, url, onMessage, onComplete);
+  return connectionId;
+}
+```
+
+**Problem Statement:**
+- A protocol should not know about specific plugin implementations
+- The protocol should be open for extension but closed for modification
+- Adding new short-circuit plugins would require modifying the protocol
+- The fundamental challenge: REST is request-response (single), SSE is request-stream (ongoing)
+
+## Architectural Direction Evaluation
+
+### Industry Research: How MSW Handles SSE Mocking
+
+MSW (Mock Service Worker) uses a **protocol-agnostic interception strategy**. Key insight from their documentation:
+> "The stream of server events is still a regular HTTP connection."
+
+MSW intercepts at the HTTP layer, treating EventSource as a standard HTTP GET that returns streaming responses with `content-type: text/event-stream`. This means:
+- MSW doesn't need specialized SSE protocol handling
+- The protocol layer remains pure - mocking happens above/around it
+- Any plugin that understands streaming can provide mock data
+
+**Sources:**
+- [MSW SSE Documentation](https://mswjs.io/docs/sse/)
+- [MSW Blog: Server-Sent Events Are Here](https://mswjs.io/blog/server-sent-events-are-here)
+
+### Evaluated Architectural Directions
+
+#### Direction A: Network-Level Mocking (MSW Approach)
+- Mock at fetch/EventSource level globally
+- Protocols use native APIs, completely unaware of mocking
+- MockPlugin would patch or wrap global EventSource constructor
+
+**Verdict:** REJECTED
+- Requires global patching which has side effects
+- Not suitable for per-service mocking (vertical slice)
+- Violates principle of minimal global footprint
+
+#### Direction B: Protocol-Specific Mock Plugins
+- `RestMockPlugin` for REST mocking
+- `SseMockPlugin` for SSE mocking
+- Each plugin knows its protocol's semantics
+- Protocols don't know about plugins
+
+**Verdict:** REJECTED
+- Creates duplication of mock logic
+- Services must register multiple mock plugins
+- Breaks single MockPlugin configuration
+
+#### Direction C: Dependency Injection in Protocols
+- Protocols accept injected fetch/EventSource via constructor
+- MockPlugin provides mock implementations
+- Protocols use whatever is injected
+
+**Verdict:** REJECTED
+- Complicates protocol construction
+- Moves complexity to service authors
+- Testing injection pattern is heavyweight for this use case
+
+#### Direction D: Generic Short-Circuit with Stream Simulation (CHOSEN)
+- SseProtocol uses generic plugin chain (like RestProtocol)
+- `ShortCircuitResponse.data` can contain streaming data or complete response
+- SseProtocol extracts stream content from ANY short-circuit response
+- No knowledge of which plugin produced the short-circuit
+
+**Verdict:** CHOSEN
+- Follows RestProtocol pattern exactly
+- OCP/DIP compliant - protocol depends on abstraction
+- Single MockPlugin works for both REST and SSE
+- Per-service mocking fully supported (vertical slice)
+
+### Why Direction D Is Best
+
+**1. OCP Compliance:**
+Protocol is open for extension (new plugins can short-circuit) but closed for modification (no changes needed when adding plugins).
+
+**2. DIP Compliance:**
+Protocol depends on `ShortCircuitResponse` abstraction, not `MockPlugin` concretion.
+
+**3. Vertical Slice Support:**
+Per-service MockPlugin works identically for REST and SSE services. Screensets remain self-contained.
+
+**4. Symmetry with RestProtocol:**
+RestProtocol already uses this pattern successfully. SseProtocol should be refactored to match.
+
+**5. Industry Alignment:**
+MSW's insight that SSE is "still HTTP" validates treating short-circuit responses uniformly.
+
+### Required Solution
+
+Protocols must execute the plugin chain generically using the short-circuit pattern.
+
+**Design Pattern:**
+```typescript
+// CORRECT: Protocol uses generic plugin execution
+connect(url, onMessage, onComplete): string {
+  const connectionId = this.generateId();
+
+  // Build request context
+  const context: ApiRequestContext = {
+    method: 'GET',
+    url: `${this.baseConfig.baseURL}${url}`,
+    headers: {},
+  };
+
+  // Execute plugin chain generically
+  this.executePluginChainAsync(context).then((result) => {
+    if (isShortCircuit(result)) {
+      // Generic short-circuit handling - no plugin-specific knowledge
+      this.simulateStreamFromShortCircuit(
+        connectionId,
+        result.shortCircuit,
+        onMessage,
+        onComplete
+      );
+    } else {
+      // Real SSE connection
+      this.establishRealConnection(connectionId, url, onMessage, onComplete);
+    }
+  });
+
+  return connectionId;
+}
+
+// Generic plugin execution - works for ANY plugin that short-circuits
+private async executePluginChainAsync(
+  context: ApiRequestContext
+): Promise<ApiRequestContext | ShortCircuitResponse> {
+  let currentContext = context;
+
+  for (const plugin of this.getClassPlugins()) {
+    if (plugin.onRequest) {
+      const result = await plugin.onRequest(currentContext);
+
+      // Generic short-circuit detection using type guard
+      if (isShortCircuit(result)) {
+        return result;
+      }
+
+      currentContext = result;
+    }
+  }
+
+  return currentContext;
+}
+
+// Generic stream simulation from any short-circuit response
+private simulateStreamFromShortCircuit(
+  connectionId: string,
+  response: ApiResponseContext,
+  onMessage: (event: MessageEvent) => void,
+  onComplete?: () => void
+): void {
+  // Works with ANY plugin that provides short-circuit response
+  // Not MockPlugin-specific
+  // Uses ConnectionState union type for type safety
+  this.connections.set(connectionId, 'short-circuit' as ConnectionState);
+
+  // Stream the response data
+  const content = this.extractStreamContent(response.data);
+  this.streamContent(connectionId, content, onMessage, onComplete);
+}
+```
+
+**Key Principles:**
+1. Use `isShortCircuit()` type guard instead of `instanceof MockPlugin`
+2. Handle short-circuit response generically regardless of which plugin produced it
+3. Protocol can be extended by new plugins without modification (OCP)
+4. Protocol depends on abstractions (`ShortCircuitResponse`), not concretions (`MockPlugin`) (DIP)
+
+### Stream Content Extraction Strategy
+
+The `extractStreamContent()` method must handle different response data formats:
+
+```typescript
+/**
+ * Extract streamable content from short-circuit response data.
+ * Handles both SSE-format data and plain content.
+ */
+private extractStreamContent(data: unknown): string {
+  // Case 1: Data is already a string (plain text to stream)
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  // Case 2: Data is OpenAI-style chat completion (common mock format)
+  if (this.isChatCompletion(data)) {
+    return data.choices?.[0]?.message?.content ?? '';
+  }
+
+  // Case 3: Data is SSE message format { content: string }
+  if (this.isSseContent(data)) {
+    return data.content;
+  }
+
+  // Case 4: Fallback - serialize to JSON string
+  return JSON.stringify(data);
+}
+
+private isChatCompletion(data: unknown): data is { choices?: Array<{ message?: { content?: string } }> } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'choices' in data &&
+    Array.isArray((data as { choices: unknown }).choices)
+  );
+}
+
+private isSseContent(data: unknown): data is { content: string } {
+  return (
+    typeof data === 'object' &&
+    data !== null &&
+    'content' in data &&
+    typeof (data as { content: unknown }).content === 'string'
+  );
+}
+```
+
+This approach allows MockPlugin (or any other short-circuit plugin) to return data in various formats, and SseProtocol will intelligently extract streamable content without knowing which plugin produced it.
+
+### Stream Content Edge Cases
+
+The `extractStreamContent()` method handles edge cases with the following fallback behavior:
+
+**Binary Data:**
+- Binary data (ArrayBuffer, Blob, Uint8Array) is NOT supported for SSE streaming
+- If binary data is detected, the method falls back to `"[Binary data not supported for SSE streaming]"`
+- Type guard: `data instanceof ArrayBuffer || data instanceof Uint8Array || data instanceof Blob`
+- Rationale: SSE is a text-based protocol; binary streaming requires WebSocket or different transport
+
+**Very Large Responses:**
+- No explicit size limit is enforced in `extractStreamContent()`
+- Large responses are handled via the existing streaming mechanism (word-by-word chunking)
+- Memory considerations are deferred to the caller/consumer
+- Rationale: Limiting at extraction level would break legitimate large text streams (e.g., LLM responses)
+
+**Null/Undefined Data:**
+- Returns empty string `''` for null or undefined data
+- Allows graceful handling of empty mock responses
+
+**Circular References:**
+- JSON.stringify fallback may throw on circular references
+- Wrapped in try/catch, falls back to `"[Unserializable data]"` on error
+
+```typescript
+private extractStreamContent(data: unknown): string {
+  // Handle null/undefined
+  if (data == null) {
+    return '';
+  }
+
+  // Case 1: Plain string - stream directly
+  if (typeof data === 'string') {
+    return data;
+  }
+
+  // Case 2: Binary data - not supported for SSE
+  if (data instanceof ArrayBuffer || data instanceof Uint8Array || data instanceof Blob) {
+    return '[Binary data not supported for SSE streaming]';
+  }
+
+  // Case 3: OpenAI-style chat completion
+  if (this.isChatCompletion(data)) {
+    return data.choices?.[0]?.message?.content ?? '';
+  }
+
+  // Case 4: SSE content wrapper
+  if (this.isSseContent(data)) {
+    return data.content;
+  }
+
+  // Case 5: Fallback - JSON serialize with circular reference protection
+  try {
+    return JSON.stringify(data);
+  } catch {
+    return '[Unserializable data]';
+  }
+}
+```
+
+### Correction 3: Remove ESLint Exceptions
+
+**Issue:** During implementation, ESLint rule exceptions may have been added as shortcuts.
+
+**Required Solution:**
+All ESLint disable comments for type-related rules must be removed and replaced with proper typing.
+
+**Design Pattern:**
+```typescript
+// BAD: Type assertion with eslint-disable
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const result = plugin.onRequest(context) as any;
+
+// CORRECT: Proper typing with type guards
+const result = await plugin.onRequest(context);
+if (isShortCircuit(result)) {
+  return result.shortCircuit;
+}
+// result is narrowed to ApiRequestContext
+return result;
+```
+
+**Acceptable ESLint Disables:**
+- Only for legitimate third-party library type issues
+- Must be documented with reason
+
+**Unacceptable ESLint Disables:**
+- `@typescript-eslint/no-explicit-any` for internal code
+- `@typescript-eslint/no-unsafe-*` rules
+- Type-related rules that can be solved with proper typing
 
 ## Risks / Trade-offs
 
@@ -1118,6 +1531,30 @@ const service = apiRegistry.getService(AccountsApiService);
 1. Update API.md guidelines
 2. Create migration guide
 3. Add plugin authoring guide
+
+### Phase 7: Corrective Implementation (Post-Review)
+
+Based on implementation review feedback, the following corrections are required:
+
+#### 7.1 Refactor SseProtocol for OCP/DIP Compliance
+1. Remove `import { MockPlugin }` from SseProtocol
+2. Remove `instanceof MockPlugin` checks
+3. Add generic `executePluginChainAsync()` method
+4. Use `isShortCircuit()` type guard for short-circuit detection
+5. Rename `simulateMockStream` to `simulateStreamFromShortCircuit`
+6. Make stream simulation work with any `ApiResponseContext`, not just MockPlugin responses
+
+#### 7.2 Update Documentation for Per-Service MockPlugin Pattern
+1. Update examples to show per-service MockPlugin registration
+2. Document vertical slice architecture compliance
+3. Update hai3-new-api-service.md command templates
+4. Add warning against global MockPlugin for screensets
+
+#### 7.3 Audit and Remove ESLint Exceptions
+1. Scan for `eslint-disable` comments in api package
+2. Replace type assertions with proper type guards
+3. Add proper typing where `any` was used
+4. Document any legitimate third-party library exceptions
 
 ### Rollback Plan
 
