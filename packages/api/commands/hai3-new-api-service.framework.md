@@ -45,13 +45,13 @@ Create screenset-local API service with mocks, actions, events, effects, and sto
 # Tasks: Add {ServiceName} API Service
 
 - [ ] Create API service class extending BaseApiService
-- [ ] Register with apiRegistry
+- [ ] Register with apiRegistry using class reference
 - [ ] Define events in events/{domain}Events.ts
 - [ ] Create actions in actions/{domain}Actions.ts (emit events)
 - [ ] Create store slice in slices/{domain}Slice.ts
 - [ ] Create effects in effects/{domain}Effects.ts (subscribe to events, update slice)
 - [ ] Create mocks in api/mocks.ts
-- [ ] Register mocks in screenset config
+- [ ] Configure mocks via MockPlugin if needed
 - [ ] Validate: `npm run type-check && npm run arch:check`
 - [ ] Test via Chrome DevTools MCP
 ```
@@ -65,26 +65,35 @@ When user runs `/openspec:apply`, execute:
 ### 3.1 Create Service
 File: src/screensets/{screenset}/api/{Name}ApiService.ts
 ```typescript
-import { BaseApiService, apiRegistry } from '@hai3/api';
+import { BaseApiService, RestProtocol, MockPlugin, apiRegistry } from '@hai3/framework';
 import { SCREENSET_ID } from '../ids';
 
-export const DOMAIN = `${SCREENSET_ID}:serviceName` as const;
-
 class {Name}ApiService extends BaseApiService {
-  protected baseUrl = '/api/v1/{domain}';
+  constructor() {
+    super({ baseURL: '/api/v1/{domain}' }, new RestProtocol());
+
+    // For development/testing, register service-specific mocks
+    // NOTE: MockPlugin should be registered per-service for vertical slice compliance
+    // WARNING: Avoid global MockPlugin registration if screenset mocks need to be self-contained
+    if (process.env.NODE_ENV === 'development') {
+      this.plugins.add(new MockPlugin({
+        mockMap: {
+          'GET /api/v1/{domain}/endpoint': () => ({ data: 'mock data' }),
+        },
+        delay: 100,
+      }));
+    }
+  }
 
   async getData(): Promise<DataType> {
-    return this.get('/endpoint');
+    return this.protocol(RestProtocol).get('/endpoint');
   }
 }
 
-apiRegistry.register(DOMAIN, {Name}ApiService);
+// Register service with class reference (no string domain needed)
+apiRegistry.register({Name}ApiService);
 
-declare module '@hai3/api' {
-  interface ApiServicesMap {
-    [DOMAIN]: {Name}ApiService;
-  }
-}
+export { {Name}ApiService };
 ```
 
 ### 3.2 Define Events
@@ -176,11 +185,10 @@ export const { setLoading, setData, setError } = {domain}Slice.actions;
 ### 3.5 Create Effects
 File: src/screensets/{screenset}/effects/{domain}Effects.ts
 ```typescript
-import { eventBus, getStore } from '@hai3/state';
-import { apiRegistry } from '@hai3/api';
+import { eventBus, getStore, apiRegistry } from '@hai3/framework';
 import { {Domain}Events } from '../events/{domain}Events';
 import { setLoading, setData, setError } from '../slices/{domain}Slice';
-import { DOMAIN } from '../api/{Name}ApiService';
+import { {Name}ApiService } from '../api/{Name}ApiService';
 
 export function init{Domain}Effects(): void {
   const store = getStore();
@@ -188,7 +196,7 @@ export function init{Domain}Effects(): void {
   eventBus.on({Domain}Events.DataRequested, async (payload) => {
     store.dispatch(setLoading(true));
     try {
-      const service = apiRegistry.getService(DOMAIN);
+      const service = apiRegistry.getService({Name}ApiService);
       const data = await service.getData();
       eventBus.emit({Domain}Events.DataLoaded, { data });
     } catch (error) {
@@ -221,7 +229,7 @@ export const {domain}MockMap = {
 Import ./api/{Name}ApiService for side effect.
 Register slice with registerSlice({domain}Slice.reducer).
 Call init{Domain}Effects() in screenset initialization.
-Call apiRegistry.registerMocks(DOMAIN, {domain}MockMap).
+NOTE: Mock configuration is handled in service constructor via MockPlugin.
 
 ### 3.8 Validate
 ```bash

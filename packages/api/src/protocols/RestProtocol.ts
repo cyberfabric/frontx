@@ -11,9 +11,6 @@ import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import type {
   ApiProtocol,
   ApiServiceConfig,
-  LegacyApiPlugin,
-  ApiPluginRequestContext,
-  ApiPluginResponseContext,
   MockMap,
   RestProtocolConfig,
   ApiPluginBase,
@@ -54,8 +51,8 @@ export class RestProtocol implements ApiProtocol {
   /** REST-specific config */
   private restConfig: RestProtocolConfig;
 
-  /** Callback to get legacy plugins */
-  private getPlugins: () => ReadonlyArray<LegacyApiPlugin> = () => [];
+  /** Callback to get plugins */
+  private getPlugins: () => ReadonlyArray<ApiPluginBase> = () => [];
 
   /** Callback to get class-based plugins */
   private getClassPlugins: () => ReadonlyArray<ApiPluginBase> = () => [];
@@ -74,7 +71,7 @@ export class RestProtocol implements ApiProtocol {
   initialize(
     config: Readonly<ApiServiceConfig>,
     _getMockMap: () => Readonly<MockMap>,
-    getPlugins: () => ReadonlyArray<LegacyApiPlugin>,
+    getPlugins: () => ReadonlyArray<ApiPluginBase>,
     getClassPlugins: () => ReadonlyArray<ApiPluginBase>
   ): void {
     this.config = config;
@@ -195,21 +192,21 @@ export class RestProtocol implements ApiProtocol {
       // Use processed context from class-based plugins
       const processedContext = classPluginResult;
 
-      // Execute LEGACY onRequest plugin chain
-      const legacyProcessedContext = await this.executeLegacyOnRequest(processedContext);
+      // Execute onRequest plugin chain
+      const pluginProcessedContext = await this.executeOnRequest(processedContext);
 
-      // Check if a legacy plugin short-circuited with mock response
-      if ('__mockResponse' in legacyProcessedContext) {
-        const mockData = (legacyProcessedContext as { __mockResponse: T }).__mockResponse;
+      // Check if a plugin short-circuited with mock response
+      if ('__mockResponse' in pluginProcessedContext) {
+        const mockData = (pluginProcessedContext as { __mockResponse: T }).__mockResponse;
         return mockData;
       }
 
       // Build axios config
       const axiosConfig: AxiosRequestConfig = {
         method,
-        url: legacyProcessedContext.url,
-        headers: legacyProcessedContext.headers,
-        data: legacyProcessedContext.body,
+        url: pluginProcessedContext.url,
+        headers: pluginProcessedContext.headers,
+        data: pluginProcessedContext.body,
         params,
       };
 
@@ -223,15 +220,15 @@ export class RestProtocol implements ApiProtocol {
         data: response.data,
       };
 
-      // Execute LEGACY onResponse plugin chain (reverse order)
-      const legacyProcessedResponse = await this.executeLegacyOnResponse(
+      // Execute onResponse plugin chain (reverse order)
+      const pluginProcessedResponse = await this.executeOnResponse(
         responseContext,
-        legacyProcessedContext
+        pluginProcessedContext
       );
 
       // Execute NEW class-based onResponse plugin chain (reverse order)
       const finalResponse = await this.executeClassPluginOnResponse(
-        legacyProcessedResponse,
+        pluginProcessedResponse,
         requestContext
       );
 
@@ -239,11 +236,11 @@ export class RestProtocol implements ApiProtocol {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
-      // Execute LEGACY onError plugin chain
-      const legacyProcessedError = await this.executeLegacyOnError(err, requestContext);
+      // Execute onError plugin chain
+      const pluginProcessedError = await this.executeOnError(err, requestContext);
 
       // Execute NEW class-based onError plugin chain
-      const finalResult = await this.executeClassPluginOnError(legacyProcessedError, requestContext);
+      const finalResult = await this.executeClassPluginOnError(pluginProcessedError, requestContext);
 
       // Check if error was recovered (plugin returned ApiResponseContext)
       if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
@@ -340,18 +337,18 @@ export class RestProtocol implements ApiProtocol {
   }
 
   // ============================================================================
-  // Plugin Chain Execution - Legacy
+  // Plugin Chain Execution
   // ============================================================================
 
   /**
-   * Execute legacy onRequest plugin chain.
+   * Execute onRequest plugin chain.
    * High priority plugins execute first.
    * Any plugin can short-circuit by adding __mockResponse.
    */
-  private async executeLegacyOnRequest(
-    context: ApiPluginRequestContext
-  ): Promise<ApiPluginRequestContext & { __mockResponse?: unknown }> {
-    let currentContext: ApiPluginRequestContext & { __mockResponse?: unknown } = { ...context };
+  private async executeOnRequest(
+    context: ApiRequestContext
+  ): Promise<ApiRequestContext & { __mockResponse?: unknown }> {
+    let currentContext: ApiRequestContext & { __mockResponse?: unknown } = { ...context };
 
     for (const plugin of this.getPlugins()) {
       if (plugin.onRequest) {
@@ -369,20 +366,19 @@ export class RestProtocol implements ApiProtocol {
   }
 
   /**
-   * Execute legacy onResponse plugin chain.
+   * Execute onResponse plugin chain.
    * Low priority plugins execute first (reverse order).
    */
-  private async executeLegacyOnResponse(
-    context: ApiPluginResponseContext,
-    _requestContext: ApiPluginRequestContext
-  ): Promise<ApiPluginResponseContext> {
+  private async executeOnResponse(
+    context: ApiResponseContext,
+    _requestContext: ApiRequestContext
+  ): Promise<ApiResponseContext> {
     let currentContext = { ...context };
     const plugins = [...this.getPlugins()].reverse();
 
     for (const plugin of plugins) {
       if (plugin.onResponse) {
-        // Legacy plugins only receive (response) parameter
-        currentContext = await plugin.onResponse(currentContext) as ApiPluginResponseContext;
+        currentContext = await plugin.onResponse(currentContext) as ApiResponseContext;
       }
     }
 
@@ -390,11 +386,11 @@ export class RestProtocol implements ApiProtocol {
   }
 
   /**
-   * Execute legacy onError plugin chain.
+   * Execute onError plugin chain.
    */
-  private async executeLegacyOnError(
+  private async executeOnError(
     error: Error,
-    context: ApiPluginRequestContext
+    context: ApiRequestContext
   ): Promise<Error> {
     let currentError = error;
     const plugins = [...this.getPlugins()].reverse();
@@ -402,7 +398,7 @@ export class RestProtocol implements ApiProtocol {
     for (const plugin of plugins) {
       if (plugin.onError) {
         const result = await plugin.onError(currentError, context);
-        // Legacy plugins only support Error return
+        // Plugins only support Error return
         if (result instanceof Error) {
           currentError = result;
         }

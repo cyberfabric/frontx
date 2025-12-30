@@ -208,19 +208,3 @@ export function hasNewLayoutState(state: unknown): state is RootStateWithLayout 
     typeof (state as Record<string, unknown>).layout === 'object'
   );
 }
-
-// ============================================================================
-// Legacy State Accessors (DEPRECATED)
-// ============================================================================
-
-/**
- * Legacy selectors placeholder
- *
- * @deprecated Named selectors are removed. Use useAppSelector hook from @hai3/react
- * with inline state access: `useAppSelector((state) => state.layout.menu)`
- *
- * Migration guide:
- * - Before: `const menu = useSelector(selectMenu);`
- * - After:  `const menu = useAppSelector((state: RootState) => state.layout.menu);`
- */
-export const legacySelectors = {} as const;

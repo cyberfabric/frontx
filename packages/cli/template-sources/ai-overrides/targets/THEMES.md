@@ -12,9 +12,9 @@
 - Theme objects are the single source of truth; no standalone CSS variables.
 - Theme shape MUST match the Theme interface from @hai3/framework.
 - Apps define themes in src/themes/**; screensets must not modify themes.
-- Theme application is performed via:
-  - themeRegistry.setApplyFunction(applyTheme).
-  - themeRegistry.register(name, theme).
+- Theme registration is performed via:
+  - themeRegistry.register(themeConfig) with CSS variables in config.
+  - Legacy API: themeRegistry.register(id, theme) is still supported.
 - Themes must support light and dark variants, use rem units, and meet WCAG contrast >= 4.5:1.
 
 ## STOP CONDITIONS

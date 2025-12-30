@@ -46,11 +46,19 @@ export interface MockPluginConfig {
  * ```
  */
 export class MockPlugin extends ApiPlugin<MockPluginConfig> {
+  /** Current mock map (can be updated via setMockMap) */
+  private currentMockMap: Readonly<MockMap>;
+
+  constructor(config: MockPluginConfig) {
+    super(config);
+    this.currentMockMap = config.mockMap;
+  }
+
   /**
    * Update mock map dynamically.
    */
   setMockMap(mockMap: Readonly<MockMap>): void {
-    (this.config as { mockMap: Readonly<MockMap> }).mockMap = mockMap;
+    this.currentMockMap = mockMap;
   }
 
   /**
@@ -93,7 +101,7 @@ export class MockPlugin extends ApiPlugin<MockPluginConfig> {
     url: string
   ): MockResponseFactory<unknown, unknown> | undefined {
     const mockKey = `${method.toUpperCase()} ${url}`;
-    const mockMap = this.config.mockMap;
+    const mockMap = this.currentMockMap;
 
     // Try exact match first
     const exactMatch = mockMap[mockKey];

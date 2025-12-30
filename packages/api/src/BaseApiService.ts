@@ -10,7 +10,6 @@
 import type {
   ApiServiceConfig,
   ApiProtocol,
-  LegacyApiPlugin,
   ApiPluginBase,
   PluginClass,
 } from './types';
@@ -44,8 +43,8 @@ export abstract class BaseApiService {
   /** Registered protocols by constructor name */
   protected readonly protocols: Map<string, ApiProtocol> = new Map();
 
-  /** Registered plugins sorted by priority (legacy system) */
-  protected legacyPlugins: LegacyApiPlugin[] = [];
+  /** Registered plugins sorted by priority */
+  protected registeredPlugins: ApiPluginBase[] = [];
 
   /** Global plugins provider (injected by apiRegistry) */
   private globalPluginsProvider: (() => readonly ApiPluginBase[]) | null = null;
@@ -64,7 +63,7 @@ export abstract class BaseApiService {
       protocol.initialize(
         this.config,
         () => ({}), // Empty mock map (OCP/DIP - services unaware of mocking)
-        () => this.getPluginsInOrder(), // Legacy plugins
+        () => this.getPluginsInOrder(), // Plugins
         () => this.getMergedPluginsInOrder() // Class-based plugins (merged global + service)
       );
       this.protocols.set(protocol.constructor.name, protocol);
@@ -274,14 +273,14 @@ export abstract class BaseApiService {
    *
    * @param plugin - Plugin instance
    */
-  registerPlugin(plugin: LegacyApiPlugin): void {
+  registerPlugin(plugin: ApiPluginBase): void {
     // Check if plugin already registered
-    if (this.hasPlugin(plugin.constructor as new (...args: unknown[]) => LegacyApiPlugin)) {
-      console.warn(`Plugin "${plugin.name}" is already registered. Skipping.`);
+    if (this.hasPlugin(plugin.constructor as new (...args: unknown[]) => ApiPluginBase)) {
+      console.warn(`Plugin is already registered. Skipping.`);
       return;
     }
 
-    this.legacyPlugins.push(plugin);
+    this.registeredPlugins.push(plugin);
     this.sortPluginsByPriority();
   }
 
@@ -290,18 +289,18 @@ export abstract class BaseApiService {
    *
    * @param pluginClass - Plugin class (uses name for matching)
    */
-  unregisterPlugin<T extends LegacyApiPlugin>(pluginClass: { readonly name: string; prototype: T }): void {
-    const index = this.legacyPlugins.findIndex(
+  unregisterPlugin<T extends ApiPluginBase>(pluginClass: { readonly name: string; prototype: T }): void {
+    const index = this.registeredPlugins.findIndex(
       (p) => p.constructor.name === pluginClass.name
     );
 
     if (index !== -1) {
-      const plugin = this.legacyPlugins[index];
+      const plugin = this.registeredPlugins[index];
       // Call destroy if available
       if ('destroy' in plugin && typeof plugin.destroy === 'function') {
         (plugin as { destroy: () => void }).destroy();
       }
-      this.legacyPlugins.splice(index, 1);
+      this.registeredPlugins.splice(index, 1);
     }
   }
 
@@ -311,31 +310,31 @@ export abstract class BaseApiService {
    * @param pluginClass - Plugin class (uses name for matching)
    * @returns True if registered
    */
-  hasPlugin<T extends LegacyApiPlugin>(pluginClass: { readonly name: string; prototype: T }): boolean {
-    return this.legacyPlugins.some((p) => p.constructor.name === pluginClass.name);
+  hasPlugin<T extends ApiPluginBase>(pluginClass: { readonly name: string; prototype: T }): boolean {
+    return this.registeredPlugins.some((p) => p.constructor.name === pluginClass.name);
   }
 
   /**
    * Get plugins sorted by priority (high to low).
    * Used for request handling.
    */
-  getPluginsInOrder(): readonly LegacyApiPlugin[] {
-    return [...this.legacyPlugins];
+  getPluginsInOrder(): readonly ApiPluginBase[] {
+    return [...this.registeredPlugins];
   }
 
   /**
    * Get plugins in reverse priority order (low to high).
    * Used for response handling.
    */
-  getPluginsReversed(): readonly LegacyApiPlugin[] {
-    return [...this.legacyPlugins].reverse();
+  getPluginsReversed(): readonly ApiPluginBase[] {
+    return [...this.registeredPlugins].reverse();
   }
 
   /**
    * Sort plugins by priority (descending).
    */
   private sortPluginsByPriority(): void {
-    this.legacyPlugins.sort((a, b) => {
+    this.registeredPlugins.sort((a, b) => {
       const priorityA = 'priority' in a ? (a as { priority: number }).priority : 0;
       const priorityB = 'priority' in b ? (b as { priority: number }).priority : 0;
       return priorityB - priorityA;
@@ -381,12 +380,12 @@ export abstract class BaseApiService {
     this.protocols.forEach((protocol) => protocol.cleanup());
     this.protocols.clear();
 
-    // Unregister all legacy plugins
-    [...this.legacyPlugins].forEach((plugin) => {
+    // Unregister all plugins
+    [...this.registeredPlugins].forEach((plugin) => {
       if ('destroy' in plugin && typeof plugin.destroy === 'function') {
         (plugin as { destroy: () => void }).destroy();
       }
     });
-    this.legacyPlugins = [];
+    this.registeredPlugins = [];
   }
 }

@@ -80,12 +80,8 @@ export {
 
   // Backward compatibility singletons
   screensetRegistry,
-  themeRegistry,
-  routeRegistry,
 
-  // Backward compatibility actions and constants
-  navigateToScreen,
-  fetchCurrentUser,
+  // Backward compatibility constants
   ACCOUNTS_DOMAIN,
 
   // I18nRegistry class (capital I for backward compat)
@@ -278,7 +274,6 @@ export type {
 
   // API
   ApiService,
-  ApiServicesMap,
   MockMap,
   ApiServiceConfig,
   JsonValue,

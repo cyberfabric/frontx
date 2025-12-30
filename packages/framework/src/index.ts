@@ -222,7 +222,6 @@ export type { TenantChangedPayload, TenantClearedPayload } from './effects';
 export { apiRegistry, BaseApiService, RestProtocol, SseProtocol, MockPlugin, ApiPluginBase, ApiPlugin, isShortCircuit } from '@hai3/api';
 export type {
   ApiService,
-  ApiServicesMap,
   MockMap,
   ApiServiceConfig,
   JsonValue,
@@ -258,11 +257,6 @@ export type { ScreensetDefinition as ScreensetConfig } from '@hai3/screensets';
 // Singleton registries for backward compatibility
 export {
   screensetRegistry,
-  themeRegistry,
-  routeRegistry,
-  // Backward compatibility actions
-  navigateToScreen,
-  fetchCurrentUser,
   // Backward compatibility constants
   ACCOUNTS_DOMAIN,
 } from './compat';
@@ -278,7 +272,6 @@ export {
   getLayoutDomainState,
   hasLegacyUicoreState,
   hasNewLayoutState,
-  legacySelectors,
   STATE_PATH_MAPPING,
 } from './migration';
 

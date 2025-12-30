@@ -40,78 +40,87 @@ Central registry for all API services:
 ```typescript
 import { apiRegistry } from '@hai3/api';
 
-// Register service
-apiRegistry.register('accounts', AccountsApiService);
+// Register service with class reference (type-safe)
+apiRegistry.register(AccountsApiService);
 
-// Initialize (typically at app startup)
-apiRegistry.initialize({
-  useMockApi: process.env.NODE_ENV === 'development',
-  mockDelay: 100
-});
-
-// Get service (type-safe)
-const accounts = apiRegistry.getService('accounts');
+// Get service (type-safe with class reference)
+const accounts = apiRegistry.getService(AccountsApiService);
 const user = await accounts.getCurrentUser();
-```
-
-### Type Safety via Module Augmentation
-
-Extend `ApiServicesMap` to add custom services:
-
-```typescript
-declare module '@hai3/api' {
-  interface ApiServicesMap {
-    accounts: AccountsApiService;
-    billing: BillingApiService;
-  }
-}
 ```
 
 ### Mock Support
 
-Register mocks for development/testing:
+Configure mocks via MockPlugin per-service or globally:
 
 ```typescript
-import { apiRegistry, MockMap } from '@hai3/api';
+import { MockPlugin } from '@hai3/api';
 
-const accountsMockMap: MockMap = {
-  'GET /user/current': () => ({ id: '1', name: 'John Doe' }),
-  'GET /users/:id': (body) => ({ id: body.id, name: 'User' }),
-  'POST /user/profile': (body) => ({ ...body, updatedAt: new Date() })
-};
+// Per-service mocks (in service constructor)
+class AccountsApiService extends BaseApiService {
+  constructor() {
+    super({ baseURL: '/api/accounts' }, new RestProtocol());
 
-// Register mocks for domain
-apiRegistry.registerMocks('accounts', accountsMockMap);
+    if (process.env.NODE_ENV === 'development') {
+      this.plugins.add(new MockPlugin({
+        mockMap: {
+          'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
+          'GET /api/accounts/users/:id': (body) => ({ id: body.id, name: 'User' }),
+          'POST /api/accounts/user/profile': (body) => ({ ...body, updatedAt: new Date() })
+        },
+        delay: 100,
+      }));
+    }
+  }
+}
+
+// Or global mocks (for cross-cutting concerns)
+apiRegistry.plugins.add(new MockPlugin({
+  mockMap: {
+    'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
+    'GET /api/billing/invoices': () => [{ id: 'inv-1', amount: 100 }],
+  },
+  delay: 100,
+}));
 ```
 
 ### Plugin System
 
-Extend protocols with plugins:
+Create plugins by extending ApiPluginBase or ApiPlugin<TConfig>:
 
 ```typescript
-import { MockPlugin, ApiPlugin } from '@hai3/api';
+import { ApiPlugin, ApiPluginBase, ApiRequestContext, ApiResponseContext } from '@hai3/api';
 
-// MockPlugin is built-in (priority 100)
-// Intercepts requests and returns mock data
-
-// Custom plugins
-class LoggingPlugin implements ApiPlugin {
-  name = 'LoggingPlugin';
-  priority = 50;
-
-  async onRequest(context) {
-    console.log('Request:', context.method, context.url);
-    return context;
+// Simple plugin (no config)
+class LoggingPlugin extends ApiPluginBase {
+  onRequest(ctx: ApiRequestContext) {
+    console.log(`[${ctx.method}] ${ctx.url}`);
+    return ctx;
   }
 
-  async onResponse(context) {
-    console.log('Response:', context.status);
-    return context;
+  onResponse(response: ApiResponseContext, request: ApiRequestContext) {
+    console.log(`[${response.status}] ${request.url}`);
+    return response;
+  }
+}
+
+// Plugin with config
+class AuthPlugin extends ApiPlugin<{ getToken: () => string | null }> {
+  onRequest(ctx: ApiRequestContext) {
+    const token = this.config.getToken();
+    if (!token) return ctx;
+    return {
+      ...ctx,
+      headers: { ...ctx.headers, Authorization: `Bearer ${token}` }
+    };
   }
 }
 
 // Register on service
-service.registerPlugin(new LoggingPlugin());
+service.plugins.add(new LoggingPlugin());
+service.plugins.add(new AuthPlugin({ getToken: () => localStorage.getItem('token') }));
+
+// Or register globally
+apiRegistry.plugins.add(new LoggingPlugin());
 ```
 
 ## Protocol Support
@@ -132,34 +141,49 @@ const restProtocol = new RestProtocol({
 
 ## Mock Mode
 
-Toggle mock mode at runtime:
+Toggle mock mode via plugin management:
 
 ```typescript
 // Enable mock mode
-apiRegistry.setMockMode(true);
+apiRegistry.plugins.add(new MockPlugin({
+  mockMap: { /* ... */ },
+  delay: 100
+}));
 
 // Disable mock mode
-apiRegistry.setMockMode(false);
+apiRegistry.plugins.remove(MockPlugin);
 
-// Check current mode
-const config = apiRegistry.getConfig();
-console.log('Mock mode:', config.useMockApi);
+// Check if mock mode is enabled
+const isMockEnabled = apiRegistry.plugins.has(MockPlugin);
+
+// Update mock map dynamically
+const mockPlugin = apiRegistry.plugins.getPlugin(MockPlugin);
+if (mockPlugin) {
+  mockPlugin.setMockMap({ /* new mocks */ });
+}
 ```
 
 ## Key Rules
 
 1. **Services extend BaseApiService** - Use the base class for protocol management
-2. **Register before initialize** - Call `register()` before `initialize()`
+2. **Register with class reference** - Call `apiRegistry.register(ServiceClass)`
 3. **One service per domain** - Each bounded context gets one service
-4. **Mocks are screenset-specific** - Register mocks in screenset, not in service
+4. **Mocks via plugins** - Use MockPlugin per-service or globally
+5. **Plugin identification by class** - Use class references, not string names
 
 ## Exports
 
 - `BaseApiService` - Abstract base class
 - `RestProtocol` - REST API protocol
+- `ApiPluginBase` - Abstract base class for plugins (no config)
+- `ApiPlugin` - Abstract generic class for plugins with config
 - `MockPlugin` - Mock data plugin
 - `apiRegistry` - Singleton registry
 - `createApiRegistry` - Factory for isolated testing
 - `ApiService` - Service interface (type)
-- `ApiServicesMap` - Augmentable services map
+- `ApiRequestContext` - Plugin request context type
+- `ApiResponseContext` - Plugin response context type
+- `ShortCircuitResponse` - Short-circuit response wrapper
+- `PluginClass` - Type for plugin class references
+- `isShortCircuit` - Type guard for short-circuit responses
 - `MockMap` - Mock response map type

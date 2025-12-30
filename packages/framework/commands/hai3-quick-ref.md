@@ -27,10 +27,8 @@
 - REQUIRED: Screen files orchestrate components only.
 
 ## Registry
-- REQUIRED: export const MY_DOMAIN = 'my-domain'.
 - REQUIRED: class MyService extends BaseApiService.
-- REQUIRED: declare module '@hai3/api' { interface ApiServicesMap }.
-- REQUIRED: apiRegistry.register(MY_DOMAIN, MyService).
+- REQUIRED: apiRegistry.register(MyService).
 
 ## Styling
 - Inline styles ONLY in screensets/*/uikit/base/ (rare local primitives).

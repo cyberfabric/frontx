@@ -320,12 +320,6 @@ export interface ThemeRegistry {
    */
   register(configOrId: ThemeConfig | string, legacyTheme?: LegacyTheme): void;
 
-  /**
-   * Set the apply function (legacy API).
-   * @deprecated Use the built-in apply or provide applyFn at construction.
-   */
-  setApplyFunction(applyFn: ThemeApplyFn): void;
-
   /** Get theme by ID */
   get(id: string): ThemeConfig | undefined;
   /** Get all themes */

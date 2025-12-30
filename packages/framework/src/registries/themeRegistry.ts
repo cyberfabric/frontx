@@ -4,17 +4,16 @@
  * Framework Layer: L2
  */
 
-import type { ThemeRegistry, ThemeConfig, ThemeApplyFn, LegacyTheme } from '../types';
+import type { ThemeRegistry, ThemeConfig, LegacyTheme } from '../types';
 
 /**
  * Create a new theme registry instance.
  */
 export function createThemeRegistry(): ThemeRegistry {
   const themes = new Map<string, ThemeConfig>();
-  // Store legacy themes for use with custom apply function
+  // Store legacy themes for backward compatibility
   const legacyThemes = new Map<string, LegacyTheme>();
   let currentThemeId: string | null = null;
-  let customApplyFn: ThemeApplyFn | null = null;
 
   // Subscription support for React
   const subscribers = new Set<() => void>();
@@ -101,13 +100,6 @@ export function createThemeRegistry(): ThemeRegistry {
     },
 
     /**
-     * Set the apply function (legacy API).
-     */
-    setApplyFunction(applyFn: ThemeApplyFn): void {
-      customApplyFn = applyFn;
-    },
-
-    /**
      * Get theme by ID.
      */
     get(id: string): ThemeConfig | undefined {
@@ -132,12 +124,8 @@ export function createThemeRegistry(): ThemeRegistry {
         return;
       }
 
-      // Check if we have a legacy theme and custom apply function
-      const legacyTheme = legacyThemes.get(id);
-      if (legacyTheme && customApplyFn) {
-        customApplyFn(legacyTheme, id);
-      } else if (config.variables && Object.keys(config.variables).length > 0) {
-        // Use built-in CSS variables approach
+      // Apply CSS variables if theme has them
+      if (config.variables && Object.keys(config.variables).length > 0) {
         applyCSSVariables(config);
       }
 

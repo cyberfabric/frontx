@@ -48,8 +48,7 @@ Create SDK-layer API service with protocol implementation.
 - [ ] Create API service class extending BaseApiService
 - [ ] Implement protocol (RestProtocol, SseProtocol, etc.)
 - [ ] Define TypeScript interfaces for requests/responses
-- [ ] Register with apiRegistry
-- [ ] Add module augmentation for ApiServicesMap
+- [ ] Register with apiRegistry using class reference
 - [ ] Validate: `npm run type-check`
 - [ ] Test API service methods
 ```
@@ -63,9 +62,7 @@ When user runs `/openspec:apply`, execute:
 ### 3.1 Create Service
 File: packages/api/src/{domain}/{Name}ApiService.ts
 ```typescript
-import { BaseApiService, RestProtocol, apiRegistry } from '@hai3/api';
-
-export const DOMAIN = '{domain}' as const;
+import { BaseApiService, RestProtocol, MockPlugin, apiRegistry } from '@hai3/api';
 
 // Request/Response interfaces
 export interface GetDataRequest {
@@ -78,13 +75,25 @@ export interface DataResponse {
 }
 
 class {Name}ApiService extends BaseApiService {
-  protected baseUrl = '/api/v1/{domain}';
-
   constructor() {
     super(
       { baseURL: '/api/v1/{domain}' },
       new RestProtocol()
     );
+
+    // For development/testing, register service-specific mocks
+    // NOTE: MockPlugin should be registered per-service for vertical slice compliance
+    // WARNING: Avoid global MockPlugin registration if screenset mocks need to be self-contained
+    if (process.env.NODE_ENV === 'development') {
+      this.plugins.add(new MockPlugin({
+        mockMap: {
+          'GET /api/v1/{domain}/data/:id': () => ({ id: '123', data: 'mock data' }),
+          'PUT /api/v1/{domain}/data/:id': (body) => ({ ...body, updatedAt: new Date() }),
+          'DELETE /api/v1/{domain}/data/:id': () => undefined,
+        },
+        delay: 100,
+      }));
+    }
   }
 
   async getData(request: GetDataRequest): Promise<DataResponse> {
@@ -100,15 +109,8 @@ class {Name}ApiService extends BaseApiService {
   }
 }
 
-// Register service
-apiRegistry.register(DOMAIN, {Name}ApiService);
-
-// Module augmentation for type safety
-declare module '@hai3/api' {
-  interface ApiServicesMap {
-    [DOMAIN]: {Name}ApiService;
-  }
-}
+// Register service with class reference (no string domain needed)
+apiRegistry.register({Name}ApiService);
 
 // Export for external use
 export { {Name}ApiService };
@@ -117,7 +119,7 @@ export { {Name}ApiService };
 ### 3.2 Export from Package
 Add to packages/api/src/index.ts:
 ```typescript
-export { {Name}ApiService, DOMAIN as {DOMAIN}_DOMAIN } from './{domain}/{Name}ApiService';
+export { {Name}ApiService } from './{domain}/{Name}ApiService';
 export type { GetDataRequest, DataResponse } from './{domain}/{Name}ApiService';
 ```
 
@@ -177,15 +179,10 @@ npm run type-check
 ### 3.6 Test Service
 ```typescript
 import { apiRegistry } from '@hai3/api';
-import { DOMAIN } from './packages/api/src/{domain}/{Name}ApiService';
+import { {Name}ApiService } from './packages/api/src/{domain}/{Name}ApiService';
 
-// Initialize registry
-apiRegistry.initialize({
-  useMockApi: false,
-});
-
-// Get service
-const service = apiRegistry.getService(DOMAIN);
+// Get service (type-safe with class reference)
+const service = apiRegistry.getService({Name}ApiService);
 
 // Test methods
 const data = await service.getData({ id: '123' });
@@ -198,9 +195,10 @@ Update tasks.md to mark all completed tasks.
 ## RULES
 - REQUIRED: Extend BaseApiService
 - REQUIRED: Implement protocol (RestProtocol, SseProtocol, etc.)
-- REQUIRED: Register with apiRegistry
+- REQUIRED: Register with apiRegistry.register(ServiceClass) using class reference
 - REQUIRED: Define TypeScript interfaces for all requests/responses
-- REQUIRED: Module augmentation for ApiServicesMap
+- FORBIDDEN: String domain constants for registration
+- FORBIDDEN: Module augmentation (not needed with class-based registration)
 - FORBIDDEN: Framework dependencies (@hai3/framework, @hai3/state)
 - FORBIDDEN: React dependencies (@hai3/react, React imports)
 - FORBIDDEN: Event system integration (eventBus)

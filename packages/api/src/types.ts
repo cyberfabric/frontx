@@ -104,13 +104,13 @@ export interface ApiProtocol {
    *
    * @param config - Base service configuration
    * @param getMockMap - Function to access mock response map
-   * @param getPlugins - Function to access registered legacy plugins
+   * @param getPlugins - Function to access registered plugins
    * @param getClassPlugins - Function to access class-based plugins (merged global + service)
    */
   initialize(
     config: Readonly<ApiServiceConfig>,
     getMockMap: () => Readonly<MockMap>,
-    getPlugins: () => ReadonlyArray<LegacyApiPlugin>,
+    getPlugins: () => ReadonlyArray<ApiPluginBase>,
     getClassPlugins: () => ReadonlyArray<ApiPluginBase>
   ): void;
 
@@ -149,42 +149,12 @@ export interface SseProtocolConfig {
 // ============================================================================
 
 /**
- * API Plugin Request Context
- * @deprecated Use ApiRequestContext instead
- */
-export interface ApiPluginRequestContext {
-  /** HTTP method */
-  method: string;
-  /** Request URL */
-  url: string;
-  /** Request headers */
-  headers: Record<string, string>;
-  /** Request body */
-  body?: unknown;
-}
-
-/**
- * API Plugin Response Context
- * @deprecated Use ApiResponseContext instead
- */
-export interface ApiPluginResponseContext {
-  /** HTTP status code */
-  status: number;
-  /** Response headers */
-  headers: Record<string, string>;
-  /** Response data */
-  data: unknown;
-}
-
-/**
  * API Request Context
  * Pure request data passed to plugins during request lifecycle.
  * Contains only request information - no service-specific metadata.
  * Plugins use dependency injection for service-specific behavior.
- *
- * Note: Extends ApiPluginRequestContext for backward compatibility during migration.
  */
-export interface ApiRequestContext extends ApiPluginRequestContext {
+export interface ApiRequestContext {
   /** HTTP method */
   readonly method: string;
   /** Request URL */
@@ -198,10 +168,8 @@ export interface ApiRequestContext extends ApiPluginRequestContext {
 /**
  * API Response Context
  * Response data passed to plugins during response lifecycle.
- *
- * Note: Extends ApiPluginResponseContext for backward compatibility during migration.
  */
-export interface ApiResponseContext extends ApiPluginResponseContext {
+export interface ApiResponseContext {
   /** HTTP status code */
   readonly status: number;
   /** Response headers */
@@ -373,64 +341,6 @@ export function isShortCircuit(
   return result !== undefined && 'shortCircuit' in result;
 }
 
-/**
- * API Plugin Interface (Legacy)
- * @deprecated Use ApiPluginBase or ApiPlugin<TConfig> class instead
- * Interface for plugins that modify API behavior.
- *
- * @example
- * ```typescript
- * class LoggingPlugin implements LegacyApiPlugin {
- *   name = 'logging';
- *
- *   onRequest(ctx) {
- *     console.log(`Request: ${ctx.method} ${ctx.url}`);
- *     return ctx;
- *   }
- *
- *   onResponse(ctx) {
- *     console.log(`Response: ${ctx.status}`);
- *     return ctx;
- *   }
- * }
- * ```
- */
-export interface LegacyApiPlugin {
-  /** Unique plugin name */
-  name: string;
-
-  /**
-   * Called before request is sent.
-   * Can modify the request context.
-   *
-   * @param context - Request context
-   * @returns Modified request context (or Promise)
-   */
-  onRequest?(
-    context: ApiPluginRequestContext
-  ): ApiPluginRequestContext | Promise<ApiPluginRequestContext>;
-
-  /**
-   * Called after response is received.
-   * Can modify the response context.
-   *
-   * @param context - Response context
-   * @returns Modified response context (or Promise)
-   */
-  onResponse?(
-    context: ApiPluginResponseContext
-  ): ApiPluginResponseContext | Promise<ApiPluginResponseContext>;
-
-  /**
-   * Called when an error occurs.
-   *
-   * @param error - The error that occurred
-   * @param context - Request context at time of error
-   * @returns Modified error (or Promise)
-   */
-  onError?(error: Error, context: ApiPluginRequestContext): Error | Promise<Error>;
-}
-
 // ============================================================================
 // API Service Interface
 // ============================================================================
@@ -502,26 +412,6 @@ export interface ApiService {
 // ============================================================================
 // API Registry Interface
 // ============================================================================
-
-/**
- * API Services Map
- * Maps domain string constants to service types.
- * Services extend this interface via module augmentation.
- *
- * @example
- * ```typescript
- * declare module '@hai3/api' {
- *   interface ApiServicesMap {
- *     accounts: AccountsApiService;
- *     billing: BillingApiService;
- *   }
- * }
- * ```
- */
-export interface ApiServicesMap {
-  // Services add their types via module augmentation
-  // No index signature - allows specific service types via augmentation
-}
 
 /**
  * Service Constructor Type

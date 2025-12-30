@@ -5,8 +5,8 @@
  */
 
 import { eventBus } from '@hai3/state';
-import type { HAI3Plugin, ChangeThemePayload, ThemeRegistry } from '../types';
-import { themeRegistry as singletonThemeRegistry } from '../compat';
+import type { HAI3Plugin, ChangeThemePayload } from '../types';
+import { createThemeRegistry } from '../registries/themeRegistry';
 
 // Define theme events for module augmentation
 declare module '@hai3/state' {
@@ -41,8 +41,8 @@ function changeTheme(payload: ChangeThemePayload): void {
  * ```
  */
 export function themes(): HAI3Plugin {
-  // Use the singleton theme registry - user themes register to this
-  const themeRegistry = singletonThemeRegistry as ThemeRegistry;
+  // Create a new theme registry instance for this plugin
+  const themeRegistry = createThemeRegistry();
 
   return {
     name: 'themes',
