@@ -738,3 +738,44 @@ apiRegistry.plugins.getAll();
 - [ ] `apiRegistry.plugins.getPlugin(PluginClass)` returns instance or undefined
 - [ ] `service.plugins.getPlugin(PluginClass)` searches service then global
 - [ ] Return type is correctly inferred
+
+### Requirement: Mock Map Self-Registration (Vertical Slice Architecture)
+
+The system SHALL support mock map self-registration by services to maintain vertical slice architecture compliance. This ensures App layer does not need to know about service-specific mocks.
+
+#### Scenario: Service registers its own mock map
+
+- **WHEN** a service needs mock support
+- **THEN** the service registers its own mock map during construction or initialization
+- **AND** the mock map is registered with the service's RestProtocol instance
+- **AND** App layer does NOT import or pass mock maps
+- **AND** StudioOverlay only toggles mock mode ON/OFF (no mockConfig prop)
+
+#### Scenario: RestMockPlugin uses pre-registered mock maps
+
+- **WHEN** mock mode is enabled via Studio toggle
+- **THEN** RestMockPlugin uses mock maps already registered by services
+- **AND** no external mock map configuration is needed at toggle time
+- **AND** each service's mock map remains encapsulated within that service
+
+#### Scenario: StudioOverlay has no mockConfig prop
+
+- **WHEN** StudioOverlay is rendered
+- **THEN** it does NOT accept a `mockConfig` prop
+- **AND** ApiModeToggle creates RestMockPlugin without external mock map
+- **AND** mock mode toggle only enables/disables existing service mocks
+
+#### Scenario: App.tsx does not import service mocks
+
+- **WHEN** App.tsx renders
+- **THEN** it does NOT import any mock maps from services
+- **AND** it does NOT pass mock configuration to StudioOverlay
+- **AND** mock configuration is fully encapsulated in services/screensets
+
+### AC14: Mock Self-Registration works
+
+- [ ] Services can register their own mock maps via RestProtocol
+- [ ] StudioOverlay does NOT have mockConfig prop
+- [ ] ApiModeToggle creates RestMockPlugin without external mock map
+- [ ] App.tsx does NOT import service mock maps
+- [ ] Mock mode toggle uses pre-registered service mocks

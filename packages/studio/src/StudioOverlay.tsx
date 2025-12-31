@@ -17,6 +17,7 @@ const StudioContent: React.FC = () => {
   return <StudioPanel />;
 };
 
+// No props - services register their own mocks
 export const StudioOverlay: React.FC = () => {
   return (
     <StudioProvider>

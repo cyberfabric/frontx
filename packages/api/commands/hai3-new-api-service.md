@@ -84,17 +84,16 @@ class {Name}ApiService extends BaseApiService {
       restProtocol
     );
 
-    // Register protocol-specific mock plugin in development
-    // NOTE: Mocks are registered on the protocol instance, not the service
+    // Register mock map for this service (vertical slice pattern)
+    // Services register their own mock maps during construction.
+    // This ensures vertical slice architecture compliance - screensets bring their own
+    // services AND mocks. App layer does not need to know about service-specific mocks.
     if (process.env.NODE_ENV === 'development') {
-      restProtocol.plugins.add(new RestMockPlugin({
-        mockMap: {
-          'GET /api/v1/{domain}/data/:id': () => ({ id: '123', data: 'mock data' }),
-          'PUT /api/v1/{domain}/data/:id': (body) => ({ ...body, updatedAt: new Date() }),
-          'DELETE /api/v1/{domain}/data/:id': () => undefined,
-        },
-        delay: 100,
-      }));
+      restProtocol.registerMockMap({
+        'GET /api/v1/{domain}/data/:id': () => ({ id: '123', data: 'mock data' }),
+        'PUT /api/v1/{domain}/data/:id': (body) => ({ ...body, updatedAt: new Date() }),
+        'DELETE /api/v1/{domain}/data/:id': () => undefined,
+      });
     }
   }
 
@@ -166,25 +165,22 @@ class {Name}ApiService extends BaseApiService {
       sseProtocol
     );
 
-    // Register protocol-specific mock plugins in development
+    // Register mock maps for this service (vertical slice pattern)
+    // Services register their own mock maps during construction.
+    // This ensures vertical slice architecture compliance - screensets bring their own
+    // services AND mocks. App layer does not need to know about service-specific mocks.
     if (process.env.NODE_ENV === 'development') {
-      restProtocol.plugins.add(new RestMockPlugin({
-        mockMap: {
-          'GET /api/v1/{domain}/data': () => ({ items: [] }),
-        },
-        delay: 100,
-      }));
+      restProtocol.registerMockMap({
+        'GET /api/v1/{domain}/data': () => ({ items: [] }),
+      });
 
-      sseProtocol.plugins.add(new SseMockPlugin({
-        mockStreams: {
-          '/api/v1/{domain}/events': [
-            { data: '{"type": "update", "value": 1}' },
-            { data: '{"type": "update", "value": 2}' },
-            { event: 'done', data: '' },
-          ],
-        },
-        delay: 50,
-      }));
+      sseProtocol.registerMockStreams({
+        '/api/v1/{domain}/events': [
+          { data: '{"type": "update", "value": 1}' },
+          { data: '{"type": "update", "value": 2}' },
+          { event: 'done', data: '' },
+        ],
+      });
     }
   }
 

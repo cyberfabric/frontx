@@ -14,15 +14,18 @@ import { UserRole, type ApiUser, type GetCurrentUserResponse } from './types';
  * Mock user data
  */
 const mockUser: ApiUser = {
-  id: 'user-1',
-  email: 'john.doe@example.com',
-  firstName: 'John',
-  lastName: 'Doe',
+  id: 'mock-user-001',
+  email: 'demo@hai3.org',
+  firstName: 'Demo',
+  lastName: 'User',
   role: UserRole.Admin,
   language: Language.English,
-  avatarUrl: 'https://i.pravatar.cc/150?u=john.doe',
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
+  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
+  createdAt: new Date('2024-01-01T00:00:00Z').toISOString(),
+  updatedAt: new Date('2024-12-01T00:00:00Z').toISOString(),
+  extra: {
+    department: 'Engineering',
+  },
 };
 
 /**

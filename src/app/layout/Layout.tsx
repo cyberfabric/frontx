@@ -7,9 +7,7 @@
  */
 
 import React, { useEffect } from 'react';
-import { trim } from 'lodash';
-import { useAppDispatch, apiRegistry, setUser, setHeaderLoading, type HeaderUser } from '@hai3/react';
-import { AccountsApiService, type ApiUser } from '@/app/api';
+import { fetchCurrentUser } from '@/app/actions/bootstrapActions';
 import { Header } from './Header';
 import { Footer } from './Footer';
 import { Menu } from './Menu';
@@ -22,46 +20,11 @@ export interface LayoutProps {
   children?: React.ReactNode;
 }
 
-/**
- * Convert API user to header user info
- */
-function toHeaderUser(user: ApiUser): HeaderUser {
-  const displayName = trim(`${user.firstName || ''} ${user.lastName || ''}`);
-  return {
-    displayName: displayName || undefined,
-    email: user.email || undefined,
-    avatarUrl: user.avatarUrl,
-  };
-}
-
 export const Layout: React.FC<LayoutProps> = ({ children }) => {
-  const dispatch = useAppDispatch();
-
   useEffect(() => {
     // Bootstrap application on mount - fetch current user
-    const fetchUser = async () => {
-      try {
-        // Check if accounts service is registered before trying to use it
-        if (!apiRegistry.has(AccountsApiService)) {
-          // Accounts service not registered - skip user fetch
-          return;
-        }
-
-        dispatch(setHeaderLoading(true));
-        // Get accounts service using class-based registration
-        const accountsService = apiRegistry.getService(AccountsApiService);
-        const response = await accountsService.getCurrentUser();
-        if (response?.user) {
-          dispatch(setUser(toHeaderUser(response.user)));
-        }
-      } catch (error) {
-        console.warn('Failed to fetch user:', error);
-        dispatch(setHeaderLoading(false));
-      }
-    };
-
-    fetchUser();
-  }, [dispatch]);
+    fetchCurrentUser();
+  }, []);
 
   return (
     <div className="flex flex-col h-full w-full overflow-hidden">

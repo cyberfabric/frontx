@@ -74,15 +74,14 @@ class {Name}ApiService extends BaseApiService {
 
     super({ baseURL: '/api/v1/{domain}' }, restProtocol);
 
-    // Register protocol-specific mock plugin in development
-    // NOTE: Mocks are registered on the protocol instance, not the service
+    // Register mock map for this service (vertical slice pattern)
+    // Services register their own mock maps during construction.
+    // This ensures vertical slice architecture compliance - screensets bring their own
+    // services AND mocks. App layer does not need to know about service-specific mocks.
     if (import.meta.env.DEV) {
-      restProtocol.plugins.add(new RestMockPlugin({
-        mockMap: {
-          'GET /api/v1/{domain}/endpoint': () => ({ data: 'mock data' }),
-        },
-        delay: 100,
-      }));
+      restProtocol.registerMockMap({
+        'GET /api/v1/{domain}/endpoint': () => ({ data: 'mock data' }),
+      });
     }
   }
 

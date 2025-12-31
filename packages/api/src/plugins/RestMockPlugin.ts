@@ -20,8 +20,11 @@ import {
  * REST Mock Configuration
  */
 export interface RestMockConfig {
-  /** Mock response map: 'METHOD /path' -> response factory */
-  mockMap: Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>>;
+  /**
+   * Optional mock response map: 'METHOD /path' -> response factory
+   * If not provided, plugin will use mock maps registered on the protocol instance
+   */
+  mockMap?: Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>>;
   /** Simulated network delay in ms */
   delay?: number;
 }
@@ -52,9 +55,16 @@ export interface RestMockConfig {
  */
 export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
   /** Current mock map (can be updated via setMockMap) */
-  private currentMockMap: Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>>;
+  private currentMockMap?: Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>>;
 
-  constructor(config: RestMockConfig) {
+  /**
+   * Protocol reference for accessing registered mock maps.
+   * Set internally by RestProtocol when executing plugin chain.
+   * @internal
+   */
+  _protocol?: { getMockMap(): Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>> };
+
+  constructor(config: RestMockConfig = {}) {
     super(config);
     this.currentMockMap = config.mockMap;
   }
@@ -106,7 +116,9 @@ export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
     url: string
   ): MockResponseFactory<unknown, unknown> | undefined {
     const mockKey = `${method.toUpperCase()} ${url}`;
-    const mockMap = this.currentMockMap;
+
+    // Use config mockMap if provided, otherwise get from protocol
+    const mockMap = this.currentMockMap ?? this._protocol?.getMockMap() ?? {};
 
     // Try exact match first
     const exactMatch = mockMap[mockKey];

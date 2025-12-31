@@ -1,15 +1,22 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, RestProtocol, RestMockPlugin } from '@hai3/react';
-import { Toaster } from '@hai3/uikit';
+import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn } from '@hai3/react';
+import { Toaster, applyTheme } from '@hai3/uikit';
 import { AccountsApiService } from '@/app/api';
-import { accountsMockMap } from '@/app/api/mocks';
 import '@hai3/uikit/styles'; // UI Kit styles
 import '@/app/uikit/uikitRegistry'; // Auto-registers UI Kit (components + icons)
 import '@/screensets/screensetRegistry'; // Auto-registers screensets (includes API services + mocks + i18n loaders)
-import '@/app/themes/themeRegistry'; // Auto-registers themes
+import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
+import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';
+
+// Import all themes
+import { DEFAULT_THEME_ID, defaultTheme } from '@/app/themes/default';
+import { DARK_THEME_ID, darkTheme } from '@/app/themes/dark';
+import { LIGHT_THEME_ID, lightTheme } from '@/app/themes/light';
+import { DRACULA_THEME_ID, draculaTheme } from '@/app/themes/dracula';
+import { DRACULA_LARGE_THEME_ID, draculaLargeTheme } from '@/app/themes/dracula-large';
 
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);
@@ -17,13 +24,24 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Enable mock mode for development (global - affects all REST services)
-RestProtocol.globalPlugins.add(
-  new RestMockPlugin({
-    mockMap: accountsMockMap,
-    delay: 500,
-  })
-);
+// Create HAI3 app instance
+const app = createHAI3App();
+
+// Register app-level effects (pass store dispatch)
+registerBootstrapEffects(app.store.dispatch);
+
+// Set the apply function from UI Kit (cast to ThemeApplyFn for compatibility)
+app.themeRegistry.setApplyFunction(applyTheme as ThemeApplyFn);
+
+// Register all themes (default theme first, becomes the default selection)
+app.themeRegistry.register(DEFAULT_THEME_ID, defaultTheme);
+app.themeRegistry.register(LIGHT_THEME_ID, lightTheme);
+app.themeRegistry.register(DARK_THEME_ID, darkTheme);
+app.themeRegistry.register(DRACULA_THEME_ID, draculaTheme);
+app.themeRegistry.register(DRACULA_LARGE_THEME_ID, draculaLargeTheme);
+
+// Apply default theme
+app.themeRegistry.apply(DEFAULT_THEME_ID);
 
 /**
  * Render application
@@ -35,10 +53,13 @@ RestProtocol.globalPlugins.add(
  * 3. User fetched → language set → translations loaded
  * 4. Components re-render with actual text (translationsReady = true)
  * 5. HAI3Provider includes AppRouter for URL-based navigation
+ *
+ * Note: Mock API is controlled via the HAI3 Studio panel.
+ * The ApiModeToggle component manages the RestMockPlugin lifecycle.
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <HAI3Provider>
+    <HAI3Provider app={app}>
       <App />
       <Toaster />
     </HAI3Provider>

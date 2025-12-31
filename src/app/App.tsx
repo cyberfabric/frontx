@@ -19,21 +19,21 @@
  * StudioOverlay (dev mode only):
  * - Development tools for theme/screenset switching
  * - Language selection
- * - API mode toggle
+ * - API mode toggle (services register their own mocks)
  */
 
 import { AppRouter } from '@hai3/react';
 import { Layout } from '@/app/layout';
-import { StudioProvider, StudioOverlay } from '@hai3/studio';
+import { StudioOverlay } from '@hai3/studio';
 
 function App() {
   return (
-    <StudioProvider>
+    <>
       <Layout>
         <AppRouter />
       </Layout>
       <StudioOverlay />
-    </StudioProvider>
+    </>
   );
 }
 

@@ -7,6 +7,7 @@
 
 import { BaseApiService, RestProtocol } from '@hai3/api';
 import type { GetCurrentUserResponse } from './types';
+import { accountsMockMap } from './mocks';
 
 /**
  * Accounts API Service
@@ -18,12 +19,14 @@ import type { GetCurrentUserResponse } from './types';
  */
 export class AccountsApiService extends BaseApiService {
   constructor() {
-    super(
-      { baseURL: '/api/accounts' },
-      new RestProtocol({
-        timeout: 30000,
-      })
-    );
+    const restProtocol = new RestProtocol({
+      timeout: 30000,
+    });
+
+    super({ baseURL: '/api/accounts' }, restProtocol);
+
+    // Self-register mock map - stays within screenset (vertical slice pattern)
+    restProtocol.registerMockMap(accountsMockMap);
   }
 
   /**

@@ -63,7 +63,7 @@ export type {
   ThemeRegistry,
   ThemeConfig,
   ThemeApplyFn,
-  LegacyTheme,
+  UikitTheme,
   RouteRegistry,
   Preset,
   Presets,

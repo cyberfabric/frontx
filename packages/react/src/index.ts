@@ -317,7 +317,7 @@ export type {
 
   // Theme types
   ThemeApplyFn,
-  LegacyTheme,
+  UikitTheme,
 
   // I18n
   I18nConfig,

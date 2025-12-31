@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation, RestProtocol, RestMockPlugin, type RestMockConfig } from '@hai3/react';
+import { useTranslation, RestProtocol, RestMockPlugin } from '@hai3/react';
 import { Switch } from '@hai3/uikit';
 
 /**
@@ -8,20 +8,17 @@ import { Switch } from '@hai3/uikit';
  *
  * Uses protocol-level plugin management (RestProtocol.globalPlugins) for
  * cross-cutting mock behavior that affects all REST API services.
+ *
+ * Mock maps are registered by services during construction (vertical slice pattern).
+ * This toggle only enables/disables the mock plugin, not configure it.
  */
 
 export interface ApiModeToggleProps {
   className?: string;
-  /** Mock config to use when enabling mock mode */
-  mockConfig?: RestMockConfig;
-  /** Delay to use when enabling mock mode (deprecated: use mockConfig.delay) */
-  mockDelay?: number;
 }
 
 export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
   className,
-  mockConfig,
-  mockDelay = 500,
 }) => {
   // Track the mock plugin instance we create
   const mockPluginRef = useRef<RestMockPlugin | null>(null);
@@ -46,9 +43,9 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
     setUseMockApi(checked);
     if (checked) {
       // Enable mock mode - add RestMockPlugin if not already present
+      // Plugin will use mock maps registered by services
       if (!mockPluginRef.current) {
-        const config: RestMockConfig = mockConfig ?? { mockMap: {}, delay: mockDelay };
-        mockPluginRef.current = new RestMockPlugin(config);
+        mockPluginRef.current = new RestMockPlugin({ delay: 500 });
         RestProtocol.globalPlugins.add(mockPluginRef.current);
       }
     } else {
@@ -61,7 +58,7 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
   };
 
   return (
-    <div className={`flex items-center justify-between h-9 ${className}`}>
+    <div className={`flex items-center justify-between h-9 ${className ?? ''}`}>
       <label
         htmlFor="api-mode-toggle"
         className="text-sm text-muted-foreground cursor-pointer select-none whitespace-nowrap"

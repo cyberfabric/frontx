@@ -18,6 +18,7 @@ import type {
   ShortCircuitResponse,
   RestPluginHooks,
   HttpMethod,
+  MockMap,
 } from '../types';
 import { isShortCircuit } from '../types';
 
@@ -52,7 +53,7 @@ export class RestProtocol implements ApiProtocol {
   /** REST-specific config */
   private restConfig: RestProtocolConfig;
 
-  /** Callback to get legacy plugins (for backward compatibility) */
+  /** Callback to get service-level plugins from BaseApiService for backward compatibility with function-based plugin API */
   private getPlugins: () => ReadonlyArray<ApiPluginBase> = () => [];
 
   /** Global plugins shared across all RestProtocol instances */
@@ -60,6 +61,9 @@ export class RestProtocol implements ApiProtocol {
 
   /** Instance-specific plugins */
   private _instancePlugins: Set<RestPluginHooks> = new Set();
+
+  /** Instance-level mock map storage */
+  private mockMap: MockMap = {};
 
   /**
    * Global plugin management namespace
@@ -149,6 +153,40 @@ export class RestProtocol implements ApiProtocol {
   }
 
   // ============================================================================
+  // Mock Map Management
+  // ============================================================================
+
+  /**
+   * Register mock map for this protocol instance.
+   * Called by services during construction to register their mock responses.
+   * Multiple calls accumulate mock maps.
+   *
+   * @param mockMap - Mock response map to register
+   *
+   * @example
+   * ```typescript
+   * const restProtocol = new RestProtocol();
+   * restProtocol.registerMockMap({
+   *   'GET /users': () => [{ id: '1', name: 'John' }],
+   *   'POST /users': (body) => ({ id: '2', ...body })
+   * });
+   * ```
+   */
+  registerMockMap(mockMap: MockMap): void {
+    this.mockMap = { ...this.mockMap, ...mockMap };
+  }
+
+  /**
+   * Get the registered mock map.
+   * Used by RestMockPlugin when enabled.
+   *
+   * @returns Readonly mock map for this protocol instance
+   */
+  getMockMap(): Readonly<MockMap> {
+    return this.mockMap;
+  }
+
+  // ============================================================================
   // Initialization
   // ============================================================================
 
@@ -162,8 +200,9 @@ export class RestProtocol implements ApiProtocol {
   ): void {
     this.config = config;
     this.getPlugins = getPlugins;
-    // _getClassPlugins is part of the interface but not used by RestProtocol
-    // Protocol-level plugins are accessed via getPluginsInOrder()
+    // _getClassPlugins parameter exists for interface compatibility but is not used by RestProtocol.
+    // RestProtocol uses class-based plugin system via getPluginsInOrder() (global + instance plugins)
+    // instead of the service-level class plugins callback.
 
     // Create axios instance
     this.client = axios.create({
@@ -373,6 +412,11 @@ export class RestProtocol implements ApiProtocol {
 
     // Use protocol-level plugins (global + instance)
     for (const plugin of this.getPluginsInOrder()) {
+      // Set protocol reference for plugins that need it (e.g., RestMockPlugin)
+      if ('_protocol' in plugin) {
+        (plugin as { _protocol?: unknown })._protocol = this;
+      }
+
       if (plugin.onRequest) {
         const result = await plugin.onRequest(currentContext);
 

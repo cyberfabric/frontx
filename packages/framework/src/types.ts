@@ -291,11 +291,11 @@ export interface ThemeConfig {
 }
 
 /**
- * Legacy Theme type (from @hai3/uikit)
- * Used for backward compatibility with old register(id, theme) pattern.
+ * UIKit Theme type (from @hai3/uikit)
+ * Used for themes that require custom apply functions (e.g., @hai3/uikit's applyTheme).
  * Using 'unknown' as the base type to accept any theme structure.
  */
-export type LegacyTheme = unknown;
+export type UikitTheme = unknown;
 
 /**
  * Theme apply function type
@@ -313,12 +313,18 @@ export interface ThemeApplyFn {
 export interface ThemeRegistry {
   /**
    * Register a theme.
-   * Supports both new API (config only) and legacy API (id + theme).
+   * Supports both config-based API and UIKit theme API.
    *
-   * @param configOrId - ThemeConfig or theme ID (for legacy API)
-   * @param legacyTheme - Legacy Theme object (optional, for backward compatibility)
+   * @param configOrId - ThemeConfig or theme ID (for UIKit themes)
+   * @param uikitTheme - UIKit Theme object (optional, for @hai3/uikit themes)
    */
-  register(configOrId: ThemeConfig | string, legacyTheme?: LegacyTheme): void;
+  register(configOrId: ThemeConfig | string, uikitTheme?: UikitTheme): void;
+
+  /**
+   * Set custom apply function for UIKit themes.
+   * @param fn - Function to apply UIKit theme objects (e.g., @hai3/uikit's applyTheme)
+   */
+  setApplyFunction(fn: ThemeApplyFn): void;
 
   /** Get theme by ID */
   get(id: string): ThemeConfig | undefined;
@@ -350,13 +356,13 @@ export interface ThemeRegistry {
 export interface RouteRegistry {
   /** Check if a screen exists by screenId only (globally unique) */
   hasScreenById(screenId: string): boolean;
-  /** Check if a screen exists (legacy, requires both IDs) */
+  /** Check if a screen exists by both screensetId and screenId (explicit lookup when screenset context is known) */
   hasScreen(screensetId: string, screenId: string): boolean;
   /** Get screenset ID for a given screen ID (reverse lookup) */
   getScreensetForScreen(screenId: string): string | undefined;
   /** Get screen loader by screenId only */
   getScreenById(screenId: string): (() => Promise<{ default: React.ComponentType }>) | undefined;
-  /** Get screen loader (legacy, requires both IDs) */
+  /** Get screen loader by both screensetId and screenId (explicit lookup when screenset context is known) */
   getScreen(screensetId: string, screenId: string): (() => Promise<{ default: React.ComponentType }>) | undefined;
   /** Get all routes */
   getAll(): Array<{ screensetId: string; screenId: string }>;

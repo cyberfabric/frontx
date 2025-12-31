@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation, TextLoader, useScreenTranslations, apiRegistry, I18nRegistry, Language } from '@hai3/react';
 import { Button, Card, CardContent, CardFooter } from '@hai3/uikit';
 import { AccountsApiService, type ApiUser } from '@/app/api';
+import { notifyUserLoaded } from '@/app/actions/bootstrapActions';
 import { PROFILE_SCREEN_ID } from "../../ids";
 import { DEMO_SCREENSET_ID } from "../../ids";
 
@@ -82,6 +83,8 @@ export const ProfileScreen: React.FC = () => {
       const response = await accountsService.getCurrentUser();
       if (response?.user) {
         setUser(response.user);
+        // Notify app that user data is loaded - updates header via flux action
+        notifyUserLoaded(response.user);
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch user');

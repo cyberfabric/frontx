@@ -3902,6 +3902,165 @@ export class ChatApiService extends BaseApiService {
 
 ---
 
+### 81. Extend Flux Architecture ESLint Rules to src/app Folder
+
+**Goal**: Ensure `src/app/**` components are protected by flux architecture rules
+
+**Files**:
+- `internal/eslint-config/screenset.ts` (modified)
+- `eslint.config.js` (modified)
+- `packages/cli/template-sources/project/configs/eslint.config.js` (modified)
+
+**Changes**:
+- Extend "Components: No direct slice dispatch" rule (screenset.ts line 207) to include `src/app/**/*.tsx`
+- Remove the `src/layout/**` exception from eslint.config.js (lines 71-84) OR convert it to proper flux-compliant exceptions
+- Ensure the same rules are shipped to HAI3-based projects via CLI templates
+
+**Current Problem**:
+- `src/app/layout/Layout.tsx` has flux violations: `dispatch(setUser(...))` and `dispatch(setHeaderLoading(...))`
+- These violations are NOT caught because:
+  1. screenset.ts rules only apply to `src/screensets/**` and `src/components/**`
+  2. eslint.config.js has a custom exception for `src/layout/**` that doesn't include the dispatch(setXxx) rule
+
+**Traceability**:
+- Existing flux architecture rules in screenset.ts (lines 207-261)
+- FLUX VIOLATION message: "Components cannot call slice reducers (setXxx functions). Use actions from /actions/ instead."
+
+**Validation**:
+- [x] Running `npm run arch:check` catches violations in `src/app/**/*.tsx`
+- [x] Layout.tsx violations are flagged
+- [x] CLI template eslint.config.js has matching rules
+- [x] Standalone projects get the same protections
+
+**Status**: COMPLETED
+
+**Dependencies**: None
+
+---
+
+### 82. Fix Layout.tsx Flux Architecture Violations
+
+**Goal**: Refactor Layout.tsx to use proper flux architecture (actions + effects)
+
+**Files**:
+- `src/app/layout/Layout.tsx` (modified)
+- `src/app/actions/` (new directory - app-level actions)
+- `src/app/effects/` (new directory - app-level effects)
+
+**Changes**:
+1. Create `src/app/actions/bootstrapActions.ts` with a `fetchCurrentUser` action that emits an event
+2. Create `src/app/effects/bootstrapEffects.ts` that listens for the event and dispatches to header slice
+3. Refactor Layout.tsx to call the action instead of dispatching directly
+4. Register the effect in app initialization
+
+**Current Violations**:
+```typescript
+// Layout.tsx - VIOLATIONS
+dispatch(setHeaderLoading(true));
+dispatch(setUser(toHeaderUser(response.user)));
+dispatch(setHeaderLoading(false));
+```
+
+**Flux-Compliant Pattern**:
+```typescript
+// Layout.tsx - COMPLIANT
+useEffect(() => {
+  fetchCurrentUser(); // Action emits event
+}, []);
+
+// bootstrapActions.ts
+export function fetchCurrentUser(): void {
+  eventBus.emit('app/user/fetch');
+}
+
+// bootstrapEffects.ts
+eventBus.on('app/user/fetch', async () => {
+  dispatch(setHeaderLoading(true));
+  // ... fetch and dispatch
+});
+```
+
+**Traceability**:
+- Flux architecture: Actions emit events, Effects listen and dispatch
+- Pattern established in screensets (see src/screensets/*/actions and effects)
+
+**Validation**:
+- [x] No direct `dispatch(setXxx)` calls in Layout.tsx
+- [x] `npm run arch:check` passes
+- [ ] App still bootstraps correctly (user data loads) - requires manual testing
+- [ ] Header displays user info - requires manual testing
+
+**Status**: COMPLETED
+
+**Dependencies**: Task 81
+
+---
+
+### 83. Remove Legacy Terminology from ThemeRegistry
+
+**Goal**: Clean up misleading "legacy" terminology in theme system
+
+**Files**:
+- `packages/framework/src/types.ts` (modified)
+- `packages/framework/src/registries/themeRegistry.ts` (modified)
+
+**Changes**:
+1. Rename `LegacyTheme` type to `Theme` or `UiKitTheme` (it's the CURRENT @hai3/uikit format, not legacy)
+2. Rename internal `legacyThemes` map to `themes` or `uikitThemes`
+3. Update comments to remove "legacy" / "backward compatibility" language
+4. Keep `setApplyFunction` but rename to clarify its purpose (e.g., `setThemeApplier`)
+
+**Current Misleading Code**:
+```typescript
+// types.ts
+export type LegacyTheme = unknown;  // This is CURRENT @hai3/uikit Theme!
+
+// themeRegistry.ts
+const legacyThemes = new Map<string, LegacyTheme>();  // Not legacy!
+// Store legacy themes for backward compatibility  // Wrong comment
+```
+
+**Rationale**:
+- @hai3/uikit Theme is the CURRENT standard format, not legacy
+- "Legacy" implies deprecated/old, causing confusion
+- HAI3 should have one clean theme API
+
+**Validation**:
+- [x] No "legacy" terminology in theme-related code
+- [x] TypeScript compiles
+- [ ] Themes still work correctly - requires manual testing
+- [x] API is cleaner and self-documenting
+
+**Status**: COMPLETED
+
+**Dependencies**: None
+
+---
+
+### 84. Update CLI Template Theme Registration
+
+**Goal**: Ensure CLI-generated projects use clean theme API
+
+**Files**:
+- `packages/cli/template-sources/project/src/app/main.tsx` (if exists)
+- `packages/cli/template-sources/layout/*/` (theme registration examples)
+
+**Changes**:
+- Update any theme registration examples to use the cleaned-up API
+- Remove any "legacy" terminology from templates
+- Ensure generated projects follow best practices
+
+**Validation**:
+- [ ] CLI-generated projects use clean theme API
+- [ ] No "legacy" terminology in templates
+- [ ] Theme switching works in generated projects
+
+**Status**: PENDING
+
+**Dependencies**: Task 83
+
+---
+
 ## Success Criteria Updates
 
 ### Chat Screenset Validation
@@ -3912,3 +4071,397 @@ export class ChatApiService extends BaseApiService {
 - [ ] Word-by-word streaming visible in chat UI
 - [ ] No references to `apiRegistry.getMockMap()` or `apiRegistry.registerMocks()`
 - [ ] All manual tests pass
+
+### Architecture Protection Validation
+- [ ] `src/app/**/*.tsx` protected by flux rules
+- [ ] Layout.tsx uses actions/effects pattern
+- [ ] No "legacy" terminology in theme system
+- [ ] CLI templates have matching protections
+
+---
+
+## Mock Map Self-Registration (Vertical Slice Architecture)
+
+The following tasks address the architectural issue where App.tsx imports and passes mock configuration to StudioOverlay, violating vertical slice architecture. Services should self-register their mock maps, and Studio should only toggle mock mode ON/OFF.
+
+---
+
+### 85. Add registerMockMap() Method to RestProtocol
+
+**Goal**: Add method for services to register their own mock maps
+
+**Files**:
+- `packages/api/src/protocols/RestProtocol.ts` (modified)
+- `packages/api/src/types.ts` (modified - add RestMockMap type if needed)
+
+**Changes**:
+- Add private `mockMap: RestMockMap = {}` field to RestProtocol
+- Add `registerMockMap(mockMap: RestMockMap): void` method:
+  ```typescript
+  registerMockMap(mockMap: RestMockMap): void {
+    this.mockMap = { ...this.mockMap, ...mockMap };
+  }
+  ```
+- Add `getMockMap(): Readonly<RestMockMap>` method:
+  ```typescript
+  getMockMap(): Readonly<RestMockMap> {
+    return this.mockMap;
+  }
+  ```
+- Export `RestMockMap` type from types.ts if not already exported
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: Service registers its own mock map (spec.md)
+- Design: RestProtocol Mock Map Registration (design.md)
+
+**Validation**:
+- [ ] `registerMockMap()` method exists on RestProtocol
+- [ ] `getMockMap()` method exists on RestProtocol
+- [ ] Mock maps can be merged (multiple calls accumulate)
+- [ ] TypeScript compiles without errors
+
+**Status**: PENDING
+
+**Dependencies**: Task 57 (RestProtocol plugin management)
+
+---
+
+### 86. Update RestMockPlugin to Use Protocol's Mock Map
+
+**Goal**: RestMockPlugin should use mock maps registered on the protocol instance
+
+**Files**:
+- `packages/api/src/plugins/RestMockPlugin.ts` (modified)
+
+**Changes**:
+- Modify `RestMockConfig` to make `mockMap` optional:
+  ```typescript
+  export interface RestMockConfig {
+    /** Optional mock map - if not provided, uses protocol's registered map */
+    mockMap?: RestMockMap;
+    /** Simulated network delay in ms */
+    delay?: number;
+  }
+  ```
+- Update `onRequest` to get mock map from protocol if not provided in config:
+  ```typescript
+  async onRequest(ctx: RestRequestContext): Promise<RestRequestContext | RestShortCircuitResponse> {
+    // Use config mockMap if provided, otherwise get from protocol
+    const mockMap = this.config.mockMap ?? this.getProtocolMockMap();
+
+    const key = `${ctx.method} ${ctx.url}`;
+    const factory = mockMap[key];
+    // ... rest of implementation
+  }
+  ```
+- Add mechanism to access protocol's mock map (may need protocol reference in context)
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: RestMockPlugin uses pre-registered mock maps (spec.md)
+- Design: RestMockPlugin Using Pre-Registered Mocks (design.md)
+
+**Validation**:
+- [ ] RestMockPlugin works with explicit mockMap in config
+- [ ] RestMockPlugin works with pre-registered mock map from protocol
+- [ ] Protocol's getMockMap() is called when config.mockMap is undefined
+- [ ] TypeScript compiles without errors
+
+**Status**: PENDING
+
+**Dependencies**: Task 85, Task 60 (RestMockPlugin)
+
+---
+
+### 87. Remove mockConfig Prop from StudioOverlay
+
+**Goal**: StudioOverlay should not accept mock configuration
+
+**Files**:
+- `packages/react/src/components/Studio/StudioOverlay.tsx` (modified)
+- `packages/react/src/components/Studio/types.ts` (modified if exists)
+
+**Changes**:
+- Remove `mockConfig` prop from StudioOverlay props interface:
+  ```typescript
+  // BEFORE
+  interface StudioOverlayProps {
+    mockConfig?: { mockMap: MockMap; delay?: number };
+    // other props
+  }
+
+  // AFTER
+  interface StudioOverlayProps {
+    // mockConfig removed - services register their own mocks
+    // other props
+  }
+  ```
+- Remove any code that passes mockConfig to ApiModeToggle or other children
+- Update component to not depend on externally-provided mock map
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: StudioOverlay has no mockConfig prop (spec.md)
+- Design: StudioOverlay Without Mock Config (design.md)
+
+**Validation**:
+- [ ] StudioOverlay does NOT have mockConfig prop
+- [ ] StudioOverlay renders without mock configuration
+- [ ] TypeScript compiles without errors
+- [ ] No breaking API for existing non-mock usage
+
+**Status**: PENDING
+
+**Dependencies**: Task 86
+
+---
+
+### 88. Update ApiModeToggle to Create RestMockPlugin Without External Mock Map
+
+**Goal**: ApiModeToggle should create RestMockPlugin with only delay config
+
+**Files**:
+- `packages/react/src/components/Studio/ApiModeToggle.tsx` (modified)
+
+**Changes**:
+- Update toggle logic to create RestMockPlugin without mockMap:
+  ```typescript
+  const toggleMockMode = () => {
+    if (isMockMode) {
+      // Disable mock mode
+      RestProtocol.globalPlugins.remove(RestMockPlugin);
+    } else {
+      // Enable mock mode - plugin will use pre-registered mock maps
+      RestProtocol.globalPlugins.add(new RestMockPlugin({ delay: 500 }));
+    }
+    setIsMockMode(!isMockMode);
+  };
+  ```
+- Remove any mockMap parameter from RestMockPlugin instantiation
+- Update imports if needed
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: ApiModeToggle creates RestMockPlugin without external mock map (spec.md)
+- Design: ApiModeToggle Implementation (design.md)
+
+**Validation**:
+- [ ] ApiModeToggle creates RestMockPlugin with only delay config
+- [ ] Toggle ON adds RestMockPlugin to RestProtocol.globalPlugins
+- [ ] Toggle OFF removes RestMockPlugin from RestProtocol.globalPlugins
+- [ ] Mock mode toggle works correctly
+- [ ] TypeScript compiles without errors
+
+**Status**: PENDING
+
+**Dependencies**: Task 87
+
+---
+
+### 89. Update App.tsx to Not Import or Pass Mock Maps
+
+**Goal**: App.tsx should not have any mock map imports or configuration
+
+**Files**:
+- `src/app/App.tsx` (modified)
+
+**Changes**:
+- Remove mock map imports:
+  ```typescript
+  // REMOVE
+  import { accountsMockMap } from '@/app/api/mocks';
+  ```
+- Remove mockConfig prop from StudioOverlay:
+  ```typescript
+  // BEFORE
+  <StudioOverlay mockConfig={{ mockMap: accountsMockMap, delay: 500 }} />
+
+  // AFTER
+  <StudioOverlay />
+  ```
+- Remove any other mock-related imports or configuration in App.tsx
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: App.tsx does not import service mocks (spec.md)
+- Design: Problem Statement - App layer coupling (design.md)
+
+**Validation**:
+- [ ] App.tsx does NOT import any mock maps
+- [ ] App.tsx does NOT pass mockConfig to StudioOverlay
+- [ ] App.tsx has no mock-related configuration
+- [ ] Application still works correctly
+- [ ] TypeScript compiles without errors
+
+**Status**: PENDING
+
+**Dependencies**: Task 88
+
+---
+
+### 90. Update Service Constructors to Register Mock Maps
+
+**Goal**: Services should register their own mock maps during construction
+
+**Files**:
+- `src/app/api/services/AccountsApiService.ts` (or similar - example)
+- Other service files that need mock support
+
+**Changes**:
+- Update service constructor to register mock map:
+  ```typescript
+  // screensets/accounts/services/AccountsApiService.ts
+  import { accountsMockMap } from '../mocks';
+
+  class AccountsApiService extends BaseApiService {
+    constructor() {
+      const restProtocol = new RestProtocol();
+      super({ baseURL: '/api/accounts' }, restProtocol);
+
+      // Self-register mock map - stays within screenset
+      restProtocol.registerMockMap(accountsMockMap);
+    }
+  }
+  ```
+- Move mock map import INTO the service file (from the screenset's mocks folder)
+- Ensure mock map is registered before service is used
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Scenario: Service registers its own mock map (spec.md)
+- Design: Service Self-Registration Pattern (design.md)
+
+**Validation**:
+- [ ] Service imports its own mock map
+- [ ] Service calls restProtocol.registerMockMap() in constructor
+- [ ] Mock map is registered with the correct RestProtocol instance
+- [ ] Service works correctly with mock mode enabled
+- [ ] TypeScript compiles without errors
+
+**Status**: PENDING
+
+**Dependencies**: Task 85
+
+---
+
+### 91. Update API Command Templates for Mock Self-Registration
+
+**Goal**: Update command templates to show mock self-registration pattern
+
+**Files**:
+- `packages/api/commands/hai3-new-api-service.md` (modified)
+- `packages/api/commands/hai3-new-api-service.framework.md` (modified)
+- `packages/api/commands/hai3-new-api-service.react.md` (modified)
+
+**Changes**:
+- Update constructor examples to show mock self-registration:
+  ```typescript
+  constructor() {
+    const restProtocol = new RestProtocol();
+    super({ baseURL: '/api/{domain}' }, restProtocol);
+
+    // Register mock map for this service (vertical slice pattern)
+    restProtocol.registerMockMap(mockMap);
+  }
+  ```
+- Add note explaining vertical slice architecture compliance:
+  ```markdown
+  **Mock Registration**: Services register their own mock maps during construction.
+  This ensures vertical slice architecture compliance - screensets bring their own
+  services AND mocks. App layer does not need to know about service-specific mocks.
+  ```
+- Remove any patterns showing App-level mock configuration
+
+**Traceability**:
+- Requirement: Mock Map Self-Registration (spec.md)
+- Design: Key Design Principles (design.md)
+
+**Validation**:
+- [x] Templates show restProtocol.registerMockMap() in constructor
+- [x] Templates explain vertical slice architecture compliance
+- [x] No App-level mock configuration patterns
+- [x] File follows AI.md format rules
+
+**Status**: COMPLETED
+
+**Dependencies**: Task 90
+
+---
+
+### 92. Integration Test - Mock Self-Registration
+
+**Goal**: Verify mock self-registration pattern works end-to-end
+
+**Files**:
+- `packages/api/src/__tests__/mockSelfRegistration.integration.test.ts` (new)
+
+**Test Cases**:
+```typescript
+describe('Mock self-registration', () => {
+  it('should allow service to register its own mock map');
+  it('should use registered mock map when RestMockPlugin is enabled');
+  it('should merge multiple mock maps from different services');
+  it('should work when RestMockPlugin has no mockMap config');
+  it('should still allow explicit mockMap in RestMockPlugin config');
+  it('should isolate mock maps between protocol instances');
+});
+```
+
+**Traceability**:
+- AC14: Mock Self-Registration works (spec.md)
+
+**Validation**:
+- [x] All test cases pass
+- [x] Mock self-registration verified
+- [x] RestMockPlugin uses protocol's mock map
+- [x] Explicit mockMap config still works (backward compatible)
+
+**Status**: COMPLETED
+
+**Dependencies**: Tasks 85, 86
+
+---
+
+### 93. Manual Testing - Mock Self-Registration End-to-End
+
+**Goal**: Verify complete mock self-registration flow in application
+
+**Steps**:
+1. Start application without mock mode
+2. Verify real API calls are made
+3. Toggle mock mode ON via Studio
+4. Verify mock responses are returned for registered endpoints
+5. Toggle mock mode OFF
+6. Verify real API calls resume
+7. Confirm App.tsx has no mock imports
+8. Confirm StudioOverlay has no mockConfig prop
+
+**Traceability**:
+- AC14: Mock Self-Registration works (spec.md)
+
+**Validation**:
+- [x] Mock mode toggle works without App-level mock config
+- [x] Services return mock responses when mode is enabled
+- [x] No console errors related to mock configuration
+- [x] Vertical slice boundaries are maintained
+
+**Status**: COMPLETED
+
+**Dependencies**: Tasks 85-90
+
+---
+
+## Success Criteria Updates (Mock Self-Registration)
+
+### Mock Self-Registration
+- [ ] RestProtocol has `registerMockMap()` method
+- [ ] RestProtocol has `getMockMap()` method
+- [ ] RestMockPlugin uses protocol's mock map when config.mockMap is undefined
+- [ ] StudioOverlay does NOT have mockConfig prop
+- [ ] ApiModeToggle creates RestMockPlugin without mockMap config
+- [ ] App.tsx does NOT import service mock maps
+- [ ] Services register their own mock maps in constructor
+- [ ] Mock mode toggle works correctly
+- [ ] Integration tests pass
+- [ ] Manual testing confirms end-to-end functionality

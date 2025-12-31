@@ -205,7 +205,7 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
 
     // Components: No direct slice dispatch
     {
-      files: ['src/screensets/**/*.tsx', 'src/components/**/*.tsx'],
+      files: ['src/screensets/**/*.tsx', 'src/components/**/*.tsx', 'src/app/**/*.tsx'],
       ignores: [
         '**/*.test.*',
         '**/*.spec.*',

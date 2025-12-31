@@ -22,7 +22,8 @@ The HAI3 API layer follows a plugin-based architecture where plugins can interce
 - **Namespaced plugin API** - Clear separation via `apiRegistry.plugins` and `service.plugins`
 - **DRY plugin classes** - No duplication of method signatures between base and generic class
 - **Internal global plugins injection** - Services receive global plugins via internal method
-- **Concurrency safety for stateful plugins** - Plugins with state should use request-scoped storage (WeakMap)
+- **Concurrency safety for stateful plugins** - Plugins with per-request state MUST use WeakMap (Decision 13)
+- **Cross-protocol plugin independence** - Each protocol maintains its own plugins; cross-cutting plugins use separate instances (Decision 12)
 
 ## Goals / Non-Goals
 
@@ -1052,6 +1053,124 @@ grep -rn "@deprecated" packages/api/src/ packages/framework/src/ packages/react/
 # Expected output: (empty - no results)
 ```
 
+### Decision 12: Cross-Protocol Plugin Registration
+
+**What:** Each protocol (`RestProtocol`, `SseProtocol`) maintains its own independent global plugins collection. The same plugin instance SHOULD NOT be registered with multiple protocols.
+
+**Why:**
+- **Type Safety** - `RestPluginHooks` and `SsePluginHooks` have different method signatures
+- **Clear Ownership** - Each protocol owns and manages its plugin lifecycle independently
+- **No Shared State Issues** - Plugins don't accidentally share state across protocol boundaries
+- **Explicit Registration** - Cross-cutting concerns (logging, telemetry) should create separate plugin instances per protocol
+
+**Clarification for Cross-Cutting Plugins:**
+
+When the same plugin logic needs to apply to multiple protocols (e.g., TelemetryPlugin), create separate instances:
+
+```typescript
+// CORRECT: Separate instances for each protocol
+class RestTelemetryPlugin extends ApiPlugin<TelemetryConfig> implements RestPluginHooks {
+  onRequest(ctx: RestRequestContext) { /* REST-specific telemetry */ }
+  onResponse(res: RestResponseContext) { /* REST-specific telemetry */ }
+}
+
+class SseTelemetryPlugin extends ApiPlugin<TelemetryConfig> implements SsePluginHooks {
+  onConnect(ctx: SseConnectionContext) { /* SSE-specific telemetry */ }
+  onMessage(msg: SseMessageContext) { /* SSE-specific telemetry */ }
+}
+
+// Register separately
+RestProtocol.globalPlugins.add(new RestTelemetryPlugin(config));
+SseProtocol.globalPlugins.add(new SseTelemetryPlugin(config));
+
+// WRONG: Same instance for multiple protocols (TypeScript will prevent this anyway)
+const sharedPlugin = new TelemetryPlugin(config);
+RestProtocol.globalPlugins.add(sharedPlugin); // Type error if hooks don't match
+SseProtocol.globalPlugins.add(sharedPlugin);  // Type error if hooks don't match
+```
+
+**What Happens with Same Plugin Class:**
+
+If you register the same plugin CLASS (but different instances) with both protocols:
+- Each protocol maintains its own instance
+- No state is shared between instances
+- `getPlugin(PluginClass)` returns the instance for that specific protocol
+
+```typescript
+// OK: Same class, different instances
+RestProtocol.globalPlugins.add(new LoggingPlugin({ prefix: 'REST' }));
+SseProtocol.globalPlugins.add(new LoggingPlugin({ prefix: 'SSE' }));
+
+// Each protocol has its own instance with its own config
+RestProtocol.globalPlugins.getPlugin(LoggingPlugin); // { prefix: 'REST' }
+SseProtocol.globalPlugins.getPlugin(LoggingPlugin);  // { prefix: 'SSE' }
+```
+
+### Decision 13: Required WeakMap Pattern for Stateful Plugins
+
+**What:** Plugins that maintain per-request state MUST use `WeakMap<RequestContext, State>` for request-scoped storage. Instance properties for request state are NOT allowed.
+
+**Why:**
+- **Concurrency Safety** - Multiple concurrent requests will corrupt shared instance state
+- **Memory Management** - WeakMap automatically garbage collects when request context is dereferenced
+- **No Race Conditions** - Each request has isolated state
+
+**Required Pattern:**
+
+```typescript
+// REQUIRED: WeakMap for per-request state
+class RetryPlugin extends ApiPlugin<{ attempts: number }> implements RestPluginHooks {
+  // Per-request state stored in WeakMap
+  private attemptCounts = new WeakMap<RestRequestContext, number>();
+
+  onRequest(ctx: RestRequestContext) {
+    this.attemptCounts.set(ctx, 0);
+    return ctx;
+  }
+
+  async onError(error: Error, request: RestRequestContext) {
+    const count = this.attemptCounts.get(request) ?? 0;
+    if (count < this.config.attempts) {
+      this.attemptCounts.set(request, count + 1);
+      throw error; // Re-throw signals retry
+    }
+    return error;
+  }
+}
+```
+
+**Prohibited Pattern:**
+
+```typescript
+// PROHIBITED: Instance properties for per-request state
+class RetryPlugin extends ApiPlugin<{ attempts: number }> implements RestPluginHooks {
+  // BAD: Shared across all concurrent requests!
+  private attemptCount = 0;
+
+  onRequest(ctx: RestRequestContext) {
+    this.attemptCount = 0; // Race condition with concurrent requests
+    return ctx;
+  }
+
+  async onError(error: Error, request: RestRequestContext) {
+    if (this.attemptCount < this.config.attempts) {
+      this.attemptCount++; // Wrong count if concurrent requests
+      throw error;
+    }
+    return error;
+  }
+}
+```
+
+**Exceptions:**
+- Global counters (e.g., total request count across all requests) MAY use instance properties
+- Read-only config from constructor is always safe
+- Singleton resources (e.g., database connection) MAY be instance properties
+
+**Validation:**
+- ESLint rule (future): Warn on mutable instance properties in plugin classes
+- Code review: Check for WeakMap usage in stateful plugins
+
 ## Implementation Corrections (Post-Review) - SUPERSEDED
 
 > **Note:** This section has been SUPERSEDED by the Protocol-Specific Plugin Architecture section below.
@@ -1848,3 +1967,187 @@ When exposing the plugin API to external consumers (published npm packages), the
 ### Decision Record
 
 For HAI3 internal development, continue using Clean Break Policy. When @hai3/api is published externally, update this section with formal semantic versioning commitment.
+
+---
+
+## Mock Map Self-Registration (Vertical Slice Architecture Compliance)
+
+### Problem Statement
+
+The current implementation in App.tsx violates vertical slice architecture:
+
+```typescript
+// src/app/App.tsx - WRONG PATTERN
+import { accountsMockMap } from '@/app/api/mocks';
+<StudioOverlay mockConfig={{ mockMap: accountsMockMap, delay: 500 }} />
+```
+
+This creates several architectural violations:
+
+1. **App layer coupling to service mocks** - App.tsx imports service-specific mock maps
+2. **Centralized mock configuration** - Mocks must be aggregated and passed from App
+3. **Screenset boundary violation** - Screensets cannot fully encapsulate their mocks
+4. **Studio knows too much** - StudioOverlay manages mock maps instead of just toggling mode
+
+### Design Decision: Mock Map Self-Registration
+
+**What:** Services register their own mock maps during construction. Studio only toggles mock mode ON/OFF.
+
+**Why:**
+- **Vertical slice compliance** - Screensets bring their own services AND mocks
+- **Separation of concerns** - App layer doesn't know about service-specific details
+- **Encapsulation** - Mock maps are implementation details of services
+- **Simpler Studio** - Toggle is just ON/OFF, no configuration management
+
+### Architecture
+
+```
+Vertical Slice (Screenset)
+  |
+  +-- AccountsApiService
+  |     |
+  |     +-- constructor()
+  |           |
+  |           +-- Creates RestProtocol
+  |           +-- Registers mock map via restProtocol.registerMockMap(accountsMockMap)
+  |           +-- Mock map stays with service
+  |
+  +-- accountsMockMap (imported only by AccountsApiService)
+
+StudioOverlay
+  |
+  +-- ApiModeToggle
+        |
+        +-- Toggle ON: RestProtocol.globalPlugins.add(new RestMockPlugin())
+        +-- Toggle OFF: RestProtocol.globalPlugins.remove(RestMockPlugin)
+        +-- RestMockPlugin uses mock maps registered by services
+```
+
+### API Design
+
+#### RestProtocol Mock Map Registration
+
+```typescript
+class RestProtocol {
+  // Instance-level mock map storage
+  private mockMap: RestMockMap = {};
+
+  /**
+   * Register mock map for this protocol instance.
+   * Called by services during construction.
+   */
+  registerMockMap(mockMap: RestMockMap): void {
+    this.mockMap = { ...this.mockMap, ...mockMap };
+  }
+
+  /**
+   * Get the registered mock map.
+   * Used by RestMockPlugin when enabled.
+   */
+  getMockMap(): Readonly<RestMockMap> {
+    return this.mockMap;
+  }
+}
+```
+
+#### Service Self-Registration Pattern
+
+```typescript
+// screensets/accounts/services/AccountsApiService.ts
+import { accountsMockMap } from '../mocks';
+
+class AccountsApiService extends BaseApiService {
+  constructor() {
+    const restProtocol = new RestProtocol();
+    super({ baseURL: '/api/accounts' }, restProtocol);
+
+    // Self-register mock map - stays within screenset
+    restProtocol.registerMockMap(accountsMockMap);
+  }
+}
+```
+
+#### StudioOverlay Without Mock Config
+
+```typescript
+// BEFORE (wrong - App knows about mocks)
+<StudioOverlay mockConfig={{ mockMap: accountsMockMap, delay: 500 }} />
+
+// AFTER (correct - Studio only toggles mode)
+<StudioOverlay />
+```
+
+#### ApiModeToggle Implementation
+
+```typescript
+// components/Studio/ApiModeToggle.tsx
+const ApiModeToggle = () => {
+  const [isMockMode, setIsMockMode] = useState(false);
+
+  const toggleMockMode = () => {
+    if (isMockMode) {
+      // Disable mock mode - remove global mock plugin
+      RestProtocol.globalPlugins.remove(RestMockPlugin);
+    } else {
+      // Enable mock mode - add global mock plugin
+      // Plugin will use mock maps already registered by services
+      RestProtocol.globalPlugins.add(new RestMockPlugin({ delay: 500 }));
+    }
+    setIsMockMode(!isMockMode);
+  };
+
+  return <Toggle value={isMockMode} onChange={toggleMockMode} />;
+};
+```
+
+#### RestMockPlugin Using Pre-Registered Mocks
+
+```typescript
+class RestMockPlugin extends RestPluginWithConfig<{ delay?: number }> {
+  async onRequest(ctx: RestRequestContext): Promise<RestRequestContext | RestShortCircuitResponse> {
+    // Get mock map from the protocol instance that will execute this request
+    // This is accessed via the protocol's getMockMap() method
+    const mockMap = this.getProtocolMockMap(ctx);
+
+    const key = `${ctx.method} ${ctx.url}`;
+    const factory = mockMap[key];
+
+    if (factory) {
+      if (this.config.delay) {
+        await new Promise(r => setTimeout(r, this.config.delay));
+      }
+      return {
+        shortCircuit: {
+          status: 200,
+          headers: { 'x-mock': 'true' },
+          data: factory(ctx.body)
+        }
+      };
+    }
+    return ctx;
+  }
+}
+```
+
+### Key Design Principles
+
+1. **Mock maps are owned by services** - Each service registers its own mocks
+2. **Studio is a simple toggle** - No mock configuration knowledge
+3. **App layer is clean** - No mock imports or configuration passing
+4. **Vertical slices are complete** - Screensets bring services + mocks together
+5. **Global plugin enables all mocks** - RestMockPlugin activates pre-registered maps
+
+### Alternatives Considered
+
+1. **Keep current pattern (rejected)** - Violates vertical slice architecture
+2. **Global mock registry (rejected)** - Still requires App to aggregate mocks
+3. **Service-level mock plugins (considered)** - More complex, services manage their own plugin lifecycle
+
+### Trade-offs
+
+- (+) Clean vertical slice boundaries
+- (+) App layer has no mock knowledge
+- (+) Studio is simpler (just toggle)
+- (+) Services are self-contained
+- (-) Services must call registerMockMap() in constructor
+- (-) Mock maps must be registered before mock mode is enabled

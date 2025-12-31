@@ -65,7 +65,7 @@ export function createRouteRegistry(
     },
 
     /**
-     * Check if a screen exists (legacy, requires both IDs).
+     * Check if a screen exists by both screensetId and screenId (explicit lookup when screenset context is known).
      */
     hasScreen(screensetId: string, screenId: string): boolean {
       const allRoutes = buildRoutes();
@@ -95,7 +95,7 @@ export function createRouteRegistry(
     },
 
     /**
-     * Get screen loader (legacy, requires both IDs).
+     * Get screen loader by both screensetId and screenId (explicit lookup when screenset context is known).
      */
     getScreen(
       screensetId: string,

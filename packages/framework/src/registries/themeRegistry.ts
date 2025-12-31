@@ -4,16 +4,18 @@
  * Framework Layer: L2
  */
 
-import type { ThemeRegistry, ThemeConfig, LegacyTheme } from '../types';
+import type { ThemeRegistry, ThemeConfig, UikitTheme, ThemeApplyFn } from '../types';
 
 /**
  * Create a new theme registry instance.
  */
 export function createThemeRegistry(): ThemeRegistry {
   const themes = new Map<string, ThemeConfig>();
-  // Store legacy themes for backward compatibility
-  const legacyThemes = new Map<string, LegacyTheme>();
+  // Store UIKit themes (e.g., @hai3/uikit themes)
+  const uikitThemes = new Map<string, UikitTheme>();
   let currentThemeId: string | null = null;
+  // Custom apply function for UIKit themes (set via setApplyFunction)
+  let customApplyFn: ThemeApplyFn | null = null;
 
   // Subscription support for React
   const subscribers = new Set<() => void>();
@@ -45,13 +47,13 @@ export function createThemeRegistry(): ThemeRegistry {
   return {
     /**
      * Register a theme.
-     * Supports both new API (config only) and legacy API (id + theme).
+     * Supports both config-based API and UIKit theme API.
      */
-    register(configOrId: ThemeConfig | string, legacyTheme?: LegacyTheme): void {
-      // Handle legacy API: register(id, theme)
+    register(configOrId: ThemeConfig | string, uikitTheme?: UikitTheme): void {
+      // Handle UIKit theme API: register(id, theme)
       if (typeof configOrId === 'string') {
         const id = configOrId;
-        if (!legacyTheme) {
+        if (!uikitTheme) {
           console.warn(`register() called with ID "${id}" but no theme object. Skipping.`);
           return;
         }
@@ -61,14 +63,14 @@ export function createThemeRegistry(): ThemeRegistry {
           return;
         }
 
-        // Store legacy theme for apply
-        legacyThemes.set(id, legacyTheme);
+        // Store UIKit theme for apply
+        uikitThemes.set(id, uikitTheme);
 
-        // Create a minimal ThemeConfig for the new API
-        // Try to extract name from legacy theme if it's an object
+        // Create a minimal ThemeConfig for the registry
+        // Try to extract name from UIKit theme if it's an object
         let themeName = id;
-        if (legacyTheme && typeof legacyTheme === 'object' && 'name' in legacyTheme) {
-          const nameValue = (legacyTheme as { name?: unknown }).name;
+        if (uikitTheme && typeof uikitTheme === 'object' && 'name' in uikitTheme) {
+          const nameValue = (uikitTheme as { name?: unknown }).name;
           if (typeof nameValue === 'string') {
             themeName = nameValue;
           }
@@ -76,7 +78,7 @@ export function createThemeRegistry(): ThemeRegistry {
         const config: ThemeConfig = {
           id,
           name: themeName,
-          variables: {}, // Legacy themes use custom apply function
+          variables: {}, // UIKit themes use custom apply function
         };
 
         themes.set(id, config);
@@ -114,6 +116,14 @@ export function createThemeRegistry(): ThemeRegistry {
     },
 
     /**
+     * Set custom apply function for UIKit themes.
+     * @param fn - Function to apply UIKit theme objects (e.g., @hai3/uikit's applyTheme)
+     */
+    setApplyFunction(fn: ThemeApplyFn): void {
+      customApplyFn = fn;
+    },
+
+    /**
      * Apply a theme.
      */
     apply(id: string): void {
@@ -124,9 +134,15 @@ export function createThemeRegistry(): ThemeRegistry {
         return;
       }
 
-      // Apply CSS variables if theme has them
+      // Apply CSS variables if theme has them (config-based API)
       if (config.variables && Object.keys(config.variables).length > 0) {
         applyCSSVariables(config);
+      }
+
+      // Apply UIKit theme using custom apply function
+      const uikitTheme = uikitThemes.get(id);
+      if (uikitTheme && customApplyFn) {
+        customApplyFn(uikitTheme, id);
       }
 
       currentThemeId = id;
