@@ -66,9 +66,10 @@
 - DETECT: grep -rn "@/api/services" src/
 
 ## ICON RULES
-- Screenset icons defined and registered in screenset root.
-- Icon IDs exported as constants.
-- Screenset icons do not go into UiKitIcon enum.
+- REQUIRED: Menu item icons use Iconify string IDs (e.g., "lucide:home", "lucide:globe").
+- REQUIRED: Icon strings in menu config (e.g., menuItem: { icon: "lucide:palette" }).
+- FORBIDDEN: registerIcons() calls or React.ComponentType in MenuItem.icon field.
+- FORBIDDEN: Storing React components as icons (causes Redux serialization warnings).
 
 ## SCREENSET UI KIT RULES
 - REQUIRED: Prioritize global @hai3/uikit components; create local only if missing.

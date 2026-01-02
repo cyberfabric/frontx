@@ -8,7 +8,6 @@ Part of the HAI3 React Layer (L3) - depends on @hai3/framework. Peer dependency 
 
 - [HAI3Provider](https://hai3.dev/docs/react/provider): Root context provider
 - [AppRouter](https://hai3.dev/docs/react/router): Screen rendering with lazy loading
-- [TextLoader](https://hai3.dev/docs/react/textloader): Prevents flash of untranslated content
 
 ## Hooks
 

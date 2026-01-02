@@ -16,64 +16,121 @@ The package has a peerDependency on `@hai3/uikit` and contains a `uikitRegistry`
 
 ### Violation 2: @hai3/i18n dependency
 
-According to sdk-core spec, @hai3/react (L3) should ONLY depend on @hai3/framework (L2). Currently @hai3/react has `@hai3/i18n` in peerDependencies and directly imports from it:
+According to sdk-core spec, @hai3/react (L3) should ONLY depend on @hai3/framework (L2). Currently @hai3/react has `@hai3/i18n` in peerDependencies and directly imports from it.
 
-```typescript
-// packages/react/src/index.ts line 212
-export { Language, TextDirection, LanguageDisplayMode } from '@hai3/i18n';
-```
+**Solution**: @hai3/framework already re-exports all needed i18n types. Fix the import source.
 
-This violates layer architecture. L3 should access L1 types through L2 (@hai3/framework), not directly.
+### Violation 3: Registry Pattern is Overdesign
 
-**Solution**: @hai3/framework already re-exports all needed i18n types:
-- `Language`, `TextDirection`, `LanguageDisplayMode` are re-exported at line 280 of `packages/framework/src/index.ts`
+The initial implementation incorrectly relocated the registry pattern to L4. This was a mistake. The registry pattern itself is overdesign and must be eliminated entirely - not relocated.
 
-So @hai3/react should import these from @hai3/framework instead of @hai3/i18n.
+**The problem with registries**:
+- Runtime string-based lookups add indirection without benefit
+- `registerIcons()` calls are boilerplate that adds no value
+- Icons stored in Redux state cause serialization warnings
+- Modern React apps use direct imports - this is simpler and type-safe
 
-**Note on isolatedModules**: The original comment in `packages/react/src/index.ts` mentions that `Language` is exported because re-exporting enums requires `isolatedModules: false`. This concern is addressed because `@hai3/framework` already exports `Language` as a value export (line 280 of `packages/framework/src/index.ts`), so importing from `@hai3/framework` does not require special TypeScript configuration.
-
-This is a **cleanup and relocation task**. The uikitRegistry was a mistake from the old architecture that should be purged. TextLoader is still needed functionality - it just belongs in the 4th layer (user's project), not in @hai3/react.
+**The solution**: Use icons like any normal React application:
+- Menu icons use Iconify string IDs (e.g., `"lucide:home"`) and render via `<Icon icon={...} />`
+- App logos are imported directly as React components
+- No registry, no registration, no store state for icons
 
 ## What Changes
 
-### Deletions from @hai3/react
+### Phase 1-2: SDK Cleanup (Completed)
 
-1. **DELETE** `packages/react/src/uikitRegistry.ts` - This module is obsolete
-2. **DELETE** `packages/react/src/components/TextLoader.tsx` - This component belongs in L4
-3. **REMOVE** `@hai3/uikit` from peerDependencies in package.json
-4. **REMOVE** all `@hai3/uikit` imports and re-exports from index.ts
+1. **DELETE** `packages/react/src/uikitRegistry.ts`
+2. **DELETE** `packages/react/src/components/TextLoader.tsx`
+3. **REMOVE** `@hai3/uikit` from peerDependencies
+4. **REMOVE** `@hai3/i18n` from peerDependencies
+5. **UPDATE** i18n type re-exports to use `@hai3/framework`
+6. **MOVE** TextLoader to CLI templates
 
-### Fix @hai3/i18n Layer Violation
+### Phase 3: Validation (Completed)
 
-5. **REMOVE** `@hai3/i18n` from peerDependencies in package.json
-6. **UPDATE** i18n type re-exports in index.ts to import from `@hai3/framework` instead of `@hai3/i18n`
-   - Change: `export { Language, TextDirection, LanguageDisplayMode } from '@hai3/i18n'`
-   - To: `export { Language, TextDirection, LanguageDisplayMode } from '@hai3/framework'`
-   - Note: @hai3/framework already re-exports these types, so this is just fixing the import source
+Build and type-check passes for @hai3/react.
 
-### Relocation to CLI Templates (L4)
+### Phase 4: Eliminate L4 Registry Pattern
 
-7. **MOVE** `TextLoader.tsx` to `packages/cli/templates/src/app/components/TextLoader.tsx`
-   - Adapt to use local uikitRegistry from `src/app/uikit/uikitRegistry.tsx`
-   - Import `useTranslation` from `@hai3/react`
-   - Import `Skeleton` directly from `@hai3/uikit` (no registry lookup)
+**Goal**: Remove all registry code from L4. Icons render directly, no registration needed.
 
-### Code Changes in @hai3/react
+#### 4.1 Delete Registry Factory
+- **DELETE** `src/app/uikit/createUikitRegistry.tsx` - Factory not needed
 
-- `packages/react/src/index.ts`: Remove uikitRegistry export, TextLoader component, all @hai3/uikit re-exports, and fix @hai3/i18n imports
-- `packages/react/src/components/index.ts`: Remove TextLoader export
-- `packages/react/src/types.ts`: Remove TextLoaderProps if present (keep type in template)
-- `packages/react/tsup.config.ts`: Remove @hai3/uikit from externals if listed
-- `packages/react/CLAUDE.md`: Update documentation - TextLoader moved to CLI templates
+#### 4.2 Refactor uikitRegistry.tsx
+- **REFACTOR** `src/app/uikit/uikitRegistry.tsx`
+- Remove all registry pattern code (registerIcons, registerComponents, getIcon, getComponent)
+- Keep only direct component re-exports from @hai3/uikit
+- Export app logo icons directly (HAI3LogoIcon, HAI3LogoTextIcon)
 
-### Code Changes in CLI Templates
+#### 4.3 Refactor Menu.tsx for Iconify Icons
+- **REFACTOR** `src/app/layout/Menu.tsx`
+- Remove uikitRegistry imports
+- Import app logos directly from `@/app/icons/`
+- Use Iconify for menu item icons: `<Icon icon={item.icon} />` from @iconify/react
+- **Store access unchanged** - Menu.tsx continues to read menu items from HAI3 store via `useAppSelector`
+- The only change is how icons are rendered: string IDs via Iconify instead of React components
 
-- `packages/cli/templates/src/app/components/TextLoader.tsx`: New file with simplified TextLoader
-- `packages/cli/templates/src/app/components/index.ts`: Export TextLoader component
+#### 4.4 Refactor Screensets
+- **REFACTOR** `src/screensets/demo/demoScreenset.tsx`
+- **REFACTOR** `src/screensets/_blank/_blankScreenset.tsx`
+- Remove `registerIcons()` calls entirely
+- Menu items use Iconify string IDs: `icon: "lucide:home"`
+
+#### 4.5 Update main.tsx
+- **REFACTOR** `src/app/main.tsx`
+- Remove uikitRegistry side-effect import
+
+#### 4.6 Change MenuItem.icon from React.ComponentType to string
+- **CHANGE** `MenuItem.icon` type from `React.ComponentType<{ className?: string }>` to `string` in `packages/framework/src/layoutTypes.ts`
+- Current code at line 66 has `icon?: React.ComponentType<{ className?: string }>`
+- Icon value becomes an Iconify icon ID (e.g., `"lucide:home"`, `"lucide:palette"`)
+
+**Icon Resolution Strategy**:
+- App logo icons (HAI3LogoIcon, HAI3LogoTextIcon): Import directly as React components
+- Menu item icons: String IDs for Iconify (`icon: "lucide:home"`), rendered via `<Icon icon={...} />`
+
+**Store access unchanged, type changes only**:
+- Menu items continue to be stored in HAI3 store (that's data, it belongs there)
+- The only change is MenuItem.icon type: string instead of React.ComponentType
+- Strings are serializable - no store serialization warnings
+- No menuSlice refactoring needed
+
+### Phase 5: AI Documentation Updates
+
+Following .ai/targets/AI.md rules, update AI guidelines to reflect the no-registry pattern.
+
+#### 5.1 Update REACT.md
+- Remove any uikitRegistry references
+- Clarify that @hai3/react has no uikit dependency
+
+#### 5.2 Update UIKIT.md
+- Clarify that uikit uses direct imports only
+- No registry pattern anywhere
+
+#### 5.3 Update SCREENSETS.md
+- Update ICON RULES section
+- Document that menu icons use Iconify string IDs
+- Remove registerIcons references
+
+#### 5.4 Update LAYOUT.md
+- Document that Menu.tsx uses direct icon rendering
+- Menu icons rendered via Iconify `<Icon icon={...} />`
+
+#### 5.5 Check .ai/commands/
+- Verify no references to registry pattern in command files
+- Update if needed
+
+**AI Doc Rules**:
+- Files must stay under 100 lines
+- ASCII only, no unicode
+- Keywords: MUST, REQUIRED, FORBIDDEN, STOP
+- No multi-line examples
+- Follow AI.md format rules
 
 ### NOT Backward Compatible
 
-This is alpha stage software. We relocate cleanly without deprecation warnings. Users importing TextLoader from @hai3/react will get a compile error and must update their import to use the local component.
+This is alpha stage software. Breaking changes are expected.
 
 ## Impact
 
@@ -81,42 +138,65 @@ This is alpha stage software. We relocate cleanly without deprecation warnings. 
 - **Affected packages**:
   - `@hai3/react` - Remove dependency, delete obsolete modules
   - `@hai3/cli` - Add TextLoader to templates
-- **Migration**:
-  - Users who used `uikitRegistry` from @hai3/react must use the local registry in their project
-  - Users who used `TextLoader` from @hai3/react must import from local `src/app/components/TextLoader`
-  - New projects scaffolded by CLI will have TextLoader available automatically
+- **Affected files (L4)**:
+  - `src/app/uikit/createUikitRegistry.tsx` - DELETE
+  - `src/app/uikit/uikitRegistry.tsx` - REFACTOR (direct exports only)
+  - `src/app/layout/Menu.tsx` - REFACTOR (use Iconify)
+  - `src/screensets/*/` - REFACTOR (remove registerIcons)
+  - `src/app/main.tsx` - REFACTOR (remove registry import)
+- **Affected AI docs**:
+  - `.ai/targets/REACT.md`
+  - `.ai/targets/UIKIT.md`
+  - `.ai/targets/SCREENSETS.md`
+  - `.ai/targets/LAYOUT.md`
 
 ## Error Cases
 
-### Scenario: User imports deleted module
-- **WHEN** user imports `uikitRegistry` from `@hai3/react`
-- **THEN** TypeScript/bundler throws "module not found" error
-- **BECAUSE** the module no longer exists
-- **RESOLUTION**: User uses local uikitRegistry at `src/app/uikit/uikitRegistry.tsx`
+### Scenario: User tries to use registry pattern
+- **WHEN** user calls `uikitRegistry.registerIcons()` or `uikitRegistry.getIcon()`
+- **THEN** TypeScript error - function does not exist
+- **RESOLUTION**: Use Iconify string IDs in menu config, render with `<Icon icon={...} />`
 
-### Scenario: User imports TextLoader from @hai3/react
-- **WHEN** user imports `TextLoader` from `@hai3/react`
-- **THEN** TypeScript/bundler throws "module not found" error
-- **BECAUSE** the component was moved to CLI templates
-- **RESOLUTION**: User imports from local `src/app/components/TextLoader` or creates their own
+### Scenario: User stores React components in MenuItem.icon
+- **WHEN** user sets `icon: SomeComponent` instead of `icon: "lucide:home"`
+- **THEN** TypeScript error - type mismatch (expects string)
+- **RESOLUTION**: Use Iconify icon ID string
 
-### Scenario: Existing project without TextLoader template
-- **WHEN** an existing project (created before this change) needs TextLoader
-- **THEN** user can copy the component from CLI templates manually
-- **BECAUSE** CLI scaffolding only applies to new projects
-- **RESOLUTION**: User copies `TextLoader.tsx` from templates or implements their own
+### Scenario: Store serialization warning for icons
+- **WHEN** icons are stored as React components in the store
+- **THEN** Console warning about non-serializable values
+- **RESOLUTION**: This change eliminates the issue - icons are strings, not components
 
 ## Acceptance Criteria
 
+### Phase 1-2: SDK Cleanup (Completed)
 1. `npm run arch:deps` passes for @hai3/react package
 2. @hai3/react package.json has no @hai3/uikit in dependencies or peerDependencies
 3. @hai3/react package.json has no @hai3/i18n in dependencies or peerDependencies
 4. `packages/react/src/uikitRegistry.ts` file does not exist
 5. `packages/react/src/components/TextLoader.tsx` file does not exist
-6. No imports from `@hai3/uikit` exist anywhere in @hai3/react source
-7. No imports from `@hai3/i18n` exist anywhere in @hai3/react source
-8. i18n types (Language, TextDirection, LanguageDisplayMode) are re-exported from @hai3/framework in @hai3/react
+6. No imports from `@hai3/uikit` exist in @hai3/react source
+7. No imports from `@hai3/i18n` exist in @hai3/react source
+8. i18n types re-exported from @hai3/framework in @hai3/react
 9. `npm run build -w @hai3/react` succeeds
 10. `npm run type-check -w @hai3/react` succeeds
-11. `packages/cli/templates/src/app/components/TextLoader.tsx` exists and is valid
-12. CLI templates build and scaffold correctly with TextLoader included
+11. `packages/cli/templates/src/app/components/TextLoader.tsx` exists
+
+### Phase 4: L4 Registry Pattern Elimination
+12. `src/app/uikit/createUikitRegistry.tsx` file does not exist
+13. No `registerIcons()` or `registerComponents()` calls anywhere in codebase
+14. No `uikitRegistry.getIcon()` or `uikitRegistry.getComponent()` calls anywhere
+15. Menu.tsx uses `<Icon icon={item.icon} />` from @iconify/react for menu icons
+16. Menu.tsx imports app logos directly from `@/app/icons/`
+17. `MenuItem.icon` type changed from `React.ComponentType` to `string` (Iconify icon ID)
+18. `src/app/main.tsx` does not import uikitRegistry
+19. No store serialization warnings for icons in console
+20. Application builds and runs without errors
+21. Icons display correctly in the menu
+
+### Phase 5: AI Documentation Updates
+22. `.ai/targets/REACT.md` has no uikitRegistry references
+23. `.ai/targets/UIKIT.md` documents direct imports only, no registry
+24. `.ai/targets/SCREENSETS.md` ICON RULES updated for Iconify string IDs
+25. `.ai/targets/LAYOUT.md` documents Menu.tsx direct icon rendering
+26. No .ai/commands/ files reference registry pattern

@@ -1,5 +1,5 @@
 import React, { forwardRef } from 'react';
-import { TextLoader } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 
 export interface MenuItemButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   /**

@@ -5,7 +5,6 @@
  * - HAI3Provider context provider
  * - Type-safe hooks for state and actions
  * - AppRouter for screen rendering
- * - TextLoader for translation loading
  *
  * Layer: L3 (Depends on @hai3/framework)
  */
@@ -34,10 +33,7 @@ export {
 // Components
 // ============================================================================
 
-export { TextLoader, AppRouter } from './components';
-
-// UI Kit Registry
-export { uikitRegistry } from './uikitRegistry';
+export { AppRouter } from './components';
 
 // ============================================================================
 // Type Exports
@@ -59,10 +55,8 @@ export type {
   UsePopupReturn,
   UseOverlayReturn,
   AppRouterProps,
-  TextLoaderProps,
   HAI3ProviderComponent,
   AppRouterComponent,
-  TextLoaderComponent,
 } from './types';
 
 // ============================================================================
@@ -207,13 +201,8 @@ export {
   getLanguageMetadata,
 } from '@hai3/framework';
 
-// Re-export Language enum and related types directly from @hai3/i18n to avoid isolatedModules issue
-// with re-exporting enum values through intermediary packages
-export { Language, TextDirection, LanguageDisplayMode } from '@hai3/i18n';
-
-// Re-export UIKit enums and types from @hai3/uikit
-export { UiKitComponent, UiKitIcon } from '@hai3/uikit';
-export type { UiKitComponentMap, ComponentName } from '@hai3/uikit';
+// Re-export i18n types from @hai3/framework (correct layer access)
+export { Language, TextDirection, LanguageDisplayMode } from '@hai3/framework';
 
 // Re-export types from @hai3/framework
 export type {

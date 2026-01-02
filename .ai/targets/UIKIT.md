@@ -14,7 +14,8 @@
 - Base components come from shadcn; composites are built from base components.
 - No custom base components; if missing, generate via "npx shadcn add <component>".
 - All component types, props, and IDs must follow UiKitComponent enum and contract types.
-- Icons live in icons/ and are exported (tree-shakeable); no self-registration, no hardcoded string IDs.
+- Icons live in icons/ and are exported as React components (tree-shakeable); direct imports only.
+- FORBIDDEN: Registry patterns, runtime registration, or icon lookups.
 - Loading states must use Skeleton from base; no custom animated div skeletons.
 
 ## STOP CONDITIONS

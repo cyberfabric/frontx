@@ -39,19 +39,11 @@
   },
   "peerDependencies": {
     "@hai3/framework": "*",
-    "@hai3/i18n": "*",
-    "@hai3/uikit": "*",
     "react": ">=18.0.0",
     "react-redux": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "@hai3/framework": {
-      "optional": false
-    },
-    "@hai3/i18n": {
-      "optional": false
-    },
-    "@hai3/uikit": {
       "optional": false
     },
     "react": {

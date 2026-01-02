@@ -13,8 +13,6 @@ export default defineConfig({
   external: [
     // All @hai3 packages - peer dependencies
     '@hai3/framework',
-    '@hai3/i18n',
-    '@hai3/uikit',
     // React ecosystem
     'react',
     'react-dom',

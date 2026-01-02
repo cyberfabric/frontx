@@ -1,5 +1,6 @@
 import React from 'react';
-import { useAppSelector, useTranslation, TextLoader, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
+import { useAppSelector, useTranslation, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 import { CURRENT_THEME_SCREEN_ID } from "../../ids";
 import { DEMO_SCREENSET_ID } from "../../ids";
 

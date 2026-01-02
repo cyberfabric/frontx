@@ -1,14 +1,35 @@
 /**
  * TextLoader Component - Prevents flash of untranslated content
  *
- * React Layer: L3
+ * This component is part of your application's L4 layer (user code).
+ * It was moved from @hai3/react to allow direct dependency on @hai3/uikit.
  */
 
 import React from 'react';
-import { useTranslation } from '../hooks/useTranslation';
-import { uikitRegistry } from '../uikitRegistry';
-import { UiKitComponent } from '@hai3/uikit';
-import type { TextLoaderProps } from '../types';
+import { useTranslation } from '@hai3/react';
+import { Skeleton } from '@hai3/uikit';
+
+export interface TextLoaderProps {
+  /** Child content to render when translations are loaded */
+  children: React.ReactNode;
+  /** Fallback while loading (alternative to skeleton) */
+  fallback?: React.ReactNode;
+  /**
+   * Optional className for the skeleton loader
+   * Use this to match the expected size of the text
+   * @example "h-8 w-48" for a heading
+   * @example "h-4 w-32" for a button label
+   */
+  skeletonClassName?: string;
+  /** Optional className for the wrapper div */
+  className?: string;
+  /**
+   * If true, skeleton inherits the text color instead of using bg-muted
+   * Use this for buttons, menu items, and colored text
+   * @default false
+   */
+  inheritColor?: boolean;
+}
 
 /**
  * TextLoader Component
@@ -48,9 +69,8 @@ export const TextLoader: React.FC<TextLoaderProps> = ({
       return <>{fallback}</>;
     }
 
-    // Otherwise, use skeleton (backward compat with uicore)
-    if (skeletonClassName && uikitRegistry.hasComponent(UiKitComponent.Skeleton)) {
-      const Skeleton = uikitRegistry.getComponent(UiKitComponent.Skeleton);
+    // Otherwise, use skeleton
+    if (skeletonClassName) {
       return <Skeleton className={skeletonClassName} inheritColor={inheritColor} />;
     }
 

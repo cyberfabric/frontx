@@ -29,7 +29,7 @@ export type { HAI3Config, HAI3App, MenuItemConfig, ScreensetDefinition, Screense
 // From @hai3/store
 type Selector<TResult, TState = RootState> = (state: TState) => TResult;
 
-// From @hai3/i18n (Language is now imported from @hai3/framework)
+// Language is imported from @hai3/framework
 type TranslationParams = Record<string, string | number | boolean>;
 
 // ============================================================================
@@ -236,36 +236,6 @@ export interface AppRouterProps {
 }
 
 // ============================================================================
-// Text Loader Props
-// ============================================================================
-
-/**
- * Text Loader Props
- * Props for TextLoader component that prevents flash of untranslated content.
- */
-export interface TextLoaderProps {
-  /** Child content to render when translations are loaded */
-  children: ReactNode;
-  /** Fallback while loading (alternative to skeleton) */
-  fallback?: ReactNode;
-  /**
-   * Optional className for the skeleton loader
-   * Use this to match the expected size of the text
-   * @example "h-8 w-48" for a heading
-   * @example "h-4 w-32" for a button label
-   */
-  skeletonClassName?: string;
-  /** Optional className for the wrapper div */
-  className?: string;
-  /**
-   * If true, skeleton inherits the text color instead of using bg-muted
-   * Use this for buttons, menu items, and colored text
-   * @default false
-   */
-  inheritColor?: boolean;
-}
-
-// ============================================================================
 // Component Types
 // ============================================================================
 
@@ -278,8 +248,3 @@ export type HAI3ProviderComponent = React.FC<HAI3ProviderProps>;
  * AppRouter Component Type
  */
 export type AppRouterComponent = React.FC<AppRouterProps>;
-
-/**
- * TextLoader Component Type
- */
-export type TextLoaderComponent = React.FC<TextLoaderProps>;

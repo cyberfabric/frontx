@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useAppSelector, useNavigation, useTranslation, uikitRegistry, UiKitIcon, type MenuState, type MenuItem } from '@hai3/react';
+import { useAppSelector, useNavigation, useTranslation, type MenuState, type MenuItem } from '@hai3/react';
 import {
   Sidebar,
   SidebarContent,
@@ -18,6 +18,9 @@ import {
 } from '@hai3/uikit';
 import { menuActions } from '@hai3/framework';
 import { useDispatch } from 'react-redux';
+import { Icon } from '@iconify/react';
+import { HAI3LogoIcon } from '@/app/icons/HAI3LogoIcon';
+import { HAI3LogoTextIcon } from '@/app/icons/HAI3LogoTextIcon';
 
 export interface MenuProps {
   children?: React.ReactNode;
@@ -32,10 +35,6 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   const collapsed = menuState?.collapsed ?? false;
   const items: MenuItem[] = menuState?.items ?? [];
 
-  // Get app logo icons from registry
-  const AppLogo = uikitRegistry.getIcon(UiKitIcon.AppLogo);
-  const AppLogoText = uikitRegistry.getIcon(UiKitIcon.AppLogoText);
-
   const handleToggleCollapse = () => {
     dispatch(menuActions.toggleMenu());
   };
@@ -44,8 +43,8 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
     <Sidebar collapsed={collapsed}>
       {/* Logo/Brand area with collapse button */}
       <SidebarHeader
-        logo={AppLogo}
-        logoText={!collapsed ? AppLogoText : undefined}
+        logo={<HAI3LogoIcon />}
+        logoText={!collapsed ? <HAI3LogoTextIcon /> : undefined}
         collapsed={collapsed}
         onClick={handleToggleCollapse}
       />
@@ -55,7 +54,6 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
         <SidebarMenu>
           {items.map((item: MenuItem) => {
             const isActive = item.id === currentScreen;
-            const icon = item.icon ? uikitRegistry.getIcon(item.icon) : null;
 
             return (
               <SidebarMenuItem key={item.id}>
@@ -64,9 +62,9 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
                   onClick={() => navigateToScreen(currentScreenset ?? '', item.id)}
                   tooltip={collapsed ? t(item.label) : undefined}
                 >
-                  {icon && (
+                  {item.icon && (
                     <SidebarMenuIcon>
-                      {icon}
+                      <Icon icon={item.icon} className="w-4 h-4" />
                     </SidebarMenuIcon>
                   )}
                   <span>{t(item.label)}</span>

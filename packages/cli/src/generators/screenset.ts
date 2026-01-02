@@ -125,7 +125,8 @@ screensetRegistry.register(${screensetId}Screenset);
   files.push({
     path: `${basePath}/screens/${initialScreenId}/${screenName}Screen.tsx`,
     content: `import React from 'react';
-import { useTranslation, TextLoader, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
+import { useTranslation, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 import { ${screensetConstName}_SCREENSET_ID, ${screenConstName}_SCREEN_ID } from '../../ids';
 
 /**

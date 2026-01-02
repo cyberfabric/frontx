@@ -145,22 +145,6 @@ function ThemeToggle() {
 
 ### Components
 
-#### TextLoader
-
-Prevents flash of untranslated content:
-
-```tsx
-import { TextLoader } from '@hai3/react';
-
-function Screen() {
-  return (
-    <TextLoader fallback={<Loading />}>
-      <h1>{t('screen.demo.home:title')}</h1>
-    </TextLoader>
-  );
-}
-```
-
 #### AppRouter
 
 Renders screens with lazy loading:
@@ -187,8 +171,7 @@ function App() {
 1. **Wrap with HAI3Provider** - Required for all hooks to work
 2. **Use hooks for state access** - Don't import selectors directly from @hai3/layout
 3. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
-4. **Use TextLoader** - Wrap translated content to prevent FOUC
-5. **NO Layout components here** - Layout is in @hai3/uikit or user code
+4. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
 
 ## Re-exports
 
@@ -207,7 +190,6 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 ### Components
 - `HAI3Provider` - Main context provider
 - `AppRouter` - Screen router
-- `TextLoader` - Translation loading wrapper
 
 ### Hooks
 - `useHAI3` - Access app instance
@@ -222,6 +204,6 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `HAI3Context` - React context (for advanced use)
 
 ### Types
-- `HAI3ProviderProps`, `AppRouterProps`, `TextLoaderProps`
+- `HAI3ProviderProps`, `AppRouterProps`
 - `UseTranslationReturn`, `UseNavigationReturn`, `UseThemeReturn`
 - All types from @hai3/framework

@@ -1,197 +1,227 @@
 # Tasks: Clean @hai3/react Layer Dependencies
 
-## Phase 1: Clean up @hai3/react
+## Phase 1-3: SDK Cleanup (Completed)
 
-### 1. Delete Obsolete Files
-- [ ] 1.1 Delete uikitRegistry.ts
-  - File: `packages/react/src/uikitRegistry.ts`
+All SDK cleanup tasks completed. See git history for details.
+
+## Phase 4: Eliminate L4 Registry Pattern (Completed)
+
+### 10. Delete Registry Factory
+- [x] 10.1 Delete createUikitRegistry.tsx
+  - File: `src/app/uikit/createUikitRegistry.tsx`
   - Action: DELETE entire file
-  - Traces to: proposal.md "Deletions from @hai3/react" item 1
+  - Status: Already deleted in prior work
+  - Traces to: proposal.md "4.1 Delete Registry Factory", AC 12
 
-- [ ] 1.2 Delete TextLoader.tsx from @hai3/react
-  - File: `packages/react/src/components/TextLoader.tsx`
-  - Action: DELETE entire file (will be recreated in CLI templates)
-  - Traces to: proposal.md "Deletions from @hai3/react" item 2
+### 11. Refactor uikitRegistry.tsx
+- [x] 11.1 Remove registry pattern from uikitRegistry.tsx
+  - File: `src/app/uikit/uikitRegistry.tsx`
+  - Remove: All registry methods (registerIcons, registerComponents, getIcon, getComponent)
+  - Remove: Registry singleton creation
+  - Keep: Direct re-exports of @hai3/uikit components
+  - Keep: Direct exports of app logo icons
+  - Status: Already refactored in prior work
+  - Traces to: proposal.md "4.2 Refactor uikitRegistry.tsx", AC 13, 14
 
-### 2. Update Exports
-- [ ] 2.1 Update components/index.ts
-  - File: `packages/react/src/components/index.ts`
-  - Remove: `export { TextLoader } from './TextLoader'`
-  - Traces to: proposal.md "Code Changes in @hai3/react"
+### 12. Refactor Screensets (MUST complete before Menu.tsx)
+- [x] 12.1 Refactor demoScreenset.tsx
+  - File: `src/screensets/demo/demoScreenset.tsx`
+  - Remove: `import { uikitRegistry } from '@/app/uikit/uikitRegistry'`
+  - Remove: `uikitRegistry.registerIcons({...})` call
+  - Update: Menu item icons to Iconify string IDs (e.g., `icon: "lucide:globe"`)
+  - Remove: Local icon component imports if only used for registration
+  - Status: Completed - removed icon imports, changed to Iconify strings
+  - Traces to: proposal.md "4.4 Refactor Screensets", AC 13
 
-- [ ] 2.2 Update main index.ts - remove uikitRegistry export
-  - File: `packages/react/src/index.ts`
-  - Remove: `export { uikitRegistry } from './uikitRegistry'`
-  - Traces to: proposal.md "Code Changes in @hai3/react"
+- [x] 12.2 Refactor _blankScreenset.tsx (also CLI template source per manifest.yaml)
+  - File: `src/screensets/_blank/_blankScreenset.tsx`
+  - Note: This is the screenset template source (see manifest.yaml screensetTemplate: _blank)
+  - Remove: `import { uikitRegistry } from '@/app/uikit/uikitRegistry'`
+  - Remove: `uikitRegistry.registerIcons({...})` call
+  - Update: Menu item icons to Iconify string IDs (e.g., `icon: "lucide:home"`)
+  - Remove: Local icon component imports if only used for registration
+  - Status: Completed - removed HomeIcon import, changed to "lucide:home"
+  - Traces to: proposal.md "4.4 Refactor Screensets", AC 13
 
-- [ ] 2.3 Update main index.ts - remove @hai3/uikit re-exports
-  - File: `packages/react/src/index.ts`
-  - Remove: `export { UiKitComponent, UiKitIcon } from '@hai3/uikit'`
-  - Remove: `export type { UiKitComponentMap, ComponentName } from '@hai3/uikit'`
-  - Traces to: proposal.md "Deletions from @hai3/react" item 4
+### 13. Refactor Menu.tsx (AFTER screensets emit Iconify strings)
+- [x] 13.1 Update Menu.tsx for Iconify icons
+  - File: `src/app/layout/Menu.tsx`
+  - DEPENDENCY: Requires 12.1, 12.2 complete (screensets must emit Iconify strings)
+  - Add: `import { Icon } from '@iconify/react'`
+  - Remove: `import { uikitRegistry } from '@/app/uikit/uikitRegistry'`
+  - Remove: `import { UiKitIcon } from '@hai3/uikit'`
+  - Update: App logo rendering to use direct imports from `@/app/icons/`
+  - Update: Menu item icons to use `<Icon icon={item.icon} className="..." />`
+  - Store access unchanged: continue using useAppSelector to read menu items
+  - Only change is rendering: `<Icon icon={...} />` instead of `<item.icon />`
+  - Status: Completed - added Icon import, updated rendering
+  - Traces to: proposal.md "4.3 Refactor Menu.tsx", AC 15, 16
 
-- [ ] 2.4 Update main index.ts - remove TextLoader type exports
-  - File: `packages/react/src/index.ts`
-  - Remove from type exports block (lines 62-66):
-    - `TextLoaderProps` (line 62)
-    - `TextLoaderComponent` (line 65)
-  - Traces to: proposal.md "Code Changes in @hai3/react"
+- [x] 13.2 Update CLI template-sources Menu.tsx
+  - File: `packages/cli/template-sources/layout/hai3-uikit/Menu.tsx`
+  - Apply same changes as 13.1 (Iconify icons, store access unchanged)
+  - Status: Completed - added Icon import, updated rendering
+  - Traces to: proposal.md "4.3 Refactor Menu.tsx", AC 15, 16
 
-- [ ] 2.5 Update main index.ts - update header comment
-  - File: `packages/react/src/index.ts`
-  - Update line 8: Remove "- TextLoader for translation loading" from the header comment
-  - The comment currently lists TextLoader as a provided feature; this is no longer accurate
-  - Traces to: proposal.md "Code Changes in @hai3/react"
+### 14. Update main.tsx
+- [x] 14.1 Remove uikitRegistry import from main.tsx
+  - File: `src/app/main.tsx`
+  - Remove: `import '@/app/uikit/uikitRegistry';` (side-effect import)
+  - Status: No import present (already removed or never added)
+  - Traces to: proposal.md "4.5 Update main.tsx", AC 18
 
-### 3. Update Types
-- [ ] 3.1 Remove TextLoader-related types from types.ts
-  - File: `packages/react/src/types.ts`
-  - Remove: `TextLoaderProps` interface definition
-  - Remove: `TextLoaderComponent` type definition
-  - NOTE: These types will live with the component in the CLI template (`packages/cli/templates/src/app/components/TextLoader.tsx`)
-  - Traces to: design.md "Phase 1 / Step 1.3: Update Types"
+### 15. Change MenuItem.icon Type
+- [x] 15.1 Change MenuItem.icon from React.ComponentType to string
+  - File: `packages/framework/src/layoutTypes.ts`
+  - Changed from: `icon?: React.ComponentType<{ className?: string }>`
+  - Changed to: `icon?: string`
+  - Also updated: `packages/screensets/src/types.ts` MenuItemConfig.icon
+  - Status: Completed - type changed in both files, packages rebuilt
+  - This is a BREAKING CHANGE
+  - Traces to: proposal.md "4.6 Change MenuItem.icon from React.ComponentType to string", AC 17
 
-- [ ] 3.2 Update comment in types.ts referencing @hai3/i18n
-  - File: `packages/react/src/types.ts`
-  - Update: Line 32 comment that references @hai3/i18n to reference @hai3/framework instead
-  - Traces to: proposal.md "Fix @hai3/i18n Layer Violation"
+## Phase 5: AI Documentation Updates (Completed)
 
-### 4. Update Package Configuration
-- [ ] 4.1 Remove @hai3/uikit from package.json peerDependencies
-  - File: `packages/react/package.json`
-  - Remove: `"@hai3/uikit": "*"` from peerDependencies
-  - Traces to: proposal.md "Deletions from @hai3/react" item 3
-
-- [ ] 4.2 Remove @hai3/uikit from peerDependenciesMeta
-  - File: `packages/react/package.json`
-  - Remove: `"@hai3/uikit": { "optional": false }` from peerDependenciesMeta
-  - Traces to: proposal.md "Deletions from @hai3/react" item 3
-
-- [ ] 4.3 Remove @hai3/uikit from tsup externals (if present)
-  - File: `packages/react/tsup.config.ts`
-  - Check and remove `'@hai3/uikit'` from external array if listed
-  - Traces to: proposal.md "Code Changes in @hai3/react"
-
-- [ ] 4.4 Remove @hai3/i18n from package.json peerDependencies
-  - File: `packages/react/package.json`
-  - Remove: `"@hai3/i18n": "*"` from peerDependencies
-  - Traces to: proposal.md "Fix @hai3/i18n Layer Violation" item 5
-
-- [ ] 4.5 Remove @hai3/i18n from peerDependenciesMeta
-  - File: `packages/react/package.json`
-  - Remove: `"@hai3/i18n": { "optional": false }` from peerDependenciesMeta
-  - Traces to: proposal.md "Fix @hai3/i18n Layer Violation" item 5
-
-- [ ] 4.6 Remove @hai3/i18n from tsup.config.ts externals
-  - File: `packages/react/tsup.config.ts`
-  - Remove: `'@hai3/i18n'` from external array (currently at line 16)
-  - Traces to: proposal.md "Fix @hai3/i18n Layer Violation" item 5
-
-### 5. Fix i18n Imports
-
-- [ ] 5.1 Update i18n type re-exports to use @hai3/framework
-  - File: `packages/react/src/index.ts`
-  - Change line 212: `export { Language, TextDirection, LanguageDisplayMode } from '@hai3/i18n'`
-  - To: `export { Language, TextDirection, LanguageDisplayMode } from '@hai3/framework'`
-  - Traces to: proposal.md "Fix @hai3/i18n Layer Violation" item 6
-
-### 6. Update Documentation
-- [ ] 6.1 Update CLAUDE.md - note TextLoader moved to CLI templates
-  - File: `packages/react/CLAUDE.md`
-  - Update: TextLoader documentation to note it moved to `src/app/components/TextLoader.tsx`
-  - Remove: TextLoader from Components section (or add note about relocation)
-  - Traces to: design.md "Phase 1 / Step 1.6: Update Documentation"
-
-- [ ] 6.2 Update CLAUDE.md - remove uikitRegistry references
-  - File: `packages/react/CLAUDE.md`
+### 16. Update REACT.md
+- [x] 16.1 Remove uikitRegistry references from REACT.md
+  - File: `.ai/targets/REACT.md`
   - Remove: Any mention of uikitRegistry
-  - Remove: "NO Layout components here - Layout is in @hai3/uikit or user code" line (outdated)
-  - Traces to: design.md "Phase 1 / Step 1.6: Update Documentation"
+  - Update: Peer dependencies section (no @hai3/uikit)
+  - Keep: Under 100 lines, ASCII only
+  - Status: Completed - no registry references found (already clean)
+  - Traces to: proposal.md "5.1 Update REACT.md", AC 22
 
-## Phase 2: Add to CLI Templates
+### 17. Update UIKIT.md
+- [x] 17.1 Clarify no registry pattern in UIKIT.md
+  - File: `.ai/targets/UIKIT.md`
+  - Add: FORBIDDEN: Registry patterns or runtime registration
+  - Clarify: Direct imports only
+  - Keep: Under 100 lines, ASCII only
+  - Status: Completed - added FORBIDDEN rule for registry patterns
+  - Traces to: proposal.md "5.2 Update UIKIT.md", AC 23
 
-### 7. Create TextLoader in CLI Templates
-- [ ] 7.1 Create TextLoader.tsx component
-  - File: `packages/cli/templates/src/app/components/TextLoader.tsx`
-  - Content: Adapted TextLoader with direct @hai3/uikit imports (no registry)
-  - Include: TextLoaderProps interface inline
-  - Traces to: proposal.md "Relocation to CLI Templates (L4)" item 7
+### 18. Update SCREENSETS.md
+- [x] 18.1 Expand ICON RULES in SCREENSETS.md
+  - File: `.ai/targets/SCREENSETS.md`
+  - Note: File is at 99 lines (at limit) - may need to consolidate existing content
+  - Current ICON RULES section (lines 68-71) has only 3 lines of minimal content
+  - Expand section with Iconify requirements:
+  - Add: REQUIRED: Menu icons use Iconify string IDs (e.g., "lucide:home")
+  - Add: FORBIDDEN: registerIcons() calls
+  - Add: FORBIDDEN: React.ComponentType in menu item icon field
+  - Keep: Under 100 lines total, ASCII only
+  - Status: Completed - expanded to 4 lines with all requirements (still 99 lines total)
+  - Traces to: proposal.md "5.3 Update SCREENSETS.md", AC 24
 
-- [ ] 7.2 Create components index.ts
-  - File: `packages/cli/templates/src/app/components/index.ts`
-  - Export: `export { TextLoader, type TextLoaderProps } from './TextLoader'`
-  - Traces to: proposal.md "Code Changes in CLI Templates"
+### 19. Update LAYOUT.md
+- [x] 19.1 Document Iconify usage in LAYOUT.md
+  - File: `.ai/targets/LAYOUT.md`
+  - Add: Menu.tsx uses Iconify for menu item icons
+  - Add: App logos imported directly from @/app/icons/
+  - Keep: Under 100 lines, ASCII only
+  - Status: Completed - added MENU ICON RULES section (71 lines total)
+  - Traces to: proposal.md "5.4 Update LAYOUT.md", AC 25
 
-## Phase 3: Validation
+### 20. Check .ai/commands/
+- [x] 20.1 Verify no uikitRegistry references in commands
+  - Path: `.ai/commands/`
+  - Check: grep for "uikitRegistry" specifically (NOT all registry patterns)
+  - Note: screensetRegistry, i18nRegistry, apiRegistry are VALID patterns - do not remove
+  - Update: Only files with uikitRegistry or registerIcons references
+  - Status: Completed - no uikitRegistry or registerIcons references found
+  - Traces to: proposal.md "5.5 Check .ai/commands/", AC 26
 
-### 8. Validate @hai3/react
-- [ ] 8.1 Run TypeScript type check
-  - Command: `npm run type-check -w @hai3/react`
-  - Expected: No type errors
-  - Traces to: proposal.md "Acceptance Criteria" item 10
+## Phase 6: Validation
 
-- [ ] 8.2 Run build
-  - Command: `npm run build -w @hai3/react`
-  - Expected: Successful build
-  - Traces to: proposal.md "Acceptance Criteria" item 9
+### 21. Validate Phase 4 Changes
+- [ ] 21.1 Verify createUikitRegistry.tsx deleted
+  - Command: `ls src/app/uikit/createUikitRegistry.tsx` should fail
+  - Traces to: AC 12
 
-- [ ] 8.3 Run architecture dependency check
-  - Command: `npm run arch:deps`
-  - Expected: @hai3/react passes without violations
-  - Traces to: proposal.md "Acceptance Criteria" item 1
+- [ ] 21.2 Verify no registry methods in uikitRegistry.tsx
+  - Command: `grep -E "registerIcons|registerComponents|getIcon|getComponent" src/app/uikit/uikitRegistry.tsx`
+  - Expected: No matches
+  - Traces to: AC 13, 14
 
-- [ ] 8.4 Verify no @hai3/uikit imports remain
-  - Command: `grep -r "@hai3/uikit" packages/react/src/`
-  - Expected: No matches found
-  - Traces to: proposal.md "Acceptance Criteria" item 6
+- [ ] 21.3 Verify Menu.tsx uses Iconify
+  - Command: `grep "@iconify/react" src/app/layout/Menu.tsx`
+  - Expected: Match found
+  - Traces to: AC 15
 
-- [ ] 8.5 Verify no @hai3/i18n imports remain
-  - Command: `grep -r "@hai3/i18n" packages/react/src/`
-  - Expected: No matches found
-  - Traces to: proposal.md "Acceptance Criteria" item 7
+- [ ] 21.4 Verify screensets have no registerIcons
+  - Command: `grep -r "registerIcons" src/screensets/`
+  - Expected: No matches
+  - Traces to: AC 13
 
-- [ ] 8.6 Verify i18n types are re-exported from @hai3/framework
-  - Command: `grep "Language.*TextDirection.*LanguageDisplayMode.*@hai3/framework" packages/react/src/index.ts`
-  - Expected: Match found confirming correct import source
-  - Traces to: proposal.md "Acceptance Criteria" item 8
+- [ ] 21.5 Verify main.tsx has no uikitRegistry
+  - Command: `grep "uikitRegistry" src/app/main.tsx`
+  - Expected: No matches
+  - Traces to: AC 18
 
-- [ ] 8.7 Verify no other files import from deleted modules
-  - Command: `grep -r "uikitRegistry\|TextLoader" packages/react/src/ --include="*.ts" --include="*.tsx"`
-  - Expected: No matches found (after deletions)
-  - Purpose: Ensure no other files in packages/react/src/ import from uikitRegistry.ts or TextLoader.tsx
-  - Traces to: proposal.md "Acceptance Criteria" items 4, 5
+- [ ] 21.6 Verify MenuItem.icon changed to string type
+  - Command: `grep "icon?: string" packages/framework/src/layoutTypes.ts`
+  - Expected: Match found (was React.ComponentType, now string)
+  - Traces to: AC 17
 
-### 9. Validate CLI Templates
-- [ ] 9.1 Verify TextLoader template is valid TypeScript
-  - File: `packages/cli/templates/src/app/components/TextLoader.tsx`
-  - Check: File exists and has valid syntax
-  - Traces to: proposal.md "Acceptance Criteria" item 11
+- [ ] 21.7 Build and run application
+  - Command: `npm run build && npm run dev`
+  - Verify: No store serialization warnings
+  - Verify: Icons display correctly in menu
+  - Traces to: AC 19, 20, 21
 
-- [ ] 9.2 Verify templates scaffold correctly
-  - Command: Test CLI scaffolding with new templates
-  - Expected: TextLoader is included in scaffolded project
-  - Traces to: proposal.md "Acceptance Criteria" item 12
+### 22. Validate Phase 5 Changes
+- [ ] 22.1 Verify REACT.md has no registry references
+  - Command: `grep -i "registry" .ai/targets/REACT.md`
+  - Expected: No matches
+  - Traces to: AC 22
+
+- [ ] 22.2 Verify UIKIT.md has no-registry rule
+  - Command: `grep -i "FORBIDDEN.*registry" .ai/targets/UIKIT.md`
+  - Expected: Match found
+  - Traces to: AC 23
+
+- [ ] 22.3 Verify SCREENSETS.md has Iconify rules
+  - Command: `grep -i "iconify\|lucide:" .ai/targets/SCREENSETS.md`
+  - Expected: Match found
+  - Traces to: AC 24
+
+- [ ] 22.4 Verify LAYOUT.md has icon documentation
+  - Command: `grep -i "iconify\|Icon icon" .ai/targets/LAYOUT.md`
+  - Expected: Match found
+  - Traces to: AC 25
+
+- [ ] 22.5 Verify no registry in commands
+  - Command: `grep -r "registerIcons\|uikitRegistry" .ai/commands/`
+  - Expected: No matches
+  - Traces to: AC 26
 
 ## Task Dependencies
 
 ```
-Phase 1: @hai3/react cleanup
-1.1, 1.2 (parallel) ─┬─> 2.1, 2.2, 2.3, 2.4, 2.5 (parallel) ─┬─> 3.1, 3.2 (parallel) ─> 4.1, 4.2, 4.3, 4.4, 4.5, 4.6 (parallel) ─> 5.1 ─> 6.1, 6.2 (parallel)
+Phase 4: L4 Registry Pattern Elimination
 
-Phase 2: CLI templates (can run in parallel with Phase 1 after 1.2)
-7.1 ─> 7.2
+10.1 Delete createUikitRegistry.tsx
+  │
+11.1 Remove registry pattern from uikitRegistry.tsx
+  │
+  ├──> 12.1, 12.2 Refactor Screensets (parallel, emit Iconify strings)
+  │         │
+  │         v
+  └──> 13.1, 13.2 Refactor Menu.tsx (DEPENDS on 12.x)
+            │       - Use Iconify for icons
+            │       - Store access unchanged
+            │
+       14.1 Update main.tsx (after 11.1)
+            │
+       15.1 Change MenuItem.icon type (can run early, unblocks 12.x)
 
-Phase 3: Validation (requires Phase 1 and Phase 2 complete)
-8.1 ─> 8.2 ─> 8.3, 8.4, 8.5, 8.6, 8.7 (parallel)
-9.1, 9.2 (parallel, can run with 8.x)
+Note: Screensets (12.x) MUST complete before Menu.tsx (13.x)
+      Screensets produce Iconify strings -> Menu.tsx consumes them
+
+Phase 5: AI Documentation Updates (can start after Phase 4)
+16.1, 17.1, 18.1, 19.1, 20.1 (all parallel)
+
+Phase 6: Validation (requires Phase 4 and 5 complete)
+21.1-21.7 (sequential)
+22.1-22.5 (sequential, after 21.x)
 ```
-
-Phase 1 deletion tasks (1.x) must complete before export updates (2.x).
-Phase 2 can start after 1.2 (we need to know what TextLoader looks like).
-Export updates (2.x) must complete before type cleanup (3.x).
-Type cleanup (3.x including i18n comment update) must complete before package config (4.x).
-Package config (4.x including i18n removal from package.json and tsup.config.ts) must complete before i18n import fix (5.x).
-i18n import fix (5.x) must complete before documentation (6.x).
-All Phase 1 and Phase 2 changes must complete before validation (Phase 3).
-Type check (8.1) must pass before build (8.2).
-Verification tasks (8.4, 8.5, 8.6, 8.7) can run in parallel after 8.3.

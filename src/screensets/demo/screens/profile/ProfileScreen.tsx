@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { useTranslation, TextLoader, useScreenTranslations, apiRegistry, I18nRegistry, Language } from '@hai3/react';
+import { useTranslation, useScreenTranslations, apiRegistry, I18nRegistry, Language } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 import { Button, Card, CardContent, CardFooter } from '@hai3/uikit';
 import { AccountsApiService, type ApiUser } from '@/app/api';
 import { notifyUserLoaded } from '@/app/actions/bootstrapActions';

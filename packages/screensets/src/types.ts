@@ -9,6 +9,8 @@
 
 import type { ComponentType } from 'react';
 
+// Note: ComponentType is only used for ScreenLoader return type
+
 // ============================================================================
 // Layout Domain Enum
 // ============================================================================
@@ -85,7 +87,7 @@ export enum ScreensetCategory {
  * const menuItem: MenuItemConfig = {
  *   id: 'dashboard',
  *   label: 'screen.dashboard:title',  // Translation key
- *   icon: 'dashboard:home',           // Icon ID
+ *   icon: 'lucide:home',              // Iconify icon ID
  *   screenId: 'dashboard',
  * };
  * ```
@@ -95,7 +97,7 @@ export interface MenuItemConfig {
   id: string;
   /** Translation key for the label */
   label: string;
-  /** Icon identifier (format: screensetId:iconName) */
+  /** Iconify icon ID (e.g., "lucide:home", "lucide:globe") */
   icon?: string;
   /** Screen ID to navigate to on click */
   screenId?: string;

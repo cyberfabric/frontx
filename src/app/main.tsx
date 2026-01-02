@@ -5,7 +5,6 @@ import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn } from '@ha
 import { Toaster, applyTheme } from '@hai3/uikit';
 import { AccountsApiService } from '@/app/api';
 import '@hai3/uikit/styles'; // UI Kit styles
-import '@/app/uikit/uikitRegistry'; // Auto-registers UI Kit (components + icons)
 import '@/screensets/screensetRegistry'; // Auto-registers screensets (includes API services + mocks + i18n loaders)
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
 import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects

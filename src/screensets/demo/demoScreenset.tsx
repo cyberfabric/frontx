@@ -1,9 +1,5 @@
-import { type ScreensetConfig, ScreensetCategory, uikitRegistry, I18nRegistry, Language, screensetRegistry, i18nRegistry } from '@hai3/react';
+import { type ScreensetConfig, ScreensetCategory, I18nRegistry, Language, screensetRegistry, i18nRegistry } from '@hai3/react';
 import { DEMO_SCREENSET_ID, HELLO_WORLD_SCREEN_ID, CURRENT_THEME_SCREEN_ID, PROFILE_SCREEN_ID, UI_KIT_ELEMENTS_SCREEN_ID } from './ids';
-import { WorldIcon, WORLD_ICON_ID } from './uikit/icons/WorldIcon';
-import { PaletteIcon, PALETTE_ICON_ID } from './uikit/icons/PaletteIcon';
-import { UserIcon, USER_ICON_ID } from './uikit/icons/UserIcon';
-import { ShadcnIcon, SHADCN_ICON_ID } from './uikit/icons/ShadcnIcon';
 
 // Import module augmentation for accounts service extra fields
 import './api/accounts/extra';
@@ -58,18 +54,6 @@ i18nRegistry.registerLoader(
 // NOTE: Mocks are now registered globally via MockPlugin in main.tsx
 
 /**
- * Register screenset-specific icons
- * Screenset is responsible for registering its own icons
- * Screen-level translations are registered by each screen component when it mounts
- */
-uikitRegistry.registerIcons({
-  [WORLD_ICON_ID]: <WorldIcon />,
-  [PALETTE_ICON_ID]: <PaletteIcon />,
-  [USER_ICON_ID]: <UserIcon />,
-  [SHADCN_ICON_ID]: <ShadcnIcon />,
-});
-
-/**
  * Demo Screenset Configuration
  * Self-contained - knows about its own screens, icons, and structure
  * All screens are lazy-loaded for optimal performance
@@ -85,7 +69,7 @@ export const demoScreenset: ScreensetConfig = {
       menuItem: {
         id: HELLO_WORLD_SCREEN_ID,
         label: `screenset.${DEMO_SCREENSET_ID}:screens.${HELLO_WORLD_SCREEN_ID}.title`,
-        icon: WORLD_ICON_ID,
+        icon: 'lucide:globe',
       },
       screen: () => import('./screens/helloworld/HelloWorldScreen'),
     },
@@ -93,7 +77,7 @@ export const demoScreenset: ScreensetConfig = {
       menuItem: {
         id: CURRENT_THEME_SCREEN_ID,
         label: `screenset.${DEMO_SCREENSET_ID}:screens.${CURRENT_THEME_SCREEN_ID}.title`,
-        icon: PALETTE_ICON_ID,
+        icon: 'lucide:palette',
       },
       screen: () => import('./screens/theme/CurrentThemeScreen'),
     },
@@ -101,7 +85,7 @@ export const demoScreenset: ScreensetConfig = {
       menuItem: {
         id: PROFILE_SCREEN_ID,
         label: `screenset.${DEMO_SCREENSET_ID}:screens.${PROFILE_SCREEN_ID}.title`,
-        icon: USER_ICON_ID,
+        icon: 'lucide:user',
       },
       screen: () => import('./screens/profile/ProfileScreen'),
     },
@@ -109,7 +93,7 @@ export const demoScreenset: ScreensetConfig = {
       menuItem: {
         id: UI_KIT_ELEMENTS_SCREEN_ID,
         label: `screenset.${DEMO_SCREENSET_ID}:screens.${UI_KIT_ELEMENTS_SCREEN_ID}.title`,
-        icon: SHADCN_ICON_ID,
+        icon: 'lucide:component',
       },
       screen: () => import('./screens/uikit/UIKitElementsScreen'),
     },

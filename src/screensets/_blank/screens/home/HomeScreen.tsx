@@ -6,11 +6,11 @@
 import React from 'react';
 import {
   useTranslation,
-  TextLoader,
   useScreenTranslations,
   I18nRegistry,
   Language,
 } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 import { _BLANK_SCREENSET_ID, HOME_SCREEN_ID } from '../../ids';
 
 /**

@@ -51,7 +51,8 @@ import {
   Label,
   Input,
 } from '@hai3/uikit';
-import { useTranslation, TextLoader } from '@hai3/react';
+import { useTranslation } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
 import { Slash } from 'lucide-react';
 import { DEMO_SCREENSET_ID } from "../ids";
 import { UI_KIT_ELEMENTS_SCREEN_ID } from "../ids";

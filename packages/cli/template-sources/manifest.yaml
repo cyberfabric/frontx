@@ -52,6 +52,7 @@ root:
     - src/app/uikit       # UI kit registry
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)
+    - src/app/components  # Reusable components (TextLoader)
   screensets:
     - demo            # Default screenset for new projects
   screensetTemplate: _blank  # Template for hai3 screenset create

@@ -70,6 +70,7 @@
     "@hai3/state": "*",
     "@hai3/uikit": "*",
     "@hookform/resolvers": "5.2.2",
+    "@iconify/react": "^6.0.2",
     "@reduxjs/toolkit": "2.2.1",
     "date-fns": "4.1.0",
     "input-otp": "1.4.2",

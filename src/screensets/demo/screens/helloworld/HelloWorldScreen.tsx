@@ -1,6 +1,7 @@
 import React from 'react';
-import { useTranslation, useNavigation, uikitRegistry, UiKitComponent, TextLoader, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
-import { Card, CardContent } from '@hai3/uikit';
+import { useTranslation, useNavigation, useScreenTranslations, I18nRegistry, Language } from '@hai3/react';
+import { TextLoader } from '@/app/components/TextLoader';
+import { Card, CardContent, Button } from '@hai3/uikit';
 import { HELLO_WORLD_SCREEN_ID, CURRENT_THEME_SCREEN_ID } from "../../ids";
 import { DEMO_SCREENSET_ID } from "../../ids";
 
@@ -58,7 +59,6 @@ export const HelloWorldScreen: React.FC = () => {
 
   const { t } = useTranslation();
   const { navigateToScreen } = useNavigation();
-  const Button = uikitRegistry.getComponent(UiKitComponent.Button);
 
   return (
     <div className="flex flex-col gap-8 p-8">

@@ -6,7 +6,6 @@
 import {
   type ScreensetConfig,
   ScreensetCategory,
-  uikitRegistry,
   registerSlice,
   I18nRegistry,
   Language,
@@ -14,7 +13,6 @@ import {
   i18nRegistry,
 } from '@hai3/react';
 import { _BLANK_SCREENSET_ID, HOME_SCREEN_ID } from './ids';
-import { HomeIcon, HOME_ICON_ID } from './uikit/icons/HomeIcon';
 import _blankSlice from './slices/_blankSlice';
 import { initialize_BlankEffects } from './effects/_blankEffects';
 
@@ -73,13 +71,6 @@ i18nRegistry.registerLoader(
 );
 
 /**
- * Register screenset-specific icons
- */
-uikitRegistry.registerIcons({
-  [HOME_ICON_ID]: <HomeIcon />,
-});
-
-/**
  * Register slices with effects
  */
 registerSlice(_blankSlice, (dispatch) => {
@@ -100,7 +91,7 @@ export const _blankScreenset: ScreensetConfig = {
       menuItem: {
         id: HOME_SCREEN_ID,
         label: `screenset.${_BLANK_SCREENSET_ID}:menu_items._blank.label`,
-        icon: HOME_ICON_ID,
+        icon: 'lucide:home',
       },
       screen: () => import('./screens/home/HomeScreen'),
     },

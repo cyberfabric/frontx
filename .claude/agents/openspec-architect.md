@@ -107,6 +107,27 @@ Validation result: PASS | FAIL
 5. Report results in the specified output format
 6. If validation fails, offer to fix the issues
 
+## INTENT VERIFICATION (CRITICAL)
+
+Before writing or updating any proposal:
+
+1. **Restate the user's goal** in your own words to confirm understanding
+2. **Identify the core problem** the user wants to solve, not just symptoms
+3. **Check for contradictions** between:
+   - What the user said to DELETE vs what remains in the proposal
+   - What the user said is NOT NEEDED vs what the proposal assumes exists
+   - Stated simplification goals vs complex solutions in the proposal
+
+**FORBIDDEN**: Writing proposals that:
+- Delete something in one section but assume it exists in another
+- Claim to simplify but introduce alternative complexity (e.g., "delete registry" but "use local registry")
+- Move/relocate patterns the user said should be eliminated entirely
+
+**REQUIRED**: If the user says something is "not needed" or "overdesign":
+- The proposal must ELIMINATE it, not relocate it
+- No alternative implementations of the same pattern
+- Verify the final state matches user's stated goal
+
 ## QUALITY MINDSET
 
 - Be precise and unambiguous in all specifications

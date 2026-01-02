@@ -29,6 +29,22 @@ Review the specified OpenSpec change for comprehensive quality assessment across
 - Identify gaps, contradictions, or ambiguous references
 - Ensure traceability from requirements → design → implementation tasks
 
+### 1.5 Intent Alignment Check (CRITICAL)
+
+**BLOCKER if any of these contradictions exist:**
+
+- Proposal claims to DELETE/REMOVE something but later assumes it exists elsewhere
+- Proposal claims to SIMPLIFY but introduces alternative complexity
+- "What Changes" section contradicts the "Why" section's stated goals
+- Tasks assume components/patterns that the proposal says should be eliminated
+
+**Examples of Intent Violations (BLOCK immediately):**
+- "Delete uikitRegistry" in deletions BUT "use local uikitRegistry" in implementation
+- "Remove registry pattern" BUT tasks create a new registry
+- "Eliminate overdesign" BUT proposal introduces equivalent complexity elsewhere
+
+**REQUIRED**: The final state described in the proposal must match the stated simplification goal. If user said "X is not needed", X must not exist in ANY form after implementation.
+
 ### 2. Architecture Quality and Clarity
 - Evaluate structural soundness of proposed changes
 - Assess clarity of component boundaries and interfaces
@@ -97,6 +113,16 @@ Your review MUST follow this exact structure:
 
 ---
 
+### INTENT ALIGNMENT CHECK
+
+| Stated Goal | Proposal Implementation | Verdict |
+|-------------|------------------------|---------|
+| [What user said to delete/remove/simplify] | [What proposal actually does] | ALIGNED/CONTRADICTION |
+
+[If CONTRADICTION: explain how proposal violates stated intent]
+
+---
+
 ### SOLID COMPLIANCE REPORT
 
 | Principle | Verdict | Findings | Required Edits (if RISK/FAIL) |
@@ -154,6 +180,9 @@ Your review MUST follow this exact structure:
 - Any SOLID principle receives FAIL verdict
 - Linting modifications appear without explicit permission
 - Critical architecture concerns that would impede implementation
+- Intent alignment violations (proposal contradicts stated goals)
+- Proposal "deletes" something but assumes it exists elsewhere
+- Proposal "simplifies" but introduces equivalent complexity
 
 ## IMPORTANT NOTES
 
