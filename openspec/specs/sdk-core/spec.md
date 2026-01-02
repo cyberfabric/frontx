@@ -472,14 +472,15 @@ onClick={() => eventBus.emit('chat/threads/selected', { threadId: thread.id })}
 
 ### Requirement: React Adapter Layer
 
-The system SHALL provide a `@hai3/react` package with React bindings but NO layout rendering components.
+The system SHALL provide a `@hai3/react` package with React bindings but NO layout rendering components and NO UI kit dependencies.
 
 #### Scenario: React depends only on framework
 
 - **WHEN** checking `@hai3/react` package.json
 - **THEN** only `@hai3/framework` appears as @hai3 dependency
-- **AND** NO direct SDK package imports (flux, layout, api, i18n)
+- **AND** NO direct SDK package imports (flux, layout, api)
 - **AND** NO @hai3/uikit-contracts dependency exists
+- **AND** NO @hai3/uikit dependency exists
 
 #### Scenario: React provides HAI3Provider
 
@@ -490,7 +491,7 @@ The system SHALL provide a `@hai3/react` package with React bindings but NO layo
 #### Scenario: React provides hooks
 
 - **WHEN** importing from `@hai3/react`
-- **THEN** hooks are available: `useAppDispatch`, `useAppSelector`, `useTranslation`, `useScreenTranslations`
+- **THEN** hooks are available: `useAppDispatch`, `useAppSelector`, `useTranslation`, `useScreenTranslations`, `useNavigation`, `useTheme`
 - **AND** hooks are fully typed with TypeScript
 
 #### Scenario: React provides AppRouter
@@ -503,47 +504,37 @@ The system SHALL provide a `@hai3/react` package with React bindings but NO layo
 
 - **WHEN** checking `@hai3/react` exports
 - **THEN** NO Layout, Header, Footer, Menu, Sidebar, Screen, Popup, Overlay components exist
-- **AND** layout rendering is provided via CLI scaffolding
+- **AND** NO TextLoader component exists (moved to CLI templates)
+- **AND** layout rendering is provided via CLI scaffolding in L4 (user's project)
+
+#### Scenario: React has NO uikitRegistry
+
+- **WHEN** checking `@hai3/react` exports
+- **THEN** NO `uikitRegistry` export exists
+- **AND** NO `UiKitComponent` enum is exported
+- **AND** NO `UiKitIcon` enum is exported
+- **AND** NO `UiKitComponentMap` or `ComponentName` types are exported
+- **BECAUSE** UI component registration is handled in L4 (user's project), not SDK layer
 
 ### Requirement: CLI-Generated Layout
 
-The system SHALL provide CLI commands to scaffold layout components into the user's project, using @hai3/uikit as the default.
+The system SHALL provide CLI commands to scaffold layout components AND utility components into the user's project.
 
-#### Scenario: Scaffold layout command exists
+#### Scenario: Scaffold includes TextLoader component
 
-- **WHEN** running `hai3 scaffold layout`
-- **THEN** layout components are generated in `src/layout/`
-- **AND** generated files include: Layout.tsx, Header.tsx, Footer.tsx, Menu.tsx, Sidebar.tsx, Screen.tsx, Popup.tsx, Overlay.tsx
-- **AND** generated code imports from `@hai3/uikit` (default)
+- **WHEN** running `hai3 create my-app` or `hai3 scaffold layout`
+- **THEN** `src/app/components/TextLoader.tsx` is generated
+- **AND** it imports `useTranslation` from `@hai3/react`
+- **AND** it imports `Skeleton` directly from `@hai3/uikit`
+- **AND** it includes the `TextLoaderProps` interface
+- **BECAUSE** TextLoader is a presentation component that belongs in L4, not L3
 
-#### Scenario: Default uses @hai3/uikit
+#### Scenario: TextLoader prevents flash of untranslated content
 
-- **WHEN** running `hai3 scaffold layout` without `--ui-kit` option
-- **THEN** generated components import from `@hai3/uikit`
-- **AND** `@hai3/uikit` is added to package.json dependencies if not present
-- **AND** generated components import hooks from `@hai3/react`
-- **AND** generated components import types from `@hai3/screensets` and slices from `@hai3/framework`
-
-#### Scenario: Custom UI kit option (no bundled uikit)
-
-- **WHEN** running `hai3 scaffold layout --ui-kit=custom`
-- **THEN** generated components do NOT import from `@hai3/uikit`
-- **AND** generated components use placeholder component references
-- **AND** user provides their own UI component implementations
-- **AND** `@hai3/uikit` is NOT added to package.json
-
-#### Scenario: Future UI kit options (shadcn, mui)
-
-- **WHEN** reviewing CLI scaffold architecture
-- **THEN** design allows adding `--ui-kit=<shadcn|mui>` options in the future
-- **AND** current implementation supports `@hai3/uikit` (default) and `custom`
-
-#### Scenario: User owns generated code
-
-- **WHEN** layout is scaffolded
-- **THEN** the code is copied to user's project (not symlinked)
-- **AND** user can freely modify the generated code
-- **AND** layout rendering is decoupled from @hai3/react package
+- **WHEN** using `<TextLoader>` in user's project
+- **THEN** it shows fallback or Skeleton while language is not set
+- **AND** it renders children once language is available
+- **AND** behavior is identical to previous @hai3/react TextLoader
 
 ### Requirement: No uikit-contracts Dependency
 
@@ -610,6 +601,7 @@ The system SHALL enforce strict layer dependencies via ESLint and dependency-cru
 - **THEN** framework can only import from SDK layer
 - **AND** framework cannot import React
 - **AND** framework cannot import uikit-contracts
+- **AND** framework cannot import uikit
 
 #### Scenario: React layer constraints
 
@@ -617,13 +609,15 @@ The system SHALL enforce strict layer dependencies via ESLint and dependency-cru
 - **THEN** react can only import from framework
 - **AND** react cannot directly import SDK packages
 - **AND** react cannot import uikit-contracts
+- **AND** react cannot import uikit
 
 #### Scenario: User code can import any package
 
-- **WHEN** user code (screensets, generated layout) imports from @hai3 packages
-- **THEN** it CAN import from any layer: `@hai3/state`, `@hai3/screensets`, `@hai3/framework`, `@hai3/react`
+- **WHEN** user code (screensets, generated layout, app components) imports from @hai3 packages
+- **THEN** it CAN import from any layer: `@hai3/state`, `@hai3/screensets`, `@hai3/framework`, `@hai3/react`, `@hai3/uikit`
 - **AND** layer rules do NOT apply to user's src/ directory
 - **AND** this allows generated layout to import types from `@hai3/screensets` and slices from `@hai3/framework`
+- **AND** this allows TextLoader to import `useTranslation` from `@hai3/react` and `Skeleton` from `@hai3/uikit`
 
 ### Requirement: Build Order
 

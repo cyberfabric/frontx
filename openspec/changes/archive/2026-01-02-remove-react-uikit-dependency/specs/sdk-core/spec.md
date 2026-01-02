@@ -46,7 +46,7 @@ The system SHALL provide a `@hai3/react` package with React bindings but NO layo
 - **AND** NO `UiKitComponentMap` or `ComponentName` types are exported
 - **BECAUSE** UI component registration is handled in L4 (user's project), not SDK layer
 
-### Requirement: CLI-Generated Layout (EXTENDED)
+### Requirement: CLI-Generated Layout
 
 The system SHALL provide CLI commands to scaffold layout components AND utility components into the user's project.
 
