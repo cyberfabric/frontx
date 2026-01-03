@@ -11,6 +11,7 @@ import {
   SsePluginWithConfig,
   type SseConnectContext,
   type SseShortCircuitResponse,
+  MOCK_PLUGIN,
 } from '../types';
 import { MockEventSource, type SseMockEvent } from '../mocks/MockEventSource';
 
@@ -51,6 +52,8 @@ export interface SseMockConfig {
  * ```
  */
 export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
+  /** Mock plugin marker - identifies this as a mock plugin for framework management */
+  static readonly [MOCK_PLUGIN] = true;
   /** Current mock streams map (can be updated via setMockStreams) */
   private currentMockStreams: Readonly<Record<string, readonly SseMockEvent[]>>;
 

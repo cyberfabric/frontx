@@ -131,6 +131,10 @@ export {
   setTenant,
   setTenantLoading,
   clearTenant,
+  // Mock slice (app-level, not layout)
+  mockSlice,
+  mockActions,
+  setMockEnabled,
   // Domain slices
   headerSlice,
   footerSlice,
@@ -209,6 +213,9 @@ export type {
   LayoutDomainReducers,
 } from './layoutTypes';
 
+// Mock state type
+export type { MockState } from './slices/mockSlice';
+
 // Tenant effects and events
 export {
   initTenantEffects,
@@ -216,8 +223,16 @@ export {
   clearTenantAction,
   setTenantLoadingState,
   TenantEvents,
-} from './effects';
-export type { TenantChangedPayload, TenantClearedPayload } from './effects';
+} from './effects/tenantEffects';
+export type { TenantChangedPayload, TenantClearedPayload } from './effects/tenantEffects';
+
+// Mock effects and events
+export {
+  initMockEffects,
+  toggleMockMode,
+  MockEvents,
+} from './effects/mockEffects';
+export type { MockTogglePayload } from './effects/mockEffects';
 
 // From @hai3/api
 export {
@@ -241,6 +256,9 @@ export {
   isShortCircuit,
   isRestShortCircuit,
   isSseShortCircuit,
+  // Mock plugin identification
+  MOCK_PLUGIN,
+  isMockPlugin,
 } from '@hai3/api';
 export type {
   ApiService,

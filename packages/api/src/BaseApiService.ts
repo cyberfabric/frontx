@@ -43,14 +43,14 @@ export abstract class BaseApiService {
   /** Registered protocols by constructor name */
   protected readonly protocols: Map<string, ApiProtocol> = new Map();
 
-  /** Registered plugins sorted by priority */
-  protected registeredPlugins: ApiPluginBase[] = [];
-
   /** Service-specific plugins (new class-based system) */
   private servicePlugins: ApiPluginBase[] = [];
 
   /** Excluded global plugin classes */
   private excludedPluginClasses: Set<PluginClass> = new Set();
+
+  /** Registered plugins for framework management (generic storage - not mock-specific) */
+  private registeredPluginsMap: Map<ApiProtocol, Set<ApiPluginBase>> = new Map();
 
   constructor(config: ApiServiceConfig, ...protocols: ApiProtocol[]) {
     this.config = Object.freeze({ ...config });
@@ -59,7 +59,7 @@ export abstract class BaseApiService {
     protocols.forEach((protocol) => {
       protocol.initialize(
         this.config,
-        () => this.getPluginsInOrder(), // Plugins
+        () => [], // No longer using global plugins list
         () => this.getMergedPluginsInOrder(), // Class-based plugins (service-level)
         () => this.getExcludedPluginClasses() // Excluded global plugin classes
       );
@@ -228,82 +228,71 @@ export abstract class BaseApiService {
     return [...this.getMergedPluginsInOrder()].reverse();
   }
 
+
   // ============================================================================
-  // Plugin Management
+  // Framework Plugin Management (GENERIC - not mock-specific)
   // ============================================================================
 
   /**
-   * Register a plugin.
-   * Plugins are auto-sorted by priority (descending).
+   * Register a plugin for a protocol (GENERIC - not mock-specific).
+   * Plugin is stored but NOT added to protocol.
+   * Framework controls activation based on plugin type and state.
    *
-   * @param plugin - Plugin instance
+   * @param protocol - Protocol instance owned by this service
+   * @param plugin - Any plugin instance (mock or non-mock)
+   *
+   * @example
+   * ```typescript
+   * class ChatApiService extends BaseApiService {
+   *   constructor() {
+   *     const restProtocol = new RestProtocol();
+   *     super({ baseURL: '/api/chat' }, restProtocol);
+   *
+   *     // Register mock plugin (framework controls when it's active)
+   *     this.registerPlugin(
+   *       restProtocol,
+   *       new RestMockPlugin({ mockMap: chatMockMap })
+   *     );
+   *   }
+   * }
+   * ```
    */
-  registerPlugin(plugin: ApiPluginBase): void {
-    // Check if plugin already registered
-    if (this.hasPlugin(plugin.constructor as new (...args: unknown[]) => ApiPluginBase)) {
-      console.warn(`Plugin is already registered. Skipping.`);
-      return;
+  registerPlugin(protocol: ApiProtocol, plugin: ApiPluginBase): void {
+    if (!this.protocols.has(protocol.constructor.name)) {
+      throw new Error(
+        `Protocol "${protocol.constructor.name}" not registered on this service`
+      );
     }
 
-    this.registeredPlugins.push(plugin);
-    this.sortPluginsByPriority();
-  }
-
-  /**
-   * Unregister a plugin by class.
-   *
-   * @param pluginClass - Plugin class (uses name for matching)
-   */
-  unregisterPlugin<T extends ApiPluginBase>(pluginClass: { readonly name: string; prototype: T }): void {
-    const index = this.registeredPlugins.findIndex(
-      (p) => p.constructor.name === pluginClass.name
-    );
-
-    if (index !== -1) {
-      const plugin = this.registeredPlugins[index];
-      // Call destroy if available
-      if ('destroy' in plugin && typeof plugin.destroy === 'function') {
-        (plugin as { destroy: () => void }).destroy();
-      }
-      this.registeredPlugins.splice(index, 1);
+    if (!this.registeredPluginsMap.has(protocol)) {
+      this.registeredPluginsMap.set(protocol, new Set());
     }
+    this.registeredPluginsMap.get(protocol)!.add(plugin);
   }
 
   /**
-   * Check if a plugin is registered.
+   * Get all registered plugins (GENERIC - returns all plugins).
+   * Framework uses isMockPlugin() type guard to filter for mock plugins.
    *
-   * @param pluginClass - Plugin class (uses name for matching)
-   * @returns True if registered
+   * @returns ReadonlyMap of protocol -> plugins
+   *
+   * @example
+   * ```typescript
+   * // Framework code
+   * for (const service of apiRegistry.getAll()) {
+   *   const registeredPlugins = service.getPlugins();
+   *   for (const [protocol, plugins] of registeredPlugins) {
+   *     for (const plugin of plugins) {
+   *       if (isMockPlugin(plugin)) {
+   *         // Handle mock plugin activation/deactivation
+   *       }
+   *     }
+   *   }
+   * }
+   * ```
    */
-  hasPlugin<T extends ApiPluginBase>(pluginClass: { readonly name: string; prototype: T }): boolean {
-    return this.registeredPlugins.some((p) => p.constructor.name === pluginClass.name);
-  }
-
-  /**
-   * Get plugins sorted by priority (high to low).
-   * Used for request handling.
-   */
-  getPluginsInOrder(): readonly ApiPluginBase[] {
-    return [...this.registeredPlugins];
-  }
-
-  /**
-   * Get plugins in reverse priority order (low to high).
-   * Used for response handling.
-   */
-  getPluginsReversed(): readonly ApiPluginBase[] {
-    return [...this.registeredPlugins].reverse();
-  }
-
-  /**
-   * Sort plugins by priority (descending).
-   */
-  private sortPluginsByPriority(): void {
-    this.registeredPlugins.sort((a, b) => {
-      const priorityA = 'priority' in a ? (a as { priority: number }).priority : 0;
-      const priorityB = 'priority' in b ? (b as { priority: number }).priority : 0;
-      return priorityB - priorityA;
-    });
+  getPlugins(): ReadonlyMap<ApiProtocol, ReadonlySet<ApiPluginBase>> {
+    return this.registeredPluginsMap;
   }
 
   // ============================================================================
@@ -344,13 +333,5 @@ export abstract class BaseApiService {
     // Cleanup all protocols
     this.protocols.forEach((protocol) => protocol.cleanup());
     this.protocols.clear();
-
-    // Unregister all plugins
-    [...this.registeredPlugins].forEach((plugin) => {
-      if ('destroy' in plugin && typeof plugin.destroy === 'function') {
-        (plugin as { destroy: () => void }).destroy();
-      }
-    });
-    this.registeredPlugins = [];
   }
 }

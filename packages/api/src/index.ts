@@ -64,6 +64,9 @@ export {
   // Protocol-specific type guards
   isRestShortCircuit,
   isSseShortCircuit,
+  // Mock plugin identification
+  MOCK_PLUGIN,
+  isMockPlugin,
 } from './types';
 
 // Export base service class

@@ -18,7 +18,6 @@ import {
   type ShortCircuitResponse,
   type RestPluginHooks,
   type HttpMethod,
-  type MockMap,
   type PluginClass,
 } from '../types';
 import { isShortCircuit } from '../types';
@@ -64,9 +63,6 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   /** Instance-specific plugins */
   private _instancePlugins: Set<RestPluginHooks> = new Set();
 
-  /** Instance-level mock map storage */
-  private mockMap: MockMap = {};
-
   /**
    * Instance plugin management namespace
    * Plugins registered here apply only to this RestProtocol instance
@@ -103,40 +99,6 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   constructor(restConfig: RestProtocolConfig = {}) {
     super();
     this.restConfig = { ...DEFAULT_REST_CONFIG, ...restConfig };
-  }
-
-  // ============================================================================
-  // Mock Map Management
-  // ============================================================================
-
-  /**
-   * Register mock map for this protocol instance.
-   * Called by services during construction to register their mock responses.
-   * Multiple calls accumulate mock maps.
-   *
-   * @param mockMap - Mock response map to register
-   *
-   * @example
-   * ```typescript
-   * const restProtocol = new RestProtocol();
-   * restProtocol.registerMockMap({
-   *   'GET /users': () => [{ id: '1', name: 'John' }],
-   *   'POST /users': (body) => ({ id: '2', ...body })
-   * });
-   * ```
-   */
-  registerMockMap(mockMap: MockMap): void {
-    this.mockMap = { ...this.mockMap, ...mockMap };
-  }
-
-  /**
-   * Get the registered mock map.
-   * Used by RestMockPlugin when enabled.
-   *
-   * @returns Readonly mock map for this protocol instance
-   */
-  getMockMap(): Readonly<MockMap> {
-    return this.mockMap;
   }
 
   // ============================================================================
@@ -327,9 +289,11 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       }
 
       // Build axios config
+      // IMPORTANT: Use the original relative URL for axios since it already has baseURL configured.
+      // Plugin chain receives full URL for mock matching, but axios needs relative URL.
       const axiosConfig: AxiosRequestConfig = {
         method,
-        url: pluginProcessedContext.url,
+        url,  // Use original relative URL, not processedContext.url which includes baseURL
         headers: pluginProcessedContext.headers,
         data: pluginProcessedContext.body,
         params,

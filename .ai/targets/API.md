@@ -44,13 +44,16 @@
 - REQUIRED: Use protocol.plugins.add(plugin) for instance-level plugins.
 - REQUIRED: Plugins are identified by class reference (instanceof), not string names.
 - REQUIRED: Mock plugins are protocol-specific (RestMockPlugin, SseMockPlugin).
-- PREFERRED: Register mock plugins on protocol instances in service constructor.
-- ALLOWED: Global plugins via apiRegistry.plugins.add(RestProtocol, plugin).
+- REQUIRED: Use `this.registerPlugin(protocol, mockPlugin)` to register mock plugins in service constructor.
+- REQUIRED: Custom mock plugins must have `static readonly [MOCK_PLUGIN] = true` for framework identification.
+- REQUIRED: Initialize mock effects via `initMockEffects()` in main.tsx.
 - FORBIDDEN: RestProtocol.globalPlugins (removed API).
 - FORBIDDEN: SseProtocol.globalPlugins (removed API).
 - FORBIDDEN: String-based plugin names for identification.
 - FORBIDDEN: Mock-specific methods on apiRegistry (registerMocks, setMockMode).
 - FORBIDDEN: Generic MockPlugin class (use protocol-specific mock plugins).
+- FORBIDDEN: registerMockMap() and getMockMap() on protocols (removed API).
+- FORBIDDEN: Directly adding mock plugins to protocol.plugins in DEV mode (use registerPlugin pattern).
 
 ## PROTOCOL-SPECIFIC PLUGINS
 - REQUIRED: RestProtocol plugins implement RestPluginHooks (onRequest, onResponse, destroy).

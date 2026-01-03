@@ -1,16 +1,13 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation, apiRegistry, RestProtocol, RestMockPlugin } from '@hai3/react';
+import React from 'react';
+import { useTranslation, useAppSelector, toggleMockMode, type MockState } from '@hai3/react';
 import { Switch } from '@hai3/uikit';
 
 /**
  * API Mode Toggle Component
- * Toggles between mock and real API by adding/removing RestMockPlugin globally
+ * Toggles between mock and real API mode via centralized mock state.
  *
- * Uses apiRegistry.plugins for protocol-level plugin management.
- * Cross-cutting mock behavior affects all REST API services.
- *
- * Mock maps are registered by services during construction (vertical slice pattern).
- * This toggle only enables/disables the mock plugin, not configure it.
+ * Dispatches mock toggle event that mockEffects handles.
+ * Framework manages ALL mock plugins (global and instance-level) automatically.
  */
 
 export interface ApiModeToggleProps {
@@ -20,41 +17,14 @@ export interface ApiModeToggleProps {
 export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
   className,
 }) => {
-  // Track the mock plugin instance we create
-  const mockPluginRef = useRef<RestMockPlugin | null>(null);
-
-  // Check if RestMockPlugin is currently registered
-  const [useMockApi, setUseMockApi] = useState(() => {
-    return apiRegistry.plugins.has(RestProtocol, RestMockPlugin);
-  });
   const { t } = useTranslation();
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (mockPluginRef.current) {
-        apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
-        mockPluginRef.current = null;
-      }
-    };
-  }, []);
+  const enabled = useAppSelector((state) => {
+    const mockState = (state as { mock?: MockState }).mock;
+    return mockState?.enabled ?? false;
+  });
 
   const handleToggle = (checked: boolean) => {
-    setUseMockApi(checked);
-    if (checked) {
-      // Enable mock mode - add RestMockPlugin if not already present
-      // Plugin will use mock maps registered by services
-      if (!mockPluginRef.current) {
-        mockPluginRef.current = new RestMockPlugin({ delay: 500 });
-        apiRegistry.plugins.add(RestProtocol, mockPluginRef.current);
-      }
-    } else {
-      // Disable mock mode - remove RestMockPlugin by class
-      if (mockPluginRef.current) {
-        apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
-        mockPluginRef.current = null;
-      }
-    }
+    toggleMockMode(checked);
   };
 
   return (
@@ -67,7 +37,7 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
       </label>
       <Switch
         id="api-mode-toggle"
-        checked={useMockApi}
+        checked={enabled}
         onCheckedChange={handleToggle}
       />
     </div>

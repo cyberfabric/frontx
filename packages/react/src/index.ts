@@ -172,6 +172,15 @@ export {
   setTenantLoadingState,
   TenantEvents,
 
+  // Mock (app-level, not layout)
+  mockSlice,
+  mockActions,
+  setMockEnabled,
+  // Mock effects and events
+  initMockEffects,
+  toggleMockMode,
+  MockEvents,
+
   // API
   apiRegistry,
   BaseApiService,
@@ -193,6 +202,9 @@ export {
   isShortCircuit,
   isRestShortCircuit,
   isSseShortCircuit,
+  // Mock plugin identification
+  MOCK_PLUGIN,
+  isMockPlugin,
 
   // I18n
   i18nRegistry,
@@ -272,6 +284,10 @@ export type {
   TenantState,
   TenantChangedPayload,
   TenantClearedPayload,
+
+  // Mock types
+  MockState,
+  MockTogglePayload,
 
   // API
   ApiService,

@@ -14,6 +14,7 @@ import {
   type JsonValue,
   type JsonCompatible,
   type MockResponseFactory,
+  MOCK_PLUGIN,
 } from '../types';
 
 /**
@@ -54,15 +55,10 @@ export interface RestMockConfig {
  * ```
  */
 export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
+  /** Mock plugin marker - identifies this as a mock plugin for framework management */
+  static readonly [MOCK_PLUGIN] = true;
   /** Current mock map (can be updated via setMockMap) */
   private currentMockMap?: Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>>;
-
-  /**
-   * Protocol reference for accessing registered mock maps.
-   * Set internally by RestProtocol when executing plugin chain.
-   * @internal
-   */
-  _protocol?: { getMockMap(): Readonly<Record<string, MockResponseFactory<JsonValue, JsonCompatible>>> };
 
   constructor(config: RestMockConfig = {}) {
     super(config);
@@ -117,8 +113,8 @@ export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
   ): MockResponseFactory<unknown, unknown> | undefined {
     const mockKey = `${method.toUpperCase()} ${url}`;
 
-    // Use config mockMap if provided, otherwise get from protocol
-    const mockMap = this.currentMockMap ?? this._protocol?.getMockMap() ?? {};
+    // Use config mockMap
+    const mockMap = this.currentMockMap ?? {};
 
     // Try exact match first
     const exactMatch = mockMap[mockKey];

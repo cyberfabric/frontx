@@ -110,6 +110,25 @@ class ApiRegistryImpl implements IApiRegistry {
     return this.services.has(serviceClass);
   }
 
+  /**
+   * Get all registered service instances.
+   * Used by framework effects to iterate services for plugin management.
+   *
+   * @returns Readonly array of all registered BaseApiService instances
+   *
+   * @example
+   * ```typescript
+   * // Framework code
+   * for (const service of apiRegistry.getAll()) {
+   *   const plugins = service.getPlugins();
+   *   // Process plugins...
+   * }
+   * ```
+   */
+  getAll(): readonly BaseApiService[] {
+    return Array.from(this.services.values());
+  }
+
   // ============================================================================
   // Configuration
   // ============================================================================

@@ -72,6 +72,11 @@ import tenantReducer, {
   setTenantLoading,
   clearTenant,
 } from './tenantSlice';
+import mockReducer, {
+  mockSlice,
+  mockActions,
+  setMockEnabled,
+} from './mockSlice';
 
 // ============================================================================
 // Constants
@@ -79,6 +84,7 @@ import tenantReducer, {
 
 export const LAYOUT_SLICE_NAME = 'layout' as const;
 export const TENANT_SLICE_NAME = 'app/tenant' as const;
+export const MOCK_SLICE_NAME = 'mock' as const;
 
 // ============================================================================
 // Combined Layout Reducer
@@ -172,6 +178,12 @@ export {
   setTenant,
   setTenantLoading,
   clearTenant,
+  // Mock slice (app-level, not layout)
+  mockSlice,
+  mockActions,
+  mockReducer,
+  // Individual actions - mock
+  setMockEnabled,
 };
 
 // Type exports

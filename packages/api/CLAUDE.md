@@ -50,34 +50,33 @@ const user = await accounts.getCurrentUser();
 
 ### Mock Support
 
-Configure mocks via RestMockPlugin per-service or globally:
+Configure mocks via RestMockPlugin using the `registerPlugin()` pattern. Framework controls mock plugin activation via the Mock API toggle.
 
 ```typescript
-import { RestMockPlugin, apiRegistry, RestProtocol } from '@hai3/api';
+import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/api';
 
-// Per-service mocks (in service constructor)
-class AccountsApiService extends BaseApiService {
+// Register mock plugins in service constructor
+// Framework activates/deactivates based on mock mode state
+class ChatApiService extends BaseApiService {
   constructor() {
-    super({ baseURL: '/api/accounts' }, new RestProtocol());
+    const restProtocol = new RestProtocol({ timeout: 30000 });
+    super({ baseURL: '/api/chat' }, restProtocol);
 
-    if (process.env.NODE_ENV === 'development') {
-      this.plugins.add(new RestMockPlugin({
-        mockMap: {
-          'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
-          'GET /api/accounts/users/:id': (body) => ({ id: body.id, name: 'User' }),
-          'POST /api/accounts/user/profile': (body) => ({ ...body, updatedAt: new Date() })
-        },
-        delay: 100,
-      }));
-    }
+    // Register mock plugin (framework controls when it's active)
+    this.registerPlugin(restProtocol, new RestMockPlugin({
+      mockMap: {
+        'GET /api/chat/threads': () => [{ id: '1', title: 'Thread 1' }],
+        'POST /api/chat/messages': (body) => ({ id: '2', ...body }),
+      },
+      delay: 100,
+    }));
   }
 }
 
-// Or global mocks (for cross-cutting concerns)
+// Global mocks (for cross-cutting concerns)
 apiRegistry.plugins.add(RestProtocol, new RestMockPlugin({
   mockMap: {
-    'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
-    'GET /api/billing/invoices': () => [{ id: 'inv-1', amount: 100 }],
+    'GET /api/health': () => ({ status: 'ok' }),
   },
   delay: 100,
 }));
@@ -141,25 +140,27 @@ const restProtocol = new RestProtocol({
 
 ## Mock Mode
 
-Toggle mock mode via plugin management:
+Mock mode is controlled centrally by the framework via the `toggleMockMode()` action. Services register mock plugins using `registerPlugin()`, and the framework activates/deactivates them based on mock mode state.
 
 ```typescript
-import { apiRegistry, RestProtocol, RestMockPlugin } from '@hai3/api';
+// In @hai3/framework - toggle mock mode (used by HAI3 Studio)
+import { toggleMockMode } from '@hai3/framework';
+toggleMockMode(true);  // Enable all mock plugins
+toggleMockMode(false); // Disable all mock plugins
 
-// Enable mock mode
-apiRegistry.plugins.add(RestProtocol, new RestMockPlugin({
-  mockMap: { /* ... */ },
-  delay: 100
-}));
+// Custom mock plugins must be marked with MOCK_PLUGIN symbol
+import { ApiPluginBase, MOCK_PLUGIN } from '@hai3/api';
 
-// Disable mock mode
-apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
+class CustomMockPlugin extends ApiPluginBase {
+  static readonly [MOCK_PLUGIN] = true;  // Required for framework to identify as mock plugin
+  // ... implementation
+}
 
-// Check if mock mode is enabled
-const isMockEnabled = apiRegistry.plugins.has(RestProtocol, RestMockPlugin);
-
-// Get all plugins for a protocol
-const restPlugins = apiRegistry.plugins.getAll(RestProtocol);
+// Check if a plugin is a mock plugin
+import { isMockPlugin } from '@hai3/api';
+if (isMockPlugin(plugin)) {
+  console.log('This is a mock plugin');
+}
 ```
 
 ## Key Rules
@@ -167,8 +168,9 @@ const restPlugins = apiRegistry.plugins.getAll(RestProtocol);
 1. **Services extend BaseApiService** - Use the base class for protocol management
 2. **Register with class reference** - Call `apiRegistry.register(ServiceClass)`
 3. **One service per domain** - Each bounded context gets one service
-4. **Mocks via plugins** - Use MockPlugin per-service or globally
-5. **Plugin identification by class** - Use class references, not string names
+4. **Mock plugins via registerPlugin()** - Use `this.registerPlugin(protocol, mockPlugin)` in constructor
+5. **Mock mode via framework** - Framework controls mock plugin lifecycle via `toggleMockMode()`
+6. **Plugin identification by class** - Use class references, not string names
 
 ## Exports
 
@@ -180,6 +182,8 @@ const restPlugins = apiRegistry.plugins.getAll(RestProtocol);
 - `RestMockPlugin` - REST mock data plugin
 - `SseMockPlugin` - SSE mock data plugin
 - `apiRegistry` - Singleton registry
+- `MOCK_PLUGIN` - Symbol for marking mock plugins
+- `isMockPlugin` - Type guard for identifying mock plugins
 - `ApiService` - Service interface (type)
 - `ApiRequestContext` - Plugin request context type
 - `ApiResponseContext` - Plugin response context type

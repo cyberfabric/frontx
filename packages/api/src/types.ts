@@ -41,6 +41,42 @@ export type JsonCompatible = JsonValue | object;
 // ============================================================================
 
 /**
+ * Mock Plugin Symbol
+ * Symbol marker for identifying mock plugins in an OCP-compliant way.
+ * Any plugin class can be marked as a mock plugin by adding this symbol as a static property.
+ *
+ * @example
+ * ```typescript
+ * class CustomMockPlugin extends ApiPluginBase {
+ *   static readonly [MOCK_PLUGIN] = true;
+ * }
+ * ```
+ */
+export const MOCK_PLUGIN = Symbol.for('hai3:plugin:mock');
+
+/**
+ * Mock Plugin Type Guard
+ * Checks if a plugin is marked as a mock plugin using the MOCK_PLUGIN symbol.
+ * Framework uses this to identify and manage mock plugins based on mock mode state.
+ *
+ * @param plugin - Plugin instance to check
+ * @returns True if plugin is marked as a mock plugin
+ *
+ * @example
+ * ```typescript
+ * const plugin = new RestMockPlugin({ mockMap: {} });
+ * if (isMockPlugin(plugin)) {
+ *   console.log('This is a mock plugin');
+ * }
+ * ```
+ */
+export function isMockPlugin(plugin: unknown): boolean {
+  if (!plugin || typeof plugin !== 'object') return false;
+  const constructor = (plugin as object).constructor;
+  return MOCK_PLUGIN in constructor;
+}
+
+/**
  * Mock Response Factory Function
  * Generic function that accepts a request and returns a response.
  *

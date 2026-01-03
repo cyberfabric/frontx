@@ -58,6 +58,24 @@ const headlessApp = createHAI3()
 | `i18n()` | i18nRegistry, setLanguage action | - |
 | `effects()` | Core effect coordination | - |
 
+### Mock Mode Control
+
+Framework provides centralized mock mode control via `mockSlice` and `mockEffects`:
+
+```typescript
+import { toggleMockMode, initMockEffects, mockSlice } from '@hai3/framework';
+
+// Initialize mock effects (call once in main.tsx after store creation)
+registerSlice(mockSlice);
+initMockEffects();
+
+// Toggle mock mode (used by HAI3 Studio ApiModeToggle)
+toggleMockMode(true);  // Activates all registered mock plugins
+toggleMockMode(false); // Deactivates all registered mock plugins
+```
+
+Services register mock plugins using `registerPlugin()` in their constructor. The framework automatically manages plugin activation based on mock mode state.
+
 ### Built Application
 
 After calling `.build()`, access registries and actions:
@@ -125,7 +143,7 @@ For convenience, this package re-exports from SDK packages:
 
 - From @hai3/state: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`
 - From @hai3/screensets: `LayoutDomain`, `ScreensetCategory`, `screensetRegistry`, contracts/types
-- From @hai3/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `MockPlugin`
+- From @hai3/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MOCK_PLUGIN`, `isMockPlugin`
 - From @hai3/i18n: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, `getLanguageMetadata`
 
 **Layout Slices (owned by @hai3/framework):**

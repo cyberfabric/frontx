@@ -5,7 +5,7 @@
  * Application-specific service (copied from CLI template)
  */
 
-import { BaseApiService, RestProtocol } from '@hai3/api';
+import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/api';
 import type { GetCurrentUserResponse } from './types';
 import { accountsMockMap } from './mocks';
 
@@ -25,8 +25,14 @@ export class AccountsApiService extends BaseApiService {
 
     super({ baseURL: '/api/accounts' }, restProtocol);
 
-    // Self-register mock map - stays within screenset (vertical slice pattern)
-    restProtocol.registerMockMap(accountsMockMap);
+    // Register mock plugin (framework controls when it's active based on mock mode toggle)
+    this.registerPlugin(
+      restProtocol,
+      new RestMockPlugin({
+        mockMap: accountsMockMap,
+        delay: 100,
+      })
+    );
   }
 
   /**
