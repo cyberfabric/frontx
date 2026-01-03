@@ -91,31 +91,48 @@ export interface ApiServicesConfig {
 }
 
 // ============================================================================
-// API Protocol Interface
+// API Protocol Abstract Class
 // ============================================================================
 
 /**
- * API Protocol Interface
- * Base interface for all API communication protocols.
+ * API Protocol Abstract Class
+ * Base class for all API communication protocols.
+ * Generic TPlugin parameter defines the protocol's plugin hook type.
+ *
+ * @template TPlugin - Plugin hooks type for this protocol (e.g., RestPluginHooks)
+ *
+ * @example
+ * ```typescript
+ * class RestProtocol extends ApiProtocol<RestPluginHooks> { ... }
+ * class SseProtocol extends ApiProtocol<SsePluginHooks> { ... }
+ * ```
  */
-export interface ApiProtocol {
+export abstract class ApiProtocol<TPlugin extends BasePluginHooks = BasePluginHooks> {
   /**
    * Initialize the protocol with configuration.
    *
    * @param config - Base service configuration
    * @param getPlugins - Function to access registered plugins
-   * @param getClassPlugins - Function to access class-based plugins (merged global + service)
+   * @param getClassPlugins - Function to access class-based plugins (service-level)
+   * @param getExcludedClasses - Function to access excluded global plugin classes
    */
-  initialize(
+  abstract initialize(
     config: Readonly<ApiServiceConfig>,
     getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    getClassPlugins: () => ReadonlyArray<ApiPluginBase>
+    getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
+    getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void;
+
+  /**
+   * Get plugins in execution order.
+   * Returns the protocol's specific plugin type.
+   */
+  abstract getPluginsInOrder(): readonly TPlugin[];
 
   /**
    * Cleanup protocol resources.
    */
-  cleanup(): void;
+  abstract cleanup(): void;
 }
 
 /**
@@ -299,7 +316,7 @@ export abstract class ApiPluginBase {
  *     return { ...ctx, headers: { ...ctx.headers, Authorization: `Bearer ${this.config.getToken()}` } };
  *   }
  * }
- * RestProtocol.globalPlugins.add(new AuthPlugin({ getToken: () => 'token' }));
+ * apiRegistry.plugins.add(RestProtocol, new AuthPlugin({ getToken: () => 'token' }));
  * ```
  */
 export abstract class ApiPlugin<TConfig = void> extends ApiPluginBase {
@@ -318,7 +335,7 @@ export abstract class ApiPlugin<TConfig = void> extends ApiPluginBase {
  * @example
  * ```typescript
  * const pluginClass: PluginClass<AuthPlugin> = AuthPlugin;
- * RestProtocol.globalPlugins.has(pluginClass);
+ * apiRegistry.plugins.has(RestProtocol, pluginClass);
  * ```
  */
 export type PluginClass<T extends ApiPluginBase = ApiPluginBase> = abstract new (...args: never[]) => T;
@@ -375,10 +392,23 @@ export interface SseConnectContext {
 }
 
 /**
+ * Base Plugin Hooks Interface
+ * Common interface for all protocol plugin hooks.
+ * OCP-compliant: new protocols extend this without modifying existing code.
+ */
+export interface BasePluginHooks {
+  /**
+   * Called when plugin is removed or protocol is cleaned up.
+   * Use for cleanup of resources.
+   */
+  destroy(): void;
+}
+
+/**
  * REST Plugin Hooks Interface
  * Hook methods for REST protocol plugins.
  */
-export interface RestPluginHooks {
+export interface RestPluginHooks extends BasePluginHooks {
   /**
    * Called before REST request is sent.
    * Can modify the request context or short-circuit with immediate response.
@@ -414,18 +444,13 @@ export interface RestPluginHooks {
     context: RestRequestContext
   ): Error | RestResponseContext | Promise<Error | RestResponseContext>;
 
-  /**
-   * Called when plugin is removed or protocol is cleaned up.
-   * Use for cleanup of resources.
-   */
-  destroy(): void;
 }
 
 /**
  * SSE Plugin Hooks Interface
  * Hook methods for SSE protocol plugins.
  */
-export interface SsePluginHooks {
+export interface SsePluginHooks extends BasePluginHooks {
   /**
    * Called before SSE connection is established.
    * Can modify the connection context or short-circuit with mock EventSource.
@@ -457,12 +482,6 @@ export interface SsePluginHooks {
   onDisconnect?(
     connectionId: string
   ): void | Promise<void>;
-
-  /**
-   * Called when plugin is removed or protocol is cleaned up.
-   * Use for cleanup of resources.
-   */
-  destroy(): void;
 }
 
 /**
@@ -737,6 +756,50 @@ export interface ApiService {
    */
   delete<T>(url: string): Promise<T>;
 }
+
+// ============================================================================
+// Protocol Plugin Management Types
+// ============================================================================
+
+/**
+ * Protocol Class Type
+ * Constructor type for protocol classes that implement ApiProtocol.
+ * Used as keys in the plugin registry to identify which protocol a plugin belongs to.
+ *
+ * @example
+ * ```typescript
+ * import { RestProtocol, SseProtocol } from '@hai3/api';
+ * const protocolClass: ProtocolClass = RestProtocol;
+ * apiRegistry.plugins.add(RestProtocol, plugin);
+ * ```
+ */
+export type ProtocolClass = new (...args: never[]) => ApiProtocol;
+
+/**
+ * Protocol Plugin Hooks Base Type
+ * Base type for all protocol-specific plugin hooks.
+ * Used for internal storage in apiRegistry.
+ *
+ * OCP-compliant: new protocols extend BasePluginHooks without modifying this type.
+ */
+export type ProtocolPluginHooks = BasePluginHooks;
+
+/**
+ * Protocol Plugin Type Mapping
+ * Extracts plugin hook type from protocol's generic parameter.
+ * OCP-compliant: new protocols specify their plugin type via ApiProtocol<TPlugin>.
+ *
+ * @template T - The protocol type (e.g., RestProtocol, SseProtocol)
+ * @example
+ * ```typescript
+ * // RestProtocol implements ApiProtocol<RestPluginHooks>
+ * type RestPlugins = ProtocolPluginType<RestProtocol>; // RestPluginHooks
+ * // SseProtocol implements ApiProtocol<SsePluginHooks>
+ * type SsePlugins = ProtocolPluginType<SseProtocol>; // SsePluginHooks
+ * ```
+ */
+export type ProtocolPluginType<T extends ApiProtocol> =
+  T extends ApiProtocol<infer P> ? P : never;
 
 // ============================================================================
 // API Registry Interface

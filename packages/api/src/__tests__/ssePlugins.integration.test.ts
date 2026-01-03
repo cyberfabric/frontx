@@ -8,16 +8,17 @@
 import { SseProtocol } from '../protocols/SseProtocol';
 import { SseMockPlugin } from '../plugins/SseMockPlugin';
 import { MockEventSource } from '../mocks/MockEventSource';
+import { apiRegistry } from '../apiRegistry';
 import type { SsePluginHooks, SseConnectContext } from '../types';
 
 describe('SseProtocol plugins', () => {
   beforeEach(() => {
-    // Clear global plugins before each test
-    SseProtocol.globalPlugins.clear();
+    // Clear all plugins before each test
+    apiRegistry.reset();
   });
 
   afterEach(() => {
-    SseProtocol.globalPlugins.clear();
+    apiRegistry.reset();
   });
 
   describe('global plugin management', () => {
@@ -26,9 +27,9 @@ describe('SseProtocol plugins', () => {
         onConnect: async (ctx) => ctx,
       };
 
-      SseProtocol.globalPlugins.add(plugin);
-      expect(SseProtocol.globalPlugins.has(plugin)).toBe(true);
-      expect(SseProtocol.globalPlugins.getAll()).toContain(plugin);
+      apiRegistry.plugins.add(SseProtocol,plugin);
+      expect(apiRegistry.plugins.has(SseProtocol, plugin.constructor as never)).toBe(true);
+      expect(apiRegistry.plugins.getAll(SseProtocol)).toContain(plugin);
     });
 
     it('should remove global plugins and call destroy', () => {
@@ -38,10 +39,10 @@ describe('SseProtocol plugins', () => {
         destroy: () => { destroyCalled = true; },
       };
 
-      SseProtocol.globalPlugins.add(plugin);
-      SseProtocol.globalPlugins.remove(plugin);
+      apiRegistry.plugins.add(SseProtocol,plugin);
+      apiRegistry.plugins.remove(SseProtocol, plugin.constructor as never);
 
-      expect(SseProtocol.globalPlugins.has(plugin)).toBe(false);
+      expect(apiRegistry.plugins.has(SseProtocol, plugin.constructor as never)).toBe(false);
       expect(destroyCalled).toBe(true);
     });
 
@@ -52,12 +53,12 @@ describe('SseProtocol plugins', () => {
         destroy: () => { destroyCount++; },
       });
 
-      SseProtocol.globalPlugins.add(createPlugin());
-      SseProtocol.globalPlugins.add(createPlugin());
+      apiRegistry.plugins.add(SseProtocol,createPlugin());
+      apiRegistry.plugins.add(SseProtocol,createPlugin());
 
-      SseProtocol.globalPlugins.clear();
+      apiRegistry.plugins.clear(SseProtocol);
 
-      expect(SseProtocol.globalPlugins.getAll().length).toBe(0);
+      expect(apiRegistry.plugins.getAll(SseProtocol).length).toBe(0);
       expect(destroyCount).toBe(2);
     });
   });
@@ -99,7 +100,7 @@ describe('SseProtocol plugins', () => {
         onConnect: async (ctx) => ctx,
       };
 
-      SseProtocol.globalPlugins.add(globalPlugin);
+      apiRegistry.plugins.add(SseProtocol,globalPlugin);
 
       const sseProtocol = new SseProtocol();
       sseProtocol.plugins.add(instancePlugin);
@@ -116,7 +117,7 @@ describe('SseProtocol plugins', () => {
         onConnect: async (ctx) => ctx,
       };
 
-      SseProtocol.globalPlugins.add(globalPlugin);
+      apiRegistry.plugins.add(SseProtocol,globalPlugin);
 
       const protocol1 = new SseProtocol();
       const protocol2 = new SseProtocol();

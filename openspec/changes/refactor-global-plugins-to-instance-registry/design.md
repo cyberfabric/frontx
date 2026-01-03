@@ -327,10 +327,15 @@ it('should mock API calls', async () => {
 ### Step 7: Update Studio
 - Refactor ApiModeToggle to use `apiRegistry.plugins.add(RestProtocol, ...)`
 
-### Step 8: Update AI Guidelines
+### Step 8: Layer Propagation (Re-exports)
+- Update `packages/framework/src/index.ts` to re-export `ProtocolClass` and `ProtocolPluginType` types from @hai3/api
+- Update `packages/react/src/index.ts` to re-export these types from @hai3/framework
+- This ensures consumers at any layer can access the new types
+
+### Step 9: Update AI Guidelines
 - Update `.ai/targets/API.md` with new plugin registration rules
 
-### Step 9: Update AI Commands
+### Step 10: Update AI Commands
 - Update `packages/api/commands/hai3-new-api-service*.md` with new patterns
 
 ## Open Questions

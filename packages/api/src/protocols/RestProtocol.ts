@@ -8,19 +8,21 @@
  */
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
-import type {
+import {
   ApiProtocol,
-  ApiServiceConfig,
-  RestProtocolConfig,
-  ApiPluginBase,
-  ApiRequestContext,
-  ApiResponseContext,
-  ShortCircuitResponse,
-  RestPluginHooks,
-  HttpMethod,
-  MockMap,
+  type ApiServiceConfig,
+  type RestProtocolConfig,
+  type ApiPluginBase,
+  type ApiRequestContext,
+  type ApiResponseContext,
+  type ShortCircuitResponse,
+  type RestPluginHooks,
+  type HttpMethod,
+  type MockMap,
+  type PluginClass,
 } from '../types';
 import { isShortCircuit } from '../types';
+import { apiRegistry } from '../apiRegistry';
 
 /**
  * Default REST protocol configuration.
@@ -43,7 +45,7 @@ const DEFAULT_REST_CONFIG: RestProtocolConfig = {
  * const data = await restProtocol.get('/users');
  * ```
  */
-export class RestProtocol implements ApiProtocol {
+export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   /** Axios instance */
   private client: AxiosInstance | null = null;
 
@@ -56,64 +58,14 @@ export class RestProtocol implements ApiProtocol {
   /** Callback to get service-level plugins from BaseApiService for backward compatibility with function-based plugin API */
   private getPlugins: () => ReadonlyArray<ApiPluginBase> = () => [];
 
-  /** Global plugins shared across all RestProtocol instances */
-  private static _globalPlugins: Set<RestPluginHooks> = new Set();
+  /** Callback to get excluded plugin classes from service */
+  private getExcludedClasses: () => ReadonlySet<PluginClass> = () => new Set();
 
   /** Instance-specific plugins */
   private _instancePlugins: Set<RestPluginHooks> = new Set();
 
   /** Instance-level mock map storage */
   private mockMap: MockMap = {};
-
-  /**
-   * Global plugin management namespace
-   * Plugins registered here apply to all RestProtocol instances
-   */
-  public static readonly globalPlugins = {
-    /**
-     * Add a global REST plugin
-     * @param plugin - Plugin instance implementing RestPluginHooks
-     */
-    add(plugin: RestPluginHooks): void {
-      RestProtocol._globalPlugins.add(plugin);
-    },
-
-    /**
-     * Remove a global REST plugin
-     * Calls destroy() if available
-     * @param plugin - Plugin instance to remove
-     */
-    remove(plugin: RestPluginHooks): void {
-      if (RestProtocol._globalPlugins.has(plugin)) {
-        RestProtocol._globalPlugins.delete(plugin);
-        plugin.destroy();
-      }
-    },
-
-    /**
-     * Check if a global plugin is registered
-     * @param plugin - Plugin instance to check
-     */
-    has(plugin: RestPluginHooks): boolean {
-      return RestProtocol._globalPlugins.has(plugin);
-    },
-
-    /**
-     * Get all global plugins
-     */
-    getAll(): readonly RestPluginHooks[] {
-      return Array.from(RestProtocol._globalPlugins);
-    },
-
-    /**
-     * Clear all global plugins
-     * Calls destroy() on each plugin if available
-     */
-    clear(): void {
-      RestProtocol._globalPlugins.forEach((plugin) => plugin.destroy());
-      RestProtocol._globalPlugins.clear();
-    },
-  };
 
   /**
    * Instance plugin management namespace
@@ -149,6 +101,7 @@ export class RestProtocol implements ApiProtocol {
   };
 
   constructor(restConfig: RestProtocolConfig = {}) {
+    super();
     this.restConfig = { ...DEFAULT_REST_CONFIG, ...restConfig };
   }
 
@@ -196,10 +149,14 @@ export class RestProtocol implements ApiProtocol {
   initialize(
     config: Readonly<ApiServiceConfig>,
     getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>
+    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
+    getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void {
     this.config = config;
     this.getPlugins = getPlugins;
+    if (getExcludedClasses) {
+      this.getExcludedClasses = getExcludedClasses;
+    }
     // _getClassPlugins parameter exists for interface compatibility but is not used by RestProtocol.
     // RestProtocol uses class-based plugin system via getPluginsInOrder() (global + instance plugins)
     // instead of the service-level class plugins callback.
@@ -229,13 +186,36 @@ export class RestProtocol implements ApiProtocol {
   }
 
   /**
+   * Get global plugins from apiRegistry, filtering out excluded classes.
+   * @internal
+   */
+  private getGlobalPlugins(): readonly RestPluginHooks[] {
+    const allGlobalPlugins = apiRegistry.plugins.getAll(RestProtocol);
+    const excludedClasses = this.getExcludedClasses();
+
+    if (excludedClasses.size === 0) {
+      return allGlobalPlugins;
+    }
+
+    // Filter out excluded plugin classes
+    return allGlobalPlugins.filter((plugin) => {
+      for (const excludedClass of excludedClasses) {
+        if ((plugin as object) instanceof excludedClass) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  /**
    * Get all plugins in execution order (global first, then instance).
    * Used by plugin chain execution to get ordered list of plugins.
    * @internal
    */
   getPluginsInOrder(): RestPluginHooks[] {
     return [
-      ...Array.from(RestProtocol._globalPlugins),
+      ...this.getGlobalPlugins(),
       ...Array.from(this._instancePlugins),
     ];
   }

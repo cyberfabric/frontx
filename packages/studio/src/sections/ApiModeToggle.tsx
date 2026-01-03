@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { useTranslation, RestProtocol, RestMockPlugin } from '@hai3/react';
+import { useTranslation, apiRegistry, RestProtocol, RestMockPlugin } from '@hai3/react';
 import { Switch } from '@hai3/uikit';
 
 /**
  * API Mode Toggle Component
  * Toggles between mock and real API by adding/removing RestMockPlugin globally
  *
- * Uses protocol-level plugin management (RestProtocol.globalPlugins) for
- * cross-cutting mock behavior that affects all REST API services.
+ * Uses apiRegistry.plugins for protocol-level plugin management.
+ * Cross-cutting mock behavior affects all REST API services.
  *
  * Mock maps are registered by services during construction (vertical slice pattern).
  * This toggle only enables/disables the mock plugin, not configure it.
@@ -23,9 +23,9 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
   // Track the mock plugin instance we create
   const mockPluginRef = useRef<RestMockPlugin | null>(null);
 
-  // Check if our mock plugin is currently registered
+  // Check if RestMockPlugin is currently registered
   const [useMockApi, setUseMockApi] = useState(() => {
-    return mockPluginRef.current !== null && RestProtocol.globalPlugins.has(mockPluginRef.current);
+    return apiRegistry.plugins.has(RestProtocol, RestMockPlugin);
   });
   const { t } = useTranslation();
 
@@ -33,7 +33,7 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
   useEffect(() => {
     return () => {
       if (mockPluginRef.current) {
-        RestProtocol.globalPlugins.remove(mockPluginRef.current);
+        apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
         mockPluginRef.current = null;
       }
     };
@@ -46,12 +46,12 @@ export const ApiModeToggle: React.FC<ApiModeToggleProps> = ({
       // Plugin will use mock maps registered by services
       if (!mockPluginRef.current) {
         mockPluginRef.current = new RestMockPlugin({ delay: 500 });
-        RestProtocol.globalPlugins.add(mockPluginRef.current);
+        apiRegistry.plugins.add(RestProtocol, mockPluginRef.current);
       }
     } else {
-      // Disable mock mode - remove RestMockPlugin
+      // Disable mock mode - remove RestMockPlugin by class
       if (mockPluginRef.current) {
-        RestProtocol.globalPlugins.remove(mockPluginRef.current);
+        apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
         mockPluginRef.current = null;
       }
     }

@@ -50,10 +50,10 @@ const user = await accounts.getCurrentUser();
 
 ### Mock Support
 
-Configure mocks via MockPlugin per-service or globally:
+Configure mocks via RestMockPlugin per-service or globally:
 
 ```typescript
-import { MockPlugin } from '@hai3/api';
+import { RestMockPlugin, apiRegistry, RestProtocol } from '@hai3/api';
 
 // Per-service mocks (in service constructor)
 class AccountsApiService extends BaseApiService {
@@ -61,7 +61,7 @@ class AccountsApiService extends BaseApiService {
     super({ baseURL: '/api/accounts' }, new RestProtocol());
 
     if (process.env.NODE_ENV === 'development') {
-      this.plugins.add(new MockPlugin({
+      this.plugins.add(new RestMockPlugin({
         mockMap: {
           'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
           'GET /api/accounts/users/:id': (body) => ({ id: body.id, name: 'User' }),
@@ -74,7 +74,7 @@ class AccountsApiService extends BaseApiService {
 }
 
 // Or global mocks (for cross-cutting concerns)
-apiRegistry.plugins.add(new MockPlugin({
+apiRegistry.plugins.add(RestProtocol, new RestMockPlugin({
   mockMap: {
     'GET /api/accounts/user/current': () => ({ id: '1', name: 'John Doe' }),
     'GET /api/billing/invoices': () => [{ id: 'inv-1', amount: 100 }],
@@ -144,23 +144,22 @@ const restProtocol = new RestProtocol({
 Toggle mock mode via plugin management:
 
 ```typescript
+import { apiRegistry, RestProtocol, RestMockPlugin } from '@hai3/api';
+
 // Enable mock mode
-apiRegistry.plugins.add(new MockPlugin({
+apiRegistry.plugins.add(RestProtocol, new RestMockPlugin({
   mockMap: { /* ... */ },
   delay: 100
 }));
 
 // Disable mock mode
-apiRegistry.plugins.remove(MockPlugin);
+apiRegistry.plugins.remove(RestProtocol, RestMockPlugin);
 
 // Check if mock mode is enabled
-const isMockEnabled = apiRegistry.plugins.has(MockPlugin);
+const isMockEnabled = apiRegistry.plugins.has(RestProtocol, RestMockPlugin);
 
-// Update mock map dynamically
-const mockPlugin = apiRegistry.plugins.getPlugin(MockPlugin);
-if (mockPlugin) {
-  mockPlugin.setMockMap({ /* new mocks */ });
-}
+// Get all plugins for a protocol
+const restPlugins = apiRegistry.plugins.getAll(RestProtocol);
 ```
 
 ## Key Rules
@@ -175,15 +174,18 @@ if (mockPlugin) {
 
 - `BaseApiService` - Abstract base class
 - `RestProtocol` - REST API protocol
+- `SseProtocol` - SSE protocol
 - `ApiPluginBase` - Abstract base class for plugins (no config)
 - `ApiPlugin` - Abstract generic class for plugins with config
-- `MockPlugin` - Mock data plugin
+- `RestMockPlugin` - REST mock data plugin
+- `SseMockPlugin` - SSE mock data plugin
 - `apiRegistry` - Singleton registry
-- `createApiRegistry` - Factory for isolated testing
 - `ApiService` - Service interface (type)
 - `ApiRequestContext` - Plugin request context type
 - `ApiResponseContext` - Plugin response context type
 - `ShortCircuitResponse` - Short-circuit response wrapper
 - `PluginClass` - Type for plugin class references
+- `ProtocolClass` - Type for protocol class references
+- `ProtocolPluginType` - Type mapping for protocol plugins
 - `isShortCircuit` - Type guard for short-circuit responses
 - `MockMap` - Mock response map type

@@ -48,6 +48,18 @@ The current global plugin implementation uses static class members (`RestProtoco
    - Remove export from `packages/api/src/index.ts` (line 78)
    - Redundant with package-instance isolation for micro-frontends
 
+### Layer Propagation
+
+8. **Update @hai3/framework re-exports**
+   - Add `ProtocolClass` type export to re-exports from @hai3/api
+   - Add `ProtocolPluginType` type export to re-exports from @hai3/api
+   - Note: `createApiRegistry` was never re-exported, no removal needed
+
+9. **Update @hai3/react re-exports**
+   - Add `ProtocolClass` type export to re-exports from @hai3/framework
+   - Add `ProtocolPluginType` type export to re-exports from @hai3/framework
+   - Ensures consumers can access new types from any layer
+
 ### Breaking Changes
 
 - **BREAKING**: `RestProtocol.globalPlugins` removed
@@ -82,6 +94,12 @@ The current global plugin implementation uses static class members (`RestProtoco
 
 **@hai3/studio package:**
 - `packages/studio/src/sections/ApiModeToggle.tsx` - Use apiRegistry.plugins
+
+**@hai3/framework package (layer propagation):**
+- `packages/framework/src/index.ts` - Add ProtocolClass, ProtocolPluginType type re-exports
+
+**@hai3/react package (layer propagation):**
+- `packages/react/src/index.ts` - Add ProtocolClass, ProtocolPluginType type re-exports
 
 **Package Documentation:**
 - `packages/api/CLAUDE.md` - Update plugin API examples, remove createApiRegistry

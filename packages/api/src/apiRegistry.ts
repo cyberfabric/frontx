@@ -10,6 +10,10 @@
 import type {
   ApiRegistry as IApiRegistry,
   ApiServicesConfig,
+  ProtocolClass,
+  ApiProtocol,
+  ProtocolPluginType,
+  ProtocolPluginHooks,
 } from './types';
 import { BaseApiService } from './BaseApiService';
 
@@ -44,6 +48,9 @@ class ApiRegistryImpl implements IApiRegistry {
 
   /** Configuration */
   private config: ApiServicesConfig = { ...DEFAULT_CONFIG };
+
+  /** Protocol plugins by protocol class */
+  private protocolPlugins: Map<ProtocolClass, Set<ProtocolPluginHooks>> = new Map();
 
   // ============================================================================
   // Registration
@@ -115,6 +122,152 @@ class ApiRegistryImpl implements IApiRegistry {
   }
 
   // ============================================================================
+  // Protocol Plugin Management
+  // ============================================================================
+
+  /**
+   * Plugin management namespace for protocol-specific plugins.
+   * Provides OCP-compliant API using protocol class as parameter.
+   *
+   * @example
+   * ```typescript
+   * // Add plugin for RestProtocol
+   * apiRegistry.plugins.add(RestProtocol, new AuthPlugin({ getToken }));
+   *
+   * // Add plugin for SseProtocol
+   * apiRegistry.plugins.add(SseProtocol, new SseAuthPlugin({ getToken }));
+   *
+   * // Remove plugin by class
+   * apiRegistry.plugins.remove(RestProtocol, AuthPlugin);
+   *
+   * // Check if plugin exists
+   * apiRegistry.plugins.has(RestProtocol, AuthPlugin);
+   *
+   * // Get all plugins for protocol
+   * const restPlugins = apiRegistry.plugins.getAll(RestProtocol);
+   *
+   * // Clear all plugins for protocol
+   * apiRegistry.plugins.clear(RestProtocol);
+   * ```
+   */
+  public readonly plugins = {
+    /**
+     * Add a plugin for a specific protocol.
+     * Creates plugin set for protocol if it doesn't exist.
+     *
+     * @template T - Protocol type
+     * @param protocolClass - Protocol constructor (e.g., RestProtocol, SseProtocol)
+     * @param plugin - Plugin instance implementing protocol's hooks
+     */
+    add: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      plugin: ProtocolPluginType<T>
+    ): void => {
+      if (!this.protocolPlugins.has(protocolClass)) {
+        this.protocolPlugins.set(protocolClass, new Set());
+      }
+      this.protocolPlugins.get(protocolClass)!.add(plugin);
+    },
+
+    /**
+     * Remove a plugin from a protocol by plugin class.
+     * Calls destroy() on the plugin if available.
+     *
+     * @template T - Protocol type
+     * @param protocolClass - Protocol constructor
+     * @param pluginClass - Plugin class constructor
+     */
+    remove: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: abstract new (...args: never[]) => unknown
+    ): void => {
+      const plugins = this.protocolPlugins.get(protocolClass);
+      if (!plugins) return;
+
+      // Find plugin instance by class
+      for (const plugin of plugins) {
+        if (plugin instanceof pluginClass) {
+          // Call destroy() if available
+          if (typeof (plugin as { destroy?: () => void }).destroy === 'function') {
+            (plugin as { destroy: () => void }).destroy();
+          }
+          plugins.delete(plugin);
+          break; // Only remove first match
+        }
+      }
+    },
+
+    /**
+     * Check if a plugin of given class is registered for a protocol.
+     *
+     * @template T - Protocol type
+     * @param protocolClass - Protocol constructor
+     * @param pluginClass - Plugin class constructor
+     * @returns True if plugin of this class is registered
+     */
+    has: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: abstract new (...args: never[]) => unknown
+    ): boolean => {
+      const plugins = this.protocolPlugins.get(protocolClass);
+      if (!plugins) return false;
+
+      for (const plugin of plugins) {
+        if (plugin instanceof pluginClass) {
+          return true;
+        }
+      }
+      return false;
+    },
+
+    /**
+     * Get all plugins for a protocol.
+     * Returns readonly array to prevent external modification.
+     *
+     * @template T - Protocol type
+     * @param protocolClass - Protocol constructor
+     * @returns Readonly array of plugins for this protocol
+     */
+    getAll: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ): readonly ProtocolPluginType<T>[] => {
+      const plugins = this.protocolPlugins.get(protocolClass);
+      if (!plugins) {
+        return [];
+      }
+      // Type-safe filtering: return only plugins matching the protocol's plugin type
+      // Storage uses BasePluginHooks, narrowing happens via ProtocolPluginType<T>
+      return Array.from(plugins).filter((_plugin): _plugin is ProtocolPluginType<T> => {
+        // We trust that plugins were added via the typed add() method
+        return true;
+      });
+    },
+
+    /**
+     * Clear all plugins for a protocol.
+     * Calls destroy() on each plugin if available.
+     *
+     * @template T - Protocol type
+     * @param protocolClass - Protocol constructor
+     */
+    clear: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ): void => {
+      const plugins = this.protocolPlugins.get(protocolClass);
+      if (!plugins) return;
+
+      // Call destroy() on each plugin
+      for (const plugin of plugins) {
+        if (typeof (plugin as { destroy?: () => void }).destroy === 'function') {
+          (plugin as { destroy: () => void }).destroy();
+        }
+      }
+
+      plugins.clear();
+    },
+  };
+
+  // ============================================================================
   // Reset (for testing)
   // ============================================================================
 
@@ -132,7 +285,18 @@ class ApiRegistryImpl implements IApiRegistry {
       }
     });
 
+    // Cleanup all protocol plugins
+    this.protocolPlugins.forEach((plugins) => {
+      plugins.forEach((plugin) => {
+        if (typeof (plugin as { destroy?: () => void }).destroy === 'function') {
+          (plugin as { destroy: () => void }).destroy();
+        }
+      });
+      plugins.clear();
+    });
+
     this.services.clear();
+    this.protocolPlugins.clear();
     this.config = { ...DEFAULT_CONFIG };
   }
 }
@@ -144,14 +308,8 @@ class ApiRegistryImpl implements IApiRegistry {
 /**
  * Default API registry instance.
  * Use this instance throughout the application.
+ *
+ * For micro-frontend isolation, each micro-frontend should bundle its own
+ * instance of @hai3/api package, which provides natural isolation.
  */
 export const apiRegistry = new ApiRegistryImpl();
-
-/**
- * Create a new API registry for isolated testing.
- *
- * @returns New ApiRegistry instance
- */
-export function createApiRegistry(): IApiRegistry {
-  return new ApiRegistryImpl();
-}

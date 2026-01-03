@@ -44,7 +44,7 @@ export interface SseMockConfig {
  * });
  *
  * // Register globally
- * SseProtocol.globalPlugins.add(mockPlugin);
+ * apiRegistry.plugins.add(SseProtocol, mockPlugin);
  *
  * // Or per-instance
  * sseProtocol.plugins.add(mockPlugin);

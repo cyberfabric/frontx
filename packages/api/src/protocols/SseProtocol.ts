@@ -5,85 +5,36 @@
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
 
-import { assign } from 'lodash';
-import type {
+import assign from 'lodash/assign.js';
+import {
   ApiProtocol,
-  ApiServiceConfig,
-  SseProtocolConfig,
-  ApiPluginBase,
-  SsePluginHooks,
-  SseConnectContext,
-  EventSourceLike,
+  type ApiServiceConfig,
+  type SseProtocolConfig,
+  type ApiPluginBase,
+  type SsePluginHooks,
+  type SseConnectContext,
+  type EventSourceLike,
+  type PluginClass,
 } from '../types';
 import { isSseShortCircuit } from '../types';
+import { apiRegistry } from '../apiRegistry';
 
 /**
  * SSE Protocol Implementation
  * Manages Server-Sent Events connections using EventSource API
  */
-export class SseProtocol implements ApiProtocol {
+export class SseProtocol extends ApiProtocol<SsePluginHooks> {
   private baseConfig!: Readonly<ApiServiceConfig>;
   private connections: Map<string, EventSource> = new Map();
   private readonly config: SseProtocolConfig;
   private _getPlugins!: () => ReadonlyArray<ApiPluginBase>;
   // Class-based plugins used for generic plugin chain execution
   private _getClassPlugins!: () => ReadonlyArray<ApiPluginBase>;
-
-  /** Global plugins shared across all SseProtocol instances */
-  private static _globalPlugins: Set<SsePluginHooks> = new Set();
+  /** Callback to get excluded plugin classes from service */
+  private _getExcludedClasses: () => ReadonlySet<PluginClass> = () => new Set();
 
   /** Instance-specific plugins */
   private _instancePlugins: Set<SsePluginHooks> = new Set();
-
-  /**
-   * Global plugin management namespace
-   * Plugins registered here apply to all SseProtocol instances
-   */
-  public static readonly globalPlugins = {
-    /**
-     * Add a global SSE plugin
-     * @param plugin - Plugin instance implementing SsePluginHooks
-     */
-    add(plugin: SsePluginHooks): void {
-      SseProtocol._globalPlugins.add(plugin);
-    },
-
-    /**
-     * Remove a global SSE plugin
-     * Calls destroy() if available
-     * @param plugin - Plugin instance to remove
-     */
-    remove(plugin: SsePluginHooks): void {
-      if (SseProtocol._globalPlugins.has(plugin)) {
-        SseProtocol._globalPlugins.delete(plugin);
-        plugin.destroy();
-      }
-    },
-
-    /**
-     * Check if a global plugin is registered
-     * @param plugin - Plugin instance to check
-     */
-    has(plugin: SsePluginHooks): boolean {
-      return SseProtocol._globalPlugins.has(plugin);
-    },
-
-    /**
-     * Get all global plugins
-     */
-    getAll(): readonly SsePluginHooks[] {
-      return Array.from(SseProtocol._globalPlugins);
-    },
-
-    /**
-     * Clear all global plugins
-     * Calls destroy() on each plugin if available
-     */
-    clear(): void {
-      SseProtocol._globalPlugins.forEach((plugin) => plugin.destroy());
-      SseProtocol._globalPlugins.clear();
-    },
-  };
 
   /**
    * Instance plugin management namespace
@@ -119,6 +70,7 @@ export class SseProtocol implements ApiProtocol {
   };
 
   constructor(config: Readonly<SseProtocolConfig> = {}) {
+    super();
     this.config = assign({}, config);
   }
 
@@ -128,12 +80,16 @@ export class SseProtocol implements ApiProtocol {
   initialize(
     baseConfig: Readonly<ApiServiceConfig>,
     getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>
+    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
+    getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void {
     this.baseConfig = baseConfig;
     this._getPlugins = getPlugins;
     // Class-based plugins not yet used in SSE - will be implemented when needed
     this._getClassPlugins = _getClassPlugins;
+    if (getExcludedClasses) {
+      this._getExcludedClasses = getExcludedClasses;
+    }
   }
 
   /**
@@ -168,12 +124,35 @@ export class SseProtocol implements ApiProtocol {
   }
 
   /**
-   * Get all plugins in execution order (global first, then instance).
+   * Get global plugins from apiRegistry, filtering out excluded classes.
    * @private
    */
-  private getPluginsInOrder(): SsePluginHooks[] {
+  private getGlobalPlugins(): readonly SsePluginHooks[] {
+    const allGlobalPlugins = apiRegistry.plugins.getAll(SseProtocol);
+    const excludedClasses = this._getExcludedClasses();
+
+    if (excludedClasses.size === 0) {
+      return allGlobalPlugins;
+    }
+
+    // Filter out excluded plugin classes
+    return allGlobalPlugins.filter((plugin) => {
+      for (const excludedClass of excludedClasses) {
+        if ((plugin as object) instanceof excludedClass) {
+          return false;
+        }
+      }
+      return true;
+    });
+  }
+
+  /**
+   * Get all plugins in execution order (global first, then instance).
+   * Required by ApiProtocol interface for ProtocolPluginType inference.
+   */
+  getPluginsInOrder(): SsePluginHooks[] {
     return [
-      ...Array.from(SseProtocol._globalPlugins),
+      ...this.getGlobalPlugins(),
       ...Array.from(this._instancePlugins),
     ];
   }

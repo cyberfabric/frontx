@@ -7,6 +7,7 @@
 
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
+import { apiRegistry } from '../apiRegistry';
 import type { MockMap } from '../types';
 
 /**
@@ -24,12 +25,12 @@ function setProtocolOnPlugin(plugin: RestMockPlugin, protocol: RestProtocol): vo
 
 describe('Mock self-registration', () => {
   beforeEach(() => {
-    // Clear global plugins before each test
-    RestProtocol.globalPlugins.clear();
+    // Clear all plugins before each test
+    apiRegistry.reset();
   });
 
   afterEach(() => {
-    RestProtocol.globalPlugins.clear();
+    apiRegistry.reset();
   });
 
   it('should allow service to register its own mock map', () => {

@@ -47,7 +47,7 @@ export interface RestMockConfig {
  * });
  *
  * // Register globally
- * RestProtocol.globalPlugins.add(mockPlugin);
+ * apiRegistry.plugins.add(RestProtocol, mockPlugin);
  *
  * // Or per-instance
  * restProtocol.plugins.add(mockPlugin);

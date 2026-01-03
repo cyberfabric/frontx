@@ -232,6 +232,7 @@ export {
   // Plugin base classes
   ApiPluginBase,
   ApiPlugin,
+  ApiProtocol,
   RestPlugin,
   RestPluginWithConfig,
   SsePlugin,
@@ -249,7 +250,6 @@ export type {
   JsonObject,
   JsonPrimitive,
   JsonCompatible,
-  ApiProtocol,
   SseProtocolConfig,
   RestProtocolConfig,
   // Plugin context types (class-based plugin system)
@@ -257,6 +257,10 @@ export type {
   ApiResponseContext,
   ShortCircuitResponse,
   PluginClass,
+  ProtocolClass,
+  ProtocolPluginType,
+  ProtocolPluginHooks,
+  BasePluginHooks,
   // Protocol-specific types
   RestPluginHooks,
   SsePluginHooks,

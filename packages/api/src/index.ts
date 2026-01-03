@@ -20,7 +20,6 @@ export type {
   MockMap,
   ApiServiceConfig,
   ApiServicesConfig,
-  ApiProtocol,
   RestProtocolConfig,
   SseProtocolConfig,
   HttpMethod,
@@ -31,6 +30,10 @@ export type {
   ServiceConstructor,
   ApiRegistry,
   PluginClass,
+  ProtocolClass,
+  ProtocolPluginType,
+  ProtocolPluginHooks,
+  BasePluginHooks,
   // Protocol-specific types
   RestPluginHooks,
   SsePluginHooks,
@@ -51,6 +54,7 @@ export type { SseMockEvent } from './mocks/MockEventSource';
 export {
   ApiPluginBase,
   ApiPlugin,
+  ApiProtocol,
   isShortCircuit,
   // Protocol-specific plugin classes
   RestPlugin,
@@ -75,4 +79,4 @@ export { SseMockPlugin } from './plugins/SseMockPlugin';
 export { MockEventSource } from './mocks/MockEventSource';
 
 // Export registry
-export { apiRegistry, createApiRegistry } from './apiRegistry';
+export { apiRegistry } from './apiRegistry';

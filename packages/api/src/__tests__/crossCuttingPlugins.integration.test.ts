@@ -7,6 +7,7 @@
 
 import { RestProtocol } from '../protocols/RestProtocol';
 import { SseProtocol } from '../protocols/SseProtocol';
+import { apiRegistry } from '../apiRegistry';
 import type {
   RestPluginHooks,
   SsePluginHooks,
@@ -52,13 +53,11 @@ class CrossCuttingLogPlugin implements RestPluginHooks, SsePluginHooks {
 
 describe('Cross-cutting plugins', () => {
   beforeEach(() => {
-    RestProtocol.globalPlugins.clear();
-    SseProtocol.globalPlugins.clear();
+    apiRegistry.reset();
   });
 
   afterEach(() => {
-    RestProtocol.globalPlugins.clear();
-    SseProtocol.globalPlugins.clear();
+    apiRegistry.reset();
   });
 
   it('should allow plugin implementing both RestPluginHooks and SsePluginHooks', () => {
@@ -77,16 +76,16 @@ describe('Cross-cutting plugins', () => {
     const crossPlugin = new CrossCuttingLogPlugin();
 
     // Register with both protocols
-    RestProtocol.globalPlugins.add(crossPlugin);
-    SseProtocol.globalPlugins.add(crossPlugin);
+    apiRegistry.plugins.add(RestProtocol, crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, crossPlugin);
 
-    expect(RestProtocol.globalPlugins.has(crossPlugin)).toBe(true);
-    expect(SseProtocol.globalPlugins.has(crossPlugin)).toBe(true);
+    expect(apiRegistry.plugins.has(RestProtocol, crossPlugin.constructor as never)).toBe(true);
+    expect(apiRegistry.plugins.has(SseProtocol, crossPlugin.constructor as never)).toBe(true);
   });
 
   it('should execute REST hooks for REST requests', async () => {
     const crossPlugin = new CrossCuttingLogPlugin();
-    RestProtocol.globalPlugins.add(crossPlugin);
+    apiRegistry.plugins.add(RestProtocol, crossPlugin);
 
     // Simulate REST request
     const restContext: RestRequestContext = {
@@ -103,7 +102,7 @@ describe('Cross-cutting plugins', () => {
 
   it('should execute SSE hooks for SSE connections', async () => {
     const crossPlugin = new CrossCuttingLogPlugin();
-    SseProtocol.globalPlugins.add(crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, crossPlugin);
 
     // Simulate SSE connection
     const sseContext: SseConnectContext = {
@@ -121,8 +120,8 @@ describe('Cross-cutting plugins', () => {
     const crossPlugin = new CrossCuttingLogPlugin();
 
     // Register with both protocols
-    RestProtocol.globalPlugins.add(crossPlugin);
-    SseProtocol.globalPlugins.add(crossPlugin);
+    apiRegistry.plugins.add(RestProtocol, crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, crossPlugin);
 
     // Execute REST request
     await crossPlugin.onRequest({
@@ -157,18 +156,18 @@ describe('Cross-cutting plugins', () => {
   it('should call destroy once when removed from both protocols', () => {
     const crossPlugin = new CrossCuttingLogPlugin();
 
-    RestProtocol.globalPlugins.add(crossPlugin);
-    SseProtocol.globalPlugins.add(crossPlugin);
+    apiRegistry.plugins.add(RestProtocol, crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, crossPlugin);
 
     // Remove from REST
-    RestProtocol.globalPlugins.remove(crossPlugin);
+    apiRegistry.plugins.remove(RestProtocol, crossPlugin.constructor as never);
     expect(crossPlugin.logs).toContain('destroyed');
 
     // Reset logs to check if destroy is called again
     const destroyCountBefore = crossPlugin.logs.filter((l) => l === 'destroyed').length;
 
     // Remove from SSE (destroy should be called again since it's a separate registration)
-    SseProtocol.globalPlugins.remove(crossPlugin);
+    apiRegistry.plugins.remove(SseProtocol, crossPlugin.constructor as never);
     const destroyCountAfter = crossPlugin.logs.filter((l) => l === 'destroyed').length;
 
     expect(destroyCountAfter).toBe(destroyCountBefore + 1);
@@ -227,16 +226,16 @@ describe('Cross-cutting plugins', () => {
     const plugin2 = new CrossCuttingLogPlugin();
 
     // Register plugin1 with both protocols
-    RestProtocol.globalPlugins.add(plugin1);
-    SseProtocol.globalPlugins.add(plugin1);
+    apiRegistry.plugins.add(RestProtocol, plugin1);
+    apiRegistry.plugins.add(SseProtocol, plugin1);
 
     // Register plugin2 only with REST
-    RestProtocol.globalPlugins.add(plugin2);
+    apiRegistry.plugins.add(RestProtocol, plugin2);
 
     // Verify registrations
-    expect(RestProtocol.globalPlugins.getAll()).toContain(plugin1);
-    expect(RestProtocol.globalPlugins.getAll()).toContain(plugin2);
-    expect(SseProtocol.globalPlugins.getAll()).toContain(plugin1);
-    expect(SseProtocol.globalPlugins.getAll()).not.toContain(plugin2);
+    expect(apiRegistry.plugins.getAll(RestProtocol)).toContain(plugin1);
+    expect(apiRegistry.plugins.getAll(RestProtocol)).toContain(plugin2);
+    expect(apiRegistry.plugins.getAll(SseProtocol)).toContain(plugin1);
+    expect(apiRegistry.plugins.getAll(SseProtocol)).not.toContain(plugin2);
   });
 });

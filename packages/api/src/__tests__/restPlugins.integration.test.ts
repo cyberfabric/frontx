@@ -7,56 +7,61 @@
 
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
+import { apiRegistry } from '../apiRegistry';
 import type { RestPluginHooks, RestRequestContext, RestResponseContext } from '../types';
 
 describe('RestProtocol plugins', () => {
   beforeEach(() => {
-    // Clear global plugins before each test
-    RestProtocol.globalPlugins.clear();
+    // Clear all plugins before each test
+    apiRegistry.reset();
   });
 
   afterEach(() => {
-    RestProtocol.globalPlugins.clear();
+    apiRegistry.reset();
   });
 
-  describe('global plugin management', () => {
+  describe('global plugin management via apiRegistry', () => {
     it('should register global plugins', () => {
-      const plugin: RestPluginHooks = {
-        onRequest: async (ctx) => ctx,
-      };
-
-      RestProtocol.globalPlugins.add(plugin);
-      expect(RestProtocol.globalPlugins.has(plugin)).toBe(true);
-      expect(RestProtocol.globalPlugins.getAll()).toContain(plugin);
-    });
-
-    it('should remove global plugins and call destroy', () => {
-      let destroyCalled = false;
       const plugin: RestPluginHooks & { destroy: () => void } = {
         onRequest: async (ctx) => ctx,
-        destroy: () => { destroyCalled = true; },
+        destroy: () => {},
       };
 
-      RestProtocol.globalPlugins.add(plugin);
-      RestProtocol.globalPlugins.remove(plugin);
+      apiRegistry.plugins.add(RestProtocol, plugin);
+      expect(apiRegistry.plugins.has(RestProtocol, plugin.constructor as never)).toBe(true);
+      expect(apiRegistry.plugins.getAll(RestProtocol)).toContain(plugin);
+    });
 
-      expect(RestProtocol.globalPlugins.has(plugin)).toBe(false);
+    it('should remove global plugins by class and call destroy', () => {
+      let destroyCalled = false;
+
+      class TestPlugin implements RestPluginHooks {
+        onRequest = async (ctx: RestRequestContext) => ctx;
+        destroy() { destroyCalled = true; }
+      }
+
+      const plugin = new TestPlugin();
+      apiRegistry.plugins.add(RestProtocol, plugin);
+      apiRegistry.plugins.remove(RestProtocol, TestPlugin);
+
+      expect(apiRegistry.plugins.has(RestProtocol, TestPlugin)).toBe(false);
       expect(destroyCalled).toBe(true);
     });
 
     it('should clear all global plugins and call destroy on each', () => {
       let destroyCount = 0;
-      const createPlugin = (): RestPluginHooks & { destroy: () => void } => ({
-        onRequest: async (ctx) => ctx,
-        destroy: () => { destroyCount++; },
-      });
 
-      RestProtocol.globalPlugins.add(createPlugin());
-      RestProtocol.globalPlugins.add(createPlugin());
+      class TestPlugin implements RestPluginHooks {
+        onRequest = async (ctx: RestRequestContext) => ctx;
+        destroy() { destroyCount++; }
+      }
 
-      RestProtocol.globalPlugins.clear();
+      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
+      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
 
-      expect(RestProtocol.globalPlugins.getAll().length).toBe(0);
+      apiRegistry.plugins.clear(RestProtocol);
+
+      expect(apiRegistry.plugins.getAll(RestProtocol).length).toBe(0);
       expect(destroyCount).toBe(2);
     });
   });
@@ -92,21 +97,23 @@ describe('RestProtocol plugins', () => {
     it('should execute global plugins before instance plugins', () => {
       const executionOrder: string[] = [];
 
-      const globalPlugin: RestPluginHooks = {
+      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
         onRequest: async (ctx) => {
           executionOrder.push('global');
           return ctx;
         },
+        destroy: () => {},
       };
 
-      const instancePlugin: RestPluginHooks = {
+      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
         onRequest: async (ctx) => {
           executionOrder.push('instance');
           return ctx;
         },
+        destroy: () => {},
       };
 
-      RestProtocol.globalPlugins.add(globalPlugin);
+      apiRegistry.plugins.add(RestProtocol, globalPlugin);
 
       const restProtocol = new RestProtocol();
       restProtocol.plugins.add(instancePlugin);
@@ -119,11 +126,12 @@ describe('RestProtocol plugins', () => {
     });
 
     it('should execute global plugins for all protocol instances', () => {
-      const globalPlugin: RestPluginHooks = {
+      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
         onRequest: async (ctx) => ctx,
+        destroy: () => {},
       };
 
-      RestProtocol.globalPlugins.add(globalPlugin);
+      apiRegistry.plugins.add(RestProtocol, globalPlugin);
 
       const protocol1 = new RestProtocol();
       const protocol2 = new RestProtocol();
@@ -134,8 +142,9 @@ describe('RestProtocol plugins', () => {
     });
 
     it('should execute instance plugins only for that instance', () => {
-      const instancePlugin: RestPluginHooks = {
+      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
         onRequest: async (ctx) => ctx,
+        destroy: () => {},
       };
 
       const protocol1 = new RestProtocol();
@@ -217,22 +226,24 @@ describe('RestProtocol plugins', () => {
     it('should execute onResponse hooks in reverse order (LIFO)', () => {
       const executionOrder: string[] = [];
 
-      const plugin1: RestPluginHooks = {
+      const plugin1: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin1');
           return ctx;
         },
+        destroy: () => {},
       };
 
-      const plugin2: RestPluginHooks = {
+      const plugin2: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin2');
           return ctx;
         },
+        destroy: () => {},
       };
 
-      RestProtocol.globalPlugins.add(plugin1);
-      RestProtocol.globalPlugins.add(plugin2);
+      apiRegistry.plugins.add(RestProtocol, plugin1);
+      apiRegistry.plugins.add(RestProtocol, plugin2);
 
       const restProtocol = new RestProtocol();
       const plugins = [...restProtocol.getPluginsInOrder()].reverse();

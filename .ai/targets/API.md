@@ -40,11 +40,14 @@
 
 ## PLUGIN RULES
 - REQUIRED: Extend ApiPluginBase (no config) or ApiPlugin<TConfig> (with config) to create plugins.
-- REQUIRED: Use namespaced API (protocol.plugins.add, RestProtocol.globalPlugins.add).
+- REQUIRED: Use apiRegistry.plugins.add(ProtocolClass, plugin) for global protocol plugins.
+- REQUIRED: Use protocol.plugins.add(plugin) for instance-level plugins.
 - REQUIRED: Plugins are identified by class reference (instanceof), not string names.
 - REQUIRED: Mock plugins are protocol-specific (RestMockPlugin, SseMockPlugin).
 - PREFERRED: Register mock plugins on protocol instances in service constructor.
-- ALLOWED: Global plugins via RestProtocol.globalPlugins / SseProtocol.globalPlugins.
+- ALLOWED: Global plugins via apiRegistry.plugins.add(RestProtocol, plugin).
+- FORBIDDEN: RestProtocol.globalPlugins (removed API).
+- FORBIDDEN: SseProtocol.globalPlugins (removed API).
 - FORBIDDEN: String-based plugin names for identification.
 - FORBIDDEN: Mock-specific methods on apiRegistry (registerMocks, setMockMode).
 - FORBIDDEN: Generic MockPlugin class (use protocol-specific mock plugins).

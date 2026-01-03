@@ -46,9 +46,6 @@ export abstract class BaseApiService {
   /** Registered plugins sorted by priority */
   protected registeredPlugins: ApiPluginBase[] = [];
 
-  /** Global plugins provider (injected by apiRegistry) */
-  private globalPluginsProvider: (() => readonly ApiPluginBase[]) | null = null;
-
   /** Service-specific plugins (new class-based system) */
   private servicePlugins: ApiPluginBase[] = [];
 
@@ -63,7 +60,8 @@ export abstract class BaseApiService {
       protocol.initialize(
         this.config,
         () => this.getPluginsInOrder(), // Plugins
-        () => this.getMergedPluginsInOrder() // Class-based plugins (merged global + service)
+        () => this.getMergedPluginsInOrder(), // Class-based plugins (service-level)
+        () => this.getExcludedPluginClasses() // Excluded global plugin classes
       );
       this.protocols.set(protocol.constructor.name, protocol);
     });
@@ -104,17 +102,17 @@ export abstract class BaseApiService {
     },
 
     /**
-     * Exclude global plugins by class reference.
-     * Prevents specified global plugin classes from executing for this service.
+     * Exclude global plugin classes from this service.
+     * Excluded plugins will not be applied to requests through this service.
      *
      * @param pluginClasses - Plugin classes to exclude
      *
      * @example
      * ```typescript
-     * class HealthService extends BaseApiService {
+     * class HealthCheckService extends BaseApiService {
      *   constructor() {
      *     super({ baseURL: '/health' }, new RestProtocol());
-     *     // Health checks don't need auth
+     *     // Don't apply authentication to health checks
      *     this.plugins.exclude(AuthPlugin);
      *   }
      * }
@@ -125,14 +123,14 @@ export abstract class BaseApiService {
     },
 
     /**
-     * Get excluded plugin classes.
+     * Get all excluded plugin classes.
      *
      * @returns Readonly array of excluded plugin classes
      *
      * @example
      * ```typescript
      * const excluded = service.plugins.getExcluded();
-     * console.log(`${excluded.length} plugins excluded`);
+     * console.log(`${excluded.length} plugin classes excluded`);
      * ```
      */
     getExcluded: (): readonly PluginClass[] => {
@@ -178,47 +176,15 @@ export abstract class BaseApiService {
     getPlugin: <T extends ApiPluginBase>(
       pluginClass: new (...args: never[]) => T
     ): T | undefined => {
-      // Search service plugins first
+      // Search service plugins only
+      // Note: Protocol-level global plugins are now managed by apiRegistry.plugins
+      // and are not accessible through service.plugins.getPlugin()
       const servicePlugin = this.servicePlugins.find(
         (p) => p instanceof pluginClass
       );
-      if (servicePlugin) {
-        return servicePlugin as T;
-      }
-
-      // Then search global plugins
-      const globalPlugins = this.getGlobalPlugins();
-      const globalPlugin = globalPlugins.find(
-        (p) => p instanceof pluginClass
-      );
-      return globalPlugin as T | undefined;
+      return servicePlugin as T | undefined;
     },
   };
-
-  // ============================================================================
-  // Global Plugins Injection (Internal)
-  // ============================================================================
-
-  /**
-   * Set global plugins provider.
-   * Called internally by apiRegistry during service registration.
-   *
-   * @internal
-   */
-  _setGlobalPluginsProvider(provider: () => readonly ApiPluginBase[]): void {
-    this.globalPluginsProvider = provider;
-  }
-
-  /**
-   * Get global plugins from provider.
-   * Returns empty array if no provider is set.
-   * Used by plugins.getPlugin() to search global plugins.
-   *
-   * @internal
-   */
-  private getGlobalPlugins(): readonly ApiPluginBase[] {
-    return this.globalPluginsProvider?.() ?? [];
-  }
 
   // ============================================================================
   // Plugin Merging
@@ -226,28 +192,28 @@ export abstract class BaseApiService {
 
   /**
    * Get merged plugins in FIFO order.
-   * Global plugins come first, followed by service plugins.
-   * Filters out excluded global plugin classes using instanceof.
+   * Returns only service plugins (global protocol plugins are managed by protocols directly).
    *
-   * @returns Readonly array of merged plugins in execution order
+   * @returns Readonly array of service plugins in execution order
    *
    * @internal
    */
   protected getMergedPluginsInOrder(): readonly ApiPluginBase[] {
-    // Get global plugins and filter out excluded classes
-    const globalPlugins = this.getGlobalPlugins();
-    const filteredGlobalPlugins = globalPlugins.filter((plugin) => {
-      // Check if plugin matches any excluded class (using instanceof)
-      for (const excludedClass of this.excludedPluginClasses) {
-        if (plugin instanceof excludedClass) {
-          return false; // Exclude this plugin
-        }
-      }
-      return true; // Keep this plugin
-    });
+    // Return only service plugins
+    // Protocol-level global plugins are now queried directly by protocols via apiRegistry
+    return [...this.servicePlugins];
+  }
 
-    // Merge: global plugins first (FIFO), then service plugins (FIFO)
-    return [...filteredGlobalPlugins, ...this.servicePlugins];
+  /**
+   * Get excluded plugin classes.
+   * Used by protocols to filter global plugins.
+   *
+   * @returns Readonly set of excluded plugin classes
+   *
+   * @internal
+   */
+  protected getExcludedPluginClasses(): ReadonlySet<PluginClass> {
+    return this.excludedPluginClasses;
   }
 
   /**
