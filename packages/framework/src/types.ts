@@ -136,6 +136,11 @@ export interface HAI3Actions {
   // ==========================================================================
   setActiveScreen: (payload: string) => void;
   setScreenLoading: (payload: boolean) => void;
+
+  // ==========================================================================
+  // Mock actions (from mock plugin)
+  // ==========================================================================
+  toggleMockMode: (enabled: boolean) => void;
 }
 
 /**

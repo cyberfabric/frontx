@@ -12,6 +12,7 @@ import { navigation } from '../plugins/navigation';
 import { routing } from '../plugins/routing';
 import { i18n } from '../plugins/i18n';
 import { effects } from '../plugins/effects';
+import { mock } from '../plugins/mock';
 
 /**
  * Full preset configuration.
@@ -33,6 +34,7 @@ export interface FullPresetConfig {
  * - routing (route registry auto-synced from screensets)
  * - i18n (i18n registry, setLanguage action)
  * - effects (effect coordination)
+ * - mock (mock mode control for API services)
  *
  * @param config - Optional preset configuration
  *
@@ -54,6 +56,7 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
     routing(),
     navigation(),
     i18n(),
+    mock(),
   ];
 }
 

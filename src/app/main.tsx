@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, registerSlice, mockSlice, initMockEffects, type ThemeApplyFn } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn } from '@hai3/react';
 import { Toaster, applyTheme } from '@hai3/uikit';
 import { AccountsApiService } from '@/app/api';
 import '@hai3/uikit/styles'; // UI Kit styles
@@ -28,14 +28,8 @@ const app = createHAI3App({
   themes: { applyFn: applyTheme as ThemeApplyFn },
 });
 
-// Register mock slice (app-level slice for centralized mock mode control)
-registerSlice(mockSlice);
-
 // Register app-level effects (pass store dispatch)
 registerBootstrapEffects(app.store.dispatch);
-
-// Initialize mock mode effects (manages ALL mock plugins across services)
-initMockEffects();
 
 // Register all themes (default theme first, becomes the default selection)
 app.themeRegistry.register(DEFAULT_THEME_ID, defaultTheme);
@@ -59,8 +53,7 @@ app.themeRegistry.apply(DEFAULT_THEME_ID);
  * 5. HAI3Provider includes AppRouter for URL-based navigation
  *
  * Note: Mock API is controlled via the HAI3 Studio panel.
- * The ApiModeToggle component dispatches mock mode events.
- * Mock effects handle ALL mock plugin lifecycle (global and instance-level).
+ * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.
  */
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

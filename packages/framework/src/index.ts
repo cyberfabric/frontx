@@ -29,6 +29,8 @@ export {
   routing,
   i18n,
   effects,
+  mock,
+  type MockPluginConfig,
 } from './plugins';
 
 // ============================================================================

@@ -57,21 +57,32 @@ const headlessApp = createHAI3()
 | `routing()` | routeRegistry, URL sync | screensets |
 | `i18n()` | i18nRegistry, setLanguage action | - |
 | `effects()` | Core effect coordination | - |
+| `mock()` | mockSlice, toggleMockMode action | effects |
 
 ### Mock Mode Control
 
-Framework provides centralized mock mode control via `mockSlice` and `mockEffects`:
+The `mock()` plugin provides centralized mock mode control. It's included in the `full()` preset by default, so apps don't need manual setup:
 
 ```typescript
-import { toggleMockMode, initMockEffects, mockSlice } from '@hai3/framework';
+import { createHAI3App } from '@hai3/framework';
 
-// Initialize mock effects (call once in main.tsx after store creation)
-registerSlice(mockSlice);
-initMockEffects();
+// Full preset includes mock plugin automatically
+const app = createHAI3App();
 
-// Toggle mock mode (used by HAI3 Studio ApiModeToggle)
-toggleMockMode(true);  // Activates all registered mock plugins
-toggleMockMode(false); // Deactivates all registered mock plugins
+// Toggle mock mode via actions (used by HAI3 Studio ApiModeToggle)
+app.actions.toggleMockMode(true);  // Activates all registered mock plugins
+app.actions.toggleMockMode(false); // Deactivates all registered mock plugins
+```
+
+For custom plugin compositions:
+
+```typescript
+import { createHAI3, effects, mock } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(effects())  // Required dependency
+  .use(mock())     // Automatic mock mode control
+  .build();
 ```
 
 Services register mock plugins using `registerPlugin()` in their constructor. The framework automatically manages plugin activation based on mock mode state.
@@ -167,7 +178,7 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 - `presets` - Available presets (full, minimal, headless)
 
 ### Plugins
-- `screensets`, `themes`, `layout`, `navigation`, `routing`, `i18n`, `effects`
+- `screensets`, `themes`, `layout`, `navigation`, `routing`, `i18n`, `effects`, `mock`
 
 ### Registries
 - `createScreensetRegistry`, `createThemeRegistry`, `createRouteRegistry`
