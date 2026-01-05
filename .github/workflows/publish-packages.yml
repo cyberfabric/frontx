@@ -35,7 +35,7 @@ jobs:
           # Check each package for version changes
           for pkg_dir in packages/*/; do
             pkg_name=$(basename "$pkg_dir")
-            pkg_json="$pkg_dir/package.json"
+            pkg_json="${pkg_dir}package.json"
 
             if git diff "$BASE_COMMIT" --name-only | grep -q "$pkg_json"; then
               # Get old and new versions
