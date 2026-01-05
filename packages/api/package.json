@@ -1,6 +1,6 @@
 {
   "name": "@hai3/api",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.0",
   "description": "API communication protocols and service registry for HAI3 SDK",
   "type": "module",
   "main": "./dist/index.cjs",
