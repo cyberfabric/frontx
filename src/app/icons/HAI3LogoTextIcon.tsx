@@ -1,12 +1,6 @@
 import React from 'react';
 
 /**
- * App Logo Text Icon ID
- * Purpose-based ID for application logo text
- */
-export const APP_LOGO_TEXT_ICON_ID = 'app-logo-text';
-
-/**
  * HAI3 Logo Text Icon
  * App-level branding text used by Menu layout component
  */

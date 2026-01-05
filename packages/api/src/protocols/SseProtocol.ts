@@ -10,7 +10,6 @@ import {
   ApiProtocol,
   type ApiServiceConfig,
   type SseProtocolConfig,
-  type ApiPluginBase,
   type SsePluginHooks,
   type SseConnectContext,
   type EventSourceLike,
@@ -27,9 +26,6 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
   private baseConfig!: Readonly<ApiServiceConfig>;
   private connections: Map<string, EventSource> = new Map();
   private readonly config: SseProtocolConfig;
-  private _getPlugins!: () => ReadonlyArray<ApiPluginBase>;
-  // Class-based plugins used for generic plugin chain execution
-  private _getClassPlugins!: () => ReadonlyArray<ApiPluginBase>;
   /** Callback to get excluded plugin classes from service */
   private _getExcludedClasses: () => ReadonlySet<PluginClass> = () => new Set();
 
@@ -79,33 +75,12 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    */
   initialize(
     baseConfig: Readonly<ApiServiceConfig>,
-    getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
     getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void {
     this.baseConfig = baseConfig;
-    this._getPlugins = getPlugins;
-    // Class-based plugins not yet used in SSE - will be implemented when needed
-    this._getClassPlugins = _getClassPlugins;
     if (getExcludedClasses) {
       this._getExcludedClasses = getExcludedClasses;
     }
-  }
-
-  /**
-   * Get plugins (for future use).
-   * @internal
-   */
-  getPlugins(): ReadonlyArray<ApiPluginBase> {
-    return this._getPlugins?.() ?? [];
-  }
-
-  /**
-   * Get class-based plugins (for future use).
-   * @internal
-   */
-  getClassBasedPlugins(): ReadonlyArray<ApiPluginBase> {
-    return this._getClassPlugins?.() ?? [];
   }
 
   /**

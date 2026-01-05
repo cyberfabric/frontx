@@ -55,13 +55,11 @@ export abstract class BaseApiService {
   constructor(config: ApiServiceConfig, ...protocols: ApiProtocol[]) {
     this.config = Object.freeze({ ...config });
 
-    // Initialize each protocol with callbacks
+    // Initialize each protocol with config and excluded classes callback
     protocols.forEach((protocol) => {
       protocol.initialize(
         this.config,
-        () => [], // No longer using global plugins list
-        () => this.getMergedPluginsInOrder(), // Class-based plugins (service-level)
-        () => this.getExcludedPluginClasses() // Excluded global plugin classes
+        () => this.getExcludedPluginClasses()
       );
       this.protocols.set(protocol.constructor.name, protocol);
     });

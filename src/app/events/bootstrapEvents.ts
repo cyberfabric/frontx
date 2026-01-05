@@ -7,15 +7,6 @@ import '@hai3/state';
 import type { ApiUser } from '@/app/api';
 
 /**
- * Events enum
- * App-level events for application bootstrap
- */
-export enum BootstrapEvents {
-  FetchCurrentUser = 'app/user/fetch',
-  UserLoaded = 'app/user/loaded',
-}
-
-/**
  * Module augmentation for type-safe event payloads
  * Define payload types for each event
  */

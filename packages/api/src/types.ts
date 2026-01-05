@@ -148,14 +148,10 @@ export abstract class ApiProtocol<TPlugin extends BasePluginHooks = BasePluginHo
    * Initialize the protocol with configuration.
    *
    * @param config - Base service configuration
-   * @param getPlugins - Function to access registered plugins
-   * @param getClassPlugins - Function to access class-based plugins (service-level)
    * @param getExcludedClasses - Function to access excluded global plugin classes
    */
   abstract initialize(
     config: Readonly<ApiServiceConfig>,
-    getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
     getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void;
 
@@ -182,6 +178,8 @@ export interface RestProtocolConfig {
   contentType?: string;
   /** Request timeout in milliseconds */
   timeout?: number;
+  /** Maximum retry depth to prevent infinite loops (default: 10) */
+  maxRetryDepth?: number;
 }
 
 /**
@@ -313,6 +311,8 @@ export abstract class ApiPluginBase {
    * @param error - The error that occurred
    * @param context - Request context at time of error
    * @returns Modified error, recovery response, or Promise
+   *
+   * @deprecated Use protocol-specific plugin classes (RestPlugin, SsePlugin) with typed error contexts instead
    */
   onError?(
     error: Error,
@@ -469,15 +469,13 @@ export interface RestPluginHooks extends BasePluginHooks {
 
   /**
    * Called when a REST error occurs.
-   * Can transform the error or provide a recovery response.
+   * Can transform the error, provide a recovery response, or retry the request.
    *
-   * @param error - The error that occurred
-   * @param context - REST request context at time of error
+   * @param context - Error context with retry support
    * @returns Modified error, recovery response, or Promise
    */
   onError?(
-    error: Error,
-    context: RestRequestContext
+    context: ApiPluginErrorContext
   ): Error | RestResponseContext | Promise<Error | RestResponseContext>;
 
 }
@@ -531,6 +529,43 @@ export interface RestResponseContext {
   readonly headers: Record<string, string>;
   /** Response data */
   readonly data: unknown;
+}
+
+/**
+ * API Plugin Error Context
+ * Context passed to REST plugin onError hooks with retry support.
+ * Enables plugins to retry failed requests with optional context modifications.
+ *
+ * @example
+ * ```typescript
+ * class AuthPlugin extends RestPluginWithConfig<{ getToken: () => string }> {
+ *   async onError({ error, request, retry, retryCount }: ApiPluginErrorContext) {
+ *     // Retry once on 401 with refreshed token
+ *     if (this.is401(error) && retryCount === 0) {
+ *       const newToken = await this.refreshToken();
+ *       return retry({
+ *         headers: { ...request.headers, Authorization: `Bearer ${newToken}` }
+ *       });
+ *     }
+ *     return error;
+ *   }
+ * }
+ * ```
+ */
+export interface ApiPluginErrorContext {
+  /** The error that occurred */
+  readonly error: Error;
+  /** Request context at time of error */
+  readonly request: RestRequestContext;
+  /** Current retry depth (0 for original request) */
+  readonly retryCount: number;
+  /**
+   * Retry the request with optional modifications.
+   * Executes full plugin chain on retry.
+   * @param modifiedRequest - Optional partial request context to merge with original
+   * @returns Promise resolving to response context
+   */
+  retry: (modifiedRequest?: Partial<RestRequestContext>) => Promise<RestResponseContext>;
 }
 
 /**
@@ -610,7 +645,7 @@ export function isSseShortCircuit(
 /**
  * REST Plugin Base Class
  * Convenience class for REST protocol plugins without configuration.
- * Extends ApiPluginBase and implements RestPluginHooks.
+ * Implements RestPluginHooks without extending ApiPluginBase to avoid signature conflicts.
  *
  * @example
  * ```typescript
@@ -622,7 +657,7 @@ export function isSseShortCircuit(
  * }
  * ```
  */
-export abstract class RestPlugin extends ApiPluginBase implements RestPluginHooks {
+export abstract class RestPlugin implements RestPluginHooks {
   /** Default destroy implementation - override if cleanup needed */
   destroy(): void {
     // Override in subclass if cleanup needed
@@ -632,7 +667,7 @@ export abstract class RestPlugin extends ApiPluginBase implements RestPluginHook
 /**
  * REST Plugin With Config
  * Convenience class for REST protocol plugins with typed configuration.
- * Extends ApiPluginBase and implements RestPluginHooks.
+ * Implements RestPluginHooks without extending ApiPluginBase to avoid signature conflicts.
  *
  * @template TConfig - Configuration type
  *
@@ -655,10 +690,8 @@ export abstract class RestPlugin extends ApiPluginBase implements RestPluginHook
  * }
  * ```
  */
-export abstract class RestPluginWithConfig<TConfig> extends ApiPluginBase implements RestPluginHooks {
-  constructor(protected readonly config: TConfig) {
-    super();
-  }
+export abstract class RestPluginWithConfig<TConfig> implements RestPluginHooks {
+  constructor(protected readonly config: TConfig) {}
 
   /** Default destroy implementation - override if cleanup needed */
   destroy(): void {
@@ -669,7 +702,7 @@ export abstract class RestPluginWithConfig<TConfig> extends ApiPluginBase implem
 /**
  * SSE Plugin Base Class
  * Convenience class for SSE protocol plugins without configuration.
- * Extends ApiPluginBase and implements SsePluginHooks.
+ * Implements SsePluginHooks without extending ApiPluginBase to avoid signature conflicts.
  *
  * @example
  * ```typescript
@@ -681,7 +714,7 @@ export abstract class RestPluginWithConfig<TConfig> extends ApiPluginBase implem
  * }
  * ```
  */
-export abstract class SsePlugin extends ApiPluginBase implements SsePluginHooks {
+export abstract class SsePlugin implements SsePluginHooks {
   /** Default destroy implementation - override if cleanup needed */
   destroy(): void {
     // Override in subclass if cleanup needed
@@ -691,7 +724,7 @@ export abstract class SsePlugin extends ApiPluginBase implements SsePluginHooks 
 /**
  * SSE Plugin With Config
  * Convenience class for SSE protocol plugins with typed configuration.
- * Extends ApiPluginBase and implements SsePluginHooks.
+ * Implements SsePluginHooks without extending ApiPluginBase to avoid signature conflicts.
  *
  * @template TConfig - Configuration type
  *
@@ -714,10 +747,8 @@ export abstract class SsePlugin extends ApiPluginBase implements SsePluginHooks 
  * }
  * ```
  */
-export abstract class SsePluginWithConfig<TConfig> extends ApiPluginBase implements SsePluginHooks {
-  constructor(protected readonly config: TConfig) {
-    super();
-  }
+export abstract class SsePluginWithConfig<TConfig> implements SsePluginHooks {
+  constructor(protected readonly config: TConfig) {}
 
   /** Default destroy implementation - override if cleanup needed */
   destroy(): void {
@@ -725,73 +756,6 @@ export abstract class SsePluginWithConfig<TConfig> extends ApiPluginBase impleme
   }
 }
 
-// ============================================================================
-// API Service Interface
-// ============================================================================
-
-/**
- * API Service Interface
- * Base interface for all API services.
- * Follows Liskov Substitution Principle - any implementation can substitute.
- *
- * @example
- * ```typescript
- * class AccountsApiService implements ApiService {
- *   async get<T>(url: string): Promise<T> { ... }
- *   async post<T>(url: string, data: unknown): Promise<T> { ... }
- * }
- * ```
- */
-export interface ApiService {
-  /**
-   * Perform GET request.
-   *
-   * @template T - Response type
-   * @param url - Request URL
-   * @param params - Optional query parameters
-   * @returns Promise resolving to response data
-   */
-  get<T>(url: string, params?: Record<string, string>): Promise<T>;
-
-  /**
-   * Perform POST request.
-   *
-   * @template T - Response type
-   * @param url - Request URL
-   * @param data - Request body
-   * @returns Promise resolving to response data
-   */
-  post<T>(url: string, data?: unknown): Promise<T>;
-
-  /**
-   * Perform PUT request.
-   *
-   * @template T - Response type
-   * @param url - Request URL
-   * @param data - Request body
-   * @returns Promise resolving to response data
-   */
-  put<T>(url: string, data?: unknown): Promise<T>;
-
-  /**
-   * Perform PATCH request.
-   *
-   * @template T - Response type
-   * @param url - Request URL
-   * @param data - Request body
-   * @returns Promise resolving to response data
-   */
-  patch<T>(url: string, data?: unknown): Promise<T>;
-
-  /**
-   * Perform DELETE request.
-   *
-   * @template T - Response type
-   * @param url - Request URL
-   * @returns Promise resolving to response data
-   */
-  delete<T>(url: string): Promise<T>;
-}
 
 // ============================================================================
 // Protocol Plugin Management Types
@@ -811,14 +775,6 @@ export interface ApiService {
  */
 export type ProtocolClass = new (...args: never[]) => ApiProtocol;
 
-/**
- * Protocol Plugin Hooks Base Type
- * Base type for all protocol-specific plugin hooks.
- * Used for internal storage in apiRegistry.
- *
- * OCP-compliant: new protocols extend BasePluginHooks without modifying this type.
- */
-export type ProtocolPluginHooks = BasePluginHooks;
 
 /**
  * Protocol Plugin Type Mapping

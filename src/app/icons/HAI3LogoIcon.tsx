@@ -1,12 +1,6 @@
 import React from 'react';
 
 /**
- * App Logo Icon ID
- * Purpose-based ID for application logo
- */
-export const APP_LOGO_ICON_ID = 'app-logo';
-
-/**
  * HAI3 Logo Icon
  * App-level branding icon used by Menu layout component
  */

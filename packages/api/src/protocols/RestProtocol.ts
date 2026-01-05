@@ -12,15 +12,17 @@ import {
   ApiProtocol,
   type ApiServiceConfig,
   type RestProtocolConfig,
-  type ApiPluginBase,
   type ApiRequestContext,
   type ApiResponseContext,
   type ShortCircuitResponse,
   type RestPluginHooks,
   type HttpMethod,
   type PluginClass,
+  type ApiPluginErrorContext,
+  type RestResponseContext,
+  type RestRequestContext,
 } from '../types';
-import { isShortCircuit } from '../types';
+import { isRestShortCircuit } from '../types';
 import { apiRegistry } from '../apiRegistry';
 
 /**
@@ -54,8 +56,6 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   /** REST-specific config */
   private restConfig: RestProtocolConfig;
 
-  /** Callback to get service-level plugins from BaseApiService for backward compatibility with function-based plugin API */
-  private getPlugins: () => ReadonlyArray<ApiPluginBase> = () => [];
 
   /** Callback to get excluded plugin classes from service */
   private getExcludedClasses: () => ReadonlySet<PluginClass> = () => new Set();
@@ -110,18 +110,12 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    */
   initialize(
     config: Readonly<ApiServiceConfig>,
-    getPlugins: () => ReadonlyArray<ApiPluginBase>,
-    _getClassPlugins: () => ReadonlyArray<ApiPluginBase>,
     getExcludedClasses?: () => ReadonlySet<PluginClass>
   ): void {
     this.config = config;
-    this.getPlugins = getPlugins;
     if (getExcludedClasses) {
       this.getExcludedClasses = getExcludedClasses;
     }
-    // _getClassPlugins parameter exists for interface compatibility but is not used by RestProtocol.
-    // RestProtocol uses class-based plugin system via getPluginsInOrder() (global + instance plugins)
-    // instead of the service-level class plugins callback.
 
     // Create axios instance
     this.client = axios.create({
@@ -235,6 +229,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
   /**
    * Execute an HTTP request with plugin chain.
+   * Public entry point - delegates to requestInternal with retryCount: 0.
    */
   private async request<T>(
     method: HttpMethod,
@@ -242,8 +237,28 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     data?: unknown,
     params?: Record<string, string>
   ): Promise<T> {
+    return this.requestInternal<T>(method, url, data, params, 0);
+  }
+
+  /**
+   * Internal request execution with retry support.
+   * Can be called for initial request or retry.
+   */
+  private async requestInternal<T>(
+    method: HttpMethod,
+    url: string,
+    data?: unknown,
+    params?: Record<string, string>,
+    retryCount: number = 0
+  ): Promise<T> {
     if (!this.client) {
       throw new Error('RestProtocol not initialized. Call initialize() first.');
+    }
+
+    // Check max retry depth safety net
+    const maxDepth = this.restConfig.maxRetryDepth ?? 10;
+    if (retryCount >= maxDepth) {
+      throw new Error(`Max retry depth (${maxDepth}) exceeded`);
     }
 
     // Build full URL for plugins (baseURL + relative url)
@@ -260,15 +275,15 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     };
 
     try {
-      // Execute NEW class-based onRequest plugin chain
-      const classPluginResult = await this.executeClassPluginOnRequest(requestContext);
+      // Execute onRequest plugin chain
+      const pluginResult = await this.executePluginOnRequest(requestContext);
 
-      // Check if a class-based plugin short-circuited
-      if (isShortCircuit(classPluginResult)) {
-        const shortCircuitResponse = classPluginResult.shortCircuit;
+      // Check if a plugin short-circuited
+      if (isRestShortCircuit(pluginResult)) {
+        const shortCircuitResponse = pluginResult.shortCircuit;
 
-        // Execute onResponse for class-based plugins in reverse order
-        const processedShortCircuit = await this.executeClassPluginOnResponse(
+        // Execute onResponse for plugins in reverse order
+        const processedShortCircuit = await this.executePluginOnResponse(
           shortCircuitResponse,
           requestContext
         );
@@ -276,17 +291,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         return processedShortCircuit.data as T;
       }
 
-      // Use processed context from class-based plugins
-      const processedContext = classPluginResult;
-
-      // Execute onRequest plugin chain
-      const pluginProcessedContext = await this.executeOnRequest(processedContext);
-
-      // Check if a plugin short-circuited with mock response
-      if ('__mockResponse' in pluginProcessedContext) {
-        const mockData = (pluginProcessedContext as { __mockResponse: T }).__mockResponse;
-        return mockData;
-      }
+      // Use processed context from plugins
+      const processedContext = pluginResult;
 
       // Build axios config
       // IMPORTANT: Use the original relative URL for axios since it already has baseURL configured.
@@ -294,8 +300,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       const axiosConfig: AxiosRequestConfig = {
         method,
         url,  // Use original relative URL, not processedContext.url which includes baseURL
-        headers: pluginProcessedContext.headers,
-        data: pluginProcessedContext.body,
+        headers: processedContext.headers,
+        data: processedContext.body,
         params,
       };
 
@@ -310,14 +316,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       };
 
       // Execute onResponse plugin chain (reverse order)
-      const pluginProcessedResponse = await this.executeOnResponse(
+      const finalResponse = await this.executePluginOnResponse(
         responseContext,
-        pluginProcessedContext
-      );
-
-      // Execute NEW class-based onResponse plugin chain (reverse order)
-      const finalResponse = await this.executeClassPluginOnResponse(
-        pluginProcessedResponse,
         requestContext
       );
 
@@ -325,11 +325,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     } catch (error) {
       const err = error instanceof Error ? error : new Error(String(error));
 
-      // Execute onError plugin chain
-      const pluginProcessedError = await this.executeOnError(err, requestContext);
-
-      // Execute NEW class-based onError plugin chain
-      const finalResult = await this.executeClassPluginOnError(pluginProcessedError, requestContext);
+      // Execute onError plugin chain with retry support
+      const finalResult = await this.executePluginOnError(
+        err,
+        requestContext,
+        url,
+        params,
+        retryCount
+      );
 
       // Check if error was recovered (plugin returned ApiResponseContext)
       if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
@@ -341,15 +344,15 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   }
 
   // ============================================================================
-  // Plugin Chain Execution - Class-Based (New)
+  // Plugin Chain Execution
   // ============================================================================
 
   /**
-   * Execute class-based onRequest plugin chain.
+   * Execute onRequest plugin chain.
    * Plugins execute in FIFO order (global first, then instance).
    * Any plugin can short-circuit by returning { shortCircuit: response }.
    */
-  private async executeClassPluginOnRequest(
+  private async executePluginOnRequest(
     context: ApiRequestContext
   ): Promise<ApiRequestContext | ShortCircuitResponse> {
     let currentContext: ApiRequestContext = { ...context };
@@ -365,7 +368,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         const result = await plugin.onRequest(currentContext);
 
         // Check if plugin short-circuited
-        if (isShortCircuit(result)) {
+        if (isRestShortCircuit(result)) {
           return result; // Stop chain and return short-circuit response
         }
 
@@ -378,10 +381,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   }
 
   /**
-   * Execute class-based onResponse plugin chain.
+   * Execute onResponse plugin chain.
    * Plugins execute in reverse order (LIFO - onion model).
    */
-  private async executeClassPluginOnResponse(
+  private async executePluginOnResponse(
     context: ApiResponseContext,
     _requestContext: ApiRequestContext
   ): Promise<ApiResponseContext> {
@@ -399,24 +402,56 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   }
 
   /**
-   * Execute class-based onError plugin chain.
+   * Execute onError plugin chain with retry support.
    * Plugins execute in reverse order (LIFO).
-   * Plugins can transform error or recover with ApiResponseContext.
+   * Plugins can transform error, recover with ApiResponseContext, or retry the request.
    */
-  private async executeClassPluginOnError(
+  private async executePluginOnError(
     error: Error,
-    context: ApiRequestContext
+    context: ApiRequestContext,
+    originalUrl: string,
+    params: Record<string, string> | undefined,
+    retryCount: number
   ): Promise<Error | ApiResponseContext> {
+    // Create retry function that calls requestInternal with incremented retryCount
+    const retry = async (modifiedRequest?: Partial<RestRequestContext>): Promise<RestResponseContext> => {
+      const retryContext: RestRequestContext = {
+        ...context,
+        ...modifiedRequest,
+        headers: { ...context.headers, ...modifiedRequest?.headers },
+      };
+
+      // Re-execute through requestInternal with incremented retryCount
+      const result = await this.requestInternal(
+        retryContext.method,
+        originalUrl,
+        retryContext.body,
+        params,
+        retryCount + 1
+      );
+
+      // Wrap result in response context format
+      return {
+        status: 200,
+        headers: {},
+        data: result,
+      };
+    };
+
+    const errorContext: ApiPluginErrorContext = {
+      error,
+      request: context as RestRequestContext,
+      retryCount,
+      retry,
+    };
+
     let currentResult: Error | ApiResponseContext = error;
     // Use protocol-level plugins (global + instance) in reverse order
     const plugins = [...this.getPluginsInOrder()].reverse();
 
     for (const plugin of plugins) {
       if (plugin.onError) {
-        const result = await plugin.onError(
-          currentResult instanceof Error ? currentResult : new Error('Recovery response converted to error'),
-          context
-        );
+        const result = await plugin.onError(errorContext);
 
         // If plugin returns ApiResponseContext, it's a recovery - stop chain
         if (result && typeof result === 'object' && 'status' in result && 'data' in result) {
@@ -433,75 +468,4 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     return currentResult;
   }
 
-  // ============================================================================
-  // Plugin Chain Execution
-  // ============================================================================
-
-  /**
-   * Execute onRequest plugin chain.
-   * High priority plugins execute first.
-   * Any plugin can short-circuit by adding __mockResponse.
-   */
-  private async executeOnRequest(
-    context: ApiRequestContext
-  ): Promise<ApiRequestContext & { __mockResponse?: unknown }> {
-    let currentContext: ApiRequestContext & { __mockResponse?: unknown } = { ...context };
-
-    for (const plugin of this.getPlugins()) {
-      if (plugin.onRequest) {
-        const result = await plugin.onRequest(currentContext);
-        currentContext = result as typeof currentContext;
-
-        // Check if plugin short-circuited
-        if ('__mockResponse' in currentContext) {
-          break;
-        }
-      }
-    }
-
-    return currentContext;
-  }
-
-  /**
-   * Execute onResponse plugin chain.
-   * Low priority plugins execute first (reverse order).
-   */
-  private async executeOnResponse(
-    context: ApiResponseContext,
-    _requestContext: ApiRequestContext
-  ): Promise<ApiResponseContext> {
-    let currentContext = { ...context };
-    const plugins = [...this.getPlugins()].reverse();
-
-    for (const plugin of plugins) {
-      if (plugin.onResponse) {
-        currentContext = await plugin.onResponse(currentContext) as ApiResponseContext;
-      }
-    }
-
-    return currentContext;
-  }
-
-  /**
-   * Execute onError plugin chain.
-   */
-  private async executeOnError(
-    error: Error,
-    context: ApiRequestContext
-  ): Promise<Error> {
-    let currentError = error;
-    const plugins = [...this.getPlugins()].reverse();
-
-    for (const plugin of plugins) {
-      if (plugin.onError) {
-        const result = await plugin.onError(currentError, context);
-        // Plugins only support Error return
-        if (result instanceof Error) {
-          currentError = result;
-        }
-      }
-    }
-
-    return currentError;
-  }
 }

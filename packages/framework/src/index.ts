@@ -263,7 +263,6 @@ export {
   isMockPlugin,
 } from '@hai3/api';
 export type {
-  ApiService,
   MockMap,
   ApiServiceConfig,
   JsonValue,
@@ -279,13 +278,13 @@ export type {
   PluginClass,
   ProtocolClass,
   ProtocolPluginType,
-  ProtocolPluginHooks,
   BasePluginHooks,
   // Protocol-specific types
   RestPluginHooks,
   SsePluginHooks,
   RestRequestContext,
   RestResponseContext,
+  ApiPluginErrorContext,
   SseConnectContext,
   EventSourceLike,
   RestShortCircuitResponse,

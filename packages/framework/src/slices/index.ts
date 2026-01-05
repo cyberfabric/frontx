@@ -84,7 +84,6 @@ import mockReducer, {
 
 export const LAYOUT_SLICE_NAME = 'layout' as const;
 export const TENANT_SLICE_NAME = 'app/tenant' as const;
-export const MOCK_SLICE_NAME = 'mock' as const;
 
 // ============================================================================
 // Combined Layout Reducer

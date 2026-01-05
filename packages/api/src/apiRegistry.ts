@@ -13,7 +13,7 @@ import type {
   ProtocolClass,
   ApiProtocol,
   ProtocolPluginType,
-  ProtocolPluginHooks,
+  BasePluginHooks,
 } from './types';
 import { BaseApiService } from './BaseApiService';
 
@@ -50,7 +50,7 @@ class ApiRegistryImpl implements IApiRegistry {
   private config: ApiServicesConfig = { ...DEFAULT_CONFIG };
 
   /** Protocol plugins by protocol class */
-  private protocolPlugins: Map<ProtocolClass, Set<ProtocolPluginHooks>> = new Map();
+  private protocolPlugins: Map<ProtocolClass, Set<BasePluginHooks>> = new Map();
 
   // ============================================================================
   // Registration

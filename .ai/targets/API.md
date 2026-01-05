@@ -55,6 +55,15 @@
 - FORBIDDEN: registerMockMap() and getMockMap() on protocols (removed API).
 - FORBIDDEN: Directly adding mock plugins to protocol.plugins in DEV mode (use registerPlugin pattern).
 
+## RETRY PATTERN RULES
+- REQUIRED: Always check `retryCount` to prevent infinite loops (typically `retryCount === 0` for single retry).
+- REQUIRED: Use `context.retry()` for retrying with optional request modifications.
+- REQUIRED: Return `context.error` if retry should not happen or max attempts reached.
+- REQUIRED: Respect `maxRetryDepth` safety net (default: 10) to prevent infinite loops.
+- REQUIRED: Implement retry limits in plugin logic (framework provides safety net but plugins control strategy).
+- FORBIDDEN: Calling `retry()` multiple times without checking `retryCount` (causes infinite loops).
+- FORBIDDEN: Retrying without modification when the same error will occur again.
+
 ## PROTOCOL-SPECIFIC PLUGINS
 - REQUIRED: RestProtocol plugins implement RestPluginHooks (onRequest, onResponse, destroy).
 - REQUIRED: SseProtocol plugins implement SsePluginHooks (onConnect, onEvent, onDisconnect, destroy).

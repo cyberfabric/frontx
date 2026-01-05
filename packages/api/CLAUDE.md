@@ -172,6 +172,68 @@ if (isMockPlugin(plugin)) {
 5. **Mock mode via framework** - Framework controls mock plugin lifecycle via `toggleMockMode()`
 6. **Plugin identification by class** - Use class references, not string names
 
+## Retry Pattern
+
+Plugins can retry failed requests with optional modifications using `ApiPluginErrorContext`:
+
+```typescript
+import { RestPluginWithConfig, ApiPluginErrorContext } from '@hai3/api';
+
+interface AuthConfig {
+  getToken: () => string | null;
+  refreshToken: () => Promise<string>;
+}
+
+class AuthPlugin extends RestPluginWithConfig<AuthConfig> {
+  async onRequest(ctx: RestRequestContext): Promise<RestRequestContext> {
+    const token = this.config.getToken();
+    if (!token) return ctx;
+    return {
+      ...ctx,
+      headers: { ...ctx.headers, Authorization: `Bearer ${token}` }
+    };
+  }
+
+  async onError(context: ApiPluginErrorContext): Promise<Error | RestResponseContext> {
+    // Check if error is 401 and this is the first attempt (not a retry)
+    if (this.is401Error(context.error) && context.retryCount === 0) {
+      try {
+        // Refresh the token
+        const newToken = await this.config.refreshToken();
+
+        // Retry the request with the new token
+        return context.retry({
+          headers: { ...context.request.headers, Authorization: `Bearer ${newToken}` }
+        });
+      } catch (refreshError) {
+        // If refresh fails, return original error
+        return context.error;
+      }
+    }
+
+    // Not a 401 or already retried - propagate error
+    return context.error;
+  }
+
+  private is401Error(error: Error): boolean {
+    return error.message.includes('401') || error.message.includes('Unauthorized');
+  }
+}
+```
+
+Key retry pattern guidelines:
+
+1. **Always check `retryCount`** to prevent infinite retry loops
+2. **Use `context.retry()`** to retry with optional request modifications
+3. **Limit retries** - typically retry once (`retryCount === 0`)
+4. **Return error** if retry should not happen or max attempts reached
+5. **Safety net** - `maxRetryDepth` config (default: 10) prevents infinite loops
+
+```typescript
+// Configure max retry depth (default: 10)
+const restProtocol = new RestProtocol({ maxRetryDepth: 5 });
+```
+
 ## Exports
 
 - `BaseApiService` - Abstract base class
@@ -179,17 +241,28 @@ if (isMockPlugin(plugin)) {
 - `SseProtocol` - SSE protocol
 - `ApiPluginBase` - Abstract base class for plugins (no config)
 - `ApiPlugin` - Abstract generic class for plugins with config
+- `RestPlugin` - REST protocol plugin base class
+- `RestPluginWithConfig` - REST protocol plugin with config
+- `SsePlugin` - SSE protocol plugin base class
+- `SsePluginWithConfig` - SSE protocol plugin with config
 - `RestMockPlugin` - REST mock data plugin
 - `SseMockPlugin` - SSE mock data plugin
 - `apiRegistry` - Singleton registry
 - `MOCK_PLUGIN` - Symbol for marking mock plugins
 - `isMockPlugin` - Type guard for identifying mock plugins
-- `ApiService` - Service interface (type)
+- `ApiPluginErrorContext` - Error context with retry support
 - `ApiRequestContext` - Plugin request context type
 - `ApiResponseContext` - Plugin response context type
+- `RestRequestContext` - REST request context type
+- `RestResponseContext` - REST response context type
+- `SseConnectContext` - SSE connection context type
 - `ShortCircuitResponse` - Short-circuit response wrapper
-- `PluginClass` - Type for plugin class references
-- `ProtocolClass` - Type for protocol class references
+- `RestShortCircuitResponse` - REST short-circuit response
+- `SseShortCircuitResponse` - SSE short-circuit response
+- `PluginType` - Type for plugin references
+- `ProtocolType` - Type for protocol references
 - `ProtocolPluginType` - Type mapping for protocol plugins
 - `isShortCircuit` - Type guard for short-circuit responses
+- `isRestShortCircuit` - Type guard for REST short-circuit responses
+- `isSseShortCircuit` - Type guard for SSE short-circuit responses
 - `MockMap` - Mock response map type
