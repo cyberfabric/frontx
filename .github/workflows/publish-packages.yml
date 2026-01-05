@@ -95,15 +95,30 @@ jobs:
           PUBLISHED_PACKAGES=()
           SKIPPED_PACKAGES=()
 
+          # Determine npm tag based on version (prerelease versions need explicit tag)
+          get_npm_tag() {
+            local version="$1"
+            if [[ "$version" == *"-alpha"* ]]; then
+              echo "alpha"
+            elif [[ "$version" == *"-beta"* ]]; then
+              echo "beta"
+            elif [[ "$version" == *"-rc"* ]]; then
+              echo "next"
+            else
+              echo "latest"
+            fi
+          }
+
           # Retry function with exponential backoff
           publish_with_retry() {
+            local tag="$1"
             local max_attempts=3
             local attempt=1
             local delay=5
 
             while [ $attempt -le $max_attempts ]; do
               echo "Publish attempt $attempt of $max_attempts..."
-              if npm publish --access public; then
+              if npm publish --access public --tag "$tag"; then
                 return 0
               fi
 
@@ -152,10 +167,11 @@ jobs:
               continue
             fi
 
-            echo "Publishing $NAME@$VERSION..."
+            NPM_TAG=$(get_npm_tag "$VERSION")
+            echo "Publishing $NAME@$VERSION with tag '$NPM_TAG'..."
             cd "packages/$DIR"
 
-            if ! publish_with_retry; then
+            if ! publish_with_retry "$NPM_TAG"; then
               echo "FAILED: $NAME@$VERSION publish failed after retries"
               exit 1
             fi
