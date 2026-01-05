@@ -1299,9 +1299,10 @@ The system SHALL enforce specific contracts for each plugin lifecycle method.
 #### Scenario: onError lifecycle method contract
 
 - **WHEN** a plugin defines `onError` method
-- **THEN** it receives `Error` and original `ApiRequestContext`
+- **THEN** it receives `ApiPluginErrorContext` with error, request, retryCount, and retry function
 - **AND** it returns `Error` (modified or unchanged) to continue error flow
 - **AND** it returns `ApiResponseContext` to recover from error
+- **AND** it calls `context.retry(modifiedRequest?)` to retry the request with optional modifications
 - **AND** it may return a Promise for async operations
 
 #### Scenario: destroy lifecycle method contract
@@ -1389,7 +1390,7 @@ The system SHALL provide comprehensive type definitions for the class-based plug
 - **WHEN** using `ApiPluginBase` abstract class
 - **THEN** it defines optional `onRequest` method signature
 - **AND** it defines optional `onResponse` method signature
-- **AND** it defines optional `onError` method signature
+- **AND** it defines optional `onError(context: ApiPluginErrorContext)` method signature
 - **AND** it defines optional `destroy` method signature
 - **AND** it is non-generic (used for storage)
 
@@ -1422,6 +1423,14 @@ The system SHALL provide comprehensive type definitions for the class-based plug
 - **THEN** it has readonly `status: number` property
 - **AND** it has readonly `headers: Record<string, string>` property
 - **AND** it has readonly `data: unknown` property
+
+#### Scenario: ApiPluginErrorContext type
+
+- **WHEN** using `ApiPluginErrorContext` type
+- **THEN** it has readonly `error: Error` property
+- **AND** it has readonly `request: ApiRequestContext` property
+- **AND** it has readonly `retryCount: number` property
+- **AND** it has `retry: (modifiedRequest?: Partial<ApiRequestContext>) => ApiResponseContext | Promise<ApiResponseContext>` function
 
 #### Scenario: ShortCircuitResponse type
 
@@ -1685,3 +1694,76 @@ The system SHALL provide micro-frontend isolation through separate @hai3/api pac
 - **AND** micro-frontend B imports its own @hai3/api instance
 - **THEN** plugins registered by A do NOT appear in B's apiRegistry
 - **AND** each micro-frontend has complete plugin isolation
+
+### Requirement: ApiPluginErrorContext Type
+
+The system SHALL provide an `ApiPluginErrorContext` type that encapsulates error handling context including a retry function.
+
+#### Scenario: ApiPluginErrorContext structure
+
+- **WHEN** using `ApiPluginErrorContext` type
+- **THEN** it has readonly `error: Error` property
+- **AND** it has readonly `request: ApiRequestContext` property (original request context)
+- **AND** it has readonly `retryCount: number` property (tracks retry depth, starts at 0)
+- **AND** it has `retry: (modifiedRequest?: Partial<ApiRequestContext>) => ApiResponseContext | Promise<ApiResponseContext>` function
+
+#### Scenario: retry function accepts partial context
+
+- **WHEN** calling `retry()` with no arguments
+- **THEN** the request is retried with the original request context
+- **AND** `retryCount` is incremented by 1
+
+- **WHEN** calling `retry({ headers: { Authorization: 'Bearer newToken' } })`
+- **THEN** the request is retried with headers merged into original context
+- **AND** other context fields (method, url, body) remain unchanged
+- **AND** `retryCount` is incremented by 1
+
+#### Scenario: retry function executes full plugin chain
+
+- **WHEN** calling `retry()` within onError
+- **THEN** the retried request goes through the full onRequest plugin chain
+- **AND** plugins can modify or short-circuit the retried request
+- **AND** onResponse chain executes on successful retry
+
+#### Scenario: retry error propagates through chain
+
+- **WHEN** calling `retry()` and the retried request fails
+- **THEN** the new error flows through the onError plugin chain
+- **AND** the same plugin's onError may be called again with incremented `retryCount`
+- **AND** plugins can use `retryCount` to track retry attempts
+
+#### Scenario: maxRetryDepth safety net
+
+- **WHEN** `retryCount >= maxRetryDepth` (default: 10)
+- **THEN** the system throws `Error('Max retry depth exceeded')`
+- **AND** this prevents infinite retry loops even if plugins forget limits
+
+### Requirement: Plugin Retry Best Practices
+
+The system SHALL document best practices for implementing retry logic in plugins.
+
+#### Scenario: Retry limit enforcement using retryCount
+
+- **WHEN** implementing a plugin with retry capability
+- **THEN** the plugin SHOULD use `retryCount` from `ApiPluginErrorContext`
+- **AND** the plugin checks `retryCount === 0` for first retry attempt
+- **AND** the plugin does NOT need to maintain custom retry state
+
+#### Scenario: Token refresh retry pattern
+
+- **WHEN** implementing authentication token refresh
+- **THEN** the plugin checks for 401 status in error
+- **AND** the plugin checks `retryCount === 0` to attempt refresh only once
+- **AND** the plugin retries with new Authorization header
+- **AND** the plugin returns original error if refresh or retry fails
+
+### Requirement: RestProtocolConfig maxRetryDepth
+
+The system SHALL provide a `maxRetryDepth` configuration option for safety.
+
+#### Scenario: maxRetryDepth configuration
+
+- **WHEN** configuring `RestProtocol`
+- **THEN** `maxRetryDepth?: number` is optional (default: 10)
+- **AND** this provides a safety net against infinite retry loops
+- **AND** plugins should still implement their own appropriate limits
