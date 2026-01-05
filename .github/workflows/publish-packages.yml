@@ -86,6 +86,37 @@ jobs:
       - name: Build all packages
         run: npm run build:packages
 
+      - name: Debug npm auth
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          echo "=== npm whoami ==="
+          npm whoami 2>&1 || echo "FAILED: npm whoami returned exit code $?"
+
+          echo ""
+          echo "=== Token format check ==="
+          if [ -z "$NODE_AUTH_TOKEN" ]; then
+            echo "ERROR: NODE_AUTH_TOKEN is empty"
+          else
+            TOKEN_LENGTH=${#NODE_AUTH_TOKEN}
+            echo "Token length: $TOKEN_LENGTH characters"
+            echo "Token prefix: ${NODE_AUTH_TOKEN:0:4}..."
+          fi
+
+          echo ""
+          echo "=== npmrc files ==="
+          echo "NPM_CONFIG_USERCONFIG: $NPM_CONFIG_USERCONFIG"
+          [ -f "$NPM_CONFIG_USERCONFIG" ] && echo "Temp .npmrc exists" || echo "Temp .npmrc NOT found"
+          [ -f ~/.npmrc ] && echo "~/.npmrc exists" || echo "~/.npmrc NOT found"
+
+          echo ""
+          echo "=== npm config (auth masked) ==="
+          npm config list
+
+          echo ""
+          echo "=== @hai3 org access check ==="
+          npm access ls-packages 2>&1 | head -20 || echo "Could not list packages"
+
       - name: Publish packages in order
         id: publish
         env:
