@@ -1,358 +1,414 @@
-# Tasks: Add Microfrontend Support with GTS Type System
+# Implementation Tasks
 
-## Phase 1: GTS Type System (@hai3/screensets)
+## Progress Summary
 
-### 1.1 GTS Core Types
-- [ ] 1.1.1 Add `GtsTypeId` branded type to `types.ts`
-- [ ] 1.1.2 Add `GtsParsedId` interface with vendor, package, namespace, type, majorVersion, minorVersion, isType, chain
-- [ ] 1.1.3 Add `GtsParseError` class for invalid identifiers
-- [ ] 1.1.4 Export GTS types from package index
-
-### 1.2 GTS Parser
-- [ ] 1.2.1 Create `gts/parseGtsId.ts`
-- [ ] 1.2.2 Implement segment parsing (split by `~`)
-- [ ] 1.2.3 Implement component extraction (vendor.package.namespace.type.vN)
-- [ ] 1.2.4 Handle chained identifiers (rightmost = primary)
-- [ ] 1.2.5 Validate `gts.` prefix
-- [ ] 1.2.6 Validate version format (v1, v1.2)
-- [ ] 1.2.7 Add unit tests for parsing
-
-### 1.3 GTS Builder
-- [ ] 1.3.1 Create `gts/buildGtsId.ts`
-- [ ] 1.3.2 Implement fluent builder with `vendor()`, `package()`, `namespace()`, `type()`, `version()`
-- [ ] 1.3.3 Implement `extend()` for chained identifiers
-- [ ] 1.3.4 Implement `build()` returning `GtsTypeId`
-- [ ] 1.3.5 Default namespace to `_` when not specified
-- [ ] 1.3.6 Ensure output ends with `~`
-- [ ] 1.3.7 Add unit tests for building
-
-### 1.4 GTS Schema Registry
-- [ ] 1.4.1 Create `gts/gtsRegistry.ts`
-- [ ] 1.4.2 Implement `register(typeId, schema)` method
-- [ ] 1.4.3 Implement `get(typeId)` method
-- [ ] 1.4.4 Implement `validate(payload, typeId)` using JSON Schema validation
-- [ ] 1.4.5 Implement `listTypes(pattern?)` with wildcard support
-- [ ] 1.4.6 Export singleton `gtsRegistry`
-- [ ] 1.4.7 Add unit tests for registry
-
-### 1.5 GTS Conformance
-- [ ] 1.5.1 Create `gts/conformsTo.ts`
-- [ ] 1.5.2 Implement chain-based conformance check
-- [ ] 1.5.3 Add unit tests for conformance
-
-### 1.6 Predefined HAI3 Base Types
-- [ ] 1.6.1 Create `gts/hai3Types.ts`
-- [ ] 1.6.2 Define `HAI3_MFE_TYPE` constant (`gts.hai3.mfe.type.v1~`)
-- [ ] 1.6.3 Define `HAI3_MFE_ENTRY_BASE` and domain-specific constants (`gts.hai3.mfe.entry.v1~`, `gts.hai3.mfe.entry.screen.v1~`, etc.)
-- [ ] 1.6.4 Define `HAI3_ACTION_SHOW_POPUP`, `HAI3_ACTION_HIDE_POPUP`, `HAI3_ACTION_SHOW_SIDEBAR`, `HAI3_ACTION_NAVIGATE`, etc.
-- [ ] 1.6.5 Define `HAI3_APP_STATE` type constant
-
-### 1.7 MFE Type and Entry Schemas
-- [ ] 1.7.1 Register `MicrofrontendDefinition` JSON Schema at `gts.hai3.mfe.type.v1~`
-- [ ] 1.7.2 Register base `MfeEntry` JSON Schema at `gts.hai3.mfe.entry.v1~`
-- [ ] 1.7.3 Register `MfeEntryScreen` JSON Schema at `gts.hai3.mfe.entry.screen.v1~` (extends entry.v1)
-- [ ] 1.7.4 Register `MfeEntryPopup` JSON Schema at `gts.hai3.mfe.entry.popup.v1~` (extends entry.v1)
-- [ ] 1.7.5 Register `MfeEntrySidebar` JSON Schema at `gts.hai3.mfe.entry.sidebar.v1~` (extends entry.v1)
-- [ ] 1.7.6 Register `MfeEntryOverlay` JSON Schema at `gts.hai3.mfe.entry.overlay.v1~` (extends entry.v1)
-- [ ] 1.7.7 Register JSON Schemas for all HAI3 host actions in `gtsRegistry`
-- [ ] 1.7.8 Add unit tests for schema validation
-- [ ] 1.7.9 Export all constants from package index
-
-### 1.8 GTS Package Verification
-- [ ] 1.8.1 Verify zero external dependencies maintained
-- [ ] 1.8.2 Run `npm run type-check:packages:screensets`
-- [ ] 1.8.3 Run `npm run build:packages:screensets`
-
-## Phase 2: MFE Orchestration Library (@hai3/screensets)
-
-**Key constraint**: All implementations in this phase use props/callbacks interface with ZERO @hai3/state dependencies.
-
-### 2.1 Core MFE Types
-- [ ] 2.1.1 Add `LayoutDomain` enum (Screen, Popup, Sidebar, Overlay)
-- [ ] 2.1.2 Add `MfeEntry` interface with `typeId: GtsTypeId`, `domain`, `component`
-- [ ] 2.1.3 Add `AppState` interface (tenant, user, language, theme)
-- [ ] 2.1.4 Add `HostBridge<TAppState>` interface with `subscribe`, `requestHostAction`, `getAppState`, `mfeTypeId`
-- [ ] 2.1.5 Add `Subscription` interface with `unsubscribe()`
-- [ ] 2.1.6 Add `MfeMountResult` interface with `unmount` callback
-- [ ] 2.1.7 Export all new types from package index
-
-### 2.2 MFE Contract
-- [ ] 2.2.1 Add `MfeContract` interface with `mount(container, bridge)` and `actionHandlers`
-- [ ] 2.2.2 Action handlers keyed by `GtsTypeId`
-- [ ] 2.2.3 Add `MfeActionHandler` type
-
-### 2.3 MFE Definition
-- [ ] 2.3.1 Add `MicrofrontendDefinition` interface with `typeId: GtsTypeId`, `name`, `entries`, `contract`, `actionTypes`, `menu`
-- [ ] 2.3.2 Add `MenuItemConfig` interface
-- [ ] 2.3.3 Export from package index
-
-### 2.4 MFE Registry
-- [ ] 2.4.1 Create `mfe/microfrontendRegistry.ts`
-- [ ] 2.4.2 Implement `register(definition)` method
-- [ ] 2.4.3 Implement `get(typeId)` method
-- [ ] 2.4.4 Implement `getAll()` method
-- [ ] 2.4.5 Implement `has(typeId)` method
-- [ ] 2.4.6 Implement `findByPattern(pattern)` with wildcard support
-- [ ] 2.4.7 Export singleton from package index
-
-### 2.5 Remote Config Types
-- [ ] 2.5.1 Add `MfeRemoteConfig` interface with `typeId: GtsTypeId`, `url`, `shared`, `preload`, `loadTimeout`
-- [ ] 2.5.2 Add `PreloadStrategy` type ('none' | 'hover' | 'immediate')
-- [ ] 2.5.3 Export from package index
-
-### 2.6 Error Types
-- [ ] 2.6.1 Add `PayloadValidationError` class with `actionTypeId`, `errors`
-- [ ] 2.6.2 Add `MfeNotMountedError` class with `mfeTypeId`
-- [ ] 2.6.3 Add `ActionNotAllowedError` class with `actionTypeId`
-- [ ] 2.6.4 Add `ActionNotRegisteredError` class with `mfeTypeId`, `actionTypeId`
-- [ ] 2.6.5 Add `MfeLoadTimeoutError` class with `mfeTypeId`, `timeoutMs`
-- [ ] 2.6.6 Add `MfeNetworkError` class with `mfeTypeId`, `cause`
-- [ ] 2.6.7 Add `MfeSchemaValidationError` class with `mfeTypeId`, `schemaTypeId`, `errors` (thrown on MFE load)
-- [ ] 2.6.8 Add `MfeEntrySchemaValidationError` class with `entryTypeId`, `schemaTypeId`, `errors` (thrown on entry mount)
-- [ ] 2.6.9 Export errors from package index
-
-### 2.7 Event Payload Types
-- [ ] 2.7.1 Add `MfeEventPayloads` interface with all MFE event shapes
-- [ ] 2.7.2 Add `ValidationError` interface (path, message)
-- [ ] 2.7.3 Export from package index
-
-### 2.8 MFE Bridge Implementation
-- [ ] 2.8.1 Create `mfe/MfeBridge.ts`
-- [ ] 2.8.2 Define `MfeBridgeConfig<TAppState>` with `getAppState`, `subscribeToState`, `onHostAction` callbacks
-- [ ] 2.8.3 Implement `MfeBridge` class with constructor taking config
-- [ ] 2.8.4 Implement `getAppState()` using `config.getAppState` callback
-- [ ] 2.8.5 Implement `subscribe()` using `config.subscribeToState` callback with selector comparison
-- [ ] 2.8.6 Implement subscription debounce option
-- [ ] 2.8.7 Implement `requestHostAction()` with GTS registry validation before invoking callback
-- [ ] 2.8.8 Add subscription tracking for cleanup
-- [ ] 2.8.9 Add unit tests for bridge
-
-### 2.9 MFE Loader Implementation
-- [ ] 2.9.1 Create `mfe/MfeLoader.ts`
-- [ ] 2.9.2 Implement Module Federation dynamic import
-- [ ] 2.9.3 Implement load timeout handling
-- [ ] 2.9.4 Implement shared dependency resolution
-- [ ] 2.9.5 Validate loaded `MicrofrontendDefinition` against `gts.hai3.mfe.type.v1~` schema
-- [ ] 2.9.6 Throw `MfeSchemaValidationError` if validation fails
-- [ ] 2.9.7 Implement `preload(remote)` method
-- [ ] 2.9.8 Implement `isLoaded(mfeTypeId)` method
-- [ ] 2.9.9 Implement `getDefinition(mfeTypeId)` method
-- [ ] 2.9.10 Add unit tests for loader (including schema validation)
-
-### 2.10 Shadow DOM Utilities
-- [ ] 2.10.1 Create `mfe/shadowDom.ts`
-- [ ] 2.10.2 Implement `createShadowRoot(container, options)` function
-- [ ] 2.10.3 Implement `injectCssVariables(shadowRoot, variables)` function
-- [ ] 2.10.4 Support 'open' and 'closed' shadow modes
-- [ ] 2.10.5 Add unit tests for shadow DOM utilities
-
-### 2.11 MFE Orchestrator Implementation
-- [ ] 2.11.1 Create `mfe/MfeOrchestrator.ts`
-- [ ] 2.11.2 Define `MfeOrchestratorConfig<TAppState>` with factory callbacks
-- [ ] 2.11.3 Implement constructor with loader, registry, createBridge, createShadowContainer
-- [ ] 2.11.4 Implement lifecycle callbacks (onLoadStart, onLoadComplete, onLoadError, onMounted, onUnmounted)
-- [ ] 2.11.5 Implement `load(mfeTypeId)` using loader, validate type conformance
-- [ ] 2.11.6 Implement `mount(mfeTypeId, entryTypeId, container)` using createBridge/createShadowContainer factories
-- [ ] 2.11.7 Validate entry against domain-specific schema (e.g., `gts.hai3.mfe.entry.screen.v1~`) before mounting
-- [ ] 2.11.8 Throw `MfeEntrySchemaValidationError` if entry validation fails
-- [ ] 2.11.9 Implement `unmount(mfeTypeId)` with subscription cleanup
-- [ ] 2.11.10 Implement `requestMfeAction(mfeTypeId, actionTypeId, payload)` with payload validation
-- [ ] 2.11.11 Implement `isLoaded()`, `isMounted()`, `getMountedMfes()` queries
-- [ ] 2.11.12 Add unit tests for orchestrator (including entry schema validation)
-
-### 2.12 Package Verification
-- [ ] 2.12.1 Verify ZERO @hai3/state dependencies
-- [ ] 2.12.2 Verify all APIs use props/callbacks (no store, dispatch, emit references)
-- [ ] 2.12.3 Run `npm run type-check:packages:screensets`
-- [ ] 2.12.4 Run `npm run build:packages:screensets`
-
-## Phase 3: Flux Integration (@hai3/framework)
-
-**Key constraint**: This phase ONLY wires the orchestrator into Flux data flow. Actions emit events, effects call orchestrator and dispatch.
-
-### 3.1 Configuration Types
-- [ ] 3.1.1 Add `MicrofrontendsConfig` interface with `remotes`, `styleIsolation`, `errorBoundary`, `loadingComponent`
-- [ ] 3.1.2 Add `StyleIsolation` type ('shadow-dom' | 'none')
-- [ ] 3.1.3 Add `MfeLoadState` type ('idle' | 'loading' | 'loaded' | 'error')
-
-### 3.2 MFE Actions
-- [ ] 3.2.1 Create `plugins/microfrontends/actions.ts`
-- [ ] 3.2.2 Implement `loadMfe(mfeTypeId)` action - emits 'mfe/loadRequested', returns void
-- [ ] 3.2.3 Implement `mountMfeEntry(mfeTypeId, entryTypeId, domain)` action - emits event, returns void
-- [ ] 3.2.4 Implement `unmountMfe(mfeTypeId)` action - emits event, returns void
-- [ ] 3.2.5 Implement `handleMfeHostAction(mfeTypeId, actionTypeId, payload)` action - emits event, returns void
-- [ ] 3.2.6 Implement `requestMfeAction(mfeTypeId, actionTypeId, payload)` action - emits event, returns void
-- [ ] 3.2.7 Verify ALL actions return void, NO async keyword
-
-### 3.3 MFE Slice
-- [ ] 3.3.1 Create `slices/mfeSlice.ts`
-- [ ] 3.3.2 Add state shape: `{ loadStates, errors, mounted }`
-- [ ] 3.3.3 Add reducers: `setLoading`, `setLoaded`, `setError`, `setMounted`, `setUnmounted`
-- [ ] 3.3.4 Add selectors: `selectMfeLoadState`, `selectMfeError`, `selectMountedMfes`
-- [ ] 3.3.5 Register slice with createSlice from @hai3/state
-
-### 3.4 MFE Effects
-- [ ] 3.4.1 Create `plugins/microfrontends/effects.ts`
-- [ ] 3.4.2 Implement load effect: subscribes to 'mfe/loadRequested', calls orchestrator.load(), dispatches to slice
-- [ ] 3.4.3 Implement mount effect: subscribes to 'mfe/mountRequested', calls orchestrator.mount(), dispatches
-- [ ] 3.4.4 Implement unmount effect: subscribes to 'mfe/unmountRequested', calls orchestrator.unmount()
-- [ ] 3.4.5 Implement host action effect: subscribes to 'mfe/hostActionRequested', handles popup/sidebar/etc
-- [ ] 3.4.6 Implement MFE action effect: subscribes to 'mfe/mfeActionRequested', calls orchestrator.requestMfeAction()
-- [ ] 3.4.7 Verify effects do NOT call actions (prevents loops)
-- [ ] 3.4.8 Add unit tests for effects
-
-### 3.5 Orchestrator Callback Wiring
-- [ ] 3.5.1 Create `plugins/microfrontends/createWiredOrchestrator.ts`
-- [ ] 3.5.2 Wire `createBridge` factory to create MfeBridge with onHostAction → handleMfeHostAction action
-- [ ] 3.5.3 Wire lifecycle callbacks to emit events
-- [ ] 3.5.4 Wire `getAppState` to use store selector
-- [ ] 3.5.5 Wire `subscribeToState` to use store.subscribe
-
-### 3.6 Shadow DOM React Component
-- [ ] 3.6.1 Create `components/ShadowDomContainer.tsx`
-- [ ] 3.6.2 Use `createShadowRoot()` from @hai3/screensets on mount
-- [ ] 3.6.3 Use `injectCssVariables()` from @hai3/screensets
-- [ ] 3.6.4 Render children via React portal into shadow root
-- [ ] 3.6.5 Clean up on unmount
-
-### 3.7 Error and Loading Components
-- [ ] 3.7.1 Create `components/MfeErrorBoundary.tsx` with `mfeTypeId` prop
-- [ ] 3.7.2 Create `components/MfeLoadingIndicator.tsx` with `mfeTypeId` prop
-- [ ] 3.7.3 Support custom component override via config
-
-### 3.8 Plugin Implementation
-- [ ] 3.8.1 Create `plugins/microfrontends/index.ts`
-- [ ] 3.8.2 Implement `microfrontends()` plugin factory
-- [ ] 3.8.3 Declare dependency on `screensets` plugin
-- [ ] 3.8.4 Initialize orchestrator with wired callbacks in `onInit`
-- [ ] 3.8.5 Register mfeSlice
-- [ ] 3.8.6 Initialize effects with orchestrator reference
-- [ ] 3.8.7 Augment EventPayloadMap with MfeEventPayloads
-- [ ] 3.8.8 Export mfeActions for component use
-
-### 3.9 Navigation Integration
-- [ ] 3.9.1 Add `navigateToMfe` action that emits 'navigation/mfeRequested'
-- [ ] 3.9.2 Add effect that loads and mounts MFE on navigation
-- [ ] 3.9.3 Add effect that unmounts previous MFE on navigation away
-- [ ] 3.9.4 Validate entry type conformance on mount
-
-### 3.10 Preloading
-- [ ] 3.10.1 Implement 'hover' preload strategy (menu item hover triggers orchestrator.preload)
-- [ ] 3.10.2 Implement 'immediate' preload strategy (app startup calls preload)
-
-### 3.11 Package Verification
-- [ ] 3.11.1 Export plugin and types from index
-- [ ] 3.11.2 Run `npm run type-check:packages:framework`
-- [ ] 3.11.3 Run `npm run build:packages`
-- [ ] 3.11.4 Run `npm run arch:check`
-
-## Phase 4: Integration & Testing
-
-### 4.1 Example MFE Project
-- [ ] 4.1.1 Create `examples/mfe-analytics/` directory
-- [ ] 4.1.2 Configure Vite with Module Federation plugin
-- [ ] 4.1.3 Define MFE with GTS type ID derived from `HAI3_MFE_TYPE`
-- [ ] 4.1.4 Define entries with GTS type IDs derived from `HAI3_MFE_ENTRY_*`
-- [ ] 4.1.5 Register action schemas in `gtsRegistry`
-- [ ] 4.1.6 Demonstrate bridge.subscribe() usage
-- [ ] 4.1.7 Demonstrate bridge.requestHostAction() with typed payloads
-- [ ] 4.1.8 Demonstrate actionHandlers for host→MFE requests
-
-### 4.2 Host Integration Example
-- [ ] 4.2.1 Add microfrontends plugin to demo app
-- [ ] 4.2.2 Configure remote MFE with GTS type ID
-- [ ] 4.2.3 Test navigation to MFE screenset
-- [ ] 4.2.4 Test popup rendering from MFE request
-- [ ] 4.2.5 Test sidebar rendering from MFE request
-- [ ] 4.2.6 Test payload validation errors
-
-### 4.3 Unit Tests
-- [ ] 4.3.1 Test `parseGtsId()` for valid/invalid identifiers
-- [ ] 4.3.2 Test `gts()` builder for various configurations
-- [ ] 4.3.3 Test `gtsRegistry.validate()` for valid/invalid payloads
-- [ ] 4.3.4 Test `conformsTo()` for chain-based conformance
-- [ ] 4.3.5 Test MFE type schema validation (valid `MicrofrontendDefinition`)
-- [ ] 4.3.6 Test MFE type schema validation (invalid/missing fields → `MfeSchemaValidationError`)
-- [ ] 4.3.7 Test entry schema validation per domain (screen, popup, sidebar, overlay)
-- [ ] 4.3.8 Test entry schema validation failure → `MfeEntrySchemaValidationError`
-- [ ] 4.3.9 Test `MfeBridge` subscription behavior with callbacks
-- [ ] 4.3.10 Test subscription debounce option
-- [ ] 4.3.11 Test `requestHostAction()` with payload validation
-- [ ] 4.3.12 Test `MfeOrchestrator` lifecycle
-- [ ] 4.3.13 Test subscription cleanup on bridge destroy
-- [ ] 4.3.14 Test MFE actions emit correct events
-- [ ] 4.3.15 Test MFE effects call orchestrator correctly
-- [ ] 4.3.16 Test effects do NOT call actions
-
-### 4.4 Integration Tests
-- [ ] 4.4.1 Test MFE load and mount lifecycle via Flux flow
-- [ ] 4.4.2 Test MFE schema validation on load (valid and invalid bundles)
-- [ ] 4.4.3 Test entry schema validation on mount (valid and invalid entries)
-- [ ] 4.4.4 Test state subscription updates via bridge
-- [ ] 4.4.5 Test host→MFE action requests with validation
-- [ ] 4.4.6 Test MFE→host action requests with validation
-- [ ] 4.4.7 Test navigation away cleanup
-- [ ] 4.4.8 Test CSS isolation in Shadow DOM
-- [ ] 4.4.9 Test multiple concurrent MFEs
-
-### 4.5 Performance Tests
-- [ ] 4.5.1 Verify MFE load time < 500ms (p95) after host loaded
-- [ ] 4.5.2 Verify bridge action round-trip < 10ms
-- [ ] 4.5.3 Verify no memory leaks after 100 mount/unmount cycles
-- [ ] 4.5.4 Verify GTS validation overhead < 1ms per action
-
-## Phase 5: Documentation & CLI
-
-### 5.1 Documentation
-- [ ] 5.1.1 Update @hai3/screensets CLAUDE.md with GTS utilities, MFE orchestration classes
-- [ ] 5.1.2 Update @hai3/framework CLAUDE.md with Flux integration (actions, effects, plugin)
-- [ ] 5.1.3 Add architecture diagram showing screensets orchestration + framework Flux wiring
-- [ ] 5.1.4 Document the data flow: Component → Action → Event → Effect → Orchestrator → Slice
-
-### 5.2 CLI Commands
-- [ ] 5.2.1 Add `hai3 create --mfe` command for MFE screenset template
-- [ ] 5.2.2 Generate Vite + Module Federation config
-- [ ] 5.2.3 Generate example MicrofrontendDefinition with GTS types
-- [ ] 5.2.4 Generate example entries and contract with GTS type IDs
-- [ ] 5.2.5 Generate example action schema registration
-
-### 5.3 Final Validation
-- [ ] 5.3.1 Run full build: `npm run build:packages`
-- [ ] 5.3.2 Run arch check: `npm run arch:check`
-- [ ] 5.3.3 Run type check: `npm run type-check`
-- [ ] 5.3.4 Run lint: `npm run lint`
-- [ ] 5.3.5 Manual browser testing via Chrome MCP
+**Current Status**: Planning - Not Started
 
 ---
 
-## Dependencies
+## Phase 1: Type System Plugin Infrastructure
 
-```
-Phase 1 (GTS) ───────────────────┐
-          │                      │
-          v                      │
-Phase 2 (MFE Orchestration) ─────┤
-          │                      ├──> Phase 4 (Testing)
-          v                      │
-Phase 3 (Flux Integration) ──────┘
-          │
-          v
-Phase 5 (Docs & CLI)
-```
+**Goal**: Define the TypeSystemPlugin interface and supporting types.
 
-**Parallelizable:**
-- Phase 4.1 (Example MFE) can start after Phase 2
-- Phase 5.1-5.2 can start after Phase 3
+### 1.1 Define Plugin Interface
 
-**Critical Path:**
-Phase 1 → Phase 2 → Phase 3 → Phase 4 → Phase 5
+- [ ] 1.1.1 Create `TypeSystemPlugin<TTypeId>` interface in `packages/screensets/src/mfe/plugins/types.ts`
+- [ ] 1.1.2 Define `ParsedTypeId` interface for parsed type ID components
+- [ ] 1.1.3 Define `TypeIdOptions` interface for building type IDs
+- [ ] 1.1.4 Define `ValidationResult` and `ValidationError` interfaces
+- [ ] 1.1.5 Define `CompatibilityResult` and `CompatibilityChange` interfaces (optional method support)
+- [ ] 1.1.6 Export plugin interface from `@hai3/screensets`
 
-## Key Architectural Notes
+**Traceability**: Requirement "Type System Plugin Abstraction" - Plugin interface definition
 
-1. **@hai3/screensets** is a complete MFE orchestration library with ZERO @hai3/state dependencies
-2. **@hai3/screensets** uses props/callbacks interface for all state-related operations
-3. **@hai3/framework** ONLY provides Flux integration glue
-4. Framework Actions emit events and return void (no async)
-5. Framework Effects subscribe to events, call orchestrator methods, dispatch to slices
-6. Effects may NOT call actions (prevents loops)
-7. Bridge `onHostAction` callback is wired to a Framework action at plugin init time
+### 1.2 Define Plugin Supporting Types
+
+- [ ] 1.2.1 Define type ID operation method signatures (`parseTypeId`, `isValidTypeId`, `buildTypeId`)
+- [ ] 1.2.2 Define schema registry method signatures (`registerSchema`, `validateInstance`, `getSchema`, `hasSchema`)
+- [ ] 1.2.3 Define query method signatures (`query`, `listAll`)
+- [ ] 1.2.4 Define optional compatibility method signature (`checkCompatibility?`)
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - Plugin interface definition
+
+### 1.3 Define GtsMetadata Interface and Utilities
+
+- [ ] 1.3.1 Create `GtsMetadata` interface in `packages/screensets/src/mfe/types/metadata.ts`
+- [ ] 1.3.2 Define `typeId`, `vendor`, `package`, `namespace`, `type`, `version` properties
+- [ ] 1.3.3 Implement `parseGtsTypeId(typeId: string): GtsMetadata` utility function
+- [ ] 1.3.4 Implement `hydrateWithMetadata<T>(typeId, data): T` utility function
+- [ ] 1.3.5 Add validation for GTS type ID format: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
+- [ ] 1.3.6 Export metadata utilities from `@hai3/screensets`
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - GtsMetadata extraction from type ID
+
+---
+
+## Phase 2: GTS Plugin Implementation
+
+**Goal**: Implement the GTS plugin as the default Type System implementation.
+
+### 2.1 Create GTS Plugin
+
+- [ ] 2.1.1 Create `packages/screensets/src/mfe/plugins/gts/index.ts`
+- [ ] 2.1.2 Implement `parseTypeId()` to parse format `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
+- [ ] 2.1.3 Implement `isValidTypeId()` to validate GTS type ID format
+- [ ] 2.1.4 Implement `buildTypeId()` to construct GTS type IDs
+- [ ] 2.1.5 Implement `registerSchema()` using `GtsStore.register()`
+- [ ] 2.1.6 Implement `validateInstance()` using `GtsStore.validate()`
+- [ ] 2.1.7 Implement `getSchema()` and `hasSchema()` using `GtsStore`
+- [ ] 2.1.8 Implement `query()` using `GtsQuery.search()`
+- [ ] 2.1.9 Implement `listAll()` using `GtsStore.listAll()`
+- [ ] 2.1.10 Implement `checkCompatibility()` using `Gts.checkCompatibility()`
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation
+
+### 2.2 Export GTS Plugin
+
+- [ ] 2.2.1 Export `createGtsTypeSystem()` factory function
+- [ ] 2.2.2 Export `gtsTypeSystem` singleton instance
+- [ ] 2.2.3 Configure package.json exports for `@hai3/screensets/plugins/gts`
+- [ ] 2.2.4 Add peer dependency on `@globaltypesystem/gts-ts`
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation
+
+### 2.3 GTS Plugin Tests
+
+- [ ] 2.3.1 Test `parseTypeId()` with valid GTS type IDs (e.g., `gts.hai3.screensets.mfe.definition.v1~`)
+- [ ] 2.3.2 Test `isValidTypeId()` rejects invalid formats (missing segments, no tilde, no version prefix)
+- [ ] 2.3.3 Test `buildTypeId()` creates correct GTS format
+- [ ] 2.3.4 Test schema registration and validation
+- [ ] 2.3.5 Test query operations
+- [ ] 2.3.6 Test GtsMetadata extraction (vendor, package, namespace, type, version)
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation, GTS type ID validation
+
+---
+
+## Phase 3: Internal TypeScript Types
+
+**Goal**: Define internal TypeScript types for MFE architecture, all extending GtsMetadata.
+
+### 3.1 Define MFE TypeScript Interfaces (extending GtsMetadata)
+
+- [ ] 3.1.1 Create `MfeDefinition extends GtsMetadata` interface (name, url, entries)
+- [ ] 3.1.2 Create `MfeEntry extends GtsMetadata` interface (path, requiredProperties, optionalProperties, actions, domainActions)
+- [ ] 3.1.3 Create `ExtensionDomain extends GtsMetadata` interface (sharedProperties, actions, extensionsActions, uiMetadataContract)
+- [ ] 3.1.4 Create `Extension extends GtsMetadata` interface (domain, entry, uiMetadata)
+- [ ] 3.1.5 Create `SharedProperty extends GtsMetadata` interface (name, schema)
+- [ ] 3.1.6 Create `Action extends GtsMetadata` interface (name, payloadSchema)
+- [ ] 3.1.7 Create `ActionsChain extends GtsMetadata` interface (target, action, payload, next, fallback)
+- [ ] 3.1.8 Export types from `packages/screensets/src/mfe/types/`
+
+**Traceability**: Requirement "MFE TypeScript Type System" - GtsMetadata interface
+
+### 3.2 Create GTS JSON Schemas with x-gts-ref
+
+- [ ] 3.2.1 Create schema for `gts.hai3.screensets.mfe.definition.v1~` with `$id` and `x-gts-ref` for entries
+- [ ] 3.2.2 Create schema for `gts.hai3.screensets.mfe.entry.v1~` with `x-gts-ref` for properties and actions
+- [ ] 3.2.3 Create schema for `gts.hai3.screensets.ext.domain.v1~` with `x-gts-ref` for properties and actions
+- [ ] 3.2.4 Create schema for `gts.hai3.screensets.ext.extension.v1~` with `x-gts-ref` for domain and entry
+- [ ] 3.2.5 Create schema for `gts.hai3.screensets.ext.shared_property.v1~`
+- [ ] 3.2.6 Create schema for `gts.hai3.screensets.ext.action.v1~`
+- [ ] 3.2.7 Create schema for `gts.hai3.screensets.ext.actions_chain.v1~` with `$ref` for recursive next/fallback
+- [ ] 3.2.8 Export schemas from `packages/screensets/src/mfe/schemas/gts-schemas.ts`
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin, x-gts-ref validation in schemas
+
+### 3.3 HAI3 Type Registration
+
+- [ ] 3.3.1 Define `HAI3_TYPE_IDS` constant with all 7 GTS type IDs
+- [ ] 3.3.2 Implement `registerHai3Types(plugin)` function
+- [ ] 3.3.3 Register all 7 schemas using `plugin.registerSchema()` with correct GTS type IDs
+- [ ] 3.3.4 Return `HAI3_TYPE_IDS` for orchestrator use
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin
+
+### 3.4 x-gts-ref Validation
+
+- [ ] 3.4.1 Implement x-gts-ref reference validation logic
+- [ ] 3.4.2 Validate referenced type IDs exist in registry
+- [ ] 3.4.3 Support wildcard patterns (e.g., `gts.hai3.screensets.mfe.entry.v1~*`)
+- [ ] 3.4.4 Add tests for x-gts-ref validation
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - x-gts-ref validation in schemas
+
+## Phase 4: Orchestrator with Plugin
+
+**Goal**: Implement the orchestrator with required Type System plugin injection.
+
+### 4.1 Orchestrator Configuration
+
+- [ ] 4.1.1 Create `ScreensetsOrchestratorConfig<TTypeId>` interface
+- [ ] 4.1.2 Add required `typeSystem` parameter
+- [ ] 4.1.3 Add optional `onError`, `loadingComponent`, `errorFallbackComponent`, `debug` parameters
+- [ ] 4.1.4 Implement `createScreensetsOrchestrator<TTypeId>(config)` factory
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - Plugin injection at initialization
+
+### 4.2 Orchestrator Core with Plugin
+
+- [ ] 4.2.1 Create `MfeOrchestratorImpl<TTypeId>` class
+- [ ] 4.2.2 Store plugin reference as `readonly typeSystem`
+- [ ] 4.2.3 Call `registerHai3Types(plugin)` on initialization
+- [ ] 4.2.4 Throw error if plugin is missing
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - Plugin injection at initialization
+
+### 4.3 Type ID Validation via Plugin
+
+- [ ] 4.3.1 Validate target type ID via `plugin.isValidTypeId()` before chain execution
+- [ ] 4.3.2 Validate action type ID via `plugin.isValidTypeId()` before chain execution
+- [ ] 4.3.3 Return validation error if type IDs are invalid
+
+**Traceability**: Requirement "Actions Chain Orchestration" - Action chain type ID validation
+
+### 4.4 Payload Validation via Plugin
+
+- [ ] 4.4.1 Validate payload via `plugin.validateInstance()` before delivery
+- [ ] 4.4.2 Use action's registered payloadSchema for validation
+- [ ] 4.4.3 Return validation error details on failure
+
+**Traceability**: Requirement "Actions Chain Orchestration" - Action payload validation via plugin
+
+---
+
+## Phase 5: Contract Matching Validation
+
+**Goal**: Implement contract compatibility checking between entries and domains.
+
+### 5.1 Contract Matching Algorithm
+
+- [ ] 5.1.1 Implement `validateContract<TTypeId>(entry, domain)` function
+- [ ] 5.1.2 Implement required properties subset check (Rule 1)
+- [ ] 5.1.3 Implement entry actions subset check (Rule 2)
+- [ ] 5.1.4 Implement domain actions subset check (Rule 3)
+- [ ] 5.1.5 Create `ContractValidationResult` type with error details
+
+**Traceability**: Requirement "Contract Matching Validation" - Valid contract matching
+
+### 5.2 Contract Error Types
+
+- [ ] 5.2.1 Implement `missing_property` error type
+- [ ] 5.2.2 Implement `unsupported_action` error type
+- [ ] 5.2.3 Implement `unhandled_domain_action` error type
+- [ ] 5.2.4 Create human-readable error message formatter
+
+**Traceability**: Requirement "Contract Matching Validation" - error scenarios
+
+### 5.3 Contract Validation Tests
+
+- [ ] 5.3.1 Test valid contract matching scenario
+- [ ] 5.3.2 Test missing required property scenario
+- [ ] 5.3.3 Test unsupported entry action scenario
+- [ ] 5.3.4 Test unhandled domain action scenario
+- [ ] 5.3.5 Test optional properties not blocking registration
+
+**Traceability**: Requirement "Contract Matching Validation" - all scenarios
+
+---
+
+## Phase 6: Framework Plugin Propagation
+
+**Goal**: Propagate Type System plugin through @hai3/framework layers.
+
+### 6.1 Framework Microfrontends Plugin
+
+- [ ] 6.1.1 Create `MicrofrontendsPluginConfig<TTypeId>` interface
+- [ ] 6.1.2 Add required `typeSystem` parameter
+- [ ] 6.1.3 Add optional `baseDomains` parameter
+- [ ] 6.1.4 Implement `createMicrofrontendsPlugin<TTypeId>(config)` factory
+
+**Traceability**: Requirement "Framework Plugin Propagation" - Framework microfrontends plugin configuration
+
+### 6.2 Base Domains Registration
+
+- [ ] 6.2.1 Create `getBaseDomain<TTypeId>(name, plugin)` function
+- [ ] 6.2.2 Build base domain type IDs via `plugin.buildTypeId()`
+- [ ] 6.2.3 Register base domain schemas via `plugin.registerSchema()`
+- [ ] 6.2.4 Implement sidebar, popup, screen, overlay base domains
+
+**Traceability**: Requirement "Framework Plugin Propagation" - Base domains registration via plugin
+
+### 6.3 Plugin Propagation
+
+- [ ] 6.3.1 Pass plugin to `createScreensetsOrchestrator()` in setup
+- [ ] 6.3.2 Expose orchestrator via `framework.provide('mfeOrchestrator', orchestrator)`
+- [ ] 6.3.3 Ensure same plugin instance is used throughout
+
+**Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers
+
+### 6.4 Framework Plugin Tests
+
+- [ ] 6.4.1 Test plugin propagation from config to orchestrator
+- [ ] 6.4.2 Test base domain registration with GTS plugin
+- [ ] 6.4.3 Test orchestrator accessibility via framework
+
+**Traceability**: Requirement "Framework Plugin Propagation" - all scenarios
+
+---
+
+## Phase 7: Isolated State Instances
+
+**Goal**: Implement state isolation between host and MFE instances.
+
+### 7.1 State Container Factory
+
+- [ ] 7.1.1 Create `createMfeStateContainer()` factory function
+- [ ] 7.1.2 Ensure each call creates independent store instance
+- [ ] 7.1.3 Implement store disposal on MFE unmount
+- [ ] 7.1.4 Add store isolation verification tests
+
+**Traceability**: Requirement "Isolated State Instances" - MFE state isolation
+
+### 7.2 Shared Properties Injection
+
+- [ ] 7.2.1 Create `SharedPropertiesProvider` component
+- [ ] 7.2.2 Implement read-only property injection via props
+- [ ] 7.2.3 Implement property update propagation from host
+- [ ] 7.2.4 Add tests for property isolation (no direct modification)
+
+**Traceability**: Requirement "Isolated State Instances" - Shared properties injection
+
+### 7.3 Host State Protection
+
+- [ ] 7.3.1 Verify MFE cannot access host store directly
+- [ ] 7.3.2 Implement boundary enforcement
+- [ ] 7.3.3 Add integration tests for state isolation
+
+**Traceability**: Requirement "Isolated State Instances" - Host state isolation
+
+---
+
+## Phase 8: Actions Chain Execution
+
+**Goal**: Implement action chain execution logic.
+
+### 8.1 Chain Execution Logic
+
+- [ ] 8.1.1 Implement `execute(chain)` method
+- [ ] 8.1.2 Implement target resolution (domain or entry)
+- [ ] 8.1.3 Implement action validation against target contract
+- [ ] 8.1.4 Implement success path (execute `next` chain)
+- [ ] 8.1.5 Implement failure path (execute `fallback` chain)
+- [ ] 8.1.6 Implement termination (no next/fallback)
+- [ ] 8.1.7 Implement `ChainResult` return type
+
+**Traceability**: Requirement "Actions Chain Orchestration" - success/failure/termination scenarios
+
+### 8.2 Extension Registration
+
+- [ ] 8.2.1 Implement `registerExtension()` method
+- [ ] 8.2.2 Implement `unregisterExtension()` method
+- [ ] 8.2.3 Handle pending actions on unregistration
+- [ ] 8.2.4 Add registration/unregistration tests
+
+**Traceability**: Requirement "Actions Chain Orchestration" - Extension registration/unregistration
+
+### 8.3 Chain Execution Tests
+
+- [ ] 8.3.1 Test action chain success path execution
+- [ ] 8.3.2 Test action chain failure path execution
+- [ ] 8.3.3 Test chain termination scenarios
+- [ ] 8.3.4 Test type ID validation via plugin
+- [ ] 8.3.5 Test payload validation via plugin
+- [ ] 8.3.6 Test extension lifecycle (register/unregister)
+
+**Traceability**: Requirement "Actions Chain Orchestration" - all scenarios
+
+## Phase 9: Base Layout Domains
+
+**Goal**: Define and implement HAI3's base extension domains via plugin.
+
+### 9.1 Define Base Domain Contracts
+
+- [ ] 9.1.1 Define sidebar domain: `gts.hai3.screensets.ext.domain.sidebar.v1~`
+- [ ] 9.1.2 Define popup domain: `gts.hai3.screensets.ext.domain.popup.v1~`
+- [ ] 9.1.3 Define screen domain: `gts.hai3.screensets.ext.domain.screen.v1~`
+- [ ] 9.1.4 Define overlay domain: `gts.hai3.screensets.ext.domain.overlay.v1~`
+
+**Traceability**: Requirement "Hierarchical Extension Domains" - Base layout domains
+
+### 9.2 Implement Domain Registration
+
+- [ ] 9.2.1 Create domain registry with GTS type IDs
+- [ ] 9.2.2 Implement `registerDomain()` for vendor domains (e.g., `gts.acme.dashboard.ext.domain.widget_slot.v1~`)
+- [ ] 9.2.3 Implement domain contract validation at registration
+- [ ] 9.2.4 Add tests for domain registration with GTS plugin
+
+**Traceability**: Requirement "Hierarchical Extension Domains" - Vendor-defined domain
+
+### 9.3 Implement Domain Rendering
+
+- [ ] 9.3.1 Create `ExtensionDomainSlot` component
+- [ ] 9.3.2 Implement extension rendering within slot
+- [ ] 9.3.3 Handle nested domain rendering
+- [ ] 9.3.4 Add integration tests for nested injection
+
+**Traceability**: Requirement "Hierarchical Extension Domains" - Nested extension injection
+
+---
+
+## Phase 10: MFE Loading and Error Handling
+
+**Goal**: Implement MFE bundle loading with error handling.
+
+### 10.1 MFE Loader
+
+- [ ] 10.1.1 Implement `loadMfe(manifest)` function
+- [ ] 10.1.2 Implement bundle fetching from URL
+- [ ] 10.1.3 Implement entry resolution from loaded bundle
+- [ ] 10.1.4 Add loading state management
+
+**Traceability**: Requirement "MFE Error Handling"
+
+### 10.2 Error Handling
+
+- [ ] 10.2.1 Implement fallback UI for load failures
+- [ ] 10.2.2 Implement retry mechanism
+- [ ] 10.2.3 Implement contract validation error display with type ID context
+- [ ] 10.2.4 Implement action handler error logging with plugin details
+
+**Traceability**: Requirement "MFE Error Handling" - all error scenarios
+
+### 10.3 Error Handling Tests
+
+- [ ] 10.3.1 Test bundle load failure scenario
+- [ ] 10.3.2 Test contract validation failure at load time
+- [ ] 10.3.3 Test action handler error scenario
+- [ ] 10.3.4 Test retry functionality
+
+**Traceability**: Requirement "MFE Error Handling" - all scenarios
+
+---
+
+## Phase 11: Integration and Documentation
+
+**Goal**: Integrate all components and create documentation.
+
+### 11.1 Integration Testing
+
+- [ ] 11.1.1 Create end-to-end test with mock MFE using GTS plugin
+- [ ] 11.1.2 Test full lifecycle: load, mount, action chain, unmount
+- [ ] 11.1.3 Test multiple MFEs in different domains
+- [ ] 11.1.4 Performance testing for action chain execution
+- [ ] 11.1.5 Test custom plugin integration
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - Custom plugin implementation
+
+### 11.2 Documentation
+
+- [ ] 11.2.1 Update `.ai/targets/SCREENSETS.md` with MFE architecture and Type System plugin
+- [ ] 11.2.2 Create MFE vendor development guide
+- [ ] 11.2.3 Document `TypeSystemPlugin` interface
+- [ ] 11.2.4 Document GTS plugin usage and type schemas
+- [ ] 11.2.5 Create custom plugin implementation guide
+- [ ] 11.2.6 Create example MFE implementation with GTS plugin
+
+**Traceability**: Requirement "Type System Plugin Abstraction" - all scenarios
+
+### 11.3 Final Validation
+
+- [ ] 11.3.1 Run `npm run type-check` - must pass
+- [ ] 11.3.2 Run `npm run lint` - must pass
+- [ ] 11.3.3 Run `npm run test` - must pass
+- [ ] 11.3.4 Run `npm run build` - must pass

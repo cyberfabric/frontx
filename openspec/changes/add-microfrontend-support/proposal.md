@@ -1,112 +1,177 @@
-# Change: Add Microfrontend Support with GTS Type System
+# Change: Add Microfrontend Support
 
 ## Why
 
-HAI3 currently bundles all screensets into a monolithic application, creating several limitations for enterprise SaaS platforms:
+HAI3 applications need to compose functionality from multiple independently deployed microfrontends (MFEs). Vendors can create MFE extensions that integrate into host applications through well-defined extension points. This enables:
 
-1. **Build coupling** - All screensets rebuild together, increasing CI/CD times
-2. **Deployment coupling** - Single screenset change requires full app redeployment
-3. **Team scalability** - Multiple teams cannot independently deploy screensets
-4. **Runtime flexibility** - Cannot load screensets dynamically based on tenant/user permissions
-5. **Third-party extensibility** - Partners cannot inject functionality without source access
-6. **Weak identification** - Simple string IDs don't scale for multi-vendor ecosystems
-
-This change introduces **true runtime vertical slices** where screensets are deployed as independently built microfrontends (MFEs) that the host application loads and orchestrates at runtime with zero build-time knowledge.
-
-**Additionally**, this change adopts the [Global Type System (GTS)](https://github.com/GlobalTypeSystem/gts-spec) for:
-- Hierarchical, vendor-namespaced, versioned identifiers (like Apple's UTIs)
-- JSON Schema-backed type definitions for MFEs, entries, and actions
-- Runtime validation of loaded MFE bundles against registered schemas
-- Schema registry for type discovery and conformance checking
+1. **Independent Deployment**: MFEs can be deployed separately from the host application
+2. **Vendor Extensibility**: Third parties can create extensions without modifying host code
+3. **State Isolation**: Each MFE maintains its own HAI3 state instance with controlled communication
+4. **Type-Safe Contracts**: Pluggable type system defines clear communication boundaries between host and MFE
 
 ## What Changes
 
-### @hai3/screensets (SDK Layer L1) - Full MFE Orchestration Library
+### Core Architecture
 
-This package becomes a **complete MFE orchestration library** with a **state-management agnostic API** (props/callbacks interface). It has ZERO dependencies on `@hai3/state`.
+Each MFE instance and host has its **own isolated HAI3 state instance**. Communication happens ONLY through a symmetric contract:
+- **Shared properties** (parent to child, read-only)
+- **Actions chain** delivered by orchestrator to targets
 
-- **ADDED** GTS type system utilities (`GtsTypeId`, `parseGtsId`, `gts()` builder)
-- **ADDED** GTS schema registry (`gtsRegistry`) for storing and validating schemas
-- **ADDED** `conformsTo()` function for type conformance checking
-- **ADDED** `MicrofrontendDefinition` as a **full GTS type** with JSON Schema (`gts.hai3.mfe.type.v1~`)
-- **ADDED** `MfeEntry` as **full GTS types** per domain with JSON Schemas (`gts.hai3.mfe.entry.screen.v1~`, etc.)
-- **ADDED** Runtime validation of loaded MFE definitions against registered schemas
-- **ADDED** `MfeBridge` class implementation (props/callbacks, NO state references)
-- **ADDED** `MfeOrchestrator` class for loading, mounting, unmounting MFEs
-- **ADDED** `MfeLoader` for Module Federation 2.0 remote loading
-- **ADDED** `createShadowRoot()` utility for Shadow DOM isolation
-- **ADDED** `MfeContract` interface for MFE lifecycle (mount/unmount/action handlers)
-- **ADDED** `microfrontendRegistry` singleton for MFE definition storage
-- **ADDED** Predefined HAI3 GTS base types for MFEs, entries, and actions
-- **ADDED** MFE error types (`PayloadValidationError`, `MfeNotMountedError`, `ActionNotAllowedError`)
-- **ADDED** MFE event payload types for `EventPayloadMap` augmentation
+### Architectural Decision: Type System Plugin Abstraction
 
-### @hai3/framework (Framework Layer L2) - Flux Integration Only
+The @hai3/screensets package abstracts the Type System as a **pluggable dependency**:
 
-This package provides **ONLY the Flux integration** layer. It wires the MFE orchestrator (from @hai3/screensets) into the event-driven data flow pattern from @hai3/state.
+1. **Internal TypeScript Types**: The package works internally with TypeScript interfaces (`MfeDefinition`, `MfeEntry`, `ExtensionDomain`, etc.)
+2. **Required Plugin**: A `TypeSystemPlugin` must be provided at initialization
+3. **Default Implementation**: GTS (`@globaltypesystem/gts-ts`) ships as the default plugin
+4. **Extensibility**: Other Type System implementations can be plugged in
 
-- **ADDED** `microfrontends()` plugin
-- **ADDED** MFE Actions (`loadMfe`, `mountMfeEntry`, `unmountMfe`, `requestMfeAction`, etc.) that emit events
-- **ADDED** MFE Effects that subscribe to events and call orchestrator methods, then dispatch to slice
-- **ADDED** `mfeSlice` for tracking MFE load states
-- **ADDED** Bridge callback wiring (orchestrator callbacks → framework actions → events)
-- **MODIFIED** Navigation plugin to detect and delegate to MFE screensets
+**Plugin Interface:**
+```typescript
+interface TypeSystemPlugin<TTypeId = string> {
+  // Type ID operations
+  parseTypeId(id: string): ParsedTypeId;
+  isValidTypeId(id: string): boolean;
+  buildTypeId(options: TypeIdOptions): TTypeId;
 
-### Non-Goals (Out of Scope)
-- Server-Side Rendering for MFEs (client-side only)
-- Cross-MFE direct communication (must go through host)
-- Shared state between MFEs (each gets narrow app slice)
-- HMR for remote MFEs
-- Build tool migration (bundler-agnostic at contract level)
-- GTS instance identifiers for runtime MFE instances (use opaque UUIDs)
+  // Schema registry
+  registerSchema(typeId: TTypeId, schema: JSONSchema): void;
+  validateInstance(typeId: TTypeId, instance: unknown): ValidationResult;
+  getSchema(typeId: TTypeId): JSONSchema | undefined;
+
+  // Query
+  query(pattern: string, limit?: number): TTypeId[];
+
+  // Compatibility (optional)
+  checkCompatibility?(oldTypeId: TTypeId, newTypeId: TTypeId): CompatibilityResult;
+}
+```
+
+### HAI3 Internal TypeScript Types
+
+The MFE system uses these internal TypeScript interfaces. Each type includes `GtsMetadata` which contains data extracted from the GTS type ID:
+
+```typescript
+// Extracted from GTS ID parsing
+interface GtsMetadata {
+  readonly typeId: string;      // Full GTS type ID
+  readonly vendor: string;      // Extracted from typeId
+  readonly package: string;     // Extracted from typeId
+  readonly namespace: string;   // Extracted from typeId
+  readonly type: string;        // Extracted from typeId
+  readonly version: {           // Extracted from typeId
+    major: number;
+    minor?: number;
+  };
+}
+```
+
+| TypeScript Interface | Extends | Fields | Purpose |
+|---------------------|---------|--------|---------|
+| `MfeDefinition` | `GtsMetadata` | `name, url, entries: string[]` | Deployable MFE unit |
+| `MfeEntry` | `GtsMetadata` | `path, requiredProperties[], optionalProperties[], actions[], domainActions[]` | Entry with communication contract |
+| `ExtensionDomain` | `GtsMetadata` | `sharedProperties[], actions[], extensionsActions[], uiMetadataContract` | Extension point contract |
+| `Extension` | `GtsMetadata` | `domain: string, entry: string, uiMetadata` | Extension binding |
+| `SharedProperty` | `GtsMetadata` | `name, schema` | Property definition (NO default value) |
+| `Action` | `GtsMetadata` | `name, payloadSchema` | Action definition |
+| `ActionsChain` | `GtsMetadata` | `target: string, action: string, payload, next?, fallback?` | Orchestration chain |
+
+### GTS Type ID Format
+
+The GTS type ID format is: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
+
+### Type System Registration (via Plugin)
+
+When using the GTS plugin, the following types are registered with properly structured GTS type IDs:
+
+| GTS Type ID | Segments | Purpose |
+|-------------|----------|---------|
+| `gts.hai3.screensets.mfe.definition.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=definition | Deployable MFE unit |
+| `gts.hai3.screensets.mfe.entry.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=entry | Entry with communication contract |
+| `gts.hai3.screensets.ext.domain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=domain | Extension point contract |
+| `gts.hai3.screensets.ext.extension.v1~` | vendor=hai3, package=screensets, namespace=ext, type=extension | Extension binding |
+| `gts.hai3.screensets.ext.shared_property.v1~` | vendor=hai3, package=screensets, namespace=ext, type=shared_property | Property definition |
+| `gts.hai3.screensets.ext.action.v1~` | vendor=hai3, package=screensets, namespace=ext, type=action | Action definition |
+| `gts.hai3.screensets.ext.actions_chain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=actions_chain | Orchestration chain |
+
+### GTS JSON Schema Definitions
+
+Each GTS type has a corresponding JSON Schema with proper `$id` and `x-gts-ref` references:
+
+```json
+{
+  "$id": "gts://gts.hai3.screensets.mfe.definition.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "url": { "type": "string", "format": "uri" },
+    "entries": {
+      "type": "array",
+      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~*" },
+      "minItems": 1
+    }
+  },
+  "required": ["name", "url", "entries"]
+}
+```
+
+See `design.md` for complete JSON Schema definitions of all 7 types.
+
+### Contract Matching Rules
+
+For injection to be valid:
+```
+entry.requiredProperties  is subset of  domain.sharedProperties
+entry.actions             is subset of  domain.extensionsActions
+domain.actions            is subset of  entry.domainActions
+```
+
+### Actions Chain Runtime
+
+1. Orchestrator delivers actions chain to target (domain or entry)
+2. Target executes the action (only target understands payload based on action type)
+3. On success: orchestrator delivers `next` chain to its target
+4. On failure: orchestrator delivers `fallback` chain to its target
+5. Recursive until chain ends (no next/fallback)
+
+### Hierarchical Extension Domains
+
+- HAI3 provides base layout domains: `sidebar`, `popup`, `screen`, `overlay`
+- Vendor screensets can define their own extension domains
+- Example: A dashboard screenset defines a "widget slot" domain for third-party widgets
 
 ## Impact
 
-- **Affected specs**: `screensets`
-- **New capability**: `microfrontends`
-- **Affected code**:
-  - `packages/screensets/src/gts/` - GTS utilities (parser, builder, registry, conformance)
-  - `packages/screensets/src/mfe/` - Full MFE orchestration (Bridge, Orchestrator, Loader, ShadowDom, Registry)
-  - `packages/screensets/src/errors.ts` - MFE error types
-  - `packages/framework/src/plugins/microfrontends/` - Flux integration (actions, effects, plugin)
-  - `packages/framework/src/slices/mfeSlice.ts` - MFE load states
+### Affected specs
+- `screensets` - Core MFE integration, Type System plugin interface, and type definitions
 
-## Key Architectural Decisions
+### Affected code
 
-1. **GTS Type System** - Hierarchical, versioned, vendor-namespaced identifiers (e.g., `gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~`)
-2. **MFEs and Entries are Full GTS Types** - `MicrofrontendDefinition` and `MfeEntry` have JSON Schemas registered in `gtsRegistry`; loaded bundles are validated against these schemas at runtime
-3. **Schema Registry + Runtime Validation** - Validates MFE definitions on load, action payloads before execution, and entry structures before mounting
-4. **Module Federation 2.0** - Mature, TypeScript support, battle-tested
-5. **1 MFE = 1 Screenset with multiple entries** - Each layout domain (screen, popup, sidebar, overlay) is a separate GTS-typed entry
-6. **Shadow DOM for style isolation** - Web standard, CSS variables pass through for theming
-7. **Thin bridge contracts (ISP)** - MFEs see only narrow `app` state slice, not full RootState
-8. **Runtime injection** - Host has zero build-time knowledge of MFEs
-9. **Types only, not instances** - MFE definitions have GTS type IDs; runtime instances use opaque UUIDs
-10. **Full implementation in SDK, Flux wiring in Framework** - @hai3/screensets contains complete MFE orchestration (state-agnostic, props/callbacks); @hai3/framework wires callbacks to Flux data flow (Actions emit events, Effects dispatch)
+**New packages:**
+- `packages/screensets/src/mfe/` - MFE runtime, loader, orchestrator
+- `packages/screensets/src/mfe/types/` - Internal TypeScript type definitions
+- `packages/screensets/src/mfe/validation/` - Contract matching validation
+- `packages/screensets/src/mfe/orchestrator/` - Actions chain delivery
+- `packages/screensets/src/mfe/plugins/` - Type System plugin interface and implementations
+- `packages/screensets/src/mfe/plugins/gts/` - GTS plugin implementation (default)
 
-## GTS Type Examples
+**Modified packages:**
+- `packages/screensets/src/store/` - Isolated state instances
+- `packages/screensets/src/events/` - Cross-MFE event isolation
+- `packages/screensets/src/screensets/` - Extension domain registration
+- `packages/framework/src/plugins/microfrontends/` - Accept Type System plugin from screensets
 
-All MFEs, entries, and actions are **full GTS types** with JSON Schemas registered in `gtsRegistry`.
+### Breaking changes
+- **BREAKING**: MFEs require Type System-compliant type definitions for integration
+- **BREAKING**: Extension points must define explicit contracts
+- **BREAKING**: `ScreensetsOrchestratorConfig` now requires `typeSystem` parameter
 
-```
-# HAI3 Platform Base Types (with JSON Schemas)
-gts.hai3.mfe.type.v1~                              # MicrofrontendDefinition schema
-gts.hai3.mfe.entry.v1~                             # Base MfeEntry schema
-gts.hai3.mfe.entry.screen.v1~                      # Screen entry schema (extends entry.v1)
-gts.hai3.mfe.entry.popup.v1~                       # Popup entry schema (extends entry.v1)
-gts.hai3.action.host.show_popup.v1~                # Host action payload schema
-
-# Vendor MFE (conforms to HAI3 MFE type, validated on load)
-gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~
-
-# Vendor Entry (conforms to HAI3 screen entry, validated on mount)
-gts.hai3.mfe.entry.screen.v1~acme.analytics.screens.main.v1~
-
-# Vendor Action (conforms to HAI3 MFE action, validated on invocation)
-gts.hai3.action.mfe.v1~acme.analytics.actions.refresh_data.v1~
-```
-
-**Runtime Validation Flow:**
-1. MFE bundle loaded → validate `MicrofrontendDefinition` against `gts.hai3.mfe.type.v1~` schema
-2. Entry mounted → validate `MfeEntry` against domain-specific schema (e.g., `gts.hai3.mfe.entry.screen.v1~`)
-3. Action invoked → validate payload against action's schema
+### Migration strategy
+1. Define `TypeSystemPlugin` interface in @hai3/screensets
+2. Create GTS plugin implementation as default
+3. Update orchestrator to require plugin injection
+4. Define internal TypeScript types for MFE architecture
+5. Register HAI3 types via plugin at initialization
+6. Propagate plugin through @hai3/framework layers
+7. Update documentation and examples
