@@ -1,8 +1,7 @@
 name: Publish Packages
 
 on:
-  pull_request:
-    types: [closed]
+  push:
     branches: [main]
 
 permissions:
@@ -10,7 +9,6 @@ permissions:
 
 jobs:
   detect-changes:
-    if: github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       packages: ${{ steps.detect.outputs.packages }}
@@ -20,17 +18,16 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Full history for squash-merge support
+          fetch-depth: 0  # Full history needed for github.event.before comparison
 
       - name: Detect version changes
         id: detect
         run: |
           PACKAGES=()
 
-          # Use the PR's base commit SHA - works for ALL merge strategies
-          # (standard merge, squash merge, AND rebase and merge)
-          BASE_COMMIT="${{ github.event.pull_request.base.sha }}"
-          echo "Comparing HEAD against PR base: $BASE_COMMIT"
+          # Compare HEAD with the state before push (works for all merge strategies)
+          BASE_COMMIT="${{ github.event.before }}"
+          echo "Comparing HEAD against pre-push state: $BASE_COMMIT"
 
           # Check each package for version changes
           for pkg_dir in packages/*/; do
@@ -85,37 +82,6 @@ jobs:
 
       - name: Build all packages
         run: npm run build:packages
-
-      - name: Debug npm auth
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-        run: |
-          echo "=== npm whoami ==="
-          npm whoami 2>&1 || echo "FAILED: npm whoami returned exit code $?"
-
-          echo ""
-          echo "=== Token format check ==="
-          if [ -z "$NODE_AUTH_TOKEN" ]; then
-            echo "ERROR: NODE_AUTH_TOKEN is empty"
-          else
-            TOKEN_LENGTH=${#NODE_AUTH_TOKEN}
-            echo "Token length: $TOKEN_LENGTH characters"
-            echo "Token prefix: ${NODE_AUTH_TOKEN:0:4}..."
-          fi
-
-          echo ""
-          echo "=== npmrc files ==="
-          echo "NPM_CONFIG_USERCONFIG: $NPM_CONFIG_USERCONFIG"
-          [ -f "$NPM_CONFIG_USERCONFIG" ] && echo "Temp .npmrc exists" || echo "Temp .npmrc NOT found"
-          [ -f ~/.npmrc ] && echo "~/.npmrc exists" || echo "~/.npmrc NOT found"
-
-          echo ""
-          echo "=== npm config (auth masked) ==="
-          npm config list
-
-          echo ""
-          echo "=== @hai3 org access check ==="
-          npm access ls-packages 2>&1 | head -20 || echo "Could not list packages"
 
       - name: Publish packages in order
         id: publish
