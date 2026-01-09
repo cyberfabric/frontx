@@ -5,107 +5,85 @@
 HAI3 applications need to compose functionality from multiple independently deployed microfrontends (MFEs). Vendors can create MFE extensions that integrate into host applications through well-defined extension points. This enables:
 
 1. **Independent Deployment**: MFEs can be deployed separately from the host application
-2. **Vendor Extensibility**: Third parties can create extensions without modifying host code
-3. **State Isolation**: Each MFE maintains its own HAI3 state instance with controlled communication
-4. **Type-Safe Contracts**: Pluggable type system defines clear communication boundaries between host and MFE
+2. **Vendor Extensibility**: Third parties can create extensions without modifying host code, using ANY UI framework (Vue 3, Angular, Svelte, etc.)
+3. **Complete Runtime Isolation**: Each MFE maintains its own isolated runtime (state, TypeSystemPlugin, schema registry) with controlled communication ONLY through the contract
+4. **Type-Safe Contracts**: Each runtime has its own TypeSystemPlugin instance - MFEs cannot discover host or other MFE schemas
+5. **Framework Agnostic**: Host uses React, but MFEs can use any framework - no React/ReactDOM dependency for MFEs
 
 ## What Changes
 
 ### Core Architecture
 
-Each MFE instance and host has its **own isolated HAI3 state instance**. Communication happens ONLY through a symmetric contract:
+Each MFE and host has its **own FULLY ISOLATED runtime**:
+- Own `@hai3/screensets` instance (NOT singleton)
+- Own `TypeSystemPlugin` instance (NOT singleton) with isolated schema registry
+- Own `@hai3/state` container
+- Can use ANY UI framework (host uses React, MFEs can use Vue 3, Angular, Svelte, etc.)
+
+Communication happens ONLY through the explicit contract (MfeBridge interface):
 - **Shared properties** (parent to child, read-only)
 - **Actions chain** delivered by ActionsChainsMediator to targets
+
+Internal runtime coordination (between host and MFE runtimes) uses PRIVATE mechanisms not exposed to MFE code.
 
 ### Architectural Decision: Type System Plugin Abstraction
 
 The @hai3/screensets package abstracts the Type System as a **pluggable dependency**:
 
-1. **Internal TypeScript Types**: The package works internally with TypeScript interfaces (`MfeEntry`, `MfeEntryMF`, `ExtensionDomain`, etc.)
+1. **Opaque Type IDs**: The screensets package treats type IDs as opaque strings
 2. **Required Plugin**: A `TypeSystemPlugin` must be provided at initialization
 3. **Default Implementation**: GTS (`@globaltypesystem/gts-ts`) ships as the default plugin
 4. **Extensibility**: Other Type System implementations can be plugged in
 
+**Key Principle**: When metadata about a type ID is needed, call plugin methods (`parseTypeId`, `getAttribute`, etc.) directly.
+
 **Plugin Interface:**
 ```typescript
-interface TypeSystemPlugin<TTypeId = string> {
+interface TypeSystemPlugin {
   // Type ID operations
-  parseTypeId(id: string): ParsedTypeId;
   isValidTypeId(id: string): boolean;
-  buildTypeId(options: TypeIdOptions): TTypeId;
+  buildTypeId(options: Record<string, unknown>): string;
+  parseTypeId(id: string): Record<string, unknown>;
 
   // Schema registry
-  registerSchema(typeId: TTypeId, schema: JSONSchema): void;
-  validateInstance(typeId: TTypeId, instance: unknown): ValidationResult;
-  getSchema(typeId: TTypeId): JSONSchema | undefined;
+  registerSchema(typeId: string, schema: JSONSchema): void;
+  validateInstance(typeId: string, instance: unknown): ValidationResult;
+  getSchema(typeId: string): JSONSchema | undefined;
 
   // Query
-  query(pattern: string, limit?: number): TTypeId[];
+  query(pattern: string, limit?: number): string[];
 
   // Compatibility (REQUIRED)
-  checkCompatibility(oldTypeId: TTypeId, newTypeId: TTypeId): CompatibilityResult;
+  checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult;
 
   // Attribute access (REQUIRED for dynamic schema resolution)
-  getAttribute(typeId: TTypeId, path: string): AttributeResult;
+  getAttribute(typeId: string, path: string): AttributeResult;
 }
 ```
 
 ### HAI3 Internal TypeScript Types
 
-The MFE system uses these internal TypeScript interfaces. Each type includes `TypeMetadata` which contains data extracted from the type ID by the plugin:
-
-```typescript
-// Extracted from type ID parsing via plugin
-interface TypeMetadata {
-  readonly typeId: string;      // Full type ID
-  readonly vendor: string;      // Extracted from typeId
-  readonly package: string;     // Extracted from typeId
-  readonly namespace: string;   // Extracted from typeId
-  readonly type: string;        // Extracted from typeId
-  readonly version: {           // Extracted from typeId
-    major: number;
-    minor?: number;
-  };
-}
-```
+The MFE system uses these internal TypeScript interfaces. Each type has an `id: string` field as its identifier:
 
 **Core Types (6 types):**
 
-| TypeScript Interface | Extends | Fields | Purpose |
-|---------------------|---------|--------|---------|
-| `MfeEntry` | `TypeMetadata` | `requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `TypeMetadata` | `sharedProperties[], actions[], extensionsActions[], extensionsUiMeta` | Extension point contract |
-| `Extension` | `TypeMetadata` | `domain: string, entry: string, uiMeta` | Extension binding |
-| `SharedProperty` | `TypeMetadata` | `name, schema` | Property definition (NO default value) |
-| `Action` | `TypeMetadata` | `target (x-gts-ref), type (x-gts-ref: "/$id"), payload?` | Action type with self-identifying type ID |
-| `ActionsChain` | `TypeMetadata` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances) |
+| TypeScript Interface | Fields | Purpose |
+|---------------------|--------|---------|
+| `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
+| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta` | Extension point contract |
+| `Extension` | `id, domain, entry, uiMeta` | Extension binding |
+| `SharedProperty` | `id, value` | Shared property instance |
+| `Action` | `type, target, payload?` | Action with self-identifying type ID |
+| `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
 
 **MF-Specific Types (2 types):**
 
-| TypeScript Interface | Extends | Fields | Purpose |
-|---------------------|---------|--------|---------|
-| `MfManifest` | `TypeMetadata` | `remoteEntry, remoteName, sharedDependencies?, entries?` | Module Federation manifest (standalone) |
-| `MfeEntryMF` | `MfeEntry` | `manifest: string, exposedModule: string` | Module Federation entry (derived) |
+| TypeScript Interface | Fields | Purpose |
+|---------------------|--------|---------|
+| `MfManifest` | `id, remoteEntry, remoteName, sharedDependencies?[], entries?` | Module Federation manifest (standalone) |
+| `MfeEntryMF` | `(extends MfeEntry) manifest, exposedModule` | Module Federation entry (derived) |
 
 **Note on MfeEntry Design:** MfeEntry is a **pure contract** type (abstract base) that defines ONLY the communication interface (properties, actions). Derived types like `MfeEntryMF` add loader-specific fields. This separation ensures the same entry contract works with any loader and allows future loaders (ESM, Import Maps) to add their own derived types.
-
-**Why This Structure Eliminates Parallel Hierarchies:**
-
-The previous design had parallel hierarchies:
-- `MfeDefinition` (abstract) -> `MfeDefinitionMF` (derived)
-- `MfeEntry` (pure contract)
-
-This created redundancy because both hierarchies needed to track entries. The new design:
-
-1. **Makes MfeEntry the abstract base** for entry contracts
-2. **Adds MfeEntryMF as derived** that references its MfManifest
-3. **MfManifest is standalone** containing Module Federation config
-4. **Extension binds to MfeEntry** (or its derived types)
-
-Benefits:
-- **No parallel hierarchies**: Only one entry hierarchy
-- **Future-proof**: ESM loader would add `MfeEntryEsm` derived type with its own manifest reference
-- **Clear ownership**: Entry owns its contract AND references its manifest
 
 ### GTS Type ID Format
 
@@ -117,25 +95,25 @@ When using the GTS plugin, the following types are registered with properly stru
 
 **Core Types (6 types):**
 
-| GTS Type ID | Segments | Purpose |
-|-------------|----------|---------|
-| `gts.hai3.screensets.mfe.entry.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=entry | Pure contract type (Abstract Base) |
-| `gts.hai3.screensets.ext.domain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=domain | Extension point contract |
-| `gts.hai3.screensets.ext.extension.v1~` | vendor=hai3, package=screensets, namespace=ext, type=extension | Extension binding |
-| `gts.hai3.screensets.ext.shared_property.v1~` | vendor=hai3, package=screensets, namespace=ext, type=shared_property | Property definition |
-| `gts.hai3.screensets.ext.action.v1~` | vendor=hai3, package=screensets, namespace=ext, type=action | Action type with target and self-id |
-| `gts.hai3.screensets.ext.actions_chain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=actions_chain | Action chain for mediation |
+| GTS Type ID | Purpose |
+|-------------|---------|
+| `gts.hai3.screensets.mfe.entry.v1~` | Pure contract type (Abstract Base) |
+| `gts.hai3.screensets.ext.domain.v1~` | Extension point contract |
+| `gts.hai3.screensets.ext.extension.v1~` | Extension binding |
+| `gts.hai3.screensets.ext.shared_property.v1~` | Property definition |
+| `gts.hai3.screensets.ext.action.v1~` | Action type with target and self-id |
+| `gts.hai3.screensets.ext.actions_chain.v1~` | Action chain for mediation |
 
 **MF-Specific Types (2 types):**
 
-| GTS Type ID | Segments | Purpose |
-|-------------|----------|---------|
-| `gts.hai3.screensets.mfe.mf.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=mf | Module Federation manifest (standalone) |
-| `gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1` | Derived from MfeEntry | Module Federation entry with manifest reference |
+| GTS Type ID | Purpose |
+|-------------|---------|
+| `gts.hai3.screensets.mfe.mf.v1~` | Module Federation manifest (standalone) |
+| `gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~` | Module Federation entry (derived) |
 
 ### GTS JSON Schema Definitions
 
-Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id` and `x-gts-ref` references. The Action type uses `x-gts-ref: "/$id"` for self-reference per GTS spec:
+Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. Example Action schema (note: Action uses `type` field for self-identification instead of `id`):
 
 ```json
 {
@@ -143,24 +121,24 @@ Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "type": {
+      "x-gts-ref": "/$id",
+      "$comment": "Self-reference to this action's type ID"
+    },
     "target": {
       "type": "string",
       "oneOf": [
         { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
         { "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*" }
       ],
-      "description": "Type ID of the target ExtensionDomain or Extension"
-    },
-    "type": {
-      "x-gts-ref": "/$id",
-      "description": "Self-reference to this action's type ID (the action's own $id)"
+      "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
     "payload": {
       "type": "object",
-      "description": "Optional action payload"
+      "$comment": "Optional action payload"
     }
   },
-  "required": ["target", "type"]
+  "required": ["type", "target"]
 }
 ```
 
@@ -170,21 +148,26 @@ See `design.md` for complete JSON Schema definitions of all 8 types.
 
 ```
 gts.hai3.screensets.mfe.entry.v1~ (Base - Abstract Contract)
-  |-- requiredProperties: SharedProperty typeId[]
-  |-- optionalProperties: SharedProperty typeId[]
-  |-- actions: Action typeId[]
-  |-- domainActions: Action typeId[]
+  |-- id: string (GTS type ID)
+  |-- requiredProperties: string[]
+  |-- optionalProperties?: string[]
+  |-- actions: string[]
+  |-- domainActions: string[]
   |
-  +-- gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1 (Module Federation)
+  +-- gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~ (Module Federation)
         |-- (inherits contract fields from base)
-        |-- manifest: MfManifest typeId (reference to shared MF config)
-        |-- exposedModule: string (federation exposed module name)
+        |-- manifest: string (MfManifest type ID)
+        |-- exposedModule: string
 
 gts.hai3.screensets.mfe.mf.v1~ (Standalone - Module Federation Config)
-  |-- remoteEntry: string (URL to remoteEntry.js)
-  |-- remoteName: string (federation container name)
-  |-- sharedDependencies?: SharedDependencyConfig[] (optional override)
-  |-- entries?: MfeEntryMF typeId[] (convenience for discovery)
+  |-- id: string (GTS type ID)
+  |-- remoteEntry: string (URL)
+  |-- remoteName: string
+  |-- sharedDependencies?: SharedDependencyConfig[] (code sharing + optional instance sharing)
+  |     |-- name: string (package name)
+  |     |-- requiredVersion: string (semver)
+  |     |-- singleton?: boolean (default: false = isolated instances)
+  |-- entries?: string[] (MfeEntryMF type IDs)
 ```
 
 ### Contract Matching Rules
@@ -198,10 +181,10 @@ domain.actions            is subset of  entry.domainActions
 
 ### Dynamic uiMeta Validation
 
-An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the GTS attribute selector syntax at runtime:
+An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the plugin's attribute accessor at runtime:
 - The ScreensetsRuntime calls `plugin.getAttribute(extension.domain, 'extensionsUiMeta')` to resolve the schema
 - Then validates `extension.uiMeta` against the resolved schema
-- See Decision 9 in `design.md` for implementation details
+- See Decision 8 in `design.md` for implementation details
 
 ### Actions Chain Runtime
 

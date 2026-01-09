@@ -6,6 +6,10 @@ HAI3 needs to support microfrontend (MFE) architecture where independent applica
 
 The type system for MFE contracts is abstracted through a **Type System Plugin** interface, allowing different type system implementations while shipping GTS as the default.
 
+### Key Principle: Opaque Type IDs
+
+The @hai3/screensets package treats **type IDs as opaque strings**. All type ID understanding (parsing, format validation, building) is delegated to the TypeSystemPlugin. When metadata about a type ID is needed, call plugin methods (`parseTypeId`, `getAttribute`, etc.) directly.
+
 ### Stakeholders
 
 - **HAI3 Host Application**: Defines extension domains and orchestrates MFE communication
@@ -31,6 +35,7 @@ The type system for MFE contracts is abstracted through a **Type System Plugin**
 4. **Mediated Actions**: Centralized action chain delivery through ActionsChainsMediator
 5. **Hierarchical Domains**: Support nested extension points
 6. **Pluggable Type System**: Abstract Type System as a plugin with GTS as default
+7. **Opaque Type IDs**: Screensets package treats type IDs as opaque strings
 
 ### Non-Goals
 
@@ -46,29 +51,11 @@ The type system for MFE contracts is abstracted through a **Type System Plugin**
 
 The @hai3/screensets package defines a `TypeSystemPlugin` interface that abstracts type system operations. This allows different type system implementations while shipping GTS as the default.
 
+The screensets package treats type IDs as **opaque strings**. The plugin is responsible for all type ID parsing, validation, and building.
+
 #### Plugin Interface Definition
 
 ```typescript
-/**
- * Parsed representation of a type ID
- */
-interface ParsedTypeId {
-  namespace: string;
-  name: string;
-  version: string;
-  qualifier?: string;
-}
-
-/**
- * Options for building a type ID
- */
-interface TypeIdOptions {
-  namespace: string;
-  name: string;
-  version: string;
-  qualifier?: string;
-}
-
 /**
  * Result of schema validation
  */
@@ -99,85 +86,6 @@ interface CompatibilityChange {
 }
 
 /**
- * Type System Plugin interface
- * Abstracts type system operations for MFE contracts
- */
-interface TypeSystemPlugin<TTypeId = string> {
-  /** Plugin identifier */
-  readonly name: string;
-
-  /** Plugin version */
-  readonly version: string;
-
-  // === Type ID Operations ===
-
-  /**
-   * Parse a type ID string into structured components
-   */
-  parseTypeId(id: string): ParsedTypeId;
-
-  /**
-   * Check if a string is a valid type ID format
-   */
-  isValidTypeId(id: string): boolean;
-
-  /**
-   * Build a type ID from components
-   */
-  buildTypeId(options: TypeIdOptions): TTypeId;
-
-  // === Schema Registry ===
-
-  /**
-   * Register a JSON Schema for a type ID
-   */
-  registerSchema(typeId: TTypeId, schema: JSONSchema): void;
-
-  /**
-   * Validate an instance against the schema for a type ID
-   */
-  validateInstance(typeId: TTypeId, instance: unknown): ValidationResult;
-
-  /**
-   * Get the schema registered for a type ID
-   */
-  getSchema(typeId: TTypeId): JSONSchema | undefined;
-
-  /**
-   * Check if a type ID has a registered schema
-   */
-  hasSchema(typeId: TTypeId): boolean;
-
-  // === Query ===
-
-  /**
-   * Query registered type IDs matching a pattern
-   */
-  query(pattern: string, limit?: number): TTypeId[];
-
-  /**
-   * List all registered type IDs
-   */
-  listAll(): TTypeId[];
-
-  // === Compatibility (REQUIRED) ===
-
-  /**
-   * Check compatibility between two type versions
-   */
-  checkCompatibility(oldTypeId: TTypeId, newTypeId: TTypeId): CompatibilityResult;
-
-  // === Attribute Access (REQUIRED for dynamic schema resolution) ===
-
-  /**
-   * Get an attribute value from a type using property path
-   * Supports GTS attribute selector syntax: typeId@propertyPath
-   * Example: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1@extensionsUiMeta'
-   */
-  getAttribute(typeId: TTypeId, path: string): AttributeResult;
-}
-
-/**
  * Result of attribute access
  */
 interface AttributeResult {
@@ -192,20 +100,93 @@ interface AttributeResult {
   /** Error message if not resolved */
   error?: string;
 }
+
+/**
+ * Type System Plugin interface
+ * Abstracts type system operations for MFE contracts.
+ *
+ * The screensets package treats type IDs as OPAQUE STRINGS.
+ * All type ID understanding is delegated to the plugin.
+ */
+interface TypeSystemPlugin {
+  /** Plugin identifier */
+  readonly name: string;
+
+  /** Plugin version */
+  readonly version: string;
+
+  // === Type ID Operations ===
+
+  /**
+   * Check if a string is a valid type ID format.
+   * Used before any operation that requires a valid type ID.
+   */
+  isValidTypeId(id: string): boolean;
+
+  /**
+   * Build a type ID from plugin-specific options.
+   * The options object is plugin-specific and opaque to screensets.
+   */
+  buildTypeId(options: Record<string, unknown>): string;
+
+  /**
+   * Parse a type ID into plugin-specific components.
+   * Returns a generic object - the structure is plugin-defined.
+   * Use this when you need metadata about a type ID.
+   */
+  parseTypeId(id: string): Record<string, unknown>;
+
+  // === Schema Registry ===
+
+  /**
+   * Register a JSON Schema for a type ID
+   */
+  registerSchema(typeId: string, schema: JSONSchema): void;
+
+  /**
+   * Validate an instance against the schema for a type ID
+   */
+  validateInstance(typeId: string, instance: unknown): ValidationResult;
+
+  /**
+   * Get the schema registered for a type ID
+   */
+  getSchema(typeId: string): JSONSchema | undefined;
+
+  // === Query ===
+
+  /**
+   * Query registered type IDs matching a pattern
+   */
+  query(pattern: string, limit?: number): string[];
+
+  // === Compatibility (REQUIRED) ===
+
+  /**
+   * Check compatibility between two type versions
+   */
+  checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult;
+
+  // === Attribute Access (REQUIRED for dynamic schema resolution) ===
+
+  /**
+   * Get an attribute value from a type using property path.
+   * Used for dynamic schema resolution (e.g., getting domain's extensionsUiMeta).
+   */
+  getAttribute(typeId: string, path: string): AttributeResult;
+}
 ```
 
 #### GTS Plugin Implementation
 
-The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. Note that GTS-specific names are used inside the plugin implementation itself:
+The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`:
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
 import { Gts, GtsStore, GtsQuery } from '@globaltypesystem/gts-ts';
-import type { TypeSystemPlugin, ParsedTypeId, ValidationResult } from '../types';
+import type { TypeSystemPlugin, ValidationResult } from '../types';
 
-type GtsTypeId = string; // GTS type ID format: gts.vendor.package.namespace.type.vN~
-
-export function createGtsPlugin(): TypeSystemPlugin<GtsTypeId> {
+export function createGtsPlugin(): TypeSystemPlugin {
   const gtsStore = new GtsStore();
 
   return {
@@ -213,30 +194,33 @@ export function createGtsPlugin(): TypeSystemPlugin<GtsTypeId> {
     version: '1.0.0',
 
     // Type ID operations
-    parseTypeId(id: string): ParsedTypeId {
+    isValidTypeId(id: string): boolean {
+      return Gts.isValidGtsID(id);
+    },
+
+    buildTypeId(options: Record<string, unknown>): string {
+      return Gts.buildGtsID(options);
+    },
+
+    parseTypeId(id: string): Record<string, unknown> {
+      // GTS-specific parsing - returns vendor, package, namespace, type, version
       const parsed = Gts.parseGtsID(id);
       return {
+        vendor: parsed.vendor,
+        package: parsed.package,
         namespace: parsed.namespace,
-        name: parsed.name,
+        type: parsed.type,
         version: parsed.version,
         qualifier: parsed.qualifier,
       };
     },
 
-    isValidTypeId(id: string): boolean {
-      return Gts.isValidGtsID(id);
-    },
-
-    buildTypeId(options): GtsTypeId {
-      return Gts.buildGtsID(options);
-    },
-
     // Schema registry
-    registerSchema(typeId: GtsTypeId, schema: JSONSchema): void {
+    registerSchema(typeId: string, schema: JSONSchema): void {
       gtsStore.register(typeId, schema);
     },
 
-    validateInstance(typeId: GtsTypeId, instance: unknown): ValidationResult {
+    validateInstance(typeId: string, instance: unknown): ValidationResult {
       const result = gtsStore.validate(typeId, instance);
       return {
         valid: result.valid,
@@ -248,31 +232,22 @@ export function createGtsPlugin(): TypeSystemPlugin<GtsTypeId> {
       };
     },
 
-    getSchema(typeId: GtsTypeId): JSONSchema | undefined {
+    getSchema(typeId: string): JSONSchema | undefined {
       return gtsStore.getSchema(typeId);
     },
 
-    hasSchema(typeId: GtsTypeId): boolean {
-      return gtsStore.has(typeId);
-    },
-
     // Query
-    query(pattern: string, limit?: number): GtsTypeId[] {
+    query(pattern: string, limit?: number): string[] {
       return GtsQuery.search(gtsStore, pattern, { limit });
     },
 
-    listAll(): GtsTypeId[] {
-      return gtsStore.listAll();
-    },
-
     // Compatibility (REQUIRED)
-    checkCompatibility(oldTypeId: GtsTypeId, newTypeId: GtsTypeId) {
+    checkCompatibility(oldTypeId: string, newTypeId: string) {
       return Gts.checkCompatibility(gtsStore, oldTypeId, newTypeId);
     },
 
     // Attribute Access (REQUIRED for dynamic schema resolution)
-    getAttribute(typeId: GtsTypeId, path: string): AttributeResult {
-      // GTS supports attribute selector syntax: typeId@path
+    getAttribute(typeId: string, path: string): AttributeResult {
       const result = gtsStore.getAttribute(typeId, path);
       return {
         typeId,
@@ -299,21 +274,21 @@ The type system is organized into **6 core types** that define the contract mode
 
 **Core Types (6 total):**
 
-| Type | GTS Type ID | Segments | Purpose |
-|------|-------------|----------|---------|
-| MFE Entry (Abstract) | `gts.hai3.screensets.mfe.entry.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=entry | Pure contract type (abstract base) |
-| Extension Domain | `gts.hai3.screensets.ext.domain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=domain | Extension point contract |
-| Extension | `gts.hai3.screensets.ext.extension.v1~` | vendor=hai3, package=screensets, namespace=ext, type=extension | Extension binding |
-| Shared Property | `gts.hai3.screensets.ext.shared_property.v1~` | vendor=hai3, package=screensets, namespace=ext, type=shared_property | Property definition |
-| Action | `gts.hai3.screensets.ext.action.v1~` | vendor=hai3, package=screensets, namespace=ext, type=action | Action type with target and self-id |
-| Actions Chain | `gts.hai3.screensets.ext.actions_chain.v1~` | vendor=hai3, package=screensets, namespace=ext, type=actions_chain | Action chain for mediation |
+| Type | GTS Type ID | Purpose |
+|------|-------------|---------|
+| MFE Entry (Abstract) | `gts.hai3.screensets.mfe.entry.v1~` | Pure contract type (abstract base) |
+| Extension Domain | `gts.hai3.screensets.ext.domain.v1~` | Extension point contract |
+| Extension | `gts.hai3.screensets.ext.extension.v1~` | Extension binding |
+| Shared Property | `gts.hai3.screensets.ext.shared_property.v1~` | Property definition |
+| Action | `gts.hai3.screensets.ext.action.v1~` | Action type with target and self-id |
+| Actions Chain | `gts.hai3.screensets.ext.actions_chain.v1~` | Action chain for mediation |
 
 **MF-Specific Types (2 total):**
 
-| Type | GTS Type ID | Segments | Purpose |
-|------|-------------|----------|---------|
-| MF Manifest | `gts.hai3.screensets.mfe.mf.v1~` | vendor=hai3, package=screensets, namespace=mfe, type=mf | Module Federation manifest (standalone) |
-| MFE Entry MF (Derived) | `gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1` | Derived from MfeEntry | Module Federation entry with manifest reference |
+| Type | GTS Type ID | Purpose |
+|------|-------------|---------|
+| MF Manifest | `gts.hai3.screensets.mfe.mf.v1~` | Module Federation manifest (standalone) |
+| MFE Entry MF (Derived) | `gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~` | Module Federation entry with manifest reference |
 
 #### Why This Structure Eliminates Parallel Hierarchies
 
@@ -345,38 +320,42 @@ MfeEntry is the **abstract base type** for all entry contracts. It defines ONLY 
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this instance"
+    },
     "requiredProperties": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" },
-      "description": "SharedProperty type IDs that MUST be provided by the domain"
+      "$comment": "SharedProperty type IDs that MUST be provided by the domain"
     },
     "optionalProperties": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" },
-      "description": "SharedProperty type IDs that MAY be provided by the domain"
+      "$comment": "SharedProperty type IDs that MAY be provided by the domain"
     },
     "actions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "description": "Action type IDs this entry can emit to the domain"
+      "$comment": "Action type IDs this entry can emit to the domain"
     },
     "domainActions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "description": "Action type IDs this entry can receive from the domain"
+      "$comment": "Action type IDs this entry can receive from the domain"
     }
   },
-  "required": ["requiredProperties", "actions", "domainActions"]
+  "required": ["id", "requiredProperties", "actions", "domainActions"]
 }
 ```
 
 **1a. MFE Entry MF Schema (Derived - Module Federation):**
 
-The Module Federation derived type adds fields specific to Webpack 5 / Rspack Module Federation 2.0 implementation. It references an MfManifest and specifies the exposed module name.
+The Module Federation derived type adds fields specific to Webpack 5 / Rspack Module Federation 2.0 implementation.
 
 ```json
 {
-  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1",
+  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "allOf": [
     { "$ref": "gts://gts.hai3.screensets.mfe.entry.v1~" }
@@ -384,12 +363,12 @@ The Module Federation derived type adds fields specific to Webpack 5 / Rspack Mo
   "properties": {
     "manifest": {
       "x-gts-ref": "gts.hai3.screensets.mfe.mf.v1~*",
-      "description": "Reference to MfManifest type ID containing Module Federation config"
+      "$comment": "Reference to MfManifest type ID containing Module Federation config"
     },
     "exposedModule": {
       "type": "string",
       "minLength": 1,
-      "description": "Module Federation exposed module name (e.g., './ChartWidget')"
+      "$comment": "Module Federation exposed module name (e.g., './ChartWidget')"
     }
   },
   "required": ["manifest", "exposedModule"]
@@ -398,7 +377,7 @@ The Module Federation derived type adds fields specific to Webpack 5 / Rspack Mo
 
 **2. MF Manifest Schema (Standalone):**
 
-MfManifest is a **standalone type** containing Module Federation configuration. Multiple MfeEntryMF instances can reference the same manifest (when an MFE bundle exposes multiple entries).
+MfManifest is a **standalone type** containing Module Federation configuration.
 
 ```json
 {
@@ -406,36 +385,44 @@ MfManifest is a **standalone type** containing Module Federation configuration. 
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this instance"
+    },
     "remoteEntry": {
       "type": "string",
       "format": "uri",
-      "description": "URL to the remoteEntry.js file"
+      "$comment": "URL to the remoteEntry.js file"
     },
     "remoteName": {
       "type": "string",
       "minLength": 1,
-      "description": "Module Federation container name (used in exposes/remotes config)"
+      "$comment": "Module Federation container name"
     },
     "sharedDependencies": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
-          "singleton": { "type": "boolean" },
-          "requiredVersion": { "type": "string" }
+          "name": { "type": "string", "$comment": "Package name (e.g., 'react', 'lodash')" },
+          "requiredVersion": { "type": "string", "$comment": "Semver range (e.g., '^18.0.0')" },
+          "singleton": {
+            "type": "boolean",
+            "default": false,
+            "$comment": "If true, share single instance. Default false = code shared but instances isolated."
+          }
         },
-        "required": ["name"]
+        "required": ["name", "requiredVersion"]
       },
-      "description": "Optional override for shared dependency configuration"
+      "$comment": "Dependencies to share for bundle optimization. singleton defaults to false (isolated instances)."
     },
     "entries": {
       "type": "array",
-      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1*" },
-      "description": "Convenience field for discovery - lists MfeEntryMF type IDs from this manifest (not authoritative)"
+      "items": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~*" },
+      "$comment": "Convenience field for discovery - lists MfeEntryMF type IDs"
     }
   },
-  "required": ["remoteEntry", "remoteName"]
+  "required": ["id", "remoteEntry", "remoteName"]
 }
 ```
 
@@ -443,33 +430,29 @@ MfManifest is a **standalone type** containing Module Federation configuration. 
 
 ```
 gts.hai3.screensets.mfe.entry.v1~ (Base - Abstract Contract)
-  |-- requiredProperties: SharedProperty typeId[]
-  |-- optionalProperties: SharedProperty typeId[]
-  |-- actions: Action typeId[]
-  |-- domainActions: Action typeId[]
+  |-- id: string (GTS type ID)
+  |-- requiredProperties: x-gts-ref[] -> gts.hai3.screensets.ext.shared_property.v1~*
+  |-- optionalProperties?: x-gts-ref[] -> gts.hai3.screensets.ext.shared_property.v1~*
+  |-- actions: x-gts-ref[] -> gts.hai3.screensets.ext.action.v1~*
+  |-- domainActions: x-gts-ref[] -> gts.hai3.screensets.ext.action.v1~*
   |
-  +-- gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1 (Module Federation)
+  +-- gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~ (Module Federation)
         |-- (inherits contract fields from base)
-        |-- manifest: MfManifest typeId (reference to shared MF config)
-        |-- exposedModule: string (federation exposed module name)
+        |-- manifest: x-gts-ref -> gts.hai3.screensets.mfe.mf.v1~*
+        |-- exposedModule: string
 
 gts.hai3.screensets.mfe.mf.v1~ (Standalone - Module Federation Config)
-  |-- remoteEntry: string (URL to remoteEntry.js)
-  |-- remoteName: string (federation container name)
-  |-- sharedDependencies?: SharedDependencyConfig[] (optional override)
-  |-- entries?: MfeEntryMF typeId[] (convenience for discovery)
+  |-- id: string (GTS type ID)
+  |-- remoteEntry: string (URL)
+  |-- remoteName: string
+  |-- sharedDependencies?: SharedDependencyConfig[] (code sharing + optional instance sharing)
+  |     |-- name: string
+  |     |-- requiredVersion: string
+  |     |-- singleton?: boolean (default: false = isolated instances)
+  |-- entries?: x-gts-ref[] -> gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~*
 ```
 
-**Why MfeEntry References Manifest (Not Vice Versa):**
-
-1. **Extension binds to Entry**: The Extension type references an MfeEntry (or derived type). This is the primary binding point.
-2. **Entry owns its loading config**: The MfeEntryMF knows how to load itself via its manifest reference.
-3. **Future loaders**: Adding ESM support means adding MfeEntryEsm with its own loader config, not modifying existing types.
-4. **No circular dependency**: Manifest can optionally list its entries for discovery, but entries are authoritative.
-
 **3. Extension Domain Schema (Base):**
-
-The base `ExtensionDomain` type defines `extensionsUiMeta` as a generic object schema. Derived domain types narrow `extensionsUiMeta` through GTS type inheritance:
 
 ```json
 {
@@ -477,6 +460,10 @@ The base `ExtensionDomain` type defines `extensionsUiMeta` as a generic object s
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this instance"
+    },
     "sharedProperties": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.shared_property.v1~*" }
@@ -484,47 +471,20 @@ The base `ExtensionDomain` type defines `extensionsUiMeta` as a generic object s
     "actions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "description": "Action type IDs domain can emit to extensions"
+      "$comment": "Action type IDs domain can emit to extensions"
     },
     "extensionsActions": {
       "type": "array",
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
-      "description": "Action type IDs domain can receive from extensions"
+      "$comment": "Action type IDs domain can receive from extensions"
     },
     "extensionsUiMeta": { "type": "object" }
   },
-  "required": ["sharedProperties", "actions", "extensionsActions", "extensionsUiMeta"]
-}
-```
-
-**3a. Derived Domain Example (Sidebar Layout):**
-
-Derived domains inherit from base and narrow `extensionsUiMeta` to specific requirements:
-
-```json
-{
-  "$id": "gts://gts.hai3.screensets.ext.domain.v1~hai3.layout.domain.sidebar.v1~",
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "allOf": [
-    { "$ref": "gts://gts.hai3.screensets.ext.domain.v1~" }
-  ],
-  "properties": {
-    "extensionsUiMeta": {
-      "type": "object",
-      "properties": {
-        "icon": { "type": "string" },
-        "label": { "type": "string" },
-        "group": { "type": "string" }
-      },
-      "required": ["icon", "label"]
-    }
-  }
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta"]
 }
 ```
 
 **4. Extension Schema:**
-
-Extensions provide `uiMeta` instances conforming to the domain's `extensionsUiMeta` schema. Runtime validation enforces this constraint using the GTS attribute selector (see Decision 9):
 
 ```json
 {
@@ -532,34 +492,48 @@ Extensions provide `uiMeta` instances conforming to the domain's `extensionsUiMe
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "domain": { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
-    "entry": { "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~*" },
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this instance"
+    },
+    "domain": {
+      "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*",
+      "$comment": "ExtensionDomain type ID to mount into"
+    },
+    "entry": {
+      "x-gts-ref": "gts.hai3.screensets.mfe.entry.v1~*",
+      "$comment": "MfeEntry type ID to mount"
+    },
     "uiMeta": {
       "type": "object",
-      "description": "Must conform to the domain's extensionsUiMeta schema. Validated at runtime via plugin.getAttribute(domain, 'extensionsUiMeta')."
+      "$comment": "Must conform to the domain's extensionsUiMeta schema"
     }
   },
-  "required": ["domain", "entry", "uiMeta"]
+  "required": ["id", "domain", "entry", "uiMeta"]
 }
 ```
 
 **5. Shared Property Schema:**
+
 ```json
 {
   "$id": "gts://gts.hai3.screensets.ext.shared_property.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "name": { "type": "string", "minLength": 1 },
-    "schema": { "type": "object" }
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this shared property"
+    },
+    "value": {
+      "$comment": "The shared property value"
+    }
   },
-  "required": ["name", "schema"]
+  "required": ["id", "value"]
 }
 ```
 
 **6. Action Schema:**
-
-Action is an action type with its target, self-identifying type, and optional payload. The `type` field uses `x-gts-ref: "/$id"` to reference the action's own type ID per GTS spec. The `target` field uses JSON Schema `oneOf` with `x-gts-ref` to allow referencing either ExtensionDomain or Extension:
 
 ```json
 {
@@ -567,30 +541,30 @@ Action is an action type with its target, self-identifying type, and optional pa
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "type": {
+      "x-gts-ref": "/$id",
+      "$comment": "Self-reference to this action's type ID"
+    },
     "target": {
       "type": "string",
       "oneOf": [
         { "x-gts-ref": "gts.hai3.screensets.ext.domain.v1~*" },
         { "x-gts-ref": "gts.hai3.screensets.ext.extension.v1~*" }
       ],
-      "description": "Type ID of the target ExtensionDomain or Extension"
-    },
-    "type": {
-      "x-gts-ref": "/$id",
-      "description": "Self-reference to this action's type ID"
+      "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
     "payload": {
       "type": "object",
-      "description": "Optional action payload"
+      "$comment": "Optional action payload"
     }
   },
-  "required": ["target", "type"]
+  "required": ["type", "target"]
 }
 ```
 
 **7. Actions Chain Schema:**
 
-ActionsChain contains actual Action INSTANCES (objects with target, type, and optional payload). The chain is recursive with embedded objects:
+ActionsChain contains actual Action INSTANCES (embedded objects), not references. ActionsChain itself is NOT referenced by other types, so it has no `id` field.
 
 ```json
 {
@@ -598,75 +572,30 @@ ActionsChain contains actual Action INSTANCES (objects with target, type, and op
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
-    "action": { "$ref": "gts://gts.hai3.screensets.ext.action.v1~" },
-    "next": { "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~" },
-    "fallback": { "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~" }
+    "action": {
+      "type": "object",
+      "$ref": "gts://gts.hai3.screensets.ext.action.v1~"
+    },
+    "next": {
+      "type": "object",
+      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+    },
+    "fallback": {
+      "type": "object",
+      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~"
+    }
   },
   "required": ["action"]
 }
 ```
 
-Note: Each `action` in the chain is a full Action instance containing `target` (required), `type` (required), and `payload` (optional).
-
 ### Decision 3: Internal TypeScript Type Definitions
 
-The MFE system uses internal TypeScript interfaces that include `TypeMetadata` extracted from type IDs via the plugin. This metadata is populated at runtime when types are parsed/registered.
+The MFE system uses internal TypeScript interfaces with a simple `id: string` field as the identifier. When metadata is needed about a type ID, call `plugin.parseTypeId(id)` directly.
 
-#### TypeMetadata Interface
+#### TypeScript Interface Definitions
 
-The `TypeMetadata` interface contains data extracted from parsing a type ID. The parsing logic is provided by the TypeSystemPlugin:
-
-```typescript
-// packages/screensets/src/mfe/types/metadata.ts
-
-/**
- * Metadata extracted from a type ID via plugin
- * For GTS, the ID format is: gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~
- */
-interface TypeMetadata {
-  /** Full type ID (e.g., "gts.hai3.screensets.mfe.entry.v1~") */
-  readonly typeId: string;
-  /** Vendor segment (e.g., "hai3") */
-  readonly vendor: string;
-  /** Package segment (e.g., "screensets") */
-  readonly package: string;
-  /** Namespace segment (e.g., "mfe" or "ext") */
-  readonly namespace: string;
-  /** Type segment (e.g., "entry", "domain") */
-  readonly type: string;
-  /** Version information extracted from type ID */
-  readonly version: {
-    major: number;
-    minor?: number;
-  };
-}
-
-/**
- * Utility function to parse a type ID into TypeMetadata
- * Uses the plugin's parseTypeId method internally
- */
-function parseTypeId(plugin: TypeSystemPlugin, typeId: string): TypeMetadata {
-  const parsed = plugin.parseTypeId(typeId);
-  // Map parsed result to TypeMetadata structure
-  return {
-    typeId,
-    vendor: parsed.namespace.split('.')[0] || '',
-    package: parsed.namespace.split('.')[1] || '',
-    namespace: parsed.namespace.split('.')[2] || '',
-    type: parsed.name,
-    version: {
-      major: parseInt(parsed.version.split('.')[0], 10),
-      minor: parsed.version.includes('.')
-        ? parseInt(parsed.version.split('.')[1], 10)
-        : undefined,
-    },
-  };
-}
-```
-
-#### TypeScript Interface Definitions with TypeMetadata
-
-All MFE types extend `TypeMetadata` and include domain-specific properties:
+All MFE types use `id: string` as their identifier:
 
 ```typescript
 // packages/screensets/src/mfe/types/index.ts
@@ -674,12 +603,10 @@ All MFE types extend `TypeMetadata` and include domain-specific properties:
 /**
  * Defines an entry point with its communication contract (PURE CONTRACT - Abstract Base)
  * GTS Type: gts.hai3.screensets.mfe.entry.v1~
- *
- * MfeEntry is the abstract base type for all entry contracts. It defines ONLY
- * the communication interface (properties, actions). Derived types add
- * loader-specific fields (e.g., MfeEntryMF for Module Federation).
  */
-interface MfeEntry extends TypeMetadata {
+interface MfeEntry {
+  /** The GTS type ID for this entry */
+  id: string;
   /** SharedProperty type IDs that MUST be provided by domain */
   requiredProperties: string[];
   /** SharedProperty type IDs that MAY be provided by domain (optional field) */
@@ -692,10 +619,7 @@ interface MfeEntry extends TypeMetadata {
 
 /**
  * Module Federation 2.0 implementation of MfeEntry
- * GTS Type: gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1
- *
- * Adds Module Federation specific fields for remote bundle loading.
- * References an MfManifest for the federation container config.
+ * GTS Type: gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~
  */
 interface MfeEntryMF extends MfeEntry {
   /** Reference to MfManifest type ID containing Module Federation config */
@@ -707,48 +631,69 @@ interface MfeEntryMF extends MfeEntry {
 /**
  * Module Federation manifest containing shared configuration
  * GTS Type: gts.hai3.screensets.mfe.mf.v1~
- *
- * Standalone type containing Module Federation configuration.
- * Multiple MfeEntryMF instances can reference the same manifest.
  */
-interface MfManifest extends TypeMetadata {
+interface MfManifest {
+  /** The GTS type ID for this manifest */
+  id: string;
   /** URL to the remoteEntry.js file */
   remoteEntry: string;
-  /** Module Federation container name (used in exposes/remotes config) */
+  /** Module Federation container name */
   remoteName: string;
   /** Optional override for shared dependency configuration */
   sharedDependencies?: SharedDependencyConfig[];
-  /** Convenience field for discovery - lists MfeEntryMF type IDs from this manifest */
+  /** Convenience field for discovery - lists MfeEntryMF type IDs */
   entries?: string[];
 }
 
 /**
- * Configuration for a shared dependency in Module Federation
+ * Configuration for a shared dependency in Module Federation.
+ *
+ * Module Federation shared dependencies provide TWO independent benefits:
+ * 1. **Code/bundle sharing** - Download the code once, cache it (performance)
+ * 2. **Runtime instance isolation** - Control whether instances are shared or isolated
+ *
+ * These benefits are NOT mutually exclusive! The `singleton` parameter controls
+ * instance behavior while code sharing always provides the bundle optimization.
+ *
+ * - `singleton: false` (DEFAULT) = Code shared, instances ISOLATED per MFE
+ * - `singleton: true` = Code shared, instance SHARED across all consumers
+ *
+ * HAI3 Recommendation:
+ * - Use `singleton: false` (default) for anything with state (React, @hai3/*, GTS)
+ * - Use `singleton: true` ONLY for truly stateless utilities (lodash, date-fns)
  */
 interface SharedDependencyConfig {
-  /** Package name */
+  /** Package name (e.g., 'react', 'lodash', '@hai3/screensets') */
   name: string;
-  /** Whether this should be a singleton */
+  /** Semver range (e.g., '^18.0.0', '^4.17.0') */
+  requiredVersion: string;
+  /**
+   * Whether to share a single instance across all consumers.
+   * Default: false (each consumer gets its own isolated instance)
+   *
+   * - false: Code is shared (cached), but each MFE gets its OWN instance
+   * - true: Code is shared AND the same instance is used everywhere
+   *
+   * IMPORTANT: Only set to true for truly stateless utilities (lodash, date-fns).
+   * Libraries with state (React, Redux, GTS, @hai3/*) should use false.
+   */
   singleton?: boolean;
-  /** Required version range */
-  requiredVersion?: string;
 }
 
 /**
  * Defines an extension point (domain) where MFEs can be mounted
  * GTS Type: gts.hai3.screensets.ext.domain.v1~
- *
- * Base domain defines extensionsUiMeta as generic object.
- * Derived domains narrow extensionsUiMeta through GTS type inheritance.
  */
-interface ExtensionDomain extends TypeMetadata {
+interface ExtensionDomain {
+  /** The GTS type ID for this domain */
+  id: string;
   /** SharedProperty type IDs provided to extensions */
   sharedProperties: string[];
   /** Action type IDs domain can emit to extensions */
   actions: string[];
   /** Action type IDs domain can receive from extensions */
   extensionsActions: string[];
-  /** JSON Schema for UI metadata extensions must provide (narrowed in derived domains) */
+  /** JSON Schema for UI metadata extensions must provide */
   extensionsUiMeta: JSONSchema;
 }
 
@@ -756,37 +701,37 @@ interface ExtensionDomain extends TypeMetadata {
  * Binds an MFE entry to an extension domain
  * GTS Type: gts.hai3.screensets.ext.extension.v1~
  */
-interface Extension extends TypeMetadata {
+interface Extension {
+  /** The GTS type ID for this extension */
+  id: string;
   /** ExtensionDomain type ID to mount into */
   domain: string;
-  /** MfeEntry type ID to mount (can be base MfeEntry or derived like MfeEntryMF) */
+  /** MfeEntry type ID to mount */
   entry: string;
   /** UI metadata instance conforming to domain's extensionsUiMeta schema */
   uiMeta: Record<string, unknown>;
 }
 
 /**
- * Defines a property that can be shared from domain to extension
+ * Defines a shared property instance passed from domain to extension
  * GTS Type: gts.hai3.screensets.ext.shared_property.v1~
- * Note: No default value - domain provides values at runtime
  */
-interface SharedProperty extends TypeMetadata {
-  /** Property name used for passing to extension */
-  name: string;
-  /** JSON Schema for property value */
-  schema: JSONSchema;
+interface SharedProperty {
+  /** The GTS type ID for this shared property */
+  id: string;
+  /** The shared property value */
+  value: unknown;
 }
 
 /**
- * An action type with target, self-identifying type, and optional payload
+ * An action with target, self-identifying type, and optional payload
  * GTS Type: gts.hai3.screensets.ext.action.v1~
- * The `type` field is a self-reference to the action's own $id per GTS spec
  */
-interface Action extends TypeMetadata {
-  /** Target type ID (ExtensionDomain or Extension) - REQUIRED, uses x-gts-ref */
-  target: string;
-  /** Self-reference to this action's type ID (uses x-gts-ref: "/$id") - REQUIRED */
+interface Action {
+  /** Self-reference to this action's type ID */
   type: string;
+  /** Target type ID (ExtensionDomain or Extension) */
+  target: string;
   /** Optional action payload */
   payload?: unknown;
 }
@@ -795,67 +740,20 @@ interface Action extends TypeMetadata {
  * Defines a mediated chain of actions with success/failure branches
  * GTS Type: gts.hai3.screensets.ext.actions_chain.v1~
  *
- * Contains actual Action INSTANCES (objects with target, type, payload).
+ * Contains actual Action INSTANCES (embedded objects).
+ * ActionsChain is NOT referenced by other types, so it has NO id field.
  */
-interface ActionsChain extends TypeMetadata {
-  /** Action INSTANCE (object with target, type, and optional payload) */
+interface ActionsChain {
+  /** Action instance (embedded object) */
   action: Action;
-  /** ActionsChain INSTANCE to execute on success (recursive object) */
+  /** Next chain to execute on success */
   next?: ActionsChain;
-  /** ActionsChain INSTANCE to execute on failure (recursive object) */
+  /** Fallback chain to execute on failure */
   fallback?: ActionsChain;
 }
 ```
 
-### Decision 4: TypeMetadata Extraction Utility
-
-The system provides a utility to extract `TypeMetadata` from type IDs and hydrate runtime objects:
-
-```typescript
-// packages/screensets/src/mfe/utils/metadata.ts
-
-/**
- * Create a typed instance with TypeMetadata from raw data
- * Uses the plugin to parse the type ID
- */
-function hydrateWithMetadata<T extends TypeMetadata>(
-  plugin: TypeSystemPlugin,
-  typeId: string,
-  data: Omit<T, keyof TypeMetadata>
-): T {
-  const metadata = parseTypeId(plugin, typeId);
-  return {
-    ...metadata,
-    ...data,
-  } as T;
-}
-
-// Usage example:
-const mfeEntry = hydrateWithMetadata<MfeEntry>(
-  typeSystem,
-  'gts.acme.analytics.mfe.entry.chart.v1~',
-  {
-    requiredProperties: ['gts.hai3.screensets.ext.shared_property.v1~:user_context'],
-    optionalProperties: [],
-    actions: ['gts.acme.dashboard.ext.action.data_updated.v1~'],
-    domainActions: ['gts.acme.dashboard.ext.action.refresh.v1~'],
-  }
-);
-
-// mfeEntry now has:
-// - typeId: 'gts.acme.analytics.mfe.entry.chart.v1~'
-// - vendor: 'acme'
-// - package: 'analytics'
-// - namespace: 'mfe'
-// - type: 'entry'
-// - version: { major: 1 }
-// - requiredProperties: [...]
-// - optionalProperties: [...]
-// - actions: [...]
-// - domainActions: [...]
-```
-
-### Decision 5: HAI3 Type Registration via Plugin
+### Decision 4: HAI3 Type Registration via Plugin
 
 When initializing the ScreensetsRuntime with the GTS plugin, HAI3 types are registered. There are 6 core types plus 2 MF-specific types:
 
@@ -877,53 +775,29 @@ const HAI3_CORE_TYPE_IDS = {
 /** GTS Type IDs for MF-specific types (2 types) */
 const HAI3_MF_TYPE_IDS = {
   mfManifest: 'gts.hai3.screensets.mfe.mf.v1~',
-  mfeEntryMf: 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1',
+  mfeEntryMf: 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~',
 } as const;
 
-function registerHai3Types<TTypeId>(
-  plugin: TypeSystemPlugin<TTypeId>
+function registerHai3Types(
+  plugin: TypeSystemPlugin
 ): { core: typeof HAI3_CORE_TYPE_IDS; mf: typeof HAI3_MF_TYPE_IDS } {
   // Register core schemas (6 types)
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.mfeEntry as TTypeId,
-    mfeGtsSchemas.mfeEntry
-  );
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.extensionDomain as TTypeId,
-    mfeGtsSchemas.extensionDomain
-  );
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.extension as TTypeId,
-    mfeGtsSchemas.extension
-  );
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.sharedProperty as TTypeId,
-    mfeGtsSchemas.sharedProperty
-  );
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.action as TTypeId,
-    mfeGtsSchemas.action
-  );
-  plugin.registerSchema(
-    HAI3_CORE_TYPE_IDS.actionsChain as TTypeId,
-    mfeGtsSchemas.actionsChain
-  );
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.mfeEntry, mfeGtsSchemas.mfeEntry);
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.extensionDomain, mfeGtsSchemas.extensionDomain);
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.extension, mfeGtsSchemas.extension);
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.sharedProperty, mfeGtsSchemas.sharedProperty);
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.action, mfeGtsSchemas.action);
+  plugin.registerSchema(HAI3_CORE_TYPE_IDS.actionsChain, mfeGtsSchemas.actionsChain);
 
   // Register MF-specific schemas (2 types)
-  plugin.registerSchema(
-    HAI3_MF_TYPE_IDS.mfManifest as TTypeId,
-    mfeGtsSchemas.mfManifest
-  );
-  plugin.registerSchema(
-    HAI3_MF_TYPE_IDS.mfeEntryMf as TTypeId,
-    mfeGtsSchemas.mfeEntryMf
-  );
+  plugin.registerSchema(HAI3_MF_TYPE_IDS.mfManifest, mfeGtsSchemas.mfManifest);
+  plugin.registerSchema(HAI3_MF_TYPE_IDS.mfeEntryMf, mfeGtsSchemas.mfeEntryMf);
 
   return { core: HAI3_CORE_TYPE_IDS, mf: HAI3_MF_TYPE_IDS };
 }
 ```
 
-### Decision 6: ScreensetsRuntime Configuration
+### Decision 5: ScreensetsRuntime Configuration
 
 The ScreensetsRuntime requires a Type System plugin at initialization:
 
@@ -932,12 +806,10 @@ The ScreensetsRuntime requires a Type System plugin at initialization:
 
 /**
  * Configuration for the ScreensetsRuntime
- * Note: ScreensetsRuntimeConfig is the canonical configuration interface.
- * The runtime manages MFE lifecycle (loading, mounting, registration, validation).
  */
-interface ScreensetsRuntimeConfig<TTypeId = string> {
+interface ScreensetsRuntimeConfig {
   /** Required: Type System plugin for type handling */
-  typeSystem: TypeSystemPlugin<TTypeId>;
+  typeSystem: TypeSystemPlugin;
 
   /** Optional: Custom error handler */
   onError?: (error: MfeError) => void;
@@ -961,9 +833,9 @@ interface ScreensetsRuntimeConfig<TTypeId = string> {
 /**
  * Create the ScreensetsRuntime with required Type System plugin
  */
-function createScreensetsRuntime<TTypeId = string>(
-  config: ScreensetsRuntimeConfig<TTypeId>
-): ScreensetsRuntime<TTypeId> {
+function createScreensetsRuntime(
+  config: ScreensetsRuntimeConfig
+): ScreensetsRuntime {
   const { typeSystem, ...options } = config;
 
   // Validate plugin
@@ -993,23 +865,23 @@ const runtimeWithCustomPlugin = createScreensetsRuntime({
 });
 ```
 
-### Decision 7: Plugin Propagation to Framework
+### Decision 6: Plugin Propagation to Framework
 
 The @hai3/framework microfrontends plugin accepts the Type System plugin from screensets:
 
 ```typescript
 // packages/framework/src/plugins/microfrontends/index.ts
 
-interface MicrofrontendsPluginConfig<TTypeId = string> {
+interface MicrofrontendsPluginConfig {
   /** Type System plugin inherited from screensets configuration */
-  typeSystem: TypeSystemPlugin<TTypeId>;
+  typeSystem: TypeSystemPlugin;
 
   /** Base domains to register */
   baseDomains?: Array<'sidebar' | 'popup' | 'screen' | 'overlay'>;
 }
 
-function createMicrofrontendsPlugin<TTypeId = string>(
-  config: MicrofrontendsPluginConfig<TTypeId>
+function createMicrofrontendsPlugin(
+  config: MicrofrontendsPluginConfig
 ): FrameworkPlugin {
   return {
     name: 'microfrontends',
@@ -1047,7 +919,7 @@ const app = createFramework({
 });
 ```
 
-### Decision 8: Contract Matching Rules
+### Decision 7: Contract Matching Rules
 
 For an MFE entry to be mountable into an extension domain, the following conditions must ALL be true:
 
@@ -1076,7 +948,7 @@ interface ContractError {
 
 function validateContract(
   entry: MfeEntry,
-  domain: ExtDomain
+  domain: ExtensionDomain
 ): ContractValidationResult {
   const errors: ContractError[] = [];
 
@@ -1117,22 +989,13 @@ function validateContract(
 }
 ```
 
-### Decision 9: Dynamic uiMeta Validation via Attribute Selector
+### Decision 8: Dynamic uiMeta Validation via Attribute Selector
 
-**Problem:** An `Extension` instance has a `domain` field containing a type ID reference (e.g., `gts.hai3.screensets.ext.domain.v1~hai3.layout.domain.sidebar.v1`), and its `uiMeta` property must conform to that domain's `extensionsUiMeta` schema. This cannot be expressed as a static JSON Schema constraint because the domain reference is a dynamic value.
+**Problem:** An `Extension` instance has a `domain` field containing a type ID reference, and its `uiMeta` property must conform to that domain's `extensionsUiMeta` schema. This cannot be expressed as a static JSON Schema constraint because the domain reference is a dynamic value.
 
-**Solution:** The GTS specification supports **attribute selectors** using the `@` syntax to access properties from type instances:
-
-```
-gts.hai3.screensets.ext.domain.v1~hai3.layout.domain.sidebar.v1@extensionsUiMeta
-```
-
-This allows the ScreensetsRuntime to resolve the domain's `extensionsUiMeta` schema at runtime.
+**Solution:** Use the plugin's `getAttribute()` method to resolve the domain's `extensionsUiMeta` schema at runtime.
 
 **Implementation:**
-
-1. **At schema level:** The Extension GTS schema defines `uiMeta` as `"type": "object"` with a description stating it must conform to the domain's `extensionsUiMeta` schema. The actual schema constraint is dynamic and cannot be expressed statically in JSON Schema because it depends on which domain the extension binds to.
-2. **At runtime (registration):** The ScreensetsRuntime enforces the real constraint by resolving the domain's `extensionsUiMeta` schema and validating `uiMeta` against it:
 
 ```typescript
 /**
@@ -1142,7 +1005,7 @@ function validateExtensionUiMeta(
   plugin: TypeSystemPlugin,
   extension: Extension
 ): ValidationResult {
-  // 1. Get the domain's extensionsUiMeta schema using attribute selector
+  // 1. Get the domain's extensionsUiMeta schema using getAttribute
   const schemaResult = plugin.getAttribute(extension.domain, 'extensionsUiMeta');
 
   if (!schemaResult.resolved) {
@@ -1160,7 +1023,7 @@ function validateExtensionUiMeta(
   const extensionsUiMetaSchema = schemaResult.value as JSONSchema;
 
   // 3. Create a temporary type for validation
-  const tempTypeId = `${extension.typeId}:uiMeta:validation`;
+  const tempTypeId = `${extension.id}:uiMeta:validation`;
   plugin.registerSchema(tempTypeId, extensionsUiMetaSchema);
 
   // 4. Validate extension.uiMeta against the resolved schema
@@ -1177,12 +1040,6 @@ function validateExtensionUiMeta(
   };
 }
 ```
-
-**Why GTS Attribute Selector:**
-- Native GTS feature from the specification: "Append `@` to the identifier and provide a property path"
-- Implemented in `@globaltypesystem/gts-ts` via `getAttribute()` method
-- No custom schema extensions required
-- Works with GTS type inheritance (derived domains have their narrowed `extensionsUiMeta`)
 
 **Integration Point:**
 
@@ -1203,48 +1060,57 @@ if (!uiMetaResult.valid) {
 // Contract and uiMeta both valid, proceed with registration
 ```
 
-### Decision 10: Isolated State Instances
+### Decision 9: Isolated Runtime Instances (Framework-Agnostic)
 
-Each MFE instance runs with its own isolated @hai3/state container. The host also has its own state instance.
+Each MFE instance runs with its own FULLY ISOLATED runtime:
+- Own @hai3/screensets instance
+- Own TypeSystemPlugin instance (with own schema registry)
+- Own @hai3/state container
+- Can use ANY UI framework (Vue 3, Angular, Svelte, etc.)
+
+The host uses React, but MFEs are NOT required to use React.
 
 **Architecture:**
 ```
-+------------------+      +------------------+
-|   HOST STATE     |      |   MFE STATE      |
-|  (HAI3 Store)    |      |  (HAI3 Store)    |
-+--------+---------+      +--------+---------+
-         |                         |
-         v                         v
-+--------+---------+      +--------+---------+
-|  HOST COMPONENT  |      |  MFE COMPONENT   |
-+--------+---------+      +--------+---------+
-         |                         |
-         +-----------+-------------+
-                     |
-              +------v------+
-              | SCREENSETS   |
-              | RUNTIME      |
-              +-------------+
++---------------------------+      +---------------------------+
+|      HOST RUNTIME         |      |       MFE RUNTIME         |
+|  (React + TypeSystemA)    |      |  (Vue 3 + TypeSystemB)    |
++---------------------------+      +---------------------------+
+|   TypeSystemPlugin A      |      |   TypeSystemPlugin B      |
+|   (host schemas only)     |      |   (MFE schemas only)      |
++---------------------------+      +---------------------------+
+|   HAI3 State Instance A   |      |   HAI3 State Instance B   |
++---------------------------+      +---------------------------+
+|   React Host Component    |      |   Vue 3 MFE Component     |
++-------------+-------------+      +-------------+-------------+
+              |                                  |
+              |    MfeBridge (Contract)          |
+              +==================================+
+              |  - Shared Properties (read-only) |
+              |  - Actions (bidirectional)       |
+              +==================================+
+              |                                  |
+              |  RuntimeCoordinator (PRIVATE)    |
+              |  (window.__hai3_runtime_coord)   |
+              +----------------------------------+
 ```
 
 **Key Points:**
 - No direct store access across boundary
-- Shared properties passed via props at render time
-- Actions delivered via ActionsChainsMediator
-- Type System plugin validates type IDs and schemas
+- No direct schema registry access across boundary (security)
+- Shared properties passed via MfeBridge only
+- Actions delivered via ActionsChainsMediator through MfeBridge
+- Internal coordination via private RuntimeCoordinator (not exposed to MFE code)
+- MFEs can use ANY UI framework - not limited to React
 
-### Decision 11: Actions Chain Mediation
+### Decision 10: Actions Chain Mediation
 
 The **ActionsChainsMediator** delivers action chains to targets and handles success/failure branching. The Type System plugin validates all type IDs and payloads.
-
-**Note on terminology:**
-- **ScreensetsRuntime**: Manages MFE lifecycle (loading, mounting, registration, and validation)
-- **ActionsChainsMediator**: The specific component responsible for action chain delivery between domains and extensions
 
 **Execution Flow:**
 ```
 1. ActionsChainsMediator receives chain
-2. Validate chain.target via typeSystem.isValidTypeId()
+2. Validate chain.action.target via typeSystem.isValidTypeId()
 3. Resolve target (domain or entry instance)
 4. Validate action against target's contract
 5. Validate payload via typeSystem.validateInstance()
@@ -1257,27 +1123,23 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 
 **API Contract:**
 
-The actions chain mediation functionality is provided by the `ActionsChainsMediator` interface:
-
 ```typescript
 /**
  * ActionsChainsMediator - Mediates action chain delivery between domains and extensions.
- * This is the component responsible for executing action chains and routing actions
- * to their targets (domains or extensions).
  */
-interface ActionsChainsMediator<TTypeId = string> {
+interface ActionsChainsMediator {
   /** The Type System plugin used by this mediator */
-  readonly typeSystem: TypeSystemPlugin<TTypeId>;
+  readonly typeSystem: TypeSystemPlugin;
 
   /** Execute an action chain, routing to targets and handling success/failure branching */
-  executeActionsChain(chain: ActionsChain<TTypeId>): Promise<ChainResult>;
+  executeActionsChain(chain: ActionsChain): Promise<ChainResult>;
 
   /** Register an extension's action handler for receiving actions */
   registerExtensionHandler(
     extensionId: string,
-    domainId: TTypeId,
-    entryId: TTypeId,
-    handler: ActionHandler<TTypeId>
+    domainId: string,
+    entryId: string,
+    handler: ActionHandler
   ): void;
 
   /** Unregister an extension's action handler */
@@ -1285,13 +1147,13 @@ interface ActionsChainsMediator<TTypeId = string> {
 
   /** Register a domain's action handler for receiving actions from extensions */
   registerDomainHandler(
-    domainId: TTypeId,
-    handler: ActionHandler<TTypeId>
+    domainId: string,
+    handler: ActionHandler
   ): void;
 }
 
-interface ActionHandler<TTypeId = string> {
-  handleAction(actionId: TTypeId, payload: unknown): Promise<void>;
+interface ActionHandler {
+  handleAction(actionId: string, payload: unknown): Promise<void>;
 }
 
 interface ChainResult {
@@ -1301,9 +1163,7 @@ interface ChainResult {
 }
 ```
 
-**Note:** The `ScreensetsRuntime` class owns an `ActionsChainsMediator` instance internally and delegates action chain execution to it. The runtime exposes `executeActionsChain()` for convenience but the actual mediation logic is encapsulated in the mediator.
-
-### Decision 12: Hierarchical Extension Domains
+### Decision 11: Hierarchical Extension Domains
 
 Extension domains can be hierarchical. HAI3 provides base layout domains, and vendor screensets can define their own. Base domains are registered via the Type System plugin.
 
@@ -1317,59 +1177,104 @@ When using GTS plugin, base domains follow the format `gts.hai3.screensets.ext.d
 
 **Vendor-Defined Domains:**
 
-Vendors define their own domains following the GTS type ID format. The domain's `extensionsUiMeta` defines what UI metadata extensions must provide:
+Vendors define their own domains following the GTS type ID format:
 
 ```typescript
 // Example: Dashboard screenset defines widget slot domain
 // Type ID: gts.acme.dashboard.ext.domain.widget_slot.v1~
 
-const widgetSlotDomain: ExtensionDomain = hydrateWithMetadata(
-  typeSystem,
-  'gts.acme.dashboard.ext.domain.widget_slot.v1~',
-  {
-    sharedProperties: [
-      'gts.hai3.screensets.ext.shared_property.user_context.v1~',
-    ],
-    actions: [
-      'gts.acme.dashboard.ext.action.refresh.v1~',  // Action type ID domain can emit
-    ],
-    extensionsActions: [
-      'gts.acme.dashboard.ext.action.data_update.v1~',  // Action type ID domain can receive
-    ],
-    extensionsUiMeta: {
-      type: 'object',
-      properties: {
-        title: { type: 'string' },
-        icon: { type: 'string' },
-        size: { enum: ['small', 'medium', 'large'] },
-      },
-      required: ['title', 'size'],
+const widgetSlotDomain: ExtensionDomain = {
+  id: 'gts.acme.dashboard.ext.domain.widget_slot.v1~',
+  sharedProperties: [
+    'gts.hai3.screensets.ext.shared_property.user_context.v1~',
+  ],
+  actions: [
+    'gts.acme.dashboard.ext.action.refresh.v1~',
+  ],
+  extensionsActions: [
+    'gts.acme.dashboard.ext.action.data_update.v1~',
+  ],
+  extensionsUiMeta: {
+    type: 'object',
+    properties: {
+      title: { type: 'string' },
+      icon: { type: 'string' },
+      size: { enum: ['small', 'medium', 'large'] },
     },
-  }
-);
+    required: ['title', 'size'],
+  },
+};
 ```
 
-### Decision 13: Module Federation 2.0 for Bundle Loading
+### Decision 12: Module Federation 2.0 for Bundle Loading
 
 **What**: Use Webpack 5 / Rspack Module Federation 2.0 for loading remote MFE bundles.
 
 **Why**:
 - Mature ecosystem with TypeScript type generation
-- Shared dependency deduplication (single React instance across host and MFEs)
+- Shared dependency configuration with independent control over code sharing and instance isolation
 - Battle-tested at scale (Zara, IKEA, others)
 - Works with existing HAI3 Vite build (via `@originjs/vite-plugin-federation`)
 
-**Alternatives Considered**:
+#### Shared Dependencies Model
 
-| Alternative | Pros | Cons | Decision |
-|------------|------|------|----------|
-| Native Federation (ESM + Import Maps) | Pure ESM, no bundler | React CommonJS issues, import map constraints | Rejected |
-| iframes | Complete isolation | Poor UX, heavy performance, no shared context | Rejected |
-| Web Components only | Native platform | No shared React context, complex state | Rejected |
+Module Federation's shared dependencies provide TWO independent benefits:
+
+1. **Code/Bundle Sharing** (Performance)
+   - When a dependency is listed in `shared`, the code is downloaded once and cached
+   - All consumers (host and MFEs) use the cached bundle
+   - This reduces total download size and improves load times
+
+2. **Runtime Instance Control** (Isolation vs Sharing)
+   - The `singleton` flag controls whether consumers share the same instance
+   - `singleton: false` (DEFAULT): Each consumer gets its OWN instance from the shared code
+   - `singleton: true`: All consumers share the SAME instance
+
+**Key Insight**: These benefits are NOT mutually exclusive. With `singleton: false`, you get BOTH:
+- Code is shared (bundle optimization)
+- Instances are isolated (runtime isolation)
+
+#### Why `singleton: false` is the Correct Default
+
+HAI3's architecture requires runtime isolation between MFEs. Setting `singleton: false` ensures:
+
+1. **React State Isolation**: Each MFE has its own React context, hooks state, and reconciler
+2. **TypeSystemPlugin Isolation**: Each MFE's schema registry is isolated (security requirement)
+3. **@hai3/screensets Isolation**: Each MFE has its own state container
+
+Without this isolation, MFEs could:
+- Corrupt each other's React state
+- Discover host schemas via `plugin.query('gts.*')` (security violation)
+- Interfere with each other's state management
+
+#### When `singleton: true` is Safe
+
+Only use `singleton: true` for libraries that are **truly stateless**:
+
+| Library | singleton | Reason |
+|---------|-----------|--------|
+| lodash | `true` | Pure functions, no internal state |
+| date-fns | `true` | Pure functions, no internal state |
+| uuid | `true` | Pure functions, no internal state |
+| React | `false` | Has hooks state, context, reconciler |
+| ReactDOM | `false` | Has fiber tree, event system |
+| @hai3/* | `false` | Has TypeSystemPlugin, schema registry |
+| GTS | `false` | Has schema registry |
+| Redux/Zustand | `false` | Has store state |
+
+#### Performance vs Isolation Trade-offs
+
+| Configuration | Bundle Size | Memory | Isolation |
+|--------------|-------------|--------|-----------|
+| Not in `shared` | Duplicated | Duplicated | Full |
+| `shared` + `singleton: false` | Shared | Duplicated | Full |
+| `shared` + `singleton: true` | Shared | Shared | None |
+
+**HAI3 Recommendation**: Use `singleton: false` for all stateful libraries. The memory overhead of duplicate instances is negligible compared to the complexity of debugging shared state issues across MFE boundaries.
 
 **MfeLoader Implementation:**
 
-The MfeLoader uses the `MfeEntryMF` derived type which references an `MfManifest` for Module Federation configuration:
+The MfeLoader uses the `MfeEntryMF` derived type which references an `MfManifest`:
 
 ```typescript
 // packages/screensets/src/mfe/loader/index.ts
@@ -1396,13 +1301,11 @@ interface LoadedMfe {
 
 /**
  * MFE Loader using Module Federation 2.0
- * Handles remote bundle loading with schema validation.
- * Uses MfeEntryMF.manifest to find MfManifest, then loads the exposed module.
  */
 class MfeLoader {
   /** GTS Type ID for Module Federation MFE entries */
   private static readonly MF_ENTRY_TYPE_ID =
-    'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1';
+    'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~';
 
   /** GTS Type ID for Module Federation manifests */
   private static readonly MF_MANIFEST_TYPE_ID =
@@ -1420,10 +1323,6 @@ class MfeLoader {
 
   /**
    * Load an MFE from its MfeEntryMF definition
-   * 1. Validates entry against MfeEntryMF schema
-   * 2. Resolves manifest from entry.manifest reference
-   * 3. Loads Module Federation container
-   * 4. Gets exposed module from entry.exposedModule
    */
   async load(entry: MfeEntryMF): Promise<LoadedMfe> {
     // 1. Validate entry against Module Federation entry schema
@@ -1459,31 +1358,13 @@ class MfeLoader {
     };
   }
 
-  /**
-   * Resolve manifest from type ID
-   * Manifests are cached to avoid redundant loading
-   */
   private async resolveManifest(manifestTypeId: string): Promise<MfManifest> {
-    // Check cache first
     if (this.loadedManifests.has(manifestTypeId)) {
       return this.loadedManifests.get(manifestTypeId)!;
     }
 
-    // Get manifest from type system registry
-    const manifestSchema = this.typeSystem.getSchema(manifestTypeId);
-    if (!manifestSchema) {
-      throw new MfeLoadError(
-        `Manifest type '${manifestTypeId}' not registered`,
-        []
-      );
-    }
-
-    // The manifest instance should be registered with the type
-    // This is a simplification - in practice, manifest instances
-    // would be loaded from a manifest registry or remote endpoint
     const manifest = await this.fetchManifestInstance(manifestTypeId);
 
-    // Validate manifest
     const validation = this.typeSystem.validateInstance(
       MfeLoader.MF_MANIFEST_TYPE_ID,
       manifest
@@ -1496,21 +1377,13 @@ class MfeLoader {
     return manifest;
   }
 
-  /**
-   * Load Module Federation container from manifest
-   * Containers are cached per remoteName
-   */
   private async loadRemoteContainer(manifest: MfManifest): Promise<Container> {
-    // Check cache first
     if (this.loadedContainers.has(manifest.remoteName)) {
       return this.loadedContainers.get(manifest.remoteName)!;
     }
 
-    // Module Federation container loading logic
-    // 1. Dynamically load the remoteEntry.js script
     await this.loadScript(manifest.remoteEntry);
 
-    // 2. Get container from window (Module Federation convention)
     const container = (window as any)[manifest.remoteName];
     if (!container) {
       throw new MfeLoadError(
@@ -1519,18 +1392,13 @@ class MfeLoader {
       );
     }
 
-    // 3. Initialize sharing scope
     await container.init(__webpack_share_scopes__.default);
 
     this.loadedContainers.set(manifest.remoteName, container);
     return container;
   }
 
-  /**
-   * Preload MFEs for faster subsequent mounting
-   */
   async preload(entries: MfeEntryMF[]): Promise<void> {
-    // Group entries by manifest to avoid redundant manifest loads
     const byManifest = new Map<string, MfeEntryMF[]>();
     for (const entry of entries) {
       const existing = byManifest.get(entry.manifest) || [];
@@ -1538,7 +1406,6 @@ class MfeLoader {
       byManifest.set(entry.manifest, existing);
     }
 
-    // Load all manifests and their containers in parallel
     await Promise.allSettled(
       Array.from(byManifest.keys()).map(async (manifestId) => {
         const manifest = await this.resolveManifest(manifestId);
@@ -1552,7 +1419,12 @@ class MfeLoader {
   }
 
   private unloadIfUnused(remoteName: string): void {
-    // Cleanup the loaded container from memory if no entries using it
+    // Cleanup logic
+  }
+
+  private async fetchManifestInstance(manifestTypeId: string): Promise<MfManifest> {
+    // Fetch manifest from registry or remote endpoint
+    throw new Error('Not implemented');
   }
 }
 ```
@@ -1561,22 +1433,25 @@ class MfeLoader {
 
 ```typescript
 const analyticsManifest: MfManifest = {
-  // TypeMetadata (populated by hydrateWithMetadata)
-  typeId: 'gts.acme.analytics.mfe.mf.v1~',
-  vendor: 'acme',
-  package: 'analytics',
-  namespace: 'mfe',
-  type: 'mf',
-  version: { major: 1 },
-
-  // MfManifest fields
+  id: 'gts.acme.analytics.mfe.mf.v1~',
   remoteEntry: 'https://cdn.acme.com/analytics/remoteEntry.js',
   remoteName: 'acme_analytics',
+  // sharedDependencies configures Module Federation code sharing.
+  // Two benefits are controlled independently:
+  // 1. Code sharing (always) - download once, cache it
+  // 2. Instance sharing (singleton flag) - share instance or isolate
   sharedDependencies: [
-    { name: 'react', singleton: true, requiredVersion: '^18.0.0' },
-    { name: 'react-dom', singleton: true, requiredVersion: '^18.0.0' },
+    // React/ReactDOM: Code shared for bundle optimization, but singleton: false
+    // ensures each MFE gets its own React instance (isolation preserved)
+    { name: 'react', requiredVersion: '^18.0.0', singleton: false },
+    { name: 'react-dom', requiredVersion: '^18.0.0', singleton: false },
+    // Stateless utilities: singleton: true is safe (no state to isolate)
+    { name: 'lodash', requiredVersion: '^4.17.0', singleton: true },
+    { name: 'date-fns', requiredVersion: '^2.30.0', singleton: true },
+    // @hai3/* packages: Must use singleton: false for runtime isolation
+    // Or omit entirely if this MFE doesn't need to share code with host
+    // { name: '@hai3/screensets', requiredVersion: '^1.0.0', singleton: false },
   ],
-  // Convenience field for discovery
   entries: [
     'gts.acme.analytics.mfe.entry.v1~hai3.mfe.entry_mf.v1:chart',
     'gts.acme.analytics.mfe.entry.v1~hai3.mfe.entry_mf.v1:metrics',
@@ -1588,15 +1463,7 @@ const analyticsManifest: MfManifest = {
 
 ```typescript
 const chartEntry: MfeEntryMF = {
-  // TypeMetadata (populated by hydrateWithMetadata)
-  typeId: 'gts.acme.analytics.mfe.entry.v1~hai3.mfe.entry_mf.v1:chart',
-  vendor: 'acme',
-  package: 'analytics',
-  namespace: 'mfe',
-  type: 'entry',
-  version: { major: 1 },
-
-  // Base MfeEntry contract fields
+  id: 'gts.acme.analytics.mfe.entry.v1~hai3.mfe.entry_mf.v1:chart',
   requiredProperties: [
     'gts.hai3.screensets.ext.shared_property.v1~:user_context',
     'gts.hai3.screensets.ext.shared_property.v1~:selected_date_range',
@@ -1606,103 +1473,149 @@ const chartEntry: MfeEntryMF = {
   ],
   actions: ['gts.acme.analytics.ext.action.data_updated.v1~'],
   domainActions: ['gts.acme.analytics.ext.action.refresh.v1~'],
-
-  // MfeEntryMF fields (Module Federation specific)
-  manifest: 'gts.acme.analytics.mfe.mf.v1~',  // Reference to MfManifest
-  exposedModule: './ChartWidget',  // Module Federation exposed module name
+  manifest: 'gts.acme.analytics.mfe.mf.v1~',
+  exposedModule: './ChartWidget',
 };
 ```
 
-### Decision 14: Isolated Package Instances with Hierarchical Runtime
+### Decision 13: Framework-Agnostic Isolation Model
 
-**What**: @hai3/screensets is configured as `singleton: false` in Module Federation, giving each MFE its own isolated copy of the package. Runtime instances form a tree where any MFE can also be a host for nested MFEs.
+**What**: MFEs are completely isolated with their own runtime instances. Each MFE can use ANY UI framework (React, Vue 3, Angular, Svelte, etc.) - the host uses React but MFEs are framework-agnostic.
 
-**Why**:
-- **True isolation**: Each MFE has its own package instance - no shared state at any level
-- **Hierarchical composition**: An MFE screen can define extension domains for nested widget MFEs
-- **Independent HAI3 state**: Each runtime has its own state container, completely isolated
+**Key Architectural Principle**: Complete Isolation
 
-**Architecture Overview - Hierarchical MFE Tree**:
+Each MFE runtime instance has:
+- Its own `@hai3/screensets` instance (NOT singleton)
+- Its own `TypeSystemPlugin` instance (NOT singleton)
+- Its own isolated schema registry
+- No direct access to host or other MFE internals
+
+**Why Complete GTS Isolation is Required**:
+
+If GTS/TypeSystemPlugin were shared as a singleton:
+1. **Security Violation**: MFEs could call `plugin.query('gts.*')` and discover ALL registered types from the host and other MFEs
+2. **Information Leakage**: An MFE could learn about host's internal domain structure, other MFE contracts, and business logic encoded in type schemas
+3. **Contract Violation**: MFEs should ONLY know about their own contract with the host domain - nothing more
+
+With isolated TypeSystemPlugin per runtime:
+- Each MFE's plugin only contains schemas for that MFE's contract types
+- Host's plugin contains host-specific schemas (domains, extensions)
+- No cross-boundary schema discovery is possible
+
+**Why Framework Agnostic**:
+
+1. **Vendor Extensibility**: Third-party vendors may use Vue 3, Angular, or other frameworks for their MFEs
+2. **No React Dependency**: MFEs are NOT required to use React - only the host uses React
+3. **Technology Freedom**: Each MFE team chooses their own framework and tooling
+
+**Internal Runtime Coordination**:
+
+Host and MFE runtimes need to coordinate (property updates, action delivery) but this coordination is PRIVATE:
+
+```typescript
+// INTERNAL: Not exposed to MFE code - used only by ScreensetsRuntime internals
+interface RuntimeCoordinator {
+  // Private window property for same-origin coordination
+  // window.__hai3_runtime_coordinator
+
+  sendToChild(instanceId: string, message: CoordinatorMessage): void;
+  sendToParent(message: CoordinatorMessage): void;
+  onMessage(handler: (message: CoordinatorMessage) => void): () => void;
+}
+
+// WHAT MFE CODE SEES: Only the MfeBridge interface
+interface MfeBridge {
+  readonly entryTypeId: string;
+  readonly domainId: string;
+  requestHostAction(actionTypeId: string, payload?: unknown): Promise<void>;
+  subscribeToProperty(propertyTypeId: string, callback: (value: unknown) => void): () => void;
+  getProperty(propertyTypeId: string): unknown;
+  subscribeToAllProperties(callback: (properties: Map<string, unknown>) => void): () => void;
+}
+```
+
+**Communication Layers**:
 
 ```
-+-------------------------------------------------------------------------------+
-|                        MODULE FEDERATION BUNDLES                               |
-|  +---------------+  +---------------+  +---------------+  +---------------+    |
-|  | react         |  | react-dom     |  | gts-ts        |  | @hai3/state   |    |
-|  | (singleton)   |  | (singleton)   |  | (singleton)   |  | (singleton)   |    |
-|  +---------------+  +---------------+  +---------------+  +---------------+    |
-|                                                                                |
-|  +---------------+  +---------------+  +---------------+                       |
-|  | screensets    |  | screensets    |  | screensets    |  ... per MFE         |
-|  | (host copy)   |  | (MFE-1 copy)  |  | (MFE-2 copy)  |                       |
-|  +---------------+  +---------------+  +---------------+                       |
-+-------------------------------------------------------------------------------+
-        |                    |                    |
-        v                    v                    v
-+-------------------------------------------------------------------------------+
-|                      HIERARCHICAL RUNTIME TREE                                 |
-|                                                                                |
-|  +-----------------------------------------------------------------------+    |
-|  | HOST APP RUNTIME (L0)                                                  |    |
-|  | +------------------+  +------------------+                             |    |
-|  | | Domain: sidebar  |  | Domain: popup    |  (each domain = scope)      |    |
-|  | +--------+---------+  +--------+---------+                             |    |
-|  +----------+-----------------------+-------------------------------------+    |
-|             |                       |                                          |
-|     +-------v-------+       +-------v-------+                                  |
-|     | MFE-1 RUNTIME |       | MFE-2 RUNTIME |  (L1 - can also be hosts)       |
-|     | (Dashboard)   |       | (Settings)    |                                  |
-|     | +-----------+ |       +---------------+                                  |
-|     | |Domain:    | |                                                          |
-|     | |widget_slot| |  (MFE-1 defines its own extension domain)               |
-|     | +-----+-----+ |                                                          |
-|     +-------+-------+                                                          |
-|             |                                                                  |
-|     +-------v-------+       +---------------+                                  |
-|     | MFE-3 RUNTIME |       | MFE-4 RUNTIME |  (L2 - nested widgets)          |
-|     | (Chart)       |       | (Metrics)     |                                  |
-|     +---------------+       +---------------+                                  |
-+-------------------------------------------------------------------------------+
++------------------+     Contract (MfeBridge)      +------------------+
+|   HOST RUNTIME   | <===========================> |   MFE RUNTIME    |
+| (React + GTS A)  |     Properties & Actions      | (Vue 3 + GTS B)  |
++--------+---------+                               +--------+---------+
+         |                                                  |
+         |  Internal Coordination (PRIVATE)                 |
+         |  (window.__hai3_runtime_coordinator)             |
+         +--------------------------------------------------+
 ```
 
 **Module Federation Shared Configuration**:
 
+Module Federation provides TWO independent benefits:
+1. **Code/bundle sharing** - Download code once, cache it (always enabled when dep is in `shared`)
+2. **Runtime instance isolation** - Controlled by `singleton` flag
+
+With `singleton: false` (the default in HAI3), you get BOTH benefits:
+- Code is downloaded and cached once (performance)
+- Each MFE gets its OWN instance (isolation)
+
 ```javascript
 // Host and ALL MFEs webpack/rspack/vite config
 shared: {
-  // Singletons - MUST be shared (React hooks, shared schema registry)
-  'react': { singleton: true, requiredVersion: '^18.0.0' },
-  'react-dom': { singleton: true, requiredVersion: '^18.0.0' },
-  '@globaltypesystem/gts-ts': { singleton: true },  // Shared schema registry
-  '@hai3/state': { singleton: true },  // Shared state primitives
+  // React/ReactDOM: Share CODE but NOT instance (singleton: false)
+  // This gives bundle optimization while preserving isolation
+  'react': {
+    requiredVersion: '^18.0.0',
+    singleton: false,  // Each MFE gets own React instance
+  },
+  'react-dom': {
+    requiredVersion: '^18.0.0',
+    singleton: false,
+  },
 
-  // NOT singleton - each MFE gets its own isolated copy
-  '@hai3/screensets': {
-    singleton: false,  // ISOLATED per MFE
+  // GTS: Share CODE but NOT instance (isolation required for security)
+  '@globaltypesystem/gts-ts': {
     requiredVersion: '^1.0.0',
+    singleton: false,  // Each runtime has isolated schema registry
+  },
+
+  // @hai3/screensets: Share CODE but NOT instance
+  '@hai3/screensets': {
+    requiredVersion: '^1.0.0',
+    singleton: false,  // Each MFE has isolated TypeSystemPlugin
+  },
+
+  // Stateless utilities: Can safely use singleton: true
+  'lodash': {
+    requiredVersion: '^4.17.0',
+    singleton: true,   // No state, safe to share instance
+  },
+  'date-fns': {
+    requiredVersion: '^2.30.0',
+    singleton: true,
   },
 }
 ```
 
-**Why These Choices**:
-
-| Package | Singleton? | Reason |
-|---------|------------|--------|
-| react, react-dom | Yes | React hooks break with multiple instances |
-| @globaltypesystem/gts-ts | Yes | Schema registry must be shared - all validate against same schemas |
-| @hai3/state | Yes | State primitives are stateless utilities |
-| @hai3/screensets | **No** | Each MFE needs fully isolated ScreensetsRuntime instance, domains, mediator |
+**Summary of singleton usage:**
+| Package Type | singleton | Reason |
+|--------------|-----------|--------|
+| React/ReactDOM | `false` | Has internal state (hooks, context) |
+| @hai3/* | `false` | Has runtime state (TypeSystemPlugin, schema registry) |
+| GTS | `false` | Has schema registry state |
+| lodash, date-fns | `true` | Purely functional, no state |
 
 **Class-Based ScreensetsRuntime**:
-
-Using a class provides clear encapsulation and supports the hierarchical pattern where any runtime can be both a child (connected to parent) and a host (managing its own domains).
 
 ```typescript
 // packages/screensets/src/runtime/ScreensetsRuntime.ts
 
 /**
- * ScreensetsRuntime - isolated instance per MFE.
- * Each instance can:
+ * ScreensetsRuntime - FULLY isolated instance per MFE.
+ * Each instance has:
+ * - Its own TypeSystemPlugin instance (NOT shared)
+ * - Its own schema registry (isolated from other runtimes)
+ * - Its own state, domains, extensions, bridges
+ *
+ * Can operate as:
  * - Connect to a parent host (be a child MFE)
  * - Define extension domains and host nested MFEs (be a host)
  * - Both simultaneously (intermediate host pattern)
@@ -1720,7 +1633,9 @@ class ScreensetsRuntime {
   // Isolated HAI3 state for this runtime
   private readonly state: HAI3State;
 
-  // Type system reference (singleton, shared)
+  // ISOLATED Type System instance - NOT shared across runtimes
+  // Each runtime has its own TypeSystemPlugin with its own schema registry
+  // This prevents MFEs from discovering host/other MFE types via plugin.query()
   public readonly typeSystem: TypeSystemPlugin;
 
   constructor(config: ScreensetsRuntimeConfig) {
@@ -1732,14 +1647,10 @@ class ScreensetsRuntime {
     }
   }
 
-  // === Host Capabilities (any runtime can be a host) ===
-
   /**
    * Register an extension domain.
-   * This runtime becomes a host for MFEs mounted into this domain.
    */
   registerDomain(domain: ExtensionDomain): void {
-    // Validate domain schema
     const validation = this.typeSystem.validateInstance(
       'gts.hai3.screensets.ext.domain.v1~',
       domain
@@ -1748,55 +1659,17 @@ class ScreensetsRuntime {
       throw new DomainValidationError(validation.errors);
     }
 
-    this.domains.set(domain.typeId, {
+    this.domains.set(domain.id, {
       domain,
-      properties: new Map(),  // Domain-scoped property values
-      extensions: new Set(),  // Extensions mounted into this domain
+      properties: new Map(),
+      extensions: new Set(),
     });
   }
 
   /**
-   * Set a shared property value for a specific domain.
-   * Only extensions in this domain will receive the value.
-   */
-  setDomainProperty(domainId: string, propertyId: string, value: unknown): void {
-    const domainState = this.domains.get(domainId);
-    if (!domainState) {
-      throw new Error(`Domain '${domainId}' not registered`);
-    }
-
-    // Validate property is in domain's sharedProperties
-    if (!domainState.domain.sharedProperties.includes(propertyId)) {
-      throw new ContractViolationError(
-        `Property '${propertyId}' not in domain's sharedProperties`
-      );
-    }
-
-    domainState.properties.set(propertyId, value);
-
-    // Notify all extensions in this domain
-    for (const extensionId of domainState.extensions) {
-      const bridge = this.childBridges.get(extensionId);
-      bridge?.notifyPropertyChange(propertyId, value);
-    }
-  }
-
-  /**
-   * Load an MFE from its MfeEntryMF definition.
-   */
-  async loadMfe(entry: MfeEntryMF): Promise<LoadedMfe> {
-    if (!this.mfeLoader) {
-      throw new Error('MfeLoader not configured');
-    }
-    return this.mfeLoader.load(entry);
-  }
-
-  /**
    * Mount an extension into a domain.
-   * Creates a bridge scoped to that domain.
    */
   mountExtension(extension: Extension): MfeBridgeConnection {
-    // Validate extension
     const validation = this.typeSystem.validateInstance(
       'gts.hai3.screensets.ext.extension.v1~',
       extension
@@ -1812,13 +1685,13 @@ class ScreensetsRuntime {
 
     // Contract validation
     const entry = this.getEntry(extension.entry);
-    const contractResult = this.validateContract(entry, domainState.domain);
+    const contractResult = validateContract(entry, domainState.domain);
     if (!contractResult.valid) {
       throw new ContractValidationError(contractResult.errors);
     }
 
     // Dynamic uiMeta validation
-    const uiMetaResult = this.validateExtensionUiMeta(extension, domainState.domain);
+    const uiMetaResult = validateExtensionUiMeta(this.typeSystem, extension);
     if (!uiMetaResult.valid) {
       throw new UiMetaValidationError(uiMetaResult.errors);
     }
@@ -1834,93 +1707,43 @@ class ScreensetsRuntime {
     return bridge;
   }
 
-  // === Child Capabilities (connecting to parent host) ===
-
   /**
    * Connect this runtime to a parent host via bridge.
-   * Used when this runtime is loaded as an MFE.
    */
   connectToParent(bridge: MfeBridgeConnection): void {
     this.parentBridge = bridge;
-
-    // Subscribe to parent's property changes
     bridge.subscribeToAllProperties((props) => {
-      // Update local state with parent's properties
       this.handleParentProperties(props);
     });
-
-    // Register action handlers for domain actions this MFE can receive
-    // Action types come from entry.domainActions
     this.registerDomainActionHandlers(bridge);
   }
 
   /**
-   * Register action handlers for all actions this entry can receive.
-   * Called during connectToParent to set up bidirectional communication.
-   */
-  private registerDomainActionHandlers(bridge: MfeBridgeConnection): void {
-    // Register handlers based on entry's domainActions contract
-    for (const [actionTypeId, handler] of this.actionHandlers.entries()) {
-      bridge.registerActionHandler(actionTypeId, handler);
-    }
-  }
-
-  /**
-   * Send actions chain to parent host.
-   */
-  async sendToParent(chain: ActionsChain): Promise<ChainResult> {
-    if (!this.parentBridge) {
-      throw new Error('Not connected to parent host');
-    }
-    return this.parentBridge.sendActionsChain(chain);
-  }
-
-  /**
-   * Get shared properties from parent.
-   */
-  getParentProperties(): Readonly<Record<string, unknown>> {
-    if (!this.parentBridge) {
-      throw new Error('Not connected to parent host');
-    }
-    return this.parentBridge.getSharedProperties();
-  }
-
-  // === Actions Chain Mediation ===
-  // Note: These methods delegate to the internal ActionsChainsMediator
-
-  /**
-   * Execute an actions chain via the internal ActionsChainsMediator.
-   * Routes to appropriate target (local domain, child extension, or parent).
+   * Execute an actions chain.
    */
   async executeActionsChain(chain: ActionsChain): Promise<ChainResult> {
     const { target, type, payload } = chain.action;
 
-    // Validate action
     const validation = this.typeSystem.validateInstance(type, payload);
     if (!validation.valid) {
       return this.handleChainFailure(chain, validation.errors);
     }
 
     try {
-      // Route based on target
       if (this.domains.has(target)) {
-        // Target is a local domain - deliver to domain handler
         await this.deliverToDomain(target, chain.action);
       } else if (this.childBridges.has(target)) {
-        // Target is a child extension - deliver via bridge
         await this.deliverToChild(target, chain.action);
       } else if (this.parentBridge && target === this.parentBridge.domainId) {
-        // Target is parent - send up
         return this.parentBridge.sendActionsChain(chain);
       } else {
         throw new Error(`Unknown target: ${target}`);
       }
 
-      // Success - execute next chain if present
       if (chain.next) {
         return this.executeActionsChain(chain.next);
       }
-      return { success: true };
+      return { completed: true, path: [chain.action.type] };
 
     } catch (error) {
       return this.handleChainFailure(chain, error);
@@ -1934,26 +1757,16 @@ class ScreensetsRuntime {
     if (chain.fallback) {
       return this.executeActionsChain(chain.fallback);
     }
-    return { success: false, error };
+    return { completed: false, path: [], error: String(error) };
   }
 
-  // === Lifecycle ===
-
-  /**
-   * Cleanup runtime instance.
-   */
   dispose(): void {
-    // Disconnect from parent
     this.parentBridge?.dispose();
     this.parentBridge = null;
-
-    // Dispose all child bridges
     for (const bridge of this.childBridges.values()) {
       bridge.dispose();
     }
     this.childBridges.clear();
-
-    // Clear all state
     this.domains.clear();
     this.extensions.clear();
     this.actionHandlers.clear();
@@ -1961,1024 +1774,616 @@ class ScreensetsRuntime {
 }
 ```
 
-**Runtime Configuration**:
+### Decision 14: MFE Bridge Interfaces
 
-See `ScreensetsRuntimeConfig` in Decision 6 for the complete interface definition. The key fields used in hierarchical patterns are:
+The MFE Bridge provides a bidirectional communication channel between host and MFE. The bridge is created by the host when mounting an extension and passed to the MFE component via props.
 
-- `typeSystem`: Required Type System plugin (shared singleton reference)
-- `mfeLoader`: Optional MFE loader configuration (enables hosting nested MFEs)
-- `parentBridge`: Optional initial parent bridge (if loaded as MFE)
-
-**Nested MFE Example - Dashboard with Widgets**:
-
-```typescript
-// Dashboard MFE - acts as BOTH child (to host) AND host (to widgets)
-
-export default function DashboardMfe({ bridge }: MfeBridgeProps) {
-  // Dashboard's OWN isolated screensets runtime
-  const runtime = useMemo(() => new ScreensetsRuntime({
-    typeSystem: getGtsPlugin(),  // Shared singleton
-    mfeLoader: { timeout: 30000 },  // Enable loading nested MFEs
-  }), []);
-
-  // Connect to parent host
-  useEffect(() => {
-    runtime.connectToParent(bridge);
-    return () => runtime.dispose();
-  }, [runtime, bridge]);
-
-  // Register Dashboard's OWN extension domain for widgets
-  useEffect(() => {
-    runtime.registerDomain({
-      typeId: 'gts.acme.dashboard.ext.domain.widget_slot.v1~',
-      sharedProperties: ['gts.acme.dashboard.ext.shared_property.dashboard_context.v1~'],
-      actions: ['gts.acme.dashboard.ext.action.refresh.v1~'],
-      extensionsActions: ['gts.acme.dashboard.ext.action.widget_ready.v1~'],
-      extensionsUiMeta: { type: 'object', properties: { size: { enum: ['sm', 'md', 'lg'] } } },
-    });
-  }, [runtime]);
-
-  // Load widget MFEs into Dashboard's domain
-  const loadWidget = async (widgetEntry: MfeEntryMF) => {
-    const widget = await runtime.loadMfe(widgetEntry);
-    const widgetBridge = runtime.mountExtension({
-      typeId: `gts.widget.ext.extension.v1~:${widgetEntry.typeId}`,
-      domain: 'gts.acme.dashboard.ext.domain.widget_slot.v1~',
-      entry: widgetEntry.typeId,
-      uiMeta: { size: 'md' },
-    });
-    return { widget, bridge: widgetBridge };
-  };
-
-  return (
-    <ScreensetsRuntimeProvider runtime={runtime}>
-      <DashboardLayout>
-        {/* Widget slots - render loaded widget MFEs here */}
-        <WidgetSlot domainId="gts.acme.dashboard.ext.domain.widget_slot.v1~" />
-      </DashboardLayout>
-    </ScreensetsRuntimeProvider>
-  );
-}
-```
-
-**Domain-Scoped Properties**:
-
-Each ExtensionDomain maintains its own property values. Different domains can have the same property type with different values:
-
-```typescript
-// Host has two domains with different userContext values
-hostRuntime.registerDomain(sidebarDomain);
-hostRuntime.registerDomain(popupDomain);
-
-// Set different values per domain
-hostRuntime.setDomainProperty(
-  'gts.hai3.layout.ext.domain.sidebar.v1~',
-  'gts.hai3.screensets.ext.shared_property.user_context.v1~',
-  { userId: '123', role: 'admin', scope: 'full' }
-);
-
-hostRuntime.setDomainProperty(
-  'gts.hai3.layout.ext.domain.popup.v1~',
-  'gts.hai3.screensets.ext.shared_property.user_context.v1~',
-  { userId: '123', role: 'admin', scope: 'limited' }  // Different scope!
-);
-
-// MFE in sidebar gets 'full' scope
-// MFE in popup gets 'limited' scope
-// They don't see each other's values
-```
-
-**Why Class-Based Approach**:
-
-| Aspect | Function Factory | Class |
-|--------|------------------|-------|
-| State encapsulation | Closures | Private fields |
-| Inheritance | Composition | Extends |
-| Instance identity | Via returned object | `instanceof` check |
-| Method binding | Arrow functions | Class methods |
-| Tree-shaking | Better | Slightly worse |
-| **Chosen** | | **Yes** |
-
-Classes are chosen because:
-1. Clear encapsulation of complex state
-2. Easier to extend for framework-specific runtimes
-3. `instanceof` checks for type narrowing
-4. Better IDE support for method discovery
-
-### Decision 15: MFE Bridge Communication Protocol
-
-**What**: The bridge is the domain-scoped communication contract between parent runtime and child MFE runtime. In hierarchical MFE trees, an MFE can have bridges both to its parent AND to its children.
-
-**Key Design Decision**: Actions chains are **BIDIRECTIONAL** - they flow both parent-to-child AND child-to-parent through the same mechanism. The `domain.actions` field in ExtensionDomain is simply a LIST of action types the domain can execute, not a separate communication channel.
-
-**Architecture**:
-
-```
-+-----------------+         BRIDGE          +-----------------+
-| PARENT RUNTIME  | <---------------------> |  CHILD RUNTIME  |
-|                 |                          |                 |
-| ExtensionDomain |  --- sharedProperties -->| getSharedProps  |
-| (domain-scoped) |  <-- actionsChain ------| sendActionsChain|
-|                 |  --- actionsChain ----->| (via handlers)  |
-+-----------------+                          +-----------------+
-                                             (can also be a parent
-                                              to nested MFEs)
-```
-
-**Bidirectional Actions Chain Flow**:
-- **Child to Parent**: Child calls `bridge.sendActionsChain(chain)` to send actions to parent
-- **Parent to Child**: Parent runtime calls `bridge.deliverActionsChain(chain)` to send actions to child
-- Both directions use the SAME actions chain structure
-- Child registers action handlers for action types it can receive (listed in `entry.domainActions`)
-
-**Bridge Interface**:
+#### Bridge Interface Definitions
 
 ```typescript
 // packages/screensets/src/mfe/bridge/types.ts
 
 /**
- * Bridge connection from MFE to Host.
- * Created by host, passed to MFE as props.
+ * Read-only bridge interface exposed to MFE components.
+ * MFEs use this to communicate with the host.
  */
-interface MfeBridgeConnection {
-  /** Unique ID for this MFE instance */
-  readonly instanceId: string;
+interface MfeBridge {
+  /** The entry type ID for this MFE instance */
+  readonly entryTypeId: string;
 
-  /** Extension domain this MFE is mounted into */
+  /** The domain type ID this MFE is mounted in */
   readonly domainId: string;
 
-  /** MFE entry type ID */
-  readonly entryId: string;
+  /**
+   * Request an action from the host.
+   * The bridge validates the payload against the action's schema before sending.
+   * @param actionTypeId - Action type ID (must be in entry's actions list)
+   * @param payload - Action payload (validated against action schema)
+   * @returns Promise that resolves when host acknowledges receipt
+   */
+  requestHostAction(actionTypeId: string, payload?: unknown): Promise<void>;
 
-  // === Properties (Host to MFE) ===
-
-  /** Get current shared properties snapshot */
-  getSharedProperties(): Readonly<Record<string, unknown>>;
-
-  /** Subscribe to property changes */
+  /**
+   * Subscribe to a shared property from the domain.
+   * @param propertyTypeId - SharedProperty type ID
+   * @param callback - Called with current value and on subsequent updates
+   * @returns Unsubscribe function
+   */
   subscribeToProperty(
-    propertyId: string,
+    propertyTypeId: string,
     callback: (value: unknown) => void
   ): () => void;
 
-  /** Subscribe to all properties */
+  /**
+   * Get current value of a shared property.
+   * @param propertyTypeId - SharedProperty type ID
+   * @returns Current value or undefined if not set
+   */
+  getProperty(propertyTypeId: string): unknown;
+
+  /**
+   * Subscribe to all shared properties at once.
+   * @param callback - Called with property map on any property update
+   * @returns Unsubscribe function
+   */
   subscribeToAllProperties(
-    callback: (properties: Record<string, unknown>) => void
+    callback: (properties: Map<string, unknown>) => void
   ): () => void;
+}
 
-  // === Actions Chain (BIDIRECTIONAL) ===
+/**
+ * Extended bridge interface used by the host to manage MFE communication.
+ * Created by ScreensetsRuntime when mounting an extension.
+ */
+interface MfeBridgeConnection extends MfeBridge {
+  /** Unique instance ID for this bridge connection */
+  readonly instanceId: string;
 
-  /** Send actions chain to parent host (Child to Parent) */
+  /**
+   * Send an actions chain to the MFE.
+   * Used for domain-to-extension communication.
+   * @param chain - ActionsChain to deliver
+   * @returns ChainResult indicating execution outcome
+   */
   sendActionsChain(chain: ActionsChain): Promise<ChainResult>;
 
   /**
-   * Register handler for incoming actions chains (Parent to Child)
-   * Handler receives chains where action.type is in entry.domainActions
+   * Update a shared property value.
+   * Notifies all subscribers in the MFE.
+   * @param propertyTypeId - SharedProperty type ID
+   * @param value - New property value
    */
-  registerActionHandler(
-    actionTypeId: string,
-    handler: (action: Action) => Promise<void>
-  ): () => void;
+  updateProperty(propertyTypeId: string, value: unknown): void;
 
-  // === Lifecycle ===
+  /**
+   * Register handler for actions coming from the MFE.
+   * @param handler - Callback invoked when MFE requests host action
+   */
+  onHostAction(
+    handler: (actionTypeId: string, payload: unknown) => Promise<void>
+  ): void;
 
-  /** Called when MFE is being unmounted */
+  /**
+   * Clean up the bridge connection.
+   * Unsubscribes all listeners and releases resources.
+   */
   dispose(): void;
 }
 
 /**
- * Internal bridge interface used by parent runtime to deliver chains to child.
- * Not exposed to MFE - used by ScreensetsRuntime internally.
+ * Props interface for MFE entry components.
+ * All MFE entry components must accept these props.
  */
-interface MfeBridgeInternal extends MfeBridgeConnection {
-  /**
-   * Deliver actions chain to child MFE (Parent to Child)
-   * Called by parent runtime when chain targets this extension
-   */
-  deliverActionsChain(chain: ActionsChain): Promise<ChainResult>;
-
-  /** Notify child of property change */
-  notifyPropertyChange(propertyId: string, value: unknown): void;
+interface MfeBridgeProps {
+  /** Bridge for host-MFE communication */
+  bridge: MfeBridge;
 }
 ```
 
-**Bridge Creation by Host**:
+#### Bridge Creation Flow
 
 ```typescript
-// packages/screensets/src/mfe/bridge/factory.ts
+// When mounting an extension
+const bridge = runtime.mountExtension(extension);
 
-/**
- * Host creates a bridge for each MFE instance.
- * The bridge provides controlled access to host capabilities.
- * Supports BIDIRECTIONAL actions chain communication.
- */
-function createMfeBridge(
-  hostRuntime: ScreensetsRuntime,
-  domain: ExtensionDomain,
-  entry: MfeEntry,
-  instanceId: string
-): MfeBridgeInternal {
-  const propertySubscribers = new Map<string, Set<(value: unknown) => void>>();
-  // Action handlers keyed by action type ID (for Parent to Child delivery)
-  const actionHandlers = new Map<string, (action: Action) => Promise<void>>();
+// Bridge is passed to MFE component via props
+<MfeComponent bridge={bridge} />
 
-  return {
-    instanceId,
-    domainId: domain.typeId,
-    entryId: entry.typeId,
+// MFE uses bridge to communicate
+const MyMfeEntry: React.FC<MfeBridgeProps> = ({ bridge }) => {
+  const [theme, setTheme] = useState<Theme>();
 
-    getSharedProperties() {
-      // Return only properties defined in domain.sharedProperties
-      const props: Record<string, unknown> = {};
-      for (const propId of domain.sharedProperties) {
-        props[propId] = hostRuntime.getPropertyValue(domain.typeId, propId);
-      }
-      return Object.freeze(props);
-    },
+  useEffect(() => {
+    // Subscribe to shared property
+    const unsubscribe = bridge.subscribeToProperty(
+      'gts.hai3.screensets.ext.shared_property.v1~:theme',
+      (value) => setTheme(value as Theme)
+    );
+    return unsubscribe;
+  }, [bridge]);
 
-    subscribeToProperty(propertyId, callback) {
-      // Validate property is in contract
-      if (!domain.sharedProperties.includes(propertyId)) {
-        throw new ContractViolationError(
-          `Property '${propertyId}' not in domain's sharedProperties`
-        );
-      }
-
-      if (!propertySubscribers.has(propertyId)) {
-        propertySubscribers.set(propertyId, new Set());
-      }
-      propertySubscribers.get(propertyId)!.add(callback);
-
-      // Return unsubscribe function
-      return () => {
-        propertySubscribers.get(propertyId)?.delete(callback);
-      };
-    },
-
-    subscribeToAllProperties(callback) {
-      const unsubscribes = domain.sharedProperties.map(propId =>
-        this.subscribeToProperty(propId, () => {
-          callback(this.getSharedProperties());
-        })
-      );
-      return () => unsubscribes.forEach(unsub => unsub());
-    },
-
-    // === Child to Parent ===
-    async sendActionsChain(chain) {
-      // Validate action is in entry's contract (actions entry can EMIT)
-      const actionTypeId = chain.action.type;
-      if (!entry.actions.includes(actionTypeId)) {
-        throw new ContractViolationError(
-          `Action '${actionTypeId}' not in entry's actions contract`
-        );
-      }
-
-      // Validate payload against action schema
-      const validation = hostRuntime.typeSystem.validateInstance(
-        actionTypeId,
-        chain.action.payload
-      );
-      if (!validation.valid) {
-        throw new PayloadValidationError(validation.errors);
-      }
-
-      // Execute via host runtime
-      return hostRuntime.executeActionsChain(chain);
-    },
-
-    // === Parent to Child (handler registration) ===
-    registerActionHandler(actionTypeId, handler) {
-      // Validate action is in entry's domainActions (actions entry can RECEIVE)
-      if (!entry.domainActions.includes(actionTypeId)) {
-        throw new ContractViolationError(
-          `Action '${actionTypeId}' not in entry's domainActions contract`
-        );
-      }
-
-      actionHandlers.set(actionTypeId, handler);
-      return () => actionHandlers.delete(actionTypeId);
-    },
-
-    // === Parent to Child (delivery - internal use) ===
-    async deliverActionsChain(chain) {
-      const actionTypeId = chain.action.type;
-      const handler = actionHandlers.get(actionTypeId);
-
-      if (!handler) {
-        return {
-          success: false,
-          error: `No handler registered for action '${actionTypeId}'`,
-        };
-      }
-
-      try {
-        await handler(chain.action);
-
-        // Success - execute next chain if present
-        if (chain.next) {
-          return hostRuntime.executeActionsChain(chain.next);
-        }
-        return { success: true };
-      } catch (error) {
-        // Failure - execute fallback chain if present
-        if (chain.fallback) {
-          return hostRuntime.executeActionsChain(chain.fallback);
-        }
-        return { success: false, error };
-      }
-    },
-
-    notifyPropertyChange(propertyId, value) {
-      const subscribers = propertySubscribers.get(propertyId);
-      if (subscribers) {
-        for (const callback of subscribers) {
-          callback(value);
-        }
-      }
-    },
-
-    dispose() {
-      propertySubscribers.clear();
-      actionHandlers.clear();
-    },
+  const handleClick = () => {
+    // Request action from host
+    bridge.requestHostAction(
+      'gts.acme.analytics.ext.action.v1~:data_updated',
+      { timestamp: Date.now() }
+    );
   };
-}
+
+  return <div>...</div>;
+};
 ```
 
-**Property Propagation Flow**:
+### Decision 15: Shadow DOM Utilities
 
-```
-1. Host domain updates property value
-2. Host runtime notifies all bridges for that domain
-3. Bridge calls subscribed callbacks in MFE
-4. MFE re-renders with new property value
+Shadow DOM utilities are provided by `@hai3/screensets` for style isolation. The `@hai3/framework` uses these utilities in its `ShadowDomContainer` component.
 
-Host:  domain.setProperty('userContext', newValue)
-         |
-       hostRuntime.notifyPropertyChange(domainId, 'userContext', newValue)
-         |
-       bridge.notifyPropertyChange('userContext', newValue)
-         |
-MFE:   useSyncExternalStore re-renders with newValue
-```
-
-**Bidirectional Actions Chain Flow**:
-
-Actions chains flow BOTH directions through the same mechanism:
-
-**Child to Parent Flow**:
-```
-1. MFE sends actions chain via bridge
-2. Host validates action is in entry.actions contract
-3. Host validates payload schema
-4. Host mediator executes chain
-5. Result returned to MFE
-
-MFE:   bridge.sendActionsChain({ action: { target, type, payload }, next, fallback })
-         |
-       Host validates: entry.actions.includes(action.type)
-         |
-       Host validates: typeSystem.validateInstance(action.type, payload)
-         |
-       Host ActionsChainsMediator: executeActionsChain(chain)
-         |
-       Target handles action -> success/failure
-         |
-       Mediator follows next/fallback chain
-         |
-MFE:   Promise resolves with ChainResult
-```
-
-**Parent to Child Flow**:
-```
-1. Host runtime sends actions chain to child via bridge
-2. Bridge validates action is in entry.domainActions contract
-3. Bridge delivers to registered handler
-4. Handler processes action
-5. Success/failure triggers next/fallback chain
-
-Host:  runtime.sendToChild(extensionId, { action: { target, type, payload }, next, fallback })
-         |
-       bridge.deliverActionsChain(chain)
-         |
-       Bridge validates: entry.domainActions.includes(action.type)
-         |
-       handler = actionHandlers.get(action.type)
-         |
-       await handler(action)
-         |
-       Success -> execute chain.next (if present)
-       Failure -> execute chain.fallback (if present)
-         |
-Host:  Promise resolves with ChainResult
-```
-
-**MFE Action Handler Registration**:
-```typescript
-// Inside MFE component
-useEffect(() => {
-  // Register handlers for actions this entry can RECEIVE (domainActions)
-  const unsubscribe = bridge.registerActionHandler(
-    'gts.acme.dashboard.ext.action.refresh.v1~',
-    async (action) => {
-      // Handle refresh action from parent
-      await refreshData();
-    }
-  );
-
-  return () => unsubscribe();
-}, [bridge]);
-```
-
-### Decision 16: Shadow DOM for Style Isolation
-
-**What**: Each MFE entry renders inside a Shadow DOM container that isolates its styles from the host and other MFEs.
-
-**Why**:
-- Web standard with excellent browser support (>96%)
-- CSS custom properties (theme variables) pierce the shadow boundary
-- No build coordination required between host and MFEs
-- Declarative Shadow DOM enables future SSR path
-
-**CSS Variables Strategy**:
-
-```css
-/* Host defines theme variables (these pierce shadow boundary) */
-:root {
-  --hai3-color-primary: #3b82f6;
-  --hai3-color-secondary: #64748b;
-  --hai3-spacing-unit: 4px;
-  --hai3-border-radius: 8px;
-  --hai3-font-family: system-ui, sans-serif;
-}
-
-/* MFE styles reference variables (works inside shadow DOM) */
-.mfe-button {
-  background: var(--hai3-color-primary);
-  padding: calc(var(--hai3-spacing-unit) * 2);
-  border-radius: var(--hai3-border-radius);
-  font-family: var(--hai3-font-family);
-}
-```
-
-**Shadow DOM Utilities**:
+#### Shadow DOM API
 
 ```typescript
 // packages/screensets/src/mfe/shadow/index.ts
 
-interface ShadowContainerOptions {
+/**
+ * Options for creating a shadow root
+ */
+interface ShadowRootOptions {
   /** Shadow DOM mode (default: 'open') */
   mode?: 'open' | 'closed';
-  /** Inject CSS reset into shadow root */
-  injectReset?: boolean;
-  /** Additional styles to inject */
-  styles?: string[];
+  /** Enable delegatesFocus for accessibility */
+  delegatesFocus?: boolean;
 }
 
 /**
- * Create a shadow root container for MFE isolation
+ * Create a shadow root attached to an element.
+ * Handles edge cases like already-attached shadow roots.
+ *
+ * @param element - Host element for the shadow root
+ * @param options - Shadow root configuration
+ * @returns The created or existing ShadowRoot
+ * @throws Error if element cannot host shadow DOM
  */
-function createShadowContainer(
-  hostElement: HTMLElement,
-  options: ShadowContainerOptions = {}
+function createShadowRoot(
+  element: HTMLElement,
+  options: ShadowRootOptions = {}
 ): ShadowRoot {
-  const { mode = 'open', injectReset = true, styles = [] } = options;
+  const { mode = 'open', delegatesFocus = false } = options;
 
-  const shadowRoot = hostElement.attachShadow({ mode });
-
-  // Inject CSS reset to prevent host style leakage
-  if (injectReset) {
-    const resetStyle = document.createElement('style');
-    resetStyle.textContent = `
-      :host {
-        all: initial;
-        display: block;
-        contain: content;
-      }
-    `;
-    shadowRoot.appendChild(resetStyle);
+  // Return existing shadow root if present
+  if (element.shadowRoot && mode === 'open') {
+    return element.shadowRoot;
   }
 
-  // Inject additional styles
-  for (const css of styles) {
-    const style = document.createElement('style');
-    style.textContent = css;
-    shadowRoot.appendChild(style);
-  }
-
-  return shadowRoot;
+  return element.attachShadow({ mode, delegatesFocus });
 }
 
 /**
- * Inject CSS variables from host into shadow root
- * Called when theme changes to update MFE styling
+ * CSS variable map type
  */
-function syncCssVariables(
-  shadowRoot: ShadowRoot,
-  variablePrefix = '--hai3-'
-): void {
-  const rootStyles = getComputedStyle(document.documentElement);
-  const variables: string[] = [];
+type CssVariables = Record<string, string>;
 
-  // Extract all HAI3 theme variables
-  for (const prop of document.documentElement.style) {
-    if (prop.startsWith(variablePrefix)) {
-      variables.push(`${prop}: ${rootStyles.getPropertyValue(prop)};`);
+/**
+ * Inject CSS custom properties into a shadow root.
+ * Variables are set on the :host element and cascade to all children.
+ *
+ * @param shadowRoot - Target shadow root
+ * @param variables - Map of CSS variable names to values
+ */
+function injectCssVariables(
+  shadowRoot: ShadowRoot,
+  variables: CssVariables
+): void {
+  const styleId = '__hai3_css_variables__';
+  let styleElement = shadowRoot.getElementById(styleId) as HTMLStyleElement | null;
+
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = styleId;
+    shadowRoot.prepend(styleElement);
+  }
+
+  const cssText = Object.entries(variables)
+    .map(([name, value]) => `${name}: ${value};`)
+    .join('\n');
+
+  styleElement.textContent = `:host {\n${cssText}\n}`;
+}
+
+/**
+ * Inject a stylesheet into a shadow root.
+ * Supports both CSS text and URLs.
+ *
+ * @param shadowRoot - Target shadow root
+ * @param css - CSS text or URL to stylesheet
+ * @param id - Optional ID for the style element (for updates)
+ */
+function injectStylesheet(
+  shadowRoot: ShadowRoot,
+  css: string,
+  id?: string
+): void {
+  if (id) {
+    const existing = shadowRoot.getElementById(id);
+    if (existing) {
+      existing.textContent = css;
+      return;
     }
   }
 
-  // Apply to shadow root host
-  const style = shadowRoot.querySelector('style[data-theme]')
-    || document.createElement('style');
-  style.setAttribute('data-theme', 'true');
-  style.textContent = `:host { ${variables.join(' ')} }`;
+  const styleElement = document.createElement('style');
+  if (id) styleElement.id = id;
+  styleElement.textContent = css;
+  shadowRoot.appendChild(styleElement);
+}
 
-  if (!style.parentNode) {
-    shadowRoot.appendChild(style);
+// Export utilities
+export { createShadowRoot, injectCssVariables, injectStylesheet };
+export type { ShadowRootOptions, CssVariables };
+```
+
+### Decision 16: Error Class Hierarchy
+
+The MFE system defines a hierarchy of error classes for specific failure scenarios.
+
+#### Error Classes
+
+```typescript
+// packages/screensets/src/mfe/errors/index.ts
+
+/**
+ * Base error class for all MFE errors
+ */
+class MfeError extends Error {
+  constructor(message: string, public readonly code: string) {
+    super(message);
+    this.name = 'MfeError';
   }
+}
+
+/**
+ * Error thrown when MFE bundle fails to load
+ */
+class MfeLoadError extends MfeError {
+  constructor(
+    message: string,
+    public readonly entryTypeId: string,
+    public readonly cause?: Error
+  ) {
+    super(`Failed to load MFE '${entryTypeId}': ${message}`, 'MFE_LOAD_ERROR');
+    this.name = 'MfeLoadError';
+  }
+}
+
+/**
+ * Error thrown when contract validation fails
+ */
+class ContractValidationError extends MfeError {
+  constructor(
+    public readonly errors: ContractError[],
+    public readonly entryTypeId?: string,
+    public readonly domainTypeId?: string
+  ) {
+    const details = errors.map(e => `  - ${e.type}: ${e.details}`).join('\n');
+    super(
+      `Contract validation failed:\n${details}`,
+      'CONTRACT_VALIDATION_ERROR'
+    );
+    this.name = 'ContractValidationError';
+  }
+}
+
+/**
+ * Error thrown when uiMeta validation fails
+ */
+class UiMetaValidationError extends MfeError {
+  constructor(
+    public readonly errors: ValidationError[],
+    public readonly extensionTypeId: string,
+    public readonly domainTypeId: string
+  ) {
+    const details = errors.map(e => `  - ${e.path}: ${e.message}`).join('\n');
+    super(
+      `uiMeta validation failed for extension '${extensionTypeId}' against domain '${domainTypeId}':\n${details}`,
+      'UI_META_VALIDATION_ERROR'
+    );
+    this.name = 'UiMetaValidationError';
+  }
+}
+
+/**
+ * Error thrown when actions chain execution fails
+ */
+class ChainExecutionError extends MfeError {
+  constructor(
+    message: string,
+    public readonly chain: ActionsChain,
+    public readonly failedAction: Action,
+    public readonly executedPath: string[],
+    public readonly cause?: Error
+  ) {
+    super(
+      `Actions chain execution failed at '${failedAction.type}': ${message}`,
+      'CHAIN_EXECUTION_ERROR'
+    );
+    this.name = 'ChainExecutionError';
+  }
+}
+
+/**
+ * Error thrown when shared dependency version validation fails
+ */
+class MfeVersionMismatchError extends MfeError {
+  constructor(
+    public readonly manifestTypeId: string,
+    public readonly dependency: string,
+    public readonly expected: string,
+    public readonly actual: string
+  ) {
+    super(
+      `Version mismatch for '${dependency}' in MFE '${manifestTypeId}': expected ${expected}, got ${actual}`,
+      'MFE_VERSION_MISMATCH_ERROR'
+    );
+    this.name = 'MfeVersionMismatchError';
+  }
+}
+
+/**
+ * Error thrown when type conformance check fails
+ */
+class MfeTypeConformanceError extends MfeError {
+  constructor(
+    public readonly typeId: string,
+    public readonly expectedBaseType: string
+  ) {
+    super(
+      `Type '${typeId}' does not conform to base type '${expectedBaseType}'`,
+      'MFE_TYPE_CONFORMANCE_ERROR'
+    );
+    this.name = 'MfeTypeConformanceError';
+  }
+}
+
+/**
+ * Error thrown when domain validation fails
+ */
+class DomainValidationError extends MfeError {
+  constructor(
+    public readonly errors: ValidationError[],
+    public readonly domainTypeId: string
+  ) {
+    const details = errors.map(e => `  - ${e.path}: ${e.message}`).join('\n');
+    super(
+      `Domain validation failed for '${domainTypeId}':\n${details}`,
+      'DOMAIN_VALIDATION_ERROR'
+    );
+    this.name = 'DomainValidationError';
+  }
+}
+
+/**
+ * Error thrown when extension validation fails
+ */
+class ExtensionValidationError extends MfeError {
+  constructor(
+    public readonly errors: ValidationError[],
+    public readonly extensionTypeId: string
+  ) {
+    const details = errors.map(e => `  - ${e.path}: ${e.message}`).join('\n');
+    super(
+      `Extension validation failed for '${extensionTypeId}':\n${details}`,
+      'EXTENSION_VALIDATION_ERROR'
+    );
+    this.name = 'ExtensionValidationError';
+  }
+}
+
+export {
+  MfeError,
+  MfeLoadError,
+  ContractValidationError,
+  UiMetaValidationError,
+  ChainExecutionError,
+  MfeVersionMismatchError,
+  MfeTypeConformanceError,
+  DomainValidationError,
+  ExtensionValidationError,
+};
+```
+
+### Decision 17: Actions Chain Timeout Configuration
+
+ActionsChain execution supports configurable timeouts to prevent hanging chains.
+
+#### Timeout Configuration
+
+```typescript
+// packages/screensets/src/mfe/mediator/config.ts
+
+/**
+ * Configuration for ActionsChain execution
+ */
+interface ActionsChainsConfig {
+  /**
+   * Default timeout for individual action execution (ms)
+   * Default: 30000 (30 seconds)
+   */
+  actionTimeout?: number;
+
+  /**
+   * Maximum total time for entire chain execution (ms)
+   * Default: 120000 (2 minutes)
+   */
+  chainTimeout?: number;
+
+  /**
+   * Whether to continue chain on timeout (execute fallback)
+   * Default: true
+   */
+  fallbackOnTimeout?: boolean;
+}
+
+const DEFAULT_CONFIG: Required<ActionsChainsConfig> = {
+  actionTimeout: 30000,
+  chainTimeout: 120000,
+  fallbackOnTimeout: true,
+};
+
+/**
+ * Extended ChainResult with timing information
+ */
+interface ChainResult {
+  completed: boolean;
+  path: string[];  // Action type IDs executed
+  error?: string;
+  timedOut?: boolean;
+  executionTime?: number;  // Total execution time in ms
 }
 ```
 
-## Data Flow Diagrams
+### Decision 18: Manifest Fetching Strategy
 
-### Extension Loading and Mounting Flow
+The MfeLoader requires a strategy for fetching MfManifest instances from their type IDs.
 
-```
-+------------------+     1. Load MFE      +------------------+
-|   HOST APP       | ------------------>  | MFE LOADER       |
-| (with Domain)    |                      | (Module Fed 2.0) |
-+--------+---------+                      +--------+---------+
-         |                                         |
-         |                                    2. Resolve Manifest
-         |                                    3. Fetch Bundle
-         |                                         |
-         |                                         v
-         |                                +------------------+
-         |                                | REMOTE SERVER    |
-         |                                | (MFE Bundle)     |
-         |                                +--------+---------+
-         |                                         |
-         |     4. Return Loaded Component          |
-         | <---------------------------------------+
-         |
-         v
-+--------+---------+     5. Validate      +------------------+
-| SCREENSETS       | <----------------->  | TYPE SYSTEM      |
-| RUNTIME          |     Contract         | PLUGIN (GTS)     |
-+--------+---------+                      +------------------+
-         |
-         | 6. Contract Valid
-         v
-+--------+---------+
-| SHADOW DOM       |
-| CONTAINER        |
-+--------+---------+
-         |
-         | 7. Mount in Shadow Root
-         v
-+------------------+
-| MFE COMPONENT    |
-| (with Bridge)    |
-+------------------+
-```
+#### Manifest Fetching Design
 
-### Shared Properties Flow (Domain to Extension)
+```typescript
+// packages/screensets/src/mfe/loader/manifest-fetcher.ts
 
-```
-+------------------+                      +------------------+
-|   DOMAIN STATE   |  1. State Change    | SCREENSETS       |
-| (Host HAI3 Store)|  ---------------->  | RUNTIME          |
-+--------+---------+                      +--------+---------+
-                                                   |
-                                          2. Update Shared Properties
-                                                   |
-                    +------------------------------+
-                    |
-                    v
-+------------------+     3. Notify       +------------------+
-| SHARED PROPS     | ----------------->  | MFE BRIDGE       |
-| SUBSCRIPTION     |                     | (per Extension)  |
-+------------------+                     +--------+---------+
-                                                  |
-                                         4. Callback
-                                                  |
-                                                  v
-                                         +------------------+
-                                         | MFE COMPONENT    |
-                                         | (Re-render)      |
-                                         +------------------+
-```
+/**
+ * Strategy for fetching MfManifest instances
+ */
+interface ManifestFetcher {
+  /**
+   * Fetch a manifest by its type ID
+   * @param manifestTypeId - GTS type ID for the MfManifest
+   * @returns The manifest instance
+   */
+  fetch(manifestTypeId: string): Promise<MfManifest>;
+}
 
-### Actions Chain Flow (Extension to Domain and Back)
+/**
+ * URL-based manifest fetcher - fetches manifest JSON from a URL pattern
+ */
+class UrlManifestFetcher implements ManifestFetcher {
+  constructor(
+    private readonly urlResolver: (manifestTypeId: string) => string,
+    private readonly fetchOptions?: RequestInit
+  ) {}
 
-```
-+------------------+                      +------------------+
-| MFE COMPONENT    |  1. sendActionsChain | MFE BRIDGE      |
-| (User Action)    | ------------------> |                  |
-+------------------+                      +--------+---------+
-                                                   |
-                                          2. Validate Action in Contract
-                                                   |
-                                                   v
-+------------------+                      +------------------+
-| TYPE SYSTEM      | <---3. Validate---> | SCREENSETS       |
-| PLUGIN (GTS)     |    Payload Schema   | RUNTIME          |
-+------------------+                      +--------+---------+
-                                                   |
-                                          4. Resolve Target
-                                                   |
-                    +------------------------------+
-                    |
-                    v
-+------------------+     5. Deliver      +------------------+
-| DOMAIN HANDLER   | <----------------- | ACTION CHAIN     |
-| (Host L2 Layer)  |    Action+Payload   | EXECUTOR         |
-+--------+---------+                     +--------+---------+
-         |                                        |
-         | 6. Execute (Flux Dispatch)             |
-         |                                        |
-         v                                        |
-+------------------+                              |
-| SUCCESS/FAILURE  | --------------------------->+
-|                  |  7. Result                   |
-+------------------+                              |
-                                                  |
-                                         8. Execute next/fallback
-                                                  |
-                                                  v
-                                         +------------------+
-                                         | NEXT TARGET      |
-                                         | (Chain Continues)|
-                                         +------------------+
+  async fetch(manifestTypeId: string): Promise<MfManifest> {
+    const url = this.urlResolver(manifestTypeId);
+    const response = await fetch(url, this.fetchOptions);
+
+    if (!response.ok) {
+      throw new MfeLoadError(
+        `Failed to fetch manifest: ${response.status} ${response.statusText}`,
+        manifestTypeId
+      );
+    }
+
+    const manifest = await response.json();
+    return manifest as MfManifest;
+  }
+}
+
+/**
+ * Registry-based manifest fetcher - looks up manifests from a pre-registered map
+ */
+class RegistryManifestFetcher implements ManifestFetcher {
+  private readonly manifests = new Map<string, MfManifest>();
+
+  register(manifest: MfManifest): void {
+    this.manifests.set(manifest.id, manifest);
+  }
+
+  async fetch(manifestTypeId: string): Promise<MfManifest> {
+    const manifest = this.manifests.get(manifestTypeId);
+    if (!manifest) {
+      throw new MfeLoadError(
+        `Manifest not found in registry`,
+        manifestTypeId
+      );
+    }
+    return manifest;
+  }
+}
+
+/**
+ * Composite fetcher - tries multiple strategies in order
+ */
+class CompositeManifestFetcher implements ManifestFetcher {
+  constructor(private readonly fetchers: ManifestFetcher[]) {}
+
+  async fetch(manifestTypeId: string): Promise<MfManifest> {
+    for (const fetcher of this.fetchers) {
+      try {
+        return await fetcher.fetch(manifestTypeId);
+      } catch {
+        continue;
+      }
+    }
+    throw new MfeLoadError(
+      `Manifest not found by any fetcher`,
+      manifestTypeId
+    );
+  }
+}
+
+/**
+ * MfeLoader configuration with manifest fetching
+ */
+interface MfeLoaderConfig {
+  /** Timeout for bundle loading in ms (default: 30000) */
+  timeout?: number;
+  /** Retry attempts on load failure (default: 2) */
+  retries?: number;
+  /** Enable preloading of known MFEs */
+  preload?: boolean;
+  /** Strategy for fetching manifests */
+  manifestFetcher: ManifestFetcher;
+}
 ```
 
-## Component Architecture Diagram
+#### Usage Example
 
-```
-+==============================================================================+
-|                              HOST APPLICATION                                  |
-|                                                                               |
-|  +--------------------------+     +--------------------------------------+    |
-|  |     HOST HAI3 STORE      |     |        SCREENSETS RUNTIME            |    |
-|  |    (Isolated State)      |     |  +--------------------------------+  |    |
-|  +--------------------------+     |  | Type System Plugin (GTS)       |  |    |
-|                                   |  | - Schema Registry              |  |    |
-|  +--------------------------+     |  | - Type Validation              |  |    |
-|  |    EXTENSION DOMAIN      |     |  | - Contract Matching            |  |    |
-|  |  (sidebar.v1~)           |     |  +--------------------------------+  |    |
-|  |                          |     |  | Actions Chain Executor         |  |    |
-|  |  sharedProperties:       |     |  | - Target Resolution            |  |    |
-|  |    - user_context        |     |  | - Success/Failure Routing      |  |    |
-|  |  actions: [refresh]      |     |  +--------------------------------+  |    |
-|  |  extensionsActions:      |     +--------------------------------------+    |
-|  |    - data_update         |                      |                          |
-|  +-----------+--------------+                      |                          |
-|              |                                     |                          |
-|              | Contract Validation                 |                          |
-|              +-------------------------------------+                          |
-|              |                                                                |
-|  +-----------v--------------+                                                 |
-|  |   EXTENSION SLOT         |                                                 |
-|  |   (Shadow DOM Container) |                                                 |
-|  |                          |                                                 |
-|  |  +--------------------+  |     +--------------------------------------+    |
-|  |  |  SHADOW ROOT       |  |     |         MFE INSTANCE                 |    |
-|  |  |  (Style Isolation) |  |     |                                      |    |
-|  |  |                    |  |     |  +--------------------------------+  |    |
-|  |  |  +---------------+ |  |     |  |     MFE HAI3 STORE             |  |    |
-|  |  |  | CSS Variables | |  |     |  |    (Isolated State)            |  |    |
-|  |  |  | (Theme)       | |  |     |  +--------------------------------+  |    |
-|  |  |  +---------------+ |  |     |                                      |    |
-|  |  |                    |  |     |  +--------------------------------+  |    |
-|  |  |  +---------------+ |  |---->|  |     MFE BRIDGE                 |  |    |
-|  |  |  | MFE COMPONENT | |  |     |  | - subscribeToProperty()        |  |    |
-|  |  |  | (Rendered)    | |  |     |  | - sendActionsChain()           |  |    |
-|  |  |  +---------------+ |  |     |  | - onDomainAction()             |  |    |
-|  |  +--------------------+  |     |  +--------------------------------+  |    |
-|  +--------------------------+     +--------------------------------------+    |
-|                                                                               |
-+===============================================================================+
+```typescript
+// Configure loader with URL-based fetching
+const loader = new MfeLoader(typeSystem, {
+  manifestFetcher: new UrlManifestFetcher(
+    (typeId) => `https://mfe-registry.example.com/manifests/${encodeURIComponent(typeId)}.json`
+  ),
+});
+
+// Or with pre-registered manifests
+const registryFetcher = new RegistryManifestFetcher();
+registryFetcher.register(analyticsManifest);
+registryFetcher.register(billingManifest);
+
+const loader = new MfeLoader(typeSystem, {
+  manifestFetcher: registryFetcher,
+});
+
+// Or composite strategy (try registry first, then URL)
+const loader = new MfeLoader(typeSystem, {
+  manifestFetcher: new CompositeManifestFetcher([
+    registryFetcher,
+    new UrlManifestFetcher((typeId) => `https://cdn.example.com/manifests/${typeId}.json`),
+  ]),
+});
 ```
 
-## Risks / Trade-offs
-
-### Risk Summary Table
-
-| Risk | Impact | Likelihood | Mitigation |
-|------|--------|------------|------------|
-| React version mismatch host/MFE | Critical (runtime crash) | Medium | Strict shared dep version validation at load time via Module Federation |
-| CSS leakage despite Shadow DOM | Medium (visual bugs) | Low | CSS reset in shadow root, automated visual regression testing |
-| Contract mismatch at runtime | High (mount failure) | Medium | Validate contracts at registration, clear error messages with type IDs |
-| Actions chain loops | High (infinite recursion) | Low | Max chain depth limit (default: 10), loop detection in ActionsChainsMediator |
-| Slow MFE loads | Medium (poor UX) | Medium | Preloading strategies, loading skeletons, configurable timeouts |
-| Contract evolution breaks MFEs | High (integration failure) | Medium | Semantic versioning in type IDs, new versions are new types |
-| Plugin implementation complexity | Medium (adoption barrier) | Medium | Ship GTS as reference, comprehensive docs, testing utilities |
-
-### Risk 1: Contract Evolution
-
-**Risk:** Changing domain contracts may break existing MFE entries.
-
-**Mitigation:**
-- Use semantic versioning in type IDs (plugin-agnostic)
-- New domain versions are new types (not modifications)
-- Use plugin's `checkCompatibility()` when available
-- Document contract stability levels
-
-### Risk 2: Performance Overhead
-
-**Risk:** Action chain execution adds latency.
-
-**Mitigation:**
-- Actions are async by design (no blocking)
-- Batch related actions where possible
-- Profile and optimize hot paths
-- Plugin implementations can optimize type resolution
-
-### Risk 3: Debugging Complexity
-
-**Risk:** Distributed state makes debugging harder.
-
-**Mitigation:**
-- ActionsChainsMediator logs all action chains with type IDs
-- DevTools extension for MFE state inspection
-- Clear error messages with chain context and plugin details
-
-### Risk 4: Plugin Implementation Complexity
-
-**Risk:** Implementing a custom Type System plugin requires understanding the full interface.
-
-**Mitigation:**
-- Provide comprehensive interface documentation
-- Ship GTS plugin as reference implementation
-- Create plugin testing utilities
-- Minimal required methods vs optional methods clearly documented
-
-### Risk 5: React Version Mismatch
-
-**Risk:** Host and MFE may use different React versions causing runtime crashes.
-
-**Mitigation:**
-- Module Federation shared dependency configuration enforces single React instance
-- Validate React version at MFE load time before mounting
-- Clear error message if version mismatch detected
-- Document supported React version ranges
-
-### Risk 6: CSS Leakage Despite Shadow DOM
-
-**Risk:** Some styles may leak into or out of Shadow DOM containers.
-
-**Mitigation:**
-- Inject CSS reset (`all: initial`) in shadow root
-- Use `contain: content` for additional isolation
-- Automated visual regression testing for MFE components
-- Document CSS variable naming conventions
-
-### Risk 7: Actions Chain Loops
-
-**Risk:** Circular action chains could cause infinite recursion.
-
-**Mitigation:**
-- Implement max chain depth limit (configurable, default: 10)
-- Track visited targets in chain execution
-- Detect and break loops with clear error message
-- Log chain execution path for debugging
-
-### Risk 8: Slow MFE Bundle Loads
-
-**Risk:** Remote MFE bundles may load slowly, degrading user experience.
-
-**Mitigation:**
-- Preload known MFEs during idle time
-- Show loading skeleton in extension slot
-- Configurable timeout with retry mechanism
-- Bundle size monitoring and alerts
-
-## Migration Plan
-
-### Phase 1: SDK Contracts and Type System Plugin Infrastructure
-
-**Goal**: Define the plugin interface and core type contracts.
-
-1. Define `TypeSystemPlugin` interface with all required methods
-2. Create supporting types (`ParsedTypeId`, `ValidationResult`, `CompatibilityResult`, etc.)
-3. Define `TypeMetadata` interface for extracted type ID metadata
-4. Create `parseTypeId()` and `hydrateWithMetadata()` utilities
-5. Export plugin interface from `@hai3/screensets`
-6. Document plugin interface with examples
-
-**Deliverables**:
-- `packages/screensets/src/mfe/plugins/types.ts`
-- `packages/screensets/src/mfe/types/metadata.ts`
-- Plugin interface documentation
-
-### Phase 2: GTS Plugin Implementation
-
-**Goal**: Ship GTS as the default Type System plugin.
-
-1. Implement GTS plugin using `@globaltypesystem/gts-ts`
-2. Implement all plugin interface methods (`parseTypeId`, `validateInstance`, etc.)
-3. Register HAI3 MFE type schemas (6 core types + 2 MF-specific types: MfeEntry, ExtensionDomain, Extension, SharedProperty, Action, ActionsChain, MfManifest, MfeEntryMF)
-4. Test all plugin interface methods with real GTS type IDs
-5. Export as `@hai3/screensets/plugins/gts`
-6. Add peer dependency on `@globaltypesystem/gts-ts`
-
-**Deliverables**:
-- `packages/screensets/src/mfe/plugins/gts/index.ts`
-- `packages/screensets/src/mfe/schemas/gts-schemas.ts`
-- GTS plugin unit tests
-
-### Phase 3: Internal TypeScript Types and Schemas
-
-**Goal**: Define all MFE types with TypeMetadata extraction.
-
-1. Define MFE TypeScript interfaces with generic `TTypeId` (6 core + 2 MF-specific types)
-2. Create JSON schemas with proper `$id` and `x-gts-ref` references (Action uses `x-gts-ref: "/$id"` for self-reference)
-3. Implement `registerHai3Types(plugin)` function
-4. Implement x-gts-ref reference validation
-5. Export types from `@hai3/screensets`
-
-**Deliverables**:
-- `packages/screensets/src/mfe/types/index.ts`
-- Complete JSON schema definitions
-- Type registration utilities
-
-### Phase 4: Framework Integration
-
-**Goal**: Wire Type System plugin through all layers.
-
-1. Update `ScreensetsRuntimeConfig` to require `typeSystem`
-2. Implement `createScreensetsRuntime()` factory
-3. Create `MicrofrontendsPluginConfig` for @hai3/framework
-4. Implement `createMicrofrontendsPlugin()` factory
-5. Register base layout domains via plugin
-6. Expose runtime via `framework.provide()`
-
-**Deliverables**:
-- Updated runtime configuration
-- Framework microfrontends plugin
-- Base domain definitions
-
-### Phase 5: MFE Loading and Shadow DOM
-
-**Goal**: Implement MFE bundle loading with style isolation.
-
-1. Implement `MfeLoader` class with Module Federation 2.0
-2. Add entry and manifest validation against GTS schemas
-3. Implement `createShadowContainer()` for style isolation
-4. Implement `syncCssVariables()` for theme propagation
-5. Add preloading and retry mechanisms
-6. Create loading skeleton components
-
-**Deliverables**:
-- `packages/screensets/src/mfe/loader/index.ts`
-- `packages/screensets/src/mfe/shadow/index.ts`
-- Vite plugin configuration for Module Federation
-
-### Phase 6: Contract Validation and Actions Chain Mediation
-
-**Goal**: Implement contract matching and action chain mediation.
-
-1. Implement contract matching algorithm (3 subset rules)
-2. Add validation at extension registration time
-3. Implement `ActionsChainsMediator` with `executeActionsChain(chain)` method
-4. Implement success/failure path routing in mediator
-5. Add max depth limit and loop detection in mediator
-6. Create clear error messages with type ID context
-
-**Deliverables**:
-- `packages/screensets/src/mfe/validation/contract.ts`
-- `packages/screensets/src/mfe/mediator/ActionsChainsMediator.ts`
-- Contract error types and messages
-
-### Phase 7: MfeBridge and State Isolation
-
-**Goal**: Implement the MFE communication layer.
-
-1. Create `MfeBridge` class for MFE-to-runtime communication
-2. Implement shared property subscription
-3. Implement actions chain sending with contract validation
-4. Create `useMfeBridge()` React hook
-5. Implement isolated state container factory
-6. Add state disposal on MFE unmount
-
-**Deliverables**:
-- `packages/screensets/src/mfe/bridge/index.ts`
-- `MfeBridgeContext` and provider
-- State isolation utilities
-
-### Phase 8: Documentation and Examples
-
-**Goal**: Comprehensive documentation and working examples.
-
-1. Update `.ai/targets/SCREENSETS.md` with MFE architecture
-2. Create MFE vendor development guide
-3. Document `TypeSystemPlugin` interface
-4. Document GTS plugin usage and type schemas
-5. Create custom plugin implementation guide
-6. Create example MFE implementation
-
-**Deliverables**:
-- Updated SCREENSETS.md
-- Vendor SDK documentation
-- Example MFE project
-
-### Phase 9: Production Hardening
-
-**Goal**: Ensure production readiness.
-
-1. Performance testing for action chain execution
-2. Bundle size optimization
-3. Error boundary implementation
-4. DevTools extension for MFE debugging
-5. Visual regression testing setup
-6. Security audit for cross-MFE communication
-
-**Deliverables**:
-- Performance benchmarks
-- DevTools extension
-- Security documentation
-
-## Open Questions
-
-### Q1: How to handle MFE bundle loading errors?
-
-**Proposal:** ScreensetsRuntime provides fallback UI with retry option. Domain can define custom error handling via actions chain.
-
-**Details:**
-- Show loading skeleton while bundle loads
-- On timeout (configurable, default 30s), show error UI with retry button
-- Log error with bundle URL and timeout details
-- Domain can provide custom `errorFallbackComponent` in config
-
-### Q2: Should optional properties have defaults?
-
-**Decision:** No. Domain is responsible for providing all values. This keeps the contract simple and explicit.
-
-**Rationale:**
-- Defaults would require synchronization between domain and entry
-- Domain knows the runtime context, entry does not
-- Simpler mental model: domain provides, entry consumes
-
-### Q3: How to version action payloads?
-
-**Proposal:** Action type IDs include version. Breaking payload changes require new action type. Plugin's versioning convention is used.
-
-**Example:**
-- `gts.hai3.screensets.ext.action.refresh.v1~` - original action
-- `gts.hai3.screensets.ext.action.refresh.v2~` - breaking payload change (new type)
-- Domain can support both v1 and v2 during migration
-
-### Q4: Can plugins be swapped at runtime?
-
-**Decision:** No. Plugin is set at initialization and cannot be changed. This ensures type ID consistency throughout the application lifecycle.
-
-**Rationale:**
-- Type IDs registered with one plugin may not be valid in another
-- Schemas are cached in plugin's internal registry
-- Runtime swap would require re-registration of all types
-
-### Q5: How to handle authentication tokens for MFEs?
-
-**Open:** How should MFEs receive authentication tokens for API calls?
-
-**Options:**
-1. Pass via shared property (`authToken` in domain's `sharedProperties`)
-2. MFE calls host's auth service via actions chain
-3. Use browser cookie/session (if same origin)
-4. Host provides token refresh callback via bridge
-
-**Recommendation:** Option 1 for simplicity. Domain subscribes to token changes and updates shared property. MFE receives updates via property subscription.
-
-### Q6: How to handle deep linking into MFE routes?
-
-**Open:** If an MFE has internal routing, how does the host handle deep links?
-
-**Options:**
-1. MFE reports its route state via action, host updates URL
-2. Host passes initial route via shared property on mount
-3. MFE manages its own URL segment (path prefix convention)
-
-**Recommendation:** Combination of options 1 and 2. Host provides `initialRoute` property, MFE sends `routeChanged` action when internal navigation occurs.
-
-### Q7: What is the error boundary strategy?
-
-**Open:** How should React error boundaries work across MFE boundaries?
-
-**Options:**
-1. Each MFE wrapped in its own error boundary (isolation)
-2. Host provides a single error boundary for all MFEs
-3. Nested boundaries with escalation
-
-**Recommendation:** Option 1 with escalation. Each MFE has its own boundary. If error occurs, MFE boundary catches it and sends `mfe.error` action to domain. Domain can decide to retry, remove, or show global error.
-
-### Q8: What is the versioning strategy for contracts?
-
-**Open:** How do we handle version compatibility between domain and entry contracts?
-
-**Options:**
-1. Exact version match required (strict)
-2. Major version compatibility (semver)
-3. Feature detection at runtime
-
-**Recommendation:** Option 2 (semver) with plugin's `checkCompatibility()` when available. Breaking changes require major version bump. Additive changes (new optional properties/actions) allowed within major version.
+## Risks and Mitigations
+
+| Risk | Mitigation |
+|------|------------|
+| Type System plugin complexity | Provide comprehensive GTS plugin as reference implementation |
+| Contract validation overhead | Cache validation results, validate once at registration |
+| Module Federation bundle size | Tree-shaking, shared dependencies, lazy loading |
+| Hierarchical domain complexity | Clear documentation, example implementations |
+| Actions chain timeout | Configurable timeouts with fallback support |
+| Manifest discovery | Multiple fetching strategies (registry, URL, composite) |
+
+## Testing Strategy
+
+1. **Unit Tests**: Plugin interface, contract validation, type validation, bridge communication
+2. **Integration Tests**: MFE loading, domain registration, action chain execution, Shadow DOM isolation
+3. **E2E Tests**: Full MFE lifecycle with real Module Federation bundles

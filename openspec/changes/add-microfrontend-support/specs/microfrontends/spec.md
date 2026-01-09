@@ -2,6 +2,8 @@
 
 **Key principle**: This spec defines Flux integration only. All MFE lifecycle management (loading, mounting, bridging) is handled by `@hai3/screensets`. The framework plugin wires the ScreensetsRuntime into the Flux data flow pattern.
 
+**Namespace convention**: All HAI3 MFE types use the `gts.hai3.screensets.*` namespace for consistency with the screensets package. The type hierarchy follows the pattern established in screensets/spec.md.
+
 ### Requirement: Microfrontends Plugin
 
 The system SHALL provide a `microfrontends()` plugin in `@hai3/framework` that wires the ScreensetsRuntime from `@hai3/screensets` into the Flux data flow pattern.
@@ -17,11 +19,12 @@ const app = createHAI3()
   .use(microfrontends({
     remotes: [
       {
-        typeId: 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId,
+        // MfManifest type ID - references Module Federation manifest
+        manifestTypeId: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics~' as GtsTypeId,
         url: 'https://mfe.example.com/analytics/remoteEntry.js',
       },
       {
-        typeId: 'gts.hai3.mfe.type.v1~acme.billing._.portal.v1~' as GtsTypeId,
+        manifestTypeId: 'gts.hai3.screensets.mfe.mf.v1~acme.billing~' as GtsTypeId,
         url: '/mfe/billing/remoteEntry.js',
       },
     ],
@@ -31,7 +34,7 @@ const app = createHAI3()
 ```
 
 - **WHEN** building an app with microfrontends plugin
-- **THEN** the plugin SHALL accept `remotes` configuration with GTS type IDs
+- **THEN** the plugin SHALL accept `remotes` configuration with MfManifest GTS type IDs
 - **AND** the plugin SHALL depend on `screensets` plugin
 - **AND** `styleIsolation` SHALL default to `'shadow-dom'`
 
@@ -39,23 +42,32 @@ const app = createHAI3()
 
 The system SHALL support configuring remote MFE endpoints with GTS type IDs and shared dependency declarations.
 
-#### Scenario: Configure remote with shared dependencies
+#### Scenario: Configure remote with isolated dependencies
 
 ```typescript
 import { type MfeRemoteConfig, type GtsTypeId } from '@hai3/screensets';
 
 const remoteConfig: MfeRemoteConfig = {
-  typeId: 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId,
+  // References MfManifest type - consistent with gts.hai3.screensets.mfe.mf.v1~ base
+  manifestTypeId: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics~' as GtsTypeId,
   url: 'https://mfe.example.com/analytics/remoteEntry.js',
-  shared: ['react', 'react-dom', '@hai3/screensets', '@hai3/state'],
+  // NOTE: MFEs are framework-agnostic - NO React/ReactDOM sharing
+  // NOTE: @hai3/screensets is NOT shared - each MFE gets isolated instance
+  // NOTE: @globaltypesystem/gts-ts is NOT shared - isolated TypeSystemPlugin per runtime
+  // NOTE: No singletons by design - sharing is ONLY for stateless utilities (lodash, date-fns)
+  //       and is purely an optimization (smaller bundle), not a requirement
   preload: 'hover',
   loadTimeout: 15000,
 };
 ```
 
 - **WHEN** configuring a remote MFE
-- **THEN** `typeId` (GTS) and `url` SHALL be required
-- **AND** `shared` SHALL list dependencies to deduplicate
+- **THEN** `manifestTypeId` (GTS MfManifest type) and `url` SHALL be required
+- **AND** `@hai3/screensets` SHALL NOT be shared (each MFE gets isolated instance)
+- **AND** `@globaltypesystem/gts-ts` SHALL NOT be shared (isolated TypeSystemPlugin)
+- **AND** React/ReactDOM SHALL NOT be shared (MFEs are framework-agnostic)
+- **AND** no singletons SHALL be used by design
+- **AND** only stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
 - **AND** `preload` SHALL control when to start loading ('none', 'hover', 'immediate')
 - **AND** `loadTimeout` SHALL set maximum load time (default 10000ms)
 
@@ -69,15 +81,16 @@ The system SHALL provide MFE actions that emit events only, following HAI3 Flux 
 import { mfeActions } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 // Action emits event, returns void
-mfeActions.loadMfe(MFE_ANALYTICS);
-// Emits: 'mfe/loadRequested' with { mfeTypeId }
+mfeActions.loadMfe(MFE_ANALYTICS_ENTRY);
+// Emits: 'mfe/loadRequested' with { entryTypeId }
 ```
 
 - **WHEN** calling `loadMfe` action
-- **THEN** it SHALL emit `'mfe/loadRequested'` event with `mfeTypeId`
+- **THEN** it SHALL emit `'mfe/loadRequested'` event with `entryTypeId`
 - **AND** it SHALL return `void` (no Promise)
 - **AND** it SHALL NOT perform any async operations
 
@@ -85,8 +98,9 @@ mfeActions.loadMfe(MFE_ANALYTICS);
 
 ```typescript
 // Called by ScreensetsRuntime when MFE requests host action
-mfeActions.handleMfeHostAction(mfeTypeId, actionTypeId, payload);
-// Emits: 'mfe/hostActionRequested' with { mfeTypeId, actionTypeId, payload }
+// actionTypeId references gts.hai3.screensets.ext.action.v1~
+mfeActions.handleMfeHostAction(entryTypeId, actionTypeId, payload);
+// Emits: 'mfe/hostActionRequested' with { entryTypeId, actionTypeId, payload }
 ```
 
 - **WHEN** the ScreensetsRuntime's `onHostAction` callback is invoked
@@ -104,13 +118,14 @@ The system SHALL provide MFE effects that subscribe to events, call ScreensetsRu
 import { ScreensetsRuntime } from '@hai3/screensets';
 
 // Effect subscribes to event, calls runtime, dispatches to slice
-eventBus.on('mfe/loadRequested', async ({ mfeTypeId }) => {
-  dispatch(mfeSlice.actions.setLoading({ mfeTypeId }));
+// entryTypeId is MfeEntryMF type: gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~...
+eventBus.on('mfe/loadRequested', async ({ entryTypeId }) => {
+  dispatch(mfeSlice.actions.setLoading({ entryTypeId }));
   try {
-    await runtime.loadMfe(mfeTypeId);
-    dispatch(mfeSlice.actions.setLoaded({ mfeTypeId }));
+    await runtime.loadMfe(entryTypeId);
+    dispatch(mfeSlice.actions.setLoaded({ entryTypeId }));
   } catch (error) {
-    dispatch(mfeSlice.actions.setError({ mfeTypeId, error: error.message }));
+    dispatch(mfeSlice.actions.setError({ entryTypeId, error: error.message }));
   }
 });
 ```
@@ -125,12 +140,16 @@ eventBus.on('mfe/loadRequested', async ({ mfeTypeId }) => {
 #### Scenario: Host action effect handles popup request
 
 ```typescript
-eventBus.on('mfe/hostActionRequested', async ({ mfeTypeId, actionTypeId, payload }) => {
+import { conformsTo, HAI3_ACTION_SHOW_POPUP } from '@hai3/screensets';
+
+// actionTypeId conforms to gts.hai3.screensets.ext.action.v1~
+eventBus.on('mfe/hostActionRequested', async ({ entryTypeId, actionTypeId, payload }) => {
   if (conformsTo(actionTypeId, HAI3_ACTION_SHOW_POPUP)) {
-    const { entryTypeId, props } = payload as ShowPopupPayload;
+    const { popupEntryTypeId, props } = payload as ShowPopupPayload;
     const container = document.getElementById('popup-domain')!;
-    runtime.mountExtension(mfeTypeId, entryTypeId, container);
-    dispatch(layoutSlice.actions.showPopup({ mfeTypeId, entryTypeId }));
+    // popupEntryTypeId is MfeEntry (or derived) type ID
+    runtime.mountExtension(entryTypeId, popupEntryTypeId, container);
+    dispatch(layoutSlice.actions.showPopup({ entryTypeId, popupEntryTypeId }));
   }
 });
 ```
@@ -149,20 +168,21 @@ The system SHALL track MFE load states via a Redux slice using GTS type IDs.
 import { selectMfeLoadState, selectMfeError } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 const loadState = useAppSelector((state) =>
-  selectMfeLoadState(state, MFE_ANALYTICS)
+  selectMfeLoadState(state, MFE_ANALYTICS_ENTRY)
 );
 // 'idle' | 'loading' | 'loaded' | 'error'
 
 const error = useAppSelector((state) =>
-  selectMfeError(state, MFE_ANALYTICS)
+  selectMfeError(state, MFE_ANALYTICS_ENTRY)
 );
 ```
 
 - **WHEN** querying MFE load state
-- **THEN** `selectMfeLoadState()` SHALL accept a GTS type ID
+- **THEN** `selectMfeLoadState()` SHALL accept an MfeEntryMF GTS type ID
 - **AND** valid states SHALL be: 'idle', 'loading', 'loaded', 'error'
 - **AND** `selectMfeError()` SHALL return the error if state is 'error'
 
@@ -176,10 +196,11 @@ The system SHALL provide a `ShadowDomContainer` React component that uses the sh
 import { ShadowDomContainer } from '@hai3/framework';
 import { type GtsTypeId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 <ShadowDomContainer
-  mfeTypeId={MFE_ANALYTICS}
+  entryTypeId={MFE_ANALYTICS_ENTRY}
   cssVariables={themeVariables}
 >
   <AnalyticsEntry bridge={bridge} />
@@ -214,15 +235,16 @@ The system SHALL integrate MFE loading with the navigation plugin using actions/
 ```typescript
 import { type GtsTypeId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 // Action emits event
-app.actions.navigateToMfe({ mfeTypeId: MFE_ANALYTICS });
+app.actions.navigateToMfe({ entryTypeId: MFE_ANALYTICS_ENTRY });
 // Emits 'navigation/mfeRequested' event
 // Effect handles: calls runtime.loadMfe(), then runtime.mountExtension()
 ```
 
-- **WHEN** navigating to a registered MFE by GTS type ID
+- **WHEN** navigating to a registered MFE by MfeEntryMF GTS type ID
 - **THEN** the action SHALL emit `'navigation/mfeRequested'` event
 - **AND** the effect SHALL call `runtime.loadMfe()` then `runtime.mountExtension()`
 - **AND** on error, the effect SHALL dispatch error to slice
@@ -249,9 +271,11 @@ The system SHALL support rendering MFE popup entries via the Flux data flow patt
 import { HAI3_ACTION_SHOW_POPUP } from '@hai3/screensets';
 
 // Inside MFE component - bridge validates and calls onHostAction callback
+// HAI3_ACTION_SHOW_POPUP is: gts.hai3.screensets.ext.action.v1~hai3.actions.show_popup~
 await bridge.requestHostAction(HAI3_ACTION_SHOW_POPUP, {
-  mfeTypeId: bridge.mfeTypeId,
-  entryTypeId: 'gts.hai3.mfe.entry.popup.v1~acme.analytics.popups.export.v1~',
+  entryTypeId: bridge.entryTypeId,
+  // popupEntryTypeId is MfeEntry (base or derived) type ID
+  popupEntryTypeId: 'gts.hai3.screensets.mfe.entry.v1~acme.analytics.popups.export~',
   props: { format: 'pdf' },
 });
 
@@ -275,8 +299,9 @@ await bridge.requestHostAction(HAI3_ACTION_SHOW_POPUP, {
 import { HAI3_ACTION_HIDE_POPUP } from '@hai3/screensets';
 
 // Inside MFE popup
+// HAI3_ACTION_HIDE_POPUP is: gts.hai3.screensets.ext.action.v1~hai3.actions.hide_popup~
 await bridge.requestHostAction(HAI3_ACTION_HIDE_POPUP, {
-  entryTypeId: 'gts.hai3.mfe.entry.popup.v1~acme.analytics.popups.export.v1~',
+  popupEntryTypeId: 'gts.hai3.screensets.mfe.entry.v1~acme.analytics.popups.export~',
 });
 ```
 
@@ -293,9 +318,11 @@ The system SHALL support rendering MFE sidebar entries via host action requests 
 ```typescript
 import { HAI3_ACTION_SHOW_SIDEBAR } from '@hai3/screensets';
 
+// HAI3_ACTION_SHOW_SIDEBAR is: gts.hai3.screensets.ext.action.v1~hai3.actions.show_sidebar~
 await bridge.requestHostAction(HAI3_ACTION_SHOW_SIDEBAR, {
-  mfeTypeId: bridge.mfeTypeId,
-  entryTypeId: 'gts.hai3.mfe.entry.sidebar.v1~acme.analytics.sidebars.quick_stats.v1~',
+  entryTypeId: bridge.entryTypeId,
+  // sidebarEntryTypeId is MfeEntry (base or derived) type ID
+  sidebarEntryTypeId: 'gts.hai3.screensets.mfe.entry.v1~acme.analytics.sidebars.quick_stats~',
 });
 ```
 
@@ -317,12 +344,13 @@ import { type GtsTypeId } from '@hai3/screensets';
 // Default error boundary shows:
 // - Error message
 // - Retry button
-// - MFE GTS type ID
+// - MFE GTS entry type ID
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 <MfeErrorBoundary
-  mfeTypeId={MFE_ANALYTICS}
+  entryTypeId={MFE_ANALYTICS_ENTRY}
   error={loadError}
   onRetry={() => loader.load(config)}
 />
@@ -331,7 +359,7 @@ const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as G
 - **WHEN** an MFE fails to load or render
 - **THEN** an error boundary SHALL be displayed
 - **AND** the error message SHALL be shown
-- **AND** the GTS type ID SHALL be displayed
+- **AND** the GTS entry type ID SHALL be displayed
 - **AND** a retry button SHALL be available
 - **AND** custom error boundaries SHALL be configurable via plugin
 
@@ -339,14 +367,14 @@ const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as G
 
 ```typescript
 microfrontends({
-  errorBoundary: ({ error, mfeTypeId, retry }) => (
-    <CustomError error={error} mfeTypeId={mfeTypeId} onRetry={retry} />
+  errorBoundary: ({ error, entryTypeId, retry }) => (
+    <CustomError error={error} entryTypeId={entryTypeId} onRetry={retry} />
   ),
 })
 ```
 
 - **WHEN** a custom error boundary is configured
-- **THEN** it SHALL receive `error`, `mfeTypeId` (GTS), and `retry` props
+- **THEN** it SHALL receive `error`, `entryTypeId` (GTS), and `retry` props
 - **AND** it SHALL replace the default error boundary
 
 ### Requirement: Loading Indicator for MFEs
@@ -361,14 +389,14 @@ import { type GtsTypeId } from '@hai3/screensets';
 // While MFE is loading, skeleton/spinner is shown
 // Configured via plugin:
 microfrontends({
-  loadingComponent: ({ mfeTypeId }) => <MfeSkeleton mfeTypeId={mfeTypeId} />,
+  loadingComponent: ({ entryTypeId }) => <MfeSkeleton entryTypeId={entryTypeId} />,
 })
 ```
 
 - **WHEN** an MFE is loading
 - **THEN** a loading indicator SHALL be displayed
 - **AND** custom loading components SHALL be configurable
-- **AND** the loading component SHALL receive `mfeTypeId` (GTS) prop
+- **AND** the loading component SHALL receive `entryTypeId` (GTS MfeEntryMF) prop
 
 ### Requirement: MFE Preloading
 
@@ -379,12 +407,13 @@ The system SHALL support preloading MFE bundles before navigation using GTS type
 ```typescript
 import { type GtsTypeId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfeEntryMF type ID - derived from gts.hai3.screensets.mfe.entry.v1~
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
 // With preload: 'hover', hovering menu item starts fetch
 <MenuItem
-  onMouseEnter={() => loader.preload(MFE_ANALYTICS)}
-  onClick={() => app.actions.navigateToMfe({ mfeTypeId: MFE_ANALYTICS })}
+  onMouseEnter={() => loader.preload(MFE_ANALYTICS_ENTRY)}
+  onClick={() => app.actions.navigateToMfe({ entryTypeId: MFE_ANALYTICS_ENTRY })}
 >
   Analytics
 </MenuItem>
@@ -403,7 +432,8 @@ import { type GtsTypeId } from '@hai3/screensets';
 microfrontends({
   remotes: [
     {
-      typeId: 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId,
+      // MfManifest type ID - contains remoteEntry URL
+      manifestTypeId: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics~' as GtsTypeId,
       url: '...',
       preload: 'immediate',
     },
@@ -425,22 +455,29 @@ The system SHALL register loaded MFE definitions with `microfrontendRegistry` fo
 ```typescript
 import { microfrontendRegistry, type GtsTypeId, parseGtsId } from '@hai3/screensets';
 
-const MFE_ANALYTICS = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// MfManifest type ID - contains Module Federation config
+const ANALYTICS_MANIFEST = 'gts.hai3.screensets.mfe.mf.v1~acme.analytics~' as GtsTypeId;
 
-// After MFE is loaded
-const mfe = microfrontendRegistry.get(MFE_ANALYTICS);
-console.log(mfe?.name);    // 'Analytics Dashboard'
-console.log(mfe?.typeId);  // 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~'
-console.log(mfe?.entries.map(e => e.typeId)); // GTS entry type IDs
+// After manifest is loaded
+const manifest = microfrontendRegistry.getManifest(ANALYTICS_MANIFEST);
+console.log(manifest?.remoteName);  // 'acme_analytics'
+console.log(manifest?.remoteEntry); // URL to remoteEntry.js
+console.log(manifest?.entries);     // List of MfeEntryMF type IDs
+
+// Query by entry type ID
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
+const entry = microfrontendRegistry.getEntry(MFE_ANALYTICS_ENTRY);
+console.log(entry?.manifest);       // References MfManifest type ID
+console.log(entry?.exposedModule);  // './Dashboard'
 
 // Parse vendor info from GTS type
-const parsed = parseGtsId(MFE_ANALYTICS);
-console.log(parsed.vendor); // 'acme'
+const parsed = parseGtsId(ANALYTICS_MANIFEST);
+console.log(parsed.vendor); // 'hai3' (base type vendor)
 ```
 
-- **WHEN** an MFE is loaded
+- **WHEN** an MFE manifest is loaded
 - **THEN** its definition SHALL be registered in `microfrontendRegistry`
-- **AND** the registry SHALL be queryable by GTS type ID
+- **AND** the registry SHALL be queryable by MfManifest or MfeEntryMF GTS type ID
 - **AND** `parseGtsId()` SHALL extract vendor and other metadata
 
 ### Requirement: MFE Version Validation
@@ -451,34 +488,35 @@ The system SHALL validate shared dependency versions between host and MFE.
 
 ```typescript
 // If host uses React 18.3.0 and MFE built with React 18.2.0:
-// Warning logged: "MFE 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' was built with react@18.2.0, host has 18.3.0"
+// Warning logged: "MFE entry 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' was built with react@18.2.0, host has 18.3.0"
 ```
 
 - **WHEN** an MFE is loaded with different shared dependency versions
 - **THEN** a warning SHALL be logged in development
-- **AND** the warning SHALL include the GTS type ID
+- **AND** the warning SHALL include the GTS entry type ID
 - **AND** the MFE SHALL still load (minor version differences tolerated)
 
 #### Scenario: Major version mismatch error
 
 ```typescript
-import { type GtsTypeId } from '@hai3/screensets';
+import { type GtsTypeId, MfeVersionMismatchError } from '@hai3/screensets';
 
 // If host uses React 18.x and MFE built with React 17.x:
 try {
   await loader.load({
-    typeId: 'gts.hai3.mfe.type.v1~vendor.legacy._.mfe.v1~' as GtsTypeId,
+    // MfManifest type ID
+    manifestTypeId: 'gts.hai3.screensets.mfe.mf.v1~vendor.legacy~' as GtsTypeId,
     url: '...',
   });
 } catch (error) {
   if (error instanceof MfeVersionMismatchError) {
-    console.log(`MFE ${error.mfeTypeId} has incompatible deps`);
+    console.log(`MFE manifest ${error.manifestTypeId} has incompatible deps`);
   }
 }
 ```
 
 - **WHEN** an MFE has incompatible major version of shared deps
-- **THEN** `MfeVersionMismatchError` SHALL be thrown with `mfeTypeId`
+- **THEN** `MfeVersionMismatchError` SHALL be thrown with `manifestTypeId`
 - **AND** the MFE SHALL NOT be mounted
 - **AND** error boundary SHALL display version conflict message
 
@@ -486,36 +524,40 @@ try {
 
 The system SHALL validate that MFE type IDs conform to HAI3 base types.
 
-#### Scenario: Validate MFE type on load
+#### Scenario: Validate MfManifest type on load
 
 ```typescript
-import { conformsTo, HAI3_MFE_TYPE, type GtsTypeId } from '@hai3/screensets';
+import { conformsTo, HAI3_MF_MANIFEST, type GtsTypeId } from '@hai3/screensets';
 
-// When loading an MFE
-const mfeTypeId = 'gts.hai3.mfe.type.v1~acme.analytics._.dashboard.v1~' as GtsTypeId;
+// When loading an MFE manifest
+const manifestTypeId = 'gts.hai3.screensets.mfe.mf.v1~acme.analytics~' as GtsTypeId;
 
-if (!conformsTo(mfeTypeId, HAI3_MFE_TYPE)) {
-  throw new MfeTypeConformanceError(mfeTypeId, HAI3_MFE_TYPE);
+// HAI3_MF_MANIFEST is: gts.hai3.screensets.mfe.mf.v1~
+if (!conformsTo(manifestTypeId, HAI3_MF_MANIFEST)) {
+  throw new MfeTypeConformanceError(manifestTypeId, HAI3_MF_MANIFEST);
 }
 ```
 
-- **WHEN** loading an MFE
-- **THEN** the loader SHALL validate that `typeId` conforms to `gts.hai3.mfe.type.v1~`
+- **WHEN** loading an MFE manifest
+- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.screensets.mfe.mf.v1~`
 - **AND** if validation fails, `MfeTypeConformanceError` SHALL be thrown
 
-#### Scenario: Validate entry type on mount
+#### Scenario: Validate MfeEntry type on mount
 
 ```typescript
-import { conformsTo, HAI3_MFE_ENTRY_SCREEN, type GtsTypeId } from '@hai3/screensets';
+import { conformsTo, HAI3_MFE_ENTRY, HAI3_MFE_ENTRY_MF, type GtsTypeId } from '@hai3/screensets';
 
-const entryTypeId = 'gts.hai3.mfe.entry.screen.v1~acme.analytics.screens.main.v1~' as GtsTypeId;
+// MfeEntryMF (Module Federation derived) type ID
+const entryTypeId = 'gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~acme.analytics.dashboard~' as GtsTypeId;
 
-if (!conformsTo(entryTypeId, HAI3_MFE_ENTRY_SCREEN)) {
-  throw new MfeEntryTypeConformanceError(entryTypeId, HAI3_MFE_ENTRY_SCREEN);
+// HAI3_MFE_ENTRY is: gts.hai3.screensets.mfe.entry.v1~ (base)
+// HAI3_MFE_ENTRY_MF is: gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~ (derived)
+if (!conformsTo(entryTypeId, HAI3_MFE_ENTRY)) {
+  throw new MfeEntryTypeConformanceError(entryTypeId, HAI3_MFE_ENTRY);
 }
 ```
 
 - **WHEN** mounting an entry
 - **THEN** the entry type SHALL be validated against the expected base type
-- **AND** screen entries SHALL conform to `gts.hai3.mfe.entry.screen.v1~`
-- **AND** popup entries SHALL conform to `gts.hai3.mfe.entry.popup.v1~`
+- **AND** all MFE entries SHALL conform to `gts.hai3.screensets.mfe.entry.v1~` (base)
+- **AND** Module Federation entries SHALL also conform to `gts.hai3.screensets.mfe.entry.v1~hai3.mfe.entry_mf.v1~` (derived)
