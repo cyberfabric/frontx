@@ -53,6 +53,9 @@ root:
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)
     - src/app/components  # Reusable components (TextLoader)
+    - src/app/actions     # Bootstrap actions
+    - src/app/effects     # Bootstrap effects
+    - src/app/events      # Bootstrap events
   screensets:
     - demo            # Default screenset for new projects
   screensetTemplate: _blank  # Template for hai3 screenset create

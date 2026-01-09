@@ -239,12 +239,22 @@ export async function generateProject(
     '@hai3/react': 'alpha',
     '@hai3/framework': 'alpha',
     '@hai3/uikit': 'alpha',
+    '@hai3/api': 'alpha',
+    '@hai3/i18n': 'alpha',
+    '@hai3/state': 'alpha',
+    '@hookform/resolvers': '3.9.1',
+    '@iconify/react': '5.0.2',
     '@reduxjs/toolkit': '2.2.1',
+    'date-fns': '4.1.0',
+    'input-otp': '1.4.1',
     lodash: '4.17.21',
     'lucide-react': '0.344.0',
     react: '18.3.1',
+    'react-day-picker': '9.4.3',
     'react-dom': '18.3.1',
+    'react-hook-form': '7.54.2',
     'tailwindcss-animate': '1.0.7',
+    zod: '3.24.1',
   };
 
   const devDependencies: Record<string, string> = {
