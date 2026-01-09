@@ -171,6 +171,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **THEN** the domain SHALL conform to `ExtensionDomain` TypeScript interface
 - **AND** the domain SHALL have an `id` field (string)
 - **AND** the domain SHALL specify sharedProperties, actions, extensionsActions, and extensionsUiMeta
+- **AND** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
 - **AND** actions and extensionsActions SHALL reference Action type IDs
 - **AND** extensionsUiMeta SHALL be a valid JSON Schema
@@ -200,6 +201,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the action SHALL specify type (REQUIRED) - self-reference to the action's type ID
 - **AND** the action SHALL specify target (REQUIRED) - reference to ExtensionDomain or Extension type ID
 - **AND** the action MAY specify payload (optional object)
+- **AND** the action MAY specify `timeout` (optional number in milliseconds) to override domain's defaultActionTimeout
 - **AND** the action SHALL NOT have a separate `id` field (type serves as identification)
 
 #### Scenario: Actions chain type definition
@@ -544,7 +546,8 @@ The system SHALL provide bridge interfaces for communication between host and MF
 
 - **WHEN** the host creates a bridge for a mounted MFE
 - **THEN** `MfeBridgeConnection` SHALL extend `MfeBridge`
-- **AND** it SHALL provide `sendActionsChain(chain)` for sending actions to MFE
+- **AND** it SHALL provide `sendActionsChain(chain, options?)` for sending actions to MFE
+- **AND** the `options` parameter SHALL be optional `ChainExecutionOptions`
 - **AND** it SHALL provide `updateProperty(propertyTypeId, value)` for property updates
 - **AND** it SHALL provide `dispose()` for cleanup
 
@@ -640,15 +643,44 @@ The system SHALL provide typed error classes for MFE operations.
 
 ### Requirement: Internal Runtime Coordination
 
-The system SHALL provide PRIVATE coordination mechanisms between host and MFE runtimes that are NOT exposed to MFE code.
+The system SHALL provide PRIVATE coordination mechanisms between host and MFE runtimes that are NOT exposed to MFE code. The coordination uses WeakMap-based approach for better encapsulation and garbage collection.
 
-#### Scenario: RuntimeCoordinator is private
+#### Scenario: RuntimeCoordinator uses WeakMap
 
 - **WHEN** the host runtime and MFE runtime need to coordinate
-- **THEN** coordination SHALL use a private RuntimeCoordinator interface
-- **AND** RuntimeCoordinator SHALL be accessible via `window.__hai3_runtime_coordinator` (or similar private mechanism)
+- **THEN** coordination SHALL use a module-level WeakMap keyed by container Element
+- **AND** the WeakMap SHALL store RuntimeConnection objects with hostRuntime and bridges
+- **AND** RuntimeCoordinator SHALL NOT use window globals (no `window.__hai3_*` properties)
 - **AND** RuntimeCoordinator SHALL NOT be exposed to MFE component code
 - **AND** MFE code SHALL only see the MfeBridge interface
+
+#### Scenario: RuntimeConnection registration
+
+- **WHEN** an MFE is mounted to a container element
+- **THEN** the system SHALL call `registerRuntime(container, connection)` internally
+- **AND** the RuntimeConnection SHALL include the hostRuntime reference
+- **AND** the RuntimeConnection SHALL include a Map of entryTypeId to MfeBridgeConnection
+
+#### Scenario: RuntimeConnection lookup
+
+- **WHEN** the system needs to find a runtime for communication
+- **THEN** the system SHALL call `getRuntime(container)` to lookup by element
+- **AND** the lookup SHALL return RuntimeConnection or undefined
+- **AND** the lookup SHALL be O(1) complexity via WeakMap
+
+#### Scenario: RuntimeConnection cleanup
+
+- **WHEN** an MFE is unmounted from a container element
+- **THEN** the system SHALL call `unregisterRuntime(container)` internally
+- **AND** the WeakMap entry SHALL be removed
+- **AND** when the container element is garbage collected, any remaining reference SHALL be automatically cleaned up
+
+#### Scenario: WeakMap benefits
+
+- **WHEN** using WeakMap-based coordination instead of window globals
+- **THEN** there SHALL be no window pollution (not accessible via devtools window object)
+- **AND** garbage collection SHALL be automatic when container element is removed
+- **AND** encapsulation SHALL be better (module-private, not globally accessible)
 
 #### Scenario: MfeBridge is the only exposed interface
 
@@ -720,3 +752,63 @@ The system SHALL configure Module Federation to support framework-agnostic isola
 - **AND** the MFE SHALL NOT be able to discover host's registered types
 - **AND** the MFE SHALL NOT be able to discover other MFE's registered types
 - **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS
+
+### Requirement: Explicit Timeout Configuration
+
+Action timeouts SHALL be configured explicitly in type definitions, not as implicit code defaults. This ensures the platform is fully runtime-configurable and declarative. Timeout is treated as just another failure case - the ActionsChain.fallback handles all failures uniformly.
+
+#### Scenario: ExtensionDomain timeout configuration
+
+- **WHEN** defining an ExtensionDomain
+- **THEN** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
+- **AND** all actions targeting this domain SHALL use `defaultActionTimeout` unless overridden
+
+#### Scenario: Action timeout override
+
+- **WHEN** defining an Action
+- **THEN** the action MAY specify `timeout` (optional number in milliseconds)
+- **AND** if specified, this value SHALL override the target domain's default
+- **AND** if not specified, the domain's default SHALL be used
+
+#### Scenario: Timeout resolution order
+
+- **WHEN** executing an action
+- **THEN** effective timeout SHALL be: `action.timeout ?? domain.defaultActionTimeout`
+- **AND** on timeout: execute fallback chain if defined (same as any other failure)
+- **AND** there SHALL be NO implicit code defaults for action timeouts (no magic numbers in code)
+
+#### Scenario: Timeout as failure
+
+- **WHEN** an action times out
+- **THEN** the timeout SHALL be treated as a failure
+- **AND** the ActionsChain.fallback SHALL be executed if defined
+- **AND** there SHALL be NO separate `fallbackOnTimeout` flag (unified failure handling)
+
+#### Scenario: Chain-level timeout configuration
+
+- **WHEN** executing an actions chain
+- **THEN** the system SHALL accept optional `ChainExecutionOptions` parameter
+- **AND** `ChainExecutionOptions` SHALL include ONLY `chainTimeout` (optional number, ms)
+- **AND** `ChainExecutionOptions` SHALL NOT include `actionTimeout` (action timeouts come from types)
+- **AND** `chainTimeout` SHALL limit the total time for the entire chain execution
+
+#### Scenario: ActionsChainsConfig mediator configuration
+
+- **WHEN** configuring the ActionsChainsMediator
+- **THEN** `ActionsChainsConfig` SHALL include ONLY `chainTimeout` (optional, default: 120000ms)
+- **AND** `ActionsChainsConfig` SHALL NOT include `actionTimeout` (action timeouts come from types)
+
+#### Scenario: ActionsChainsMediator method signatures
+
+- **WHEN** using ActionsChainsMediator
+- **THEN** `executeActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
+- **AND** `deliver(chain, options?)` SHALL accept optional `ChainExecutionOptions`
+- **AND** action timeouts SHALL be resolved from action and domain type definitions
+- **AND** on timeout or any failure: execute fallback chain if defined
+
+#### Scenario: MfeBridgeConnection method signature
+
+- **WHEN** using MfeBridgeConnection
+- **THEN** `sendActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
+- **AND** the options SHALL be passed through to the underlying mediator
+- **AND** action timeouts SHALL be resolved from action and domain type definitions

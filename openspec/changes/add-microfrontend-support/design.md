@@ -478,9 +478,14 @@ gts.hai3.screensets.mfe.mf.v1~ (Standalone - Module Federation Config)
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
       "$comment": "Action type IDs domain can receive from extensions"
     },
-    "extensionsUiMeta": { "type": "object" }
+    "extensionsUiMeta": { "type": "object" },
+    "defaultActionTimeout": {
+      "type": "number",
+      "minimum": 1,
+      "$comment": "Default timeout in milliseconds for actions targeting this domain. REQUIRED. All actions use this unless they specify their own timeout override."
+    }
   },
-  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta"]
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout"]
 }
 ```
 
@@ -556,6 +561,11 @@ gts.hai3.screensets.mfe.mf.v1~ (Standalone - Module Federation Config)
     "payload": {
       "type": "object",
       "$comment": "Optional action payload"
+    },
+    "timeout": {
+      "type": "number",
+      "minimum": 1,
+      "$comment": "Optional timeout override in milliseconds. If not specified, uses target domain's defaultActionTimeout."
     }
   },
   "required": ["type", "target"]
@@ -695,6 +705,8 @@ interface ExtensionDomain {
   extensionsActions: string[];
   /** JSON Schema for UI metadata extensions must provide */
   extensionsUiMeta: JSONSchema;
+  /** Default timeout for actions targeting this domain (milliseconds, REQUIRED) */
+  defaultActionTimeout: number;
 }
 
 /**
@@ -734,6 +746,8 @@ interface Action {
   target: string;
   /** Optional action payload */
   payload?: unknown;
+  /** Optional timeout override in milliseconds (overrides domain's defaultActionTimeout) */
+  timeout?: number;
 }
 
 /**
@@ -1091,7 +1105,7 @@ The host uses React, but MFEs are NOT required to use React.
               +==================================+
               |                                  |
               |  RuntimeCoordinator (PRIVATE)    |
-              |  (window.__hai3_runtime_coord)   |
+              |  (WeakMap<Element, Connection>)  |
               +----------------------------------+
 ```
 
@@ -1131,8 +1145,12 @@ interface ActionsChainsMediator {
   /** The Type System plugin used by this mediator */
   readonly typeSystem: TypeSystemPlugin;
 
-  /** Execute an action chain, routing to targets and handling success/failure branching */
-  executeActionsChain(chain: ActionsChain): Promise<ChainResult>;
+  /**
+   * Execute an action chain, routing to targets and handling success/failure branching.
+   * @param chain - The actions chain to execute
+   * @param options - Optional per-request execution options (override defaults)
+   */
+  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
 
   /** Register an extension's action handler for receiving actions */
   registerExtensionHandler(
@@ -1510,14 +1528,29 @@ With isolated TypeSystemPlugin per runtime:
 
 **Internal Runtime Coordination**:
 
-Host and MFE runtimes need to coordinate (property updates, action delivery) but this coordination is PRIVATE:
+Host and MFE runtimes need to coordinate (property updates, action delivery) but this coordination is PRIVATE. The coordination uses a WeakMap-based approach for better encapsulation and automatic garbage collection:
 
 ```typescript
 // INTERNAL: Not exposed to MFE code - used only by ScreensetsRuntime internals
-interface RuntimeCoordinator {
-  // Private window property for same-origin coordination
-  // window.__hai3_runtime_coordinator
 
+// Module-level WeakMap instead of window global
+const runtimeConnections = new WeakMap<Element, RuntimeConnection>();
+
+interface RuntimeConnection {
+  hostRuntime: ScreensetsRuntime;
+  bridges: Map<string, MfeBridgeConnection>; // entryTypeId -> bridge
+}
+
+// Register when mounting MFE to a container element
+function registerRuntime(container: Element, connection: RuntimeConnection): void;
+
+// Lookup by container element
+function getRuntime(container: Element): RuntimeConnection | undefined;
+
+// Cleanup when unmounting
+function unregisterRuntime(container: Element): void;
+
+interface RuntimeCoordinator {
   sendToChild(instanceId: string, message: CoordinatorMessage): void;
   sendToParent(message: CoordinatorMessage): void;
   onMessage(handler: (message: CoordinatorMessage) => void): () => void;
@@ -1843,9 +1876,10 @@ interface MfeBridgeConnection extends MfeBridge {
    * Send an actions chain to the MFE.
    * Used for domain-to-extension communication.
    * @param chain - ActionsChain to deliver
+   * @param options - Optional per-request execution options (override defaults)
    * @returns ChainResult indicating execution outcome
    */
-  sendActionsChain(chain: ActionsChain): Promise<ChainResult>;
+  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
 
   /**
    * Update a shared property value.
@@ -2189,43 +2223,74 @@ export {
 };
 ```
 
-### Decision 17: Actions Chain Timeout Configuration
+### Decision 17: Explicit Timeout Configuration in Types
 
-ActionsChain execution supports configurable timeouts to prevent hanging chains.
+Action timeouts are configured **explicitly in type definitions**, not as implicit code defaults. This ensures the platform is fully runtime-configurable and declarative.
 
-#### Timeout Configuration
+#### Timeout Resolution Model
+
+Timeouts are resolved from two levels:
+
+1. **ExtensionDomain** - Defines the default timeout for all actions targeting this domain
+2. **Action** - Can optionally override the domain's default for specific actions
+
+```
+Effective timeout = action.timeout ?? domain.defaultActionTimeout
+On timeout: execute fallback chain if defined (same as any other failure)
+```
+
+**Timeout as Failure**: Timeout is treated as just another failure case. The `ActionsChain.fallback` field handles all failures uniformly, including timeouts. There is no separate `fallbackOnTimeout` flag - the existing fallback mechanism provides complete failure handling.
+
+This model ensures:
+- **Explicit Configuration**: All timeouts are visible in type definitions
+- **Runtime Configurability**: Domains define their timeout contracts
+- **Action-Level Override**: Individual actions can specify different timeouts when needed
+- **No Hidden Defaults**: No implicit code defaults for action timeouts
+- **Unified Failure Handling**: Timeout triggers the same fallback mechanism as any other failure
+
+#### Chain-Level Configuration
+
+The only mediator-level configuration is the total chain execution limit:
 
 ```typescript
 // packages/screensets/src/mfe/mediator/config.ts
 
 /**
- * Configuration for ActionsChain execution
+ * Configuration for ActionsChain execution (mediator-level)
+ *
+ * NOTE: Individual action timeouts are NOT configured here.
+ * Action timeouts are defined explicitly in ExtensionDomain (defaultActionTimeout)
+ * and can be overridden per-action via Action.timeout field.
  */
 interface ActionsChainsConfig {
   /**
-   * Default timeout for individual action execution (ms)
-   * Default: 30000 (30 seconds)
-   */
-  actionTimeout?: number;
-
-  /**
    * Maximum total time for entire chain execution (ms)
+   * This is a safety limit for the entire chain, not individual actions.
    * Default: 120000 (2 minutes)
    */
   chainTimeout?: number;
-
-  /**
-   * Whether to continue chain on timeout (execute fallback)
-   * Default: true
-   */
-  fallbackOnTimeout?: boolean;
 }
 
 const DEFAULT_CONFIG: Required<ActionsChainsConfig> = {
-  actionTimeout: 30000,
   chainTimeout: 120000,
-  fallbackOnTimeout: true,
 };
+
+/**
+ * Per-request execution options (chain-level only)
+ *
+ * NOTE: Action-level timeouts are defined in:
+ * - ExtensionDomain.defaultActionTimeout (required)
+ * - Action.timeout (optional override)
+ *
+ * Timeout is treated as a failure - the ActionsChain.fallback handles all failures uniformly.
+ */
+interface ChainExecutionOptions {
+  /**
+   * Override chain timeout for this execution (ms)
+   * This limits the total time for the entire chain execution.
+   */
+  chainTimeout?: number;
+}
 
 /**
  * Extended ChainResult with timing information
@@ -2237,6 +2302,106 @@ interface ChainResult {
   timedOut?: boolean;
   executionTime?: number;  // Total execution time in ms
 }
+```
+
+#### Method Signatures
+
+```typescript
+/**
+ * ActionsChainsMediator interface
+ *
+ * Action-level timeouts are resolved from type definitions:
+ * - domain.defaultActionTimeout (required)
+ * - action.timeout (optional override)
+ *
+ * Timeout is treated as a failure - the ActionsChain.fallback handles all failures uniformly.
+ */
+interface ActionsChainsMediator {
+  /** The Type System plugin used by this mediator */
+  readonly typeSystem: TypeSystemPlugin;
+
+  /**
+   * Execute an action chain, routing to targets and handling success/failure branching.
+   *
+   * Action timeouts are determined by:
+   *   action.timeout ?? domain.defaultActionTimeout
+   *
+   * On timeout or any other failure: execute fallback chain if defined.
+   *
+   * @param chain - The actions chain to execute
+   * @param options - Optional chain-level execution options
+   */
+  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  /**
+   * Deliver an action chain (internal routing).
+   * @param chain - The actions chain to deliver
+   * @param options - Optional chain-level execution options
+   */
+  deliver(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  // ... other methods unchanged
+}
+
+/**
+ * MfeBridgeConnection interface
+ */
+interface MfeBridgeConnection extends MfeBridge {
+  /** Unique instance ID for this bridge connection */
+  readonly instanceId: string;
+
+  /**
+   * Send an actions chain to the MFE.
+   * Used for domain-to-extension communication.
+   *
+   * Action timeouts come from the Action and domain type definitions.
+   *
+   * @param chain - ActionsChain to deliver
+   * @param options - Optional chain-level execution options
+   * @returns ChainResult indicating execution outcome
+   */
+  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+
+  // ... other methods unchanged
+}
+```
+
+#### Usage Example
+
+```typescript
+// Domain defines default timeout in its type definition
+const dashboardDomain: ExtensionDomain = {
+  id: 'gts.acme.dashboard.ext.domain.v1~',
+  sharedProperties: [...],
+  actions: [...],
+  extensionsActions: [...],
+  extensionsUiMeta: {...},
+  defaultActionTimeout: 30000,  // 30 seconds default for all actions
+};
+
+// Action uses domain's default timeout
+const refreshAction: Action = {
+  type: 'gts.acme.dashboard.ext.action.refresh.v1~',
+  target: 'gts.acme.dashboard.ext.domain.v1~',
+  // No timeout specified - uses domain's 30000ms default
+};
+
+// Action overrides for a long-running operation
+const exportAction: Action = {
+  type: 'gts.acme.dashboard.ext.action.export.v1~',
+  target: 'gts.acme.dashboard.ext.domain.v1~',
+  timeout: 120000,  // 2 minutes for this specific action
+  // On timeout: executes fallback chain if defined (same as any other failure)
+};
+
+// Execute chain - timeouts come from type definitions
+// On timeout or any failure: fallback chain is executed if defined
+await mediator.executeActionsChain(chain);
+
+// Override total chain timeout only (not individual action timeouts)
+await mediator.executeActionsChain(chain, {
+  chainTimeout: 300000,  // 5 minutes total for entire chain
+});
 ```
 
 ### Decision 18: Manifest Fetching Strategy

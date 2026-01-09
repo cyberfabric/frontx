@@ -83,10 +83,10 @@
 
 **Core Types (6 types):**
 - [ ] 3.1.1 Create `MfeEntry` interface (id, requiredProperties, optionalProperties, actions, domainActions)
-- [ ] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMeta)
+- [ ] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMeta, defaultActionTimeout)
 - [ ] 3.1.3 Create `Extension` interface (id, domain, entry, uiMeta)
 - [ ] 3.1.4 Create `SharedProperty` interface (id, value)
-- [ ] 3.1.5 Create `Action` interface (type, target, payload?)
+- [ ] 3.1.5 Create `Action` interface (type, target, payload?, timeout?)
 - [ ] 3.1.6 Create `ActionsChain` interface (action: Action, next?: ActionsChain, fallback?: ActionsChain) - no id field
 
 **Module Federation Types (2 types):**
@@ -100,10 +100,10 @@
 
 **Core Type Schemas (6 types):**
 - [ ] 3.2.1 Create schema for `gts.hai3.screensets.mfe.entry.v1~` with id field
-- [ ] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id field
+- [ ] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required) fields
 - [ ] 3.2.3 Create schema for `gts.hai3.screensets.ext.extension.v1~` with id field
 - [ ] 3.2.4 Create schema for `gts.hai3.screensets.ext.shared_property.v1~` with id and value fields
-- [ ] 3.2.5 Create schema for `gts.hai3.screensets.ext.action.v1~` with type and target fields (no id)
+- [ ] 3.2.5 Create schema for `gts.hai3.screensets.ext.action.v1~` with type, target, timeout (optional) fields (no id)
 - [ ] 3.2.6 Create schema for `gts.hai3.screensets.ext.actions_chain.v1~` with $ref syntax (no id field)
 
 **Module Federation Schemas (2 types):**
@@ -295,6 +295,19 @@
 
 **Traceability**: Requirement "Isolated State Instances" - Host state isolation
 
+### 8.4 WeakMap-Based Runtime Coordination
+
+- [ ] 8.4.1 Create `packages/screensets/src/mfe/coordination/index.ts`
+- [ ] 8.4.2 Define module-level `runtimeConnections: WeakMap<Element, RuntimeConnection>`
+- [ ] 8.4.3 Define `RuntimeConnection` interface with `hostRuntime` and `bridges` Map
+- [ ] 8.4.4 Implement `registerRuntime(container: Element, connection: RuntimeConnection)` function
+- [ ] 8.4.5 Implement `getRuntime(container: Element): RuntimeConnection | undefined` function
+- [ ] 8.4.6 Implement `unregisterRuntime(container: Element)` function
+- [ ] 8.4.7 Add tests verifying no window global pollution
+- [ ] 8.4.8 Add tests verifying automatic garbage collection with WeakMap
+
+**Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination
+
 ---
 
 ## Phase 9: Actions Chain Mediation
@@ -303,15 +316,19 @@
 
 ### 9.1 ActionsChainsMediator Implementation
 
-- [ ] 9.1.1 Create `ActionsChainsMediator` class with `executeActionsChain(chain)` method
+- [ ] 9.1.1 Create `ActionsChainsMediator` class with `executeActionsChain(chain, options?)` method
 - [ ] 9.1.2 Implement target resolution (domain or entry instance)
 - [ ] 9.1.3 Implement action validation against target contract
 - [ ] 9.1.4 Implement success path (execute `next` chain)
 - [ ] 9.1.5 Implement failure path (execute `fallback` chain)
 - [ ] 9.1.6 Implement termination (no next/fallback)
 - [ ] 9.1.7 Implement `ChainResult` return type
+- [ ] 9.1.8 Implement `ChainExecutionOptions` interface with ONLY `chainTimeout` (no action-level options)
+- [ ] 9.1.9 Implement `deliver(chain, options?)` method with chain-level execution options
+- [ ] 9.1.10 Implement timeout resolution from type definitions: `action.timeout ?? domain.defaultActionTimeout`
+- [ ] 9.1.11 On timeout: execute fallback chain if defined (same as any other failure)
 
-**Traceability**: Requirement "Actions Chain Mediation" - success/failure/termination scenarios
+**Traceability**: Requirement "Actions Chain Mediation" - success/failure/termination scenarios, Requirement "Explicit Timeout Configuration"
 
 ### 9.2 Extension Registration with Mediator
 
@@ -330,8 +347,12 @@
 - [ ] 9.3.4 Test type ID validation via plugin
 - [ ] 9.3.5 Test payload validation via plugin
 - [ ] 9.3.6 Test extension handler lifecycle (register/unregister)
+- [ ] 9.3.7 Test timeout resolution uses domain.defaultActionTimeout when action.timeout not specified
+- [ ] 9.3.8 Test timeout resolution uses action.timeout when specified (overrides domain default)
+- [ ] 9.3.9 Test timeout triggers fallback chain execution (same as any other failure)
+- [ ] 9.3.10 Test ChainExecutionOptions only accepts chainTimeout (no action-level options)
 
-**Traceability**: Requirement "Actions Chain Mediation" - all scenarios
+**Traceability**: Requirement "Actions Chain Mediation" - all scenarios, Requirement "Explicit Timeout Configuration"
 
 ---
 
@@ -593,12 +614,12 @@
 ### 15.2 Bridge Connection
 
 - [ ] 15.2.1 Create `packages/screensets/src/mfe/bridge/MfeBridgeConnection.ts`
-- [ ] 15.2.2 Implement `sendActionsChain()` for domain-to-MFE actions
+- [ ] 15.2.2 Implement `sendActionsChain(chain, options?)` for domain-to-MFE actions with chain-level options only
 - [ ] 15.2.3 Implement `updateProperty()` with subscriber notification
 - [ ] 15.2.4 Implement `onHostAction()` handler registration
 - [ ] 15.2.5 Implement `dispose()` for cleanup
 
-**Traceability**: Requirement "MFE Bridge Interface" - MfeBridgeConnection
+**Traceability**: Requirement "MFE Bridge Interface" - MfeBridgeConnection, Requirement "Explicit Timeout Configuration"
 
 ### 15.3 Bridge Factory
 

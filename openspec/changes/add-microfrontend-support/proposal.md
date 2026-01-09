@@ -70,10 +70,10 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta` | Extension point contract |
+| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta, defaultActionTimeout` | Extension point contract |
 | `Extension` | `id, domain, entry, uiMeta` | Extension binding |
 | `SharedProperty` | `id, value` | Shared property instance |
-| `Action` | `type, target, payload?` | Action with self-identifying type ID |
+| `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
 | `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
 
 **MF-Specific Types (2 types):**
@@ -186,13 +186,31 @@ An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema
 - Then validates `extension.uiMeta` against the resolved schema
 - See Decision 8 in `design.md` for implementation details
 
+### Explicit Timeout Configuration
+
+Action timeouts are configured **explicitly in type definitions**, not as implicit code defaults. This ensures the platform is fully runtime-configurable and declarative.
+
+**Timeout Resolution:**
+```
+Effective timeout = action.timeout ?? domain.defaultActionTimeout
+On timeout: execute fallback chain if defined (same as any other failure)
+```
+
+- `ExtensionDomain.defaultActionTimeout` (REQUIRED): Default timeout in milliseconds for all actions targeting this domain
+- `Action.timeout` (optional): Override timeout for a specific action
+
+**Timeout as Failure**: Timeout is treated as just another failure case. The `ActionsChain.fallback` field handles all failures uniformly, including timeouts. There is no separate `fallbackOnTimeout` flag - the existing fallback mechanism provides complete failure handling.
+
+**Chain-level configuration** only includes `chainTimeout` (total chain execution limit), not individual action timeouts.
+
 ### Actions Chain Runtime
 
 1. ActionsChainsMediator delivers actions chain to target (domain or entry)
 2. Target executes the action (only target understands payload based on action type)
-3. On success: mediator delivers `next` chain to its target
-4. On failure: mediator delivers `fallback` chain to its target
-5. Recursive until chain ends (no next/fallback)
+3. Action timeout is determined by: `action.timeout ?? domain.defaultActionTimeout`
+4. On success: mediator delivers `next` chain to its target
+5. On failure (including timeout): mediator delivers `fallback` chain if defined
+6. Recursive until chain ends (no next/fallback)
 
 ### Hierarchical Extension Domains
 
