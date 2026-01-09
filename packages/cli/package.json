@@ -1,6 +1,6 @@
 {
   "name": "@hai3/cli",
-  "version": "0.2.0-alpha.10",
+  "version": "0.2.0-alpha.11",
   "description": "HAI3 CLI - Project scaffolding and screenset management tools",
   "type": "module",
   "bin": {
