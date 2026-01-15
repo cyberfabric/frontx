@@ -163,7 +163,7 @@ Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema
 }
 ```
 
-See `design.md` for complete JSON Schema definitions of all 8 types.
+See `design/type-system.md` for complete JSON Schema definitions of all 8 types.
 
 ### MfeEntry Type Hierarchy
 
@@ -205,7 +205,7 @@ domain.actions            is subset of  entry.domainActions
 An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the plugin's attribute accessor at runtime:
 - The ScreensetsRegistry calls `plugin.getAttribute(extension.domain, 'extensionsUiMeta')` to resolve the schema
 - Then validates `extension.uiMeta` against the resolved schema
-- See Decision 8 in `design.md` for implementation details
+- See Decision 8 in `design/type-system.md` for implementation details
 
 ### Explicit Timeout Configuration
 
