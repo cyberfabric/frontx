@@ -547,13 +547,13 @@ The override file SHALL include:
 - [AC3.8] VERIFY: API.md exists in user projects (referenced from SCREENSETS.md)
 - [AC3.9] VERIFY: Exactly 9 target files exist: AI.md, AI_COMMANDS.md, API.md, CLI.md, EVENTS.md, LAYOUT.md, SCREENSETS.md, STYLING.md, THEMES.md
 
-### AC4: Cleaned AI.md and AI_COMMANDS.md
+### AC4: Cleaned AI.md and AI_COMMANDS.md (Phase 1-5 Scope)
 - [AC4.1] VERIFY: AI.md in user projects does NOT contain "hai3dev-" references
 - [AC4.2] VERIFY: AI.md in user projects does NOT contain "UPDATE_GUIDELINES.md" references
 - [AC4.3] VERIFY: AI_COMMANDS.md in user projects does NOT contain ".ai/commands/internal/" references (monorepo-only)
 - [AC4.4] VERIFY: AI_COMMANDS.md in user projects does NOT contain "packages/*/commands/" references (monorepo-only)
 - [AC4.5] VERIFY: AI_COMMANDS.md in user projects does NOT contain "copy-templates.ts" references
-- [AC4.6] VERIFY: AI_COMMANDS.md in user projects DOES contain "CREATING COMMANDS" section for company/project commands
+- Note: CREATING COMMANDS section for company/project commands is validated in AC12.2 (Phase 9A scope)
 
 ### AC5: Template Assembly Validation
 - [AC5.1] VERIFY: `npm run build:packages` succeeds

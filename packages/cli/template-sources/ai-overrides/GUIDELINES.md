@@ -22,6 +22,9 @@
 - .ai documentation -> .ai/targets/AI.md
 - .ai/commands -> .ai/targets/AI_COMMANDS.md
 - CLI usage -> .ai/targets/CLI.md
+### Custom Guidelines
+- Company guidelines -> .ai/company/GUIDELINES.md
+- Project guidelines -> .ai/project/GUIDELINES.md
 
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).

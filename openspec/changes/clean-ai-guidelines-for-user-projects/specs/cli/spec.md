@@ -98,7 +98,7 @@ The CLI SHALL ship AI configuration files that contain only user-project-applica
 - Keyword conventions (MUST, REQUIRED, FORBIDDEN, etc.)
 - CLI delegation rules for user commands
 
-#### Scenario: Cleaned AI_COMMANDS.md content
+#### Scenario: Cleaned AI_COMMANDS.md content (Phase 1-5)
 
 **Given** a HAI3 project created by CLI
 **When** examining `.ai/targets/AI_COMMANDS.md`
@@ -109,10 +109,9 @@ The CLI SHALL ship AI configuration files that contain only user-project-applica
 - References to `hai3dev-*` command namespace (monorepo-only)
 **And** SHALL contain user-relevant content:
 - Command categories (hai3-*, openspec:*)
-- Three-level command hierarchy (HAI3, company, project)
-- How to create company/project commands
 - How to use OpenSpec workflow commands
-- Command discovery via ai:sync
+
+Note: Three-level hierarchy documentation (CREATING COMMANDS, ai:sync discovery, precedence rules) is added in Phase 9A - see "AI_COMMANDS.md contains hierarchy documentation" scenario below.
 
 #### Scenario: No packages/ references in user projects
 

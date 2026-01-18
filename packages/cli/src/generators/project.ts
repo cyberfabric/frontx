@@ -141,6 +141,16 @@ export async function generateProject(
     }
   }
 
+  // 3.1.2a Copy company/ and project/ hierarchy directories (placeholder templates)
+  const hierarchyDirs = ['company', 'project'];
+  for (const dirName of hierarchyDirs) {
+    const hierarchyDir = path.join(templatesDir, '.ai', dirName);
+    if (await fs.pathExists(hierarchyDir)) {
+      const hierarchyFiles = await readDirRecursive(hierarchyDir, `.ai/${dirName}`);
+      files.push(...hierarchyFiles);
+    }
+  }
+
   // 3.1.3 Copy IDE command adapters (.claude, .cursor, .windsurf)
   const ideDirs = ['.claude', '.cursor', '.windsurf'];
   for (const dir of ideDirs) {
@@ -186,6 +196,13 @@ export async function generateProject(
         files.push({ path: `.windsurf/workflows/${baseName}`, content });
       }
     }
+  }
+
+  // 3.1.5 Copy user commands from .ai/commands/user/ (standalone commands not in packages)
+  const userCommandsDir = path.join(templatesDir, '.ai/commands/user');
+  if (await fs.pathExists(userCommandsDir)) {
+    const userCommandFiles = await readDirRecursive(userCommandsDir, '.ai/commands/user');
+    files.push(...userCommandFiles);
   }
 
   // 3.2 Copy eslint-plugin-local

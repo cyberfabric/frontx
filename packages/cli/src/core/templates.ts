@@ -313,15 +313,41 @@ async function syncAiDirectory(
     await syncCommands(commandsBundleDir, path.join(destDir, 'commands'), layer, logger);
   }
 
-  // Sync other .ai files/directories (excluding targets/, GUIDELINES variants, and commands/)
+  // Sync user commands from .ai/commands/user/ (standalone commands not in packages)
+  const userCommandsDir = path.join(srcDir, 'commands', 'user');
+  const destUserCommandsDir = path.join(destDir, 'commands', 'user');
+  if (await fs.pathExists(userCommandsDir)) {
+    await fs.copy(userCommandsDir, destUserCommandsDir, { overwrite: true });
+  }
+
+  // Sync company/ and project/ hierarchy directories if they exist in templates
+  // These will be created once in new projects and then preserved on updates
+  const companyDir = path.join(srcDir, 'company');
+  const projectDir = path.join(srcDir, 'project');
+  const destCompanyDir = path.join(destDir, 'company');
+  const destProjectDir = path.join(destDir, 'project');
+
+  // Only copy company/ if it doesn't exist in destination (preserve user content)
+  if (await fs.pathExists(companyDir) && !(await fs.pathExists(destCompanyDir))) {
+    await fs.copy(companyDir, destCompanyDir);
+  }
+
+  // Only copy project/ if it doesn't exist in destination (preserve user content)
+  if (await fs.pathExists(projectDir) && !(await fs.pathExists(destProjectDir))) {
+    await fs.copy(projectDir, destProjectDir);
+  }
+
+  // Sync other .ai files/directories (excluding targets/, GUIDELINES variants, commands/, company/, and project/)
   const aiEntries = await fs.readdir(srcDir, { withFileTypes: true });
   for (const entry of aiEntries) {
-    // Skip targets (already handled), GUIDELINES variants, and commands (already handled)
+    // Skip targets (already handled), GUIDELINES variants, commands (already handled), and company/project (preserved)
     if (
       entry.name === 'targets' ||
       entry.name === 'commands' ||
       entry.name.startsWith('GUIDELINES.') ||
-      entry.name === 'GUIDELINES.md'
+      entry.name === 'GUIDELINES.md' ||
+      entry.name === 'company' ||
+      entry.name === 'project'
     ) {
       continue;
     }

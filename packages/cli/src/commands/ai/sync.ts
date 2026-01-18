@@ -323,10 +323,41 @@ async function scanPackageCommands(
 }
 
 /**
+ * Scan a directory for command files
+ */
+async function scanCommandsInDirectory(
+  commandsDir: string,
+  relativePathPrefix: string
+): Promise<Map<string, { srcPath: string; relativePath: string }>> {
+  const commands = new Map<string, { srcPath: string; relativePath: string }>();
+
+  if (!(await fs.pathExists(commandsDir))) {
+    return commands;
+  }
+
+  const entries = await fs.readdir(commandsDir, { withFileTypes: true });
+
+  for (const entry of entries) {
+    if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
+    // Skip hai3dev-* commands (monorepo-only)
+    if (entry.name.startsWith('hai3dev-')) continue;
+
+    const baseName = entry.name.replace(/\.md$/, '');
+    const srcPath = path.join(commandsDir, entry.name);
+    const relativePath = `${relativePathPrefix}${entry.name}`;
+
+    commands.set(baseName, { srcPath, relativePath });
+  }
+
+  return commands;
+}
+
+/**
  * Generate command adapters for an IDE
+ * Implements precedence: project > company > hai3 > packages
  */
 async function generateCommandAdapters(
-  _projectRoot: string,
+  projectRoot: string,
   commandsDir: string,
   targetDir: string,
   packageCommands: { package: string; commandPath: string; name: string }[] = []
@@ -334,41 +365,76 @@ async function generateCommandAdapters(
   await fs.ensureDir(targetDir);
   let count = 0;
 
-  // Generate adapters from local .ai/commands/
-  if (await fs.pathExists(commandsDir)) {
-    const entries = await fs.readdir(commandsDir, { withFileTypes: true });
+  // Scan commands from all levels with precedence
+  const hai3Commands = await scanCommandsInDirectory(commandsDir, 'commands/');
+  const companyCommandsDir = path.join(projectRoot, '.ai', 'company', 'commands');
+  const companyCommands = await scanCommandsInDirectory(companyCommandsDir, 'company/commands/');
+  const projectCommandsDir = path.join(projectRoot, '.ai', 'project', 'commands');
+  const projectCommands = await scanCommandsInDirectory(projectCommandsDir, 'project/commands/');
 
-    for (const entry of entries) {
-      if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
-      // Skip hai3dev-* commands (monorepo-only)
-      if (entry.name.startsWith('hai3dev-')) continue;
+  // Collect all unique command names
+  const allCommandNames = new Set<string>();
+  hai3Commands.forEach((_, name) => allCommandNames.add(name));
+  companyCommands.forEach((_, name) => allCommandNames.add(name));
+  projectCommands.forEach((_, name) => allCommandNames.add(name));
+  packageCommands.forEach(cmd => allCommandNames.add(cmd.name.replace(/\.md$/, '')));
 
-      const srcPath = path.join(commandsDir, entry.name);
-      const description = await extractCommandDescription(srcPath);
-      const relativePath = `commands/${entry.name}`;
+  // Generate adapters with precedence: project > company > hai3 > packages
+  for (const baseName of allCommandNames) {
+    const targetPath = path.join(targetDir, `${baseName}.md`);
 
+    // Check project level first (highest precedence)
+    if (projectCommands.has(baseName)) {
+      const cmd = projectCommands.get(baseName)!;
+      const description = await extractCommandDescription(cmd.srcPath);
       const adapterContent = `---
 description: ${description}
 ---
 
-Use \`.ai/${relativePath}\` as the single source of truth.
+Use \`.ai/${cmd.relativePath}\` as the single source of truth.
 `;
-      await fs.writeFile(path.join(targetDir, entry.name), adapterContent);
+      await fs.writeFile(targetPath, adapterContent);
+      count++;
+      continue;
+    }
+
+    // Check company level
+    if (companyCommands.has(baseName)) {
+      const cmd = companyCommands.get(baseName)!;
+      const description = await extractCommandDescription(cmd.srcPath);
+      const adapterContent = `---
+description: ${description}
+---
+
+Use \`.ai/${cmd.relativePath}\` as the single source of truth.
+`;
+      await fs.writeFile(targetPath, adapterContent);
+      count++;
+      continue;
+    }
+
+    // Check hai3 level
+    if (hai3Commands.has(baseName)) {
+      const cmd = hai3Commands.get(baseName)!;
+      const description = await extractCommandDescription(cmd.srcPath);
+      const adapterContent = `---
+description: ${description}
+---
+
+Use \`.ai/${cmd.relativePath}\` as the single source of truth.
+`;
+      await fs.writeFile(targetPath, adapterContent);
+      count++;
+      continue;
+    }
+
+    // Check package commands (lowest precedence)
+    const packageCmd = packageCommands.find(cmd => cmd.name.replace(/\.md$/, '') === baseName);
+    if (packageCmd) {
+      const content = await fs.readFile(packageCmd.commandPath, 'utf-8');
+      await fs.writeFile(targetPath, content);
       count++;
     }
-  }
-
-  // Generate adapters from installed package commands
-  for (const cmd of packageCommands) {
-    // Skip if already exists from local commands
-    const targetPath = path.join(targetDir, cmd.name);
-    if (await fs.pathExists(targetPath)) continue;
-
-    const content = await fs.readFile(cmd.commandPath, 'utf-8');
-
-    // Copy the full command content (not just an adapter)
-    await fs.writeFile(targetPath, content);
-    count++;
   }
 
   return count;

@@ -591,6 +591,18 @@ async function copyTemplates() {
     }
   }
 
+  // Copy company/ and project/ hierarchy directories from ai-overrides/
+  // These are preserved across updates and not marked with standalone markers
+  const hierarchyDirs = ['company', 'project'];
+  for (const dirName of hierarchyDirs) {
+    const hierarchySrc = path.join(overridesDir, dirName);
+    const hierarchyDest = path.join(aiDestDir, dirName);
+    if (await fs.pathExists(hierarchySrc)) {
+      await fs.copy(hierarchySrc, hierarchyDest);
+      console.log(`  ✓ ${dirName}/ (hierarchy placeholder)`);
+    }
+  }
+
   console.log(`  ✓ .ai/ (${standaloneCount} standalone, ${overrideCount} overrides)`);
 
   // ============================================
