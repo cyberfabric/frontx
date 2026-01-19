@@ -143,10 +143,10 @@ const widgetSlotDomain: ExtensionDomain = {
     'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1',
   ],
   actions: [
-    'gts.acme.dashboard.ext.action.refresh.v1~',
+    'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.refresh.v1~',
   ],
   extensionsActions: [
-    'gts.acme.dashboard.ext.action.data_update.v1~',
+    'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1~',
   ],
   extensionsUiMeta: {
     type: 'object',
@@ -960,14 +960,14 @@ const dashboardDomain: ExtensionDomain = {
 
 // Action uses domain's default timeout
 const refreshAction: Action = {
-  type: 'gts.acme.dashboard.ext.action.refresh.v1~',
+  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.refresh.v1~',
   target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1~',
   // No timeout specified - uses domain's 30000ms default
 };
 
 // Action overrides for a long-running operation
 const exportAction: Action = {
-  type: 'gts.acme.dashboard.ext.action.export.v1~',
+  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.export.v1~',
   target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1~',
   timeout: 120000,  // 2 minutes for this specific action
   // On timeout: executes fallback chain if defined (same as any other failure)
