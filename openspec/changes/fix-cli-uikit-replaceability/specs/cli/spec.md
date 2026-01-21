@@ -1,0 +1,370 @@
+## ADDED Requirements
+
+### Requirement: UIKit Option for Project Creation
+
+The CLI SHALL provide a `--uikit` option for the `hai3 create` command that controls whether @hai3/uikit is included in generated projects.
+
+#### Scenario: UIKit option definition
+
+**Given** the `hai3 create` command definition
+**When** examining available options
+**Then** the system SHALL provide:
+- Option name: `uikit`
+- Type: string
+- Choices: `['hai3', 'none']`
+- Default: `'hai3'`
+- Description: "UI kit to use ('hai3' for @hai3/uikit, 'none' for no UI kit)"
+
+#### Scenario: Default behavior
+
+**Given** a developer running `hai3 create my-app` without `--uikit` flag
+**When** the command executes
+**Then** the system SHALL:
+- Use default value `'hai3'`
+- Include `@hai3/uikit` in package.json dependencies
+- Copy layout templates from `layout/hai3-uikit/` to `src/app/layout/`
+
+#### Scenario: UIKit excluded
+
+**Given** a developer running `hai3 create my-app --uikit none`
+**When** the command executes
+**Then** the system SHALL:
+- NOT include `@hai3/uikit` in package.json dependencies
+- NOT copy layout templates from `layout/hai3-uikit/`
+- Display info message: "UIKit excluded. You will need to implement your own layout components."
+
+#### Scenario: Interactive UIKit selection
+
+**Given** a developer running `hai3 create my-app` in interactive mode without `--uikit` flag
+**When** prompting for configuration
+**Then** the system SHALL prompt:
+- Question: "Select UI kit:"
+- Type: select
+- Choices:
+  - `{ value: 'hai3', label: 'HAI3 UIKit (@hai3/uikit)' }`
+  - `{ value: 'none', label: 'None (implement your own)' }`
+- Default: `'hai3'`
+
+**Note**: Interactive prompt uses select (not boolean confirm) for consistency with CLI option and future extensibility.
+
+#### Scenario: UIKit dependency inclusion
+
+**Given** the `generateProject()` function
+**When** generating package.json with `uikit: 'hai3'`
+**Then** dependencies SHALL include:
+```json
+{
+  "@hai3/uikit": "alpha"
+}
+```
+
+**And Given** generating package.json with `uikit: 'none'`
+**Then** dependencies SHALL NOT include `@hai3/uikit`
+
+#### Scenario: Layout template conditional copying
+
+**Given** the `generateProject()` function
+**When** `uikit` parameter is `'hai3'`
+**Then** the system SHALL copy files from `templates/layout/hai3-uikit/` to `src/app/layout/`
+
+**And Given** `uikit` parameter is `'none'`
+**Then** the system SHALL NOT copy any files from `templates/layout/hai3-uikit/`
+
+## MODIFIED Requirements
+
+### Requirement: Project Creation Command
+
+The CLI SHALL provide a `hai3 create <project-name>` command that scaffolds a new HAI3 project using template-based generation with optional UIKit inclusion.
+
+#### Scenario: Project creation with AI configs
+
+**Given** a developer running `hai3 create my-app`
+**When** the command executes
+**Then** the system SHALL create:
+- Directory `my-app/`
+- All root config files from templates
+- `hai3.config.json` with project configuration
+- `package.json` with HAI3 dependencies (UIKit included by default)
+- `.ai/` folder with standalone-only AI guidelines
+- `.claude/commands/` with hai3-prefixed command adapters
+- `.cursor/rules/` and `.cursor/commands/` with adapters
+- `.windsurf/rules/` and `.windsurf/commands/` with adapters (no workflows/)
+- `.cline/` configuration folder
+- `.aider/` configuration folder
+- `openspec/` directory with project.md and AGENTS.md
+- `src/app/themes/`, `src/app/uikit/`, `src/app/icons/`, `src/app/api/` from templates
+- `src/app/layout/` from templates (when UIKit is included)
+- `src/app/App.tsx` and `src/app/main.tsx` application entry points
+- `src/screensets/demo/` screenset from templates
+- `src/screensets/screensetRegistry.tsx` for screenset registration
+
+#### Scenario: Project creation without UIKit
+
+**Given** a developer running `hai3 create my-app --uikit none`
+**When** the command executes
+**Then** the system SHALL create:
+- Directory `my-app/`
+- All root config files from templates
+- `hai3.config.json` with project configuration
+- `package.json` WITHOUT @hai3/uikit dependency
+- `.ai/` folder with standalone-only AI guidelines
+- `.claude/commands/` with hai3-prefixed command adapters
+- `.cursor/rules/` and `.cursor/commands/` with adapters
+- `.windsurf/rules/` and `.windsurf/commands/` with adapters
+- `.cline/` configuration folder
+- `.aider/` configuration folder
+- `openspec/` directory with project.md and AGENTS.md
+- `src/app/themes/`, `src/app/uikit/`, `src/app/icons/`, `src/app/api/` from templates
+- NO `src/app/layout/` directory (user must implement)
+- `src/app/App.tsx` and `src/app/main.tsx` application entry points
+- NO `src/screensets/demo/` directory (requires @hai3/uikit)
+- `src/screensets/screensetRegistry.tsx` for screenset registration (empty or minimal)
+
+**And** the system SHALL display message:
+- "Demo screenset excluded (requires @hai3/uikit). Create your own screenset with `hai3 screenset create`."
+
+### Requirement: Generated Code Quality
+
+All code generated by CLI commands SHALL pass HAI3 architectural validation without modification, including layer dependency rules.
+
+#### Scenario: Created screenset passes validation
+
+**Given** running `hai3 screenset create billing`
+**When** screenset is created
+**Then** `npm run arch:check` SHALL succeed
+
+#### Scenario: Copied screenset passes validation
+
+**Given** running `hai3 screenset copy chat chatCopy`
+**When** screenset is copied
+**Then**:
+- `npm run arch:check` SHALL succeed
+- No ID collisions SHALL occur
+- New screenset SHALL be accessible in UI
+
+#### Scenario: Layout templates follow layer rules
+
+**Given** the layout templates in `templates/layout/hai3-uikit/`
+**When** examining import statements
+**Then** all imports SHALL follow layer architecture rules:
+- App layer code SHALL import from @hai3/react (Layer 3)
+- App layer code SHALL import from @hai3/uikit (UI Layer)
+- App layer code SHALL NOT import directly from @hai3/framework (Layer 2)
+- App layer code SHALL NOT import directly from @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets (Layer 1)
+
+#### Scenario: Menu.tsx correct layer imports
+
+**Given** the Menu.tsx template at `templates/layout/hai3-uikit/Menu.tsx`
+**When** examining the menuActions import
+**Then** the import SHALL be:
+```typescript
+import { menuActions } from '@hai3/react';
+```
+**And** SHALL NOT be:
+```typescript
+import { menuActions } from '@hai3/framework';
+```
+
+#### Scenario: All layout templates follow layer rules
+
+**Given** the layout templates in `templates/layout/hai3-uikit/`
+**When** examining all template files:
+- Header.tsx
+- Footer.tsx
+- Sidebar.tsx
+- Popup.tsx
+- Overlay.tsx
+- Screen.tsx
+- Layout.tsx
+- Menu.tsx
+**Then** NONE of the templates SHALL contain imports from:
+- `@hai3/framework` (Layer 2)
+- `@hai3/state` (Layer 1)
+- `@hai3/api` (Layer 1)
+- `@hai3/i18n` (Layer 1)
+- `@hai3/screensets` (Layer 1)
+**And** any HAI3 imports SHALL be from:
+- `@hai3/react` (Layer 3)
+- `@hai3/uikit` (UI Layer - allowed for layout templates)
+
+### Requirement: Demo Screenset Conditional Inclusion
+
+The demo screenset SHALL be excluded when `--uikit none` is selected, as it requires @hai3/uikit components.
+
+#### Scenario: Demo screenset included with UIKit
+
+**Given** a developer running `hai3 create my-app` or `hai3 create my-app --uikit hai3`
+**When** the project is created
+**Then** the system SHALL copy demo screenset from `templates/screensets/demo/` to `src/screensets/demo/`
+**And** the screensetRegistry.tsx SHALL include demo screenset registration
+
+#### Scenario: Demo screenset excluded without UIKit
+
+**Given** a developer running `hai3 create my-app --uikit none`
+**When** the project is created
+**Then** the system SHALL NOT copy demo screenset to `src/screensets/`
+**And** the system SHALL display message: "Demo screenset excluded (requires @hai3/uikit). Create your own screenset with `hai3 screenset create`."
+**And** the screensetRegistry.tsx SHALL be generated without demo screenset imports
+
+#### Scenario: Project without demo compiles successfully
+
+**Given** a developer running `hai3 create my-app --uikit none`
+**When** the project is created without demo screenset
+**Then** the generated project SHALL compile without errors
+**And** `npm run type-check` SHALL succeed
+**And** `npm run build` SHALL succeed
+
+### Requirement: Generated Package.json Layer Enforcement (CRITICAL)
+
+The CLI-generated project's package.json MUST NOT have dependencies on Layer 1 (L1) or Layer 2 (L2) packages. Only Layer 3 (L3) and UI Layer packages are allowed.
+
+#### Scenario: Allowed HAI3 dependencies
+
+**Given** the `generateProject()` function generating package.json
+**When** adding HAI3 dependencies
+**Then** the system SHALL ONLY include:
+- `@hai3/react` (L3) - REQUIRED for all generated projects
+- `@hai3/uikit` (L3+/UI) - CONDITIONAL, only when `--uikit hai3`
+- `@hai3/studio` (L3+) - CONDITIONAL, only when `--studio` is enabled
+
+#### Scenario: Forbidden HAI3 dependencies
+
+**Given** the `generateProject()` function generating package.json
+**When** adding dependencies
+**Then** the system SHALL NOT include:
+- `@hai3/framework` (L2)
+- `@hai3/state` (L1)
+- `@hai3/api` (L1)
+- `@hai3/i18n` (L1)
+- `@hai3/screensets` (L1)
+
+#### Scenario: Package.json layer compliance verification
+
+**Given** a generated project package.json
+**When** examining the dependencies and devDependencies
+**Then** the HAI3 package dependencies SHALL match the following pattern:
+```json
+{
+  "dependencies": {
+    "@hai3/react": "<version>",
+    "@hai3/uikit": "<version>",  // Only if --uikit hai3
+    "@hai3/studio": "<version>"  // Only if --studio enabled
+  }
+}
+```
+**And** SHALL NOT contain any of:
+```json
+{
+  "dependencies": {
+    "@hai3/framework": "...",   // FORBIDDEN - L2
+    "@hai3/state": "...",       // FORBIDDEN - L1
+    "@hai3/api": "...",         // FORBIDDEN - L1
+    "@hai3/i18n": "...",        // FORBIDDEN - L1
+    "@hai3/screensets": "..."   // FORBIDDEN - L1
+  }
+}
+```
+
+#### Scenario: Layer enforcement test
+
+**Given** the CLI test suite
+**When** testing project generation
+**Then** there SHALL be a test that verifies:
+- Generated package.json contains only allowed HAI3 dependencies
+- Test fails if any L1/L2 package is present in dependencies
+- Test covers both `--uikit hai3` and `--uikit none` scenarios
+
+### Requirement: ESLint Layer Enforcement in Generated Projects (REQUIRED)
+
+The CLI SHALL configure ESLint in generated projects to enforce layer boundaries at lint-time, preventing imports from L1/L2 packages.
+
+#### Scenario: ESLint configuration includes layer enforcement rules
+
+**Given** the `generateProject()` function generating ESLint configuration
+**When** creating the ESLint config file (eslint.config.js or .eslintrc)
+**Then** the configuration SHALL include `no-restricted-imports` rule configured to disallow:
+- `@hai3/framework` and `@hai3/framework/*`
+- `@hai3/state` and `@hai3/state/*`
+- `@hai3/api` and `@hai3/api/*`
+- `@hai3/i18n` and `@hai3/i18n/*`
+- `@hai3/screensets` and `@hai3/screensets/*`
+
+**And** each pattern SHALL have a custom message explaining:
+- "App-layer code must import from @hai3/react, not directly from L1/L2 packages"
+
+#### Scenario: Lint error on L1/L2 import
+
+**Given** a generated project with ESLint layer enforcement
+**When** a developer writes code that imports from `@hai3/framework`
+```typescript
+import { menuActions } from '@hai3/framework';
+```
+**Then** running `npm run lint` SHALL produce an error:
+- Rule: `no-restricted-imports`
+- Message: Contains "App-layer code must import from @hai3/react"
+**And** the lint command SHALL exit with non-zero status
+
+#### Scenario: Allowed imports pass lint
+
+**Given** a generated project with ESLint layer enforcement
+**When** a developer writes code that imports from allowed packages
+```typescript
+import { menuActions } from '@hai3/react';
+import { Button } from '@hai3/uikit';
+```
+**Then** running `npm run lint` SHALL NOT produce errors for these imports
+**And** the lint command SHALL succeed (exit code 0)
+
+#### Scenario: ESLint rule in both UIKit modes
+
+**Given** a developer creating a project with `hai3 create my-app --uikit hai3`
+**When** the project is generated
+**Then** the ESLint configuration SHALL include layer enforcement rules
+
+**And Given** a developer creating a project with `hai3 create my-app --uikit none`
+**When** the project is generated
+**Then** the ESLint configuration SHALL include the same layer enforcement rules
+
+#### Scenario: ESLint rule configuration format
+
+**Given** the generated ESLint configuration
+**When** examining the `no-restricted-imports` rule
+**Then** the rule SHALL be configured with patterns array:
+```javascript
+{
+  'no-restricted-imports': ['error', {
+    patterns: [
+      {
+        group: ['@hai3/framework', '@hai3/framework/*'],
+        message: 'App-layer code must import from @hai3/react, not directly from L1/L2 packages. @hai3/framework is Layer 2.'
+      },
+      {
+        group: ['@hai3/state', '@hai3/state/*'],
+        message: 'App-layer code must import from @hai3/react, not directly from L1/L2 packages. @hai3/state is Layer 1.'
+      },
+      {
+        group: ['@hai3/api', '@hai3/api/*'],
+        message: 'App-layer code must import from @hai3/react, not directly from L1/L2 packages. @hai3/api is Layer 1.'
+      },
+      {
+        group: ['@hai3/i18n', '@hai3/i18n/*'],
+        message: 'App-layer code must import from @hai3/react, not directly from L1/L2 packages. @hai3/i18n is Layer 1.'
+      },
+      {
+        group: ['@hai3/screensets', '@hai3/screensets/*'],
+        message: 'App-layer code must import from @hai3/react, not directly from L1/L2 packages. @hai3/screensets is Layer 1.'
+      }
+    ]
+  }]
+}
+```
+
+#### Scenario: ESLint layer enforcement test
+
+**Given** the CLI test suite
+**When** testing ESLint configuration in generated projects
+**Then** there SHALL be a test that verifies:
+- Generated ESLint config includes `no-restricted-imports` rule
+- Rule blocks imports from @hai3/framework, @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
+- Rule allows imports from @hai3/react and @hai3/uikit
+- Test covers both `--uikit hai3` and `--uikit none` scenarios
