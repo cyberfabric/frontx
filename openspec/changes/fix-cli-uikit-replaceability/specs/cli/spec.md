@@ -368,3 +368,284 @@ import { Button } from '@hai3/uikit';
 - Rule blocks imports from @hai3/framework, @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
 - Rule allows imports from @hai3/react and @hai3/uikit
 - Test covers both `--uikit hai3` and `--uikit none` scenarios
+
+### Requirement: Monorepo Source Files Layer Compliance (CRITICAL)
+
+The monorepo source files in `/src/app/` MUST follow the same layer architecture rules as generated projects. App-layer code SHALL only import from `@hai3/react` (L3), not directly from L1/L2 packages.
+
+#### Scenario: Monorepo Menu.tsx layer compliance
+
+**Given** the monorepo source file `/src/app/layout/Menu.tsx`
+**When** examining the import statements
+**Then** the `menuActions` import SHALL be:
+```typescript
+import { menuActions } from '@hai3/react';
+```
+**And** SHALL NOT be:
+```typescript
+import { menuActions } from '@hai3/framework';
+```
+
+#### Scenario: Monorepo mocks.ts layer compliance
+
+**Given** the monorepo source file `/src/app/api/mocks.ts`
+**When** examining the import statements
+**Then** the `MockMap` import SHALL be:
+```typescript
+import type { MockMap } from '@hai3/react';
+```
+**And** the `Language` import SHALL be:
+```typescript
+import { Language } from '@hai3/react';
+```
+**And** SHALL NOT import from `@hai3/api` or `@hai3/i18n`
+
+#### Scenario: Monorepo AccountsApiService.ts layer compliance
+
+**Given** the monorepo source file `/src/app/api/AccountsApiService.ts`
+**When** examining the import statements
+**Then** the API imports SHALL be:
+```typescript
+import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
+```
+**And** SHALL NOT be:
+```typescript
+import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/api';
+```
+
+#### Scenario: @hai3/react exports required symbols
+
+**Given** the `@hai3/react` package at `packages/react/src/index.ts`
+**When** examining exports
+**Then** the package SHALL export:
+- `menuActions` (re-exported from @hai3/framework)
+- `BaseApiService`, `RestProtocol`, `RestMockPlugin` (re-exported from @hai3/api)
+- `MockMap` (type re-exported from @hai3/api)
+- `Language` (re-exported from @hai3/framework which re-exports from @hai3/i18n)
+
+### Requirement: Monorepo ESLint Layer Enforcement
+
+The monorepo's `/eslint.config.js` SHALL enforce layer boundaries for `src/app/**` files, preventing imports from L1/L2 packages.
+
+#### Scenario: Monorepo ESLint configuration includes layer rules
+
+**Given** the monorepo ESLint configuration at `/eslint.config.js`
+**When** examining the configuration
+**Then** there SHALL be a rule block for `src/app/**/*.ts` and `src/app/**/*.tsx` files
+**And** the rule block SHALL configure `no-restricted-imports` to disallow:
+- `@hai3/framework` and `@hai3/framework/*`
+- `@hai3/state` and `@hai3/state/*`
+- `@hai3/api` and `@hai3/api/*`
+- `@hai3/i18n` and `@hai3/i18n/*`
+- `@hai3/screensets` and `@hai3/screensets/*`
+
+#### Scenario: Monorepo ESLint rule messages
+
+**Given** the monorepo ESLint layer enforcement rules
+**When** a developer writes code in `src/app/**` that imports from `@hai3/framework`
+**Then** running `npm run lint` SHALL produce an error containing:
+- "App-layer code must import from @hai3/react, not directly from L1/L2 packages"
+
+#### Scenario: Monorepo lint passes after fixes
+
+**Given** the monorepo with all layer violations fixed (Issue 6) and ESLint rules added (Issue 7)
+**When** running `npm run lint`
+**Then** the command SHALL succeed with exit code 0
+**And** no layer violation errors SHALL be reported for `src/app/**` files
+
+#### Scenario: Standalone ESLint config unchanged
+
+**Given** the standalone ESLint config at `packages/cli/template-sources/project/configs/eslint.config.js`
+**When** implementing Issue 7 (monorepo ESLint rules)
+**Then** the standalone config SHALL remain unchanged
+**And** SHALL continue to enforce layer rules for generated projects independently
+
+### Requirement: Flux Architecture Compliance in /src/app/ (CRITICAL)
+
+The monorepo source files in `/src/app/` MUST follow the Flux architecture rules documented in EVENTS.md. Components SHALL NOT dispatch slice actions directly.
+
+#### Scenario: Menu.tsx Flux compliance
+
+**Given** the monorepo source file `/src/app/layout/Menu.tsx`
+**When** examining the menu toggle implementation
+**Then** the component SHALL NOT contain direct slice dispatch:
+```typescript
+// FORBIDDEN - Direct slice dispatch
+dispatch(menuActions.toggleMenu());
+```
+**And** SHALL use event-based action pattern:
+```typescript
+// CORRECT - Call action that emits event
+toggleMenu();
+```
+
+#### Scenario: Event-based menu toggle flow
+
+**Given** the menu toggle functionality in the monorepo
+**When** a user clicks the menu collapse button
+**Then** the flow SHALL follow Flux pattern:
+1. Component calls action function (e.g., `toggleMenu()`)
+2. Action emits event via eventBus (e.g., `uicore/menu/toggled`)
+3. Effect subscribes to event and dispatches slice action
+4. Slice updates state
+5. Component re-renders with new state
+
+#### Scenario: No direct slice dispatch in layout components
+
+**Given** all layout components in `/src/app/layout/`
+**When** examining dispatch calls
+**Then** NONE of the components SHALL contain patterns like:
+- `dispatch(xxxActions.yyy())` - slice actions object member call
+- `dispatch(menuActions.*)` - menu slice actions
+- `dispatch(layoutActions.*)` - layout slice actions
+**And** all state updates SHALL go through event-based actions
+
+### Requirement: ESLint Flux Enforcement for Slice Action Dispatch
+
+The ESLint configuration SHALL catch direct slice action dispatch patterns that bypass the event-driven architecture.
+
+#### Scenario: ESLint catches xxxActions.yyy() dispatch pattern
+
+**Given** the ESLint configuration
+**When** a developer writes code with direct slice action dispatch:
+```typescript
+dispatch(menuActions.toggleMenu());
+dispatch(userActions.setName('test'));
+```
+**Then** running `npm run lint` SHALL produce an error:
+- Message: Contains "FLUX VIOLATION" and "dispatch slice actions"
+**And** the lint command SHALL exit with non-zero status
+
+#### Scenario: ESLint rule selector for slice actions
+
+**Given** the ESLint configuration (monorepo and standalone)
+**When** examining the `no-restricted-syntax` rules
+**Then** there SHALL be a selector that catches:
+```javascript
+{
+  selector: "CallExpression[callee.name='dispatch'] > CallExpression[callee.type='MemberExpression']",
+  message: 'FLUX VIOLATION: Components cannot dispatch slice actions directly. Use event-emitting actions instead. See EVENTS.md.'
+}
+```
+
+#### Scenario: ESLint allows proper action calls
+
+**Given** the ESLint configuration with Flux rules
+**When** a developer uses proper event-based actions:
+```typescript
+// Action call (not dispatch)
+toggleMenu();
+submitForm(data);
+// Dispatch inside effect (allowed)
+dispatch(menuActions.toggleMenu());  // Only in *Effects.ts files
+```
+**Then** running `npm run lint` SHALL NOT produce errors for these patterns in component files
+**And** dispatch in effect files SHALL be allowed
+
+#### Scenario: ESLint rule in both configurations
+
+**Given** the ESLint configurations
+**When** examining rule coverage
+**Then** the slice action dispatch rule SHALL exist in:
+- `/eslint.config.js` (monorepo)
+- `/packages/cli/template-sources/project/configs/eslint.config.js` (standalone)
+**And** both configurations SHALL use the same selector and message
+
+### Requirement: /src/app/ Subdirectory ESLint Rule Coverage
+
+Different `/src/app/` subdirectories SHALL have appropriate ESLint rules based on their purpose.
+
+#### Scenario: Layout directory Flux rules
+
+**Given** files in `/src/app/layout/`
+**When** ESLint runs
+**Then** the following rules SHALL apply:
+- No direct slice dispatch (`dispatch(xxxActions.yyy())`)
+- No store imports
+- No business logic imports (use presentational patterns)
+
+#### Scenario: Actions directory rules
+
+**Given** files in `/src/app/actions/`
+**When** ESLint runs
+**Then** the following rules SHALL apply:
+- No `async` keyword on action functions
+- No `getState()` calls (actions are pure)
+- No slice file imports
+- Return type must be `void` (not `Promise<void>`)
+
+#### Scenario: Effects directory rules
+
+**Given** files in `/src/app/effects/`
+**When** ESLint runs
+**Then** the following rules SHALL apply:
+- No `eventBus.emit()` calls (effects listen, not emit)
+- No action imports (prevents circular flow)
+- May import and dispatch slice actions (this is allowed in effects)
+
+#### Scenario: API directory rules
+
+**Given** files in `/src/app/api/`
+**When** ESLint runs
+**Then** the following rules SHALL apply:
+- L1/L2 import restrictions (must use @hai3/react)
+- Minimal Flux rules (API services have different patterns)
+
+#### Scenario: Configuration directories minimal rules
+
+**Given** files in `/src/app/themes/` or `/src/app/icons/`
+**When** ESLint runs
+**Then** minimal rules SHALL apply:
+- Basic TypeScript rules
+- No Flux architecture rules (these are configuration/asset files)
+
+### Requirement: Layout Templates Single Source of Truth (CRITICAL)
+
+The CLI SHALL use `/src/app/layout/` as the single source of truth for layout templates. The duplicated `template-sources/layout/` directory SHALL be eliminated.
+
+#### Scenario: Layout source is monorepo app directory
+
+**Given** the CLI template build process (`copy-templates.ts`)
+**When** copying layout templates
+**Then** the system SHALL copy files from `/src/app/layout/` (monorepo source)
+**And** SHALL NOT maintain a separate `template-sources/layout/` directory
+**And** the destination SHALL be `templates/layout/hai3-uikit/`
+
+#### Scenario: template-sources/layout not tracked in git
+
+**Given** the repository git configuration
+**When** checking tracked files
+**Then** `packages/cli/template-sources/layout/` SHALL NOT be tracked in git
+**And** the path SHALL be listed in `.gitignore`
+
+#### Scenario: Layout fixes propagate automatically
+
+**Given** a fix applied to `/src/app/layout/Menu.tsx` (e.g., Issue 6, Issue 9)
+**When** running the CLI build (`npm run build` in packages/cli)
+**Then** the fix SHALL automatically appear in `templates/layout/hai3-uikit/Menu.tsx`
+**And** no manual synchronization SHALL be required
+
+#### Scenario: Generated project layout matches monorepo source
+
+**Given** a developer running `hai3 create my-app --uikit hai3`
+**When** the project is created
+**Then** the files in `my-app/src/app/layout/` SHALL match `/src/app/layout/` exactly
+**And** any layer violations fixed in monorepo source SHALL be fixed in generated project
+
+#### Scenario: Manifest references correct layout source
+
+**Given** the manifest file at `packages/cli/template-sources/manifest.yaml`
+**When** examining the layout section
+**Then** the source SHALL reference the monorepo app layout directory
+```yaml
+layout:
+  source: ../../src/app/layout/  # Relative to template-sources, resolves to /src/app/layout/
+  description: "Layout component templates using @hai3/uikit (from monorepo source)"
+```
+
+#### Scenario: Build verification for layout sync
+
+**Given** the CLI build has completed
+**When** comparing layout files
+**Then** running `diff -r packages/cli/templates/layout/hai3-uikit/ src/app/layout/` SHALL produce no differences
+**And** this verification SHALL be part of the build validation
