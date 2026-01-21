@@ -56,6 +56,7 @@ program
   .description('Create a new HAI3 project or layer package')
   .option('--studio', 'Include Studio package')
   .option('--no-studio', 'Exclude Studio package')
+  .option('--uikit <type>', "UI kit to use ('hai3' for @hai3/uikit, 'none' for no UI kit)")
   .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
   .action(async (projectName: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
@@ -63,6 +64,7 @@ program
       {
         projectName,
         studio: options.studio as boolean | undefined,
+        uikit: options.uikit as 'hai3' | 'none' | undefined,
         layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
       },
       { interactive: true }

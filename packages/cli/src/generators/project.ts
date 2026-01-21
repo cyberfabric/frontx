@@ -12,6 +12,8 @@ export interface ProjectGeneratorInput {
   projectName: string;
   /** Include studio */
   studio: boolean;
+  /** UIKit option: 'hai3' (default) or 'none' */
+  uikit?: 'hai3' | 'none';
   /** Project layer (SDK architecture tier) */
   layer?: LayerType;
 }
@@ -53,7 +55,7 @@ async function readDirRecursive(
 export async function generateProject(
   input: ProjectGeneratorInput
 ): Promise<GeneratedFile[]> {
-  const { projectName, studio, layer = 'app' } = input;
+  const { projectName, studio, uikit = 'hai3', layer = 'app' } = input;
   const templatesDir = getTemplatesDir();
   const files: GeneratedFile[] = [];
 
@@ -97,11 +99,13 @@ export async function generateProject(
     files.push(...dirFiles);
   }
 
-  // 3.0 Copy layout templates (HAI3 UIKit layout)
-  const layoutDir = path.join(templatesDir, 'layout', 'hai3-uikit');
-  if (await fs.pathExists(layoutDir)) {
-    const layoutFiles = await readDirRecursive(layoutDir, 'src/app/layout');
-    files.push(...layoutFiles);
+  // 3.0 Copy layout templates (HAI3 UIKit layout) - only if uikit === 'hai3'
+  if (uikit === 'hai3') {
+    const layoutDir = path.join(templatesDir, 'layout', 'hai3-uikit');
+    if (await fs.pathExists(layoutDir)) {
+      const layoutFiles = await readDirRecursive(layoutDir, 'src/app/layout');
+      files.push(...layoutFiles);
+    }
   }
 
   // 3.1 Copy AI configuration with layer-aware filtering
@@ -237,7 +241,13 @@ export async function generateProject(
   }
 
   // 4. Copy screensets from templates
+  // Skip demo screenset if uikit === 'none' (demo requires @hai3/uikit)
   for (const screenset of screensets) {
+    // Skip demo screenset when UIKit is not included
+    if (screenset === 'demo' && uikit === 'none') {
+      continue;
+    }
+
     const screensetPath = path.join(templatesDir, 'src/screensets', screenset);
     const screensetFiles = await readDirRecursive(
       screensetPath,
@@ -261,13 +271,9 @@ export async function generateProject(
   // 5.2 package.json
   // Use 'alpha' tag for @hai3 packages during alpha phase
   // This resolves to the latest alpha version from npm
+  // Only L3 packages allowed: @hai3/react (required), @hai3/uikit (conditional)
   const dependencies: Record<string, string> = {
     '@hai3/react': 'alpha',
-    '@hai3/framework': 'alpha',
-    '@hai3/uikit': 'alpha',
-    '@hai3/api': 'alpha',
-    '@hai3/i18n': 'alpha',
-    '@hai3/state': 'alpha',
     '@hookform/resolvers': '5.2.2',
     '@iconify/react': '5.0.2',
     '@reduxjs/toolkit': '2.2.1',
@@ -309,6 +315,11 @@ export async function generateProject(
 
   if (studio) {
     devDependencies['@hai3/studio'] = 'alpha';
+  }
+
+  // Conditionally add @hai3/uikit dependency
+  if (uikit === 'hai3') {
+    dependencies['@hai3/uikit'] = 'alpha';
   }
 
   const packageJson = {

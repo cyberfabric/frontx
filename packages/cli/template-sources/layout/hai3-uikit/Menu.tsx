@@ -16,7 +16,7 @@ import {
   SidebarMenuIcon,
   SidebarHeader,
 } from '@hai3/uikit';
-import { menuActions } from '@hai3/framework';
+import { menuActions } from '@hai3/react';
 import { useDispatch } from 'react-redux';
 import { Icon } from '@iconify/react';
 import { HAI3LogoIcon } from '@/app/icons/HAI3LogoIcon';

@@ -14,6 +14,7 @@ import { aiSyncCommand } from '../ai/sync.js';
 export interface CreateCommandArgs {
   projectName: string;
   studio?: boolean;
+  uikit?: 'hai3' | 'none';
   layer?: LayerType;
 }
 
@@ -46,6 +47,12 @@ export const createCommand: CommandDefinition<
       name: 'studio',
       description: 'Include Studio package',
       type: 'boolean',
+    },
+    {
+      name: 'uikit',
+      description: 'UI Kit selection',
+      type: 'string',
+      choices: ['hai3', 'none'],
     },
     {
       name: 'layer',
@@ -161,20 +168,51 @@ export const createCommand: CommandDefinition<
 
     // App project - get configuration via prompts if not provided
     let studio = args.studio;
+    let uikit = args.uikit;
+
+    // Prompt for missing configuration
+    const promptQuestions: Array<{
+      name: string;
+      type: 'confirm' | 'list';
+      message: string;
+      default?: unknown;
+      choices?: Array<{ name: string; value: unknown }>;
+    }> = [];
 
     if (studio === undefined) {
-      const answers = await prompt<{
-        studio: boolean;
-      }>([
-        {
-          name: 'studio',
-          type: 'confirm',
-          message: 'Include Studio (development overlay)?',
-          default: true,
-        },
-      ]);
+      promptQuestions.push({
+        name: 'studio',
+        type: 'confirm' as const,
+        message: 'Include Studio (development overlay)?',
+        default: true,
+      });
+    }
 
-      studio = answers.studio;
+    if (uikit === undefined) {
+      promptQuestions.push({
+        name: 'uikit',
+        type: 'list' as const,
+        message: 'Select UI kit:',
+        choices: [
+          { name: 'HAI3 UIKit (@hai3/uikit)', value: 'hai3' },
+          { name: 'None (implement your own)', value: 'none' },
+        ],
+        default: 'hai3',
+      });
+    }
+
+    if (promptQuestions.length > 0) {
+      const answers = await prompt<{
+        studio?: boolean;
+        uikit?: 'hai3' | 'none';
+      }>(promptQuestions);
+
+      if (studio === undefined) {
+        studio = answers.studio;
+      }
+      if (uikit === undefined) {
+        uikit = answers.uikit;
+      }
     }
 
     logger.newline();
@@ -185,12 +223,20 @@ export const createCommand: CommandDefinition<
     const files = await generateProject({
       projectName: args.projectName,
       studio: studio!,
+      uikit: uikit || 'hai3',
       layer,
     });
 
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
+
+    // Display message if demo screenset was excluded
+    if (uikit === 'none') {
+      logger.newline();
+      logger.warn('Demo screenset excluded (requires @hai3/uikit).');
+      logger.log('Create your own screenset with `hai3 screenset create`.');
+    }
 
     // Run ai sync to generate IDE config files
     logger.newline();

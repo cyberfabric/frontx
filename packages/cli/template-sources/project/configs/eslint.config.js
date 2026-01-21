@@ -95,6 +95,41 @@ export default [
       'no-console': 'off',
       'no-var': 'error',
       'no-empty-pattern': 'error',
+
+      // Layer Architecture Enforcement
+      // App-layer projects must only import from @hai3/react (Layer 3), not from L1/L2 packages
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/framework', '@hai3/framework/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/framework (Layer 2).',
+            },
+            {
+              group: ['@hai3/state', '@hai3/state/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/state (Layer 1).',
+            },
+            {
+              group: ['@hai3/api', '@hai3/api/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/api (Layer 1).',
+            },
+            {
+              group: ['@hai3/i18n', '@hai3/i18n/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/i18n (Layer 1).',
+            },
+            {
+              group: ['@hai3/screensets', '@hai3/screensets/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/screensets (Layer 1).',
+            },
+          ],
+        },
+      ],
     },
   },
 
