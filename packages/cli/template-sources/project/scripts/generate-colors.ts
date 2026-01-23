@@ -203,6 +203,14 @@ const outputPath = isMonorepo
   ? path.join(__dirname, '../../../../../src/app/themes/tailwindColors.ts')
   : path.join(__dirname, '../src/app/themes/tailwindColors.ts');
 
+// Check if themes directory exists (may not exist in --uikit none projects)
+const themesDir = path.dirname(outputPath);
+if (!fs.existsSync(themesDir)) {
+  console.log('⚠ Skipping tailwindColors.ts generation (themes directory not found)');
+  console.log('  This is expected for projects created with --uikit none');
+  process.exit(0);
+}
+
 fs.writeFileSync(outputPath, output, 'utf8');
 
 console.log('✓ Generated src/app/themes/tailwindColors.ts');

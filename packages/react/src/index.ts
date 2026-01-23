@@ -96,7 +96,7 @@ export {
   createRouteRegistry,
 
   // Flux (Event bus + Store)
-  eventBus,
+  // NOTE: eventBus is re-exported separately below with augmented EventPayloadMap type
 
   // Store
   createStore,
@@ -241,7 +241,6 @@ export type {
   SetLanguagePayload,
 
   // Flux (Events + Store)
-  EventPayloadMap,
   EventHandler,
   Subscription,
 
@@ -335,3 +334,46 @@ export type {
   LanguageMetadata,
   I18nRegistryType,
 } from '@hai3/framework';
+
+// ============================================================================
+// Module Augmentation Support - EventPayloadMap Re-declaration
+// ============================================================================
+
+/**
+ * Re-declare EventPayloadMap to enable module augmentation on @hai3/react
+ *
+ * This creates a new declaration site in @hai3/react that TypeScript can augment.
+ * App-layer code can now use `declare module '@hai3/react'` instead of importing
+ * from L1 packages directly, maintaining proper layer architecture.
+ *
+ * ARCHITECTURE: This pattern allows L3+ code to augment event types without
+ * violating layer boundaries by importing from L1 (@hai3/state).
+ *
+ * IMPORTANT: We must also re-export eventBus with the augmented type to ensure
+ * type safety. The eventBus instance uses this augmented EventPayloadMap.
+ *
+ * @example
+ * ```typescript
+ * // In app-layer code (e.g., src/app/events/bootstrapEvents.ts)
+ * import '@hai3/react';
+ *
+ * declare module '@hai3/react' {
+ *   interface EventPayloadMap {
+ *     'app/user/fetch': void;
+ *     'app/user/loaded': { user: ApiUser };
+ *   }
+ * }
+ * ```
+ */
+import type { EventPayloadMap as FrameworkEventPayloadMap } from '@hai3/framework';
+import type { EventBus } from '@hai3/state';
+import { eventBus as frameworkEventBus } from '@hai3/framework';
+
+export interface EventPayloadMap extends FrameworkEventPayloadMap {}
+
+/**
+ * Re-export eventBus with augmented EventPayloadMap type.
+ * This ensures that code importing eventBus from @hai3/react gets
+ * type-safe access to both framework events and app-layer augmented events.
+ */
+export const eventBus: EventBus<EventPayloadMap> = frameworkEventBus as EventBus<EventPayloadMap>;

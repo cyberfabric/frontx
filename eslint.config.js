@@ -30,6 +30,7 @@ export default [
 
   // SDK packages: Allow unknown/object types (required for generic event bus, store, etc.)
   // These packages use generics and need flexible typing for consumer code to augment
+  // Also disable layer enforcement - library packages are allowed to import from lower layers
   {
     files: [
       'packages/state/**/*.ts',
@@ -40,31 +41,39 @@ export default [
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': 'off', // Library packages can import from lower layers
     },
   },
 
   // Framework package: Allow unknown/object types (wraps SDK with plugin architecture)
+  // Also disable layer enforcement - framework imports from SDK packages
   {
     files: ['packages/framework/**/*.ts'],
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
+      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
     },
   },
 
   // React package: Allow unknown types for hook generics
+  // Also disable layer enforcement - react imports from framework (L2) packages
   {
     files: ['packages/react/**/*.ts', 'packages/react/**/*.tsx'],
     rules: {
       'no-restricted-syntax': 'off',
+      '@typescript-eslint/no-empty-object-type': 'off', // Allow empty EventPayloadMap for module augmentation
+      '@typescript-eslint/no-restricted-imports': 'off', // React imports from Framework (L2) packages
     },
   },
 
   // CLI package: Allow unknown types for dynamic command handling
+  // Also disable layer enforcement - CLI is a dev tool, not app code
   {
     files: ['packages/cli/**/*.ts'],
     rules: {
       'no-restricted-syntax': 'off',
+      '@typescript-eslint/no-restricted-imports': 'off', // CLI is a dev tool, not app code
     },
   },
 
@@ -107,21 +116,66 @@ export default [
     },
   },
 
+  // App: Layer enforcement for src/app/** (must use @hai3/react, not L1/L2 packages)
+  {
+    files: ['src/app/**/*.{ts,tsx}'],
+    rules: {
+      // Use @typescript-eslint rule to catch TypeScript-specific imports (import type, side-effect imports)
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@hai3/framework', '@hai3/framework/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/framework (Layer 2).',
+            },
+            {
+              group: ['@hai3/state', '@hai3/state/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/state (Layer 1).',
+            },
+            {
+              group: ['@hai3/api', '@hai3/api/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/api (Layer 1).',
+            },
+            {
+              group: ['@hai3/i18n', '@hai3/i18n/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/i18n (Layer 1).',
+            },
+            {
+              group: ['@hai3/screensets', '@hai3/screensets/*'],
+              message:
+                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/screensets (Layer 1).',
+            },
+            // Redux term bans - use HAI3 state terms instead
+            {
+              group: ['react-redux'],
+              importNames: ['useDispatch'],
+              message:
+                'REDUX VIOLATION: Do not use useDispatch from react-redux. Use useAppDispatch from @hai3/react instead.',
+            },
+            {
+              group: ['react-redux'],
+              importNames: ['useSelector'],
+              message:
+                'REDUX VIOLATION: Do not use useSelector from react-redux. Use useAppSelector from @hai3/react instead.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
   // App: Studio should only be imported via HAI3Provider (auto-detection)
-  // NOTE: Exclude action/effect files to preserve flux architecture rules from screenset.js
-  // NOTE: App.tsx in monorepo root is the demo app entrypoint and intentionally imports Studio
+  // Only App.tsx variants are allowed to import StudioOverlay directly
   {
     files: ['src/**/*'],
     ignores: [
-      'src/app/main.tsx',
-      'src/app/App.tsx', // Monorepo demo app - intentionally imports Studio
-      '**/HAI3Provider.tsx',
-      '**/*Actions.ts',
-      '**/*Actions.tsx',
-      '**/actions/**/*',
-      '**/*Effects.ts',
-      '**/*Effects.tsx',
-      '**/effects/**/*',
+      'src/app/App.tsx', // Monorepo demo app - renders StudioOverlay
+      'src/app/App.no-uikit.tsx', // --uikit none variant - renders StudioOverlay
     ],
     rules: {
       'no-restricted-imports': [
@@ -165,11 +219,41 @@ export default [
         },
         {
           selector:
+            "CallExpression[callee.name='dispatch'] CallExpression[callee.object.name][callee.property.name]",
+          message:
+            'FLUX VIOLATION: Do not dispatch slice actions directly. Use event-emitting actions instead. See EVENTS.md.',
+        },
+        {
+          selector:
             "CallExpression[callee.object.name=/Store$/][callee.property.name!='getState']",
           message:
             'FLUX VIOLATION: Components cannot call custom store methods directly. Use Redux actions and useSelector.',
         },
       ],
+    },
+  },
+
+  // App: Domain-based architecture rules for actions/effects
+  {
+    files: ['src/app/actions/**/*', 'src/app/effects/**/*'],
+    rules: {
+      'local/no-barrel-exports-events-effects': 'error',
+    },
+  },
+
+  // App: Prevent coordinator effect anti-pattern in effects
+  {
+    files: ['src/app/effects/**/*'],
+    rules: {
+      'local/no-coordinator-effects': 'error',
+    },
+  },
+
+  // App: Domain event format for events
+  {
+    files: ['src/app/events/**/*'],
+    rules: {
+      'local/domain-event-format': 'error',
     },
   },
 ];

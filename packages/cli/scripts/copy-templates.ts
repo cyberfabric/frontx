@@ -528,13 +528,15 @@ async function copyTemplates() {
     console.log(`  ✓ screenset-template/ (${fileCount} files)`);
   }
 
-  // Copy layout templates from manifest
-  const layoutSrc = path.join(CLI_ROOT, 'template-sources', 'layout');
-  const layoutDest = path.join(TEMPLATES_DIR, 'layout');
+  // Copy layout templates from monorepo source (single source of truth)
+  // Source: /src/app/layout/ (monorepo's canonical layout files)
+  // Destination: templates/layout/hai3-uikit/ (CLI template with subdirectory structure)
+  const layoutSrc = path.join(PROJECT_ROOT, 'src/app/layout');
+  const layoutDest = path.join(TEMPLATES_DIR, 'layout', 'hai3-uikit');
   if (await fs.pathExists(layoutSrc)) {
     await fs.copy(layoutSrc, layoutDest);
     const fileCount = await countFiles(layoutDest);
-    console.log(`  ✓ layout/ templates (${fileCount} files)`);
+    console.log(`  ✓ layout/ templates (${fileCount} files from monorepo source)`);
   }
 
   // ============================================

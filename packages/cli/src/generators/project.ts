@@ -76,12 +76,37 @@ export async function generateProject(
 
   // 2. Copy root template files
   for (const file of rootFiles) {
-    // Special handling for App.tsx - select template variant based on studio flag
+    // Special handling for main.tsx - select template variant based on uikit flag
+    if (file === 'src/app/main.tsx') {
+      const templateName = uikit === 'hai3' ? 'src/app/main.tsx' : 'src/app/main.no-uikit.tsx';
+      const templatePath = path.join(templatesDir, templateName);
+      const content = await fs.readFile(templatePath, 'utf-8');
+      files.push({ path: 'src/app/main.tsx', content });
+      continue;
+    }
+
+    // Special handling for App.tsx - select template variant based on uikit and studio flags
     if (file === 'src/app/App.tsx') {
-      const templateName = studio ? 'src/app/App.tsx' : 'src/app/App.no-studio.tsx';
+      let templateName: string;
+      if (uikit === 'hai3') {
+        templateName = studio ? 'src/app/App.tsx' : 'src/app/App.no-studio.tsx';
+      } else {
+        templateName = studio ? 'src/app/App.no-uikit.tsx' : 'src/app/App.no-uikit.no-studio.tsx';
+      }
       const templatePath = path.join(templatesDir, templateName);
       const content = await fs.readFile(templatePath, 'utf-8');
       files.push({ path: 'src/app/App.tsx', content });
+      continue;
+    }
+
+    // Skip template variant files - they're handled by the special cases above
+    const variantFiles = [
+      'src/app/main.no-uikit.tsx',
+      'src/app/App.no-studio.tsx',
+      'src/app/App.no-uikit.tsx',
+      'src/app/App.no-uikit.no-studio.tsx',
+    ];
+    if (variantFiles.includes(file)) {
       continue;
     }
 
@@ -94,6 +119,17 @@ export async function generateProject(
 
   // 3. Copy template directories (src/themes, src/uikit, src/icons)
   for (const dir of directories) {
+    // Skip themes directory when uikit === 'none' (themes depend on @hai3/uikit)
+    if (dir === 'src/app/themes' && uikit === 'none') {
+      continue;
+    }
+
+    // Skip components directory when uikit === 'none' (contains TextLoader.tsx which depends on @hai3/uikit)
+    // We'll handle individual file filtering below for more granular control
+    if (dir === 'src/app/components' && uikit === 'none') {
+      continue;
+    }
+
     const dirPath = path.join(templatesDir, dir);
     const dirFiles = await readDirRecursive(dirPath, dir);
     files.push(...dirFiles);

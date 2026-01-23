@@ -6,7 +6,7 @@
  * Application-specific types (copied from CLI template)
  */
 
-import type { Language } from '@hai3/i18n';
+import type { Language } from '@hai3/react';
 
 /**
  * User Extra Properties

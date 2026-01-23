@@ -19,8 +19,8 @@ project:
 
 # Stage 1a: Layout scaffold templates (HAI3 UIKit)
 layout:
-  source: ./layout/hai3-uikit/
-  description: "Layout component templates using @hai3/uikit"
+  source: ../../src/app/layout/
+  description: "Layout component templates using @hai3/uikit (from monorepo source)"
   destination: src/app/layout/
   files:
     - Layout.tsx
@@ -45,8 +45,11 @@ root:
     - .gitignore
     - src/vite-env.d.ts
     - src/app/main.tsx
+    - src/app/main.no-uikit.tsx
     - src/app/App.tsx
     - src/app/App.no-studio.tsx
+    - src/app/App.no-uikit.tsx
+    - src/app/App.no-uikit.no-studio.tsx
     - src/screensets/screensetRegistry.tsx
   directories:
     - src/app/themes      # Theme definitions

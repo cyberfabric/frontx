@@ -6,8 +6,8 @@
  * Keys are full URL patterns (including baseURL path).
  */
 
-import type { MockMap } from '@hai3/api';
-import { Language } from '@hai3/i18n';
+import type { MockMap } from '@hai3/react';
+import { Language } from '@hai3/react';
 import { UserRole, type ApiUser, type GetCurrentUserResponse } from './types';
 
 /**

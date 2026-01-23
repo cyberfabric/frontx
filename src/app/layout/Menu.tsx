@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useAppSelector, useAppDispatch, useNavigation, useTranslation, type MenuState, type MenuItem } from '@hai3/react';
+import { useAppSelector, useNavigation, useTranslation, eventBus, type MenuState, type MenuItem } from '@hai3/react';
 import {
   Sidebar,
   SidebarContent,
@@ -16,7 +16,6 @@ import {
   SidebarMenuIcon,
   SidebarHeader,
 } from '@hai3/uikit';
-import { menuActions } from '@hai3/framework';
 import { Icon } from '@iconify/react';
 import { HAI3LogoIcon } from '@/app/icons/HAI3LogoIcon';
 import { HAI3LogoTextIcon } from '@/app/icons/HAI3LogoTextIcon';
@@ -26,7 +25,6 @@ export interface MenuProps {
 }
 
 export const Menu: React.FC<MenuProps> = ({ children }) => {
-  const dispatch = useAppDispatch();
   const menuState = useAppSelector((state) => state['layout/menu'] as MenuState | undefined);
   const { currentScreen, navigateToScreen, currentScreenset } = useNavigation();
   const { t } = useTranslation();
@@ -35,7 +33,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   const items: MenuItem[] = menuState?.items ?? [];
 
   const handleToggleCollapse = () => {
-    dispatch(menuActions.toggleMenu());
+    eventBus.emit('layout/menu/collapsed', { collapsed: !collapsed });
   };
 
   return (

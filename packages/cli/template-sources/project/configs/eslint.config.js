@@ -98,7 +98,8 @@ export default [
 
       // Layer Architecture Enforcement
       // App-layer projects must only import from @hai3/react (Layer 3), not from L1/L2 packages
-      'no-restricted-imports': [
+      // Use @typescript-eslint rule to catch TypeScript-specific imports (import type, side-effect imports)
+      '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
@@ -127,7 +128,41 @@ export default [
               message:
                 'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/screensets (Layer 1).',
             },
+            // Redux term bans - use HAI3 state terms instead
+            {
+              group: ['react-redux'],
+              importNames: ['useDispatch'],
+              message:
+                'REDUX VIOLATION: Do not use useDispatch from react-redux. Use useAppDispatch from @hai3/react instead.',
+            },
+            {
+              group: ['react-redux'],
+              importNames: ['useSelector'],
+              message:
+                'REDUX VIOLATION: Do not use useSelector from react-redux. Use useAppSelector from @hai3/react instead.',
+            },
           ],
+        },
+      ],
+    },
+  },
+
+  // Terminology: Ban 'reducer' in user-defined identifiers (allow .reducer property access)
+  {
+    files: ['src/app/**/*', 'src/screensets/**/*'],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: "VariableDeclarator > Identifier[name=/[Rr]educer/]",
+          message:
+            'TERMINOLOGY: Use "slice" instead of "reducer" in HAI3 applications. Example: const userSlice = createSlice(...)',
+        },
+        {
+          selector: "FunctionDeclaration > Identifier[name=/[Rr]educer/]",
+          message:
+            'TERMINOLOGY: Use "slice" instead of "reducer" in HAI3 applications. Example: function createUserSlice()',
         },
       ],
     },
@@ -213,6 +248,30 @@ export default [
       'local/no-barrel-exports-events-effects': 'error',
       'local/no-coordinator-effects': 'error',
       'local/no-missing-domain-id': 'error',
+      'local/domain-event-format': 'error',
+    },
+  },
+
+  // App: Domain-based architecture rules for actions/effects
+  {
+    files: ['src/app/actions/**/*', 'src/app/effects/**/*'],
+    rules: {
+      'local/no-barrel-exports-events-effects': 'error',
+    },
+  },
+
+  // App: Prevent coordinator effect anti-pattern in effects
+  {
+    files: ['src/app/effects/**/*'],
+    rules: {
+      'local/no-coordinator-effects': 'error',
+    },
+  },
+
+  // App: Domain event format for events
+  {
+    files: ['src/app/events/**/*'],
+    rules: {
       'local/domain-event-format': 'error',
     },
   },
@@ -367,6 +426,12 @@ export default [
         },
         {
           selector:
+            "CallExpression[callee.name='dispatch'] CallExpression[callee.object.name][callee.property.name]",
+          message:
+            'FLUX VIOLATION: Do not dispatch slice actions directly. Use event-emitting actions instead. See EVENTS.md.',
+        },
+        {
+          selector:
             "CallExpression[callee.object.name=/Store$/][callee.property.name!='getState']",
           message:
             'FLUX VIOLATION: Components cannot call custom store methods directly. Use Redux actions and useSelector.',
@@ -447,4 +512,6 @@ export default [
       ],
     },
   },
+
+  // ==== App Events: Allow inline config for module augmentation ====
 ];
