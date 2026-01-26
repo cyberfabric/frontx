@@ -13,6 +13,7 @@ import { screenActions as screenActionsImport, menuActions as menuActionsImport 
 import type { HAI3Plugin, NavigateToScreenPayload, NavigateToScreensetPayload, NavigationConfig } from '../types';
 import { stripBase, prependBase, resolveBase } from '../utils/basePath';
 import type { ScreensetDefinition } from '@hai3/screensets';
+import { extractRequiredParams } from '../utils/routeMatcher';
 
 // Type assertion for slice imports (needed for plugin system compatibility)
 type ActionCreators = Record<string, (payload?: unknown) => UnknownAction>;
@@ -119,26 +120,21 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
         updateScreensetMenu(screenset);
       };
 
-      // Extract screen ID from current URL
-      const extractScreenId = (): string | null => {
-        const internalPath = stripBase(window.location.pathname, base);
-        if (!internalPath) {
-          return null;
-        }
-
-        const parts = internalPath.split('/').filter(Boolean);
-        return parts[0] || null;
+      // Extract internal path from current URL (without base)
+      const extractInternalPath = (): string => {
+        return stripBase(window.location.pathname, base) || '/';
       };
 
-      // Activate screen (screenset + Redux state)
-      const activateScreen = (screenId: string): void => {
-        const screensetId = app.routeRegistry?.getScreensetForScreen(screenId);
-        if (!screensetId) {
-          return;
-        }
+      // Activate screen from route match (screenset + Redux state)
+      const activateFromRouteMatch = (match: { screensetId: string; screenId: string; params: Record<string, string> }): void => {
+        activateScreenset(match.screensetId);
+        dispatch(screenActions.navigateTo(match.screenId));
+      };
 
-        activateScreenset(screensetId);
-        dispatch(screenActions.navigateTo(screenId));
+      // Match current URL path against routes
+      const matchCurrentPath = (): { screensetId: string; screenId: string; params: Record<string, string> } | undefined => {
+        const path = extractInternalPath();
+        return app.routeRegistry?.matchRoute(path);
       };
 
       // Handle navigation to specific screen
@@ -150,11 +146,28 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
           return;
         }
 
+        // Validate required params
+        const pattern = app.routeRegistry?.getRoutePattern(payload.screenId);
+        if (pattern) {
+          const requiredParams = extractRequiredParams(pattern);
+          const providedParams = payload.params || {};
+
+          const missingParams = requiredParams.filter(param => !(param in providedParams));
+          if (missingParams.length > 0) {
+            console.warn(
+              `Screen "${payload.screenId}" requires route params [${requiredParams.join(', ')}] but missing: [${missingParams.join(', ')}]`
+            );
+            return;
+          }
+        }
+
         activateScreenset(payload.screensetId);
         dispatch(screenActions.navigateTo(payload.screenId));
 
         if (typeof window !== 'undefined') {
-          const url = prependBase(`/${payload.screenId}`, base);
+          // Generate URL from route pattern and params
+          const path = app.routeRegistry?.generatePath(payload.screenId, payload.params) ?? `/${payload.screenId}`;
+          const url = prependBase(path, base);
           if (window.location.pathname !== url) {
             window.history.pushState(null, '', url);
           }
@@ -208,18 +221,18 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
       if (typeof window !== 'undefined') {
         // Handle browser back/forward
         window.addEventListener('popstate', () => {
-          const screenId = extractScreenId();
-          if (screenId) {
-            activateScreen(screenId);
+          const match = matchCurrentPath();
+          if (match) {
+            activateFromRouteMatch(match);
           }
         });
 
         // Initial navigation on page load
-        const screenId = extractScreenId();
+        const match = matchCurrentPath();
         const autoNavigate = app.config.autoNavigate !== false;
 
-        if (screenId) {
-          activateScreen(screenId);
+        if (match) {
+          activateFromRouteMatch(match);
         } else if (autoNavigate) {
           const screensets = app.screensetRegistry.getAll();
           if (screensets.length > 0) {

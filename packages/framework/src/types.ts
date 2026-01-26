@@ -15,6 +15,7 @@ import type {
   EffectInitializer,
 } from '@hai3/state';
 
+import type { MatchFunction, PathFunction } from 'path-to-regexp';
 import type { Reducer } from '@reduxjs/toolkit';
 
 // From @hai3/screensets
@@ -352,6 +353,44 @@ export interface ThemeRegistry {
  * Route Registry Interface
  * Registry for managing routes (auto-synced from screensets).
  */
+/**
+ * Route match result from matchRoute()
+ */
+export interface RouteMatchResult {
+  screensetId: string;
+  screenId: string;
+  params: Record<string, string>;
+}
+
+/**
+ * Compiled route with matcher and path generator
+ */
+export interface CompiledRoute {
+  pattern: string;
+  screensetId: string;
+  screenId: string;
+  matcher: MatchFunction<Record<string, string>>;
+  toPath: PathFunction<Record<string, string>>;
+}
+
+/**
+ * Route params interface for module augmentation
+ * 
+ * Users can extend this interface to provide type-safe route parameters:
+ * 
+ * ```typescript
+ * declare module '@hai3/framework' {
+ *   interface RouteParams {
+ *     'users.detail': { userId: string };
+ *     'users.posts.detail': { userId: string; postId: string };
+ *   }
+ * }
+ * ```
+ */
+export interface RouteParams {
+  [screenId: string]: Record<string, string> | undefined;
+}
+
 export interface RouteRegistry {
   /** Check if a screen exists by screenId only (globally unique) */
   hasScreenById(screenId: string): boolean;
@@ -365,6 +404,12 @@ export interface RouteRegistry {
   getScreen(screensetId: string, screenId: string): (() => Promise<{ default: React.ComponentType }>) | undefined;
   /** Get all routes */
   getAll(): Array<{ screensetId: string; screenId: string }>;
+  /** Match a URL path against registered routes, extracting params */
+  matchRoute(path: string): RouteMatchResult | undefined;
+  /** Generate a URL path for a screen with given params */
+  generatePath(screenId: string, params?: Record<string, string>): string;
+  /** Get the route pattern for a screen */
+  getRoutePattern(screenId: string): string | undefined;
 }
 
 /**
@@ -540,6 +585,7 @@ export interface ThemesConfig {
 export interface NavigateToScreenPayload {
   screensetId: string;
   screenId: string;
+  params?: Record<string, string>;
 }
 
 /**

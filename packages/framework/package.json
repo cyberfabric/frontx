@@ -28,7 +28,9 @@
     "build": "tsup",
     "type-check": "tsc --noEmit"
   },
-  "dependencies": {},
+  "dependencies": {
+    "path-to-regexp": "^8.2.0"
+  },
   "devDependencies": {
     "tsup": "^8.0.0",
     "typescript": "^5.4.2"

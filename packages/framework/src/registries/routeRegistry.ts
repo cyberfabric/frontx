@@ -5,7 +5,12 @@
  */
 
 import type { MenuScreenItem, ScreenLoader } from '@hai3/screensets';
-import type { RouteRegistry, ScreensetRegistry } from '../types';
+import type { RouteRegistry, RouteMatchResult, CompiledRoute, ScreensetRegistry } from '../types';
+import {
+  compileRoute,
+  matchPath,
+  generatePath as generatePathFromRoute,
+} from '../utils/routeMatcher';
 
 /**
  * Route entry type
@@ -14,6 +19,8 @@ interface RouteEntry {
   screensetId: string;
   screenId: string;
   loader: ScreenLoader;
+  pattern: string;
+  compiledRoute: CompiledRoute;
 }
 
 /**
@@ -43,13 +50,32 @@ export function createRouteRegistry(
         // Use screenId if provided, otherwise fallback to id
         const screenId = menuScreenItem.menuItem.screenId ?? menuScreenItem.menuItem.id;
         if (screenId && menuScreenItem.screen) {
+          // Use custom path if provided, otherwise default to /{screenId}
+          const pattern = menuScreenItem.menuItem.path ?? `/${screenId}`;
+          const compiledRoute = compileRoute(pattern, screenset.id, screenId);
           routes!.push({
             screensetId: screenset.id,
             screenId,
             loader: menuScreenItem.screen,
+            pattern,
+            compiledRoute,
           });
         }
       });
+    });
+
+    // Sort routes for deterministic matching: static routes before dynamic routes
+    // This ensures /users/new matches before /users/:id
+    routes.sort((a, b) => {
+      const aHasParams = a.pattern.includes(':');
+      const bHasParams = b.pattern.includes(':');
+
+      // Static routes (no params) come first
+      if (!aHasParams && bHasParams) return -1;
+      if (aHasParams && !bHasParams) return 1;
+
+      // Both static or both dynamic - maintain original order
+      return 0;
     });
 
     return routes;
@@ -117,6 +143,38 @@ export function createRouteRegistry(
         screensetId,
         screenId,
       }));
+    },
+
+    /**
+     * Match a URL path against registered routes, extracting params.
+     * Returns the first matching route with extracted params, or undefined if no match.
+     */
+    matchRoute(path: string): RouteMatchResult | undefined {
+      const allRoutes = buildRoutes();
+      const compiledRoutes = allRoutes.map((r) => r.compiledRoute);
+      return matchPath(path, compiledRoutes);
+    },
+
+    /**
+     * Generate a URL path for a screen with given params.
+     */
+    generatePath(screenId: string, params: Record<string, string> = {}): string {
+      const allRoutes = buildRoutes();
+      const route = allRoutes.find((r) => r.screenId === screenId);
+      if (!route) {
+        console.warn(`Route not found for screen: ${screenId}`);
+        return `/${screenId}`;
+      }
+      return generatePathFromRoute(route.compiledRoute, params);
+    },
+
+    /**
+     * Get the route pattern for a screen.
+     */
+    getRoutePattern(screenId: string): string | undefined {
+      const allRoutes = buildRoutes();
+      const route = allRoutes.find((r) => r.screenId === screenId);
+      return route?.pattern;
     },
   };
 }

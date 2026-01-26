@@ -29,11 +29,20 @@ export {
   useTheme,
 } from './hooks';
 
+export { useRouteParams } from './hooks/useRouteParams';
+
 // ============================================================================
 // Components
 // ============================================================================
 
 export { AppRouter } from './components';
+
+// ============================================================================
+// Contexts
+// ============================================================================
+
+export { RouteParamsProvider, RouteParamsContext } from './contexts/RouteParamsContext';
+export type { RouteParams, RouteParamsProviderProps } from './contexts/RouteParamsContext';
 
 // ============================================================================
 // Type Exports

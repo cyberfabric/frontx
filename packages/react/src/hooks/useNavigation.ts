@@ -19,9 +19,17 @@ import type { UseNavigationReturn } from '../types';
  * ```tsx
  * const { navigateToScreen, navigateToScreenset, currentScreen } = useNavigation();
  *
+ * // Navigate to a simple screen
  * return (
  *   <button onClick={() => navigateToScreen('demo', 'home')}>
  *     Go to Home
+ *   </button>
+ * );
+ *
+ * // Navigate to a parameterized screen
+ * return (
+ *   <button onClick={() => navigateToScreen('demo', 'user-detail', { id: '123' })}>
+ *     View User 123
  *   </button>
  * );
  * ```
@@ -43,11 +51,11 @@ export function useNavigation(): UseNavigationReturn {
     }
   );
 
-  // Navigate to a specific screen
+  // Navigate to a specific screen, optionally with route params
   const navigateToScreen = useCallback(
-    (screensetId: string, screenId: string) => {
+    (screensetId: string, screenId: string, params?: Record<string, string>) => {
       if (app.actions.navigateToScreen) {
-        app.actions.navigateToScreen({ screensetId, screenId });
+        app.actions.navigateToScreen({ screensetId, screenId, params });
       }
     },
     [app.actions]

@@ -167,8 +167,8 @@ export interface UseScreenReturn {
  * Navigation utilities.
  */
 export interface UseNavigationReturn {
-  /** Navigate to a screen */
-  navigateToScreen: (screensetId: string, screenId: string) => void;
+  /** Navigate to a screen, optionally with route params */
+  navigateToScreen: (screensetId: string, screenId: string, params?: Record<string, string>) => void;
   /** Navigate to a screenset (uses default screen) */
   navigateToScreenset: (screensetId: string) => void;
   /** Current screenset ID */

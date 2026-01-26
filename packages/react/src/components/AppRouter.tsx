@@ -7,6 +7,7 @@
 import React, { Suspense, useState, useEffect } from 'react';
 import { useHAI3 } from '../HAI3Context';
 import { useNavigation } from '../hooks/useNavigation';
+import { RouteParamsProvider, type RouteParams } from '../contexts/RouteParamsContext';
 import type { AppRouterProps } from '../types';
 
 /**
@@ -35,6 +36,35 @@ export const AppRouter: React.FC<AppRouterProps> = ({
   const { currentScreenset, currentScreen } = useNavigation();
   const [ScreenComponent, setScreenComponent] = useState<React.ComponentType | null>(null);
   const [error, setError] = useState<Error | null>(null);
+
+  // Extract route params synchronously from current URL to avoid race condition
+  // This ensures params are available on first render
+  const [routeParams, setRouteParams] = useState<RouteParams>(() => {
+    if (typeof window === 'undefined') {
+      return {};
+    }
+    const pathname = window.location.pathname;
+    const base = app.config.base || '';
+    const internalPath = base && pathname.startsWith(base)
+      ? pathname.slice(base.length) || '/'
+      : pathname;
+    const match = app.routeRegistry?.matchRoute(internalPath);
+    return match?.params ?? {};
+  });
+
+  // Update route params when navigation changes (browser back/forward or programmatic navigation)
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+    const pathname = window.location.pathname;
+    const base = app.config.base || '';
+    const internalPath = base && pathname.startsWith(base)
+      ? pathname.slice(base.length) || '/'
+      : pathname;
+    const match = app.routeRegistry?.matchRoute(internalPath);
+    setRouteParams(match?.params ?? {});
+  }, [app.config.base, app.routeRegistry, currentScreen]);
 
   useEffect(() => {
     let cancelled = false;
@@ -99,10 +129,12 @@ export const AppRouter: React.FC<AppRouterProps> = ({
     return <>{fallback}</>;
   }
 
-  // Render the screen component
+  // Render the screen component wrapped with route params context
   return (
-    <Suspense fallback={fallback}>
-      <ScreenComponent />
-    </Suspense>
+    <RouteParamsProvider params={routeParams}>
+      <Suspense fallback={fallback}>
+        <ScreenComponent />
+      </Suspense>
+    </RouteParamsProvider>
   );
 };

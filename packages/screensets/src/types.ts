@@ -101,6 +101,8 @@ export interface MenuItemConfig {
   icon?: string;
   /** Screen ID to navigate to on click */
   screenId?: string;
+  /** Custom route path pattern with named parameters (e.g., "/users/:id") */
+  path?: string;
   /** External URL (mutually exclusive with screenId) */
   href?: string;
   /** Click handler (for custom actions) */
