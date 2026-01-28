@@ -1,6 +1,6 @@
 {
   "name": "@hai3/screensets",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "Pure TypeScript contracts and registry for HAI3 screenset management",
   "type": "module",
   "main": "./dist/index.cjs",
