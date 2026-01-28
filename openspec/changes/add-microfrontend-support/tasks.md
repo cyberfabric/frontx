@@ -264,18 +264,18 @@
 
 ---
 
-## Phase 8: Isolated State Instances
+## Phase 8: Instance-Level Isolation (Default Behavior)
 
-**Goal**: Implement state isolation between host and MFE instances.
+**Goal**: Implement instance-level isolation between host and MFE instances (default handler behavior).
 
 ### 8.1 State Container Factory
 
 - [ ] 8.1.1 Create `createMfeStateContainer()` factory function
-- [ ] 8.1.2 Ensure each call creates independent store instance
+- [ ] 8.1.2 Ensure each call creates independent store instance (default handler behavior)
 - [ ] 8.1.3 Implement store disposal on MFE unmount
 - [ ] 8.1.4 Add store isolation verification tests
 
-**Traceability**: Requirement "Isolated State Instances" - MFE state isolation
+**Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - MFE state isolation
 
 ### 8.2 Shared Properties Injection
 
@@ -284,7 +284,7 @@
 - [ ] 8.2.3 Implement property update propagation from host
 - [ ] 8.2.4 Add tests for property isolation (no direct modification)
 
-**Traceability**: Requirement "Isolated State Instances" - Shared properties propagation
+**Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - Shared properties propagation
 
 ### 8.3 Host State Protection
 
@@ -292,7 +292,7 @@
 - [ ] 8.3.2 Implement boundary enforcement
 - [ ] 8.3.3 Add integration tests for state isolation
 
-**Traceability**: Requirement "Isolated State Instances" - Host state isolation
+**Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - Host state isolation
 
 ### 8.4 WeakMap-Based Runtime Coordination
 

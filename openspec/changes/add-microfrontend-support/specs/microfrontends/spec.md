@@ -64,11 +64,11 @@ mfeActions.registerManifest(manifest);
 - **AND** it SHALL NOT be configured statically at plugin initialization
 - **AND** the runtime SHALL validate the manifest against GTS schema
 
-#### Scenario: Dynamic MFE isolation principles
+#### Scenario: Dynamic MFE isolation principles (default handler)
 
 ```typescript
-// MFE isolation is enforced by the runtime, NOT configured statically
-// Each MFE automatically gets:
+// MFE isolation is enforced by the default handler (MfeHandlerMF)
+// With the default handler, each MFE instance gets:
 // - Its own @hai3/screensets instance (NOT shared)
 // - Its own TypeSystemPlugin instance (NOT shared)
 // - Its own state container (NOT shared)
@@ -76,14 +76,16 @@ mfeActions.registerManifest(manifest);
 
 // Stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
 // This is handled by Module Federation sharedDependencies in MfManifest
+// Custom handlers for internal MFEs may implement different isolation strategies
 ```
 
-- **WHEN** loading an MFE
+- **WHEN** loading an MFE with the default handler
 - **THEN** `@hai3/screensets` SHALL NOT be shared as singleton (each MFE instance gets its own isolated runtime instance)
 - **AND** `@globaltypesystem/gts-ts` SHALL NOT be shared (isolated TypeSystemPlugin)
 - **AND** React/ReactDOM SHALL NOT be shared (MFEs are framework-agnostic)
 - **AND** no singletons SHALL be used by design
 - **AND** only stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
+- **AND** custom handlers MAY configure different sharing strategies for internal MFEs
 
 ### Requirement: MFE Actions
 

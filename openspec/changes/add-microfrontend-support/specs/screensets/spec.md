@@ -289,33 +289,36 @@ The system SHALL validate that MFE entries are compatible with extension domains
 - **THEN** registration SHALL still succeed
 - **AND** missing optional properties SHALL be undefined at runtime
 
-### Requirement: Complete Runtime Isolation (Framework-Agnostic)
+### Requirement: Instance-Level Isolation (Default Behavior, Framework-Agnostic)
 
-Each MFE instance SHALL have its own FULLY ISOLATED runtime, including TypeSystemPlugin instance. MFEs are framework-agnostic - the host uses React but MFEs can use any UI framework.
+With HAI3's default handler (MfeHandlerMF), each MFE instance SHALL have its own isolated runtime, including TypeSystemPlugin instance. Custom handlers MAY implement different isolation strategies for internal MFEs. MFEs are framework-agnostic - the host uses React but MFEs can use any UI framework.
 
-#### Scenario: MFE runtime isolation
+#### Scenario: MFE runtime isolation (default handler)
 
-- **WHEN** an MFE is loaded and mounted
+- **WHEN** an MFE is loaded and mounted using the default handler (MfeHandlerMF)
 - **THEN** the MFE SHALL receive its own @hai3/screensets instance
 - **AND** the MFE SHALL receive its own TypeSystemPlugin instance
 - **AND** the MFE's TypeSystemPlugin SHALL have its own isolated schema registry
 - **AND** the MFE SHALL receive its own HAI3 state instance
 - **AND** the MFE MAY use any UI framework (Vue 3, Angular, Svelte, React, etc.)
+- **AND** custom handlers MAY implement different isolation strategies for internal MFEs
 
-#### Scenario: TypeSystemPlugin isolation (security)
+#### Scenario: TypeSystemPlugin isolation (security, default handler)
 
 - **WHEN** an MFE attempts to query its TypeSystemPlugin
 - **THEN** calling `plugin.query('gts.*')` SHALL only return types registered in that MFE's own registry
 - **AND** the MFE SHALL NOT be able to discover host's registered types
 - **AND** the MFE SHALL NOT be able to discover other MFE's registered types
 - **AND** this isolation prevents information leakage about host internal structure
+- **AND** custom handlers for internal MFEs MAY relax this isolation when security is not a concern
 
-#### Scenario: Host state isolation
+#### Scenario: Host state isolation (default handler)
 
-- **WHEN** an MFE is mounted in the host
+- **WHEN** an MFE is mounted in the host using the default handler
 - **THEN** the host state SHALL NOT be modified by MFE state changes
 - **AND** the host SHALL NOT have direct access to MFE state
 - **AND** the host TypeSystemPlugin SHALL NOT be accessible from MFE code
+- **AND** custom handlers for internal MFEs MAY allow controlled state sharing
 
 #### Scenario: Shared properties propagation via MfeBridge
 
@@ -835,7 +838,7 @@ The system SHALL provide PRIVATE coordination mechanisms between host and MFE ru
 
 ### Requirement: Module Federation Shared Configuration
 
-The system SHALL configure Module Federation to support framework-agnostic isolated MFEs using the `singleton` flag to control instance sharing.
+The system SHALL configure Module Federation to support framework-agnostic MFEs using the `singleton` flag to control instance sharing. HAI3's default handler uses `singleton: false` for isolation; custom handlers may use `singleton: true` for internal MFEs when sharing is beneficial.
 
 #### Scenario: SharedDependencyConfig structure
 
@@ -875,13 +878,14 @@ The system SHALL configure Module Federation to support framework-agnostic isola
 - **AND** all consumers SHALL share the same instance
 - **AND** this provides both code sharing AND memory optimization
 
-#### Scenario: Isolation requirement enforcement
+#### Scenario: Isolation requirement enforcement (default handler)
 
-- **WHEN** an MFE instance attempts to discover types via its TypeSystemPlugin
+- **WHEN** an MFE instance attempts to discover types via its TypeSystemPlugin using the default handler
 - **THEN** `plugin.query('gts.*')` SHALL only return types in that MFE instance's registry
 - **AND** the MFE instance SHALL NOT be able to discover parent's registered types
 - **AND** the MFE instance SHALL NOT be able to discover other MFE instances' registered types (including other instances of the same MFE entry)
 - **AND** this isolation SHALL be guaranteed by `singleton: false` on @hai3/screensets and GTS
+- **AND** custom handlers for internal MFEs MAY configure different isolation levels when appropriate
 
 ### Requirement: Explicit Timeout Configuration
 
