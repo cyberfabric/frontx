@@ -40,6 +40,7 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   children,
   config,
   app: providedApp,
+  router,
 }) => {
   // Create or use provided app instance
   const app = useMemo<HAI3App>(() => {
@@ -47,8 +48,15 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
       return providedApp;
     }
 
-    return createHAI3App(config);
-  }, [providedApp, config]);
+    // Merge router config into HAI3Config
+    const mergedConfig = {
+      ...config,
+      routerMode: router?.type,
+      autoNavigate: router?.autoNavigate ?? config?.autoNavigate,
+    };
+
+    return createHAI3App(mergedConfig);
+  }, [providedApp, config, router]);
 
   // Cleanup on unmount
   useEffect(() => {

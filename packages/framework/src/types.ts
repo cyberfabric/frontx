@@ -35,6 +35,11 @@ export type HAI3Store = StoreType;
 // ============================================================================
 
 /**
+ * Router mode type
+ */
+export type RouterMode = 'browser' | 'hash' | 'memory';
+
+/**
  * HAI3 Application Configuration
  * Configuration options for creating a HAI3 application.
  */
@@ -56,6 +61,14 @@ export interface HAI3Config {
    * @default '/'
    */
   base?: string;
+  /**
+   * Router mode - browser (default), hash, or memory.
+   * - browser: Uses HTML5 history API (clean URLs)
+   * - hash: Uses URL hash (#/path)
+   * - memory: In-memory routing without URL sync
+   * @default 'browser'
+   */
+  routerMode?: RouterMode;
 }
 
 // ============================================================================
@@ -375,9 +388,9 @@ export interface CompiledRoute {
 
 /**
  * Route params interface for module augmentation
- * 
+ *
  * Users can extend this interface to provide type-safe route parameters:
- * 
+ *
  * ```typescript
  * declare module '@hai3/framework' {
  *   interface RouteParams {

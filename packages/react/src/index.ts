@@ -50,6 +50,8 @@ export type { RouteParams, RouteParamsProviderProps } from './contexts/RoutePara
 
 export type {
   HAI3ProviderProps,
+  RouterType,
+  RouterConfig,
   UseHAI3Return,
   UseAppSelector,
   UseAppDispatchReturn,

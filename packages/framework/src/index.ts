@@ -67,6 +67,7 @@ export type {
   ThemeApplyFn,
   UikitTheme,
   RouteRegistry,
+  RouterMode,
   RouteMatchResult,
   CompiledRoute,
   RouteParams,

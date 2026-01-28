@@ -37,12 +37,32 @@ type TranslationParams = Record<string, string | number | boolean>;
 // ============================================================================
 
 /**
+ * Router configuration type
+ */
+export type RouterType = 'browser' | 'hash' | 'memory';
+
+/**
+ * Router configuration
+ */
+export interface RouterConfig {
+  /** Router type - browser (default), hash, or memory */
+  type?: RouterType;
+  /** Auto-navigate to first screen on load (default: true) */
+  autoNavigate?: boolean;
+}
+
+/**
  * HAI3 Provider Props
  * Props for the main HAI3Provider component.
  *
  * @example
  * ```tsx
  * <HAI3Provider config={{ devMode: true }}>
+ *   <App />
+ * </HAI3Provider>
+ *
+ * // With router configuration
+ * <HAI3Provider router={{ type: 'hash' }}>
  *   <App />
  * </HAI3Provider>
  * ```
@@ -54,6 +74,8 @@ export interface HAI3ProviderProps {
   config?: HAI3Config;
   /** Pre-built HAI3 app instance (optional) */
   app?: HAI3App;
+  /** Router configuration */
+  router?: RouterConfig;
 }
 
 // ============================================================================

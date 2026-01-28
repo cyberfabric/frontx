@@ -80,7 +80,48 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
     onInit(app) {
       const dispatch = app.store.dispatch as Dispatch<UnknownAction>;
       const base = resolveBase(config, app.config);
+      const routerMode = app.config.routerMode ?? 'browser';
       let currentScreensetId: string | null = null;
+
+      // URL helpers that respect router mode
+      const getCurrentPath = (): string => {
+        if (typeof window === 'undefined') return '/';
+
+        switch (routerMode) {
+          case 'hash':
+            // Extract path from hash: #/path -> /path
+            return window.location.hash.slice(1) || '/';
+          case 'memory':
+            // Memory mode doesn't use URL
+            return '/';
+          case 'browser':
+          default:
+            return window.location.pathname;
+        }
+      };
+
+      const updateURL = (path: string): void => {
+        if (typeof window === 'undefined' || routerMode === 'memory') {
+          return; // Skip URL updates in memory mode
+        }
+
+        const url = prependBase(path, base);
+
+        switch (routerMode) {
+          case 'hash':
+            // Update hash: /path -> #/path
+            if (window.location.hash !== `#${url}`) {
+              window.location.hash = url;
+            }
+            break;
+          case 'browser':
+          default:
+            if (window.location.pathname !== url) {
+              window.history.pushState(null, '', url);
+            }
+            break;
+        }
+      };
 
       // Load screenset translations (async, non-blocking)
       const loadScreensetTranslations = async (screensetId: string, language?: string): Promise<void> => {
@@ -122,7 +163,8 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
 
       // Extract internal path from current URL (without base)
       const extractInternalPath = (): string => {
-        return stripBase(window.location.pathname, base) || '/';
+        const currentPath = getCurrentPath();
+        return stripBase(currentPath, base) || '/';
       };
 
       // Activate screen from route match (screenset + Redux state)
@@ -164,14 +206,9 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
         activateScreenset(payload.screensetId);
         dispatch(screenActions.navigateTo(payload.screenId));
 
-        if (typeof window !== 'undefined') {
-          // Generate URL from route pattern and params
-          const path = app.routeRegistry?.generatePath(payload.screenId, payload.params) ?? `/${payload.screenId}`;
-          const url = prependBase(path, base);
-          if (window.location.pathname !== url) {
-            window.history.pushState(null, '', url);
-          }
-        }
+        // Generate URL from route pattern and params, then update based on router mode
+        const path = app.routeRegistry?.generatePath(payload.screenId, payload.params) ?? `/${payload.screenId}`;
+        updateURL(path);
       });
 
       // Handle navigation to screenset (default screen)
@@ -218,14 +255,20 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
           });
       });
 
-      if (typeof window !== 'undefined') {
-        // Handle browser back/forward
-        window.addEventListener('popstate', () => {
+      if (typeof window !== 'undefined' && routerMode !== 'memory') {
+        // Handle browser back/forward (popstate for browser, hashchange for hash)
+        const handleURLChange = () => {
           const match = matchCurrentPath();
           if (match) {
             activateFromRouteMatch(match);
           }
-        });
+        };
+
+        if (routerMode === 'hash') {
+          window.addEventListener('hashchange', handleURLChange);
+        } else {
+          window.addEventListener('popstate', handleURLChange);
+        }
 
         // Initial navigation on page load
         const match = matchCurrentPath();
@@ -234,6 +277,15 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
         if (match) {
           activateFromRouteMatch(match);
         } else if (autoNavigate) {
+          const screensets = app.screensetRegistry.getAll();
+          if (screensets.length > 0) {
+            navigateToScreenset({ screensetId: screensets[0].id });
+          }
+        }
+      } else if (routerMode === 'memory') {
+        // Memory mode: auto-navigate without URL sync
+        const autoNavigate = app.config.autoNavigate !== false;
+        if (autoNavigate) {
           const screensets = app.screensetRegistry.getAll();
           if (screensets.length > 0) {
             navigateToScreenset({ screensetId: screensets[0].id });
