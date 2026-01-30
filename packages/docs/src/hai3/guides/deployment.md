@@ -564,4 +564,3 @@ npm run preview
 
 - [Getting Started](/getting-started)
 - [Manifest - Build System](/hai3/architecture/manifest)
-- [Performance Guide](/hai3/guides/performance)

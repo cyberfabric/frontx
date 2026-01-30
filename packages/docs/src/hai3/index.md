@@ -87,7 +87,7 @@ cd my-app
 npm run dev
 ```
 
-[See full Getting Started guide →](/hai3/guides/getting-started)
+[See full Getting Started guide →](/getting-started)
 
 ## Documentation Sections
 
@@ -114,7 +114,7 @@ Core concepts and patterns in HAI3.
 
 Practical guides for building with HAI3.
 
-- [Getting Started](/hai3/guides/getting-started)
+- [Getting Started](/getting-started)
 - [Creating Screensets](/hai3/guides/creating-screensets)
 - [API Integration](/hai3/guides/api-integration)
 - [Deployment](/hai3/guides/deployment)
@@ -173,7 +173,7 @@ HAI3 is built on these principles:
 
 ## Next Steps
 
-1. **New to HAI3?** Start with [Getting Started](/hai3/guides/getting-started)
+1. **New to HAI3?** Start with [Getting Started](/getting-started)
 2. **Understand the architecture?** Read [Architecture Overview](/hai3/architecture/overview)
 3. **Ready to build?** Follow [Creating Screensets](/hai3/guides/creating-screensets)
 4. **Want to contribute?** See [Contributing](/hai3/contributing/)

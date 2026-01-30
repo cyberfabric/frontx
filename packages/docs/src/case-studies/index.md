@@ -64,5 +64,5 @@ Have you built something with HAI3? We'd love to feature your work!
 ## Learn More
 
 - [HAI3 Architecture](/hai3/architecture/overview) - Understand the framework
-- [Getting Started](/hai3/guides/getting-started) - Build your first HAI3 app
+- [Getting Started](/getting-started) - Build your first HAI3 app
 - [Contributing](/hai3/contributing/) - Help improve HAI3

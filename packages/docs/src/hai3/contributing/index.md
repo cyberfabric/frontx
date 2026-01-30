@@ -280,7 +280,7 @@ Use the provided template to describe:
 
 See detailed guidelines:
 - [Architecture Rules](/hai3/contributing/architecture-rules)
-- [Development Guidelines](/.ai/GUIDELINES.md) (in repo)
+- [Development Guidelines](https://github.com/HAI3org/HAI3/blob/main/.ai/GUIDELINES.md) (in repo)
 
 **Key principles:**
 - Layer independence (no reverse dependencies)
