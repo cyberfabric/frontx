@@ -5,10 +5,10 @@
   "private": true,
   "type": "module",
   "engines": {
-    "node": ">=25.1.0",
-    "npm": ">=11.6.0"
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
   },
-  "packageManager": "npm@11.6.0",
+  "packageManager": "npm@10.9.4",
   "workspaces": [
     "packages/*",
     "internal/*",
@@ -106,6 +106,8 @@
     "@eslint/js": "9.27.0",
     "@hai3/studio": "*",
     "@j178/prek": "0.2.25",
+    "node-addon-api": "^8.0.0",
+    "node-gyp": "^11.0.0",
     "@types/lodash": "4.17.20",
     "@types/react": "18.3.3",
     "@types/react-dom": "18.3.0",
