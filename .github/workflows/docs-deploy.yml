@@ -1,11 +1,13 @@
-# Sample workflow for building and deploying a VitePress site to GitHub Pages
-name: Docs - Deploy to Pages
+# Workflow for building and deploying VitePress documentation to GitHub Pages
+# Once deployed, docs will be at: https://hai3org.github.io/HAI3/
+name: Deploy Documentation
 
 on:
   push:
     branches: [main]
     paths:
       - 'packages/docs/**'
+      - '.github/workflows/docs-deploy.yml'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
@@ -30,25 +32,25 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Not needed if lastUpdated is not enabled
-
-      - name: Setup PNPM
-        uses: pnpm/action-setup@v4
+          fetch-depth: 0 # Fetch all history for lastUpdated feature
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 22
-          cache: 'pnpm'
+          node-version: '20'
+          cache: 'npm'
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
 
       - name: Install dependencies
-        run: npm install
+        run: npm ci
 
-      - name: Build docs
-        run: VITE_BASE_PATH=/docs/ pnpm --filter ./packages/docs run docs:build
+      - name: Build documentation with VitePress
+        run: npm run docs:build --workspace=@hai3/docs
+        env:
+          NODE_ENV: production
+          VITE_BASE: '/HAI3/'
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
