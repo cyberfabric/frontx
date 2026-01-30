@@ -1,0 +1,26 @@
+{
+  "name": "@hai3/docs",
+  "version": "0.2.0-alpha.1",
+  "description": "HAI3 documentation site - AI-driven product lifecycle and framework docs",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "docs:dev": "vitepress dev src",
+    "docs:build": "vitepress build src",
+    "docs:preview": "vitepress preview src"
+  },
+  "devDependencies": {
+    "vitepress": "^1.0.0",
+    "vue": "^3.4.0",
+    "typescript": "^5.4.2",
+    "ts-node": "10.9.2"
+  },
+  "keywords": [
+    "hai3",
+    "documentation",
+    "ai-driven",
+    "lifecycle"
+  ],
+  "author": "HAI3org",
+  "license": "Apache-2.0"
+}

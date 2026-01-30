@@ -6,9 +6,9 @@
   "type": "module",
   "engines": {
     "node": ">=25.1.0",
-    "npm": ">=11.7.0"
+    "npm": ">=11.6.0"
   },
-  "packageManager": "npm@11.7.0",
+  "packageManager": "npm@11.6.0",
   "workspaces": [
     "packages/*",
     "internal/*",
@@ -18,6 +18,9 @@
     "dev": "npm run generate:colors && vite",
     "check:mcp": "npx tsx packages/cli/template-sources/project/scripts/check-mcp.ts",
     "build": "npm run build:packages && npm run generate:colors && vite build",
+    "docs:dev": "npm run docs:dev --workspace=@hai3/docs",
+    "docs:build": "npm run docs:build --workspace=@hai3/docs",
+    "docs:preview": "npm run docs:preview --workspace=@hai3/docs",
     "build:packages": "npm run build:packages:config && npm run build:packages:sdk && npm run build:packages:framework && npm run build:packages:uikit && npm run build:packages:react && npm run build:packages:studio && npm run build:packages:cli",
     "build:packages:config": "npm run build --workspace=@hai3/eslint-config",
     "build:packages:sdk": "npm run build --workspace=@hai3/state --workspace=@hai3/screensets --workspace=@hai3/api --workspace=@hai3/i18n",
