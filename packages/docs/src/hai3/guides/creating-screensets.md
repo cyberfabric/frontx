@@ -170,7 +170,7 @@ Create `ViewProfileScreen.tsx`:
 import React, { useEffect } from 'react';
 import { useAppSelector, useAppDispatch } from '@hai3/react';
 import { Button, Card } from '@hai3/uikit';
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 import { selectProfile, selectLoading, setProfile } from './profileSlice';
 import { SCREEN_IDS } from './ids';
 
@@ -178,7 +178,7 @@ export function ViewProfileScreen() {
   const dispatch = useAppDispatch();
   const profile = useAppSelector(selectProfile);
   const loading = useAppSelector(selectLoading);
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
 
   useEffect(() => {
     // Load profile data
@@ -243,14 +243,14 @@ Create `EditProfileScreen.tsx`:
 import React, { useState } from 'react';
 import { useAppSelector, useAppDispatch, useEventBus } from '@hai3/react';
 import { Button, Card, Input, Textarea } from '@hai3/uikit';
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 import { selectProfile, updateProfile } from './profileSlice';
 import { EVENT_TYPES, SCREEN_IDS } from './ids';
 
 export function EditProfileScreen() {
   const dispatch = useAppDispatch();
   const profile = useAppSelector(selectProfile);
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
   const { emit } = useEventBus();
 
   const [formData, setFormData] = useState({
@@ -677,7 +677,7 @@ on('auth.logout', () => {
 ### Navigation Not Working
 
 - Verify screen IDs match those in `screens` object
-- Check `useScreensetNavigation` is imported correctly
+- Check `useNavigation` is imported correctly
 - Ensure screenset ID is correct
 
 ### TypeScript Errors

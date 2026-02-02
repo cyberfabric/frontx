@@ -1,102 +1,34 @@
 ---
 title: Plugin System
-description: Extending HAI3 through well-defined plugin interfaces
+description: Understanding HAI3's plugin architecture
 ---
 
 # Plugin System
 
-HAI3 is built as a collection of plugins. Everything from screensets to themes to routing is implemented as a plugin, making the framework extensible without modifying core code.
+HAI3's plugin system enables modular, composable applications. Plugins provide registries, state slices, effects, and actions that extend the framework.
 
-## Philosophy
+## What are Plugins?
 
-**"HAI3 itself is a plugin."**
+Plugins are factory functions that return `HAI3Plugin` objects. They encapsulate related functionality and can depend on other plugins.
 
-The framework core is minimal - just the plugin system and event bus. All other functionality comes from plugins:
-
-```typescript
-import { createHAI3 } from '@hai3/framework';
-import {
-  screensetPlugin,
-  themePlugin,
-  routingPlugin,
-  i18nPlugin
-} from '@hai3/framework/plugins';
-
-// Build HAI3 from plugins
-const app = createHAI3()
-  .use(screensetPlugin)
-  .use(themePlugin)
-  .use(routingPlugin)
-  .use(i18nPlugin)
-  .build();
-```
-
-This architecture enables:
-- **Extensibility:** Add features without changing core
-- **Modularity:** Use only what you need
-- **Testability:** Test plugins in isolation
-- **Reusability:** Share plugins across projects
-
-## Core Plugins
-
-HAI3 includes several built-in plugins:
-
-| Plugin | Purpose | Registry |
-|--------|---------|----------|
-| **screensetPlugin** | Manages screensets and screens | ScreensetRegistry |
-| **themePlugin** | Theme management and switching | ThemeRegistry |
-| **routingPlugin** | URL routing and navigation | RouteRegistry |
-| **i18nPlugin** | Internationalization | - |
-| **apiPlugin** | API service management | ApiRegistry |
-| **layoutPlugin** | Layout components (menu, header, etc.) | - |
-
-### Using Core Plugins
-
-```typescript
-import { createHAI3 } from '@hai3/framework';
-import { screensetPlugin, themePlugin } from '@hai3/framework/plugins';
-
-const app = createHAI3()
-  .use(screensetPlugin)
-  .use(themePlugin)
-  .build();
-```
-
-### Framework Presets
-
-HAI3 provides preset plugin bundles:
-
-```typescript
-import { createHAI3, presets } from '@hai3/framework';
-
-// Full preset (all plugins)
-const fullApp = createHAI3()
-  .use(presets.full)
-  .build();
-
-// Minimal preset (screensets only)
-const minimalApp = createHAI3()
-  .use(presets.minimal)
-  .build();
-
-// Headless preset (no UI)
-const headlessApp = createHAI3()
-  .use(presets.headless)
-  .build();
-```
+**Key characteristics:**
+- **Composable**: Mix and match plugins for your needs
+- **Dependency-aware**: Framework resolves plugin dependencies automatically
+- **Lifecycle-managed**: Hooks for registration, initialization, and cleanup
+- **Type-safe**: Full TypeScript support with type inference
 
 ## Plugin Interface
 
-Every plugin implements the `Plugin` interface:
+Every plugin implements the `HAI3Plugin` interface:
 
 ```typescript
-interface Plugin {
-  id: string;                           // Unique identifier
-  name: string;                         // Human-readable name
-  version?: string;                     // Optional version
-  dependencies?: string[];              // Plugin IDs this depends on
-  initialize?: (app: HAI3App) => void | Promise<void>;
-  cleanup?: () => void | Promise<void>;
+interface HAI3Plugin {
+  name: string;                         // Unique identifier
+  dependencies?: string[];              // Plugin names this depends on
+  provides?: PluginProvides;            // Registries, slices, effects, actions
+  onRegister?: (registry: HAI3Registry) => void;
+  onInit?: (app: HAI3App) => void;
+  onDestroy?: () => void;
 }
 ```
 
@@ -105,560 +37,602 @@ interface Plugin {
 Plugins go through a lifecycle:
 
 ```
-Registration → Dependency Resolution → Initialization → Active → Cleanup
+Registration → Dependency Resolution → onRegister → Build → onInit → Active → onDestroy
 ```
 
-**1. Registration:** Plugin is added with `.use()`
+**1. Registration:** Plugin is added with `.use(plugin())`
 
 **2. Dependency Resolution:** Framework ensures dependencies are loaded first
 
-**3. Initialization:** `initialize()` is called
+**3. onRegister (Optional):** Called during registration to set up resources
 
-**4. Active:** Plugin is running
+**4. Build:** App is built with all plugins composed
 
-**5. Cleanup:** `cleanup()` is called on shutdown
+**5. onInit (Optional):** Called after app is built and ready
+
+**6. Active:** Plugin is running
+
+**7. onDestroy (Optional):** Called when app is destroyed (cleanup)
+
+## Built-in Plugins
+
+HAI3 provides 8 built-in plugins:
+
+### Core Plugins
+
+#### `screensets()`
+
+Provides screenset registry and screen state management.
+
+```typescript
+import { createHAI3, screensets } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(screensets())
+  .build();
+```
+
+**Configuration:**
+```typescript
+screensets({
+  autoDiscover: true  // Auto-discover screensets from src/screensets/
+})
+```
+
+**Provides:**
+- `app.screensetRegistry` - Screenset registry
+- `screenSlice` - Active screen state
+
+#### `themes()`
+
+Provides theme registry and theme switching.
+
+```typescript
+import { createHAI3, themes } from '@hai3/framework';
+import { applyTheme } from '@hai3/uikit';
+
+const app = createHAI3()
+  .use(themes({ applyFn: applyTheme }))
+  .build();
+```
+
+**Configuration:**
+```typescript
+themes({
+  applyFn?: (theme: UikitTheme) => void  // Function to apply theme to UI
+})
+```
+
+**Provides:**
+- `app.themeRegistry` - Theme registry
+- `changeTheme` action - Switch themes
+
+#### `layout()`
+
+Provides all layout domain slices (header, footer, menu, sidebar, popup, overlay).
+
+```typescript
+import { createHAI3, layout } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(layout())
+  .build();
+```
+
+**Dependencies:** `screensets`
+
+**Provides:**
+- Layout domain slices: `headerSlice`, `footerSlice`, `menuSlice`, `sidebarSlice`, `popupSlice`, `overlaySlice`
+- Layout actions: `setMenuCollapsed`, `toggleSidebar`, `openPopup`, etc.
+
+#### `navigation()`
+
+Provides navigation actions for moving between screens and screensets.
+
+```typescript
+import { createHAI3, navigation } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(navigation())
+  .build();
+```
+
+**Dependencies:** `screensets`, `routing`
+
+**Provides:**
+- `navigateToScreen` action
+- `navigateToScreenset` action
+- Navigation event coordination
+
+#### `routing()`
+
+Provides route registry auto-synced from screensets.
+
+```typescript
+import { createHAI3, routing } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(routing())
+  .build();
+```
+
+**Dependencies:** `screensets`
+
+**Provides:**
+- `app.routeRegistry` - Route registry
+- URL synchronization
+- Route matching
+
+#### `i18n()`
+
+Provides internationalization registry and language switching.
+
+```typescript
+import { createHAI3, i18n } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(i18n())
+  .build();
+```
+
+**Provides:**
+- `app.i18nRegistry` - Translation registry
+- `setLanguage` action
+- Translation management
+
+### Utility Plugins
+
+#### `effects()`
+
+Provides effect coordination system for managing side effects.
+
+```typescript
+import { createHAI3, effects } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(effects())
+  .build();
+```
+
+**Purpose:** Required by other plugins that need effect coordination (e.g., mock plugin).
+
+#### `mock()`
+
+Provides centralized mock mode control for API services.
+
+```typescript
+import { createHAI3, effects, mock } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(effects())  // Required dependency
+  .use(mock())
+  .build();
+
+// Toggle mock mode
+app.actions.toggleMockMode(true);  // Enable mocks
+app.actions.toggleMockMode(false); // Disable mocks
+```
+
+**Dependencies:** `effects`
+
+**Provides:**
+- `mockSlice` - Mock mode state
+- `toggleMockMode` action
+- Automatic mock plugin activation/deactivation
+
+**Usage:** Services register mock plugins that are automatically controlled by this plugin.
 
 ## Creating Custom Plugins
 
 ### Basic Plugin
 
-Create a simple plugin:
+Create a simple logging plugin:
 
 ```typescript
-import { createPlugin } from '@hai3/framework';
+import type { HAI3Plugin } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
 
-export const loggingPlugin = createPlugin({
-  id: 'logging',
-  name: 'Logging Plugin',
-  initialize: (app) => {
-    console.log('App initialized:', app.id);
+export function loggingPlugin(): HAI3Plugin {
+  return {
+    name: 'logging',
+    onInit(app) {
+      console.log('App initialized:', app.name);
 
-    // Listen to all events
-    app.eventBus.on('*', (event) => {
-      console.log('[Event]', event.type, event.payload);
-    });
-  },
-  cleanup: () => {
-    console.log('Logging plugin cleaned up');
-  }
-});
-```
+      // Listen to all events
+      eventBus.on('*', (payload, type) => {
+        console.log('[Event]', type, payload);
+      });
+    },
+    onDestroy() {
+      console.log('Logging plugin destroyed');
+    }
+  };
+}
 
-Use it:
-
-```typescript
+// Usage
 const app = createHAI3()
-  .use(loggingPlugin)
+  .use(loggingPlugin())
   .build();
 ```
 
 ### Plugin with Dependencies
 
-Create a plugin that depends on others:
+Create a plugin that depends on other plugins:
 
 ```typescript
-export const analyticsPlugin = createPlugin({
-  id: 'analytics',
-  name: 'Analytics Plugin',
-  dependencies: ['screenset', 'routing'],  // Requires these plugins
-  initialize: (app) => {
-    // Access screenset registry (provided by screensetPlugin)
-    const screensetRegistry = app.getRegistry('screensets');
+import type { HAI3Plugin } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
 
-    // Listen to routing events
-    app.eventBus.on('route.changed', (event) => {
-      trackPageView(event.payload.path);
-    });
-  }
-});
-```
+export function analyticsPlugin(): HAI3Plugin {
+  return {
+    name: 'analytics',
+    dependencies: ['screensets', 'routing'],  // Requires these plugins
+    onInit(app) {
+      // Access screenset registry
+      const screensets = app.screensetRegistry.getAll();
+      console.log('Tracking screensets:', screensets.length);
 
-### Plugin with Configuration
-
-Create a configurable plugin:
-
-```typescript
-interface AnalyticsConfig {
-  trackingId: string;
-  enabled: boolean;
-  debugMode?: boolean;
-}
-
-export const createAnalyticsPlugin = (config: AnalyticsConfig) => {
-  return createPlugin({
-    id: 'analytics',
-    name: 'Analytics Plugin',
-    initialize: (app) => {
-      if (!config.enabled) return;
-
-      // Initialize analytics with config
-      initializeAnalytics(config.trackingId);
-
-      if (config.debugMode) {
-        console.log('Analytics enabled:', config.trackingId);
-      }
-
-      // Track events
-      app.eventBus.on('*', (event) => {
-        trackEvent(event.type, event.payload);
+      // Listen to navigation events
+      eventBus.on('navigation.screen', (payload) => {
+        trackPageView(payload.screensetId, payload.screenId);
       });
     }
-  });
-};
-
-// Use with configuration
-const app = createHAI3()
-  .use(createAnalyticsPlugin({
-    trackingId: 'UA-XXXXX',
-    enabled: true,
-    debugMode: false
-  }))
-  .build();
-```
-
-## Plugin Patterns
-
-### Registry Plugin
-
-Plugins can provide registries:
-
-```typescript
-export const iconPlugin = createPlugin({
-  id: 'icons',
-  name: 'Icon Plugin',
-  initialize: (app) => {
-    // Create a registry for icons
-    const iconRegistry = new Map<string, IconComponent>();
-
-    // Register built-in icons
-    iconRegistry.set('user', UserIcon);
-    iconRegistry.set('settings', SettingsIcon);
-
-    // Expose registry
-    app.registerRegistry('icons', {
-      register: (id: string, icon: IconComponent) => {
-        iconRegistry.set(id, icon);
-      },
-      get: (id: string) => iconRegistry.get(id),
-      getAll: () => Array.from(iconRegistry.values())
-    });
-  }
-});
-
-// Use the registry
-const app = createHAI3().use(iconPlugin).build();
-const iconRegistry = app.getRegistry('icons');
-iconRegistry.register('custom-icon', MyCustomIcon);
-```
-
-### Middleware Plugin
-
-Create middleware for API requests:
-
-```typescript
-export const authMiddlewarePlugin = createPlugin({
-  id: 'auth-middleware',
-  name: 'Auth Middleware',
-  dependencies: ['api'],
-  initialize: (app) => {
-    const apiRegistry = app.getRegistry('api');
-
-    // Add auth header to all requests
-    apiRegistry.addInterceptor({
-      request: (config) => {
-        const token = getAuthToken();
-        if (token) {
-          config.headers = {
-            ...config.headers,
-            Authorization: `Bearer ${token}`
-          };
-        }
-        return config;
-      }
-    });
-  }
-});
-```
-
-### Feature Toggle Plugin
-
-Implement feature flags:
-
-```typescript
-interface FeatureFlags {
-  [key: string]: boolean;
+  };
 }
 
-export const createFeatureFlagPlugin = (flags: FeatureFlags) => {
-  return createPlugin({
-    id: 'feature-flags',
-    name: 'Feature Flag Plugin',
-    initialize: (app) => {
-      // Expose feature flag checker
-      app.features = {
-        isEnabled: (flag: string) => flags[flag] === true,
-        getAll: () => flags
-      };
+function trackPageView(screensetId: string, screenId: string) {
+  // Send to analytics service
+  console.log('Page view:', screensetId, screenId);
+}
+```
 
-      // Filter screensets based on flags
-      app.eventBus.on('screensets.loading', (event) => {
-        const filtered = event.payload.screensets.filter(screenset => {
-          const flag = screenset.featureFlag;
-          return !flag || flags[flag];
-        });
-        event.payload.screensets = filtered;
-      });
+### Plugin with Provided Resources
+
+Create a plugin that provides registries and actions:
+
+```typescript
+import type { HAI3Plugin, HAI3App } from '@hai3/framework';
+import { createSlice } from '@hai3/state';
+
+// Create a registry
+class FeatureFlagRegistry {
+  private flags = new Map<string, boolean>();
+
+  register(key: string, value: boolean) {
+    this.flags.set(key, value);
+  }
+
+  isEnabled(key: string): boolean {
+    return this.flags.get(key) ?? false;
+  }
+}
+
+// Create a slice
+const featureFlagsSlice = createSlice({
+  name: 'featureFlags',
+  initialState: { flags: {} as Record<string, boolean> },
+  reducers: {
+    toggleFlag: (state, action: { payload: { key: string } }) => {
+      const { key } = action.payload;
+      state.flags[key] = !state.flags[key];
     }
-  });
-};
-
-// Use with flags
-const app = createHAI3()
-  .use(createFeatureFlagPlugin({
-    'new-dashboard': true,
-    'experimental-feature': false
-  }))
-  .build();
-```
-
-### Performance Monitoring Plugin
-
-Track performance metrics:
-
-```typescript
-export const performancePlugin = createPlugin({
-  id: 'performance',
-  name: 'Performance Monitoring',
-  initialize: (app) => {
-    const metrics = new Map<string, number[]>();
-
-    // Track event processing time
-    app.eventBus.on('*', (event) => {
-      const start = performance.now();
-
-      // Original handler runs
-      requestAnimationFrame(() => {
-        const duration = performance.now() - start;
-
-        if (!metrics.has(event.type)) {
-          metrics.set(event.type, []);
-        }
-        metrics.get(event.type)!.push(duration);
-
-        // Log slow events
-        if (duration > 16) {  // > 1 frame at 60fps
-          console.warn(`Slow event: ${event.type} took ${duration.toFixed(2)}ms`);
-        }
-      });
-    });
-
-    // Expose metrics API
-    app.performance = {
-      getMetrics: (eventType: string) => metrics.get(eventType),
-      getAllMetrics: () => Object.fromEntries(metrics)
-    };
-  }
-});
-```
-
-## Plugin Best Practices
-
-### ✅ Do
-
-**Single Responsibility:**
-```typescript
-// ✅ Good: Focused plugin
-export const notificationPlugin = createPlugin({
-  id: 'notifications',
-  name: 'Notification Plugin',
-  initialize: (app) => {
-    // Only handles notifications
-    app.eventBus.on('notification.show', showNotification);
-  }
-});
-```
-
-**Declare Dependencies:**
-```typescript
-// ✅ Good: Explicit dependencies
-export const plugin = createPlugin({
-  id: 'my-plugin',
-  dependencies: ['screenset', 'api'],  // Clear dependencies
-  initialize: (app) => {
-    // Use screenset and api registries
-  }
-});
-```
-
-**Clean Up Resources:**
-```typescript
-// ✅ Good: Proper cleanup
-export const timerPlugin = createPlugin({
-  id: 'timer',
-  initialize: (app) => {
-    const interval = setInterval(() => {
-      app.eventBus.emit({ type: 'timer.tick' });
-    }, 1000);
-
-    return () => clearInterval(interval);  // Cleanup!
-  }
-});
-```
-
-**Use TypeScript:**
-```typescript
-// ✅ Good: Typed plugin
-interface MyPluginConfig {
-  apiKey: string;
-  timeout: number;
-}
-
-export const createMyPlugin = (config: MyPluginConfig) => {
-  return createPlugin({
-    id: 'my-plugin',
-    // Fully typed
-  });
-};
-```
-
-### ❌ Don't
-
-**Avoid Global State:**
-```typescript
-// ❌ Bad: Global state
-let globalCounter = 0;  // Avoid!
-
-export const counterPlugin = createPlugin({
-  initialize: (app) => {
-    // Use app-scoped state instead
   }
 });
 
-// ✅ Good: Use app context or Redux
-```
-
-**Don't Violate Isolation:**
-```typescript
-// ❌ Bad: Direct access to other plugins
-export const badPlugin = createPlugin({
-  initialize: (app) => {
-    // Don't access other plugin internals!
-    const otherPlugin = app._internalPlugins.get('other');
-  }
-});
-
-// ✅ Good: Use registries or events
-export const goodPlugin = createPlugin({
-  dependencies: ['other'],
-  initialize: (app) => {
-    const registry = app.getRegistry('other');
-  }
-});
-```
-
-**Avoid Heavy Initialization:**
-```typescript
-// ❌ Bad: Blocking initialization
-export const slowPlugin = createPlugin({
-  initialize: async (app) => {
-    // Blocks app startup!
-    await loadHugeDataset();
-  }
-});
-
-// ✅ Good: Lazy load
-export const fastPlugin = createPlugin({
-  initialize: (app) => {
-    app.eventBus.on('app.ready', async () => {
-      await loadHugeDataset();
-    });
-  }
-});
-```
-
-## Plugin Registry Pattern
-
-HAI3 uses registries to implement the **Open/Closed Principle** - open for extension, closed for modification.
-
-### Creating a Registry
-
-```typescript
-interface Registry<T> {
-  register: (id: string, item: T) => void;
-  unregister: (id: string) => void;
-  get: (id: string) => T | undefined;
-  getAll: () => T[];
-  has: (id: string) => boolean;
-}
-
-function createRegistry<T>(): Registry<T> {
-  const items = new Map<string, T>();
+export function featureFlagsPlugin(): HAI3Plugin {
+  const registry = new FeatureFlagRegistry();
 
   return {
-    register: (id, item) => items.set(id, item),
-    unregister: (id) => items.delete(id),
-    get: (id) => items.get(id),
-    getAll: () => Array.from(items.values()),
-    has: (id) => items.has(id)
+    name: 'feature-flags',
+    provides: {
+      registries: { featureFlagRegistry: registry },
+      slices: [featureFlagsSlice],
+      actions: {
+        toggleFeatureFlag: (key: string) => (app: HAI3App) => {
+          app.store.dispatch(featureFlagsSlice.actions.toggleFlag({ key }));
+        }
+      }
+    },
+    onInit(app) {
+      console.log('Feature flags plugin initialized');
+    }
+  };
+}
+
+// Usage
+const app = createHAI3()
+  .use(featureFlagsPlugin())
+  .build();
+
+// Access registry
+const registry = app.featureFlagRegistry;
+registry.register('new-dashboard', true);
+
+// Use action
+app.actions.toggleFeatureFlag('new-dashboard');
+```
+
+### Configurable Plugin
+
+Create a plugin with configuration options:
+
+```typescript
+import type { HAI3Plugin } from '@hai3/framework';
+
+interface LoggingConfig {
+  level: 'debug' | 'info' | 'warn' | 'error';
+  prefix?: string;
+}
+
+export function loggingPlugin(config?: LoggingConfig): HAI3Plugin {
+  const level = config?.level ?? 'info';
+  const prefix = config?.prefix ?? '[HAI3]';
+
+  return {
+    name: 'logging',
+    onInit(app) {
+      console.log(`${prefix} Initialized with level: ${level}`);
+
+      // Use config to control logging
+      if (level === 'debug') {
+        eventBus.on('*', (payload, type) => {
+          console.log(`${prefix} [${level}]`, type, payload);
+        });
+      }
+    }
+  };
+}
+
+// Usage
+const app = createHAI3()
+  .use(loggingPlugin({ level: 'debug', prefix: '[MyApp]' }))
+  .build();
+```
+
+## Using Presets
+
+Instead of manually composing plugins, use presets for common configurations:
+
+### Full Preset
+
+All plugins for complete HAI3 experience:
+
+```typescript
+import { createHAI3, full } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(full())
+  .build();
+
+// Includes: screensets, themes, layout, navigation, routing, i18n, effects, mock
+```
+
+### Minimal Preset
+
+Screensets + themes only:
+
+```typescript
+import { createHAI3, minimal } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(minimal())
+  .build();
+
+// Includes: screensets, themes
+```
+
+### Headless Preset
+
+Screensets only (for external platform integration):
+
+```typescript
+import { createHAI3, headless } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(headless())
+  .build();
+
+// Includes: screensets
+```
+
+## Plugin Composition Patterns
+
+### Mixing Presets with Custom Plugins
+
+```typescript
+import { createHAI3, full } from '@hai3/framework';
+import { analyticsPlugin } from './plugins/analytics';
+
+const app = createHAI3()
+  .use(full())                 // All built-in plugins
+  .use(analyticsPlugin())      // Add custom plugin
+  .build();
+```
+
+### Conditional Plugins
+
+```typescript
+import { createHAI3, screensets, themes } from '@hai3/framework';
+import { devToolsPlugin } from './plugins/devTools';
+
+const builder = createHAI3()
+  .use(screensets())
+  .use(themes());
+
+// Add dev tools only in development
+if (import.meta.env.DEV) {
+  builder.use(devToolsPlugin());
+}
+
+const app = builder.build();
+```
+
+### Plugin Arrays
+
+```typescript
+import { createHAI3 } from '@hai3/framework';
+import { loggingPlugin } from './plugins/logging';
+import { analyticsPlugin } from './plugins/analytics';
+
+const app = createHAI3()
+  .use([loggingPlugin(), analyticsPlugin()])  // Multiple plugins at once
+  .build();
+```
+
+## Best Practices
+
+### 1. Keep Plugins Focused
+
+Each plugin should have a single, well-defined purpose:
+
+✅ **Good:** `authPlugin` handles authentication only
+❌ **Bad:** `megaPlugin` handles auth, routing, analytics, and logging
+
+### 2. Declare Dependencies
+
+Always declare plugin dependencies explicitly:
+
+```typescript
+export function myPlugin(): HAI3Plugin {
+  return {
+    name: 'my-plugin',
+    dependencies: ['screensets', 'routing'],  // Clear dependencies
+    // ...
   };
 }
 ```
 
-### Using Registries
+### 3. Use Lifecycle Hooks Appropriately
+
+- `onRegister`: Set up resources that other plugins might need
+- `onInit`: Initialize after all plugins are registered and app is built
+- `onDestroy`: Clean up resources, unsubscribe from events
+
+### 4. Provide Type-Safe APIs
+
+Export types for plugin configuration and provided resources:
 
 ```typescript
-// Core provides screenset registry
-const screensetRegistry = app.getRegistry('screensets');
+export interface MyPluginConfig {
+  apiKey: string;
+  endpoint: string;
+}
 
-// Your code extends it
-screensetRegistry.register('dashboard', dashboardScreenset);
-screensetRegistry.register('settings', settingsScreenset);
-
-// No modifications to core code!
+export function myPlugin(config: MyPluginConfig): HAI3Plugin {
+  // Implementation with type-safe config
+}
 ```
 
-## Testing Plugins
+### 5. Document Your Plugins
 
-### Unit Testing
+Include JSDoc comments explaining what the plugin does:
+
+```typescript
+/**
+ * Analytics plugin for tracking user interactions.
+ *
+ * Provides:
+ * - Event tracking
+ * - Page view tracking
+ * - Custom event support
+ *
+ * @example
+ * ```typescript
+ * const app = createHAI3()
+ *   .use(analyticsPlugin({ apiKey: 'xxx' }))
+ *   .build();
+ * ```
+ */
+export function analyticsPlugin(config: AnalyticsConfig): HAI3Plugin {
+  // ...
+}
+```
+
+## Advanced Topics
+
+### Plugin Communication
+
+Plugins communicate via the event bus:
+
+```typescript
+// Plugin A emits event
+export function pluginA(): HAI3Plugin {
+  return {
+    name: 'plugin-a',
+    onInit() {
+      eventBus.emit('data.loaded', { items: [] });
+    }
+  };
+}
+
+// Plugin B listens
+export function pluginB(): HAI3Plugin {
+  return {
+    name: 'plugin-b',
+    dependencies: ['plugin-a'],
+    onInit() {
+      eventBus.on('data.loaded', (payload) => {
+        console.log('Received data:', payload);
+      });
+    }
+  };
+}
+```
+
+### Dynamic Plugin Loading
+
+Load plugins conditionally at runtime:
+
+```typescript
+async function createApp() {
+  const builder = createHAI3()
+    .use(screensets())
+    .use(themes());
+
+  // Load plugin based on feature flag
+  const featureFlags = await fetchFeatureFlags();
+  if (featureFlags.enableAnalytics) {
+    const { analyticsPlugin } = await import('./plugins/analytics');
+    builder.use(analyticsPlugin());
+  }
+
+  return builder.build();
+}
+```
+
+### Plugin Testing
+
+Test plugins in isolation:
 
 ```typescript
 import { createHAI3 } from '@hai3/framework';
-import { myPlugin } from './myPlugin';
+import { loggingPlugin } from './loggingPlugin';
 
-test('plugin initializes correctly', () => {
-  const app = createHAI3().use(myPlugin).build();
+describe('loggingPlugin', () => {
+  it('should initialize successfully', () => {
+    const app = createHAI3()
+      .use(loggingPlugin())
+      .build();
 
-  expect(app.plugins.has('my-plugin')).toBe(true);
-});
-
-test('plugin handles events', () => {
-  const handler = jest.fn();
-  const testPlugin = createPlugin({
-    id: 'test',
-    initialize: (app) => {
-      app.eventBus.on('test.event', handler);
-    }
+    expect(app).toBeDefined();
   });
 
-  const app = createHAI3().use(testPlugin).build();
-  app.eventBus.emit({ type: 'test.event' });
+  it('should log events', () => {
+    const spy = vi.spyOn(console, 'log');
 
-  expect(handler).toHaveBeenCalled();
-});
-```
+    const app = createHAI3()
+      .use(loggingPlugin({ level: 'debug' }))
+      .build();
 
-### Integration Testing
+    eventBus.emit('test.event', { data: 'test' });
 
-```typescript
-test('plugins work together', () => {
-  const app = createHAI3()
-    .use(pluginA)
-    .use(pluginB)
-    .build();
-
-  // Test interaction between plugins
-  app.eventBus.emit({ type: 'trigger.action' });
-
-  // Assert both plugins responded correctly
-});
-```
-
-## Real-World Examples
-
-### Authentication Plugin
-
-```typescript
-export const createAuthPlugin = (config: AuthConfig) => {
-  return createPlugin({
-    id: 'auth',
-    name: 'Authentication Plugin',
-    initialize: (app) => {
-      let currentUser: User | null = null;
-
-      // Handle login
-      app.eventBus.on('auth.login', async (event) => {
-        const { email, password } = event.payload;
-        const user = await authService.login(email, password);
-        currentUser = user;
-        app.eventBus.emit({ type: 'auth.logged-in', payload: user });
-      });
-
-      // Handle logout
-      app.eventBus.on('auth.logout', async () => {
-        await authService.logout();
-        currentUser = null;
-        app.eventBus.emit({ type: 'auth.logged-out' });
-      });
-
-      // Expose auth API
-      app.auth = {
-        getCurrentUser: () => currentUser,
-        isAuthenticated: () => currentUser !== null
-      };
-    }
+    expect(spy).toHaveBeenCalled();
   });
-};
-```
-
-### Caching Plugin
-
-```typescript
-export const createCachePlugin = (options: CacheOptions = {}) => {
-  return createPlugin({
-    id: 'cache',
-    name: 'Cache Plugin',
-    dependencies: ['api'],
-    initialize: (app) => {
-      const cache = new Map<string, { data: any; timestamp: number }>();
-      const ttl = options.ttl || 5 * 60 * 1000;  // 5 minutes
-
-      // Intercept API requests
-      const apiRegistry = app.getRegistry('api');
-      apiRegistry.addInterceptor({
-        request: (config) => {
-          if (config.method === 'GET') {
-            const cached = cache.get(config.url);
-            if (cached && Date.now() - cached.timestamp < ttl) {
-              return Promise.resolve(cached.data);
-            }
-          }
-          return config;
-        },
-        response: (response, config) => {
-          if (config.method === 'GET') {
-            cache.set(config.url, {
-              data: response,
-              timestamp: Date.now()
-            });
-          }
-          return response;
-        }
-      });
-
-      // Invalidate cache on events
-      app.eventBus.on('cache.invalidate', (event) => {
-        if (event.payload.key) {
-          cache.delete(event.payload.key);
-        } else {
-          cache.clear();
-        }
-      });
-    }
-  });
-};
+});
 ```
 
 ## Related Documentation
 
-- [Event-Driven Architecture](/hai3/concepts/event-driven)
-- [Framework Layer](/hai3/architecture/framework)
-- [Architecture Overview](/hai3/architecture/overview)
-- [TERMINOLOGY](/TERMINOLOGY#plugin-system)
-- [Extensibility Guide](/TERMINOLOGY#how-to-extend-hai3)
-
-## Next Steps
-
-1. **Explore Core Plugins:** Understand built-in plugins in the [Framework Layer](/hai3/architecture/framework)
-2. **Build a Plugin:** Create your first custom plugin
-3. **Learn Events:** Plugins use [Event-Driven Architecture](/hai3/concepts/event-driven)
-4. **Study Examples:** Check out the HAI3 examples repository for plugin samples
+- [Framework API Reference](/hai3/api-reference/framework) - Detailed plugin API
+- [Architecture Overview](/hai3/architecture/overview) - Understanding HAI3 architecture
+- [Creating Screensets](/hai3/guides/creating-screensets) - Building with screensets

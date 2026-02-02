@@ -14,26 +14,28 @@ Complete API reference for `@hai3/framework` package.
 Creates a new HAI3 application builder.
 
 ```typescript
-function createHAI3(options?: AppOptions): AppBuilder
+function createHAI3(config?: HAI3Config): HAI3AppBuilder
 ```
 
 **Parameters:**
-- `options?`:
-  - `id?`: Application ID (auto-generated if omitted)
+- `config?`: Application configuration
   - `name?`: Application name
-  - `version?`: Application version
-  - `env?`: Environment (`'development'` | `'production'`)
-  - `logLevel?`: Logging level (`'debug'` | `'info'` | `'warn'` | `'error'`)
+  - `devMode?`: Enable development mode (default: false)
+  - `strictMode?`: Enable strict mode - throws on errors (default: false)
+  - `autoNavigate?`: Auto-navigate to first screenset on mount (default: true)
+  - `base?`: Base path for navigation (default: '/')
+  - `routerMode?`: Router mode - 'browser' | 'hash' | 'memory' (default: 'browser')
 
-**Returns:** `AppBuilder` - Fluent builder for application configuration
+**Returns:** `HAI3AppBuilder` - Fluent builder for plugin composition
 
 **Example:**
 
 ```typescript
 const builder = createHAI3({
   name: 'My App',
-  version: '1.0.0',
-  env: 'production'
+  devMode: true,
+  base: '/console',
+  routerMode: 'browser'
 });
 ```
 
@@ -81,16 +83,22 @@ const app = createHAI3()
 
 ### `HAI3App`
 
-The initialized application instance.
+The initialized application instance returned by `.build()`.
+
+::: warning Note
+`HAI3App` is a **TypeScript type** for the application instance, not a React component. For the React provider component, use `HAI3Provider` from `@hai3/react`.
+:::
 
 ```typescript
 interface HAI3App {
-  id: string;
-  plugins: PluginManager;
-  eventBus: EventBus;
-  store: Store;
-  getRegistry<T>(name: string): Registry<T>;
-  registerRegistry<T>(name: string, registry: Registry<T>): void;
+  name?: string;
+  store: HAI3Store;
+  screensetRegistry: ScreensetRegistry;
+  themeRegistry: ThemeRegistry;
+  routeRegistry: RouteRegistry;
+  i18nRegistry: I18nRegistry;
+  actions: HAI3Actions;
+  destroy: () => void;
 }
 ```
 
@@ -106,58 +114,84 @@ app.eventBus.emit({ type: 'app.ready' });
 
 ## Plugin System
 
-### `createPlugin()`
+### Creating Custom Plugins
 
-Creates a plugin.
+Plugins are factory functions that return `HAI3Plugin` objects.
 
 ```typescript
-function createPlugin(definition: PluginDefinition): Plugin
+function myPlugin(): HAI3Plugin {
+  return {
+    name: 'my-plugin',
+    dependencies?: string[],
+    provides?: PluginProvides,
+    onRegister?: (registry: HAI3Registry) => void,
+    onInit?: (app: HAI3App) => void,
+    onDestroy?: () => void,
+  };
+}
 ```
 
-**Parameters:**
-- `definition`:
-  - `id`: Unique plugin identifier
-  - `name?`: Human-readable name
-  - `version?`: Plugin version
-  - `dependencies?`: Array of plugin IDs this plugin depends on
-  - `initialize`: Function called when plugin initializes
-  - `cleanup?`: Function called when plugin cleans up
-
-**Returns:** `Plugin` - Plugin instance
+**Plugin Structure:**
+- `name`: Unique plugin identifier (required)
+- `dependencies?`: Array of plugin names this depends on
+- `provides?`: Registries, slices, effects, and actions provided by plugin
+- `onRegister?`: Called during plugin registration (before app build)
+- `onInit?`: Called after app is built and all plugins initialized
+- `onDestroy?`: Called when app is destroyed (cleanup)
 
 **Example:**
 
 ```typescript
-const myPlugin = createPlugin({
-  id: 'my-plugin',
-  name: 'My Plugin',
-  version: '1.0.0',
-  dependencies: ['screenset'],
-  initialize: (app) => {
-    console.log('Plugin initialized');
-    app.eventBus.on('*', (event) => {
-      console.log('Event:', event.type);
-    });
-  },
-  cleanup: () => {
-    console.log('Plugin cleaned up');
-  }
-});
+import type { HAI3Plugin, HAI3App } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
+
+export function loggingPlugin(): HAI3Plugin {
+  return {
+    name: 'logging',
+    dependencies: ['screensets'],
+    onInit(app: HAI3App) {
+      console.log('Logging plugin initialized');
+      eventBus.on('*', (payload, type) => {
+        console.log('Event:', type, payload);
+      });
+    },
+    onDestroy() {
+      console.log('Logging plugin destroyed');
+    }
+  };
+}
+
+// Usage
+const app = createHAI3()
+  .use(loggingPlugin())
+  .build();
 ```
 
-### `Plugin`
+### Available Plugins
 
-Plugin instance.
+HAI3 provides these built-in plugins:
 
+**Core Plugins:**
+- `screensets()` - Screenset registry and screen state management
+- `themes()` - Theme registry and theme switching
+- `layout()` - Layout domains (header, footer, menu, sidebar, popup, overlay)
+- `navigation()` - Navigation actions (navigateToScreen, navigateToScreenset)
+- `routing()` - URL routing and route registry
+- `i18n()` - Internationalization and translation registry
+
+**Utility Plugins:**
+- `effects()` - Effect coordination system
+- `mock()` - Centralized mock mode control
+
+**Usage:**
 ```typescript
-interface Plugin {
-  id: string;
-  name: string;
-  version: string;
-  dependencies: string[];
-  initialize(app: HAI3App): void | Promise<void>;
-  cleanup?(): void | Promise<void>;
-}
+import { createHAI3, screensets, themes, layout } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(screensets())
+  .use(themes())
+  .use(layout())
+  .build();
 ```
 
 ### `PluginManager`
@@ -345,94 +379,129 @@ const app = createHAI3()
 
 ## Presets
 
-### `presets.full`
+Pre-configured plugin combinations for common use cases.
 
-All core plugins.
+### `presets.full()`
+
+All core plugins for the complete HAI3 experience. This is the default for `hai3 create` projects.
 
 ```typescript
-import { presets } from '@hai3/framework';
+import { createHAI3, full } from '@hai3/framework';
 
 const app = createHAI3()
-  .use(presets.full)
+  .use(full())
   .build();
 ```
 
 **Includes:**
-- screensetPlugin
-- themePlugin
-- routingPlugin
-- i18nPlugin
-- apiPlugin
-- layoutPlugin
+- `screensets()` - Screenset registry and screen slice
+- `themes()` - Theme registry and changeTheme action
+- `layout()` - All layout domain slices (header, footer, menu, sidebar, popup, overlay)
+- `navigation()` - Navigation actions (navigateToScreen, navigateToScreenset)
+- `routing()` - Route registry auto-synced from screensets
+- `i18n()` - Internationalization registry and setLanguage action
+- `effects()` - Effect coordination system
+- `mock()` - Mock mode control for API services
 
-### `presets.minimal`
-
-Screensets only.
+**Configuration:**
 
 ```typescript
-import { presets } from '@hai3/framework';
+import { applyTheme } from '@hai3/uikit';
 
 const app = createHAI3()
-  .use(presets.minimal)
+  .use(full({ themes: { applyFn: applyTheme } }))
+  .build();
+```
+
+### `presets.minimal()`
+
+Screensets + themes only. For users who want basic HAI3 patterns without full layout management.
+
+```typescript
+import { createHAI3, minimal } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(minimal())
   .build();
 ```
 
 **Includes:**
-- screensetPlugin
+- `screensets()` - Screenset registry and screen slice
+- `themes()` - Theme registry and changeTheme action
 
-### `presets.headless`
+### `presets.headless()`
 
-No UI, API and state only.
+Screensets only. For external platform integration where you only need screenset orchestration (the external platform provides its own menu, header, navigation, etc.).
 
 ```typescript
-import { presets } from '@hai3/framework';
+import { createHAI3, headless } from '@hai3/framework';
 
 const app = createHAI3()
-  .use(presets.headless)
+  .use(headless())
   .build();
 ```
 
 **Includes:**
-- apiPlugin
+- `screensets()` - Screenset registry and screen slice
 
 ## Types
 
-### `AppOptions`
+### `HAI3Config`
 
-Application configuration options.
+Application configuration options passed to `createHAI3()`.
 
 ```typescript
-interface AppOptions {
-  id?: string;
+interface HAI3Config {
+  /** Application name */
   name?: string;
-  version?: string;
-  env?: 'development' | 'production';
-  logLevel?: 'debug' | 'info' | 'warn' | 'error';
+  /** Enable development mode */
+  devMode?: boolean;
+  /** Enable strict mode (throws on errors) */
+  strictMode?: boolean;
+  /** Auto-navigate to first screenset on mount (default: true) */
+  autoNavigate?: boolean;
+  /** Base path for navigation (default: '/') */
+  base?: string;
+  /** Router mode: 'browser' | 'hash' | 'memory' (default: 'browser') */
+  routerMode?: 'browser' | 'hash' | 'memory';
 }
 ```
 
-### `PluginDefinition`
+### `HAI3Plugin`
 
-Plugin definition object.
+Plugin interface returned by plugin factory functions.
 
 ```typescript
-interface PluginDefinition {
-  id: string;
-  name?: string;
-  version?: string;
+interface HAI3Plugin {
+  /** Unique plugin identifier */
+  name: string;
+  /** Plugin dependencies (other plugin names) */
   dependencies?: string[];
-  initialize(app: HAI3App): void | Promise<void>;
-  cleanup?(): void | Promise<void>;
+  /** Resources provided by this plugin */
+  provides?: PluginProvides;
+  /** Called during plugin registration phase */
+  onRegister?(registry: HAI3Registry): void;
+  /** Called after app is built */
+  onInit?(app: HAI3App): void;
+  /** Called when app is destroyed */
+  onDestroy?(): void;
 }
 ```
 
-### `PluginConfig`
+### `PluginProvides`
 
-Configuration for plugins.
+Resources that plugins can provide to the application.
 
 ```typescript
-type PluginConfig = {
-  [key: string]: any;
+interface PluginProvides {
+  /** Registries to add to app instance */
+  registries?: Record<string, any>;
+  /** Redux slices to register */
+  slices?: SliceObject[];
+  /** Effect initializers */
+  effects?: EffectInitializer[];
+  /** Actions to add to app.actions */
+  actions?: Record<string, Function>;
 }
 ```
 

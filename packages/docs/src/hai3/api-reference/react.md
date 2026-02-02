@@ -13,12 +13,17 @@ Complete API reference for `@hai3/react` package.
 
 Root provider component for HAI3 applications.
 
+::: tip Component vs Type
+`HAI3Provider` is a **React component** for providing the HAI3 context. Don't confuse it with `HAI3App`, which is a **TypeScript type** for the application instance (not a component).
+:::
+
 ```typescript
 function HAI3Provider(props: HAI3ProviderProps): JSX.Element
 ```
 
 **Props:**
-- `app`: HAI3App instance from `createHAI3().build()`
+- `app?`: Optional HAI3App instance from `createHAI3().build()` (creates one internally if omitted)
+- `config?`: Optional HAI3Config for automatic app creation
 - `children`: React children
 
 **Example:**
@@ -34,38 +39,6 @@ function App() {
     <HAI3Provider app={app}>
       <YourApp />
     </HAI3Provider>
-  );
-}
-```
-
-### `HAI3App`
-
-Convenience component that creates app and provides it.
-
-```typescript
-function HAI3App(props: HAI3AppProps): JSX.Element
-```
-
-**Props:**
-- `screensets`: Array of screensets to register
-- `initialScreenset`: Initial screenset ID
-- `theme?`: Initial theme ID
-- `language?`: Initial language code
-- `plugins?`: Additional plugins
-
-**Example:**
-
-```typescript
-import { HAI3App } from '@hai3/react';
-
-export default function App() {
-  return (
-    <HAI3App
-      screensets={[dashboardScreenset, settingsScreenset]}
-      initialScreenset="dashboard"
-      theme="light"
-      language="en"
-    />
   );
 }
 ```
@@ -96,38 +69,6 @@ function Layout() {
 }
 ```
 
-### `Screen`
-
-Wrapper component for screens.
-
-```typescript
-function Screen(props: ScreenProps): JSX.Element
-```
-
-**Props:**
-- `title?`: Screen title (for document title)
-- `loading?`: Show loading state
-- `error?`: Show error state
-- `className?`: CSS class name
-- `children`: Screen content
-
-**Example:**
-
-```typescript
-import { Screen } from '@hai3/react';
-
-export function DashboardScreen() {
-  return (
-    <Screen
-      title="Dashboard"
-      loading={isLoading}
-      error={error}
-    >
-      <div>Dashboard content</div>
-    </Screen>
-  );
-}
-```
 
 ## Hooks
 
@@ -189,39 +130,38 @@ function LoginButton() {
 }
 ```
 
-### `useEventBus()`
+### Event Bus
 
-Accesses event bus for emitting and listening.
+Access the event bus directly from `@hai3/framework` for event-driven communication.
+
+**Import:**
 
 ```typescript
-function useEventBus(): EventBusHook
+import { eventBus } from '@hai3/framework';
 ```
 
-**Returns:**
-- `emit`: Emit an event
-- `on`: Subscribe to events (auto-cleanup on unmount)
-- `off`: Unsubscribe from events
+**API:**
+- `eventBus.emit(type, payload)`: Emit an event
+- `eventBus.on(type, handler)`: Subscribe to events (returns unsubscribe function)
 
 **Example:**
 
 ```typescript
-import { useEventBus } from '@hai3/react';
+import { eventBus } from '@hai3/framework';
+import { useEffect } from 'react';
 
 function ProfileEditor() {
-  const { emit, on } = useEventBus();
-
   const handleSave = () => {
-    emit({
-      type: 'profile.updated',
-      payload: { userId: '123' }
-    });
+    eventBus.emit('profile.updated', { userId: '123' });
   };
 
   useEffect(() => {
-    return on('profile.updated', (event) => {
-      console.log('Profile updated:', event.payload);
+    const unsubscribe = eventBus.on('profile.updated', (payload) => {
+      console.log('Profile updated:', payload);
     });
-  }, [on]);
+
+    return unsubscribe; // Cleanup on unmount
+  }, []);
 
   return <button onClick={handleSave}>Save</button>;
 }
@@ -265,12 +205,12 @@ function Welcome() {
 }
 ```
 
-### `useScreensetNavigation()`
+### `useNavigation()`
 
 Navigates between screensets and screens.
 
 ```typescript
-function useScreensetNavigation(): NavigationHook
+function useNavigation(): NavigationHook
 ```
 
 **Returns:**
@@ -282,10 +222,10 @@ function useScreensetNavigation(): NavigationHook
 **Example:**
 
 ```typescript
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 
 function NavigationMenu() {
-  const { navigateTo, currentScreenset } = useScreensetNavigation();
+  const { navigateTo, currentScreenset } = useNavigation();
 
   return (
     <nav>
@@ -301,12 +241,12 @@ function NavigationMenu() {
 }
 ```
 
-### `useHAI3App()`
+### `useHAI3()`
 
 Accesses HAI3 app instance.
 
 ```typescript
-function useHAI3App(): HAI3App
+function useHAI3(): HAI3App
 ```
 
 **Returns:** `HAI3App` - App instance
@@ -314,10 +254,10 @@ function useHAI3App(): HAI3App
 **Example:**
 
 ```typescript
-import { useHAI3App } from '@hai3/react';
+import { useHAI3 } from '@hai3/react';
 
 function DebugPanel() {
-  const app = useHAI3App();
+  const app = useHAI3();
 
   return (
     <div>
@@ -329,27 +269,18 @@ function DebugPanel() {
 }
 ```
 
-### `useRegistry()`
+### Accessing Registries
 
-Accesses a specific registry.
-
-```typescript
-function useRegistry<T>(name: string): Registry<T>
-```
-
-**Parameters:**
-- `name`: Registry name
-
-**Returns:** `Registry<T>` - Registry instance
+Access registries through the HAI3 app instance using `useHAI3()`.
 
 **Example:**
 
 ```typescript
-import { useRegistry } from '@hai3/react';
+import { useHAI3 } from '@hai3/react';
 
 function ThemeSelector() {
-  const themeRegistry = useRegistry<Theme>('themes');
-  const themes = themeRegistry.getAll();
+  const app = useHAI3();
+  const themes = app.themeRegistry.getAll();
 
   return (
     <select>
@@ -362,6 +293,12 @@ function ThemeSelector() {
   );
 }
 ```
+
+**Available registries:**
+- `app.screensetRegistry` - Screenset definitions
+- `app.themeRegistry` - Theme configurations
+- `app.routeRegistry` - Route mappings
+- `app.i18nRegistry` - Translations
 
 ### `useTheme()`
 
@@ -397,6 +334,99 @@ function ThemeSwitcher() {
   );
 }
 ```
+
+### `useRouteParams()`
+
+Access type-safe route parameters from the current URL.
+
+```typescript
+function useRouteParams<TScreenId>(): RouteParams
+```
+
+**Returns:** Route parameters, optionally typed based on screen ID
+
+**Basic Usage:**
+
+```typescript
+import { useRouteParams } from '@hai3/react';
+
+function UserDetailScreen() {
+  const params = useRouteParams();
+  // params: Record<string, string>
+
+  return <div>User ID: {params.id}</div>;
+}
+```
+
+**Type-Safe Usage with Module Augmentation:**
+
+First, declare your route params:
+
+```typescript
+// src/app/types/routes.ts
+import '@hai3/framework';
+
+declare module '@hai3/framework' {
+  interface RouteParams {
+    'user-detail': { userId: string };
+    'post-edit': { postId: string; section?: string };
+  }
+}
+```
+
+Then use with full type safety:
+
+```typescript
+import { useRouteParams } from '@hai3/react';
+
+function UserDetailScreen() {
+  const params = useRouteParams<'user-detail'>();
+  // params: { userId: string } - fully typed!
+
+  return <div>User ID: {params.userId}</div>;
+}
+
+function PostEditScreen() {
+  const params = useRouteParams<'post-edit'>();
+  // params: { postId: string; section?: string }
+
+  return (
+    <div>
+      <h1>Edit Post {params.postId}</h1>
+      {params.section && <p>Section: {params.section}</p>}
+    </div>
+  );
+}
+```
+
+**With Navigation:**
+
+```typescript
+import { useNavigation, useRouteParams } from '@hai3/react';
+
+function ProductList() {
+  const { navigateTo } = useNavigation();
+
+  const handleProductClick = (productId: string) => {
+    navigateTo('products', 'detail', { productId });
+  };
+
+  return <button onClick={() => handleProductClick('123')}>View Product</button>;
+}
+
+function ProductDetailScreen() {
+  const params = useRouteParams<'product-detail'>();
+  // Access params.productId with type safety
+
+  return <div>Product: {params.productId}</div>;
+}
+```
+
+**Notes:**
+- Parameters are automatically extracted from the URL
+- Module augmentation provides type safety
+- Works seamlessly with `useNavigation()`
+- Parameters are always strings (parse as needed)
 
 ## Types
 

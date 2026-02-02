@@ -70,6 +70,12 @@ This glossary defines core concepts used throughout the HAI3 documentation, cove
 **App Layer (L4)**
 : Your application code including screensets, themes, custom components, and business logic.
 
+**HAI3App (Type)**
+: A **TypeScript interface** representing the application instance returned by `createHAI3().build()`. Provides access to registries, store, and actions. **Not a React component** - use `HAI3Provider` for React.
+
+**HAI3Provider (Component)**
+: A **React component** that provides the HAI3 context to your application. Wrap your app with `<HAI3Provider>` to enable HAI3 hooks and features.
+
 ### Screensets & Screens
 
 **Screenset**
@@ -303,17 +309,21 @@ HAI3 is designed to be extended without modifying core code. Here are the primar
 Screensets are the primary way to add features to your application.
 
 ```tsx
-import { defineScreenset } from '@hai3/screensets';
-import { MyScreen } from './MyScreen';
+import type { ScreensetDefinition } from '@hai3/screensets';
+import { ScreensetCategory } from '@hai3/screensets';
 
-export const myScreenset = defineScreenset({
+export const myScreenset: ScreensetDefinition = {
   id: 'my-feature',
   name: 'My Feature',
-  screens: {
-    main: MyScreen
-  },
-  defaultScreen: 'main'
-});
+  category: ScreensetCategory.Production,
+  defaultScreen: 'main',
+  menu: [
+    {
+      menuItem: { id: 'main', label: 'Main' },
+      screen: () => import('./MyScreen')
+    }
+  ]
+};
 ```
 
 [Full guide →](/hai3/guides/creating-screensets)
@@ -323,15 +333,16 @@ export const myScreenset = defineScreenset({
 Extend HAI3's functionality through the plugin system.
 
 ```tsx
-import { createPlugin } from '@hai3/framework';
+import type { HAI3Plugin } from '@hai3/framework';
 
-export const myPlugin = createPlugin({
-  id: 'my-plugin',
-  name: 'My Plugin',
-  initialize: (app) => {
-    // Setup logic
-  }
-});
+export function myPlugin(): HAI3Plugin {
+  return {
+    name: 'my-plugin',
+    onInit(app) {
+      // Setup logic
+    }
+  };
+}
 ```
 
 [Full guide →](/hai3/concepts/plugins)
@@ -412,16 +423,19 @@ export const mySlice = createSlice({
 React to events from other parts of the application.
 
 ```tsx
-import { useEventBus } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
+import { useEffect } from 'react';
 
 export function MyComponent() {
-  const { on } = useEventBus();
-
   useEffect(() => {
-    return on('user.profile.updated', (event) => {
-      console.log('Profile updated:', event.payload);
+    const unsubscribe = eventBus.on('user.profile.updated', (payload) => {
+      console.log('Profile updated:', payload);
     });
-  }, [on]);
+
+    return unsubscribe; // Cleanup on unmount
+  }, []);
+
+  return null;
 }
 ```
 

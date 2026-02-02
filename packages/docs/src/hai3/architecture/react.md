@@ -266,15 +266,15 @@ function Welcome() {
 - `setLanguage(code)`: Change language
 - `languages`: Available languages
 
-### useScreensetNavigation
+### useNavigation
 
 Navigate between screensets and screens:
 
 ```tsx
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 
 function NavigationMenu() {
-  const { navigateTo, currentScreenset, currentScreen } = useScreensetNavigation();
+  const { navigateTo, currentScreenset, currentScreen } = useNavigation();
 
   return (
     <nav>
@@ -296,15 +296,15 @@ function NavigationMenu() {
 - `currentScreen`: Current screen ID
 - `goBack()`: Navigate back in history
 
-### useHAI3App
+### useHAI3
 
 Access the HAI3 app instance:
 
 ```tsx
-import { useHAI3App } from '@hai3/react';
+import { useHAI3 } from '@hai3/react';
 
 function DebugPanel() {
-  const app = useHAI3App();
+  const app = useHAI3();
 
   return (
     <div>
@@ -318,16 +318,16 @@ function DebugPanel() {
 
 **Returns:** HAI3App instance
 
-### useRegistry
+### Accessing Registries
 
-Access a specific registry:
+Access registries through the HAI3 app instance:
 
 ```tsx
-import { useRegistry } from '@hai3/react';
+import { useHAI3 } from '@hai3/react';
 
 function ThemeSelector() {
-  const themeRegistry = useRegistry('themes');
-  const themes = themeRegistry.getAll();
+  const app = useHAI3();
+  const themes = app.themeRegistry.getAll();
 
   return (
     <select>
@@ -341,10 +341,11 @@ function ThemeSelector() {
 }
 ```
 
-**Usage:**
-```typescript
-const registry = useRegistry<T>(registryName);
-```
+**Available registries:**
+- `app.screensetRegistry`
+- `app.themeRegistry`
+- `app.routeRegistry`
+- `app.i18nRegistry`
 
 ## Patterns and Examples
 

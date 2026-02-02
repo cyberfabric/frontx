@@ -96,17 +96,16 @@ HAI3 apps start with a `HAI3App` component:
 
 ```tsx
 // src/App.tsx
-import { HAI3App } from '@hai3/react';
-import { authScreenset } from './screensets/auth';
-import { dashboardScreenset } from './screensets/dashboard';
+import { HAI3Provider, AppRouter } from '@hai3/react';
+import { Layout } from './layout';
 
 export default function App() {
   return (
-    <HAI3App
-      screensets={[authScreenset, dashboardScreenset]}
-      initialScreenset="dashboard"
-      theme="default"
-    />
+    <HAI3Provider>
+      <Layout>
+        <AppRouter />
+      </Layout>
+    </HAI3Provider>
   );
 }
 ```
@@ -117,7 +116,7 @@ A **screenset** is a collection of related screens (e.g., login, signup, forgot 
 
 ```bash
 # Using the CLI
-hai3 generate screenset profile
+hai3 screenset create profile
 
 # Or create manually
 mkdir -p src/screensets/profile
@@ -126,32 +125,32 @@ mkdir -p src/screensets/profile
 Create `src/screensets/profile/index.ts`:
 
 ```tsx
-import { defineScreenset } from '@hai3/screensets';
-import { ProfileScreen } from './ProfileScreen';
+import type { ScreensetDefinition } from '@hai3/screensets';
+import { ScreensetCategory } from '@hai3/screensets';
 
-export const profileScreenset = defineScreenset({
+export const profileScreenset: ScreensetDefinition = {
   id: 'profile',
   name: 'User Profile',
-  screens: {
-    view: ProfileScreen
-  },
-  defaultScreen: 'view'
-});
+  category: ScreensetCategory.Production,
+  defaultScreen: 'view',
+  menu: [
+    {
+      menuItem: { id: 'view', label: 'Profile' },
+      screen: () => import('./ProfileScreen')
+    }
+  ]
+};
 ```
 
 Create `src/screensets/profile/ProfileScreen.tsx`:
 
 ```tsx
-import { Screen } from '@hai3/react';
-
 export function ProfileScreen() {
   return (
-    <Screen title="Profile">
-      <div>
-        <h1>User Profile</h1>
-        <p>Welcome to your profile page!</p>
-      </div>
-    </Screen>
+    <div>
+      <h1>User Profile</h1>
+      <p>Welcome to your profile page!</p>
+    </div>
   );
 }
 ```
@@ -161,15 +160,19 @@ export function ProfileScreen() {
 Update `src/App.tsx`:
 
 ```tsx
-import { HAI3App } from '@hai3/react';
-import { profileScreenset } from './screensets/profile';
+import { HAI3Provider, AppRouter } from '@hai3/react';
+import { Layout } from './layout';
+
+// Screensets are auto-discovered from src/screensets/
+// No need to import them in App.tsx
 
 export default function App() {
   return (
-    <HAI3App
-      screensets={[profileScreenset]}
-      initialScreenset="profile"
-    />
+    <HAI3Provider>
+      <Layout>
+        <AppRouter />
+      </Layout>
+    </HAI3Provider>
   );
 }
 ```
@@ -179,17 +182,18 @@ export default function App() {
 Use the navigation hooks to move between screensets:
 
 ```tsx
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 
 export function DashboardScreen() {
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
 
   return (
-    <Screen title="Dashboard">
+    <div>
+      <h1>Dashboard</h1>
       <button onClick={() => navigateTo('profile', 'view')}>
         Go to Profile
       </button>
-    </Screen>
+    </div>
   );
 }
 ```
@@ -222,14 +226,46 @@ Now that you have a basic HAI3 app running, explore these topics:
 
 ### Adding a New Screen to a Screenset
 
-```bash
-hai3 generate screen profile/edit
+Create a new screen component in your screenset directory and add it to the menu:
+
+```tsx
+// src/screensets/profile/EditScreen.tsx
+export function EditScreen() {
+  return (
+    <div>
+      <h1>Edit Profile</h1>
+      {/* Your form here */}
+    </div>
+  );
+}
+
+// src/screensets/profile/index.ts - add to menu array
+menu: [
+  { menuItem: { id: 'view', label: 'Profile' }, screen: () => import('./ProfileScreen') },
+  { menuItem: { id: 'edit', label: 'Edit' }, screen: () => import('./EditScreen') }
+]
 ```
 
 ### Creating an API Service
 
-```bash
-hai3 generate service users
+Create a service class extending `BaseApiService`:
+
+```tsx
+// src/services/UsersService.ts
+import { BaseApiService } from '@hai3/api';
+
+export class UsersService extends BaseApiService {
+  constructor() {
+    super('users', {
+      baseURL: 'https://api.example.com',
+      protocol: 'rest'
+    });
+  }
+
+  async getUser(id: string) {
+    return this.get(`/users/${id}`);
+  }
+}
 ```
 
 ### Adding State Management
@@ -251,17 +287,26 @@ export const userSlice = createSlice({
 ### Emitting and Listening to Events
 
 ```tsx
-import { useEventBus } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
+import { useEffect } from 'react';
 
 // Emit an event
-const { emit } = useEventBus();
-emit({ type: 'user.profile.updated', payload: profile });
+function updateProfile(profile) {
+  eventBus.emit('user.profile.updated', profile);
+}
 
 // Listen to an event
-const { on } = useEventBus();
-on('user.profile.updated', (event) => {
-  console.log('Profile updated:', event.payload);
-});
+function ProfileListener() {
+  useEffect(() => {
+    const unsubscribe = eventBus.on('user.profile.updated', (payload) => {
+      console.log('Profile updated:', payload);
+    });
+
+    return unsubscribe; // Cleanup on unmount
+  }, []);
+
+  return null;
+}
 ```
 
 ## Troubleshooting

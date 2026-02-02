@@ -33,20 +33,30 @@ Think of screensets as feature modules with boundaries:
 ### Modularity
 
 ```typescript
-// Each screenset is self-contained
-const authScreenset = defineScreenset({
-  id: 'auth',
-  screens: { login, signup },
-  state: authSlice,
-  translations: authI18n
-});
+import type { ScreensetDefinition } from '@hai3/screensets';
 
-const dashboardScreenset = defineScreenset({
+// Each screenset is self-contained
+const authScreenset: ScreensetDefinition = {
+  id: 'auth',
+  name: 'Authentication',
+  category: ScreensetCategory.Production,
+  defaultScreen: 'login',
+  menu: [
+    { menuItem: loginMenuItem, screen: () => import('./LoginScreen') },
+    { menuItem: signupMenuItem, screen: () => import('./SignupScreen') }
+  ]
+};
+
+const dashboardScreenset: ScreensetDefinition = {
   id: 'dashboard',
-  screens: { overview, analytics },
-  state: dashboardSlice,
-  translations: dashboardI18n
-});
+  name: 'Dashboard',
+  category: ScreensetCategory.Production,
+  defaultScreen: 'overview',
+  menu: [
+    { menuItem: overviewMenuItem, screen: () => import('./OverviewScreen') },
+    { menuItem: analyticsMenuItem, screen: () => import('./AnalyticsScreen') }
+  ]
+};
 ```
 
 Changes to `authScreenset` don't affect `dashboardScreenset`.
@@ -153,9 +163,12 @@ export const dashboardScreenset = defineScreenset({
 
 ```typescript
 // App.tsx
+import { HAI3Provider, AppRouter } from '@hai3/react';
 import { dashboardScreenset } from './screensets/dashboard';
 
-<HAI3App screensets={[dashboardScreenset]} />
+<HAI3Provider>
+  <AppRouter />
+</HAI3Provider>
 ```
 
 Screenset is registered with the framework.
@@ -203,10 +216,10 @@ navigateTo('settings', 'profile');
 ### Within Screenset
 
 ```typescript
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 
 function DashboardNav() {
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
 
   return (
     <nav>
@@ -225,7 +238,7 @@ function DashboardNav() {
 
 ```typescript
 function AppNav() {
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
 
   return (
     <nav>
@@ -248,7 +261,7 @@ navigateTo('products', 'detail', { id: '123' });
 
 // Access in screen
 function ProductDetail() {
-  const { params } = useScreenParams();
+  const { params } = useRouteParams();
   const productId = params.id;
 }
 ```

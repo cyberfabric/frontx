@@ -23,326 +23,393 @@ npx @hai3/cli create my-app
 
 ### `create`
 
-Create a new HAI3 project.
+Create a new HAI3 project or SDK layer package.
 
 ```bash
-hai3 create <name> [options]
+hai3 create <projectName> [options]
 ```
 
 **Arguments:**
-- `name`: Project name
+- `projectName`: Name of the project to create (required)
 
 **Options:**
-- `--uikit <kit>`: UI kit (`mui` | `antd` | `chakra` | `none`) (default: `mui`)
-- `--language <lang>`: Language (`typescript` | `javascript`) (default: `typescript`)
-- `--package-manager <pm>`: Package manager (`npm` | `yarn` | `pnpm`) (default: `npm`)
-- `--template <template>`: Template name (default: `default`)
-- `--no-install`: Skip dependency installation
+- `--studio`: Include Studio package (boolean)
+- `--uikit <kit>`: UI Kit selection (`hai3` | `none`)
+- `--layer <layer>` or `-l <layer>`: Create SDK layer package (`sdk` | `framework` | `react`)
 
 **Examples:**
 
 ```bash
-# Create with defaults (TypeScript + MUI)
+# Create a new HAI3 project
 hai3 create my-app
 
-# Create with Ant Design
-hai3 create my-app --uikit=antd
+# Create with Studio included
+hai3 create my-app --studio
 
 # Create without UI kit
 hai3 create my-app --uikit=none
 
-# Create with pnpm
-hai3 create my-app --package-manager=pnpm
-
-# Create without installing dependencies
-hai3 create my-app --no-install
+# Create a new SDK layer package
+hai3 create my-package --layer=sdk
 ```
 
-### `generate screenset`
+---
 
-Generate a new screenset.
+### `screenset create`
+
+Create a new screenset with an initial screen.
 
 ```bash
-hai3 generate screenset <name> [options]
+hai3 screenset create <name> [options]
 ```
 
 **Arguments:**
-- `name`: Screenset name (kebab-case)
+- `name`: Screenset name in camelCase (required)
 
 **Options:**
-- `--with-state`: Include Redux slice
-- `--with-i18n`: Include translations
-- `--screens <names>`: Comma-separated initial screen names
+- `--category <cat>` or `-c <cat>`: Screenset category (`drafts` | `mockups` | `production`) (default: `drafts`)
+- `--skip-validation`: Skip post-creation validation
 
 **Examples:**
 
 ```bash
-# Basic screenset
-hai3 generate screenset dashboard
+# Create a new screenset
+hai3 screenset create dashboard
 
-# With initial screens
-hai3 generate screenset dashboard --screens=overview,analytics
+# Create as production screenset
+hai3 screenset create dashboard --category=production
 
-# With state and i18n
-hai3 generate screenset dashboard --with-state --with-i18n
+# Create without validation
+hai3 screenset create dashboard --skip-validation
 ```
 
-**Generates:**
+**Notes:**
+- Must be run from within a HAI3 project
+- Screenset names must be camelCase
+- Creates initial screen and boilerplate files
+- Runs validation by default
 
-```
-src/screensets/dashboard/
-├── index.ts
-├── screens/
-│   └── Main.tsx
-├── components/
-├── state/
-│   └── dashboardSlice.ts
-└── translations/
-    ├── en.json
-    └── es.json
-```
+---
 
-### `generate screen`
+### `screenset copy`
 
-Generate a new screen in a screenset.
+Copy an existing screenset with transformed IDs.
 
 ```bash
-hai3 generate screen <screenset>/<name> [options]
+hai3 screenset copy <source> <target> [options]
 ```
 
 **Arguments:**
-- `screenset`: Screenset name
-- `name`: Screen name (PascalCase)
+- `source`: Name of the source screenset (required)
+- `target`: Name of the target screenset (required)
 
 **Options:**
-- `--type <type>`: Screen type (`standard` | `form` | `list` | `detail`) (default: `standard`)
+- `--category <cat>` or `-c <cat>`: Screenset category for the copy (`drafts` | `mockups` | `production`)
 
 **Examples:**
 
 ```bash
-# Standard screen
-hai3 generate screen dashboard/Analytics
+# Copy a screenset
+hai3 screenset copy dashboard analytics
 
-# Form screen
-hai3 generate screen settings/ProfileEdit --type=form
-
-# List screen
-hai3 generate screen products/ProductList --type=list
+# Copy with different category
+hai3 screenset copy dashboard reports --category=production
 ```
 
-**Generates:**
+**Notes:**
+- Automatically transforms all IDs from source to target
+- Preserves file structure and patterns
+- Updates imports and references
 
-```
-src/screensets/dashboard/screens/Analytics.tsx
-```
+---
 
-### `generate service`
+### `validate components`
 
-Generate an API service.
+Validate component structure and placement according to HAI3 architecture rules.
 
 ```bash
-hai3 generate service <name> [options]
+hai3 validate components [path]
 ```
 
 **Arguments:**
-- `name`: Service name (PascalCase)
-
-**Options:**
-- `--mock`: Include mock plugin
-- `--methods <methods>`: Comma-separated HTTP methods (`get,post,put,delete`)
+- `path`: Path to validate (optional, defaults to `src/screensets/`)
 
 **Examples:**
 
 ```bash
-# Basic service
-hai3 generate service Tasks
+# Validate all screensets
+hai3 validate components
 
-# With mock data
-hai3 generate service Tasks --mock
-
-# With specific methods
-hai3 generate service Tasks --methods=get,post
+# Validate specific path
+hai3 validate components src/screensets/dashboard
 ```
 
-**Generates:**
+**Validation Rules:**
+- Detects inline components (should be extracted)
+- Detects inline data (should be in constants)
+- Detects UIKit impurity (business logic in UI components)
+- Detects inline styles (should use theme tokens)
+- Detects hardcoded hex colors
 
-```
-src/services/api/tasksApi.ts
-```
+**Exit Codes:**
+- `0`: All validations passed
+- `1`: Violations found
 
-### `generate slice`
+---
 
-Generate a Redux slice.
+### `scaffold layout`
+
+Generate layout components in your project.
 
 ```bash
-hai3 generate slice <name> [options]
+hai3 scaffold layout [options]
 ```
 
-**Arguments:**
-- `name`: Slice name (camelCase)
-
 **Options:**
-- `--with-thunks`: Include async thunk examples
+- `--force` or `-f`: Overwrite existing layout files (boolean)
 
 **Examples:**
 
 ```bash
-hai3 generate slice user
+# Generate layout components
+hai3 scaffold layout
 
-hai3 generate slice products --with-thunks
+# Force overwrite existing files
+hai3 scaffold layout --force
 ```
 
-**Generates:**
+**Generated Files:**
+- Header, Footer, Menu, Sidebar components
+- Layout wrapper component
+- Theme configuration
+- Initial styling
 
-```
-src/state/userSlice.ts
-```
+**Notes:**
+- Must be run from within a HAI3 project
+- Prompts before overwriting by default
 
-### `dev`
-
-Start development server.
-
-```bash
-hai3 dev [options]
-```
-
-**Options:**
-- `--port <port>`: Port number (default: `5173`)
-- `--host <host>`: Host address (default: `localhost`)
-- `--open`: Open browser automatically
-
-**Example:**
-
-```bash
-hai3 dev --port=3000 --open
-```
-
-### `build`
-
-Build for production.
-
-```bash
-hai3 build [options]
-```
-
-**Options:**
-- `--report`: Generate bundle analysis report
-- `--mode <mode>`: Build mode (`production` | `development`)
-
-**Example:**
-
-```bash
-hai3 build --report
-```
-
-### `validate`
-
-Validate project structure and dependencies.
-
-```bash
-hai3 validate [options]
-```
-
-**Options:**
-- `--fix`: Auto-fix issues where possible
-
-**Example:**
-
-```bash
-hai3 validate --fix
-```
-
-**Checks:**
-- Layer dependencies (no reverse imports)
-- Component usage (MUI/Ant Design/Chakra consistency)
-- TypeScript configuration
-- Package versions
+---
 
 ### `update`
 
-Update HAI3 packages and templates.
+Update HAI3 CLI and project packages to the latest version.
 
 ```bash
 hai3 update [options]
 ```
 
 **Options:**
-- `--dry-run`: Show what would be updated
-- `--force`: Force update without prompts
+- `--alpha` or `-a`: Update to latest alpha/prerelease version (boolean)
+- `--package-manager <pm>` or `-pm <pm>`: Package manager to use (`npm` | `yarn` | `pnpm`)
 
-**Example:**
-
-```bash
-hai3 update --dry-run
-```
-
-### `info`
-
-Display project information.
+**Examples:**
 
 ```bash
-hai3 info
+# Update to latest stable
+hai3 update
+
+# Update to latest alpha
+hai3 update --alpha
+
+# Update using yarn
+hai3 update --package-manager=yarn
 ```
 
-**Output:**
-- HAI3 version
-- UI kit
-- Screensets
-- Plugins
-- Dependencies
+**Updates:**
+- `@hai3/cli` globally
+- All `@hai3/*` packages in project
+- Maintains version consistency
+
+---
+
+### `update layout`
+
+Update layout components from templates.
+
+```bash
+hai3 update layout [options]
+```
+
+**Options:**
+- `--force` or `-f`: Force update without prompting (boolean)
+
+**Examples:**
+
+```bash
+# Update layout components
+hai3 update layout
+
+# Force update
+hai3 update layout --force
+```
+
+**Notes:**
+- Updates layout templates to latest version
+- Preserves custom modifications where possible
+- Shows diff before applying
+
+---
+
+### `migrate`
+
+Apply codemod migrations to update HAI3 projects between versions.
+
+```bash
+hai3 migrate [targetVersion] [options]
+```
+
+**Arguments:**
+- `targetVersion`: Target version to migrate to (optional, e.g., `"0.2.0"`)
+
+**Options:**
+- `--dry-run` or `-d`: Show what would be changed without applying (boolean)
+- `--force` or `-f`: Force migration without prompts (boolean)
+
+**Examples:**
+
+```bash
+# Migrate to latest version
+hai3 migrate
+
+# Migrate to specific version
+hai3 migrate 0.2.0
+
+# Dry run (preview changes)
+hai3 migrate --dry-run
+
+# Force migration
+hai3 migrate 0.2.0 --force
+```
+
+**Migration Types:**
+- API changes (renamed exports, changed signatures)
+- File structure updates
+- Configuration migrations
+- Breaking change adaptations
+
+**Safety:**
+- Creates backup before migration
+- Can be rolled back
+- Shows detailed diff
+
+---
+
+### `ai sync`
+
+Sync AI assistant configuration files for Claude Code, GitHub Copilot, Cursor, and Windsurf.
+
+```bash
+hai3 ai sync [options]
+```
+
+**Options:**
+- `--tool <tool>` or `-t <tool>`: Specific tool to sync (`claude` | `copilot` | `cursor` | `windsurf` | `all`) (default: `all`)
+- `--detect-packages` or `-d`: Auto-detect installed packages (boolean)
+
+**Examples:**
+
+```bash
+# Sync all AI tools
+hai3 ai sync
+
+# Sync only Claude Code
+hai3 ai sync --tool=claude
+
+# Sync with package detection
+hai3 ai sync --detect-packages
+```
+
+**Synced Files:**
+- `.claude/commands/` - Claude Code commands
+- `.github/copilot-instructions.md` - Copilot instructions
+- `.cursorrules` - Cursor rules
+- `.windsurfrules` - Windsurf rules
+
+**Notes:**
+- Generates tool-specific configuration
+- Includes HAI3 architecture guidelines
+- Updates on package.json changes
+
+---
 
 ## Global Options
 
-Available for all commands:
+All commands support these global options:
 
-- `--help, -h`: Show help
-- `--version, -v`: Show version
-- `--verbose`: Verbose output
-- `--quiet`: Minimal output
+- `--quiet` or `-q`: Suppress non-error output
+- `--version` or `-v`: Show version number
+- `--help` or `-h`: Show help
 
-**Example:**
+**Examples:**
 
 ```bash
-hai3 create my-app --help
+# Quiet mode
+hai3 screenset create dashboard --quiet
+
+# Show version
 hai3 --version
+
+# Show help for specific command
+hai3 screenset create --help
 ```
+
+---
+
+## Command Patterns
+
+### Namespaced Commands
+
+HAI3 CLI uses colon notation for command namespaces:
+
+```bash
+hai3 screenset:create <name>    # Full notation
+hai3 screenset create <name>    # Alias (space works too)
+```
+
+### Validation
+
+Many commands include automatic validation:
+
+```bash
+# Runs validation after creation
+hai3 screenset create dashboard
+
+# Skip validation
+hai3 screenset create dashboard --skip-validation
+
+# Explicit validation command
+hai3 validate components
+```
+
+---
+
+## Exit Codes
+
+| Code | Meaning |
+|------|---------|
+| 0 | Success |
+| 1 | Validation error or command failure |
+| 2 | Invalid arguments |
+| 130 | User cancelled (Ctrl+C) |
+
+---
 
 ## Configuration
 
-### `.hai3rc.json`
-
-Project configuration file:
+Commands respect project configuration in `.hai3rc.json`:
 
 ```json
 {
-  "uikit": "mui",
-  "language": "typescript",
-  "features": {
-    "i18n": true,
-    "analytics": true
-  },
-  "paths": {
-    "screensets": "src/screensets",
-    "services": "src/services",
-    "state": "src/state"
-  }
+  "uikit": "hai3",
+  "packageManager": "npm",
+  "screensetsDir": "src/screensets"
 }
 ```
 
-## Environment Variables
-
-- `HAI3_CLI_DEBUG`: Enable debug logging
-- `HAI3_TEMPLATE_URL`: Custom template repository URL
-- `HAI3_NO_TELEMETRY`: Disable anonymous usage telemetry
-
-**Example:**
-
-```bash
-HAI3_CLI_DEBUG=true hai3 create my-app
-```
+---
 
 ## Related Documentation
 
-- [Getting Started](/getting-started)
-- [Creating Screensets](/hai3/guides/creating-screensets)
-- [API Integration](/hai3/guides/api-integration)
+- [Getting Started](/getting-started) - Project setup guide
+- [Creating Screensets](/hai3/guides/creating-screensets) - Screenset guide
+- [Framework API](/hai3/api-reference/framework) - Framework reference

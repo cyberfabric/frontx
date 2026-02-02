@@ -95,9 +95,8 @@ The React layer provides React bindings, hooks, and components. It depends **onl
 
 **Key Features:**
 - `HAI3Provider` component
-- React hooks (`useAppSelector`, `useAppDispatch`, `useTranslation`, `useEventBus`)
+- React hooks (`useAppSelector`, `useAppDispatch`, `useTranslation`, `useNavigation`, `useTheme`, `useHAI3`)
 - `AppRouter` component
-- Screen wrapper components
 
 **Example:**
 ```tsx
@@ -226,19 +225,23 @@ packages/
 All cross-domain communication happens through the event bus:
 
 ```typescript
-import { useEventBus } from '@hai3/framework';
+import { eventBus } from '@hai3/framework';
+import { useEffect } from 'react';
 
 // Emit an event
-const { emit } = useEventBus();
-emit({ type: 'user.profile.updated', payload: { userId: '123' } });
+eventBus.emit('user.profile.updated', { userId: '123' });
 
 // Listen to events
-const { on } = useEventBus();
-useEffect(() => {
-  return on('user.profile.updated', (event) => {
-    console.log('Profile updated:', event.payload);
-  });
-}, [on]);
+function ProfileListener() {
+  useEffect(() => {
+    const unsubscribe = eventBus.on('user.profile.updated', (payload) => {
+      console.log('Profile updated:', payload);
+    });
+    return unsubscribe; // Cleanup on unmount
+  }, []);
+
+  return null;
+}
 ```
 
 **Benefits:**

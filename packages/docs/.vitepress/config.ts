@@ -115,7 +115,7 @@ export default defineConfig({
               text: 'Guides',
               collapsed: false,
               items: [
-                { text: 'Getting Started', link: '/hai3/guides/getting-started' },
+                { text: 'Getting Started', link: '/getting-started' },
                 { text: 'Creating Screensets', link: '/hai3/guides/creating-screensets' },
                 { text: 'API Integration', link: '/hai3/guides/api-integration' },
                 { text: 'Deployment', link: '/hai3/guides/deployment' }

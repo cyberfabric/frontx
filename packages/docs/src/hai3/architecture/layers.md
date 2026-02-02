@@ -294,7 +294,7 @@ Provide React-specific bindings, hooks, and components.
 ### Responsibilities
 
 - **HAI3Provider:** React context provider for HAI3 app
-- **Hooks:** `useAppSelector`, `useAppDispatch`, `useTranslation`, `useEventBus`, `useScreensetNavigation`
+- **Hooks:** `useAppSelector`, `useAppDispatch`, `useTranslation`, `useEventBus`, `useNavigation`
 - **AppRouter:** Routing component
 - **Screen Components:** Wrappers for screens
 - **React Integration:** Connecting React to Framework layer

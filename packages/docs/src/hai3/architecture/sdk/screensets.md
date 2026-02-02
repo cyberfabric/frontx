@@ -324,10 +324,10 @@ dashboardScreenset.screens.invalid;    // ❌ TypeScript error
 ### Navigation Types
 
 ```typescript
-import { useScreensetNavigation } from '@hai3/react';
+import { useNavigation } from '@hai3/react';
 
 function Component() {
-  const { navigateTo } = useScreensetNavigation();
+  const { navigateTo } = useNavigation();
 
   // Type-safe navigation
   navigateTo('dashboard', 'overview');   // ✅ Valid
