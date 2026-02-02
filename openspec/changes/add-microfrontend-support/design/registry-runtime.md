@@ -7,8 +7,8 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 - [MFE Loading](./mfe-loading.md) - MfeHandler abstract class, handler registry, Module Federation loading
 - [MFE API](./mfe-api.md) - MfeEntryLifecycle interface
 - [MFE Actions](./mfe-actions.md) - Action and ActionsChain types
-- [MFE Domain](./mfe-domain.md) - ExtensionDomain type
-- [MFE Domain/Extension](./mfe-domain.md) - ExtensionDomain and Extension types
+- [MFE Domain](./mfe-domain.md) - ExtensionDomain and Extension types
+- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
 
 ---
 
@@ -233,6 +233,55 @@ class ScreensetsRegistry {
     this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
   }
 
+  // === Lifecycle Stage Triggering ===
+
+  /**
+   * Trigger a lifecycle stage for a specific extension.
+   * Executes all lifecycle hooks registered for the given stage.
+   */
+  async triggerLifecycleStage(extensionId: string, stageId: string): Promise<void> {
+    const extensionState = this.extensions.get(extensionId);
+    if (!extensionState) throw new Error(`Extension '${extensionId}' not registered`);
+    await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
+  }
+
+  /**
+   * Trigger a lifecycle stage for all extensions in a domain.
+   * Useful for custom stages like "refresh" that affect all widgets.
+   */
+  async triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    const domainState = this.domains.get(domainId);
+    if (!domainState) throw new Error(`Domain '${domainId}' not registered`);
+
+    for (const extensionId of domainState.extensions) {
+      const extensionState = this.extensions.get(extensionId);
+      if (extensionState) {
+        await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
+      }
+    }
+  }
+
+  /**
+   * Trigger a lifecycle stage for a domain itself.
+   */
+  async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    const domainState = this.domains.get(domainId);
+    if (!domainState) throw new Error(`Domain '${domainId}' not registered`);
+    await this.triggerLifecycleStageInternal(domainState.domain, stageId);
+  }
+
+  private async triggerLifecycleStageInternal(
+    entity: Extension | ExtensionDomain,
+    stageId: string
+  ): Promise<void> {
+    if (!entity.lifecycle) return;
+
+    const hooks = entity.lifecycle.filter(hook => hook.stage === stageId);
+    for (const hook of hooks) {
+      await this.executeActionsChain(hook.actions_chain);
+    }
+  }
+
   dispose(): void {
     this.parentBridge?.dispose();
     for (const bridge of this.childBridges.values()) bridge.dispose();
@@ -279,26 +328,46 @@ function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): voi
 class ScreensetsRegistry {
   async registerExtension(extension: Extension): Promise<void> {
     // Validate, verify domain exists, resolve entry, validate contract, validate uiMeta, register
+    // Trigger 'init' lifecycle stage
   }
 
   async unregisterExtension(extensionId: string): Promise<void> {
+    // Trigger 'destroyed' lifecycle stage
     // Unmount if mounted, remove from registry and domain, emit event
   }
 
   async registerDomain(domain: ExtensionDomain): Promise<void> {
     // Validate, register, emit event
+    // Trigger 'init' lifecycle stage
   }
 
   async unregisterDomain(domainId: string): Promise<void> {
+    // Trigger 'destroyed' lifecycle stage
     // Unregister all extensions first, remove domain, emit event
   }
 
   async mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
     // Get handler, load bundle, create bridge, register runtime, mount
+    // Trigger 'activated' lifecycle stage
   }
 
   async unmountExtension(extensionId: string): Promise<void> {
+    // Trigger 'deactivated' lifecycle stage
     // Dispose bridge, unregister runtime, update state
+  }
+
+  // === Lifecycle Stage Triggering ===
+
+  async triggerLifecycleStage(extensionId: string, stageId: string): Promise<void> {
+    // Trigger custom lifecycle stage for a specific extension
+  }
+
+  async triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    // Trigger custom lifecycle stage for all extensions in a domain
+  }
+
+  async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
+    // Trigger custom lifecycle stage for the domain itself
   }
 }
 ```
@@ -332,7 +401,7 @@ class InMemoryTypeInstanceProvider implements TypeInstanceProvider {
 // Dynamic registration after user action
 settingsButton.onClick = async () => {
   await runtime.registerExtension({
-    id: 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1',
+    id: 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1~',
     domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
     entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
     uiMeta: { title: 'Analytics', size: 'medium' },

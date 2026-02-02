@@ -48,13 +48,15 @@ The MFE system allows independent UI components (microfrontends) to be loaded in
 └────────────────────────────────────────────────────────────────────────┘
 ```
 
-### The Three Main Types
+### The Main Types
 
 | Type | What it is | Analogy |
 |------|-----------|---------|
 | [**Domain**](./mfe-domain.md) | A slot where MFE instances can mount (can exist at any level - host or nested MFE) | A power outlet |
 | [**Entry**](./mfe-entry-mf.md) | The MFE's contract (what it needs and provides) | A plug specification |
 | [**Extension**](./mfe-domain.md#extension) | The actual MFE instance mounted in a domain (isolated by default; custom handlers can allow sharing) | A plugged-in device |
+| [**LifecycleStage**](./mfe-lifecycle.md) | A lifecycle event type that triggers actions chains | A lifecycle hook trigger |
+| [**LifecycleHook**](./mfe-lifecycle.md) | Binds a lifecycle stage to an actions chain | A declared lifecycle behavior |
 
 ---
 
@@ -166,7 +168,7 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          ▼
     ┌─────────┐
     │ REGISTER│  Host registers Extension (binds entry to domain)
-    └────┬────┘
+    └────┬────┘  [init] lifecycle stage triggered
          │
          ▼
     ┌─────────┐
@@ -176,7 +178,7 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          ▼
     ┌─────────┐
     │  MOUNT  │  MFE's mount() called with container and bridge
-    └────┬────┘
+    └────┬────┘  [activated] lifecycle stage triggered
          │
          ▼
     ┌─────────┐
@@ -186,8 +188,15 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          ▼
     ┌─────────┐
     │ UNMOUNT │  MFE's unmount() called, cleanup performed
-    └─────────┘
+    └────┬────┘  [deactivated] lifecycle stage triggered
+         │
+         ▼
+    ┌─────────┐
+    │ UNREGISTER │  Extension removed from registry
+    └─────────┘    [destroyed] lifecycle stage triggered
 ```
+
+**Lifecycle stages** allow extensions and domains to declare explicit actions chains that execute at each stage. See [MFE Lifecycle](./mfe-lifecycle.md) for details.
 
 See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 
@@ -219,6 +228,7 @@ For detailed specifications, see:
 | [mfe-loading.md](./mfe-loading.md) | Handler architecture and bundle loading |
 | [mfe-actions.md](./mfe-actions.md) | Action types and actions chains |
 | [mfe-shared-property.md](./mfe-shared-property.md) | Shared properties |
+| [mfe-lifecycle.md](./mfe-lifecycle.md) | Lifecycle stages and hooks |
 | [mfe-api.md](./mfe-api.md) | MFE lifecycle and bridge interfaces |
 | [mfe-errors.md](./mfe-errors.md) | Error class hierarchy |
 | [type-system.md](./type-system.md) | Type system plugin and contract validation |

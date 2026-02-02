@@ -3,6 +3,7 @@
 This document contains the JSON Schema definitions for all MFE system types. These schemas are registered with the TypeSystemPlugin for runtime validation.
 
 **Related Documents:**
+- [GTS Specification](https://github.com/GlobalTypeSystem/gts-spec) - Global Type System specification
 - [Type System](./type-system.md) - TypeSystemPlugin interface, GTS implementation, contract validation
 - [MFE Entry](./mfe-entry-mf.md) - MfeEntry and MfeEntryMF type details
 - [MFE Manifest](./mfe-manifest.md) - MfManifest type details
@@ -14,7 +15,7 @@ This document contains the JSON Schema definitions for all MFE system types. The
 
 ## Overview
 
-The MFE type system consists of **6 core types** plus **2 MF-specific types**:
+The MFE type system consists of **8 core types** plus **2 MF-specific types**:
 
 | Category | Type | GTS Type ID |
 |----------|------|-------------|
@@ -24,6 +25,8 @@ The MFE type system consists of **6 core types** plus **2 MF-specific types**:
 | Core | Shared Property | `gts.hai3.screensets.ext.shared_property.v1~` |
 | Core | Action | `gts.hai3.screensets.ext.action.v1~` |
 | Core | Actions Chain | `gts.hai3.screensets.ext.actions_chain.v1~` |
+| Core | Lifecycle Stage | `gts.hai3.screensets.ext.lifecycle_stage.v1~` |
+| Core | Lifecycle Hook | `gts.hai3.screensets.ext.lifecycle_hook.v1~` |
 | MF-Specific | MF Manifest | `gts.hai3.screensets.mfe.mf.v1~` |
 | MF-Specific | MFE Entry MF (Derived) | `gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~` |
 
@@ -103,9 +106,24 @@ Defines an extension point where MFEs can be mounted.
       "type": "number",
       "minimum": 1,
       "$comment": "Default timeout in milliseconds for actions targeting this domain. REQUIRED."
+    },
+    "lifecycleStages": {
+      "type": "array",
+      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "$comment": "Lifecycle stage type IDs supported for the domain itself. Hooks referencing unsupported stages are rejected during validation."
+    },
+    "extensionsLifecycleStages": {
+      "type": "array",
+      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "$comment": "Lifecycle stage type IDs supported for extensions in this domain. Extension hooks referencing unsupported stages are rejected during validation."
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": { "type": "object", "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout"]
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
 }
 ```
 
@@ -134,6 +152,11 @@ Binds an MFE entry to a domain.
     "uiMeta": {
       "type": "object",
       "$comment": "Must conform to the domain's extensionsUiMeta schema"
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": { "type": "object", "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
   "required": ["id", "domain", "entry", "uiMeta"]
@@ -225,6 +248,53 @@ A linked structure of actions with success/failure branches.
 }
 ```
 
+### Lifecycle Stage Schema
+
+Represents a lifecycle event that can trigger actions chains.
+
+```json
+{
+  "$id": "gts://gts.hai3.screensets.ext.lifecycle_stage.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "id": {
+      "x-gts-ref": "/$id",
+      "$comment": "The GTS type ID for this lifecycle stage"
+    },
+    "description": {
+      "type": "string",
+      "$comment": "Human-readable description of when this stage triggers"
+    }
+  },
+  "required": ["id"]
+}
+```
+
+### Lifecycle Hook Schema
+
+Binds a lifecycle stage to an actions chain.
+
+```json
+{
+  "$id": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "stage": {
+      "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*",
+      "$comment": "The lifecycle stage that triggers this hook"
+    },
+    "actions_chain": {
+      "type": "object",
+      "$ref": "gts://gts.hai3.screensets.ext.actions_chain.v1~",
+      "$comment": "The actions chain to execute when the stage triggers"
+    }
+  },
+  "required": ["stage", "actions_chain"]
+}
+```
+
 ---
 
 ## MF-Specific Type Schemas
@@ -310,27 +380,64 @@ Module Federation implementation extending the base MfeEntry.
 
 ## Schema Registration
 
-All schemas are registered during ScreensetsRegistry initialization:
+### First-Class Citizen Schemas (Built-in)
+
+**Key Principle**: First-class citizen schemas are built into the GTS plugin. No explicit registration is needed.
+
+**Rationale:**
+1. **First-class types define system capabilities** - MfeEntry, ExtensionDomain, Action, etc. establish the contract model
+2. **Well-known at compile time** - These types are fixed parts of the HAI3 architecture
+3. **Changes require code changes** - Modifying these schemas requires updating the screensets package
+4. **Vendors extend, not replace** - Third parties can only create derived types within these boundaries
+
+**Built-in types (registered during GTS plugin construction):**
+- Core types (8): MfeEntry, ExtensionDomain, Extension, SharedProperty, Action, ActionsChain, LifecycleStage, LifecycleHook
+- Default lifecycle stages (4): init, activated, deactivated, destroyed
+- MF-specific types (2): MfManifest, MfeEntryMF
+
+The GTS plugin is ready to use immediately after creation - no initialization ceremony required.
+
+### Vendor Schema Registration
+
+Vendors register their derived type schemas using `registerSchema(schema)`. The type ID is extracted from the schema's `$id` field - no need to specify it separately.
 
 ```typescript
-// packages/screensets/src/mfe/init.ts
+// Vendor schema registration example
 
-import { mfeGtsSchemas } from './schemas/gts-schemas';
+// Vendor-specific derived action type
+const acmeDataUpdatedSchema: JSONSchema = {
+  "$id": "gts://gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    { "$ref": "gts://gts.hai3.screensets.ext.action.v1~" }
+  ],
+  "properties": {
+    "payload": {
+      "type": "object",
+      "properties": {
+        "datasetId": { "type": "string" },
+        "metrics": { "type": "array", "items": { "type": "string" } }
+      },
+      "required": ["datasetId", "metrics"]
+    }
+  }
+};
 
-function registerHai3Types(plugin: TypeSystemPlugin): void {
-  // Register core schemas (6 types)
-  plugin.registerSchema('gts.hai3.screensets.mfe.entry.v1~', mfeGtsSchemas.mfeEntry);
-  plugin.registerSchema('gts.hai3.screensets.ext.domain.v1~', mfeGtsSchemas.extensionDomain);
-  plugin.registerSchema('gts.hai3.screensets.ext.extension.v1~', mfeGtsSchemas.extension);
-  plugin.registerSchema('gts.hai3.screensets.ext.shared_property.v1~', mfeGtsSchemas.sharedProperty);
-  plugin.registerSchema('gts.hai3.screensets.ext.action.v1~', mfeGtsSchemas.action);
-  plugin.registerSchema('gts.hai3.screensets.ext.actions_chain.v1~', mfeGtsSchemas.actionsChain);
+// Register vendor schema - type ID extracted from $id
+plugin.registerSchema(acmeDataUpdatedSchema);
 
-  // Register MF-specific schemas (2 types)
-  plugin.registerSchema('gts.hai3.screensets.mfe.mf.v1~', mfeGtsSchemas.mfManifest);
-  plugin.registerSchema(
-    'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~',
-    mfeGtsSchemas.mfeEntryMf
-  );
-}
+// Vendor-specific derived entry type
+const acmeChartEntrySchema: JSONSchema = {
+  "$id": "gts://gts.hai3.screensets.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "allOf": [
+    { "$ref": "gts://gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~" }
+  ],
+  "properties": {
+    "chartType": { "enum": ["bar", "line", "pie", "scatter"] },
+    "dataSource": { "type": "string" }
+  }
+};
+
+plugin.registerSchema(acmeChartEntrySchema);
 ```

@@ -235,7 +235,7 @@ interface ActionsChainsMediator {
 }
 
 interface ActionHandler {
-  handleAction(actionId: string, payload: unknown): Promise<void>;
+  handleAction(actionTypeId: string, payload: unknown): Promise<void>;
 }
 
 interface ChainResult {
@@ -354,67 +354,15 @@ interface ChainResult {
 }
 ```
 
-### Method Signatures
+### Timeout Resolution in ActionsChainsMediator
 
-```typescript
-/**
- * ActionsChainsMediator interface
- *
- * Action-level timeouts are resolved from type definitions:
- * - domain.defaultActionTimeout (required)
- * - action.timeout (optional override)
- *
- * Timeout is treated as a failure - the ActionsChain.fallback handles all failures uniformly.
- */
-interface ActionsChainsMediator {
-  /** The Type System plugin used by this mediator */
-  readonly typeSystem: TypeSystemPlugin;
+The `ActionsChainsMediator` interface (defined above) resolves action timeouts from type definitions:
+- `domain.defaultActionTimeout` (required) - default for all actions targeting the domain
+- `action.timeout` (optional) - override for a specific action
 
-  /**
-   * Execute an action chain, routing to targets and handling success/failure branching.
-   *
-   * Action timeouts are determined by:
-   *   action.timeout ?? domain.defaultActionTimeout
-   *
-   * On timeout or any other failure: execute fallback chain if defined.
-   *
-   * @param chain - The actions chain to execute
-   * @param options - Optional chain-level execution options
-   */
-  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+Timeout is treated as a failure - the `ActionsChain.fallback` handles all failures uniformly.
 
-  /**
-   * Deliver an action chain (internal routing).
-   * @param chain - The actions chain to deliver
-   * @param options - Optional chain-level execution options
-   */
-  deliver(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
-
-  // ... other methods unchanged
-}
-
-/**
- * MfeBridgeConnection interface
- */
-interface MfeBridgeConnection extends MfeBridge {
-  /** Unique instance ID for this bridge connection */
-  readonly instanceId: string;
-
-  /**
-   * Send an actions chain to the MFE.
-   * Used for domain-to-extension communication.
-   *
-   * Action timeouts come from the Action and domain type definitions.
-   *
-   * @param chain - ActionsChain to deliver
-   * @param options - Optional chain-level execution options
-   * @returns ChainResult indicating execution outcome
-   */
-  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
-
-  // ... other methods unchanged
-}
-```
+See [MFE API](./mfe-api.md) for the complete `MfeBridgeConnection` interface.
 
 ### Usage Example
 

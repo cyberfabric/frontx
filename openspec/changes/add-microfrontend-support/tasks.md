@@ -81,13 +81,15 @@
 
 ### 3.1 Define MFE TypeScript Interfaces
 
-**Core Types (6 types):**
+**Core Types (8 types):**
 - [ ] 3.1.1 Create `MfeEntry` interface (id, requiredProperties, optionalProperties, actions, domainActions)
-- [ ] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMeta, defaultActionTimeout)
-- [ ] 3.1.3 Create `Extension` interface (id, domain, entry, uiMeta)
+- [ ] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMeta, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, lifecycle?)
+- [ ] 3.1.3 Create `Extension` interface (id, domain, entry, uiMeta, lifecycle?)
 - [ ] 3.1.4 Create `SharedProperty` interface (id, value)
 - [ ] 3.1.5 Create `Action` interface (type, target, payload?, timeout?)
 - [ ] 3.1.6 Create `ActionsChain` interface (action: Action, next?: ActionsChain, fallback?: ActionsChain) - no id field
+- [ ] 3.1.6a Create `LifecycleStage` interface (id, description?)
+- [ ] 3.1.6b Create `LifecycleHook` interface (stage, actions_chain)
 
 **Module Federation Types (2 types):**
 - [ ] 3.1.7 Create `MfManifest` interface (id, remoteEntry, remoteName, sharedDependencies?, entries?)
@@ -98,13 +100,15 @@
 
 ### 3.2 Create GTS JSON Schemas
 
-**Core Type Schemas (6 types):**
+**Core Type Schemas (8 types):**
 - [ ] 3.2.1 Create schema for `gts.hai3.screensets.mfe.entry.v1~` with id field
-- [ ] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required) fields
+- [ ] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required), lifecycleStages, extensionsLifecycleStages fields
 - [ ] 3.2.3 Create schema for `gts.hai3.screensets.ext.extension.v1~` with id field
 - [ ] 3.2.4 Create schema for `gts.hai3.screensets.ext.shared_property.v1~` with id and value fields
 - [ ] 3.2.5 Create schema for `gts.hai3.screensets.ext.action.v1~` with type, target, timeout (optional) fields (no id)
 - [ ] 3.2.6 Create schema for `gts.hai3.screensets.ext.actions_chain.v1~` with $ref syntax (no id field)
+- [ ] 3.2.6a Create schema for `gts.hai3.screensets.ext.lifecycle_stage.v1~` with id, description? fields
+- [ ] 3.2.6b Create schema for `gts.hai3.screensets.ext.lifecycle_hook.v1~` with stage, actions_chain fields
 
 **Module Federation Schemas (2 types):**
 - [ ] 3.2.7 Create schema for `gts.hai3.screensets.mfe.mf.v1~` (MfManifest) with id field
@@ -115,10 +119,10 @@
 
 ### 3.3 HAI3 Type Registration
 
-- [ ] 3.3.1 Define `HAI3_CORE_TYPE_IDS` constant with 6 core GTS type IDs
+- [ ] 3.3.1 Define `HAI3_CORE_TYPE_IDS` constant with 8 core GTS type IDs
 - [ ] 3.3.2 Define `HAI3_MF_TYPE_IDS` constant with 2 Module Federation GTS type IDs
 - [ ] 3.3.3 Implement `registerHai3Types(plugin)` function
-- [ ] 3.3.4 Register all 8 schemas (6 core + 2 MF) using `plugin.registerSchema()`
+- [ ] 3.3.4 Register all 10 schemas (8 core + 2 MF) using `plugin.registerSchema()`
 - [ ] 3.3.5 Return combined type IDs for runtime use
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - HAI3 type registration via plugin

@@ -6,6 +6,7 @@ This document covers the ExtensionDomain and Extension types and their usage in 
 - [MFE Entry](./mfe-entry-mf.md) - MfeEntry contract definition
 - [MFE Actions](./mfe-actions.md) - Action types and mediation
 - [MFE Shared Property](./mfe-shared-property.md) - Property definitions
+- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
 - [Type System](./type-system.md) - Contract validation rules
 
 ---
@@ -65,9 +66,24 @@ The domain defines the contract with [extensions](#extension) by declaring:
       "type": "number",
       "minimum": 1,
       "$comment": "Default timeout in milliseconds for actions targeting this domain. REQUIRED. All actions use this unless they specify their own timeout override."
+    },
+    "lifecycleStages": {
+      "type": "array",
+      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "$comment": "Lifecycle stage type IDs supported for the domain itself. Hooks referencing unsupported stages are rejected during validation."
+    },
+    "extensionsLifecycleStages": {
+      "type": "array",
+      "items": { "x-gts-ref": "gts.hai3.screensets.ext.lifecycle_stage.v1~*" },
+      "$comment": "Lifecycle stage type IDs supported for extensions in this domain. Extension hooks referencing unsupported stages are rejected during validation."
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": { "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout"]
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
 }
 ```
 
@@ -91,6 +107,12 @@ interface ExtensionDomain {
   extensionsUiMeta: JSONSchema;
   /** Default timeout for actions targeting this domain (milliseconds, REQUIRED) */
   defaultActionTimeout: number;
+  /** Lifecycle stage type IDs supported for the domain itself */
+  lifecycleStages: string[];
+  /** Lifecycle stage type IDs supported for extensions in this domain */
+  extensionsLifecycleStages: string[];
+  /** Optional lifecycle hooks - explicitly declared actions for each stage */
+  lifecycle?: LifecycleHook[];
 }
 ```
 
@@ -98,35 +120,12 @@ interface ExtensionDomain {
 
 ## Contract Matching
 
-For an MFE entry to be mountable into a domain, the following subset relationships must hold:
+For an MFE entry to be mountable into a domain:
+1. `entry.requiredProperties` ⊆ `domain.sharedProperties`
+2. `entry.actions` ⊆ `domain.extensionsActions`
+3. `domain.actions` ⊆ `entry.domainActions`
 
-```
-+-------------------+                      +-------------------+
-|   MfeEntry        |                      |  ExtensionDomain  |
-+-------------------+                      +-------------------+
-|                   |                      |                   |
-| requiredProperties| -----(subset)------> | sharedProperties  |
-|                   |   Domain provides    |                   |
-|                   |   all required props |                   |
-+-------------------+                      +-------------------+
-|                   |                      |                   |
-| actions           | -----(subset)------> | extensionsActions |
-|   (MFE sends)     |   Domain accepts     |   (domain allows) |
-|                   |   all MFE actions    |                   |
-+-------------------+                      +-------------------+
-|                   |                      |                   |
-| domainActions     | <----(subset)------- | actions           |
-|   (MFE receives)  |   MFE handles all    |   (domain sends)  |
-|                   |   domain actions     |                   |
-+-------------------+                      +-------------------+
-```
-
-**Rules:**
-1. `entry.requiredProperties` must be a subset of `domain.sharedProperties`
-2. `entry.actions` must be a subset of `domain.extensionsActions`
-3. `domain.actions` must be a subset of `entry.domainActions`
-
-See [Type System - Contract Matching](./type-system.md#decision-8-contract-matching-rules) for implementation details.
+See [Type System - Contract Matching](./type-system.md#decision-8-contract-matching-rules) for the full diagram, validation implementation, and error handling.
 
 ---
 
@@ -166,7 +165,7 @@ const widgetSlotDomain: ExtensionDomain = {
   id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
   sharedProperties: [
     // Properties provided to MFEs in this domain
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1~',
   ],
   actions: [
     // Action types that can target extensions in this domain
@@ -186,6 +185,20 @@ const widgetSlotDomain: ExtensionDomain = {
     required: ['title', 'size'],
   },
   defaultActionTimeout: 30000,
+  lifecycleStages: [
+    // Lifecycle stages for the domain itself (init/destroyed only for domains)
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~',
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~',
+  ],
+  extensionsLifecycleStages: [
+    // Lifecycle stages supported for extensions in this domain (all 4 default stages)
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~',
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~',
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~',
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~',
+    // Custom stage for widget refresh
+    'gts.hai3.screensets.ext.lifecycle_stage.v1~acme.dashboard.lifecycle.refresh.v1~',
+  ],
 };
 ```
 
@@ -237,6 +250,11 @@ Extensions are registered dynamically at runtime and can be added/removed at any
     "uiMeta": {
       "type": "object",
       "$comment": "Must conform to the domain's extensionsUiMeta schema"
+    },
+    "lifecycle": {
+      "type": "array",
+      "items": { "$ref": "gts://gts.hai3.screensets.ext.lifecycle_hook.v1~" },
+      "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
   "required": ["id", "domain", "entry", "uiMeta"]
@@ -259,6 +277,8 @@ interface Extension {
   entry: string;
   /** UI metadata instance conforming to domain's extensionsUiMeta schema */
   uiMeta: Record<string, unknown>;
+  /** Optional lifecycle hooks - explicitly declared actions for each stage */
+  lifecycle?: LifecycleHook[];
 }
 ```
 
@@ -268,7 +288,7 @@ interface Extension {
 const analyticsExtension: Extension = {
   id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1~',
   domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
   uiMeta: {
     title: 'Analytics Dashboard',
     icon: 'chart-line',

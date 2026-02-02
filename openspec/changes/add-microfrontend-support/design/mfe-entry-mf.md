@@ -185,17 +185,17 @@ interface MfeEntryMF extends MfeEntry {
 
 ```typescript
 const chartEntry: MfeEntryMF = {
-  id: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  id: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
   requiredProperties: [
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1',
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.selected_date_range.v1',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1~',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.selected_date_range.v1~',
   ],
   optionalProperties: [
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1~',
   ],
   actions: ['gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~'],
   domainActions: ['gts.hai3.screensets.ext.action.v1~acme.analytics.ext.refresh.v1~'],
-  manifest: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1',
+  manifest: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1~',
   exposedModule: './ChartWidget',
 };
 ```

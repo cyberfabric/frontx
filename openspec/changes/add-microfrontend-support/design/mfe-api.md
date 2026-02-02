@@ -32,6 +32,20 @@ interface MfeEntryLifecycle {
 }
 ```
 
+### Unmount Error Handling
+
+When an MFE's `unmount()` function throws an error:
+
+1. **Error is caught and logged**: The system catches the error, logs it with full context (extension ID, entry type ID, error details), and continues the unmount process
+2. **Extension is still considered unmounted**: To prevent zombie state, the extension is marked as unmounted regardless of the error. This ensures:
+   - The container element is cleaned up
+   - The bridge connection is disposed
+   - The runtime coordination entry is removed
+   - Resources are not leaked
+3. **Error is surfaced**: The error is passed to `onError` callback if configured in `ScreensetsRegistryConfig`, allowing the host application to handle it appropriately (e.g., show a notification, report to monitoring)
+
+**Rationale**: A failing `unmount()` should not leave the system in an inconsistent state. The MFE may have internal issues, but the host must maintain control of the extension lifecycle. Cleanup is best-effort - any resources the MFE failed to release are its own responsibility.
+
 ---
 
 ## MFE Bridge Interfaces
@@ -145,7 +159,7 @@ Shared properties are managed at the DOMAIN level, not per-MFE. When the host up
 // Update a shared property for all subscribed extensions in the domain
 runtime.updateDomainProperty(
   'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
-  'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1',
+  'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1~',
   'dark'
 );
 ```
@@ -216,7 +230,7 @@ import { MfeBridge } from '@hai3/screensets';
 export function mount(container: HTMLElement, bridge: MfeBridge): void {
   container.innerHTML = '<div class="my-widget">Loading...</div>';
   bridge.subscribeToProperty(
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.theme.v1~',
     (theme) => {
       container.style.background = theme === 'dark' ? '#333' : '#fff';
     }

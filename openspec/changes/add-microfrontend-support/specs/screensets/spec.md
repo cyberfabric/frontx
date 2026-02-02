@@ -63,13 +63,15 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 - **WHEN** the ScreensetsRegistry initializes with a plugin
 - **THEN** the runtime SHALL register HAI3 MFE types via `plugin.registerSchema()`
-- **AND** registered types SHALL include 6 core types:
+- **AND** registered types SHALL include 8 core types:
   - `gts.hai3.screensets.mfe.entry.v1~` (MfeEntry - Abstract Base)
   - `gts.hai3.screensets.ext.domain.v1~` (ExtensionDomain)
   - `gts.hai3.screensets.ext.extension.v1~` (Extension)
   - `gts.hai3.screensets.ext.shared_property.v1~` (SharedProperty)
   - `gts.hai3.screensets.ext.action.v1~` (Action)
   - `gts.hai3.screensets.ext.actions_chain.v1~` (ActionsChain)
+  - `gts.hai3.screensets.ext.lifecycle_stage.v1~` (LifecycleStage)
+  - `gts.hai3.screensets.ext.lifecycle_hook.v1~` (LifecycleHook)
 - **AND** registered types SHALL include 2 MF-specific types:
   - `gts.hai3.screensets.mfe.mf.v1~` (MfManifest - Standalone)
   - `gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~` (MfeEntryMF - Derived)

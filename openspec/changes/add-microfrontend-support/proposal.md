@@ -78,9 +78,11 @@ interface TypeSystemPlugin {
   buildTypeId(options: Record<string, unknown>): string;
   parseTypeId(id: string): Record<string, unknown>;
 
-  // Schema registry
-  registerSchema(typeId: string, schema: JSONSchema): void;
+  // Schema registry (for vendor/dynamic schemas only)
+  // First-class citizen schemas are built into the plugin
+  registerSchema(schema: JSONSchema): void;  // Type ID extracted from schema.$id
   validateInstance(typeId: string, instance: unknown): ValidationResult;
+  validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult;  // Direct schema validation
   getSchema(typeId: string): JSONSchema | undefined;
 
   // Query
@@ -97,20 +99,30 @@ interface TypeSystemPlugin {
 }
 ```
 
+**Built-in First-Class Citizen Schemas:**
+
+The GTS plugin ships with all HAI3 first-class citizen schemas built-in. No `registerSchema` calls are needed for core types. Rationale:
+- First-class types define system capabilities (well-known at compile time)
+- Changes to them require code changes in the screensets package anyway
+- Vendors can only extend within these boundaries
+- Plugin is ready to use immediately after creation
+
 ### HAI3 Internal TypeScript Types
 
 The MFE system uses these internal TypeScript interfaces. Each type has an `id: string` field as its identifier:
 
-**Core Types (6 types):**
+**Core Types (8 types):**
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta, defaultActionTimeout` | Extension point contract |
-| `Extension` | `id, domain, entry, uiMeta` | Extension binding |
+| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
+| `Extension` | `id, domain, entry, uiMeta, lifecycle?[]` | Extension binding |
 | `SharedProperty` | `id, value` | Shared property instance |
 | `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
 | `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
+| `LifecycleStage` | `id, description?` | Lifecycle event type that triggers actions chains |
+| `LifecycleHook` | `stage, actions_chain` | Binds a lifecycle stage to an actions chain |
 
 **MF-Specific Types (2 types):**
 
@@ -153,11 +165,11 @@ This solves the tension between 3rd-party vendors (who need thin, stable contrac
 
 The GTS type ID format is: `gts.<vendor>.<package>.<namespace>.<type>.v<MAJOR>[.<MINOR>]~`
 
-### Type System Registration (via Plugin)
+### Type System Registration (Built-in to GTS Plugin)
 
-When using the GTS plugin, the following types are registered with properly structured GTS type IDs:
+The GTS plugin ships with all first-class citizen schemas **built-in**. When using the GTS plugin, the following types are available immediately (no registration needed):
 
-**Core Types (6 types):**
+**Core Types (8 types):**
 
 | GTS Type ID | Purpose |
 |-------------|---------|
@@ -167,6 +179,17 @@ When using the GTS plugin, the following types are registered with properly stru
 | `gts.hai3.screensets.ext.shared_property.v1~` | Property definition |
 | `gts.hai3.screensets.ext.action.v1~` | Action type with target and self-id |
 | `gts.hai3.screensets.ext.actions_chain.v1~` | Action chain for mediation |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~` | Lifecycle event type |
+| `gts.hai3.screensets.ext.lifecycle_hook.v1~` | Lifecycle stage to actions chain binding |
+
+**Default Lifecycle Stages (4 stages):**
+
+| GTS Type ID | When Triggered |
+|-------------|----------------|
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~` | After registration |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~` | After mount |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~` | After unmount |
+| `gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~` | Before unregistration |
 
 **MF-Specific Types (2 types):**
 
@@ -177,7 +200,7 @@ When using the GTS plugin, the following types are registered with properly stru
 
 ### GTS JSON Schema Definitions
 
-Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. Example Action schema (note: Action uses `type` field for self-identification instead of `id`):
+Each of the 8 core types and 2 MF-specific types has a corresponding JSON Schema with proper `$id`. Example Action schema (note: Action uses `type` field for self-identification instead of `id`):
 
 ```json
 {
@@ -206,7 +229,9 @@ Each of the 6 core types and 2 MF-specific types has a corresponding JSON Schema
 }
 ```
 
-See `design/type-system.md` for complete JSON Schema definitions of all 8 types.
+See `design/schemas.md` for complete JSON Schema definitions of all types.
+
+**Note on `registerSchema`:** The `registerSchema(schema)` method is for vendor/dynamic schemas only. The type ID is extracted from the schema's `$id` field - no need to pass it separately. First-class citizen schemas are built into the plugin and do not require registration.
 
 ### MfeEntry Type Hierarchy
 
@@ -479,10 +504,10 @@ Note: HAI3 is in alpha stage. Backward-incompatible interface changes are expect
 
 ### Implementation strategy
 1. Define `TypeSystemPlugin` interface in @hai3/screensets
-2. Create GTS plugin implementation as default
+2. Create GTS plugin implementation with built-in first-class citizen schemas
 3. Implement ScreensetsRegistry with dynamic registration API
-4. Define internal TypeScript types for MFE architecture (6 core + 2 MF-specific)
-5. Register HAI3 base types via plugin at initialization
+4. Define internal TypeScript types for MFE architecture (8 core + 2 MF-specific)
+5. GTS plugin registers all first-class schemas during construction (no separate initialization step)
 6. Support runtime registration of extensions, domains, and MFEs at any time
 7. Propagate plugin through @hai3/framework layers
 8. Add TypeInstanceProvider interface for future backend integration

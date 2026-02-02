@@ -65,6 +65,35 @@ The @hai3/screensets package defines a `TypeSystemPlugin` interface that abstrac
 
 The screensets package treats type IDs as **opaque strings**. The plugin is responsible for all type ID parsing, validation, and building.
 
+#### Built-in First-Class Citizen Schemas
+
+**Key Principle**: First-class citizen types define system capabilities. They are well-known at compile time. Changes to them require code changes in the screensets package anyway. Therefore:
+
+- The GTS plugin ships with all HAI3 first-class citizen schemas **built-in**
+- No `registerSchema` calls needed for core types
+- Plugin is ready to use immediately after creation
+
+**First-class citizen types (built into plugin):**
+- MfeEntry (abstract base)
+- ExtensionDomain
+- Extension
+- SharedProperty
+- Action
+- ActionsChain
+- LifecycleStage
+- LifecycleHook
+- MfManifest
+- MfeEntryMF
+
+**Rationale:**
+1. First-class types define system capabilities - they establish the contract model
+2. The plugin implementation depends on these system capabilities
+3. Changes to first-class types require code changes in the screensets package
+4. Vendors can only extend within the boundaries defined by these types
+5. Having schemas built-in eliminates initialization ceremony and potential registration errors
+
+**`registerSchema` is for vendor/dynamic schemas only** - schemas that extend HAI3's base types with vendor-specific fields.
+
 #### Plugin Interface Definition
 
 ```typescript
@@ -151,14 +180,27 @@ interface TypeSystemPlugin {
   // === Schema Registry ===
 
   /**
-   * Register a JSON Schema for a type ID
+   * Register a JSON Schema for validation.
+   * The type ID is extracted from the schema's $id field.
+   *
+   * Note: First-class citizen schemas (MfeEntry, ExtensionDomain, Extension,
+   * SharedProperty, Action, ActionsChain, LifecycleStage, LifecycleHook,
+   * MfManifest, MfeEntryMF) are built into the plugin and do not need
+   * to be registered. This method is for vendor/dynamic schemas only.
    */
-  registerSchema(typeId: string, schema: JSONSchema): void;
+  registerSchema(schema: JSONSchema): void;
 
   /**
    * Validate an instance against the schema for a type ID
    */
   validateInstance(typeId: string, instance: unknown): ValidationResult;
+
+  /**
+   * Validate an instance directly against a provided schema.
+   * Used for dynamic validation where the schema doesn't have a stable type ID
+   * (e.g., validating Extension.uiMeta against domain.extensionsUiMeta).
+   */
+  validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult;
 
   /**
    * Get the schema registered for a type ID
@@ -203,15 +245,56 @@ interface TypeSystemPlugin {
 
 #### GTS Plugin Implementation
 
-The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`:
+The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. First-class citizen schemas are registered during plugin construction - the plugin is ready to use immediately:
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
 import { Gts, GtsStore, GtsQuery } from '@globaltypesystem/gts-ts';
 import type { TypeSystemPlugin, ValidationResult } from '../types';
+import { mfeGtsSchemas } from '../../schemas/gts-schemas';
+
+/**
+ * Extract type ID from a JSON Schema's $id field.
+ * Handles both "gts://gts.hai3..." and "gts.hai3..." formats.
+ */
+function extractTypeIdFromSchema(schema: JSONSchema): string {
+  if (!schema.$id) {
+    throw new Error('Schema must have an $id field');
+  }
+  // Remove "gts://" prefix if present
+  return schema.$id.replace(/^gts:\/\//, '');
+}
 
 export function createGtsPlugin(): TypeSystemPlugin {
   const gtsStore = new GtsStore();
+
+  // Register all first-class citizen schemas during construction.
+  // These types define system capabilities and are well-known at compile time.
+  // Changes to them require code changes in screensets anyway.
+  const firstClassSchemas = [
+    // Core types (8)
+    mfeGtsSchemas.mfeEntry,
+    mfeGtsSchemas.extensionDomain,
+    mfeGtsSchemas.extension,
+    mfeGtsSchemas.sharedProperty,
+    mfeGtsSchemas.action,
+    mfeGtsSchemas.actionsChain,
+    mfeGtsSchemas.lifecycleStage,
+    mfeGtsSchemas.lifecycleHook,
+    // Default lifecycle stages (4)
+    mfeGtsSchemas.lifecycleStageInit,
+    mfeGtsSchemas.lifecycleStageActivated,
+    mfeGtsSchemas.lifecycleStageDeactivated,
+    mfeGtsSchemas.lifecycleStageDestroyed,
+    // MF-specific types (2)
+    mfeGtsSchemas.mfManifest,
+    mfeGtsSchemas.mfeEntryMf,
+  ];
+
+  for (const schema of firstClassSchemas) {
+    const typeId = extractTypeIdFromSchema(schema);
+    gtsStore.register(typeId, schema);
+  }
 
   return {
     name: 'gts',
@@ -239,13 +322,28 @@ export function createGtsPlugin(): TypeSystemPlugin {
       };
     },
 
-    // Schema registry
-    registerSchema(typeId: string, schema: JSONSchema): void {
+    // Schema registry - for vendor/dynamic schemas only
+    // First-class schemas are already registered during construction
+    registerSchema(schema: JSONSchema): void {
+      const typeId = extractTypeIdFromSchema(schema);
       gtsStore.register(typeId, schema);
     },
 
     validateInstance(typeId: string, instance: unknown): ValidationResult {
       const result = gtsStore.validate(typeId, instance);
+      return {
+        valid: result.valid,
+        errors: result.errors.map(e => ({
+          path: e.instancePath,
+          message: e.message,
+          keyword: e.keyword,
+        })),
+      };
+    },
+
+    validateAgainstSchema(schema: JSONSchema, instance: unknown): ValidationResult {
+      // Use a temporary in-memory validator without registering to the store
+      const result = Gts.validateAgainstSchema(schema, instance);
       return {
         valid: result.valid,
         errors: result.errors.map(e => ({
@@ -293,6 +391,7 @@ export function createGtsPlugin(): TypeSystemPlugin {
 }
 
 // Default export for convenience - creates a singleton plugin instance
+// Plugin is immediately ready to use with all first-class schemas registered
 export const gtsPlugin = createGtsPlugin();
 ```
 
@@ -302,9 +401,9 @@ The GTS type ID format follows the structure: `gts.<vendor>.<package>.<namespace
 
 #### HAI3 GTS Type IDs
 
-The type system is organized into **6 core types** that define the contract model, plus **2 MF-specific types** for Module Federation loading. See [schemas.md](./schemas.md) for complete schema definitions.
+The type system is organized into **8 core types** that define the contract model (including LifecycleStage and LifecycleHook), plus **2 MF-specific types** for Module Federation loading. See [schemas.md](./schemas.md) for complete schema definitions.
 
-**Core Types (6 total):**
+**Core Types (8 total):**
 
 | Type | GTS Type ID | Purpose |
 |------|-------------|---------|
@@ -314,6 +413,8 @@ The type system is organized into **6 core types** that define the contract mode
 | Shared Property | `gts.hai3.screensets.ext.shared_property.v1~` | Property definition |
 | Action | `gts.hai3.screensets.ext.action.v1~` | Action type with target and self-id |
 | Actions Chain | `gts.hai3.screensets.ext.actions_chain.v1~` | Action chain for mediation |
+| LifecycleStage | `gts.hai3.screensets.ext.lifecycle_stage.v1~` | Lifecycle event type |
+| LifecycleHook | `gts.hai3.screensets.ext.lifecycle_hook.v1~` | Binds stage to actions chain |
 
 **MF-Specific Types (2 total):**
 
@@ -353,48 +454,54 @@ TypeScript interface definitions are distributed across their respective design 
 - **Action / ActionsChain**: See [MFE Actions](./mfe-actions.md#typescript-interface-definitions)
 - **MfeEntryLifecycle**: See [MFE API](./mfe-api.md#mfeentrylifecycle-interface)
 
-### Decision 4: HAI3 Type Registration via Plugin
+### Decision 4: Built-in First-Class Citizen Schemas
 
-When initializing the ScreensetsRegistry with the GTS plugin, HAI3 types are registered. There are 6 core types plus 2 MF-specific types:
+**Key Principle**: First-class citizen schemas are built into the GTS plugin, not registered via `registerSchema` calls.
+
+**Rationale:**
+1. **First-class types define system capabilities** - MfeEntry, ExtensionDomain, Action, etc. establish the contract model that the entire system depends on
+2. **Well-known at compile time** - These types are not dynamic; they are fixed parts of the HAI3 architecture
+3. **Changes require code changes** - Modifying these schemas requires updating the screensets package anyway
+4. **Vendors extend, not replace** - Third parties can only create derived types within the boundaries of these base types
+5. **Eliminates initialization ceremony** - No `registerHai3Types()` call needed; plugin is ready to use immediately
+
+**What this means:**
+- The GTS plugin constructor registers all first-class schemas internally (see GTS Plugin Implementation above)
+- `ScreensetsRegistry` does NOT call any schema registration for core types
+- `registerSchema` is available ONLY for vendor/dynamic schemas
 
 ```typescript
 // packages/screensets/src/mfe/init.ts
 
-import { mfeGtsSchemas } from './schemas/gts-schemas';
-
-/** GTS Type IDs for HAI3 MFE core types (6 types) */
-const HAI3_CORE_TYPE_IDS = {
+/** GTS Type IDs for HAI3 MFE core types (8 types) - for reference only */
+export const HAI3_CORE_TYPE_IDS = {
   mfeEntry: 'gts.hai3.screensets.mfe.entry.v1~',
   extensionDomain: 'gts.hai3.screensets.ext.domain.v1~',
   extension: 'gts.hai3.screensets.ext.extension.v1~',
   sharedProperty: 'gts.hai3.screensets.ext.shared_property.v1~',
   action: 'gts.hai3.screensets.ext.action.v1~',
   actionsChain: 'gts.hai3.screensets.ext.actions_chain.v1~',
+  lifecycleStage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~',
+  lifecycleHook: 'gts.hai3.screensets.ext.lifecycle_hook.v1~',
 } as const;
 
-/** GTS Type IDs for MF-specific types (2 types) */
-const HAI3_MF_TYPE_IDS = {
+/** GTS Type IDs for default lifecycle stages (4 stages) - for reference only */
+export const HAI3_LIFECYCLE_STAGE_IDS = {
+  init: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1~',
+  activated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1~',
+  deactivated: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1~',
+  destroyed: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1~',
+} as const;
+
+/** GTS Type IDs for MF-specific types (2 types) - for reference only */
+export const HAI3_MF_TYPE_IDS = {
   mfManifest: 'gts.hai3.screensets.mfe.mf.v1~',
   mfeEntryMf: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~',
 } as const;
 
-function registerHai3Types(
-  plugin: TypeSystemPlugin
-): { core: typeof HAI3_CORE_TYPE_IDS; mf: typeof HAI3_MF_TYPE_IDS } {
-  // Register core schemas (6 types)
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.mfeEntry, mfeGtsSchemas.mfeEntry);
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.extensionDomain, mfeGtsSchemas.extensionDomain);
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.extension, mfeGtsSchemas.extension);
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.sharedProperty, mfeGtsSchemas.sharedProperty);
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.action, mfeGtsSchemas.action);
-  plugin.registerSchema(HAI3_CORE_TYPE_IDS.actionsChain, mfeGtsSchemas.actionsChain);
-
-  // Register MF-specific schemas (2 types)
-  plugin.registerSchema(HAI3_MF_TYPE_IDS.mfManifest, mfeGtsSchemas.mfManifest);
-  plugin.registerSchema(HAI3_MF_TYPE_IDS.mfeEntryMf, mfeGtsSchemas.mfeEntryMf);
-
-  return { core: HAI3_CORE_TYPE_IDS, mf: HAI3_MF_TYPE_IDS };
-}
+// NOTE: No registerHai3Types() function needed.
+// The GTS plugin registers all first-class schemas during construction.
+// See createGtsPlugin() in gts/index.ts for implementation.
 ```
 
 ### Decision 5: Vendor Type Registration
@@ -457,11 +564,8 @@ GTS supports **polymorphic schema resolution**: when the mediator validates an a
 A vendor (Acme Analytics) defines a custom action with a vendor-specific payload schema:
 
 ```typescript
-// Vendor-defined derived action type
-const acmeDataUpdatedActionTypeId =
-  'gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~';
-
 // Vendor-specific schema extending base Action
+// The type ID is extracted from the $id field - no need to specify it separately
 const acmeDataUpdatedSchema: JSONSchema = {
   "$id": "gts://gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~",
   "$schema": "https://json-schema.org/draft/2020-12/schema",
@@ -485,7 +589,8 @@ const acmeDataUpdatedSchema: JSONSchema = {
 };
 
 // Vendor registers their derived type schema
-plugin.registerSchema(acmeDataUpdatedActionTypeId, acmeDataUpdatedSchema);
+// Type ID is extracted from schema.$id automatically
+plugin.registerSchema(acmeDataUpdatedSchema);
 ```
 
 When an action instance uses this derived type ID, the mediator:
@@ -506,14 +611,9 @@ When an action instance uses this derived type ID, the mediator:
 // After vendor package is loaded (delivery mechanism out of scope):
 
 // 1. Register vendor's derived type schemas
-plugin.registerSchema(
-  'gts.hai3.screensets.ext.action.v1~acme.analytics.ext.data_updated.v1~',
-  acmeDataUpdatedSchema
-);
-plugin.registerSchema(
-  'gts.hai3.screensets.mfe.entry.v1~acme.analytics.mfe.chart_widget.v1~',
-  acmeChartWidgetEntrySchema
-);
+// Type ID is extracted from schema.$id - no redundant ID parameter
+plugin.registerSchema(acmeDataUpdatedSchema);
+plugin.registerSchema(acmeChartWidgetEntrySchema);
 
 // 2. Register vendor's instances
 registry.registerManifest(acmeManifest);
@@ -567,10 +667,11 @@ function createScreensetsRegistry(
     throw new Error('ScreensetsRegistry requires a typeSystem');
   }
 
-  // Register HAI3 types (6 core + 2 MF-specific)
-  const typeIds = registerHai3Types(typeSystem);
+  // NOTE: No schema registration needed here.
+  // The GTS plugin already has all first-class citizen schemas built-in.
+  // It is ready to use immediately after creation.
 
-  return new ScreensetsRegistry(typeSystem, typeIds, options);
+  return new ScreensetsRegistry(typeSystem, options);
 }
 
 // Usage with GTS (default)
@@ -770,14 +871,10 @@ function validateExtensionUiMeta(
   // 2. The resolved value is the JSON Schema for uiMeta
   const extensionsUiMetaSchema = schemaResult.value as JSONSchema;
 
-  // 3. Create a temporary type for validation
-  const tempTypeId = `${extension.id}:uiMeta:validation`;
-  plugin.registerSchema(tempTypeId, extensionsUiMetaSchema);
+  // 3. Validate extension.uiMeta directly against the resolved schema
+  const result = plugin.validateAgainstSchema(extensionsUiMetaSchema, extension.uiMeta);
 
-  // 4. Validate extension.uiMeta against the resolved schema
-  const result = plugin.validateInstance(tempTypeId, extension.uiMeta);
-
-  // 5. Transform errors to include context
+  // 4. Transform errors to include context
   return {
     valid: result.valid,
     errors: result.errors.map(e => ({

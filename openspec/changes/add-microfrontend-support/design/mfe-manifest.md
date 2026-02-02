@@ -142,7 +142,7 @@ interface SharedDependencyConfig {
 
 ```typescript
 const analyticsManifest: MfManifest = {
-  id: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1',
+  id: 'gts.hai3.screensets.mfe.mf.v1~acme.analytics.mfe.manifest.v1~',
   remoteEntry: 'https://cdn.acme.com/analytics/remoteEntry.js',
   remoteName: 'acme_analytics',
   // sharedDependencies configures Module Federation code sharing.

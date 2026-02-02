@@ -190,6 +190,21 @@ class UnsupportedDomainActionError extends MfeError {
   }
 }
 
+/**
+ * Error thrown when a lifecycle hook references a stage not supported by the domain
+ */
+class UnsupportedLifecycleStageError extends MfeError {
+  constructor(
+    message: string,
+    public readonly stageId: string,
+    public readonly entityId: string,
+    public readonly supportedStages: string[]
+  ) {
+    super(message, 'UNSUPPORTED_LIFECYCLE_STAGE');
+    this.name = 'UnsupportedLifecycleStageError';
+  }
+}
+
 export {
   MfeError,
   MfeLoadError,
@@ -201,5 +216,6 @@ export {
   DomainValidationError,
   ExtensionValidationError,
   UnsupportedDomainActionError,
+  UnsupportedLifecycleStageError,
 };
 ```
