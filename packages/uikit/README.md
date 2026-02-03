@@ -40,7 +40,7 @@ npm install @hai3/uikit
 
 ### Required Peer Dependencies
 
-The package requires React 18+ and several UI primitive libraries:
+The package requires React 18 or 19 and several UI primitive libraries:
 
 ```bash
 npm install react react-dom @radix-ui/react-select @radix-ui/react-slot \

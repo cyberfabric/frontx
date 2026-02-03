@@ -13,7 +13,7 @@ The framework is built on clean architecture principles with dependency inversio
 ## Tech Stack
 
 ### Core Technologies
-- **React 18** - UI framework
+- **React 19** - UI framework
 - **TypeScript 5** - Type safety with strict mode enabled
 - **Vite 6** - Build tool and dev server
 - **Redux Toolkit** - State management with Redux Studio
