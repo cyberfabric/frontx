@@ -97,14 +97,14 @@
     "vaul": "^1.1.2"
   },
   "peerDependencies": {
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^18.0.0 || ^19.0.0",
+    "react-dom": "^18.0.0 || ^19.0.0"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.9.1",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
     "tailwindcss": "^3.4.1",
     "tsup": "^8.5.0",
     "typescript": "^5.4.2"

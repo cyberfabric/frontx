@@ -1,11 +1,9 @@
-import React from 'react';
-
 /**
  * Chevron Right Icon
  * Used in menu sub-triggers (context-menu, menubar, dropdown-menu)
  * Replaces lucide-react ChevronRightIcon for tree-shaking
  */
-export const ChevronRightIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const ChevronRightIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

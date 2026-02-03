@@ -1,11 +1,9 @@
-import React from 'react';
-
 /**
  * Check Icon
  * Used in menu checkbox items (context-menu, menubar, dropdown-menu)
  * Replaces lucide-react CheckIcon for tree-shaking
  */
-export const CheckIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const CheckIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

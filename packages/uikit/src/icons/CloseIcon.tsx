@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Close Icon ID
  * Well-known constant defined where it belongs
@@ -11,7 +9,7 @@ export const CLOSE_ICON_ID = 'close' as const;
  * Core icon for closing dialogs/popups
  * Tree-shakeable - imported and registered by app
  */
-export const CloseIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const CloseIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

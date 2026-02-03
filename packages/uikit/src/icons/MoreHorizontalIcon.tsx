@@ -1,11 +1,9 @@
-import React from 'react';
-
 /**
  * More Horizontal Icon
  * Used in pagination ellipsis
  * Replaces lucide-react MoreHorizontalIcon for tree-shaking
  */
-export const MoreHorizontalIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const MoreHorizontalIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

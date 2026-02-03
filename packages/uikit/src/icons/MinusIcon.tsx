@@ -5,10 +5,10 @@ import React from 'react';
  * Used in Input OTP separator
  * Replaces lucide-react MinusIcon for tree-shaking
  */
-export const MinusIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({
+export const MinusIcon = ({
   className = '',
   ...props
-}) => {
+}: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       className={className}

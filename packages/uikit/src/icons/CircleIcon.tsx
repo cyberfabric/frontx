@@ -1,11 +1,9 @@
-import React from 'react';
-
 /**
  * Circle Icon
  * Used in menu radio items (context-menu, menubar, dropdown-menu)
  * Replaces lucide-react CircleIcon for tree-shaking
  */
-export const CircleIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const CircleIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

@@ -7,11 +7,12 @@ import { CheckIcon } from "../icons/CheckIcon"
 import { ChevronRightIcon } from "../icons/ChevronRightIcon"
 import { CircleIcon } from "../icons/CircleIcon"
 
-const DropdownMenu: React.FC<
-  Omit<React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>, 'dir'> & {
-    dir?: TextDirection;
-  }
-> = ({ dir, ...props }) => (
+const DropdownMenu = ({
+  dir,
+  ...props
+}: Omit<React.ComponentPropsWithoutRef<typeof DropdownMenuPrimitive.Root>, 'dir'> & {
+  dir?: TextDirection;
+}) => (
   <DropdownMenuPrimitive.Root
     {...props}
     dir={dir as 'ltr' | 'rtl' | undefined}
