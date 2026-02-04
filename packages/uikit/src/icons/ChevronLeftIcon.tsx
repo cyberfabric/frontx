@@ -1,11 +1,9 @@
-import React from 'react';
-
 /**
  * Chevron Left Icon
  * Used in pagination previous button
  * Replaces lucide-react ChevronLeftIcon for tree-shaking
  */
-export const ChevronLeftIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const ChevronLeftIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

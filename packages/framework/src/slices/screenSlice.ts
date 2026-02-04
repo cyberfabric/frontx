@@ -16,16 +16,16 @@ const { slice, setActiveScreen, setScreenLoading, navigateTo, clearActiveScreen 
   name: SLICE_KEY,
   initialState,
   reducers: {
-    setActiveScreen: (state, action: ReducerPayload<string>) => {
+    setActiveScreen: (state: ScreenState, action: ReducerPayload<string>) => {
       state.activeScreen = action.payload;
     },
-    setScreenLoading: (state, action: ReducerPayload<boolean>) => {
+    setScreenLoading: (state: ScreenState, action: ReducerPayload<boolean>) => {
       state.loading = action.payload;
     },
-    navigateTo: (state, action: ReducerPayload<string>) => {
+    navigateTo: (state: ScreenState, action: ReducerPayload<string>) => {
       state.activeScreen = action.payload;
     },
-    clearActiveScreen: (state) => {
+    clearActiveScreen: (state: ScreenState) => {
       state.activeScreen = null;
     },
   },

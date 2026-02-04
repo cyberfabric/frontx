@@ -21,7 +21,7 @@ const { slice, setMockEnabled } = createSlice({
   name: SLICE_KEY,
   initialState,
   reducers: {
-    setMockEnabled: (state, action: ReducerPayload<boolean>) => {
+    setMockEnabled: (state: MockState, action: ReducerPayload<boolean>) => {
       state.enabled = action.payload;
     },
   },

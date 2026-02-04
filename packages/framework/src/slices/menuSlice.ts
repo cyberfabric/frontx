@@ -18,19 +18,19 @@ const { slice, toggleMenu, setMenuCollapsed, setMenuItems, setMenuVisible, setMe
   name: SLICE_KEY,
   initialState,
   reducers: {
-    toggleMenu: (state) => {
+    toggleMenu: (state: MenuState) => {
       state.collapsed = !state.collapsed;
     },
-    setMenuCollapsed: (state, action: ReducerPayload<boolean>) => {
+    setMenuCollapsed: (state: MenuState, action: ReducerPayload<boolean>) => {
       state.collapsed = action.payload;
     },
-    setMenuItems: (state, action: ReducerPayload<MenuItem[]>) => {
+    setMenuItems: (state: MenuState, action: ReducerPayload<MenuItem[]>) => {
       state.items = action.payload;
     },
-    setMenuVisible: (state, action: ReducerPayload<boolean>) => {
+    setMenuVisible: (state: MenuState, action: ReducerPayload<boolean>) => {
       state.visible = action.payload;
     },
-    setMenuConfig: (state, action: ReducerPayload<Partial<MenuState>>) => {
+    setMenuConfig: (state: MenuState, action: ReducerPayload<Partial<MenuState>>) => {
       return { ...state, ...action.payload };
     },
   },

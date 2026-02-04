@@ -5,10 +5,10 @@ import React from 'react';
  * Used in date picker popover triggers
  * Replaces lucide-react CalendarIcon for tree-shaking
  */
-export const CalendarIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({
+export const CalendarIcon = ({
   className = '',
   ...props
-}) => {
+}: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       className={className}

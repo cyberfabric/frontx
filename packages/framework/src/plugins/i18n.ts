@@ -64,7 +64,7 @@ export function i18n(): HAI3Plugin {
 
       // Bootstrap: Set initial language to trigger translation loading
       // Run async without blocking - translations load in background
-      i18nRegistry.setLanguage(Language.English).catch((err) => {
+      i18nRegistry.setLanguage(Language.English).catch((err: Error) => {
         console.warn('[HAI3] Failed to load initial translations:', err);
       });
     },

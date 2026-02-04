@@ -16,10 +16,10 @@ const { slice, setFooterVisible, setFooterConfig, ...restActions } = createSlice
   name: SLICE_KEY,
   initialState,
   reducers: {
-    setFooterVisible: (state, action: ReducerPayload<boolean>) => {
+    setFooterVisible: (state: FooterState, action: ReducerPayload<boolean>) => {
       state.visible = action.payload;
     },
-    setFooterConfig: (state, action: ReducerPayload<Partial<FooterState>>) => {
+    setFooterConfig: (state: FooterState, action: ReducerPayload<Partial<FooterState>>) => {
       return { ...state, ...action.payload };
     },
   },

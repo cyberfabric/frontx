@@ -16,14 +16,14 @@ const { slice, setUser, setLoading, clearUser } = createSlice({
   name: SLICE_KEY,
   initialState,
   reducers: {
-    setUser: (state, action: ReducerPayload<HeaderUser | null>) => {
+    setUser: (state: HeaderState, action: ReducerPayload<HeaderUser | null>) => {
       state.user = action.payload;
       state.loading = false;
     },
-    setLoading: (state, action: ReducerPayload<boolean>) => {
+    setLoading: (state: HeaderState, action: ReducerPayload<boolean>) => {
       state.loading = action.payload;
     },
-    clearUser: (state) => {
+    clearUser: (state: HeaderState) => {
       state.user = null;
       state.loading = false;
     },

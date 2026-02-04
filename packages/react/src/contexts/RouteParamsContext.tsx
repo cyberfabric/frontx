@@ -6,7 +6,7 @@
  * React Layer: L3
  */
 
-import { createContext, useContext, type ReactNode } from 'react';
+import { createContext, useContext, type ReactElement, type ReactNode } from 'react';
 
 /**
  * Route params type
@@ -29,7 +29,7 @@ export interface RouteParamsProviderProps {
 /**
  * Route params provider component
  */
-export function RouteParamsProvider({ params, children }: RouteParamsProviderProps): JSX.Element {
+export function RouteParamsProvider({ params, children }: RouteParamsProviderProps): ReactElement {
   return (
     <RouteParamsContext.Provider value={params}>
       {children}

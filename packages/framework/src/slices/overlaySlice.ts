@@ -15,13 +15,13 @@ const { slice, showOverlay, hideOverlay, setOverlayVisible } = createSlice({
   name: SLICE_KEY,
   initialState,
   reducers: {
-    showOverlay: (state) => {
+    showOverlay: (state: OverlayState) => {
       state.visible = true;
     },
-    hideOverlay: (state) => {
+    hideOverlay: (state: OverlayState) => {
       state.visible = false;
     },
-    setOverlayVisible: (state, action: ReducerPayload<boolean>) => {
+    setOverlayVisible: (state: OverlayState, action: ReducerPayload<boolean>) => {
       state.visible = action.payload;
     },
   },

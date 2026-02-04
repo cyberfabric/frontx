@@ -19,17 +19,17 @@ const { slice, openPopup, closePopup, closeTopPopup, closeAllPopups } = createSl
   name: SLICE_KEY,
   initialState,
   reducers: {
-    openPopup: (state, action: ReducerPayload<Omit<PopupState, 'zIndex'>>) => {
+    openPopup: (state: PopupSliceState, action: ReducerPayload<Omit<PopupState, 'zIndex'>>) => {
       const zIndex = 1000 + state.stack.length * 10;
       state.stack.push({ ...action.payload, zIndex });
     },
-    closePopup: (state, action: ReducerPayload<string>) => {
+    closePopup: (state: PopupSliceState, action: ReducerPayload<string>) => {
       state.stack = state.stack.filter((popup) => popup.id !== action.payload);
     },
-    closeTopPopup: (state) => {
+    closeTopPopup: (state: PopupSliceState) => {
       state.stack.pop();
     },
-    closeAllPopups: (state) => {
+    closeAllPopups: (state: PopupSliceState) => {
       state.stack = [];
     },
   },

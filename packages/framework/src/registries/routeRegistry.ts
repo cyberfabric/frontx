@@ -4,7 +4,7 @@
  * Framework Layer: L2
  */
 
-import type { MenuScreenItem, ScreenLoader } from '@hai3/screensets';
+import type { MenuScreenItem, ScreenLoader, ScreensetDefinition } from '@hai3/screensets';
 import type { RouteRegistry, RouteMatchResult, CompiledRoute, ScreensetRegistry } from '../types';
 import {
   compileRoute,
@@ -45,7 +45,7 @@ export function createRouteRegistry(
     routes = [];
     const screensets = screensetRegistry.getAll();
 
-    screensets.forEach((screenset) => {
+    screensets.forEach((screenset: ScreensetDefinition) => {
       screenset.menu.forEach((menuScreenItem: MenuScreenItem) => {
         // Use screenId if provided, otherwise fallback to id
         const screenId = menuScreenItem.menuItem.screenId ?? menuScreenItem.menuItem.id;

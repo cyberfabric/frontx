@@ -21,14 +21,14 @@ const { slice, setTenant, setTenantLoading, clearTenant } = createSlice({
   name: SLICE_KEY,
   initialState,
   reducers: {
-    setTenant: (state, action: ReducerPayload<Tenant | null>) => {
+    setTenant: (state: TenantState, action: ReducerPayload<Tenant | null>) => {
       state.tenant = action.payload;
       state.loading = false;
     },
-    setTenantLoading: (state, action: ReducerPayload<boolean>) => {
+    setTenantLoading: (state: TenantState, action: ReducerPayload<boolean>) => {
       state.loading = action.payload;
     },
-    clearTenant: (state) => {
+    clearTenant: (state: TenantState) => {
       state.tenant = null;
       state.loading = false;
     },

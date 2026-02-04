@@ -1,6 +1,6 @@
 {
   "name": "@hai3/studio",
-  "version": "0.2.0-alpha.1",
+  "version": "0.3.0-alpha.0",
   "description": "HAI3 Studio - Development studio overlay for HAI3 applications",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -54,14 +54,14 @@
   },
   "peerDependencies": {
     "@hai3/react": "*",
-    "react": "^18.0.0",
-    "react-dom": "^18.0.0"
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.9.1",
-    "@types/react": "^18.3.3",
-    "@types/react-dom": "^18.3.0",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
     "tsup": "^8.5.0",
     "typescript": "^5.4.2"
   }

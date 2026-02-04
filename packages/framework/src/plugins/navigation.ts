@@ -12,7 +12,7 @@ import { i18nRegistry } from '@hai3/i18n';
 import { screenActions as screenActionsImport, menuActions as menuActionsImport } from '../slices';
 import type { HAI3Plugin, NavigateToScreenPayload, NavigateToScreensetPayload, NavigationConfig } from '../types';
 import { stripBase, prependBase, resolveBase } from '../utils/basePath';
-import type { ScreensetDefinition } from '@hai3/screensets';
+import type { MenuScreenItem, ScreensetDefinition } from '@hai3/screensets';
 import { extractRequiredParams } from '../utils/routeMatcher';
 
 // Type assertion for slice imports (needed for plugin system compatibility)
@@ -133,7 +133,7 @@ export function navigation(config?: NavigationConfig): HAI3Plugin {
 
       // Update screenset menu items
       const updateScreensetMenu = (screenset: ScreensetDefinition): void => {
-        const menuItems = screenset.menu.map((item) => ({
+        const menuItems = screenset.menu.map((item: MenuScreenItem) => ({
           id: item.menuItem.screenId ?? item.menuItem.id,
           label: item.menuItem.label,
           icon: item.menuItem.icon,

@@ -101,8 +101,8 @@ Studio provides full localization for 36 languages including English, Spanish, F
 Requires the following packages:
 
 - `@hai3/uicore` - Core framework for state management and events
-- `react` ^18.0.0 - React library
-- `react-dom` ^18.0.0 - React DOM renderer
+- `react` ^19.2.4 - React library
+- `react-dom` ^19.2.4 - React DOM renderer
 
 ## Browser Compatibility
 

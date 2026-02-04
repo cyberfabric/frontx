@@ -5,10 +5,10 @@ import React from 'react';
  * Used in select scroll buttons
  * Replaces lucide-react ChevronUpIcon for tree-shaking
  */
-export const ChevronUpIcon: React.FC<React.SVGProps<SVGSVGElement>> = ({
+export const ChevronUpIcon = ({
   className = '',
   ...props
-}) => {
+}: React.SVGProps<SVGSVGElement>) => {
   return (
     <svg
       className={className}

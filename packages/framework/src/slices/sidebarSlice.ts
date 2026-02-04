@@ -30,28 +30,28 @@ const {
   name: SLICE_KEY,
   initialState,
   reducers: {
-    toggleSidebar: (state) => {
+    toggleSidebar: (state: SidebarState) => {
       state.collapsed = !state.collapsed;
     },
-    setSidebarCollapsed: (state, action: ReducerPayload<boolean>) => {
+    setSidebarCollapsed: (state: SidebarState, action: ReducerPayload<boolean>) => {
       state.collapsed = action.payload;
     },
-    setSidebarPosition: (state, action: ReducerPayload<SidebarPosition>) => {
+    setSidebarPosition: (state: SidebarState, action: ReducerPayload<SidebarPosition>) => {
       state.position = action.payload;
     },
-    setSidebarTitle: (state, action: ReducerPayload<string | null>) => {
+    setSidebarTitle: (state: SidebarState, action: ReducerPayload<string | null>) => {
       state.title = action.payload;
     },
-    setSidebarContent: (state, action: ReducerPayload<unknown>) => {
+    setSidebarContent: (state: SidebarState, action: ReducerPayload<unknown>) => {
       state.content = action.payload;
     },
-    setSidebarVisible: (state, action: ReducerPayload<boolean>) => {
+    setSidebarVisible: (state: SidebarState, action: ReducerPayload<boolean>) => {
       state.visible = action.payload;
     },
-    setSidebarWidth: (state, action: ReducerPayload<number>) => {
+    setSidebarWidth: (state: SidebarState, action: ReducerPayload<number>) => {
       state.width = action.payload;
     },
-    setSidebarConfig: (state, action: ReducerPayload<Partial<SidebarState>>) => {
+    setSidebarConfig: (state: SidebarState, action: ReducerPayload<Partial<SidebarState>>) => {
       return { ...state, ...action.payload };
     },
   },
