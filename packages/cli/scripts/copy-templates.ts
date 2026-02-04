@@ -222,6 +222,92 @@ Use \`.ai/${relativePath}\` as the single source of truth.
 }
 
 /**
+ * Copy OpenSpec 1.1.1 skills from root project to CLI templates
+ * Copies skill directories for Claude, Cursor, and Windsurf
+ * Copies OPSX command files for GitHub Copilot
+ * Source: .claude/skills/openspec-XX/, .cursor/skills/openspec-XX/, .windsurf/skills/openspec-XX/
+ *         .github/copilot-commands/opsx-*.md
+ *
+ * @param templatesDir - Destination templates directory
+ */
+async function copyOpenSpecSkills(
+  templatesDir: string
+): Promise<{ claude: number; cursor: number; windsurf: number; copilot: number }> {
+  const claudeSkillsDir = path.join(templatesDir, '.claude', 'skills');
+  const cursorSkillsDir = path.join(templatesDir, '.cursor', 'skills');
+  const windsurfSkillsDir = path.join(templatesDir, '.windsurf', 'skills');
+  const copilotCommandsDir = path.join(templatesDir, '.github', 'copilot-commands');
+
+  await fs.ensureDir(claudeSkillsDir);
+  await fs.ensureDir(cursorSkillsDir);
+  await fs.ensureDir(windsurfSkillsDir);
+  await fs.ensureDir(copilotCommandsDir);
+
+  let claudeCount = 0;
+  let cursorCount = 0;
+  let windsurfCount = 0;
+  let copilotCount = 0;
+
+  // Copy Claude skills
+  const claudeSrc = path.join(PROJECT_ROOT, '.claude', 'skills');
+  if (await fs.pathExists(claudeSrc)) {
+    const entries = await fs.readdir(claudeSrc, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
+        const srcPath = path.join(claudeSrc, entry.name);
+        const destPath = path.join(claudeSkillsDir, entry.name);
+        await fs.copy(srcPath, destPath);
+        claudeCount++;
+      }
+    }
+  }
+
+  // Copy Cursor skills
+  const cursorSrc = path.join(PROJECT_ROOT, '.cursor', 'skills');
+  if (await fs.pathExists(cursorSrc)) {
+    const entries = await fs.readdir(cursorSrc, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
+        const srcPath = path.join(cursorSrc, entry.name);
+        const destPath = path.join(cursorSkillsDir, entry.name);
+        await fs.copy(srcPath, destPath);
+        cursorCount++;
+      }
+    }
+  }
+
+  // Copy Windsurf skills
+  const windsurfSrc = path.join(PROJECT_ROOT, '.windsurf', 'skills');
+  if (await fs.pathExists(windsurfSrc)) {
+    const entries = await fs.readdir(windsurfSrc, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
+        const srcPath = path.join(windsurfSrc, entry.name);
+        const destPath = path.join(windsurfSkillsDir, entry.name);
+        await fs.copy(srcPath, destPath);
+        windsurfCount++;
+      }
+    }
+  }
+
+  // Copy GitHub Copilot OPSX commands
+  const copilotSrc = path.join(PROJECT_ROOT, '.github', 'copilot-commands');
+  if (await fs.pathExists(copilotSrc)) {
+    const entries = await fs.readdir(copilotSrc, { withFileTypes: true });
+    for (const entry of entries) {
+      if (entry.isFile() && entry.name.startsWith('opsx-') && entry.name.endsWith('.md')) {
+        const srcPath = path.join(copilotSrc, entry.name);
+        const destPath = path.join(copilotCommandsDir, entry.name);
+        await fs.copy(srcPath, destPath);
+        copilotCount++;
+      }
+    }
+  }
+
+  return { claude: claudeCount, cursor: cursorCount, windsurf: windsurfCount, copilot: copilotCount };
+}
+
+/**
  * Bundle commands from @hai3 packages into CLI templates
  * These are the actual command files (not adapters) that ship with each package
  * Scans packages/[pkg]/commands/[cmd].md and copies ALL variants to a commands-bundle directory
@@ -751,6 +837,13 @@ async function copyTemplates() {
   console.log(`  ✓ .cursor/commands/ (${totalCursor} adapters: ${adapterCounts.cursor} from .ai/commands/, ${bundledAdapterCounts.cursor} from packages)`);
   console.log(`  ✓ .windsurf/workflows/ (${totalWindsurf} adapters: ${adapterCounts.windsurf} from .ai/commands/, ${bundledAdapterCounts.windsurf} from packages)`);
   console.log(`  ✓ commands-bundle/ (${packageCounts.bundledVariants} command variants from packages)`);
+
+  // Copy OpenSpec 1.1.1 skills for all IDEs
+  const openspecSkillCounts = await copyOpenSpecSkills(TEMPLATES_DIR);
+  console.log(`  ✓ .claude/skills/ (${openspecSkillCounts.claude} OpenSpec skills)`);
+  console.log(`  ✓ .cursor/skills/ (${openspecSkillCounts.cursor} OpenSpec skills)`);
+  console.log(`  ✓ .windsurf/skills/ (${openspecSkillCounts.windsurf} OpenSpec skills)`);
+  console.log(`  ✓ .github/copilot-commands/ (${openspecSkillCounts.copilot} OPSX commands)`);
 
   // Generate IDE rules (CLAUDE.md, .cursor/rules/, .windsurf/rules/, .github/copilot-instructions.md)
   await generateIdeRules(TEMPLATES_DIR);
