@@ -94,7 +94,9 @@ The GTS plugin ships with all HAI3 first-class citizen schemas built-in. No `reg
 
 The MFE system uses these internal TypeScript interfaces. Each type has an `id: string` field as its identifier:
 
-**Core Types (8 types):**
+**Core Types (8 type schemas):**
+
+> **Note on type count**: The 8 core types listed below are GTS **type schemas** (JSON Schema definitions). LifecycleStage and LifecycleHook are type schemas that define the structure for lifecycle-related entities. The 4 default lifecycle stages (`init`, `activated`, `deactivated`, `destroyed`) listed later are **instances/values** of the LifecycleStage type - they are pre-defined stage definitions, not additional type schemas.
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
@@ -215,29 +217,9 @@ See `design/schemas.md` for complete JSON Schema definitions of all types.
 
 ### MfeEntry Type Hierarchy
 
-```
-gts.hai3.screensets.mfe.entry.v1~ (Base - Abstract Contract)
-  |-- id: string (GTS type ID)
-  |-- requiredProperties: string[]
-  |-- optionalProperties?: string[]
-  |-- actions: string[]
-  |-- domainActions: string[]
-  |
-  +-- gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~ (Module Federation)
-        |-- (inherits contract fields from base)
-        |-- manifest: string (MfManifest type ID)
-        |-- exposedModule: string
+MfeEntry is the abstract base type for all entry contracts. MfeEntryMF extends it with Module Federation fields. Companies can create their own derived types (e.g., `MfeEntryAcme`) with richer contracts.
 
-gts.hai3.screensets.mfe.mf.v1~ (Standalone - Module Federation Config)
-  |-- id: string (GTS type ID)
-  |-- remoteEntry: string (URL)
-  |-- remoteName: string
-  |-- sharedDependencies?: SharedDependencyConfig[] (code sharing + optional instance sharing)
-  |     |-- name: string (package name)
-  |     |-- requiredVersion: string (semver)
-  |     |-- singleton?: boolean (default: false = isolated instances)
-  |-- entries?: string[] (MfeEntryMF type IDs)
-```
+For the complete type hierarchy diagram including field definitions, `x-gts-ref` annotations, and company custom entry type examples, see [design/mfe-entry-mf.md](./design/mfe-entry-mf.md#mfeentry-type-hierarchy).
 
 ### Contract Matching Rules
 
@@ -455,6 +437,48 @@ interface ScreensetsRegistry {
 - `packages/screensets/src/state/` - Isolated state instances (uses @hai3/state)
 - `packages/screensets/src/screensets/` - Extension domain registration
 - `packages/framework/src/plugins/microfrontends/` - Enables MFE capabilities (no static configuration)
+
+### Test File Location Convention
+
+Test files for the MFE implementation MUST follow the project's established test location pattern.
+
+**Affected Packages:**
+- `@hai3/screensets`: `packages/screensets/__tests__/mfe/...`
+- `@hai3/framework`: `packages/framework/__tests__/plugins/microfrontends/...`
+- `@hai3/react`: `packages/react/__tests__/mfe/...`
+
+**Rule**: Place test files in `packages/<package>/__tests__/`, NOT co-located inside `src/` subdirectories.
+
+**Rationale**: The ROOT `tsconfig.json` is used by `npm run type-check` (which is part of `npm run arch:check`). The root tsconfig has this exclude pattern:
+
+```json
+"exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__"]
+```
+
+This pattern only matches `__tests__` folders directly under `packages/*/` or `packages/*/src/`. It does NOT match deeply nested paths like `packages/screensets/src/mfe/validation/__tests__/`. While the package-level `packages/screensets/tsconfig.json` has `"exclude": ["**/__tests__/**"]`, it is NOT used during the global `npm run type-check` command.
+
+**Solution**: Move test files to follow the convention (rather than modifying the root tsconfig exclude patterns).
+
+**Directory Structure**: The directory structure under `__tests__/` should mirror the `src/mfe/` structure.
+
+**Examples:**
+
+| Source File | Test File Location |
+|-------------|-------------------|
+| `src/mfe/validation/contract.ts` | `__tests__/mfe/validation/contract.test.ts` |
+| `src/mfe/mediator/actions-chains-mediator.ts` | `__tests__/mfe/mediator/actions-chains-mediator.test.ts` |
+| `src/mfe/handler/mf-handler.ts` | `__tests__/mfe/handler/mf-handler.test.ts` |
+| `src/mfe/plugins/gts/gts-plugin.ts` | `__tests__/mfe/plugins/gts/gts-plugin.test.ts` |
+
+**Existing Test Files Requiring Migration:**
+The following test files currently violate this convention and must be moved:
+- `src/mfe/plugins/gts/__tests__/gts-plugin.test.ts` -> `__tests__/mfe/plugins/gts/gts-plugin.test.ts`
+- `src/mfe/validation/__tests__/contract.test.ts` -> `__tests__/mfe/validation/contract.test.ts`
+
+**Existing Project Patterns:**
+- `packages/framework/src/__tests__/` - directly under src (allowed by tsconfig exclude)
+- `packages/api/src/__tests__/` - directly under src (allowed by tsconfig exclude)
+- `packages/screensets/__tests__/runtime/` - at package root (Phase 4 pattern, preferred)
 
 ### Interface Changes
 

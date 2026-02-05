@@ -535,8 +535,9 @@ The system SHALL provide bridge interfaces for communication between host and MF
 - **THEN** `MfeBridgeConnection` SHALL extend `MfeBridge`
 - **AND** it SHALL provide `sendActionsChain(chain, options?)` for sending actions to MFE
 - **AND** the `options` parameter SHALL be optional `ChainExecutionOptions`
-- **AND** it SHALL provide `updateProperty(propertyTypeId, value)` for property updates
+- **AND** it SHALL provide `onHostAction(handler)` for registering action handlers
 - **AND** it SHALL provide `dispose()` for cleanup
+- **AND** property updates SHALL be managed at the DOMAIN level via `registry.updateDomainProperty()`, NOT on MfeBridgeConnection
 
 ### Requirement: Framework-Agnostic MFE Module Interface
 
@@ -918,7 +919,6 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 
 - **WHEN** using ActionsChainsMediator
 - **THEN** `executeActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
-- **AND** `deliver(chain, options?)` SHALL accept optional `ChainExecutionOptions`
 - **AND** action timeouts SHALL be resolved from action and domain type definitions
 - **AND** on timeout or any failure: execute fallback chain if defined
 

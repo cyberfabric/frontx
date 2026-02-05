@@ -244,6 +244,8 @@ This follows the same "forced explicitness" pattern as `actions`/`extensionsActi
 
 When registering extensions or domains, the ScreensetsRegistry validates that all lifecycle hooks reference supported stages.
 
+> **Validation Timing**: Validation of lifecycle hooks against supported stages occurs during `registerExtension()` or `registerDomain()`, **before** the extension or domain is available for mounting. This ensures that invalid lifecycle configurations are caught at registration time, not at runtime when the lifecycle stage would trigger.
+
 ### Validation Rules
 
 **For ExtensionDomain registration:**

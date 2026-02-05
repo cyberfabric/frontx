@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 4 Complete - ScreensetsRegistry with Plugin Implemented
+**Current Status**: Phase 5 COMPLETE
 
 ---
 
@@ -68,6 +68,8 @@ Note: `buildTypeId()` was intentionally omitted from the plugin interface becaus
 **Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation
 
 ### 2.3 GTS Plugin Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/plugins/gts/gts-plugin.test.ts`
 
 - [x] 2.3.1 Test `isValidTypeId()` accepts valid GTS type IDs
 - [x] 2.3.2 Test `isValidTypeId()` rejects invalid formats (missing segments, no tilde, no version prefix)
@@ -183,34 +185,47 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Goal**: Implement contract compatibility checking between entries and domains.
 
+**Status**: COMPLETE
+
 ### 5.1 Contract Matching Algorithm
 
-- [ ] 5.1.1 Implement `validateContract(entry, domain)` function
-- [ ] 5.1.2 Implement required properties subset check (Rule 1)
-- [ ] 5.1.3 Implement entry actions subset check (Rule 2)
-- [ ] 5.1.4 Implement domain actions subset check (Rule 3)
-- [ ] 5.1.5 Create `ContractValidationResult` type with error details
+- [x] 5.1.1 Implement `validateContract(entry, domain)` function
+- [x] 5.1.2 Implement required properties subset check (Rule 1)
+- [x] 5.1.3 Implement entry actions subset check (Rule 2)
+- [x] 5.1.4 Implement domain actions subset check (Rule 3)
+- [x] 5.1.5 Create `ContractValidationResult` type with error details
 
 **Traceability**: Requirement "Contract Matching Validation" - Valid contract matching
 
 ### 5.2 Contract Error Types
 
-- [ ] 5.2.1 Implement `missing_property` error type
-- [ ] 5.2.2 Implement `unsupported_action` error type
-- [ ] 5.2.3 Implement `unhandled_domain_action` error type
-- [ ] 5.2.4 Create human-readable error message formatter
+- [x] 5.2.1 Implement `missing_property` error type
+- [x] 5.2.2 Implement `unsupported_action` error type
+- [x] 5.2.3 Implement `unhandled_domain_action` error type
+- [x] 5.2.4 Create human-readable error message formatter
 
 **Traceability**: Requirement "Contract Matching Validation" - error scenarios
 
 ### 5.3 Contract Validation Tests
 
-- [ ] 5.3.1 Test valid contract matching scenario
-- [ ] 5.3.2 Test missing required property scenario
-- [ ] 5.3.3 Test unsupported entry action scenario
-- [ ] 5.3.4 Test unhandled domain action scenario
-- [ ] 5.3.5 Test optional properties not blocking registration
+**Test file**: `packages/screensets/__tests__/mfe/validation/contract.test.ts`
+
+- [x] 5.3.1 Test valid contract matching scenario
+- [x] 5.3.2 Test missing required property scenario
+- [x] 5.3.3 Test unsupported entry action scenario
+- [x] 5.3.4 Test unhandled domain action scenario
+- [x] 5.3.5 Test optional properties not blocking registration
 
 **Traceability**: Requirement "Contract Matching Validation" - all scenarios
+
+### 5.4 Migrate Test Files
+
+- [x] 5.4.1 Move `packages/screensets/src/mfe/plugins/gts/__tests__/gts-plugin.test.ts` to `packages/screensets/__tests__/mfe/plugins/gts/gts-plugin.test.ts`
+- [x] 5.4.2 Move `packages/screensets/src/mfe/validation/__tests__/contract.test.ts` to `packages/screensets/__tests__/mfe/validation/contract.test.ts`
+- [x] 5.4.3 Update any import paths in migrated test files if necessary
+- [x] 5.4.4 Verify tests pass after migration with `npm run test`
+
+**Traceability**: Requirement "Test File Location Convention" - Tests in `__tests__/` directory, not co-located in `src/`
 
 ---
 
@@ -238,6 +253,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via pre-registered domain schemas
 
 ### 6.3 uiMeta Validation Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/validation/uimeta.test.ts`
 
 - [ ] 6.3.1 Test successful uiMeta validation
 - [ ] 6.3.2 Test uiMeta validation failure
@@ -278,6 +295,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers
 
 ### 7.4 Framework Plugin Tests
+
+**Test file**: `packages/framework/__tests__/plugins/microfrontends.test.ts`
 
 - [ ] 7.4.1 Test microfrontends() accepts no parameters
 - [ ] 7.4.2 Test microfrontends({ anything }) throws error
@@ -347,7 +366,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 - [ ] 9.1.6 Implement termination (no next/fallback)
 - [ ] 9.1.7 Implement `ChainResult` return type
 - [ ] 9.1.8 Implement `ChainExecutionOptions` interface with ONLY `chainTimeout` (no action-level options)
-- [ ] 9.1.9 Implement `deliver(chain, options?)` method with chain-level execution options
+- [ ] 9.1.9 Add chain-level execution options support to `executeActionsChain(chain, options?)`
 - [ ] 9.1.10 Implement timeout resolution from type definitions: `action.timeout ?? domain.defaultActionTimeout`
 - [ ] 9.1.11 On timeout: execute fallback chain if defined (same as any other failure)
 
@@ -363,6 +382,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirement "Actions Chain Mediation" - Extension registration/unregistration
 
 ### 9.3 ActionsChainsMediator Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/mediator/actions-chains-mediator.test.ts`
 
 - [ ] 9.3.1 Test action chain success path execution
 - [ ] 9.3.2 Test action chain failure path execution
@@ -440,6 +461,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 11.3 Error Handling Tests
 
+**Test file**: `packages/screensets/__tests__/mfe/errors/error-handling.test.ts`
+
 - [ ] 11.3.1 Test bundle load failure scenario
 - [ ] 11.3.2 Test contract validation failure at load time
 - [ ] 11.3.3 Test action handler error scenario
@@ -454,6 +477,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Goal**: Integrate all components and create documentation.
 
 ### 12.1 Integration Testing
+
+**Test file**: `packages/screensets/__tests__/mfe/integration/e2e.test.ts`
 
 - [ ] 12.1.1 Create end-to-end test with mock MFE using GTS plugin
 - [ ] 12.1.2 Test full lifecycle: load, mount, action chain, unmount
@@ -562,6 +587,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 13.8 Framework Plugin Tests
 
+**Test file**: `packages/framework/__tests__/plugins/microfrontends/plugin.test.ts`
+
 - [ ] 13.8.1 Test microfrontends plugin registration
 - [ ] 13.8.2 Test mfeActions event emission
 - [ ] 13.8.3 Test mfeEffects runtime calls and slice dispatch
@@ -615,6 +642,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 14.5 React MFE Tests
 
+**Test file**: `packages/react/__tests__/mfe/hooks.test.ts`
+
 - [ ] 14.5.1 Test MfeProvider context provision
 - [ ] 14.5.2 Test useMfeState hook
 - [ ] 14.5.3 Test useMfeBridge hook
@@ -644,7 +673,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 - [ ] 15.2.1 Create `packages/screensets/src/mfe/bridge/MfeBridgeConnection.ts`
 - [ ] 15.2.2 Implement `sendActionsChain(chain, options?)` for domain-to-MFE actions with chain-level options only
-- [ ] 15.2.3 Implement `updateProperty()` with subscriber notification
+- [ ] 15.2.3 Implement property update notification - bridge subscribers are notified when `registry.updateDomainProperty()` is called (see spec: property updates managed at DOMAIN level)
 - [ ] 15.2.4 Implement `onHostAction()` handler registration
 - [ ] 15.2.5 Implement `dispose()` for cleanup
 
@@ -660,6 +689,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirement "MFE Bridge Interface" - Bridge creation
 
 ### 15.4 Bridge Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/bridge/bridge.test.ts`
 
 - [ ] 15.4.1 Test MfeBridge property subscription
 - [ ] 15.4.2 Test MfeBridge host action request
@@ -701,6 +732,10 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 16.3 Shadow DOM and Error Tests
 
+**Test files**:
+- `packages/screensets/__tests__/mfe/shadow/shadow-dom.test.ts`
+- `packages/screensets/__tests__/mfe/errors/error-classes.test.ts`
+
 - [ ] 16.3.1 Test createShadowRoot with various options
 - [ ] 16.3.2 Test injectCssVariables updates
 - [ ] 16.3.3 Test error class instantiation and properties
@@ -712,7 +747,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ## Phase 17: MFE Handler Internal Caching
 
-**Goal**: Implement internal caching for MfeHandlerMF. MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
+**Goal**: Implement internal caching for MfeHandlerMF. MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./design/mfe-loading.md#decision-12).
 
 ### 17.1 Internal ManifestCache (MfeHandlerMF only)
 
@@ -733,6 +768,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirement "MFE Loading via MfeEntryMF and MfManifest"
 
 ### 17.3 Handler Caching Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/handler/mf-handler.test.ts`
 
 - [ ] 17.3.1 Test manifest caching reuses data for multiple entries from same remote
 - [ ] 17.3.2 Test container caching avoids redundant script loads
@@ -769,6 +806,8 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 **Traceability**: Requirements "HAI3 Action Constants", "HAI3 Type Constants"
 
 ### 18.3 GTS Utilities Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/gts/utilities.test.ts`
 
 - [ ] 18.3.1 Test GtsTypeId branded type
 - [ ] 18.3.2 Test parseGtsId with various type IDs
@@ -844,6 +883,8 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - Registration events
 
 ### 19.5 Dynamic Registration Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/runtime/dynamic-registration.test.ts`
 
 - [ ] 19.5.1 Test registerExtension after runtime initialization
 - [ ] 19.5.2 Test registerExtension fails if domain not registered
@@ -923,6 +964,8 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook
 
 ### 20.5 Framework Dynamic Registration Tests
+
+**Test file**: `packages/framework/__tests__/plugins/microfrontends/dynamic-registration.test.ts`
 
 - [ ] 20.5.1 Test registerExtension action emits event
 - [ ] 20.5.2 Test registerExtension effect calls runtime

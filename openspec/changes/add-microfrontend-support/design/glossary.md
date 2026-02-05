@@ -45,10 +45,10 @@ A typed value passed from the host to mounted MFEs (one-way: host to MFE). Domai
 ## Lifecycle
 
 ### LifecycleStage
-A GTS type representing a lifecycle event that can trigger actions chains. HAI3 provides four default stages (`init`, `activated`, `deactivated`, `destroyed`), and projects can define custom stages. Lifecycle stages enable declarative, explicit lifecycle behavior on extensions and domains. See [mfe-lifecycle.md](./mfe-lifecycle.md).
+A GTS type representing a lifecycle event that can trigger actions chains. HAI3 provides four default stages (`init`, `activated`, `deactivated`, `destroyed`), and projects can define custom stages. Lifecycle stages enable declarative, explicit lifecycle behavior on extensions and domains. See [mfe-lifecycle.md](./mfe-lifecycle.md) for stage definitions, triggering sequences, and custom stage examples. See [mfe-lifecycle.md#lifecyclestage](./mfe-lifecycle.md#lifecyclestage) for the schema definition.
 
 ### LifecycleHook
-A binding between a lifecycle stage and an actions chain. When the stage triggers, the system executes the associated actions chain. Extensions and domains can declare multiple hooks for different stages. See [mfe-lifecycle.md](./mfe-lifecycle.md).
+A binding between a lifecycle stage and an actions chain. When the stage triggers, the system executes the associated actions chain. Extensions and domains can declare multiple hooks for different stages. See [mfe-lifecycle.md](./mfe-lifecycle.md) for usage examples and validation rules. See [mfe-lifecycle.md#lifecyclehook](./mfe-lifecycle.md#lifecyclehook) for the schema definition.
 
 ---
 

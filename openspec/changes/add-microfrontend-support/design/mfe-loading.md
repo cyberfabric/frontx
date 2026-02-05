@@ -282,15 +282,11 @@ Module Federation's shared dependencies provide TWO independent benefits:
 
 #### Why `singleton: false` is the Correct Default
 
-HAI3's default handler (`MfeHandlerMF`) enforces runtime isolation between MFE **instances**. This is achieved through `singleton: false` in Module Federation configuration:
+HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation through `singleton: false`. For the complete isolation model, benefits, and recommendations, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
-1. **React State Isolation**: Each MFE instance has its own React context, hooks state, and reconciler
-2. **TypeSystemPlugin Isolation**: Each MFE instance's schema registry is isolated (security requirement for 3rd-party MFEs)
-3. **@hai3/screensets Isolation**: Each MFE instance has its own state container
+**Module Federation Implementation**: `singleton: false` ensures each MFE instance gets its own runtime instances of React, TypeSystemPlugin, and @hai3/screensets - even when sharing the same bundled code.
 
-**Custom handlers** can choose to use `singleton: true` for internal MFE instances when isolation is not required, allowing shared state for coordination between trusted MFEs.
-
-**Isolation Recommendations:**
+**Isolation Recommendations** (see [overview.md](./overview.md#runtime-isolation-default-behavior) for details):
 
 | MFE Source | Isolation Strategy | Reason |
 |------------|-------------------|--------|

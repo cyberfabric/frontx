@@ -637,6 +637,11 @@ The ScreensetsRegistry requires a Type System plugin at initialization:
 
 /**
  * Configuration for the ScreensetsRegistry
+ *
+ * Note on loading/error components:
+ * - Components configured here serve as REGISTRY-LEVEL DEFAULTS
+ * - Individual domain containers (e.g., ExtensionDomainSlot) can OVERRIDE these defaults
+ * - This enables per-use customization while providing sensible defaults
  */
 interface ScreensetsRegistryConfig {
   /** Required: Type System plugin for type handling */
@@ -645,10 +650,16 @@ interface ScreensetsRegistryConfig {
   /** Optional: Custom error handler */
   onError?: (error: MfeError) => void;
 
-  /** Optional: Custom loading state component */
+  /**
+   * Optional: Default loading state component for the registry.
+   * Domain containers can override this at the container level for per-use customization.
+   */
   loadingComponent?: React.ComponentType;
 
-  /** Optional: Custom error fallback component */
+  /**
+   * Optional: Default error fallback component for the registry.
+   * Domain containers can override this at the container level for per-use customization.
+   */
   errorFallbackComponent?: React.ComponentType<{ error: MfeError; retry: () => void }>;
 
   /** Optional: Enable debug logging */

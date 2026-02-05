@@ -5,8 +5,9 @@
  * These tests verify Phase 2.3 requirements from tasks.md.
  */
 
-import { createGtsPlugin, gtsPlugin } from '../index';
-import { HAI3_CORE_TYPE_IDS } from '../../../init';
+import { describe, it, expect } from 'vitest';
+import { createGtsPlugin, gtsPlugin } from '../../../../src/mfe/plugins/gts/index';
+import { HAI3_CORE_TYPE_IDS } from '../../../../src/mfe/init';
 
 describe('GTS Plugin', () => {
   describe('2.3.1 - isValidTypeId accepts valid GTS type IDs', () => {
@@ -263,73 +264,3 @@ describe('GTS Plugin', () => {
     });
   });
 });
-
-/**
- * Simple test runner for manual execution
- * Real projects would use Jest, Vitest, or similar test frameworks
- */
-function expect(value: unknown) {
-  return {
-    toBe(expected: unknown) {
-      if (value !== expected) {
-        throw new Error(`Expected ${value} to be ${expected}`);
-      }
-    },
-    toEqual(expected: unknown) {
-      if (JSON.stringify(value) !== JSON.stringify(expected)) {
-        throw new Error(`Expected ${JSON.stringify(value)} to equal ${JSON.stringify(expected)}`);
-      }
-    },
-    toBeDefined() {
-      if (value === undefined) {
-        throw new Error(`Expected value to be defined`);
-      }
-    },
-    toContain(item: unknown) {
-      if (!Array.isArray(value) || !value.includes(item)) {
-        throw new Error(`Expected ${JSON.stringify(value)} to contain ${item}`);
-      }
-    },
-    toBeGreaterThan(expected: number) {
-      if (typeof value !== 'number' || value <= expected) {
-        throw new Error(`Expected ${value} to be greater than ${expected}`);
-      }
-    },
-    toBeLessThanOrEqual(expected: number) {
-      if (typeof value !== 'number' || value > expected) {
-        throw new Error(`Expected ${value} to be less than or equal to ${expected}`);
-      }
-    },
-    toThrow(expectedMessage?: string) {
-      if (typeof value !== 'function') {
-        throw new Error('Expected value to be a function');
-      }
-      try {
-        value();
-        throw new Error('Expected function to throw');
-      } catch (error) {
-        if (expectedMessage) {
-          const message = error instanceof Error ? error.message : String(error);
-          if (!message.includes(expectedMessage)) {
-            throw new Error(`Expected error message to include "${expectedMessage}", got "${message}"`);
-          }
-        }
-      }
-    },
-  };
-}
-
-function describe(name: string, fn: () => void) {
-  console.log(`\n${name}`);
-  fn();
-}
-
-function it(name: string, fn: () => void) {
-  try {
-    fn();
-    console.log(`  ✓ ${name}`);
-  } catch (error) {
-    console.log(`  ✗ ${name}`);
-    console.error(`    ${error}`);
-  }
-}

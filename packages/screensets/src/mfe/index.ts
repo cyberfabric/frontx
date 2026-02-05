@@ -54,3 +54,11 @@ export type {
   MfeBridgeFactory,
   MfeHandler,
 } from './handler/types';
+
+// Contract Validation
+export type {
+  ContractError,
+  ContractErrorType,
+  ContractValidationResult,
+} from './validation/contract';
+export { validateContract, formatContractErrors } from './validation/contract';
