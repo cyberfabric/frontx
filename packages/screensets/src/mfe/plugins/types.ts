@@ -207,10 +207,10 @@ export interface TypeSystemPlugin {
 
   /**
    * Get an attribute value from a type using property path.
-   * Used for dynamic schema resolution (e.g., getting domain's extensionsUiMeta).
+   * Used for dynamic schema resolution (e.g., getting domain's extensionsUiMetaTypeId).
    *
    * @param typeId - Type ID to query
-   * @param path - Property path to access (e.g., "extensionsUiMeta")
+   * @param path - Property path to access (e.g., "extensionsUiMetaTypeId")
    * @returns Attribute result with value if resolved
    */
   getAttribute(typeId: string, path: string): AttributeResult;

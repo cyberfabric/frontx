@@ -121,7 +121,9 @@ class ScreensetsRegistry {
     }
   }
 
-  mountExtension(extension: Extension): MfeBridgeConnection {
+  mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
+    const extension = this.extensions.get(extensionId)?.extension;
+    if (!extension) throw new Error(`Extension '${extensionId}' not registered`);
     const validation = this.typeSystem.validateInstance('gts.hai3.screensets.ext.extension.v1~', extension);
     if (!validation.valid) throw new ExtensionValidationError(validation.errors);
 
@@ -365,7 +367,7 @@ settingsButton.onClick = async () => {
   await runtime.registerExtension({
     id: 'gts.hai3.screensets.ext.extension.v1~acme.user.widgets.analytics_widget.v1~',
     domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
-    entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+    entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
     uiMeta: { title: 'Analytics', size: 'medium' },
   });
 

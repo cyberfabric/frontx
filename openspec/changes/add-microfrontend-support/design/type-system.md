@@ -855,79 +855,94 @@ function validateContract(
 }
 ```
 
-### Decision 9: Dynamic uiMeta Validation via Pre-registered Domain Schemas
+### Decision 9: Dynamic uiMeta Validation via Type ID Reference
 
-**Problem:** An `Extension` instance has a `domain` field containing a type ID reference, and its `uiMeta` property must conform to that domain's `extensionsUiMeta` schema. This cannot be expressed as a static JSON Schema constraint because the domain reference is a dynamic value.
+**Problem:** An `Extension` instance has a `domain` field containing a type ID reference, and its `uiMeta` property must conform to that domain's uiMeta schema. The previous design embedded an inline JSON Schema in `ExtensionDomain.extensionsUiMeta`, which mixed instance semantics (domain is an instance) with type semantics (domain defines a schema).
 
-**Solution:** When a domain is registered, also pre-register its `extensionsUiMeta` schema with a convention-based ID. Then use standard `validateInstance()` to validate extension uiMeta.
+**Solution:** Change `extensionsUiMeta: JSONSchema` to `extensionsUiMetaTypeId?: string`. The uiMeta schema becomes a separate, first-class GTS type that must be registered independently. Validation uses standard `validateInstance(typeId, instance)`.
 
-**Pre-registration Pattern:**
-
-When registering a domain, its `extensionsUiMeta` schema is also registered with a convention-based ID:
+**Key Design Change:**
 
 ```typescript
-// When registering a domain, also register its extensionsUiMeta schema
-registerDomain(domain: ExtensionDomain): void {
-  // Register the domain itself
-  gtsStore.register(createJsonEntity(domain));
+// Before (mixed semantics - instance embedding a type definition):
+interface ExtensionDomain {
+  extensionsUiMeta: JSONSchema;  // Inline schema embedded in instance
+}
 
-  // Pre-register extensionsUiMeta schema for later validation
-  if (domain.extensionsUiMeta) {
-    const uiMetaSchema = {
-      $id: `gts://${domain.id}@extensionsUiMeta`,
-      ...domain.extensionsUiMeta
-    };
-    gtsStore.register(createJsonEntity(uiMetaSchema));
-  }
+// After (clean separation - instance references a type):
+interface ExtensionDomain {
+  extensionsUiMetaTypeId?: string;  // Reference to a GTS type ID
 }
 ```
+
+**Benefits of Type ID Reference Pattern:**
+
+1. **Clean separation of concerns** - ExtensionDomain remains a pure instance (configuration data)
+2. **Schema is a first-class GTS type** - Can be versioned, queried, and validated like any other type
+3. **Standard validation path** - Uses `plugin.validateInstance(typeId, instance)` directly
+4. **No convention-based IDs** - No need for `{domainId}@extensionsUiMeta` workaround
+5. **Works with GTS** - Type IDs are valid GTS identifiers (no `@` symbol issues)
+6. **Optional validation** - If `extensionsUiMetaTypeId` is not specified, no uiMeta validation is performed
 
 **Validation Implementation:**
 
 ```typescript
 /**
- * Validate Extension's uiMeta against its domain's extensionsUiMeta schema
- * Uses the pre-registered schema pattern instead of validateAgainstSchema()
+ * Validate Extension's uiMeta against its domain's extensionsUiMetaTypeId
  */
 function validateExtensionUiMeta(
   plugin: TypeSystemPlugin,
-  extension: Extension
+  extension: Extension,
+  domain: ExtensionDomain
 ): ValidationResult {
-  // 1. Build the convention-based schema ID
-  const uiMetaSchemaId = `${extension.domain}@extensionsUiMeta`;
+  // If domain doesn't require uiMeta validation, skip it
+  if (!domain.extensionsUiMetaTypeId) {
+    return { valid: true, errors: [] };
+  }
 
-  // 2. Create a unique instance ID for this extension's uiMeta
-  const instanceId = `${extension.id}@uiMeta`;
+  // Validate using standard validateInstance
+  const result = plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta);
 
-  // 3. Register the uiMeta instance with $schema pointing to the pre-registered schema
-  const instance = {
-    $id: `gts://${instanceId}`,
-    $schema: `gts://${uiMetaSchemaId}`,
-    ...extension.uiMeta
-  };
-  gtsStore.register(createJsonEntity(instance));
+  // Transform errors to include context
+  if (!result.valid) {
+    return {
+      valid: false,
+      errors: result.errors.map(err => ({
+        ...err,
+        message: `uiMeta validation failed against ${domain.extensionsUiMetaTypeId}: ${err.message}`,
+      })),
+    };
+  }
 
-  // 4. Validate using standard validateInstance
-  const result = gtsStore.validateInstance(instanceId);
-
-  // 5. Transform errors to include context
-  return {
-    valid: result.ok && (result.valid ?? false),
-    errors: result.error ? [{
-      path: 'uiMeta',
-      message: `uiMeta validation failed against ${extension.domain}@extensionsUiMeta: ${result.error}`,
-      keyword: 'validation',
-    }] : [],
-  };
+  return { valid: true, errors: [] };
 }
 ```
 
-**Benefits of Pre-registration Pattern:**
+**Domain Definition Example:**
 
-1. **No `validateAgainstSchema()` needed** - Uses only standard GTS operations
-2. **Consistent with GTS model** - All validation happens through registered schemas
-3. **Convention-based IDs** - `{domainId}@extensionsUiMeta` provides predictable schema lookup
-4. **Single validation path** - All validation uses `validateInstance()`, simplifying the plugin interface
+```typescript
+// 1. First, define and register the uiMeta schema as a GTS type
+const widgetUiMetaSchema: JSONSchema = {
+  "$id": "gts://gts.acme.dashboard.ext.widget_ui_meta.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "icon": { "type": "string" },
+    "size": { "enum": ["small", "medium", "large"] }
+  },
+  "required": ["title", "size"]
+};
+plugin.registerSchema(widgetUiMetaSchema);
+
+// 2. Domain references the schema by type ID
+const widgetSlotDomain: ExtensionDomain = {
+  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
+  // ... other fields ...
+  extensionsUiMetaTypeId: 'gts.acme.dashboard.ext.widget_ui_meta.v1~',  // Reference to registered type
+  // ...
+};
+```
 
 **Integration Point:**
 
@@ -940,7 +955,7 @@ if (!contractResult.valid) {
   throw new ContractValidationError(contractResult.errors);
 }
 
-const uiMetaResult = validateExtensionUiMeta(this.typeSystem, extension);
+const uiMetaResult = validateExtensionUiMeta(this.typeSystem, extension, domain);
 if (!uiMetaResult.valid) {
   throw new UiMetaValidationError(uiMetaResult.errors);
 }

@@ -15,7 +15,7 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** the interface SHALL define required compatibility checking (`checkCompatibility`)
 - **AND** the interface SHALL define attribute access (`getAttribute`) for dynamic schema resolution
 - **AND** the interface SHALL NOT define `buildTypeId` (GTS type IDs are consumed but never programmatically generated; all type IDs are defined as string constants)
-- **AND** the interface SHALL NOT define `validateAgainstSchema` (use pre-registered schemas pattern instead)
+- **AND** the interface SHALL NOT define `validateAgainstSchema` (domain's `extensionsUiMetaTypeId` references a standard GTS type, enabling direct `validateInstance()` calls)
 
 #### Scenario: GTS plugin as default implementation
 
@@ -103,36 +103,42 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 
 ### Requirement: Dynamic uiMeta Validation
 
-The system SHALL validate Extension's uiMeta against its domain's extensionsUiMeta schema at runtime.
+The system SHALL validate Extension's uiMeta against its domain's extensionsUiMetaTypeId at runtime using the type ID reference pattern.
 
-#### Scenario: uiMeta validation via pre-registered domain schemas
+#### Scenario: uiMeta validation via type ID reference
 
 - **WHEN** registering an extension binding
-- **THEN** the ScreensetsRegistry SHALL use the pre-registered domain's extensionsUiMeta schema
-- **AND** the schema SHALL have convention-based ID: `{domainId}@extensionsUiMeta`
-- **AND** the runtime SHALL validate extension.uiMeta against the pre-registered schema via `validateInstance()`
+- **AND** the domain has `extensionsUiMetaTypeId` specified
+- **THEN** the ScreensetsRegistry SHALL validate extension.uiMeta via `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
 - **AND** validation failure SHALL prevent extension registration
-- **AND** error message SHALL identify the uiMeta validation failure
+- **AND** error message SHALL identify the uiMeta validation failure and include the type ID
 
-#### Scenario: Domain registration pre-registers extensionsUiMeta schema
+#### Scenario: Domain without uiMeta validation
 
-- **WHEN** registering an ExtensionDomain
-- **THEN** the ScreensetsRegistry SHALL pre-register the domain's extensionsUiMeta schema
-- **AND** the schema SHALL be registered with ID: `{domainId}@extensionsUiMeta`
-- **AND** the pre-registered schema SHALL be available for extension uiMeta validation
+- **WHEN** registering an extension binding
+- **AND** the domain does NOT have `extensionsUiMetaTypeId` specified
+- **THEN** no uiMeta validation SHALL be performed
+- **AND** extension registration SHALL proceed (assuming other validations pass)
+
+#### Scenario: uiMeta schema must be registered before domain
+
+- **WHEN** a domain specifies `extensionsUiMetaTypeId`
+- **THEN** the referenced type MUST be registered with the TypeSystemPlugin before extension validation
+- **AND** if the type is not registered, extension registration SHALL fail
+- **AND** error message SHALL indicate the missing type ID
 
 #### Scenario: uiMeta validation with derived domains
 
 - **WHEN** an extension binds to a derived domain (e.g., `gts.hai3.screensets.ext.domain.v1~hai3.layout.domain.sidebar.v1`)
-- **THEN** the runtime SHALL use the derived domain's narrowed extensionsUiMeta schema
-- **AND** uiMeta validation SHALL enforce the derived schema requirements
+- **THEN** the runtime SHALL use the derived domain's `extensionsUiMetaTypeId`
+- **AND** uiMeta validation SHALL validate against that type
 
-#### Scenario: uiMeta schema resolution failure
+#### Scenario: uiMeta type resolution failure
 
-- **WHEN** the ScreensetsRegistry cannot resolve extensionsUiMeta from the domain
+- **WHEN** the ScreensetsRegistry cannot find the type referenced by `extensionsUiMetaTypeId`
 - **THEN** extension registration SHALL fail
-- **AND** error message SHALL indicate the attribute resolution failure
-- **AND** error SHALL include the domain type ID
+- **AND** error message SHALL indicate the type was not found
+- **AND** error SHALL include the missing type ID and domain ID
 
 ### Requirement: MFE TypeScript Type System
 
@@ -183,13 +189,14 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **WHEN** a host defines an extension domain
 - **THEN** the domain SHALL conform to `ExtensionDomain` TypeScript interface
 - **AND** the domain SHALL have an `id` field (string)
-- **AND** the domain SHALL specify sharedProperties, actions, extensionsActions, and extensionsUiMeta
+- **AND** the domain SHALL specify sharedProperties, actions, and extensionsActions
+- **AND** the domain MAY specify `extensionsUiMetaTypeId` (optional string, reference to a GTS type ID for uiMeta validation)
 - **AND** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
 - **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT`, plus any domain-specific actions)
 - **AND** `extensionsActions` SHALL list Action type IDs extensions can send TO this domain
-- **AND** extensionsUiMeta SHALL be a valid JSON Schema
-- **AND** derived domains MAY narrow extensionsUiMeta through GTS type inheritance
+- **AND** if `extensionsUiMetaTypeId` is specified, extensions' uiMeta SHALL be validated against that type
+- **AND** derived domains MAY specify their own `extensionsUiMetaTypeId` to override or narrow the validation
 
 #### Scenario: Extension binding type definition
 
@@ -199,7 +206,8 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the binding SHALL reference valid domain and entry type IDs
 - **AND** domain SHALL reference an ExtensionDomain type ID
 - **AND** entry SHALL reference an MfeEntry type ID (base or derived)
-- **AND** uiMeta SHALL conform to the domain's extensionsUiMeta schema
+- **AND** uiMeta MAY be provided (optional field)
+- **AND** if uiMeta is provided AND the domain has extensionsUiMetaTypeId, uiMeta SHALL conform to that type
 
 #### Scenario: Shared property type definition
 
@@ -737,7 +745,7 @@ The system SHALL provide typed error classes for MFE operations.
 
 #### Scenario: UiMetaValidationError class
 
-- **WHEN** uiMeta validation fails against domain's extensionsUiMeta schema
+- **WHEN** uiMeta validation fails against the type referenced by domain's extensionsUiMetaTypeId
 - **THEN** `UiMetaValidationError` SHALL be thrown with validation errors
 - **AND** the error SHALL include the extension and domain type IDs
 

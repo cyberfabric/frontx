@@ -108,27 +108,62 @@ export function createGtsPlugin(): TypeSystemPlugin {
     },
 
     validateInstance(typeId: string, instance: unknown): ValidationResult {
-      // Register the instance first so GTS can validate it
-      const instanceEntity: JsonEntity = createJsonEntity({
-        $id: `gts://${typeId}@instance-${Date.now()}`,
-        $schema: `gts://${typeId}`,
-        ...(typeof instance === 'object' && instance !== null ? instance : {}),
-      });
-      gtsStore.register(instanceEntity);
-
-      const result: GtsValidationResult = gtsStore.validateInstance(instanceEntity.id);
-      return {
-        valid: result.ok && (result.valid ?? false),
-        errors: result.error
-          ? [
+      try {
+        // Check if schema exists
+        const schema = gtsStore.get(typeId);
+        if (!schema) {
+          return {
+            valid: false,
+            errors: [
               {
                 path: '',
-                message: result.error,
-                keyword: 'validation',
+                message: `Schema not found for type: ${typeId}`,
+                keyword: 'schema-not-found',
               },
-            ]
-          : [],
-      };
+            ],
+          };
+        }
+
+        // Create a temporary instance entity derived from the schema type
+        // Use timestamp to create unique derived type ID
+        // Format: baseTypeId + hai3.screensets.temp.inst_<timestamp>.v1~
+        const timestamp = Date.now();
+        const tempInstanceId = `${typeId}hai3.screensets.temp.inst_${timestamp}.v1~`;
+
+        const instanceEntity: JsonEntity = createJsonEntity({
+          $id: `gts://${tempInstanceId}`,
+          $schema: `gts://${typeId}`,
+          ...(typeof instance === 'object' && instance !== null ? instance : {}),
+        });
+
+        gtsStore.register(instanceEntity);
+
+        const result: GtsValidationResult = gtsStore.validateInstance(tempInstanceId);
+
+        return {
+          valid: result.ok && (result.valid ?? false),
+          errors: result.error
+            ? [
+                {
+                  path: '',
+                  message: result.error,
+                  keyword: 'validation',
+                },
+              ]
+            : [],
+        };
+      } catch (error) {
+        return {
+          valid: false,
+          errors: [
+            {
+              path: '',
+              message: `Validation error: ${error instanceof Error ? error.message : String(error)}`,
+              keyword: 'validation-error',
+            },
+          ],
+        };
+      }
     },
 
     getSchema(typeId: string): JSONSchema | undefined {
@@ -156,16 +191,19 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Compatibility (REQUIRED) - checkCompatibility is on GtsStore
     checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult {
       const result: GtsCompatibilityResult = gtsStore.checkCompatibility(oldTypeId, newTypeId);
+      const errors = result.errors || [];
+      const warnings = result.warnings || [];
+
       return {
         compatible: result.compatible,
-        breaking: !result.compatible && result.errors.length > 0,
+        breaking: !result.compatible && errors.length > 0,
         changes: [
-          ...result.errors.map((e) => ({
+          ...errors.map((e) => ({
             type: 'removed' as const,
             path: '',
             description: e,
           })),
-          ...result.warnings.map((w) => ({
+          ...warnings.map((w) => ({
             type: 'modified' as const,
             path: '',
             description: w,

@@ -19,8 +19,12 @@ export interface Extension {
   domain: string;
   /** MfeEntry type ID to mount */
   entry: string;
-  /** UI metadata instance conforming to domain's extensionsUiMeta schema */
-  uiMeta: Record<string, unknown>;
+  /**
+   * Optional UI metadata instance.
+   * If domain has extensionsUiMetaTypeId, this must conform to that schema.
+   * Validated using plugin.validateInstance(domain.extensionsUiMetaTypeId, uiMeta).
+   */
+  uiMeta?: Record<string, unknown>;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
 }

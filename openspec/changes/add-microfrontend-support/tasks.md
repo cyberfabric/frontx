@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 5 COMPLETE
+**Current Status**: Phase 6 IN PROGRESS
 
 ---
 
@@ -93,7 +93,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Core Types (8 types):**
 - [x] 3.1.1 Create `MfeEntry` interface (id, requiredProperties, optionalProperties, actions, domainActions)
-- [x] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMeta, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, lifecycle?)
+- [x] 3.1.2 Create `ExtensionDomain` interface (id, sharedProperties, actions, extensionsActions, extensionsUiMetaTypeId?, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, lifecycle?)
 - [x] 3.1.3 Create `Extension` interface (id, domain, entry, uiMeta, lifecycle?)
 - [x] 3.1.4 Create `SharedProperty` interface (id, value)
 - [x] 3.1.5 Create `Action` interface (type, target, payload?, timeout?)
@@ -112,7 +112,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Core Type Schemas (8 types):**
 - [x] 3.2.1 Create schema for `gts.hai3.screensets.mfe.entry.v1~` with id field
-- [x] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required), lifecycleStages, extensionsLifecycleStages fields
+- [x] 3.2.2 Create schema for `gts.hai3.screensets.ext.domain.v1~` with id, defaultActionTimeout (required), extensionsUiMetaTypeId (optional), lifecycleStages, extensionsLifecycleStages fields
 - [x] 3.2.3 Create schema for `gts.hai3.screensets.ext.extension.v1~` with id field
 - [x] 3.2.4 Create schema for `gts.hai3.screensets.ext.shared_property.v1~` with id and value fields
 - [x] 3.2.5 Create schema for `gts.hai3.screensets.ext.action.v1~` with type, target, timeout (optional) fields (no id)
@@ -229,38 +229,40 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ---
 
-## Phase 6: Dynamic uiMeta Validation via Pre-registered Domain Schemas
+## Phase 6: Dynamic uiMeta Validation via Type ID Reference ✓
 
-**Goal**: Implement runtime validation of Extension's uiMeta against domain's extensionsUiMeta using the pre-registration pattern.
+**Goal**: Implement runtime validation of Extension's uiMeta against domain's extensionsUiMetaTypeId using the type ID reference pattern.
 
-### 6.1 Domain Schema Pre-registration
+**Status**: COMPLETE
 
-- [ ] 6.1.1 Implement domain registration to pre-register extensionsUiMeta schema with convention-based ID
-- [ ] 6.1.2 Use convention-based ID format: `{domainId}@extensionsUiMeta`
-- [ ] 6.1.3 Register extensionsUiMeta schema with $id containing the convention-based ID
+### 6.1 Verify ExtensionDomain Type (Schema Already Correct)
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - Domain registration pre-registers extensionsUiMeta schema
+- [x] 6.1.1 ExtensionDomain TypeScript interface uses `extensionsUiMetaTypeId?: string` (updated)
+- [x] 6.1.2 ExtensionDomain GTS schema uses `extensionsUiMetaTypeId` as optional string field (updated)
+- [x] 6.1.3 `extensionsUiMetaTypeId` is not in required fields (it is optional) - correct
+- [x] 6.1.4 Extension TypeScript interface updated with optional `uiMeta?` field
+
+**Traceability**: Requirement "Dynamic uiMeta Validation" - Domain uses type ID reference instead of inline schema
 
 ### 6.2 uiMeta Validation Implementation
 
-- [ ] 6.2.1 Implement `validateExtensionUiMeta(plugin, extension)` function
-- [ ] 6.2.2 Build convention-based schema ID from extension.domain
-- [ ] 6.2.3 Create unique instance ID for extension's uiMeta
-- [ ] 6.2.4 Register uiMeta instance with $schema pointing to pre-registered schema
-- [ ] 6.2.5 Validate using standard `validateInstance()` via GTS store
-- [ ] 6.2.6 Transform validation errors to include uiMeta context
+- [x] 6.2.1 Implemented `validateExtensionUiMeta(plugin, domain, extension)` function
+- [x] 6.2.2 If `domain.extensionsUiMetaTypeId` is not specified, return valid (skip validation)
+- [x] 6.2.3 Validate using standard `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
+- [x] 6.2.4 Transform validation errors to include uiMeta context and type ID
+- [x] 6.2.5 Handle case where referenced type is not registered (clear error message)
 
-**Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via pre-registered domain schemas
+**Traceability**: Requirement "Dynamic uiMeta Validation" - uiMeta validation via type ID reference
 
 ### 6.3 uiMeta Validation Tests
 
 **Test file**: `packages/screensets/__tests__/mfe/validation/uimeta.test.ts`
 
-- [ ] 6.3.1 Test successful uiMeta validation
-- [ ] 6.3.2 Test uiMeta validation failure
-- [ ] 6.3.3 Test uiMeta validation with derived domains
-- [ ] 6.3.4 Test pre-registered schema is available after domain registration
-- [ ] 6.3.5 Test convention-based schema ID format
+- [x] 6.3.1 Test successful uiMeta validation when extensionsUiMetaTypeId is specified
+- [x] 6.3.2 Test uiMeta validation failure returns proper error with type ID
+- [x] 6.3.3 Test uiMeta validation skipped when extensionsUiMetaTypeId is not specified
+- [x] 6.3.4 Test error when referenced type ID is not registered
+- [x] 6.3.5 Test uiMeta validation with derived domains
 
 **Traceability**: Requirement "Dynamic uiMeta Validation" - all scenarios
 

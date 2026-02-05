@@ -77,9 +77,9 @@ export const extensionDomainSchema: JSONSchema = {
       items: { 'x-gts-ref': 'gts.hai3.screensets.ext.action.v1~*' },
       $comment: 'Action type IDs extensions can send when targeting this domain',
     },
-    extensionsUiMeta: {
-      type: 'object',
-      $comment: 'JSON Schema for extension uiMeta validation',
+    extensionsUiMetaTypeId: {
+      type: 'string',
+      $comment: 'Optional GTS type ID reference for extension uiMeta schema validation. Uses standard plugin.validateInstance(typeId, instance).',
     },
     defaultActionTimeout: {
       type: 'number',
@@ -109,7 +109,6 @@ export const extensionDomainSchema: JSONSchema = {
     'sharedProperties',
     'actions',
     'extensionsActions',
-    'extensionsUiMeta',
     'defaultActionTimeout',
     'lifecycleStages',
     'extensionsLifecycleStages',
@@ -139,7 +138,7 @@ export const extensionSchema: JSONSchema = {
     },
     uiMeta: {
       type: 'object',
-      $comment: "Must conform to the domain's extensionsUiMeta schema",
+      $comment: "Optional UI metadata. If domain has extensionsUiMetaTypeId, this must conform to that schema.",
     },
     lifecycle: {
       type: 'array',
@@ -147,7 +146,7 @@ export const extensionSchema: JSONSchema = {
       $comment: 'Optional lifecycle hooks - explicitly declared actions for each stage',
     },
   },
-  required: ['id', 'domain', 'entry', 'uiMeta'],
+  required: ['id', 'domain', 'entry'],
 };
 
 /**

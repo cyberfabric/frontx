@@ -49,7 +49,11 @@ ExtensionDomain defines an extension point where MFE instances can be mounted. D
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
       "$comment": "Action type IDs extensions can send when targeting this domain"
     },
-    "extensionsUiMeta": { "type": "object" },
+    "extensionsUiMetaTypeId": {
+      "type": "string",
+      "x-gts-ref": "*",
+      "$comment": "Optional reference to a GTS type ID. If specified, extensions' uiMeta must validate against this type."
+    },
     "defaultActionTimeout": {
       "type": "number",
       "minimum": 1,
@@ -71,7 +75,7 @@ ExtensionDomain defines an extension point where MFE instances can be mounted. D
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
 }
 ```
 
@@ -91,8 +95,8 @@ interface ExtensionDomain {
   actions: string[];
   /** Action type IDs extensions can send when targeting this domain */
   extensionsActions: string[];
-  /** JSON Schema for UI metadata extensions must provide */
-  extensionsUiMeta: JSONSchema;
+  /** Optional reference to a GTS type ID for uiMeta validation. If specified, extensions' uiMeta must validate against this type. */
+  extensionsUiMetaTypeId?: string;
   /** Default timeout for actions targeting this domain (milliseconds, REQUIRED) */
   defaultActionTimeout: number;
   /** Lifecycle stage type IDs supported for the domain itself */
@@ -149,6 +153,21 @@ Vendors define their own domains following the GTS type ID format:
 // Example: Dashboard screenset defines widget slot domain
 // Type ID: gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~
 
+// First, define and register the uiMeta schema as a GTS type
+const widgetUiMetaSchema: JSONSchema = {
+  "$id": "gts://gts.acme.dashboard.ext.widget_ui_meta.v1~",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "title": { "type": "string" },
+    "icon": { "type": "string" },
+    "size": { "enum": ["small", "medium", "large"] }
+  },
+  "required": ["title", "size"]
+};
+plugin.registerSchema(widgetUiMetaSchema);
+
+// Then define the domain, referencing the schema by type ID
 const widgetSlotDomain: ExtensionDomain = {
   id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
   sharedProperties: [
@@ -163,15 +182,8 @@ const widgetSlotDomain: ExtensionDomain = {
     // Action types extensions can send when targeting this domain
     'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1~',
   ],
-  extensionsUiMeta: {
-    type: 'object',
-    properties: {
-      title: { type: 'string' },
-      icon: { type: 'string' },
-      size: { enum: ['small', 'medium', 'large'] },
-    },
-    required: ['title', 'size'],
-  },
+  // Reference to a GTS type ID for uiMeta validation
+  extensionsUiMetaTypeId: 'gts.acme.dashboard.ext.widget_ui_meta.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
     // Lifecycle stages for the domain itself (init/destroyed only for domains)
@@ -207,7 +219,7 @@ The ActionsChainsMediator handles these semantics when processing actions. See [
 
 ### Definition
 
-**Extension**: A GTS type that binds an MfeEntry to an ExtensionDomain, creating a concrete MFE instance. It includes UI metadata that must conform to the domain's `extensionsUiMeta` schema.
+**Extension**: A GTS type that binds an MfeEntry to an ExtensionDomain, creating a concrete MFE instance. It includes UI metadata that must conform to the type referenced by the domain's `extensionsUiMetaTypeId`, if specified.
 
 Extension is the binding type that connects an [MFE entry](./mfe-entry-mf.md) to an extension domain, creating a concrete MFE **instance**. While MfeEntry defines what an MFE can do (its contract) and ExtensionDomain defines where MFE instances can mount (the slot), Extension creates the actual instance by specifying which entry mounts into which domain, along with UI metadata specific to that mounting.
 
@@ -235,7 +247,7 @@ Extensions are registered dynamically at runtime and can be added/removed at any
     },
     "uiMeta": {
       "type": "object",
-      "$comment": "Must conform to the domain's extensionsUiMeta schema"
+      "$comment": "Must conform to the type referenced by domain's extensionsUiMetaTypeId, if specified"
     },
     "lifecycle": {
       "type": "array",
@@ -243,7 +255,7 @@ Extensions are registered dynamically at runtime and can be added/removed at any
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "domain", "entry", "uiMeta"]
+  "required": ["id", "domain", "entry"]
 }
 ```
 
@@ -261,8 +273,8 @@ interface Extension {
   domain: string;
   /** MfeEntry type ID to mount */
   entry: string;
-  /** UI metadata instance conforming to domain's extensionsUiMeta schema */
-  uiMeta: Record<string, unknown>;
+  /** UI metadata instance conforming to the type referenced by domain's extensionsUiMetaTypeId, if specified */
+  uiMeta?: Record<string, unknown>;
   /** Optional lifecycle hooks - explicitly declared actions for each stage */
   lifecycle?: LifecycleHook[];
 }

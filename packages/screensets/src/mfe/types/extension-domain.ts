@@ -7,7 +7,6 @@
  */
 
 import type { LifecycleHook } from './lifecycle';
-import type { JSONSchema } from '../plugins/types';
 
 /**
  * Defines an extension point (domain) where MFEs can be mounted
@@ -22,8 +21,12 @@ export interface ExtensionDomain {
   actions: string[];
   /** Action type IDs extensions can send when targeting this domain */
   extensionsActions: string[];
-  /** JSON Schema for UI metadata extensions must provide */
-  extensionsUiMeta: JSONSchema;
+  /**
+   * Optional GTS type ID for extension uiMeta schema validation.
+   * If specified, extensions must have their uiMeta validated against this type.
+   * Uses standard plugin.validateInstance(typeId, instance) - no pre-registration needed.
+   */
+  extensionsUiMetaTypeId?: string;
   /** Default timeout for actions targeting this domain (milliseconds, REQUIRED) */
   defaultActionTimeout: number;
   /** Lifecycle stage type IDs supported for the domain itself */

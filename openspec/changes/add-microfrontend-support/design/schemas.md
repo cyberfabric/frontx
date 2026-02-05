@@ -99,7 +99,11 @@ Defines an extension point where MFEs can be mounted.
       "items": { "x-gts-ref": "gts.hai3.screensets.ext.action.v1~*" },
       "$comment": "Action type IDs extensions can send when targeting this domain"
     },
-    "extensionsUiMeta": { "type": "object" },
+    "extensionsUiMetaTypeId": {
+      "type": "string",
+      "x-gts-ref": "*",
+      "$comment": "Optional reference to a GTS type ID. If specified, extensions' uiMeta must validate against this type."
+    },
     "defaultActionTimeout": {
       "type": "number",
       "minimum": 1,
@@ -121,7 +125,7 @@ Defines an extension point where MFEs can be mounted.
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "sharedProperties", "actions", "extensionsActions", "extensionsUiMeta", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
+  "required": ["id", "sharedProperties", "actions", "extensionsActions", "defaultActionTimeout", "lifecycleStages", "extensionsLifecycleStages"]
 }
 ```
 
@@ -149,7 +153,7 @@ Binds an MFE entry to a domain.
     },
     "uiMeta": {
       "type": "object",
-      "$comment": "Must conform to the domain's extensionsUiMeta schema"
+      "$comment": "Must conform to the type referenced by domain's extensionsUiMetaTypeId, if specified"
     },
     "lifecycle": {
       "type": "array",
@@ -157,7 +161,7 @@ Binds an MFE entry to a domain.
       "$comment": "Optional lifecycle hooks - explicitly declared actions for each stage"
     }
   },
-  "required": ["id", "domain", "entry", "uiMeta"]
+  "required": ["id", "domain", "entry"]
 }
 ```
 

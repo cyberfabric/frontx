@@ -101,8 +101,8 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
 | `MfeEntry` | `id, requiredProperties[], optionalProperties?[], actions[], domainActions[]` | Pure contract type (Abstract Base) |
-| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMeta, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
-| `Extension` | `id, domain, entry, uiMeta, lifecycle?[]` | Extension binding |
+| `ExtensionDomain` | `id, sharedProperties[], actions[], extensionsActions[], extensionsUiMetaTypeId?, defaultActionTimeout, lifecycleStages[], extensionsLifecycleStages[], lifecycle?[]` | Extension point contract |
+| `Extension` | `id, domain, entry, uiMeta?, lifecycle?[]` | Extension binding |
 | `SharedProperty` | `id, value` | Shared property instance |
 | `Action` | `type, target, payload?, timeout?` | Action with self-identifying type ID and optional timeout override |
 | `ActionsChain` | `action: Action, next?: ActionsChain, fallback?: ActionsChain` | Action chain for mediation (contains instances, no id) |
@@ -135,7 +135,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 The following methods and patterns were intentionally omitted from the design:
 
 **Omitted TypeSystemPlugin Methods:**
-- **`validateAgainstSchema`**: Use pre-registered domain schemas pattern instead. When a domain is registered, its `extensionsUiMeta` is pre-registered with a convention-based ID (`{domainId}@extensionsUiMeta`), enabling standard `validateInstance()` for all validation.
+- **`validateAgainstSchema`**: Not needed. Domain's `extensionsUiMetaTypeId` references a standard GTS type, enabling direct `validateInstance(typeId, instance)` calls.
 - **`buildTypeId`**: GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants, making a builder method unnecessary.
 
 **Type Design Rationale:**
@@ -232,10 +232,11 @@ domain.actions            is subset of  entry.domainActions
 
 ### Dynamic uiMeta Validation
 
-An `Extension`'s `uiMeta` must conform to its domain's `extensionsUiMeta` schema. Since the domain reference is dynamic, this validation uses the **pre-registered domain schemas pattern**:
-- When a domain is registered, its `extensionsUiMeta` is pre-registered with a convention-based ID: `{domainId}@extensionsUiMeta`
-- The ScreensetsRegistry validates `extension.uiMeta` against the pre-registered schema via standard `validateInstance()`
-- This avoids the need for a separate `validateAgainstSchema()` method
+An `Extension`'s `uiMeta` must conform to its domain's uiMeta schema. Validation uses a **type ID reference pattern**:
+- `ExtensionDomain.extensionsUiMetaTypeId` is an optional reference to a GTS type ID
+- If specified, extensions must have their `uiMeta` validated against this type
+- Validation uses standard `plugin.validateInstance(domain.extensionsUiMetaTypeId, extension.uiMeta)`
+- If `extensionsUiMetaTypeId` is not specified, no uiMeta validation is performed
 - See Decision 9 in `design/type-system.md` for implementation details
 
 ### Explicit Timeout Configuration

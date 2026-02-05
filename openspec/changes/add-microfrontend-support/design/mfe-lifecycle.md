@@ -207,7 +207,8 @@ interface ExtensionDomain {
   sharedProperties: string[];
   actions: string[];
   extensionsActions: string[];
-  extensionsUiMeta: JSONSchema;
+  /** Optional reference to a GTS type ID for uiMeta validation */
+  extensionsUiMetaTypeId?: string;
   defaultActionTimeout: number;
   /** Lifecycle stage type IDs supported for the domain itself */
   lifecycleStages: string[];
@@ -389,7 +390,7 @@ await registry.triggerDomainLifecycleStage(
 const analyticsExtension: Extension = {
   id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1~',
   domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
   uiMeta: {
     title: 'Analytics Dashboard',
     icon: 'chart-line',
@@ -455,14 +456,8 @@ const widgetSlotDomain: ExtensionDomain = {
   extensionsActions: [
     'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1~',
   ],
-  extensionsUiMeta: {
-    type: 'object',
-    properties: {
-      title: { type: 'string' },
-      size: { enum: ['small', 'medium', 'large'] },
-    },
-    required: ['title', 'size'],
-  },
+  // Reference to a GTS type for uiMeta validation
+  extensionsUiMetaTypeId: 'gts.acme.dashboard.ext.widget_ui_meta.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
     // Domain itself only supports init/destroyed stages
