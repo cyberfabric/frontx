@@ -38,3 +38,19 @@ export type {
   MfManifest,
   SharedDependencyConfig,
 } from './types';
+
+// Runtime
+export {
+  ScreensetsRegistry,
+  createScreensetsRegistry,
+} from './runtime';
+export type { ScreensetsRegistryConfig } from './runtime';
+
+// Handler Types
+export type {
+  MfeBridgeConnection,
+  MfeEntryLifecycle,
+  LoadedMfe,
+  MfeBridgeFactory,
+  MfeHandler,
+} from './handler/types';
