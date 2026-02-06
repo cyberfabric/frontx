@@ -48,7 +48,7 @@ export type { ScreensetsRegistryConfig } from './runtime';
 
 // Handler Types
 export type {
-  MfeBridgeConnection,
+  ParentMfeBridge,
   MfeEntryLifecycle,
   LoadedMfe,
   MfeBridgeFactory,

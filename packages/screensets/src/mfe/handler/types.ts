@@ -11,10 +11,11 @@ import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntry } from '../types';
 
 /**
- * Bridge connection interface (placeholder for now).
+ * Parent MFE Bridge interface.
+ * Used by the parent runtime to manage child MFE instances.
  * Full implementation will come in Phase 15.
  */
-export interface MfeBridgeConnection {
+export interface ParentMfeBridge {
   dispose(): void;
 }
 
