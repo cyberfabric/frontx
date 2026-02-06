@@ -717,7 +717,7 @@ interface ScreensetsRegistryConfig {
   mfeHandler?: MfeHandlerConfig;
 
   /** Initial parent bridge (if loaded as MFE) */
-  parentBridge?: MfeBridgeConnection;
+  parentBridge?: ParentMfeBridge;
 }
 
 /**

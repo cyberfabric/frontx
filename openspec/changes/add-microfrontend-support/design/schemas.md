@@ -164,7 +164,7 @@ Binds an MFE entry to a domain. Domain-specific fields are defined in derived Ex
 
 ### Shared Property Schema
 
-Represents a typed value passed from host to MFE.
+Represents a typed value passed from parent to MFE.
 
 ```json
 {

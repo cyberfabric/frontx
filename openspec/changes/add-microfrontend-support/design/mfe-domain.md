@@ -139,11 +139,11 @@ HAI3 provides base layout domains for the host level, and any MFE can define its
 
 ### Base Layout Domains
 
-When using GTS plugin, base domains follow the format `gts.hai3.screensets.ext.domain.<layout>.v1~`:
-- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.sidebar.v1~` - Sidebar panels
-- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.popup.v1~` - Modal popups
-- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~` - Full screen views
-- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.overlay.v1~` - Floating overlays
+When using GTS plugin, base domains follow the format `gts.hai3.screensets.ext.domain.<layout>.v1`:
+- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.sidebar.v1` - Sidebar panels
+- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.popup.v1` - Modal popups
+- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1` - Full screen views
+- `gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.overlay.v1` - Floating overlays
 
 ### Vendor-Defined Domains
 

@@ -391,7 +391,7 @@ await registry.triggerDomainLifecycleStage(
 const analyticsExtension = {
   id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics.v1',
   domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
   icon: 'chart-line',
@@ -402,8 +402,8 @@ const analyticsExtension = {
       stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_registered.v1~',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1~',
+          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_registered.v1',
+          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
@@ -413,8 +413,8 @@ const analyticsExtension = {
       stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.activated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.start_polling.v1~',
-          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1~',
+          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.start_polling.v1',
+          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
           payload: { interval: 30000 },
         },
       },
@@ -424,8 +424,8 @@ const analyticsExtension = {
       stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.deactivated.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.stop_polling.v1~',
-          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1~',
+          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.stop_polling.v1',
+          target: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.widgets.analytics.v1',
         },
       },
     },
@@ -434,8 +434,8 @@ const analyticsExtension = {
       stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.destroyed.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_destroyed.v1~',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1~',
+          type: 'gts.hai3.screensets.ext.action.v1~acme.analytics.actions.widget_destroyed.v1',
+          target: 'gts.hai3.screensets.ext.domain.v1~acme.analytics.service.v1',
           payload: { widgetId: 'analytics-dashboard' },
         },
       },
@@ -450,13 +450,13 @@ const analyticsExtension = {
 const widgetSlotDomain: ExtensionDomain = {
   id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   sharedProperties: [
-    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1~',
+    'gts.hai3.screensets.ext.shared_property.v1~hai3.screensets.props.user_context.v1',
   ],
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
   extensionsActions: [
-    'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1~',
+    'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.data_update.v1',
   ],
-  // Reference to derived Extension type for this domain
+  // Reference to derived Extension type for this domain (schema reference, ends with ~)
   extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~',
   defaultActionTimeout: 30000,
   lifecycleStages: [
@@ -478,8 +478,8 @@ const widgetSlotDomain: ExtensionDomain = {
       stage: 'gts.hai3.screensets.ext.lifecycle_stage.v1~hai3.screensets.lifecycle.init.v1',
       actions_chain: {
         action: {
-          type: 'gts.hai3.screensets.ext.action.v1~acme.logging.actions.log.v1~',
-          target: 'gts.hai3.screensets.ext.domain.v1~acme.logging.service.v1~',
+          type: 'gts.hai3.screensets.ext.action.v1~acme.logging.actions.log.v1',
+          target: 'gts.hai3.screensets.ext.domain.v1~acme.logging.service.v1',
           payload: { message: 'Widget slot domain initialized', level: 'info' },
         },
       },
@@ -530,7 +530,7 @@ class ScreensetsRegistry {
     await this.triggerLifecycleStageInternal(extension, HAI3_LIFECYCLE_INIT);
   }
 
-  async mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
+  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     // ... mounting logic ...
 
     // Trigger activated stage

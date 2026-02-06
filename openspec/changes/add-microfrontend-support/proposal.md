@@ -38,7 +38,7 @@ const app = createHAI3()
 
 HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./design/overview.md#runtime-isolation-default-behavior) for the complete isolation model, including recommendations for 3rd-party vs internal MFEs.
 
-Communication happens ONLY through the explicit contract (MfeBridge interface):
+Communication happens ONLY through the explicit contract (ChildMfeBridge interface):
 - **Shared properties** (parent to child, read-only)
 - **Actions chain** delivered by ActionsChainsMediator to targets
 
@@ -136,7 +136,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating bridge instances |
+| `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating ChildMfeBridge instances |
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
 | `LoadedMfe` | `lifecycle, entry, unload()` | Result of loading an MFE bundle |
 
@@ -152,6 +152,12 @@ The following methods and patterns were intentionally omitted from the design:
 - **MfeEntry**: A pure contract type (abstract base) defining ONLY the communication contract (properties, actions). Derived types like `MfeEntryMF` add handler-specific fields. This ensures the same entry contract works with any handler and allows future handlers (ESM, Import Maps) to add their own derived types.
 - **MfeEntryLifecycle**: The lifecycle interface all MFE entries must implement. The name focuses on lifecycle semantics (mount/unmount) rather than implementation details. It defines framework-agnostic methods, is extensible for future lifecycle methods (onSuspend, onResume), and allows MFEs to be written in any UI framework.
 - **MfeHandler Extensibility**: The `MfeHandler` abstract class, `MfeBridgeFactory`, and handler registry enable companies to create custom derived entry types with richer contracts, register custom handlers, and create custom bridge factories that inject shared services. This solves the tension between 3rd-party vendors (thin, stable contracts) and enterprises (richer integration for internal MFEs). See `design/mfe-loading.md` and `design/principles.md` for details.
+
+### Bridge Interface Names
+
+The MFE Bridge interfaces are named to clarify which side of the parent/child relationship each interface is for:
+- **ChildMfeBridge**: The interface exposed to MFE/child code for communicating with the parent domain
+- **ParentMfeBridge**: The interface used by the parent to manage child MFE communication (extends ChildMfeBridge)
 
 ### GTS Type ID Format
 
@@ -403,7 +409,7 @@ interface ScreensetsRegistry {
   // === Mounting (lifecycle) ===
 
   /** Mount loaded extension to DOM container - extension must be loaded first */
-  mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection>;
+  mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
 
   /** Unmount extension from DOM */
   unmountExtension(extensionId: string): Promise<void>;

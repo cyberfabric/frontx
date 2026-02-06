@@ -21,11 +21,11 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
 **Architecture:**
 ```
 +---------------------------+      +---------------------------+
-|      HOST RUNTIME         |      |       MFE RUNTIME         |
+|     PARENT RUNTIME        |      |       MFE RUNTIME         |
 |  (React + TypeSystemA)    |      |  (Vue 3 + TypeSystemB)    |
 +---------------------------+      +---------------------------+
 |   TypeSystemPlugin A      |      |   TypeSystemPlugin B      |
-|   (host schemas only)     |      |   (MFE schemas only)      |
+|   (parent schemas only)   |      |   (MFE schemas only)      |
 +---------------------------+      +---------------------------+
 |   HAI3 State Instance A   |      |   HAI3 State Instance B   |
 +---------------------------+      +---------------------------+
@@ -34,7 +34,7 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
               |                                  |
               |    MfeBridge (Contract)          |
               +==================================+
-              |  - Shared Properties (host->MFE) |
+              |  - Shared Properties (parent->MFE)|
               |  - Actions Chains (bidirectional)|
               +==================================+
 ```
@@ -42,8 +42,8 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
 **Key Points:**
 - No direct store access across boundary
 - No direct schema registry access across boundary (security)
-- Shared properties passed via MfeBridge only
-- Actions delivered via ActionsChainsMediator through MfeBridge
+- Shared properties passed via ChildMfeBridge only
+- Actions delivered via ActionsChainsMediator through ChildMfeBridge
 
 ### Decision 14: Framework-Agnostic Isolation Model (Default Behavior)
 
@@ -57,10 +57,10 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
 class ScreensetsRegistry {
   private readonly domains = new Map<string, ExtensionDomainState>();
   private readonly extensions = new Map<string, ExtensionState>();
-  private readonly childBridges = new Map<string, MfeBridgeConnection>();
+  private readonly childBridges = new Map<string, ParentMfeBridge>();
   private readonly actionHandlers = new Map<string, ActionHandler>();
   private readonly handlers: MfeHandler[] = [];
-  private parentBridge: MfeBridgeConnection | null = null;
+  private parentBridge: ParentMfeBridge | null = null;
   private readonly state: HAI3State;
   public readonly typeSystem: TypeSystemPlugin;
 
@@ -111,7 +111,7 @@ class ScreensetsRegistry {
         entry.optionalProperties?.includes(propertyTypeId);
 
       if (subscribes) {
-        (extensionState.bridge as MfeBridgeConnectionInternal).receivePropertyUpdate(propertyTypeId, value);
+        (extensionState.bridge as ParentMfeBridgeInternal).receivePropertyUpdate(propertyTypeId, value);
       }
     }
   }
@@ -126,7 +126,7 @@ class ScreensetsRegistry {
     }
   }
 
-  mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
+  mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     const extension = this.extensions.get(extensionId)?.extension;
     if (!extension) throw new Error(`Extension '${extensionId}' not registered`);
 
@@ -327,7 +327,7 @@ class ScreensetsRegistry {
 
   // === Mounting (lifecycle) ===
 
-  async mountExtension(extensionId: string, container: Element): Promise<MfeBridgeConnection> {
+  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     // If not loaded, load first
     // Create bridge, register runtime, mount
     // Trigger 'activated' lifecycle stage

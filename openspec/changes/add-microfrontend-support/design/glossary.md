@@ -7,7 +7,7 @@ This document defines key terms used throughout the MFE system design documents.
 ## Core Concepts
 
 ### Microfrontend (MFE)
-A Microfrontend (MFE) is an independently developed, deployed, and versioned UI component that can be loaded into a parent application at runtime. Communication happens only through defined contracts via the MfeBridge. Throughout these documents, "MFE" is used as the standard abbreviation after the first occurrence. See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for isolation model details.
+A Microfrontend (MFE) is an independently developed, deployed, and versioned UI component that can be loaded into a parent application at runtime. Communication happens only through defined contracts via the ChildMfeBridge. Throughout these documents, "MFE" is used as the standard abbreviation after the first occurrence. See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for isolation model details.
 
 ### Domain (ExtensionDomain)
 An extension point where MFE instances can be mounted. Domains can exist at **any level of the hierarchy** - the host application can define domains, and MFEs themselves can define their own domains for nested extensions. This enables hierarchical composition where an MFE acts as both an extension (to its parent's domain) and a domain provider (for its own child extensions). Domains define the contract with extensions by declaring shared properties, supported action types, and UI metadata schemas. See [mfe-domain.md](./mfe-domain.md).
@@ -16,10 +16,13 @@ An extension point where MFE instances can be mounted. Domains can exist at **an
 A binding that connects an MFE entry to a specific domain, creating a concrete MFE instance. Extensions include UI metadata that must conform to the domain's schema and are registered dynamically at runtime. See [mfe-domain.md](./mfe-domain.md#extension). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
 ### Entry (MfeEntry)
-The contract that an MFE declares with its hosting domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
+The contract that an MFE declares with its parent domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
 
-### Bridge (MfeBridge)
-The communication channel between an MFE instance and its parent domain. Provides methods for subscribing to shared properties and sending action requests to the domain. See [mfe-api.md](./mfe-api.md). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+### ChildMfeBridge
+The communication channel exposed to MFE instance (child) code for interacting with its parent domain. Provides methods for subscribing to shared properties and sending actions chains to the parent. See [mfe-api.md](./mfe-api.md). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+
+### ParentMfeBridge
+The extended bridge interface used by the parent to manage MFE instance (child) communication. Extends ChildMfeBridge with methods to send actions chains to children and register handlers for actions coming from children. See [mfe-api.md](./mfe-api.md).
 
 ---
 
@@ -38,7 +41,7 @@ A typed message with a target (domain or extension), self-identifying type ID, o
 A linked structure of actions with `next` (on success) and `fallback` (on failure) branches. Enables declarative action workflows where the outcome of one action determines which action executes next. See [mfe-actions.md](./mfe-actions.md).
 
 ### SharedProperty
-A typed value passed from the host to mounted MFEs (one-way: host to MFE). Domains declare which properties they provide; entries declare which properties they require. MFEs subscribe to property updates via the bridge. See [mfe-shared-property.md](./mfe-shared-property.md).
+A typed value passed from the parent to mounted MFEs (one-way: parent to MFE). Domains declare which properties they provide; entries declare which properties they require. MFEs subscribe to property updates via the bridge. See [mfe-shared-property.md](./mfe-shared-property.md).
 
 ---
 

@@ -2,6 +2,13 @@
 
 This document covers the error class hierarchy for the MFE system.
 
+**Related Documents:**
+- [MFE Loading](./mfe-loading.md) - Handler architecture and bundle loading
+- [MFE Actions](./mfe-actions.md) - Action types and chain execution
+- [MFE Domain](./mfe-domain.md) - Domain and extension registration
+- [MFE Lifecycle](./mfe-lifecycle.md) - Lifecycle stages and hooks
+- [Type System](./type-system.md) - Contract validation rules
+
 ---
 
 ## Context

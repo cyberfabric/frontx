@@ -115,18 +115,18 @@ mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
 - **AND** it SHALL NOT perform any async operations
 - **AND** the effect SHALL call `runtime.mountExtension()` (which auto-loads if needed)
 
-#### Scenario: Handle MFE host action
+#### Scenario: Handle MFE child action
 
 ```typescript
-// Called by ScreensetsRegistry when MFE requests host action
+// Called by ScreensetsRegistry when MFE (child) sends an action chain to parent
 // actionTypeId references gts.hai3.screensets.ext.action.v1~
-mfeActions.handleMfeHostAction(extensionId, actionTypeId, payload);
-// Emits: 'mfe/hostActionRequested' with { extensionId, actionTypeId, payload }
+mfeActions.handleMfeChildAction(extensionId, actionTypeId, payload);
+// Emits: 'mfe/childActionRequested' with { extensionId, actionTypeId, payload }
 ```
 
-- **WHEN** the ScreensetsRegistry's `onHostAction` callback is invoked
-- **THEN** it SHALL call `handleMfeHostAction` action
-- **AND** the action SHALL emit `'mfe/hostActionRequested'` event
+- **WHEN** the ScreensetsRegistry's `onChildAction` callback is invoked
+- **THEN** it SHALL call `handleMfeChildAction` action
+- **AND** the action SHALL emit `'mfe/childActionRequested'` event
 - **AND** effects SHALL handle the event and call ScreensetsRegistry methods
 
 ### Requirement: MFE Effects
@@ -204,13 +204,13 @@ eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
 - **AND** on failure, the effect SHALL dispatch `setError`
 - **AND** the effect SHALL NOT call any actions (prevents loops)
 
-#### Scenario: Host action effect handles extension load request
+#### Scenario: Child action effect handles extension load request
 
 ```typescript
 import { conformsTo, HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 
 // actionTypeId conforms to gts.hai3.screensets.ext.action.v1~
-eventBus.on('mfe/hostActionRequested', async ({ extensionId, actionTypeId, payload }) => {
+eventBus.on('mfe/childActionRequested', async ({ extensionId, actionTypeId, payload }) => {
   if (conformsTo(actionTypeId, HAI3_ACTION_LOAD_EXT)) {
     const { domainTypeId, targetExtensionId, ...params } = payload as LoadExtPayload;
     // Domain handles the load according to its layout behavior (popup shows modal, sidebar shows panel, etc.)
@@ -220,7 +220,7 @@ eventBus.on('mfe/hostActionRequested', async ({ extensionId, actionTypeId, paylo
 });
 ```
 
-- **WHEN** `'mfe/hostActionRequested'` event with `load_ext` action is received
+- **WHEN** `'mfe/childActionRequested'` event with `load_ext` action is received
 - **THEN** the effect SHALL call `runtime.mountExtension()` with the target extension
 - **AND** the domain SHALL handle the extension according to its specific layout behavior
 - **AND** the effect SHALL dispatch to `layoutSlice`
@@ -370,26 +370,31 @@ The system SHALL support loading MFE extensions into any domain using generic `l
 ```typescript
 import { HAI3_ACTION_LOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
 
-// Inside MFE component - bridge validates and calls onHostAction callback
+// Inside MFE component - bridge sends action chain to parent
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.load_ext.v1~
-await bridge.requestHostAction(HAI3_ACTION_LOAD_EXT, {
-  domainTypeId: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
-  extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
-  props: { format: 'pdf' },
+await bridge.sendActionsChain({
+  action: {
+    type: HAI3_ACTION_LOAD_EXT,
+    target: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
+    payload: {
+      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
+      props: { format: 'pdf' },
+    },
+  },
 });
 
 // Flow:
-// 1. Bridge validates payload against GTS schema
-// 2. Bridge calls onHostAction callback
-// 3. Callback invokes handleMfeHostAction action
-// 4. Action emits 'mfe/hostActionRequested' event
+// 1. Bridge validates action chain against GTS schema
+// 2. Bridge calls onChildAction callback
+// 3. Callback invokes handleMfeChildAction action
+// 4. Action emits 'mfe/childActionRequested' event
 // 5. Effect handles event, calls runtime.loadExtension() with domain and extension
 // 6. Popup domain handles by showing modal with the extension
 ```
 
 - **WHEN** an MFE requests load_ext with popup domain
-- **THEN** the bridge (from @hai3/screensets) SHALL validate the payload
-- **AND** the bridge SHALL call onHostAction callback
+- **THEN** the bridge (from @hai3/screensets) SHALL validate the action chain
+- **AND** the bridge SHALL call onChildAction callback
 - **AND** the effect SHALL call `runtime.loadExtension()` with domain and extension
 - **AND** the popup domain SHALL render the extension as a modal
 
@@ -400,14 +405,19 @@ import { HAI3_ACTION_UNLOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
 
 // Inside MFE popup
 // HAI3_ACTION_UNLOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.unload_ext.v1~
-await bridge.requestHostAction(HAI3_ACTION_UNLOAD_EXT, {
-  domainTypeId: HAI3_POPUP_DOMAIN,
-  extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
+await bridge.sendActionsChain({
+  action: {
+    type: HAI3_ACTION_UNLOAD_EXT,
+    target: HAI3_POPUP_DOMAIN,
+    payload: {
+      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.popups.export.v1',
+    },
+  },
 });
 ```
 
 - **WHEN** an MFE requests unload_ext from popup domain
-- **THEN** the host SHALL unmount the extension from the popup domain
+- **THEN** the parent SHALL unmount the extension from the popup domain
 - **AND** the extension's bridge SHALL be destroyed
 
 #### Scenario: MFE requests extension load into sidebar domain
@@ -416,14 +426,19 @@ await bridge.requestHostAction(HAI3_ACTION_UNLOAD_EXT, {
 import { HAI3_ACTION_LOAD_EXT, HAI3_SIDEBAR_DOMAIN } from '@hai3/screensets';
 
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.screensets.ext.action.v1~hai3.screensets.actions.load_ext.v1~
-await bridge.requestHostAction(HAI3_ACTION_LOAD_EXT, {
-  domainTypeId: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
-  extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
+await bridge.sendActionsChain({
+  action: {
+    type: HAI3_ACTION_LOAD_EXT,
+    target: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
+    payload: {
+      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
+    },
+  },
 });
 ```
 
 - **WHEN** an MFE requests load_ext with sidebar domain
-- **THEN** the host SHALL validate the payload against the action schema
+- **THEN** the parent SHALL validate the action chain against the action schema
 - **AND** the effect SHALL call `runtime.loadExtension()` with domain and extension
 - **AND** the sidebar domain SHALL render the extension as a side panel
 - **AND** the extension SHALL render in Shadow DOM
@@ -448,17 +463,27 @@ await bridge.requestHostAction(HAI3_ACTION_LOAD_EXT, {
 import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/screensets';
 
 // This works - screen domain supports load_ext (navigate to screen)
-await bridge.requestHostAction(HAI3_ACTION_LOAD_EXT, {
-  domainTypeId: HAI3_SCREEN_DOMAIN,
-  extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+await bridge.sendActionsChain({
+  action: {
+    type: HAI3_ACTION_LOAD_EXT,
+    target: HAI3_SCREEN_DOMAIN,
+    payload: {
+      extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+    },
+  },
 });
 
 // This will FAIL - screen domain does NOT support unload_ext
 // You cannot have "no screen selected"
 try {
-  await bridge.requestHostAction(HAI3_ACTION_UNLOAD_EXT, {
-    domainTypeId: HAI3_SCREEN_DOMAIN,
-    extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+  await bridge.sendActionsChain({
+    action: {
+      type: HAI3_ACTION_UNLOAD_EXT,
+      target: HAI3_SCREEN_DOMAIN,
+      payload: {
+        extensionTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+      },
+    },
   });
 } catch (error) {
   // UnsupportedDomainActionError: Domain does not support action 'unload_ext'
@@ -635,7 +660,7 @@ console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
 console.log(extension?.title);      // Domain-specific field from derived Extension type
 
 // Query domain by type ID
-const SCREEN_DOMAIN = 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~' as GtsTypeId;
+const SCREEN_DOMAIN = 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1' as GtsTypeId;
 const domain = runtime.getDomain(SCREEN_DOMAIN);
 console.log(domain?.sharedProperties);  // List of shared property type IDs
 
@@ -750,7 +775,7 @@ import { type Extension, type GtsTypeId } from '@hai3/screensets';
 // Extension uses derived type that includes domain-specific fields
 mfeActions.registerExtension({
   id: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1' as GtsTypeId,
-  domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~',
+  domain: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics',
@@ -844,7 +869,7 @@ import { useExtensionEvents } from '@hai3/framework';
 
 function WidgetSlot() {
   // Re-render when extensions are registered/unregistered for this domain
-  const extensions = useExtensionEvents('gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1~');
+  const extensions = useExtensionEvents('gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.widget_slot.v1');
 
   return (
     <div>

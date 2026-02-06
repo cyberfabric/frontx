@@ -200,7 +200,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 
 #### Scenario: Extension domain type definition
 
-- **WHEN** a host defines an extension domain
+- **WHEN** a parent defines an extension domain
 - **THEN** the domain SHALL conform to `ExtensionDomain` TypeScript interface
 - **AND** the domain SHALL have an `id` field (string)
 - **AND** the domain SHALL specify sharedProperties, actions, and extensionsActions
@@ -337,7 +337,7 @@ With HAI3's default handler (MfeHandlerMF), each MFE instance SHALL have its own
 
 - **WHEN** an MFE entry receives shared properties
 - **THEN** properties SHALL be passed via MfeBridge interface only
-- **AND** properties SHALL be updated when host values change
+- **AND** properties SHALL be updated when parent values change
 - **AND** MFE SHALL NOT modify shared properties directly
 
 ### Requirement: Actions Chain Mediation
@@ -542,25 +542,25 @@ The system SHALL define `MfeRemoteConfig` interface for configuring remote MFE e
 
 ### Requirement: MFE Bridge Interface
 
-The system SHALL provide bridge interfaces for communication between host and MFE.
+The system SHALL provide bridge interfaces for communication between parent and MFE (child).
 
-#### Scenario: MfeBridge interface
+#### Scenario: ChildMfeBridge interface
 
-- **WHEN** an MFE component needs to communicate with the host
-- **THEN** the MFE SHALL receive a `MfeBridge` instance via props
-- **AND** `MfeBridge` SHALL provide `requestHostAction(actionTypeId, payload)` method
-- **AND** `MfeBridge` SHALL provide `subscribeToProperty(propertyTypeId, callback)` method
-- **AND** `MfeBridge` SHALL expose `entryTypeId` for self-identification
+- **WHEN** an MFE component (child) needs to communicate with the parent
+- **THEN** the MFE SHALL receive a `ChildMfeBridge` instance via props
+- **AND** `ChildMfeBridge` SHALL provide `sendActionsChain(chain)` method for sending actions chains to the parent
+- **AND** `ChildMfeBridge` SHALL provide `subscribeToProperty(propertyTypeId, callback)` method
+- **AND** `ChildMfeBridge` SHALL expose `entryTypeId` for self-identification
 
-#### Scenario: MfeBridgeConnection interface
+#### Scenario: ParentMfeBridge interface
 
-- **WHEN** the host creates a bridge for a mounted MFE
-- **THEN** `MfeBridgeConnection` SHALL extend `MfeBridge`
-- **AND** it SHALL provide `sendActionsChain(chain, options?)` for sending actions to MFE
+- **WHEN** the parent creates a bridge for a mounted MFE (child)
+- **THEN** `ParentMfeBridge` SHALL extend `ChildMfeBridge`
+- **AND** it SHALL provide `sendActionsChain(chain, options?)` for sending actions to MFE (child)
 - **AND** the `options` parameter SHALL be optional `ChainExecutionOptions`
-- **AND** it SHALL provide `onHostAction(handler)` for registering action handlers
+- **AND** it SHALL provide `onChildAction(handler)` for registering handlers for actions from the MFE (child)
 - **AND** it SHALL provide `dispose()` for cleanup
-- **AND** property updates SHALL be managed at the DOMAIN level via `registry.updateDomainProperty()`, NOT on MfeBridgeConnection
+- **AND** property updates SHALL be managed at the DOMAIN level via `registry.updateDomainProperty()`, NOT on ParentMfeBridge
 
 ### Requirement: Framework-Agnostic MFE Module Interface
 
@@ -570,7 +570,7 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export an `MfeEntryLifecycle` interface
-- **AND** the interface SHALL define `mount(container: HTMLElement, bridge: MfeBridge): void`
+- **AND** the interface SHALL define `mount(container: HTMLElement, bridge: ChildMfeBridge): void`
 - **AND** the interface SHALL define `unmount(container: HTMLElement): void`
 - **AND** all MFE entries SHALL export functions conforming to this interface
 
@@ -606,18 +606,18 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 - **WHEN** implementing an MFE in Vanilla JavaScript
 - **THEN** the MFE SHALL export a `mount` function that directly manipulates the container DOM
 - **AND** the MFE SHALL export an `unmount` function that cleans up the container
-- **AND** the MFE SHALL use the bridge for property subscriptions and action requests
+- **AND** the MFE SHALL use the bridge for property subscriptions and sending actions chains
 
 #### Scenario: MFE mount receives bridge
 
-- **WHEN** the host mounts an MFE
-- **THEN** the `mount` function SHALL receive the `MfeBridge` instance
-- **AND** the MFE SHALL use the bridge for all host communication
+- **WHEN** the parent mounts an MFE
+- **THEN** the `mount` function SHALL receive the `ChildMfeBridge` instance
+- **AND** the MFE SHALL use the bridge for all parent communication
 - **AND** the bridge SHALL be available throughout the MFE lifecycle
 
 #### Scenario: MFE unmount cleanup
 
-- **WHEN** the host unmounts an MFE
+- **WHEN** the parent unmounts an MFE
 - **THEN** the `unmount` function SHALL be called with the same container element
 - **AND** the MFE SHALL clean up all DOM content in the container
 - **AND** the MFE SHALL unsubscribe from all bridge subscriptions
@@ -782,23 +782,23 @@ The system SHALL provide typed error classes for MFE operations.
 
 ### Requirement: Internal Runtime Coordination
 
-The system SHALL provide PRIVATE coordination mechanisms between host and MFE runtimes that are NOT exposed to MFE code. The coordination uses WeakMap-based approach for better encapsulation and garbage collection.
+The system SHALL provide PRIVATE coordination mechanisms between parent and MFE runtimes that are NOT exposed to MFE code. The coordination uses WeakMap-based approach for better encapsulation and garbage collection.
 
 #### Scenario: RuntimeCoordinator uses WeakMap
 
-- **WHEN** the host runtime and MFE runtime need to coordinate
+- **WHEN** the parent runtime and MFE runtime need to coordinate
 - **THEN** coordination SHALL use a module-level WeakMap keyed by container Element
-- **AND** the WeakMap SHALL store RuntimeConnection objects with hostRuntime and bridges
+- **AND** the WeakMap SHALL store RuntimeConnection objects with parentRuntime and bridges
 - **AND** RuntimeCoordinator SHALL NOT use window globals (no `window.__hai3_*` properties)
 - **AND** RuntimeCoordinator SHALL NOT be exposed to MFE component code
-- **AND** MFE code SHALL only see the MfeBridge interface
+- **AND** MFE code SHALL only see the ChildMfeBridge interface
 
 #### Scenario: RuntimeConnection registration
 
 - **WHEN** an MFE is mounted to a container element
 - **THEN** the system SHALL call `registerRuntime(container, connection)` internally
-- **AND** the RuntimeConnection SHALL include the hostRuntime reference
-- **AND** the RuntimeConnection SHALL include a Map of entryTypeId to MfeBridgeConnection
+- **AND** the RuntimeConnection SHALL include the parentRuntime reference
+- **AND** the RuntimeConnection SHALL include a Map of entryTypeId to ParentMfeBridge
 
 #### Scenario: RuntimeConnection lookup
 
@@ -821,25 +821,25 @@ The system SHALL provide PRIVATE coordination mechanisms between host and MFE ru
 - **AND** garbage collection SHALL be automatic when container element is removed
 - **AND** encapsulation SHALL be better (module-private, not globally accessible)
 
-#### Scenario: MfeBridge is the only exposed interface
+#### Scenario: ChildMfeBridge is the only exposed interface
 
 - **WHEN** an MFE component is rendered
-- **THEN** the only communication interface visible to MFE code SHALL be MfeBridge
-- **AND** MfeBridge SHALL provide: `requestHostAction`, `subscribeToProperty`, `getProperty`, `subscribeToAllProperties`
-- **AND** MfeBridge SHALL NOT expose: RuntimeCoordinator, TypeSystemPlugin, schema registry, internal state
+- **THEN** the only communication interface visible to MFE code SHALL be ChildMfeBridge
+- **AND** ChildMfeBridge SHALL provide: `sendActionsChain`, `subscribeToProperty`, `getProperty`, `subscribeToAllProperties`
+- **AND** ChildMfeBridge SHALL NOT expose: RuntimeCoordinator, TypeSystemPlugin, schema registry, internal state
 
 #### Scenario: Internal coordination for property updates
 
-- **WHEN** the host updates a shared property value
+- **WHEN** the parent updates a shared property value
 - **THEN** RuntimeCoordinator SHALL internally propagate the update
-- **AND** MfeBridge SHALL notify subscribers via `subscribeToProperty` callbacks
+- **AND** ChildMfeBridge SHALL notify subscribers via `subscribeToProperty` callbacks
 - **AND** the internal coordination mechanism SHALL NOT be visible to MFE code
 
 #### Scenario: Internal coordination for action delivery
 
-- **WHEN** the host sends an action chain to an MFE
+- **WHEN** the parent sends an action chain to an MFE
 - **THEN** RuntimeCoordinator SHALL internally route the action
-- **AND** MfeBridge SHALL receive the action and invoke the MFE's handler
+- **AND** ChildMfeBridge SHALL receive the action and invoke the MFE's handler
 - **AND** the routing mechanism SHALL NOT be visible to MFE code
 
 ### Requirement: Module Federation Shared Configuration
@@ -945,9 +945,9 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 - **AND** action timeouts SHALL be resolved from action and domain type definitions
 - **AND** on timeout or any failure: execute fallback chain if defined
 
-#### Scenario: MfeBridgeConnection method signature
+#### Scenario: ParentMfeBridge method signature
 
-- **WHEN** using MfeBridgeConnection
+- **WHEN** using ParentMfeBridge
 - **THEN** `sendActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
 - **AND** the options SHALL be passed through to the underlying mediator
 - **AND** action timeouts SHALL be resolved from action and domain type definitions
@@ -1081,7 +1081,7 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 #### Scenario: ScreensetsRegistry mountExtension method
 
 - **WHEN** calling `runtime.mountExtension(extensionId, container)`
-- **THEN** the method SHALL return `Promise<MfeBridgeConnection>`
+- **THEN** the method SHALL return `Promise<ParentMfeBridge>`
 - **AND** the extension MUST be registered
 - **AND** if extension is not loaded, it SHALL be loaded automatically
 - **AND** a bridge SHALL be created and connected

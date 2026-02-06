@@ -667,27 +667,27 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ## Phase 15: MFE Bridge Implementation
 
-**Goal**: Implement MfeBridge and MfeBridgeConnection classes.
+**Goal**: Implement ChildMfeBridge and ParentMfeBridge classes.
 
 ### 15.1 Bridge Core
 
-- [ ] 15.1.1 Create `packages/screensets/src/mfe/bridge/MfeBridge.ts`
-- [ ] 15.1.2 Implement `requestHostAction()` with payload validation
+- [ ] 15.1.1 Create `packages/screensets/src/mfe/bridge/ChildMfeBridge.ts`
+- [ ] 15.1.2 Implement `sendActionsChain()` with payload validation
 - [ ] 15.1.3 Implement `subscribeToProperty()` with callback management
 - [ ] 15.1.4 Implement `getProperty()` for synchronous access
 - [ ] 15.1.5 Implement `subscribeToAllProperties()` for bulk subscription
 
-**Traceability**: Requirement "MFE Bridge Interface" - MfeBridge
+**Traceability**: Requirement "MFE Bridge Interface" - ChildMfeBridge
 
 ### 15.2 Bridge Connection
 
-- [ ] 15.2.1 Create `packages/screensets/src/mfe/bridge/MfeBridgeConnection.ts`
+- [ ] 15.2.1 Create `packages/screensets/src/mfe/bridge/ParentMfeBridge.ts`
 - [ ] 15.2.2 Implement `sendActionsChain(chain, options?)` for domain-to-MFE actions with chain-level options only
 - [ ] 15.2.3 Implement property update notification - bridge subscribers are notified when `registry.updateDomainProperty()` is called (see spec: property updates managed at DOMAIN level)
-- [ ] 15.2.4 Implement `onHostAction()` handler registration
+- [ ] 15.2.4 Implement `onChildAction()` handler registration
 - [ ] 15.2.5 Implement `dispose()` for cleanup
 
-**Traceability**: Requirement "MFE Bridge Interface" - MfeBridgeConnection, Requirement "Explicit Timeout Configuration"
+**Traceability**: Requirement "MFE Bridge Interface" - ParentMfeBridge, Requirement "Explicit Timeout Configuration"
 
 ### 15.3 Bridge Factory
 
@@ -702,10 +702,10 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 **Test file**: `packages/screensets/__tests__/mfe/bridge/bridge.test.ts`
 
-- [ ] 15.4.1 Test MfeBridge property subscription
-- [ ] 15.4.2 Test MfeBridge host action request
-- [ ] 15.4.3 Test MfeBridgeConnection property updates
-- [ ] 15.4.4 Test MfeBridgeConnection actions chain delivery
+- [ ] 15.4.1 Test ChildMfeBridge property subscription
+- [ ] 15.4.2 Test ChildMfeBridge sendActionsChain request
+- [ ] 15.4.3 Test ParentMfeBridge property updates
+- [ ] 15.4.4 Test ParentMfeBridge actions chain delivery
 - [ ] 15.4.5 Test bridge disposal and cleanup
 
 **Traceability**: Requirement "MFE Bridge Interface" - all scenarios
@@ -864,7 +864,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 ### 19.3 Extension Mounting API
 
-- [ ] 19.3.1 Implement `mountExtension(extensionId, container): Promise<MfeBridgeConnection>` method
+- [ ] 19.3.1 Implement `mountExtension(extensionId, container): Promise<ParentMfeBridge>` method
 - [ ] 19.3.2 If extension not loaded, call loadExtension first (auto-load)
 - [ ] 19.3.3 Create bridge connection via handler.bridgeFactory
 - [ ] 19.3.4 Register with RuntimeCoordinator

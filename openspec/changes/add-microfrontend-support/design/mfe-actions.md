@@ -362,32 +362,32 @@ The `ActionsChainsMediator` interface (defined above) resolves action timeouts f
 
 Timeout is treated as a failure - the `ActionsChain.fallback` handles all failures uniformly.
 
-See [MFE API](./mfe-api.md) for the complete `MfeBridgeConnection` interface.
+See [MFE API](./mfe-api.md) for the complete `ParentMfeBridge` interface.
 
 ### Usage Example
 
 ```typescript
 // Domain defines default timeout in its type definition
 const dashboardDomain: ExtensionDomain = {
-  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1~',
+  id: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
   sharedProperties: [...],
   actions: [...],
   extensionsActions: [...],
-  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type
+  extensionsTypeId: 'gts.hai3.screensets.ext.extension.v1~acme.dashboard.ext.main_extension.v1~',  // Derived Extension type (schema reference, ends with ~)
   defaultActionTimeout: 30000,  // 30 seconds default for all actions
 };
 
 // Action uses domain's default timeout
 const refreshAction: Action = {
-  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.refresh.v1~',
-  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1~',
+  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.refresh.v1',
+  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
   // No timeout specified - uses domain's 30000ms default
 };
 
 // Action overrides for a long-running operation
 const exportAction: Action = {
-  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.export.v1~',
-  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1~',
+  type: 'gts.hai3.screensets.ext.action.v1~acme.dashboard.ext.export.v1',
+  target: 'gts.hai3.screensets.ext.domain.v1~acme.dashboard.layout.main.v1',
   timeout: 120000,  // 2 minutes for this specific action
   // On timeout: executes fallback chain if defined (same as any other failure)
 };

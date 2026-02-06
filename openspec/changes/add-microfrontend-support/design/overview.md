@@ -66,25 +66,25 @@ The MFE system's scope is **registration and lifecycle**, NOT fetching. How MFE 
 
 ## How MFE Instances Communicate
 
-MFE instances don't talk directly to each other. Each MFE **instance** has its own **Bridge** to its parent domain. All communication goes through the parent.
+MFE instances don't talk directly to each other. Each MFE **instance** has its own **ChildMfeBridge** to its parent domain. All communication goes through the parent.
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│    MFE A    │      │     HOST     │      │    MFE B    │
+│    MFE A    │      │    PARENT    │      │    MFE B    │
 │             │      │              │      │             │
 │             │◀─────│──(properties)│─────▶│             │
 │             │      │              │      │             │
-│  (request)  │─────▶│              │◀─────│  (request)  │
+│  (chains)   │─────▶│              │◀─────│  (chains)   │
 │             │◀─────│(chains both  │─────▶│             │
 │             │      │    ways)     │      │             │
 └─────────────┘      └──────────────┘      └─────────────┘
-    Bridge A                                  Bridge B
+ChildMfeBridge A                        ChildMfeBridge B
      (own)                                     (own)
 ```
 
 ### Two Communication Mechanisms
 
-1. **[Shared Properties](./mfe-shared-property.md)** - One-way: host → MFEs
+1. **[Shared Properties](./mfe-shared-property.md)** - One-way: parent → MFEs
    - User context, theme, selected items
    - MFEs subscribe and react to changes
 
@@ -97,11 +97,11 @@ MFE instances don't talk directly to each other. Each MFE **instance** has its o
 
 ## How MFEs are Loaded
 
-MFEs are loaded on-demand using [Module Federation](./mfe-loading.md). The host doesn't bundle MFE code - it fetches it at runtime.
+MFEs are loaded on-demand using [Module Federation](./mfe-loading.md). The parent doesn't bundle MFE code - it fetches it at runtime.
 
 ```
 ┌─────────────────┐         ┌─────────────────┐
-│   HOST APP      │         │   CDN / Server  │
+│   PARENT APP    │         │   CDN / Server  │
 │                 │         │                 │
 │  "Load chart    │  HTTP   │  ┌───────────┐  │
 │   widget"       │────────▶│  │ Chart MFE │  │
@@ -115,7 +115,7 @@ MFEs are loaded on-demand using [Module Federation](./mfe-loading.md). The host 
 └─────────────────┘         └─────────────────┘
 ```
 
-The [MfManifest](./mfe-manifest.md) tells the handler where to find the MFE bundle and what dependencies it shares with the host.
+The [MfManifest](./mfe-manifest.md) tells the handler where to find the MFE bundle and what dependencies it shares with the parent.
 
 ---
 
@@ -172,7 +172,7 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          │
          ▼
     ┌─────────┐
-    │ REGISTER│  Host registers Extension (binds entry to domain)
+    │ REGISTER│  Parent registers Extension (binds entry to domain)
     └────┬────┘  [init] lifecycle stage triggered
          │
          ▼
@@ -209,14 +209,7 @@ See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must imple
 
 ## Error Handling
 
-When things go wrong, the system provides [specific error types](./mfe-errors.md):
-
-| Error | When it happens |
-|-------|-----------------|
-| `MfeLoadError` | Bundle failed to load (network, 404, etc.) |
-| `ContractValidationError` | MFE doesn't match domain's requirements |
-| `ChainExecutionError` | Action chain failed during execution |
-| `UnsupportedDomainActionError` | Action not supported by target domain |
+When things go wrong, the system provides [specific error types](./mfe-errors.md). See [MFE Errors](./mfe-errors.md) for the complete error class hierarchy including all 10 error classes.
 
 ---
 

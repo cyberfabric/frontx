@@ -30,7 +30,7 @@ See [MFE Loading - Decision 10](./mfe-loading.md#decision-10-mfehandler-abstract
 
 ## MFE Independence with Thin Public Contracts
 
-**What**: Each MFE **instance** is maximally independent with a thin public contract. The public interface (MfeEntryLifecycle, MfeBridge, actions) is the ONLY required coupling between parent and MFE instance.
+**What**: Each MFE **instance** is maximally independent with a thin public contract. The public interface (MfeEntryLifecycle, ChildMfeBridge, actions) is the ONLY required coupling between parent and MFE instance.
 
 **Why**:
 - Easy to version and maintain compatibility
@@ -43,12 +43,12 @@ See [MFE Loading - Decision 10](./mfe-loading.md#decision-10-mfehandler-abstract
 ```
 +--------------------------------------------------------------------+
 |                           PUBLIC CONTRACT                           |
-|    (MfeEntryLifecycle + MfeBridge + Actions = THIN INTERFACE)      |
+|   (MfeEntryLifecycle + ChildMfeBridge + Actions = THIN INTERFACE)  |
 +--------------------------------------------------------------------+
          |                                          |
          v                                          v
 +------------------+                      +------------------+
-|   HOST RUNTIME   |                      |   MFE RUNTIME    |
+|  PARENT RUNTIME  |                      |   MFE RUNTIME    |
 +------------------+                      +------------------+
 | - Own API Client |                      | - Own API Client |
 | - Own Router     |                      | - Own Router     |
@@ -111,7 +111,7 @@ const user = await api.get('/users/123');
 PUBLIC (Architecture Level)     PRIVATE (Implementation Level)
 +---------------------------+   +---------------------------+
 | - MfeEntryLifecycle       |   | - @hai3/api cache sync    |
-| - MfeBridge               |   | - Request deduplication   |
+| - ChildMfeBridge          |   | - Request deduplication   |
 | - Actions                 |   | - Shared worker pools     |
 | - Shared Properties       |   | - Background prefetching  |
 +---------------------------+   +---------------------------+

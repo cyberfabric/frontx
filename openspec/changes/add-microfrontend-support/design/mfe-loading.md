@@ -21,7 +21,7 @@ The loading process must handle network failures, validation [errors](./mfe-erro
 
 **MfeHandler**: An abstract class that handles loading MFE bundles for specific entry types. Handlers use type hierarchy matching to determine which entries they can handle.
 
-**MfeBridgeFactory**: An abstract factory that creates bridge instances for MFEs. Each handler has an associated bridge factory.
+**MfeBridgeFactory**: An abstract factory that creates ChildMfeBridge instances for MFEs. Each handler has an associated bridge factory.
 
 **MfeLoader**: An internal implementation component that loads MFE bundles using Module Federation 2.0.
 
@@ -59,7 +59,7 @@ MfeEntry (abstract)                         MfeHandler (abstract class)
  * Abstract handler for loading MFE bundles.
  * Subclasses implement loading logic for specific entry types.
  */
-abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends MfeBridge = MfeBridge> {
+abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /** The base type ID this handler can handle */
   readonly handledBaseTypeId: string;
 
@@ -107,7 +107,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Mf
  * Abstract factory for creating MFE bridges.
  * Companies can implement rich factories with shared services.
  */
-abstract class MfeBridgeFactory<TBridge extends MfeBridge = MfeBridge> {
+abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /**
    * Create a bridge for an MFE.
    * @param domainId - The domain the MFE is mounted in
@@ -127,15 +127,15 @@ abstract class MfeBridgeFactory<TBridge extends MfeBridge = MfeBridge> {
 }
 
 /**
- * Default bridge factory - creates minimal MfeBridge instances.
+ * Default bridge factory - creates minimal ChildMfeBridge instances.
  */
-class MfeBridgeFactoryDefault extends MfeBridgeFactory<MfeBridge> {
-  create(domainId: string, entryTypeId: string, instanceId: string): MfeBridge {
-    return new MfeBridgeImpl(domainId, entryTypeId, instanceId);
+class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridge> {
+  create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridge {
+    return new ChildMfeBridgeImpl(domainId, entryTypeId, instanceId);
   }
 
-  dispose(bridge: MfeBridge): void {
-    (bridge as MfeBridgeImpl).cleanup();
+  dispose(bridge: ChildMfeBridge): void {
+    (bridge as ChildMfeBridgeImpl).cleanup();
   }
 }
 ```
@@ -146,7 +146,7 @@ Each handler's `canHandle()` method (inherited from base class) uses the type sy
 
 ```typescript
 // HAI3's default MF handler - handles MfeEntryMF
-class MfeHandlerMF extends MfeHandler<MfeEntryMF, MfeBridge> {
+class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   readonly bridgeFactory = new MfeBridgeFactoryDefault();
   private readonly manifestCache: ManifestCache;
 
@@ -194,7 +194,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, MfeBridge> {
 }
 
 // Company's custom handler - handles MfeEntryAcme with rich bridges
-class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, MfeBridgeAcme> {
+class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, ChildMfeBridgeAcme> {
   readonly bridgeFactory: MfeBridgeFactoryAcme;
 
   constructor(typeSystem: TypeSystemPlugin, router: Router, apiClient: ApiClient) {
@@ -307,7 +307,7 @@ interface MfeLoaderConfig {
 }
 
 interface MfeEntryLifecycle {
-  mount(container: HTMLElement, bridge: MfeBridge): void;
+  mount(container: HTMLElement, bridge: ChildMfeBridge): void;
   unmount(container: HTMLElement): void;
 }
 
@@ -433,9 +433,9 @@ When `loadExtension()` is called for an extension referencing MfeEntryMF:
 // Application registers extension (manifest info is embedded in MfeEntryMF)
 // Extension using derived type that includes domain-specific fields
 runtime.registerExtension({
-  id: 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1~',
-  domain: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1~',
-  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1~',
+  id: 'gts.hai3.screensets.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1',
+  domain: 'gts.hai3.screensets.ext.domain.v1~hai3.screensets.layout.screen.v1',
+  entry: 'gts.hai3.screensets.mfe.entry.v1~hai3.screensets.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
   title: 'Analytics Dashboard',
 });
