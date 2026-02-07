@@ -27,6 +27,30 @@ These restrictions are absolute and non-negotiable.
 2. **Follow Task Sequence**: Execute tasks in `openspec/changes/<change-id>/tasks.md` in strict sequential order
 3. **Honor the Contract**: Treat `proposal.md`, `design.md`, and spec deltas as the binding contract—do not deviate
 
+## ARCHITECTURE COMPLIANCE — SOLID OOP (MANDATORY)
+
+HAI3 follows strict SOLID-compliant OOP. Every implementation MUST adhere to these rules:
+
+### Class-Based Design (ABSOLUTE REQUIREMENT):
+- **NEVER** create standalone exported functions for capabilities. ALWAYS use classes.
+- **NEVER** use closures or factory functions that return plain objects as a substitute for classes.
+- **NEVER** use module-level variables (e.g., module-level Maps, WeakMaps) as standalone state. State belongs in class private members.
+- Every new capability MUST follow: **abstract class** (exportable abstraction) + **concrete class** (private state/methods).
+- Example: `abstract class Foo { abstract doThing(): void; }` → `class ConcreteFoo extends Foo { private state; doThing() {...} }`
+
+### SOLID Principles:
+- **Single Responsibility**: Each class has one reason to change.
+- **Open/Closed**: Open for extension (abstract classes), closed for modification.
+- **Liskov Substitution**: Concrete classes are substitutable for their abstractions.
+- **Interface Segregation**: Abstract classes expose only what consumers need.
+- **Dependency Inversion**: Depend on abstractions (abstract classes), not concrete implementations. Registry/config accepts abstract types, concrete classes are internal.
+
+### Before Writing Code:
+1. Read the design document (`design/*.md`) to understand the class structure.
+2. Identify which classes own which responsibilities.
+3. Check existing patterns in the codebase (e.g., `MfeHandler`, `MfeBridgeFactory`, `RuntimeCoordinator`).
+4. If the design shows a class with private members, implement it as a class with private members — NOT as standalone functions.
+
 ## ZERO-TOLERANCE CODE QUALITY RULES
 
 The following are UNACCEPTABLE and must NEVER appear in your implementation:

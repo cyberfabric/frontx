@@ -122,14 +122,48 @@ For each mismatch, report:
 - Actual implementation state (exists/missing)
 - Specific evidence (file exists, function defined, etc.)
 
+## ARCHITECTURE COMPLIANCE — SOLID OOP (MANDATORY, REVIEW FIRST)
+
+**This check MUST be performed BEFORE type analysis.** Architectural violations are more severe than type shortcuts.
+
+HAI3 follows strict SOLID-compliant OOP. You MUST verify:
+
+### Class-Based Design Violations (BLOCK):
+- Standalone exported functions used for capabilities (should be classes)
+- Closures or factory functions returning plain objects instead of classes
+- Module-level variables (Maps, WeakMaps, Sets) used as standalone state instead of class private members
+- Missing abstract class where the design doc specifies one
+- Concrete implementation exposed publicly when only the abstraction should be
+
+### SOLID Principle Violations (BLOCK):
+- No encapsulation: internal state/methods publicly accessible
+- Dependency on concrete classes instead of abstractions
+- Classes with multiple unrelated responsibilities
+- Implementation details leaked through public API
+
+### How to Check:
+1. Read the design document (`design/*.md`) for the change being reviewed
+2. Compare the **class structure** in the design against the actual implementation
+3. Verify that every capability follows: abstract class (abstraction) + concrete class (implementation)
+4. Check that private members are truly private (not exported, not publicly accessible)
+5. Check package barrel exports (`index.ts`) — internal classes should NOT be exported
+
+### Report Format for Architecture Violations:
+For each violation, report:
+- Exact file path and line number
+- What was implemented (e.g., "standalone function", "module-level WeakMap")
+- What the design doc specifies (e.g., "class with private member", "abstract class + concrete implementation")
+- Which SOLID principle was violated
+
 ## REVIEW METHODOLOGY
 
-1. **Scan Phase**: Systematically scan all changed files for zero-tolerance violations
-2. **Type Analysis**: Deep inspection of type usage patterns and safety
-3. **Task Sync Verification**: Compare tasks.md against actual implementation state
-4. **Deferred Assessment**: Review all task tracking for shortcut detection
-5. **Legacy Audit**: Identify and evaluate deprecated code paths
-6. **Synthesis**: Compile findings into structured report
+1. **Architecture Check**: Verify SOLID compliance and class-based design against design docs (FIRST)
+2. **Scan Phase**: Systematically scan all changed files for zero-tolerance violations
+3. **Type Analysis**: Deep inspection of type usage patterns and safety
+4. **Task Sync Verification**: Compare tasks.md against actual implementation state
+5. **Deferred Assessment**: Review all task tracking for shortcut detection
+6. **Legacy Audit**: Identify and evaluate deprecated code paths
+7. **Synthesis**: Compile findings into structured report
 
 ## OUTPUT FORMAT
 
@@ -141,6 +175,12 @@ You MUST produce a report with this exact structure:
 ## BLOCKERS
 [If BLOCK: List each blocker with exact file:line and violated rule]
 [If APPROVE: "None"]
+
+## ARCHITECTURE COMPLIANCE
+[Verify SOLID OOP: class-based design, encapsulation, dependency inversion]
+[Compare implementation structure against design docs]
+[List any architectural violations: standalone functions, leaked internals, missing abstractions]
+["Architecture compliant" if clean]
 
 ## ZERO-TOLERANCE VIOLATIONS
 [List any eslint-disable, ts-ignore, or config weakening found]
