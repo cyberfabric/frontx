@@ -16,4 +16,32 @@ export {
   createPopupDomain,
   createScreenDomain,
   createOverlayDomain,
+  // MFE actions
+  loadExtension,
+  preloadExtension,
+  mountExtension,
+  unmountExtension,
+  handleMfeHostAction,
+  // MFE slice and selectors
+  selectMfeLoadState,
+  selectMfeMountState,
+  selectMfeError,
+  selectAllExtensionStates,
+  // MFE components
+  MfeErrorBoundary,
+  MfeLoadingIndicator,
+  ShadowDomContainer,
+  // Types
+  type MfeState,
+  type MfeLoadState,
+  type MfeMountState,
+  type ExtensionMfeState,
+  type LoadExtensionPayload,
+  type PreloadExtensionPayload,
+  type MountExtensionPayload,
+  type UnmountExtensionPayload,
+  type HostActionPayload,
+  type MfeErrorBoundaryConfig,
+  type MfeLoadingIndicatorConfig,
+  type ShadowDomContainerConfig,
 } from './microfrontends';

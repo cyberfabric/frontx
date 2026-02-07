@@ -4,6 +4,7 @@
  * Tests the mock mode state slice for centralized mock control.
  */
 
+import { describe, it, expect } from 'vitest';
 import { mockSlice, setMockEnabled, type MockState } from '../slices/mockSlice';
 
 describe('mockSlice', () => {

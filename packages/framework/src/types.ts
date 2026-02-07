@@ -155,6 +155,15 @@ export interface HAI3Actions {
   // Mock actions (from mock plugin)
   // ==========================================================================
   toggleMockMode: (enabled: boolean) => void;
+
+  // ==========================================================================
+  // MFE actions (from microfrontends plugin)
+  // ==========================================================================
+  loadExtension: (extensionId: string) => void;
+  preloadExtension: (extensionId: string) => void;
+  mountExtension: (extensionId: string, containerElement: HTMLElement) => void;
+  unmountExtension: (extensionId: string) => void;
+  handleMfeHostAction: (extensionId: string, actionTypeId: string, payload?: unknown) => void;
 }
 
 /**

@@ -407,6 +407,38 @@ export class ScreensetsRegistry {
   }
 
   /**
+   * Load an extension bundle (Phase 19 stub).
+   * Phase 19.1: Full implementation with MfeHandler integration.
+   *
+   * @param extensionId - ID of the extension to load
+   * @returns Promise resolving when bundle is loaded
+   */
+  async loadExtension(extensionId: string): Promise<void> {
+    // Phase 13: Stub for framework effects integration
+    // Phase 19.1 will implement full loading with MfeHandler
+    throw new Error(
+      `loadExtension() is not yet implemented (Phase 19.1). ` +
+      `extensionId: ${extensionId}`
+    );
+  }
+
+  /**
+   * Preload an extension bundle without mounting (Phase 19 stub).
+   * Phase 19.1: Full implementation with MfeHandler integration.
+   *
+   * @param extensionId - ID of the extension to preload
+   * @returns Promise resolving when bundle is preloaded
+   */
+  async preloadExtension(extensionId: string): Promise<void> {
+    // Phase 13: Stub for framework effects integration
+    // Phase 19.1 will implement full preloading with MfeHandler
+    throw new Error(
+      `preloadExtension() is not yet implemented (Phase 19.1). ` +
+      `extensionId: ${extensionId}`
+    );
+  }
+
+  /**
    * Mount an extension into a container element.
    * Phase 19.3: Full implementation with coordinator integration.
    *

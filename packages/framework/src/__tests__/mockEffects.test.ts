@@ -4,6 +4,7 @@
  * Tests the mock mode effects for managing mock plugin lifecycle.
  */
 
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { eventBus, createStore, registerSlice } from '@hai3/state';
 import { apiRegistry, BaseApiService, RestProtocol, RestMockPlugin, isMockPlugin } from '@hai3/api';
 import { mockSlice } from '../slices/mockSlice';
@@ -54,7 +55,7 @@ describe('mockEffects', () => {
     });
 
     it('should subscribe to mock toggle events', () => {
-      const eventSpy = jest.spyOn(eventBus, 'on');
+      const eventSpy = vi.spyOn(eventBus, 'on');
       cleanup = initMockEffects();
 
       expect(eventSpy).toHaveBeenCalledWith(MockEvents.Toggle, expect.any(Function));
@@ -64,7 +65,7 @@ describe('mockEffects', () => {
 
   describe('toggleMockMode', () => {
     it('should emit mock toggle event', () => {
-      const emitSpy = jest.spyOn(eventBus, 'emit');
+      const emitSpy = vi.spyOn(eventBus, 'emit');
       toggleMockMode(true);
 
       expect(emitSpy).toHaveBeenCalledWith(MockEvents.Toggle, { enabled: true });
@@ -72,7 +73,7 @@ describe('mockEffects', () => {
     });
 
     it('should emit with enabled false', () => {
-      const emitSpy = jest.spyOn(eventBus, 'emit');
+      const emitSpy = vi.spyOn(eventBus, 'emit');
       toggleMockMode(false);
 
       expect(emitSpy).toHaveBeenCalledWith(MockEvents.Toggle, { enabled: false });
