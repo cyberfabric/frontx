@@ -89,6 +89,54 @@
 - REQUIRED: Screen-local components in screens/{screen}/components/.
 - DETECT: eslint local/screen-inline-components
 
+## MFE ARCHITECTURE (Phase 12 Integration)
+
+### Type System Plugin Abstraction
+- REQUIRED: TypeSystemPlugin injected at ScreensetsRegistry initialization.
+- REQUIRED: GTS plugin (`gtsPlugin`) is the default Type System implementation.
+- REQUIRED: Type IDs are opaque strings - call plugin methods for metadata.
+- REQUIRED: All first-class schemas built into GTS plugin (no registration needed).
+- FORBIDDEN: Generating type IDs at runtime - all type IDs are string constants.
+- FORBIDDEN: Direct Ajv dependency - gts-ts uses Ajv internally.
+
+### MFE Registry and Runtime
+- REQUIRED: ScreensetsRegistry is the single entry point for MFE operations.
+- REQUIRED: Extensions and domains registered dynamically at runtime (not at init).
+- REQUIRED: Contract validation uses plugin.validateInstance() after plugin.register().
+- REQUIRED: Extension type validation via plugin.isTypeOf() for type hierarchy.
+- REQUIRED: ActionsChainsMediator handles all action chain execution.
+- FORBIDDEN: Direct access to internal coordinators or mediators.
+
+### MFE Handler and Loading
+- REQUIRED: MfeHandler abstract class for polymorphic entry type handling.
+- REQUIRED: Handlers use plugin.isTypeOf() for canHandle() type matching.
+- REQUIRED: MfeBridgeFactory creates ChildMfeBridge instances.
+- REQUIRED: MfeHandlerMF handles Module Federation entry types (MfeEntryMF).
+- REQUIRED: Manifest resolution internal to MfeHandlerMF (not public API).
+- FORBIDDEN: Exposing MfManifest registration publicly.
+
+### Actions Chain Execution
+- REQUIRED: ActionsChain contains Action instances (not type ID references).
+- REQUIRED: Action uses `type` field as GTS entity ID (not synthetic IDs).
+- REQUIRED: Timeout resolution: action.timeout ?? domain.defaultActionTimeout.
+- REQUIRED: Timeout triggers fallback chain (same as any other failure).
+- REQUIRED: ChainExecutionOptions only accepts chainTimeout (chain-level).
+- FORBIDDEN: Action-level execution options in executeActionsChain().
+
+### Lifecycle and Coordination
+- REQUIRED: Lifecycle stages defined in domain (lifecycleStages, extensionsLifecycleStages).
+- REQUIRED: LifecycleHook binds stage to actions_chain for execution.
+- REQUIRED: RuntimeCoordinator abstract class for coordination (DI pattern).
+- REQUIRED: WeakMapRuntimeCoordinator concrete implementation (not exported).
+- REQUIRED: Coordination is internal - MFEs never see coordinator directly.
+- FORBIDDEN: Exposing coordination internals to MFE code.
+
+### Documentation Resources
+- Design docs: `openspec/changes/add-microfrontend-support/design/`
+- Vendor guide: `packages/screensets/docs/mfe/vendor-guide.md`
+- Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
+- GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
+
 ## PRE-DIFF CHECKLIST
 - [ ] Configured UI kit used; local uikit only if missing (inline styles in base/ only).
 - [ ] Slices use registerSlice with RootState augmentation.
@@ -97,3 +145,6 @@
 - [ ] All text uses t(); loaders use I18nRegistry.createLoader.
 - [ ] useScreenTranslations for screen-level; namespaces: screenset.id, screen.screenset.screen.
 - [ ] No inline components or data arrays in *Screen.tsx.
+- [ ] MFE integration uses TypeSystemPlugin abstraction (gtsPlugin default).
+- [ ] Type IDs are opaque - call plugin.parseTypeId() for metadata.
+- [ ] Contract validation via plugin.validateInstance() after plugin.register().
