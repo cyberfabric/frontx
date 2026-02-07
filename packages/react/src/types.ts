@@ -19,6 +19,7 @@ import type {
   ScreensetCategory,
   Formatters,
 } from '@hai3/framework';
+import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
 export type { HAI3Config, HAI3App, MenuItemConfig, ScreensetDefinition, ScreensetCategory };
@@ -66,6 +67,11 @@ export interface RouterConfig {
  * <HAI3Provider router={{ type: 'hash' }}>
  *   <App />
  * </HAI3Provider>
+ *
+ * // With MFE bridge (for MFE components)
+ * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId, entryTypeId }}>
+ *   <MyMfeApp />
+ * </HAI3Provider>
  * ```
  */
 export interface HAI3ProviderProps {
@@ -77,6 +83,8 @@ export interface HAI3ProviderProps {
   app?: HAI3App;
   /** Router configuration */
   router?: RouterConfig;
+  /** MFE bridge context (for MFE components) */
+  mfeBridge?: MfeContextValue;
 }
 
 // ============================================================================

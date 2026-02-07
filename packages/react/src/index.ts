@@ -33,6 +33,26 @@ export {
 export { useRouteParams } from './hooks/useRouteParams';
 
 // ============================================================================
+// MFE Context and Hooks
+// ============================================================================
+
+export {
+  MfeContext,
+  useMfeContext,
+  MfeProvider,
+  useMfeState,
+  useMfeBridge,
+  useSharedProperty,
+  useHostAction,
+} from './mfe';
+
+export type {
+  MfeContextValue,
+  MfeProviderProps,
+  UseMfeStateReturn,
+} from './mfe';
+
+// ============================================================================
 // Components
 // ============================================================================
 

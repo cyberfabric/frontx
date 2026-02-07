@@ -30,7 +30,44 @@ export {
   i18n,
   effects,
   mock,
+  microfrontends,
   type MockPluginConfig,
+} from './plugins';
+
+// MFE Plugin Exports
+export {
+  createSidebarDomain,
+  createPopupDomain,
+  createScreenDomain,
+  createOverlayDomain,
+  loadExtension,
+  preloadExtension,
+  mountExtension,
+  unmountExtension,
+  handleMfeHostAction,
+  selectMfeLoadState,
+  selectMfeMountState,
+  selectMfeError,
+  selectAllExtensionStates,
+  MfeErrorBoundary,
+  MfeLoadingIndicator,
+  ShadowDomContainer,
+} from './plugins';
+
+// MFE Plugin Types
+export type {
+  MfeState,
+  MfeLoadState,
+  MfeMountState,
+  ExtensionMfeState,
+  LoadExtensionPayload,
+  PreloadExtensionPayload,
+  MountExtensionPayload,
+  UnmountExtensionPayload,
+  HostActionPayload,
+  MfeErrorBoundaryConfig,
+  MfeLoadingIndicatorConfig,
+  ShadowDomContainerConfig,
 } from './plugins';
 
 // ============================================================================
