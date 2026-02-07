@@ -60,6 +60,10 @@ export type {
   MfeHandler,
 } from './handler/types';
 
+// Runtime Coordination (abstract class and interface only - concrete implementation is internal)
+export { RuntimeCoordinator } from './coordination/types';
+export type { RuntimeConnection } from './coordination/types';
+
 // Validation
 export type {
   ContractError,
@@ -83,3 +87,8 @@ export {
   UnsupportedDomainActionError,
   UnsupportedLifecycleStageError,
 } from './errors';
+
+// NOTE: State Container Factory, Shared Properties Provider, and Runtime Coordination
+// are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.
+// These are encapsulated within the registry class per SOLID principles.
+// If you need these for internal development or testing, import directly from the source files.

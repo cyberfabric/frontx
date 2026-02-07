@@ -5,8 +5,7 @@
  * These domains are NOT registered at plugin init - they are registered
  * dynamically at runtime via runtime.registerDomain().
  *
- * Domain definitions are stored as JSON files in:
- * packages/screensets/src/mfe/gts/hai3.screensets/instances/domains/
+ * Domain definitions are loaded via the public API from @hai3/screensets.
  *
  * This follows the GTS entity storage principle: JSON as the native format,
  * TypeScript interfaces for compile-time type safety.
@@ -14,14 +13,14 @@
  * @packageDocumentation
  */
 
-import type { ExtensionDomain } from '@hai3/screensets';
+import { loadLayoutDomains, type ExtensionDomain } from '@hai3/screensets';
 
-// Import domain JSON files from hai3.screensets package
-// These JSON files are the canonical domain definitions
-import sidebarDomainJson from '../../../../screensets/src/mfe/gts/hai3.screensets/instances/domains/sidebar.v1.json';
-import popupDomainJson from '../../../../screensets/src/mfe/gts/hai3.screensets/instances/domains/popup.v1.json';
-import screenDomainJson from '../../../../screensets/src/mfe/gts/hai3.screensets/instances/domains/screen.v1.json';
-import overlayDomainJson from '../../../../screensets/src/mfe/gts/hai3.screensets/instances/domains/overlay.v1.json';
+// Load all layout domains from the @hai3/screensets package
+// The loader returns an array of [sidebar, popup, screen, overlay]
+const layoutDomains = loadLayoutDomains();
+
+// Extract individual domains from the loaded array
+const [sidebarDomainJson, popupDomainJson, screenDomainJson, overlayDomainJson] = layoutDomains;
 
 /**
  * Create a sidebar domain by loading from JSON.

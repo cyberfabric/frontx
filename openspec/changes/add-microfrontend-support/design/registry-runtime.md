@@ -12,6 +12,37 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ---
 
+## Design Notes
+
+### Standalone Functions vs Class-Based Capabilities
+
+The Phase 8.4 correction establishes the rule: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state.
+
+**Pure validation helpers** are exempt from this rule. The following functions are legitimately standalone because they are stateless -- they take inputs, return results, and have no side effects or internal state:
+
+- `validateContract(entry, domain)` -- checks entry/domain contract compatibility (in `type-system.md`, used by `ScreensetsRegistry`)
+- `validateExtensionType(plugin, extension, domain)` -- checks extension type hierarchy against domain's `extensionsTypeId` (in `type-system.md`)
+- `validateDomainLifecycleHooks(domain)` -- checks domain lifecycle hooks reference supported stages (in `mfe-lifecycle.md`)
+- `validateExtensionLifecycleHooks(extension, domain)` -- checks extension lifecycle hooks reference domain-supported stages (in `mfe-lifecycle.md`)
+
+These functions receive all dependencies as parameters and produce a `ValidationResult` or `ContractValidationResult`. Wrapping them in a class would add indirection without benefit since there is no state to encapsulate and no abstraction to invert.
+
+### ScreensetsRegistry as Facade
+
+`ScreensetsRegistry` has a large public API surface (~15+ methods spanning registration, loading, mounting, property management, action chain execution, lifecycle triggering, and events). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
+
+| Responsibility | Internal Collaborator | Design Document |
+|---|---|---|
+| Action chain execution | `ActionsChainsMediator` | [mfe-actions.md](./mfe-actions.md) |
+| WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | Phase 8.4 in this document |
+| MFE bundle loading | `MfeHandler` polymorphism (`MfeHandlerMF`, custom handlers) | [mfe-loading.md](./mfe-loading.md) |
+| Bridge creation | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
+| Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
+
+The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with `ScreensetsRegistry`; the collaborators are implementation details.
+
+---
+
 ## Decisions
 
 ### Decision 13: Instance-Level Isolation (Framework-Agnostic, Default Behavior)
@@ -27,21 +58,35 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
 ```typescript
 // packages/screensets/src/runtime/ScreensetsRegistry.ts
 
+/**
+ * State for a registered extension domain.
+ * Properties are stored as SharedProperty { id, value } to preserve the
+ * property type ID alongside the value during bridge propagation.
+ */
+interface ExtensionDomainState {
+  domain: ExtensionDomain;
+  properties: Map<string, SharedProperty>;  // key = propertyTypeId, value = { id: propertyTypeId, value: unknown }
+  extensions: Set<string>;
+  propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
+}
+
 class ScreensetsRegistry {
   private readonly domains = new Map<string, ExtensionDomainState>();
   private readonly extensions = new Map<string, ExtensionState>();
   private readonly childBridges = new Map<string, ParentMfeBridge>();
   private readonly actionHandlers = new Map<string, ActionHandler>();
   private readonly handlers: MfeHandler[] = [];
+  private readonly coordinator: RuntimeCoordinator; // Dependency Inversion (abstract class)
   private parentBridge: ParentMfeBridge | null = null;
   private readonly state: HAI3State;
   public readonly typeSystem: TypeSystemPlugin;
 
   constructor(config: ScreensetsRegistryConfig) {
     this.typeSystem = config.typeSystem;
+    this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
     this.state = createHAI3State();
     if (config.mfeHandler) {
-      this.registerHandler(new MfeHandlerMF(this.typeSystem, config.mfeHandler));
+      this.registerHandler(config.mfeHandler);
     }
   }
 
@@ -56,13 +101,19 @@ class ScreensetsRegistry {
 
     this.domains.set(domain.id, {
       domain,
-      properties: new Map(),
+      properties: new Map(),  // Map<string, SharedProperty>
       extensions: new Set(),
       propertySubscribers: new Map(),
     });
   }
 
   // === Domain-Level Shared Property Management ===
+  //
+  // Domain properties are stored as Map<string, SharedProperty> where SharedProperty
+  // is { id: string, value: unknown }. This preserves the property type ID alongside
+  // the value, enabling type-safe property propagation through bridges.
+  // The public API accepts raw `value: unknown` for convenience; the registry wraps
+  // it in a SharedProperty internally.
 
   updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void {
     const domainState = this.domains.get(domainId);
@@ -71,7 +122,9 @@ class ScreensetsRegistry {
       throw new Error(`Property '${propertyTypeId}' not declared in domain`);
     }
 
-    domainState.properties.set(propertyTypeId, value);
+    // Store as SharedProperty { id, value } to preserve type ID alongside value
+    const sharedProperty: SharedProperty = { id: propertyTypeId, value };
+    domainState.properties.set(propertyTypeId, sharedProperty);
 
     // Notify all subscribed extensions in this domain
     for (const extensionId of domainState.extensions) {
@@ -90,7 +143,8 @@ class ScreensetsRegistry {
   }
 
   getDomainProperty(domainId: string, propertyTypeId: string): unknown {
-    return this.domains.get(domainId)?.properties.get(propertyTypeId);
+    const sharedProperty = this.domains.get(domainId)?.properties.get(propertyTypeId);
+    return sharedProperty?.value;
   }
 
   updateDomainProperties(domainId: string, properties: Map<string, unknown>): void {

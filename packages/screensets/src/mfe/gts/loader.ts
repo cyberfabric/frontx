@@ -8,6 +8,7 @@
  */
 
 import type { JSONSchema } from '../plugins/types';
+import type { LifecycleStage, Action, ExtensionDomain } from '../types';
 
 // Import all schema JSON files
 import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
@@ -66,13 +67,13 @@ export function loadSchemas(): JSONSchema[] {
  *
  * @returns Array of lifecycle stage instances
  */
-export function loadLifecycleStages(): unknown[] {
+export function loadLifecycleStages(): LifecycleStage[] {
   return [
     lifecycleInitInstance,
     lifecycleActivatedInstance,
     lifecycleDeactivatedInstance,
     lifecycleDestroyedInstance,
-  ];
+  ] as LifecycleStage[];
 }
 
 /**
@@ -81,8 +82,8 @@ export function loadLifecycleStages(): unknown[] {
  *
  * @returns Array of action instances
  */
-export function loadBaseActions(): unknown[] {
-  return [loadExtActionInstance, unloadExtActionInstance];
+export function loadBaseActions(): Action[] {
+  return [loadExtActionInstance, unloadExtActionInstance] as Action[];
 }
 
 /**
@@ -91,6 +92,6 @@ export function loadBaseActions(): unknown[] {
  *
  * @returns Array of layout domain instances
  */
-export function loadLayoutDomains(): unknown[] {
-  return [sidebarDomainInstance, popupDomainInstance, screenDomainInstance, overlayDomainInstance];
+export function loadLayoutDomains(): ExtensionDomain[] {
+  return [sidebarDomainInstance, popupDomainInstance, screenDomainInstance, overlayDomainInstance] as ExtensionDomain[];
 }

@@ -8,7 +8,9 @@
  * @packageDocumentation
  */
 
-import type { HAI3Plugin, HAI3App } from '../../types';
+import { createGtsPlugin } from '@hai3/screensets/plugins/gts';
+import { createScreensetsRegistry } from '@hai3/screensets';
+import type { HAI3Plugin } from '../../types';
 
 /**
  * Microfrontends plugin factory.
@@ -20,7 +22,8 @@ import type { HAI3Plugin, HAI3App } from '../../types';
  * **Key Principles:**
  * - NO configuration parameters - plugin accepts nothing
  * - NO static domain registration - domains are registered at runtime
- * - Obtains screensetsRegistry from framework after it's initialized
+ * - Creates GTS plugin and ScreensetsRegistry during plugin initialization
+ * - Same TypeSystemPlugin instance is propagated throughout
  *
  * @throws Error if any configuration is passed
  *
@@ -34,7 +37,7 @@ import type { HAI3Plugin, HAI3App } from '../../types';
  *
  * // Register domains dynamically at runtime:
  * const sidebarDomain = createSidebarDomain();
- * app.actions.registerDomain(sidebarDomain);
+ * app.screensetsRegistry.registerDomain(sidebarDomain);
  * ```
  */
 export function microfrontends(): HAI3Plugin {
@@ -49,36 +52,41 @@ export function microfrontends(): HAI3Plugin {
     );
   }
 
+  // Create GTS plugin instance - this will be shared across all MFE operations
+  // The same plugin instance ensures consistent type validation throughout
+  const gtsPlugin = createGtsPlugin();
+
+  // Create ScreensetsRegistry with the GTS plugin
+  // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
+  const screensetsRegistry = createScreensetsRegistry({
+    typeSystem: gtsPlugin,
+    debug: false, // Will be set based on app.config.devMode in onInit
+  });
+
   return {
     name: 'microfrontends',
     dependencies: ['screensets'], // Requires screensets to be initialized
 
-    onInit(app: HAI3App): void {
-      // Verify screensetsRegistry is available
-      const registry = app.screensetRegistry as unknown as Record<string, unknown>;
+    provides: {
+      registries: {
+        // Expose the MFE-enabled ScreensetsRegistry
+        // This registry has registerDomain(), registerExtension(), etc.
+        screensetsRegistry,
+      },
+    },
 
-      if (!registry) {
-        throw new Error(
-          'microfrontends plugin requires screensets plugin to be initialized. ' +
-          'Ensure screensets() is registered before microfrontends().'
-        );
-      }
-
-      if (typeof registry.registerDomain !== 'function') {
-        throw new Error(
-          'screensetsRegistry does not have registerDomain method. ' +
-          'Ensure you are using a ScreensetsRegistry instance from @hai3/screensets with MFE support.'
-        );
+    onInit(app): void {
+      // Update debug mode based on app config
+      if (app.config.devMode) {
+        console.log('[microfrontends] Plugin initialized');
+        console.log('[microfrontends] TypeSystemPlugin:', gtsPlugin.name, gtsPlugin.version);
+        console.log('[microfrontends] Base domains are NOT pre-registered');
+        console.log('[microfrontends] Register domains at runtime via app.screensetsRegistry.registerDomain()');
       }
 
       // Plugin is now ready
       // Base domains are NOT registered here - they are registered dynamically
-      // at runtime via runtime.registerDomain() or actions
-      if (app.config.devMode) {
-        console.log('[microfrontends] Plugin initialized');
-        console.log('[microfrontends] Base domains are NOT pre-registered');
-        console.log('[microfrontends] Register domains at runtime via runtime.registerDomain()');
-      }
+      // at runtime via app.screensetsRegistry.registerDomain() or actions
     },
   };
 }

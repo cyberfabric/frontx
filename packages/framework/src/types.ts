@@ -426,6 +426,13 @@ export interface RouteRegistry {
 }
 
 /**
+ * MFE-enabled ScreensetsRegistry (optional)
+ * When the microfrontends plugin is used, this registry is available.
+ * It provides MFE capabilities: registerDomain(), registerExtension(), etc.
+ */
+export type MfeScreensetsRegistry = import('@hai3/screensets').ScreensetsRegistry;
+
+/**
  * HAI3 App Interface
  * The built application with all features available.
  *
@@ -441,6 +448,11 @@ export interface RouteRegistry {
  *
  * // Access actions
  * app.actions.navigateToScreen({ screensetId: 'demo', screenId: 'home' });
+ *
+ * // Access MFE registry (if microfrontends plugin is used)
+ * if (app.screensetsRegistry) {
+ *   app.screensetsRegistry.registerDomain(myDomain);
+ * }
  * ```
  */
 export interface HAI3App {
@@ -464,6 +476,9 @@ export interface HAI3App {
 
   /** I18n registry */
   i18nRegistry: I18nRegistry;
+
+  /** MFE-enabled ScreensetsRegistry (optional, provided by microfrontends plugin) */
+  screensetsRegistry?: MfeScreensetsRegistry;
 
   /** All registered actions (type-safe via HAI3Actions interface) */
   actions: HAI3Actions;

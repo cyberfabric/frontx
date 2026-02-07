@@ -23,7 +23,7 @@ The loading process must handle network failures, validation [errors](./mfe-erro
 
 **MfeBridgeFactory**: An abstract factory that creates ChildMfeBridge instances for MFEs. Each handler has an associated bridge factory.
 
-**MfeLoader**: An internal implementation component that loads MFE bundles using Module Federation 2.0.
+**MfeLoader**: A conceptual reference implementation shown below for documentation purposes. In practice, the loading logic (manifest resolution, container loading, retry, timeout) is **absorbed into `MfeHandlerMF`** rather than existing as a separate class. See [Relationship to MfeHandlerMF](#mfeloader-relationship-to-mfehandlermf) for details.
 
 ---
 
@@ -294,8 +294,23 @@ HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation throug
 
 #### MfeLoader (Internal Implementation Detail)
 
+> **REFERENCE ONLY -- NOT A RUNTIME CLASS**
+>
+> The `MfeLoader` class below is a **conceptual reference** for documentation purposes only.
+> It does NOT exist at runtime. All loading logic is absorbed into `MfeHandlerMF`
+> (see [Relationship to MfeHandlerMF](#mfeloader-relationship-to-mfehandlermf) below).
+> Do NOT implement this as a standalone class.
+
 ```typescript
-// packages/screensets/src/mfe/loader/index.ts (INTERNAL)
+// ============================================================
+// REFERENCE ONLY -- NOT A RUNTIME CLASS
+// This code block documents loading concerns (manifest resolution,
+// container caching, retry/timeout, lifecycle validation) for
+// understanding. In the actual implementation, all this logic
+// lives inside MfeHandlerMF. There is NO separate MfeLoader class.
+// ============================================================
+
+// packages/screensets/src/mfe/loader/index.ts (CONCEPTUAL ONLY)
 
 /** @internal */
 interface MfeLoaderConfig {
@@ -370,6 +385,18 @@ class MfeLoader {
   private unloadIfUnused(remoteName: string): void;
 }
 ```
+
+<a name="mfeloader-relationship-to-mfehandlermf"></a>
+#### MfeLoader: Relationship to MfeHandlerMF
+
+The `MfeLoader` class shown above is a **conceptual reference** that documents the loading concerns (manifest resolution, container caching, retry/timeout, lifecycle validation). In the actual implementation, these responsibilities are **absorbed into `MfeHandlerMF`** rather than existing as a separate delegated class:
+
+- `MfeHandlerMF.load(entry)` performs manifest resolution, container loading, and module factory extraction directly (shown in the `MfeHandlerMF` code above)
+- `MfeHandlerMF.preload(entries)` batches container preloading directly
+- `ManifestCache` is an internal helper class **inside** `mf-handler.ts` (see Decision 12 below and Phase 17 in tasks.md), not a standalone module
+- Retry and timeout configuration are handled within `MfeHandlerMF`'s private methods
+
+This means there is **no separate `MfeLoader` class at runtime**. The `MfeLoader` code block above serves as documentation of the loading algorithm and concerns. All loading logic lives in `MfeHandlerMF` (file: `packages/screensets/src/mfe/handler/mf-handler.ts`), keeping the handler self-contained and avoiding an unnecessary indirection layer.
 
 <a name="decision-12"></a>
 ### Decision 12: Manifest as Internal Implementation Detail of MfeHandlerMF

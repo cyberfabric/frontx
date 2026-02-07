@@ -7,6 +7,9 @@
  * Key Responsibilities:
  * - Type validation via TypeSystemPlugin
  * - Extension and domain registration
+ * - Domain property management
+ * - Bridge lifecycle management
+ * - Runtime coordination (internal)
  * - Action chain mediation (Phase 9)
  * - MFE loading and mounting (Phase 11+)
  *
@@ -15,22 +18,26 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ScreensetsRegistryConfig } from './config';
-import type { MfeHandler } from '../handler/types';
+import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
   Action,
   ActionsChain,
+  MfeEntry,
+  SharedProperty,
 } from '../types';
+import { RuntimeCoordinator } from '../coordination/types';
+import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
 
 /**
  * State for a registered extension domain.
  */
 interface ExtensionDomainState {
   domain: ExtensionDomain;
-  properties: Map<string, unknown>;
+  properties: Map<string, SharedProperty>;
   extensions: Set<string>;
-  propertySubscribers: Map<string, Set<(value: unknown) => void>>;
+  propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
 }
 
 /**
@@ -38,8 +45,8 @@ interface ExtensionDomainState {
  */
 interface ExtensionState {
   extension: Extension;
-  entry: unknown;
-  bridge: unknown | null;
+  entry: MfeEntry;
+  bridge: ParentMfeBridge | null;
   loadState: 'idle' | 'loading' | 'loaded' | 'error';
   mountState: 'unmounted' | 'mounting' | 'mounted' | 'error';
   error?: Error;
@@ -112,6 +119,28 @@ export class ScreensetsRegistry {
    */
   private readonly eventListeners = new Map<string, Set<(data: Record<string, unknown>) => void>>();
 
+  /**
+   * Child MFE bridges (parent -> child communication).
+   * INTERNAL: Bridge lifecycle is managed by the registry.
+   */
+  private readonly childBridges = new Map<string, ParentMfeBridge>();
+
+  /**
+   * Parent MFE bridge (child -> parent communication).
+   * INTERNAL: Set when this registry is mounted as a child MFE.
+   */
+  private parentBridge: ParentMfeBridge | null = null;
+
+  /**
+   * Runtime coordinator for managing runtime connections.
+   * INTERNAL: Uses Dependency Inversion Principle - depends on abstract RuntimeCoordinator.
+   * Defaults to WeakMapRuntimeCoordinator if not provided in config.
+   * Maps container elements to runtime connections for MFE coordination.
+   *
+   * NOTE: This replaces the previous _runtimeConnections WeakMap (Phase 8.4).
+   */
+  private readonly coordinator: RuntimeCoordinator;
+
   constructor(config: ScreensetsRegistryConfig) {
     // Validate required plugin
     if (!config.typeSystem) {
@@ -124,6 +153,9 @@ export class ScreensetsRegistry {
 
     this.config = config;
     this.typeSystem = config.typeSystem;
+
+    // Initialize coordinator (Dependency Inversion: use provided or default to WeakMapRuntimeCoordinator)
+    this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
 
     // Verify first-class schemas are available
     this.verifyFirstClassSchemas();
@@ -295,17 +327,81 @@ export class ScreensetsRegistry {
       };
     }
 
-    // TODO: Full implementation in Phase 9
-    this.log('Actions chain execution (placeholder)', {
-      actionType: chain.action.type,
-      target: chain.action.target,
-    });
-
-    return {
-      completed: true,
-      path: [chain.action.type],
-    };
+    throw new Error('executeActionsChain not implemented. Full implementation coming in Phase 9.');
   }
+
+  /**
+   * Update a single domain property.
+   * Notifies all subscribed extensions in the domain.
+   *
+   * @param domainId - ID of the domain
+   * @param propertyTypeId - Type ID of the property to update
+   * @param value - New property value
+   */
+  updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void {
+    const domainState = this.domains.get(domainId);
+    if (!domainState) {
+      throw new Error(`Domain '${domainId}' not registered`);
+    }
+
+    if (!domainState.domain.sharedProperties.includes(propertyTypeId)) {
+      throw new Error(`Property '${propertyTypeId}' not declared in domain '${domainId}'`);
+    }
+
+    // Update property value
+    const sharedProperty: SharedProperty = { id: propertyTypeId, value };
+    domainState.properties.set(propertyTypeId, sharedProperty);
+
+    // Notify property subscribers
+    const subscribers = domainState.propertySubscribers.get(propertyTypeId);
+    if (subscribers) {
+      for (const callback of subscribers) {
+        try {
+          callback(sharedProperty);
+        } catch (error) {
+          this.handleError(
+            error instanceof Error ? error : new Error(String(error)),
+            { domainId, propertyTypeId }
+          );
+        }
+      }
+    }
+
+    this.log('Domain property updated', { domainId, propertyTypeId });
+  }
+
+  /**
+   * Get a domain property value.
+   *
+   * @param domainId - ID of the domain
+   * @param propertyTypeId - Type ID of the property to get
+   * @returns Property value, or undefined if not set
+   */
+  getDomainProperty(domainId: string, propertyTypeId: string): unknown {
+    const domainState = this.domains.get(domainId);
+    if (!domainState) {
+      throw new Error(`Domain '${domainId}' not registered`);
+    }
+
+    const sharedProperty = domainState.properties.get(propertyTypeId);
+    return sharedProperty?.value;
+  }
+
+  /**
+   * Update multiple domain properties at once.
+   * More efficient than calling updateDomainProperty multiple times.
+   *
+   * @param domainId - ID of the domain
+   * @param properties - Map of property type IDs to values
+   */
+  updateDomainProperties(domainId: string, properties: Map<string, unknown>): void {
+    for (const [propertyTypeId, value] of properties) {
+      this.updateDomainProperty(domainId, propertyTypeId, value);
+    }
+  }
+
+  // Phase 19.3: mountExtension/unmountExtension will use this.coordinator to manage
+  // runtime connections during MFE lifecycle (register/get/unregister).
 
   /**
    * Subscribe to registry events.
@@ -377,12 +473,36 @@ export class ScreensetsRegistry {
 
   /**
    * Dispose the registry and clean up resources.
+   * Cleans up all bridges, runtime connections, and internal state.
    */
   dispose(): void {
+    // Dispose parent bridge if present
+    if (this.parentBridge) {
+      this.parentBridge.dispose();
+      this.parentBridge = null;
+    }
+
+    // Dispose all child bridges
+    for (const bridge of this.childBridges.values()) {
+      bridge.dispose();
+    }
+    this.childBridges.clear();
+
+    // Clear domains and extensions
     this.domains.clear();
     this.extensions.clear();
+
+    // Clear handlers
     this.handlers.length = 0;
+
+    // Clear event listeners
     this.eventListeners.clear();
+
+    // Note: RuntimeCoordinator (using internal WeakMap) will be garbage collected automatically.
+    // No need to manually clear it. The coordinator is used for Phase 11+ bridge coordination.
+    // Reference here to avoid TypeScript unused warning:
+    void this.coordinator;
+
     this.log('ScreensetsRegistry disposed');
   }
 }

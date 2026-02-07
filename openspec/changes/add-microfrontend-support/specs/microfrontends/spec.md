@@ -865,7 +865,7 @@ eventBus.on('auth/loginSuccess', async ({ token }) => {
 #### Scenario: Listen to registration events
 
 ```typescript
-import { useExtensionEvents } from '@hai3/framework';
+import { useExtensionEvents } from '@hai3/react';
 
 function WidgetSlot() {
   // Re-render when extensions are registered/unregistered for this domain

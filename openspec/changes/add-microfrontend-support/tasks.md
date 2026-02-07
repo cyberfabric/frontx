@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 7 COMPLETE (namespace consistency fixes applied)
+**Current Status**: Phase 8 COMPLETE ✓
 
 ---
 
@@ -440,15 +440,15 @@ packages/screensets/src/mfe/gts/
 
 **Scope boundary**: Phase 7.7-7.8 creates the plugin SKELETON and TypeSystemPlugin propagation ONLY. Full Flux integration (actions, effects, slice) is implemented in Phase 13.
 
-- [ ] 7.7.1 Create `packages/framework/src/plugins/microfrontends/index.ts` with plugin skeleton (file creation and basic exports only)
+- [x] 7.7.1 Create `packages/framework/src/plugins/microfrontends/index.ts` with plugin skeleton (file creation and basic exports only)
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Framework microfrontends plugin (zero-config)
 
 ### 7.8 Plugin Propagation
 
-- [ ] 7.8.1 Pass plugin to `createScreensetsRegistry()` in setup
-- [ ] 7.8.2 Expose runtime via `framework.provide('screensetsRegistry', runtime)`
-- [ ] 7.8.3 Ensure same plugin instance is used throughout
+- [x] 7.8.1 Pass plugin to `createScreensetsRegistry()` in setup
+- [x] 7.8.2 Expose runtime via `framework.provide('screensetsRegistry', runtime)`
+- [x] 7.8.3 Ensure same plugin instance is used throughout
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers
 
@@ -458,11 +458,11 @@ packages/screensets/src/mfe/gts/
 
 **Scope boundary**: These tests validate plugin propagation and JSON loading ONLY. Flux integration tests (actions, effects, slice) are in Phase 13.8.
 
-- [ ] 7.9.1 Test plugin obtains screensetsRegistry from framework
-- [ ] 7.9.2 Test same TypeSystemPlugin instance is propagated through layers
-- [ ] 7.9.3 Test runtime.registerDomain() works for base domains at runtime
-- [ ] 7.9.4 Test JSON schema loading works correctly
-- [ ] 7.9.5 Test JSON instance loading works correctly
+- [x] 7.9.1 Test plugin obtains screensetsRegistry from framework
+- [x] 7.9.2 Test same TypeSystemPlugin instance is propagated through layers
+- [x] 7.9.3 Test runtime.registerDomain() works for base domains at runtime
+- [x] 7.9.4 Test JSON schema loading works correctly
+- [x] 7.9.5 Test JSON instance loading works correctly
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Plugin consistency across layers, JSON loading
 
@@ -472,44 +472,63 @@ packages/screensets/src/mfe/gts/
 
 **Goal**: Implement instance-level isolation between host and MFE instances (default handler behavior).
 
+**Status**: COMPLETE ✓
+
 ### 8.1 State Container Factory
 
-- [ ] 8.1.1 Create `createMfeStateContainer()` factory function
-- [ ] 8.1.2 Ensure each call creates independent store instance (default handler behavior)
-- [ ] 8.1.3 Implement store disposal on MFE unmount
-- [ ] 8.1.4 Add store isolation verification tests
+- [x] 8.1.1 Create `createMfeStateContainer()` factory function
+- [x] 8.1.2 Ensure each call creates independent store instance (default handler behavior)
+- [x] 8.1.3 Implement store disposal on MFE unmount
+- [x] 8.1.4 Add store isolation verification tests
 
 **Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - MFE state isolation
 
 ### 8.2 Shared Properties Injection
 
-- [ ] 8.2.1 Create `SharedPropertiesProvider` component
-- [ ] 8.2.2 Implement read-only property passing via props
-- [ ] 8.2.3 Implement property update propagation from host
-- [ ] 8.2.4 Add tests for property isolation (no direct modification)
+- [x] 8.2.1 Create `SharedPropertiesProvider` component
+- [x] 8.2.2 Implement read-only property passing via props
+- [x] 8.2.3 Implement property update propagation from host
+- [x] 8.2.4 Add tests for property isolation (no direct modification)
 
 **Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - Shared properties propagation
 
 ### 8.3 Host State Protection
 
-- [ ] 8.3.1 Verify MFE cannot access host store directly
-- [ ] 8.3.2 Implement boundary enforcement
-- [ ] 8.3.3 Add integration tests for state isolation
+- [x] 8.3.1 Verify MFE cannot access host store directly
+- [x] 8.3.2 Implement boundary enforcement
+- [x] 8.3.3 Add integration tests for state isolation
 
 **Traceability**: Requirement "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" - Host state isolation
 
 ### 8.4 WeakMap-Based Runtime Coordination
 
-- [ ] 8.4.1 Create `packages/screensets/src/mfe/coordination/index.ts`
-- [ ] 8.4.2 Define module-level `runtimeConnections: WeakMap<Element, RuntimeConnection>`
-- [ ] 8.4.3 Define `RuntimeConnection` interface with `hostRuntime` and `bridges` Map
-- [ ] 8.4.4 Implement `registerRuntime(container: Element, connection: RuntimeConnection)` function
-- [ ] 8.4.5 Implement `getRuntime(container: Element): RuntimeConnection | undefined` function
-- [ ] 8.4.6 Implement `unregisterRuntime(container: Element)` function
-- [ ] 8.4.7 Add tests verifying no window global pollution
-- [ ] 8.4.8 Add tests verifying automatic garbage collection with WeakMap
+> **CORRECTION (Phase 8.4 rewritten twice):**
+>
+> **First correction** identified that a standalone `coordination/index.ts` module with exported
+> functions violated the spec's encapsulation requirements (spec lines 771-831). However, the
+> replacement used standalone non-exported functions at module scope, which violates HAI3's
+> strict SOLID-compliant OOP requirement: NEVER standalone functions, ALWAYS abstract class
+> (exportable abstraction) + concrete class (encapsulated state).
+>
+> **Second correction (current)** follows the same pattern used by `MfeHandler`/`MfeHandlerMF`
+> and `MfeBridgeFactory` throughout the codebase:
+> - `RuntimeCoordinator` abstract class defines the coordination contract
+> - `WeakMapRuntimeCoordinator` concrete class encapsulates the private `WeakMap`
+> - `ScreensetsRegistry` holds `private readonly coordinator: RuntimeCoordinator` (Dependency Inversion)
+> - The abstract class `RuntimeCoordinator` is exported from `@hai3/screensets` (it is the abstraction)
+> - The concrete `WeakMapRuntimeCoordinator` is internal (not exported from package)
+> - MFE code never sees the coordinator -- only `ChildMfeBridge` is exposed to MFEs
 
-**Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination
+- [x] 8.4.1 Replace `packages/screensets/src/mfe/coordination/index.ts` with barrel export for new abstract class pattern (standalone module was incorrect per spec)
+- [x] 8.4.2 Define `RuntimeCoordinator` abstract class in `packages/screensets/src/mfe/coordination/types.ts` with abstract methods: `register(container: Element, connection: RuntimeConnection): void`, `get(container: Element): RuntimeConnection | undefined`, `unregister(container: Element): void`
+- [x] 8.4.3 Define `RuntimeConnection` interface in `packages/screensets/src/mfe/coordination/types.ts` with `hostRuntime` and `bridges: Map<string, ParentMfeBridge>`
+- [x] 8.4.4 Implement `WeakMapRuntimeCoordinator` concrete class extending `RuntimeCoordinator` in `packages/screensets/src/mfe/coordination/weak-map-runtime-coordinator.ts` with `private readonly connections = new WeakMap<Element, RuntimeConnection>()`
+- [x] 8.4.5 Add `private readonly coordinator: RuntimeCoordinator` field to `ScreensetsRegistry` -- injected via config or defaulting to `new WeakMapRuntimeCoordinator()` (Dependency Inversion Principle)
+- [x] 8.4.6 Export abstract class `RuntimeCoordinator` and `RuntimeConnection` interface from `@hai3/screensets` (they are the abstractions; concrete class is NOT exported)
+- [x] 8.4.7 Tests: verify `WeakMapRuntimeCoordinator` directly (register/get/unregister) and verify no window global pollution
+- [ ] 8.4.8 Tests: verify coordination through `ScreensetsRegistry` API during mount/unmount (Phase 19.3 exercises the coordinator via `mountExtension`/`unmountExtension`)
+
+**Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination (spec lines 771-831: PRIVATE, NOT exposed to MFE code, internally called by ScreensetsRegistry). Follows HAI3 OOP pattern: abstract class `RuntimeCoordinator` (exportable contract) + concrete `WeakMapRuntimeCoordinator` (private state), same as `MfeHandler`/`MfeHandlerMF` in `packages/screensets/src/mfe/handler/types.ts`
 
 ---
 
@@ -599,6 +618,12 @@ packages/screensets/src/mfe/gts/
 **Goal**: Implement MFE bundle loading with error handling.
 
 ### 11.1 MFE Handler and Bridge Factory
+
+> **Note**: The current `MfeHandler` in `packages/screensets/src/mfe/handler/types.ts` is a partial stub from Phase 3.
+> Its constructor only takes `typeSystem` (no `handledBaseTypeId` or `priority` parameters) and `handledBaseTypeId`/`priority`
+> are declared as abstract/optional properties rather than constructor parameters. Phase 11.1 will complete the handler
+> to match the full design in `mfe-loading.md` Decision 10, where the constructor takes
+> `(typeSystem, handledBaseTypeId, priority)`. This is intentionally incomplete until Phase 11.
 
 - [ ] 11.1.1 Implement `MfeBridgeFactory` abstract class in `packages/screensets/src/mfe/handler/types.ts`
 - [ ] 11.1.2 Implement `MfeBridgeFactoryDefault` class that creates thin bridges
@@ -888,9 +913,13 @@ packages/screensets/src/mfe/gts/
 - [x] 16.2.6 Implement `ChainExecutionError` with execution path
 - [x] 16.2.7 Implement `MfeVersionMismatchError` with version details
 - [x] 16.2.8 Implement `MfeTypeConformanceError` with type details
-- [x] 16.2.9 Export all error classes from `@hai3/screensets`
+- [x] 16.2.9 Implement `DomainValidationError` with domain type ID and validation errors
+- [x] 16.2.10 Implement `ExtensionValidationError` with extension type ID and validation errors
+- [x] 16.2.11 Implement `UnsupportedDomainActionError` with action type ID and domain type ID
+- [x] 16.2.12 Implement `UnsupportedLifecycleStageError` with stage ID, entity ID, and supported stages
+- [x] 16.2.13 Export all error classes from `@hai3/screensets`
 
-**Traceability**: Requirement "MFE Error Classes"
+**Traceability**: Requirement "MFE Error Classes" - All 11 error classes defined in [mfe-errors.md](./design/mfe-errors.md)
 
 ### 16.3 Shadow DOM and Error Tests
 
@@ -1067,6 +1096,36 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Traceability**: Requirement "Dynamic Registration Model", "ScreensetsRegistry Dynamic API" - all scenarios
 
+### 19.6 Lifecycle Stage Triggering Implementation
+
+> **Context**: `registry-runtime.md` defines `triggerLifecycleStage()`, `triggerDomainLifecycleStage()`, and
+> `triggerDomainOwnLifecycleStage()` methods on ScreensetsRegistry. These methods are called internally
+> during registration/unregistration/mounting/unmounting (default stages) and can be called externally
+> for custom stages. See [mfe-lifecycle.md](./design/mfe-lifecycle.md) for the triggering sequences.
+
+- [ ] 19.6.1 Implement `triggerLifecycleStage(extensionId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on a specific extension
+- [ ] 19.6.2 Implement `triggerDomainLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on all extensions in a domain
+- [ ] 19.6.3 Implement `triggerDomainOwnLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on the domain itself
+- [ ] 19.6.4 Implement private `triggerLifecycleStageInternal(entity, stageId)` helper -- collects hooks matching the stage and executes their actions chains in declaration order
+- [ ] 19.6.5 Integrate automatic lifecycle triggering into registration/mounting methods: `registerExtension` triggers `init`, `mountExtension` triggers `activated`, `unmountExtension` triggers `deactivated`, `unregisterExtension` triggers `destroyed`
+- [ ] 19.6.6 Integrate automatic lifecycle triggering into domain methods: `registerDomain` triggers `init`, `unregisterDomain` triggers `destroyed`
+
+**Test file**: `packages/screensets/__tests__/mfe/runtime/lifecycle-triggering.test.ts`
+
+- [ ] 19.6.7 Test `triggerLifecycleStage` executes hooks for a specific extension and stage
+- [ ] 19.6.8 Test `triggerLifecycleStage` throws if extension not registered
+- [ ] 19.6.9 Test `triggerDomainLifecycleStage` executes hooks for all extensions in a domain
+- [ ] 19.6.10 Test `triggerDomainLifecycleStage` throws if domain not registered
+- [ ] 19.6.11 Test `triggerDomainOwnLifecycleStage` executes hooks on the domain itself
+- [ ] 19.6.12 Test hooks execute in declaration order (array order)
+- [ ] 19.6.13 Test automatic `init` stage triggered during `registerExtension`
+- [ ] 19.6.14 Test automatic `activated` stage triggered during `mountExtension`
+- [ ] 19.6.15 Test automatic `deactivated` stage triggered during `unmountExtension`
+- [ ] 19.6.16 Test automatic `destroyed` stage triggered during `unregisterExtension`
+- [ ] 19.6.17 Test entity with no lifecycle hooks skips triggering gracefully
+
+**Traceability**: Requirement "Lifecycle Stage Triggering" in design/mfe-lifecycle.md -- Stage Triggering Sequence, ScreensetsRegistry Lifecycle Methods in design/registry-runtime.md
+
 ---
 
 ## Phase 20: Framework Dynamic Registration Actions
@@ -1116,16 +1175,19 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - slice
 
-### 20.4 Extension Events Hook
+### 20.4 Extension Events Hook (L3 - @hai3/react)
 
-- [ ] 20.4.1 Create `useExtensionEvents(domainId)` hook
+> **Layer placement**: `useExtensionEvents` is a React hook and belongs in `@hai3/react` (L3), not `@hai3/framework` (L2). React hooks must not live in framework-agnostic packages per the layer architecture.
+
+- [ ] 20.4.1 Create `useExtensionEvents(domainId)` hook in `packages/react/src/mfe/hooks/useExtensionEvents.ts`
 - [ ] 20.4.2 Subscribe to runtime's `extensionRegistered` event
 - [ ] 20.4.3 Subscribe to runtime's `extensionUnregistered` event
 - [ ] 20.4.4 Filter events by domainId
 - [ ] 20.4.5 Return current extensions for domain
 - [ ] 20.4.6 Trigger re-render on changes
+- [ ] 20.4.7 Export from `@hai3/react` (NOT from `@hai3/framework`)
 
-**Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook
+**Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook. Layer architecture: React hooks in L3 (@hai3/react)
 
 ### 20.5 Framework Dynamic Registration Tests
 
@@ -1139,6 +1201,6 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [ ] 20.5.6 Test slice state transitions
 - [ ] 20.5.7 Test selectExtensionState selector
 - [ ] 20.5.8 Test selectRegisteredExtensions selector
-- [ ] 20.5.9 Test useExtensionEvents hook
+- [ ] 20.5.9 Test useExtensionEvents hook (in `packages/react/__tests__/mfe/hooks/useExtensionEvents.test.ts`)
 
-**Traceability**: Requirement "Dynamic Registration Support in Framework" - all scenarios
+**Traceability**: Requirement "Dynamic Registration Support in Framework" - all scenarios. Note: useExtensionEvents tests are in @hai3/react package per L3 layer placement

@@ -135,6 +135,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       routeRegistry: aggregated.registries.routeRegistry as RouteRegistry,
       apiRegistry: apiRegistry,
       i18nRegistry: aggregated.registries.i18nRegistry as HAI3App['i18nRegistry'],
+      screensetsRegistry: aggregated.registries.screensetsRegistry as HAI3App['screensetsRegistry'],
       actions: aggregated.actions as HAI3Actions,
       destroy: () => this.destroyApp(orderedPlugins, app),
     };

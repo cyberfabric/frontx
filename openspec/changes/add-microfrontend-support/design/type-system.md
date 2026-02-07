@@ -683,8 +683,14 @@ interface ScreensetsRegistryConfig {
   /** Optional: Enable debug logging */
   debug?: boolean;
 
-  /** MFE loader configuration (enables hosting nested MFEs) */
-  mfeHandler?: MfeHandlerConfig;
+  /**
+   * Optional custom MFE handler instance.
+   * If provided, this handler will be registered with the registry.
+   *
+   * Note: The default MfeHandlerMF is NOT automatically registered.
+   * Applications must explicitly provide handlers they want to use.
+   */
+  mfeHandler?: MfeHandler;
 
   /** Initial parent bridge (if loaded as MFE) */
   parentBridge?: ParentMfeBridge;

@@ -9,6 +9,7 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler } from '../handler/types';
+import type { RuntimeCoordinator } from '../coordination/types';
 
 /**
  * Configuration for creating a ScreensetsRegistry instance.
@@ -50,18 +51,6 @@ export interface ScreensetsRegistryConfig {
   onError?: (error: Error, context: Record<string, unknown>) => void;
 
   /**
-   * Optional loading component to display while MFE bundle is loading.
-   * If not provided, a default loading indicator will be used.
-   */
-  loadingComponent?: unknown;
-
-  /**
-   * Optional error fallback component to display when MFE fails to load.
-   * If not provided, a default error display will be used.
-   */
-  errorFallbackComponent?: unknown;
-
-  /**
    * Enable debug logging.
    * Logs all MFE lifecycle events, action chains, and validation results.
    *
@@ -79,9 +68,30 @@ export interface ScreensetsRegistryConfig {
   mfeHandler?: MfeHandler;
 
   /**
-   * Optional parent bridge connection.
-   * Used when creating a nested ScreensetsRegistry within an MFE.
-   * Enables hierarchical domain composition.
+   * Optional runtime coordinator.
+   * Used for managing runtime connections between parent and MFE runtimes.
+   *
+   * If not provided, defaults to WeakMapRuntimeCoordinator.
+   * Custom coordinators can be provided for testing or specialized behavior.
+   *
+   * @default WeakMapRuntimeCoordinator
+   *
+   * @example
+   * ```typescript
+   * import { createScreensetsRegistry } from '@hai3/screensets';
+   * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+   *
+   * // Use default coordinator (WeakMapRuntimeCoordinator)
+   * const registry = createScreensetsRegistry({
+   *   typeSystem: gtsPlugin
+   * });
+   *
+   * // Or provide a custom coordinator
+   * const registry = createScreensetsRegistry({
+   *   typeSystem: gtsPlugin,
+   *   coordinator: new MyCustomCoordinator()
+   * });
+   * ```
    */
-  parentBridge?: unknown;
+  coordinator?: RuntimeCoordinator;
 }

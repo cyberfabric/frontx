@@ -23,14 +23,14 @@ export interface ParentMfeBridge {
  * MFE lifecycle interface.
  * All MFE entries must implement this interface.
  */
-export interface MfeEntryLifecycle {
+export interface MfeEntryLifecycle<TBridge = ParentMfeBridge> {
   /**
    * Mount the MFE to a DOM container.
    *
    * @param container - DOM element to mount into
    * @param bridge - Bridge instance for communication with host
    */
-  mount(container: Element, bridge: unknown): void | Promise<void>;
+  mount(container: Element, bridge: TBridge): void | Promise<void>;
 
   /**
    * Unmount the MFE from its container.

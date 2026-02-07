@@ -69,6 +69,26 @@ interface ActionsChain {
 
 ---
 
+## Action Registration Strategy: `type` as GTS Entity ID
+
+Actions use `type` as their identifier rather than `id`. The Action schema annotates the `type` field with `x-gts-ref: "/$id"`, which signals that `type` serves as the GTS entity identifier for registration and validation purposes.
+
+**When registering an Action as a GTS entity:**
+- The `type` field serves as the GTS entity ID (not a synthetic ID)
+- The implementation must register the action using `type` as the entity identifier
+- `typeSystem.register(action)` uses `action.type` as the entity key
+- `typeSystem.validateInstance(action.type)` validates the registered action
+
+**Why `type` and not `id`:**
+- Actions are self-identifying messages; the `type` field IS the action's identity
+- The `type` field follows the GTS type ID format (e.g., `gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.refresh.v1`)
+- Using `type` directly as the entity ID avoids the need for synthetic IDs (no `Date.now()` or `Math.random()` composition)
+- This is consistent with the `x-gts-ref: "/$id"` annotation on the `type` field in the Action JSON schema
+
+**Important:** The implementation MUST NOT generate synthetic IDs like `${action.type}:${Date.now()}:${Math.random()}` to register actions. The `type` field alone is the entity identifier.
+
+---
+
 ## Actions Chain Mediation
 
 The **ActionsChainsMediator** delivers action chains to targets and handles success/failure branching. The Type System plugin validates all type IDs and payloads.
@@ -149,6 +169,8 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 10. Recurse until no next/fallback
 
 ### ActionsChainsMediator Interface
+
+> **Interface vs Class**: The `ActionsChainsMediator` interface below defines the **public contract** -- the API surface that `ScreensetsRegistry` delegates to. The concrete class implementing this interface is **internal** to the screensets package and is not exported. This follows the same abstract/concrete pattern used by other MFE components (`MfeHandler`/`MfeHandlerMF`, `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `MfeBridgeFactory`/`MfeBridgeFactoryDefault`): an exported abstraction defines the contract, while the concrete implementation encapsulates internal state and is injected via Dependency Inversion.
 
 ```typescript
 /**

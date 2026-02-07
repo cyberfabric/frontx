@@ -770,35 +770,37 @@ The system SHALL provide typed error classes for MFE operations.
 
 ### Requirement: Internal Runtime Coordination
 
-The system SHALL provide PRIVATE coordination mechanisms between parent and MFE runtimes that are NOT exposed to MFE code. The coordination uses WeakMap-based approach for better encapsulation and garbage collection.
+The system SHALL provide PRIVATE coordination mechanisms between parent and MFE runtimes that are NOT exposed to MFE code. The coordination uses a WeakMap-based approach encapsulated within a `RuntimeCoordinator` class (abstract class + concrete implementation), following HAI3's SOLID OOP pattern. The `ScreensetsRegistry` holds a `private readonly coordinator: RuntimeCoordinator` field (Dependency Inversion Principle).
 
 #### Scenario: RuntimeCoordinator uses WeakMap
 
 - **WHEN** the parent runtime and MFE runtime need to coordinate
-- **THEN** coordination SHALL use a module-level WeakMap keyed by container Element
+- **THEN** coordination SHALL use a `RuntimeCoordinator` abstract class with a `WeakMapRuntimeCoordinator` concrete implementation that encapsulates a private `WeakMap<Element, RuntimeConnection>`
 - **AND** the WeakMap SHALL store RuntimeConnection objects with parentRuntime and bridges
 - **AND** RuntimeCoordinator SHALL NOT use window globals (no `window.__hai3_*` properties)
+- **AND** the concrete `WeakMapRuntimeCoordinator` SHALL NOT be exported from `@hai3/screensets` (internal implementation detail)
+- **AND** the abstract `RuntimeCoordinator` class SHALL be exported from `@hai3/screensets` (it is the abstraction/contract)
 - **AND** RuntimeCoordinator SHALL NOT be exposed to MFE component code
 - **AND** MFE code SHALL only see the ChildMfeBridge interface
 
 #### Scenario: RuntimeConnection registration
 
 - **WHEN** an MFE is mounted to a container element
-- **THEN** the system SHALL call `registerRuntime(container, connection)` internally
+- **THEN** the system SHALL call `coordinator.register(container, connection)` internally via ScreensetsRegistry
 - **AND** the RuntimeConnection SHALL include the parentRuntime reference
 - **AND** the RuntimeConnection SHALL include a Map of entryTypeId to ParentMfeBridge
 
 #### Scenario: RuntimeConnection lookup
 
 - **WHEN** the system needs to find a runtime for communication
-- **THEN** the system SHALL call `getRuntime(container)` to lookup by element
+- **THEN** the system SHALL call `coordinator.get(container)` to lookup by element
 - **AND** the lookup SHALL return RuntimeConnection or undefined
 - **AND** the lookup SHALL be O(1) complexity via WeakMap
 
 #### Scenario: RuntimeConnection cleanup
 
 - **WHEN** an MFE is unmounted from a container element
-- **THEN** the system SHALL call `unregisterRuntime(container)` internally
+- **THEN** the system SHALL call `coordinator.unregister(container)` internally via ScreensetsRegistry
 - **AND** the WeakMap entry SHALL be removed
 - **AND** when the container element is garbage collected, any remaining reference SHALL be automatically cleaned up
 
@@ -807,7 +809,7 @@ The system SHALL provide PRIVATE coordination mechanisms between parent and MFE 
 - **WHEN** using WeakMap-based coordination instead of window globals
 - **THEN** there SHALL be no window pollution (not accessible via devtools window object)
 - **AND** garbage collection SHALL be automatic when container element is removed
-- **AND** encapsulation SHALL be better (module-private, not globally accessible)
+- **AND** encapsulation SHALL be better (WeakMap is private within `WeakMapRuntimeCoordinator` class, not globally accessible)
 
 #### Scenario: ChildMfeBridge is the only exposed interface
 
