@@ -45,9 +45,11 @@ function createMockPlugin(): TypeSystemPlugin {
     getSchema: (typeId: string) => schemas.get(typeId),
     // GTS-native register method
     register: (entity: unknown) => {
-      const entityWithId = entity as { id?: string };
-      if (entityWithId.id) {
-        registeredEntities.set(entityWithId.id, entity);
+      const entityWithId = entity as { id?: string; type?: string };
+      // Actions use 'type' field as identifier, others use 'id'
+      const identifier = entityWithId.type || entityWithId.id;
+      if (identifier) {
+        registeredEntities.set(identifier, entity);
       }
     },
     // GTS-native validateInstance by ID only
@@ -244,6 +246,18 @@ describe('ScreensetsRegistry - Phase 4', () => {
     it('should validate action type ID via plugin before chain execution', async () => {
       const registry = createScreensetsRegistry(createTestConfig());
 
+      // Register domain with the action in its supported actions
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
+        sharedProperties: [],
+        actions: ['gts.hai3.screensets.ext.action.v1~test.action.v1~'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain);
+
       const validAction: Action = {
         type: 'gts.hai3.screensets.ext.action.v1~test.action.v1~',
         target: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
@@ -272,13 +286,25 @@ describe('ScreensetsRegistry - Phase 4', () => {
       const result = await registry.executeActionsChain(chain);
       expect(result.completed).toBe(false);
       expect(result.error).toBeDefined();
-      expect(result.error?.message).toContain('Invalid type ID');
+      expect(result.error).toContain('Invalid type ID');
     });
   });
 
   describe('4.4 Payload Validation via Plugin', () => {
     it('should validate payload via plugin before delivery', async () => {
       const registry = createScreensetsRegistry(createTestConfig());
+
+      // Register domain with the action in its supported actions
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
+        sharedProperties: [],
+        actions: ['gts.hai3.screensets.ext.action.v1~test.action.v1~'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain);
 
       const actionWithPayload: Action = {
         type: 'gts.hai3.screensets.ext.action.v1~test.action.v1~',
@@ -328,11 +354,23 @@ describe('ScreensetsRegistry - Phase 4', () => {
       const result = await registry.executeActionsChain(chain);
       expect(result.completed).toBe(false);
       expect(result.error).toBeDefined();
-      expect(result.error?.message).toContain('Action validation failed');
+      expect(result.error).toContain('Action validation failed');
     });
 
     it('should allow actions without payload', async () => {
       const registry = createScreensetsRegistry(createTestConfig());
+
+      // Register domain with the action in its supported actions
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
+        sharedProperties: [],
+        actions: ['gts.hai3.screensets.ext.action.v1~test.action.v1~'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain);
 
       const actionWithoutPayload: Action = {
         type: 'gts.hai3.screensets.ext.action.v1~test.action.v1~',

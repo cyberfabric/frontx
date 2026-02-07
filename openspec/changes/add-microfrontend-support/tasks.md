@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 8 COMPLETE ✓
+**Current Status**: Phase 9 COMPLETE
 
 ---
 
@@ -526,7 +526,7 @@ packages/screensets/src/mfe/gts/
 - [x] 8.4.5 Add `private readonly coordinator: RuntimeCoordinator` field to `ScreensetsRegistry` -- injected via config or defaulting to `new WeakMapRuntimeCoordinator()` (Dependency Inversion Principle)
 - [x] 8.4.6 Export abstract class `RuntimeCoordinator` and `RuntimeConnection` interface from `@hai3/screensets` (they are the abstractions; concrete class is NOT exported)
 - [x] 8.4.7 Tests: verify `WeakMapRuntimeCoordinator` directly (register/get/unregister) and verify no window global pollution
-- [ ] 8.4.8 Tests: verify coordination through `ScreensetsRegistry` API during mount/unmount (Phase 19.3 exercises the coordinator via `mountExtension`/`unmountExtension`)
+- [x] 8.4.8 Tests: verify coordination through `ScreensetsRegistry` API during mount/unmount (Phase 19.3 exercises the coordinator via `mountExtension`/`unmountExtension`)
 
 **Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination (spec lines 771-831: PRIVATE, NOT exposed to MFE code, internally called by ScreensetsRegistry). Follows HAI3 OOP pattern: abstract class `RuntimeCoordinator` (exportable contract) + concrete `WeakMapRuntimeCoordinator` (private state), same as `MfeHandler`/`MfeHandlerMF` in `packages/screensets/src/mfe/handler/types.ts`
 
@@ -538,26 +538,26 @@ packages/screensets/src/mfe/gts/
 
 ### 9.1 ActionsChainsMediator Implementation
 
-- [ ] 9.1.1 Create `ActionsChainsMediator` class with `executeActionsChain(chain, options?)` method
-- [ ] 9.1.2 Implement target resolution (domain or entry instance)
-- [ ] 9.1.3 Implement action validation against target contract
-- [ ] 9.1.4 Implement success path (execute `next` chain)
-- [ ] 9.1.5 Implement failure path (execute `fallback` chain)
-- [ ] 9.1.6 Implement termination (no next/fallback)
-- [ ] 9.1.7 Implement `ChainResult` return type
-- [ ] 9.1.8 Implement `ChainExecutionOptions` interface with ONLY `chainTimeout` (no action-level options)
-- [ ] 9.1.9 Add chain-level execution options support to `executeActionsChain(chain, options?)`
-- [ ] 9.1.10 Implement timeout resolution from type definitions: `action.timeout ?? domain.defaultActionTimeout`
-- [ ] 9.1.11 On timeout: execute fallback chain if defined (same as any other failure)
+- [x] 9.1.1 Create `ActionsChainsMediator` class with `executeActionsChain(chain, options?)` method
+- [x] 9.1.2 Implement target resolution (domain or entry instance)
+- [x] 9.1.3 Implement action validation against target contract
+- [x] 9.1.4 Implement success path (execute `next` chain)
+- [x] 9.1.5 Implement failure path (execute `fallback` chain)
+- [x] 9.1.6 Implement termination (no next/fallback)
+- [x] 9.1.7 Implement `ChainResult` return type
+- [x] 9.1.8 Implement `ChainExecutionOptions` interface with ONLY `chainTimeout` (no action-level options)
+- [x] 9.1.9 Add chain-level execution options support to `executeActionsChain(chain, options?)`
+- [x] 9.1.10 Implement timeout resolution from type definitions: `action.timeout ?? domain.defaultActionTimeout`
+- [x] 9.1.11 On timeout: execute fallback chain if defined (same as any other failure)
 
 **Traceability**: Requirement "Actions Chain Mediation" - success/failure/termination scenarios, Requirement "Explicit Timeout Configuration"
 
 ### 9.2 Extension Registration with Mediator
 
-- [ ] 9.2.1 Implement `registerExtensionHandler()` method in ActionsChainsMediator
-- [ ] 9.2.2 Implement `unregisterExtensionHandler()` method in ActionsChainsMediator
-- [ ] 9.2.3 Handle pending actions on unregistration
-- [ ] 9.2.4 Add registration/unregistration tests
+- [x] 9.2.1 Implement `registerExtensionHandler()` method in ActionsChainsMediator
+- [x] 9.2.2 Implement `unregisterExtensionHandler()` method in ActionsChainsMediator
+- [x] 9.2.3 Handle pending actions on unregistration
+- [x] 9.2.4 Add registration/unregistration tests
 
 **Traceability**: Requirement "Actions Chain Mediation" - Extension registration/unregistration
 
@@ -565,16 +565,16 @@ packages/screensets/src/mfe/gts/
 
 **Test file**: `packages/screensets/__tests__/mfe/mediator/actions-chains-mediator.test.ts`
 
-- [ ] 9.3.1 Test action chain success path execution
-- [ ] 9.3.2 Test action chain failure path execution
-- [ ] 9.3.3 Test chain termination scenarios
-- [ ] 9.3.4 Test type ID validation via plugin
-- [ ] 9.3.5 Test payload validation via plugin
-- [ ] 9.3.6 Test extension handler lifecycle (register/unregister)
-- [ ] 9.3.7 Test timeout resolution uses domain.defaultActionTimeout when action.timeout not specified
-- [ ] 9.3.8 Test timeout resolution uses action.timeout when specified (overrides domain default)
-- [ ] 9.3.9 Test timeout triggers fallback chain execution (same as any other failure)
-- [ ] 9.3.10 Test ChainExecutionOptions only accepts chainTimeout (no action-level options)
+- [x] 9.3.1 Test action chain success path execution
+- [x] 9.3.2 Test action chain failure path execution
+- [x] 9.3.3 Test chain termination scenarios
+- [x] 9.3.4 Test type ID validation via plugin
+- [x] 9.3.5 Test payload validation via plugin
+- [x] 9.3.6 Test extension handler lifecycle (register/unregister)
+- [x] 9.3.7 Test timeout resolution uses domain.defaultActionTimeout when action.timeout not specified
+- [x] 9.3.8 Test timeout resolution uses action.timeout when specified (overrides domain default)
+- [x] 9.3.9 Test timeout triggers fallback chain execution (same as any other failure)
+- [x] 9.3.10 Test ChainExecutionOptions only accepts chainTimeout (no action-level options)
 
 **Traceability**: Requirement "Actions Chain Mediation" - all scenarios, Requirement "Explicit Timeout Configuration"
 

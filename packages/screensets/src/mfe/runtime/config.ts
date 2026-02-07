@@ -10,6 +10,7 @@
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
+import type { ActionsChainsMediator } from '../mediator/types';
 
 /**
  * Configuration for creating a ScreensetsRegistry instance.
@@ -94,4 +95,32 @@ export interface ScreensetsRegistryConfig {
    * ```
    */
   coordinator?: RuntimeCoordinator;
+
+  /**
+   * Optional actions chains mediator.
+   * Used for executing action chains with success/failure branching.
+   *
+   * If not provided, defaults to DefaultActionsChainsMediator.
+   * Custom mediators can be provided for testing or specialized behavior.
+   *
+   * @default DefaultActionsChainsMediator
+   *
+   * @example
+   * ```typescript
+   * import { createScreensetsRegistry } from '@hai3/screensets';
+   * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+   *
+   * // Use default mediator (DefaultActionsChainsMediator)
+   * const registry = createScreensetsRegistry({
+   *   typeSystem: gtsPlugin
+   * });
+   *
+   * // Or provide a custom mediator
+   * const registry = createScreensetsRegistry({
+   *   typeSystem: gtsPlugin,
+   *   mediator: new MyCustomMediator(gtsPlugin, registry)
+   * });
+   * ```
+   */
+  mediator?: ActionsChainsMediator;
 }

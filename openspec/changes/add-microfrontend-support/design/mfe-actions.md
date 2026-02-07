@@ -203,10 +203,13 @@ interface ActionsChainsMediator {
     domainId: string,
     handler: ActionHandler
   ): void;
+
+  /** Unregister a domain's action handler */
+  unregisterDomainHandler(domainId: string): void;
 }
 
 interface ActionHandler {
-  handleAction(actionTypeId: string, payload: unknown): Promise<void>;
+  handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
 }
 
 interface ChainResult {

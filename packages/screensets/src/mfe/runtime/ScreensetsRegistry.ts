@@ -22,18 +22,20 @@ import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
-  Action,
   ActionsChain,
   MfeEntry,
   SharedProperty,
 } from '../types';
 import { RuntimeCoordinator } from '../coordination/types';
 import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
+import { ActionsChainsMediator, type ChainResult, type ChainExecutionOptions } from '../mediator';
+import { DefaultActionsChainsMediator } from '../mediator/actions-chains-mediator';
 
 /**
  * State for a registered extension domain.
+ * INTERNAL: Used by ActionsChainsMediator for domain resolution.
  */
-interface ExtensionDomainState {
+export interface ExtensionDomainState {
   domain: ExtensionDomain;
   properties: Map<string, SharedProperty>;
   extensions: Set<string>;
@@ -52,14 +54,6 @@ interface ExtensionState {
   error?: Error;
 }
 
-/**
- * Result of action chain execution.
- */
-interface ChainResult {
-  completed: boolean;
-  path: string[];
-  error?: Error;
-}
 
 /**
  * Central registry for MFE screensets.
@@ -141,6 +135,15 @@ export class ScreensetsRegistry {
    */
   private readonly coordinator: RuntimeCoordinator;
 
+  /**
+   * Actions chains mediator for action chain execution.
+   * INTERNAL: Uses Dependency Inversion Principle - depends on abstract ActionsChainsMediator.
+   * Handles action routing, validation, and success/failure branching.
+   *
+   * NOTE: Introduced in Phase 9.
+   */
+  private readonly mediator: ActionsChainsMediator;
+
   constructor(config: ScreensetsRegistryConfig) {
     // Validate required plugin
     if (!config.typeSystem) {
@@ -156,6 +159,9 @@ export class ScreensetsRegistry {
 
     // Initialize coordinator (Dependency Inversion: use provided or default to WeakMapRuntimeCoordinator)
     this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
+
+    // Initialize mediator (Dependency Inversion: use provided or default to DefaultActionsChainsMediator)
+    this.mediator = config.mediator ?? new DefaultActionsChainsMediator(this.typeSystem, this);
 
     // Verify first-class schemas are available
     this.verifyFirstClassSchemas();
@@ -249,85 +255,68 @@ export class ScreensetsRegistry {
     this.log('Domain registered', { domainId: domain.id });
   }
 
-  /**
-   * Validate type ID format via plugin.
-   *
-   * @param typeId - Type ID to validate
-   * @param context - Context for error message
-   * @throws Error if type ID is invalid
-   */
-  private validateTypeId(typeId: string, context: string): void {
-    if (!this.typeSystem.isValidTypeId(typeId)) {
-      throw new Error(
-        `Invalid type ID in ${context}: "${typeId}". ` +
-        `Type IDs must conform to the format expected by the ${this.typeSystem.name} plugin.`
-      );
-    }
-  }
-
-  /**
-   * Validate action via plugin.
-   *
-   * The ACTION itself is the GTS entity (it has a type ID). The payload is a PROPERTY
-   * within the action. When we call validateInstance() on the action, GTS validates
-   * the entire instance including the payload against the derived type's schema.
-   *
-   * @param action - Action to validate
-   * @returns Validation result
-   */
-  private validateActionPayload(action: Action): { valid: boolean; errors: string[] } {
-    // Validate action type ID
-    this.validateTypeId(action.type, 'action.type');
-
-    // Validate target type ID
-    this.validateTypeId(action.target, 'action.target');
-
-    // GTS-native validation: register the action, then validate by ID
-    // This validates the entire action instance including the payload
-    // Generate a unique ID for this action instance
-    const actionId = `${action.type}:${Date.now()}:${Math.random()}`;
-    const actionWithId = { ...action, id: actionId };
-
-    this.typeSystem.register(actionWithId);
-    const validation = this.typeSystem.validateInstance(actionId);
-
-    if (!validation.valid) {
-      return {
-        valid: false,
-        errors: validation.errors.map(e => e.message),
-      };
-    }
-
-    return { valid: true, errors: [] };
-  }
 
   /**
    * Execute an actions chain.
-   * This is a placeholder for Phase 9 (ActionsChainsMediator implementation).
+   * Delegates to the ActionsChainsMediator for chain execution.
    *
    * @param chain - Actions chain to execute
+   * @param options - Optional execution options
    * @returns Promise resolving to chain result
    */
-  async executeActionsChain(chain: ActionsChain): Promise<ChainResult> {
-    // Validate action
-    try {
-      const validation = this.validateActionPayload(chain.action);
-      if (!validation.valid) {
-        return {
-          completed: false,
-          path: [chain.action.type],
-          error: new Error(`Action validation failed: ${validation.errors.join(', ')}`),
-        };
-      }
-    } catch (error) {
-      return {
-        completed: false,
-        path: [chain.action.type],
-        error: error instanceof Error ? error : new Error(String(error)),
-      };
-    }
+  async executeActionsChain(
+    chain: ActionsChain,
+    options?: ChainExecutionOptions
+  ): Promise<ChainResult> {
+    return this.mediator.executeActionsChain(chain, options);
+  }
 
-    throw new Error('executeActionsChain not implemented. Full implementation coming in Phase 9.');
+  /**
+   * Register an extension's action handler.
+   *
+   * @param extensionId - ID of the extension
+   * @param domainId - ID of the domain
+   * @param entryId - ID of the MFE entry
+   * @param handler - The action handler
+   */
+  registerExtensionActionHandler(
+    extensionId: string,
+    domainId: string,
+    entryId: string,
+    handler: import('../mediator').ActionHandler
+  ): void {
+    this.mediator.registerExtensionHandler(extensionId, domainId, entryId, handler);
+  }
+
+  /**
+   * Unregister an extension's action handler.
+   *
+   * @param extensionId - ID of the extension
+   */
+  unregisterExtensionActionHandler(extensionId: string): void {
+    this.mediator.unregisterExtensionHandler(extensionId);
+  }
+
+  /**
+   * Register a domain's action handler.
+   *
+   * @param domainId - ID of the domain
+   * @param handler - The action handler
+   */
+  registerDomainActionHandler(
+    domainId: string,
+    handler: import('../mediator').ActionHandler
+  ): void {
+    this.mediator.registerDomainHandler(domainId, handler);
+  }
+
+  /**
+   * Unregister a domain's action handler.
+   *
+   * @param domainId - ID of the domain
+   */
+  unregisterDomainActionHandler(domainId: string): void {
+    this.mediator.unregisterDomainHandler(domainId);
   }
 
   /**
@@ -469,6 +458,17 @@ export class ScreensetsRegistry {
     } else {
       console.error('[ScreensetsRegistry] Error:', error, context);
     }
+  }
+
+  /**
+   * Get domain state for a registered domain.
+   * INTERNAL: Used by ActionsChainsMediator for domain resolution.
+   *
+   * @param domainId - ID of the domain
+   * @returns Domain state, or undefined if not found
+   */
+  getDomainState(domainId: string): ExtensionDomainState | undefined {
+    return this.domains.get(domainId);
   }
 
   /**

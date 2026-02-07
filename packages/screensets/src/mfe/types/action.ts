@@ -16,7 +16,7 @@ export interface Action {
   /** Target type ID (ExtensionDomain or Extension) */
   target: string;
   /** Optional action payload */
-  payload?: unknown;
+  payload?: Record<string, unknown>;
   /** Optional timeout override in milliseconds (overrides domain's defaultActionTimeout) */
   timeout?: number;
 }

@@ -64,6 +64,14 @@ export type {
 export { RuntimeCoordinator } from './coordination/types';
 export type { RuntimeConnection } from './coordination/types';
 
+// Actions Chains Mediation (abstract class and interfaces only - concrete implementation is internal)
+export { ActionsChainsMediator } from './mediator';
+export type {
+  ChainResult,
+  ChainExecutionOptions,
+  ActionHandler,
+} from './mediator';
+
 // Validation
 export type {
   ContractError,
