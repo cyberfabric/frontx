@@ -59,10 +59,9 @@ The system SHALL provide MFE actions that emit events only, following HAI3 Flux 
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // Action emits event, returns void - loads JS bundle only
 mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
@@ -79,10 +78,9 @@ mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // Action emits event for preloading - fetch bundle before user navigates
 mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
@@ -99,13 +97,12 @@ mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // Action emits event, returns void - mounts to DOM (auto-loads if needed)
-mfeActions.mountExtension({ extensionId: ANALYTICS_EXTENSION_ID });
+mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
 // Emits: 'mfe/mountRequested' with { extensionId }
 ```
 
@@ -207,11 +204,11 @@ eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
 #### Scenario: Child action effect handles extension load request
 
 ```typescript
-import { conformsTo, HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
+import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 
 // actionTypeId conforms to gts.hai3.mfes.comm.action.v1~
 eventBus.on('mfe/childActionRequested', async ({ extensionId, actionTypeId, payload }) => {
-  if (conformsTo(actionTypeId, HAI3_ACTION_LOAD_EXT)) {
+  if (runtime.typeSystem.isTypeOf(actionTypeId, HAI3_ACTION_LOAD_EXT)) {
     const { domainTypeId, targetExtensionId, ...params } = payload as LoadExtPayload;
     // Domain handles the load according to its layout behavior (popup shows modal, sidebar shows panel, etc.)
     runtime.mountExtension(targetExtensionId, params.container);
@@ -233,10 +230,9 @@ The system SHALL track MFE load and mount states via a Redux slice using extensi
 
 ```typescript
 import { selectMfeLoadState, selectMfeMountState, selectMfeError } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // Load state tracks bundle loading
 const loadState = useAppSelector((state) =>
@@ -277,10 +273,9 @@ The system SHALL provide an `MfeContainer` React component that handles MFE moun
 
 ```tsx
 import { MfeContainer } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID (references the MFE entry)
-const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // MfeContainer handles mounting via ScreensetsRegistry.mountExtension() and Shadow DOM isolation
 <MfeContainer
@@ -332,13 +327,14 @@ The system SHALL integrate MFE loading with the navigation plugin using actions/
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { HAI3_ACTION_LOAD_EXT, HAI3_SCREEN_DOMAIN, type GtsTypeId } from '@hai3/screensets';
+import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
+import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 // Navigate by mounting the extension on the screen domain
 // Screen domain interprets mount as "navigate to this screen"
-mfeActions.mountExtension({
-  extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.screens.dashboard.v1' as GtsTypeId,
-});
+mfeActions.mountExtension(
+  'gts.hai3.mfes.ext.extension.v1~acme.analytics.screens.dashboard.v1',
+);
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
 // Effect handles: calls runtime.mountExtension() on the screen domain
 // Screen domain replaces current screen with the extension
@@ -368,7 +364,8 @@ The system SHALL support loading MFE extensions into any domain using generic `l
 #### Scenario: MFE requests extension load into popup domain
 
 ```typescript
-import { HAI3_ACTION_LOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
+import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
+import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 // Inside MFE component - bridge sends action chain to parent
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
@@ -401,7 +398,8 @@ await bridge.sendActionsChain({
 #### Scenario: MFE requests extension unload from popup domain
 
 ```typescript
-import { HAI3_ACTION_UNLOAD_EXT, HAI3_POPUP_DOMAIN } from '@hai3/screensets';
+import { HAI3_ACTION_UNLOAD_EXT } from '@hai3/screensets';
+import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 // Inside MFE popup
 // HAI3_ACTION_UNLOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1
@@ -423,7 +421,8 @@ await bridge.sendActionsChain({
 #### Scenario: MFE requests extension load into sidebar domain
 
 ```typescript
-import { HAI3_ACTION_LOAD_EXT, HAI3_SIDEBAR_DOMAIN } from '@hai3/screensets';
+import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
+import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
 
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
 await bridge.sendActionsChain({
@@ -460,7 +459,8 @@ await bridge.sendActionsChain({
 #### Scenario: Screen domain only supports load_ext
 
 ```typescript
-import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/screensets';
+import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT } from '@hai3/screensets';
+import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 // This works - screen domain supports load_ext (navigate to screen)
 await bridge.sendActionsChain({
@@ -510,15 +510,13 @@ The system SHALL provide error boundaries for MFE load and render failures with 
 #### Scenario: MFE load error display
 
 ```typescript
-import { type GtsTypeId } from '@hai3/screensets';
-
 // Default error boundary shows:
 // - Error message
 // - Retry button
 // - MFE GTS entry type ID
 
 // MfeEntryMF type ID - derived from gts.hai3.mfes.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1';
 
 <MfeErrorBoundary
   entryTypeId={MFE_ANALYTICS_ENTRY}
@@ -562,10 +560,9 @@ The system SHALL provide loading indicators while MFEs are being fetched.
 
 ```typescript
 import { MfeContainer } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
 // MfeEntryMF type ID - derived from gts.hai3.mfes.mfe.entry.v1~
-const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1';
 
 // Loading component is passed as a prop to MfeContainer
 // NOT as static plugin configuration
@@ -588,10 +585,9 @@ The system SHALL support preloading MFE bundles before navigation using extensio
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-// Extension type ID
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+// Extension type ID (plain string - runtime validation via gts-ts)
+const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
 // Preload is triggered via action, not static configuration
 // On click, mount the extension on its screen domain (which navigates to it)
@@ -613,7 +609,6 @@ const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.da
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
 // Preload can be triggered immediately after app initialization
 // via an effect that listens to app ready event
@@ -622,8 +617,8 @@ import { type GtsTypeId } from '@hai3/screensets';
 // In an effect or app initialization hook:
 eventBus.on('app/ready', () => {
   // Preload frequently used extensions dynamically
-  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1' as GtsTypeId);
-  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.billing.overview.v1' as GtsTypeId);
+  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1');
+  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.billing.overview.v1');
 });
 // Analytics and billing bundles fetched after app startup
 ```
@@ -649,18 +644,16 @@ The system SHALL provide query methods on ScreensetsRegistry for querying regist
 #### Scenario: Query registered extensions and domains
 
 ```typescript
-import { type GtsTypeId, parseGtsId } from '@hai3/screensets';
-
 // Query extension by type ID (extension uses derived type with domain-specific fields)
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
-const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1' as GtsTypeId;
+const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.ext.screen_extension.v1~acme.analytics.dashboard.v1';
 const extension = runtime.getExtension(ANALYTICS_EXTENSION);
 console.log(extension?.domain);     // Domain type ID
 console.log(extension?.entry);      // Entry type ID (MfeEntryMF)
 console.log(extension?.title);      // Domain-specific field from derived Extension type
 
 // Query domain by type ID
-const SCREEN_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1' as GtsTypeId;
+const SCREEN_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1';
 const domain = runtime.getDomain(SCREEN_DOMAIN);
 console.log(domain?.sharedProperties);  // List of shared property type IDs
 
@@ -668,8 +661,8 @@ console.log(domain?.sharedProperties);  // List of shared property type IDs
 const extensions = runtime.getExtensionsForDomain(SCREEN_DOMAIN);
 console.log(extensions.length);  // Number of extensions registered for this domain
 
-// Parse vendor info from GTS type
-const parsed = parseGtsId(ANALYTICS_EXTENSION);
+// Parse vendor info from GTS type via plugin
+const parsed = runtime.typeSystem.parseTypeId(ANALYTICS_EXTENSION);
 console.log(parsed.vendor); // 'acme' (extension vendor)
 ```
 
@@ -677,7 +670,7 @@ console.log(parsed.vendor); // 'acme' (extension vendor)
 - **THEN** `getExtension(extensionId)` SHALL return the registered extension or undefined
 - **AND** `getDomain(domainId)` SHALL return the registered domain or undefined
 - **AND** `getExtensionsForDomain(domainId)` SHALL return all extensions for that domain
-- **AND** `parseGtsId()` SHALL extract vendor and other metadata
+- **AND** `plugin.parseTypeId()` SHALL extract vendor and other metadata (no standalone `parseGtsId()` utility)
 
 **Note**: MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](../../design/mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf).
 
@@ -700,7 +693,7 @@ The system SHALL validate shared dependency versions between host and MFE.
 #### Scenario: Major version mismatch error
 
 ```typescript
-import { type GtsTypeId, MfeVersionMismatchError } from '@hai3/screensets';
+import { MfeVersionMismatchError } from '@hai3/screensets';
 
 // If host uses React 18.x and MFE built with React 17.x:
 // The handler validates shared dependency versions when loading the MFE bundle
@@ -726,38 +719,38 @@ The system SHALL validate that MFE type IDs conform to HAI3 base types.
 #### Scenario: Validate MfManifest type on load
 
 ```typescript
-import { conformsTo, HAI3_MF_MANIFEST, type GtsTypeId } from '@hai3/screensets';
+import { HAI3_MF_MANIFEST } from '@hai3/screensets';
 
 // When loading an MFE manifest
-const manifestTypeId = 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1' as GtsTypeId;
+const manifestTypeId = 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1';
 
 // HAI3_MF_MANIFEST is: gts.hai3.mfes.mfe.mf_manifest.v1~
-if (!conformsTo(manifestTypeId, HAI3_MF_MANIFEST)) {
+if (!runtime.typeSystem.isTypeOf(manifestTypeId, HAI3_MF_MANIFEST)) {
   throw new MfeTypeConformanceError(manifestTypeId, HAI3_MF_MANIFEST);
 }
 ```
 
 - **WHEN** loading an MFE manifest
-- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.mfes.mfe.mf_manifest.v1~`
+- **THEN** the loader SHALL validate that `manifestTypeId` conforms to `gts.hai3.mfes.mfe.mf_manifest.v1~` via `plugin.isTypeOf()`
 - **AND** if validation fails, `MfeTypeConformanceError` SHALL be thrown
 
 #### Scenario: Validate MfeEntry type on mount
 
 ```typescript
-import { conformsTo, HAI3_MFE_ENTRY, HAI3_MFE_ENTRY_MF, type GtsTypeId } from '@hai3/screensets';
+import { HAI3_MFE_ENTRY, HAI3_MFE_ENTRY_MF } from '@hai3/screensets';
 
 // MfeEntryMF (Module Federation derived) type ID
-const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1' as GtsTypeId;
+const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.dashboard.v1';
 
 // HAI3_MFE_ENTRY is: gts.hai3.mfes.mfe.entry.v1~ (base)
 // HAI3_MFE_ENTRY_MF is: gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~ (derived)
-if (!conformsTo(entryTypeId, HAI3_MFE_ENTRY)) {
+if (!runtime.typeSystem.isTypeOf(entryTypeId, HAI3_MFE_ENTRY)) {
   throw new MfeTypeConformanceError(entryTypeId, HAI3_MFE_ENTRY);
 }
 ```
 
 - **WHEN** mounting an entry
-- **THEN** the entry type SHALL be validated against the expected base type
+- **THEN** the entry type SHALL be validated against the expected base type via `plugin.isTypeOf()`
 - **AND** all MFE entries SHALL conform to `gts.hai3.mfes.mfe.entry.v1~` (base)
 - **AND** Module Federation entries SHALL also conform to `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~` (derived)
 
@@ -769,12 +762,12 @@ The framework SHALL support dynamic registration of extensions and MFEs at any t
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type Extension, type GtsTypeId } from '@hai3/screensets';
+import { type Extension } from '@hai3/screensets';
 
 // Extension can be registered at any time - NOT just initialization
 // Extension uses derived type that includes domain-specific fields
 mfeActions.registerExtension({
-  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1' as GtsTypeId,
+  id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
   domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
   entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
   // Domain-specific fields from derived Extension type (no uiMeta wrapper)
@@ -795,10 +788,9 @@ mfeActions.registerExtension({
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
 // Unregister at any time - also unmounts if currently mounted
-mfeActions.unregisterExtension('gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId);
+mfeActions.unregisterExtension('gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1');
 // Emits: 'mfe/unregisterExtensionRequested' with { extensionId }
 // Effect calls: runtime.unregisterExtension(extensionId)
 ```
@@ -812,9 +804,8 @@ mfeActions.unregisterExtension('gts.hai3.mfes.ext.extension.v1~acme.user.widgets
 
 ```typescript
 import { selectExtensionState, selectRegisteredExtensions } from '@hai3/framework';
-import { type GtsTypeId } from '@hai3/screensets';
 
-const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1' as GtsTypeId;
+const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.user.widgets.analytics_widget.v1';
 
 // Query registration state
 const state = useAppSelector((s) => selectExtensionState(s, extensionId));
@@ -822,7 +813,7 @@ const state = useAppSelector((s) => selectExtensionState(s, extensionId));
 
 // Get all registered extensions
 const registeredExtensions = useAppSelector(selectRegisteredExtensions);
-// GtsTypeId[]
+// string[]
 ```
 
 - **WHEN** querying extension registration state

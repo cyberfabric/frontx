@@ -194,3 +194,11 @@ export {
   type NavigateToScreenPayload as MfeNavigateToScreenPayload,
   type ScreenChangedPayload as MfeScreenChangedPayload,
 } from './navigation';
+
+// Re-export HAI3 layout domain constants
+export {
+  HAI3_POPUP_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_SCREEN_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
+} from './constants';

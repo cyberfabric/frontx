@@ -256,13 +256,14 @@ import {
   parseGtsID,
   GtsStore,
   GtsQuery,
+  createJsonEntity,
   type GtsIDSegment,
   type ParseResult,
   type ValidationResult as GtsValidationResult,
   type CompatibilityResult as GtsCompatibilityResult,
 } from '@globaltypesystem/gts-ts';
 import type { TypeSystemPlugin, ValidationResult, CompatibilityResult } from '../types';
-import { mfeGtsSchemas } from '../../schemas/gts-schemas';
+import { loadSchemas } from '../../gts/loader';
 
 /**
  * Extract type ID from a JSON Schema's $id field.
@@ -280,31 +281,12 @@ export function createGtsPlugin(): TypeSystemPlugin {
   const gtsStore = new GtsStore();
 
   // Register all first-class citizen schemas during construction.
-  // These types define system capabilities and are well-known at compile time.
-  // Changes to them require code changes in screensets anyway.
-  const firstClassSchemas = [
-    // Core types (8)
-    mfeGtsSchemas.mfeEntry,
-    mfeGtsSchemas.extensionDomain,
-    mfeGtsSchemas.extension,
-    mfeGtsSchemas.sharedProperty,
-    mfeGtsSchemas.action,
-    mfeGtsSchemas.actionsChain,
-    mfeGtsSchemas.lifecycleStage,
-    mfeGtsSchemas.lifecycleHook,
-    // Default lifecycle stages (4)
-    mfeGtsSchemas.lifecycleStageInit,
-    mfeGtsSchemas.lifecycleStageActivated,
-    mfeGtsSchemas.lifecycleStageDeactivated,
-    mfeGtsSchemas.lifecycleStageDestroyed,
-    // MF-specific types (2)
-    mfeGtsSchemas.mfManifest,
-    mfeGtsSchemas.mfeEntryMf,
-  ];
+  // JSON schemas are loaded from gts/ directory and wrapped with createJsonEntity().
+  const firstClassSchemas = loadSchemas();
 
   for (const schema of firstClassSchemas) {
-    // gtsStore.register() accepts any GTS entity (schema or instance)
-    gtsStore.register(schema);
+    // createJsonEntity() wraps the raw JSON schema for gts-ts registration
+    gtsStore.register(createJsonEntity(schema));
   }
 
   return {
@@ -344,7 +326,7 @@ export function createGtsPlugin(): TypeSystemPlugin {
     // Schema registry - for vendor/dynamic schemas only
     // First-class schemas are already registered during construction
     registerSchema(schema: JSONSchema): void {
-      gtsStore.register(schema);
+      gtsStore.register(createJsonEntity(schema));
     },
 
     getSchema(typeId: string): JSONSchema | undefined {
@@ -467,7 +449,7 @@ The type system is organized into **8 core types** that define the contract mode
 
 #### Why This Structure
 
-MfeEntry is the single abstract base for entry contracts (eliminating previous parallel `MfeDefinition`/`MfeEntry` hierarchies). MfeEntryMF is a derived type referencing its MfManifest. Future loaders (ESM, Import Maps) add their own derived types.
+MfeEntry is the single abstract base for entry contracts. MfeEntryMF is a derived type referencing its MfManifest. Future loaders (ESM, Import Maps) add their own derived types.
 
 ### Decision 3: Internal TypeScript Type Definitions
 
@@ -694,6 +676,9 @@ interface ScreensetsRegistryConfig {
 
   /** Initial parent bridge (if loaded as MFE) */
   parentBridge?: ParentMfeBridge;
+
+  /** Optional runtime coordinator for MFE isolation (defaults to WeakMapRuntimeCoordinator) */
+  coordinator?: RuntimeCoordinator;
 }
 
 /**
@@ -713,7 +698,7 @@ function createScreensetsRegistry(
   // The GTS plugin already has all first-class citizen schemas built-in.
   // It is ready to use immediately after creation.
 
-  return new ScreensetsRegistry(typeSystem, options);
+  return new ScreensetsRegistry(config);
 }
 
 // Usage with GTS (default)
@@ -771,6 +756,14 @@ function microfrontends(): FrameworkPlugin {
 
 // App initialization example - screensets is CORE, not a plugin
 import { createHAI3, microfrontends } from '@hai3/framework';
+// Note: Domain instance ID constants are exported from @hai3/framework (L2),
+// not @hai3/screensets (L1), because they reference runtime configuration.
+import {
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_POPUP_DOMAIN,
+  HAI3_SCREEN_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
+} from '@hai3/framework';
 
 // Screensets is CORE - automatically initialized by createHAI3()
 const app = createHAI3()
@@ -881,11 +874,11 @@ function validateContract(
 
 ### Decision 9: Domain-Specific Extension Validation via Derived Types
 
-**Problem:** An `Extension` instance may need domain-specific fields beyond the base Extension contract. The previous design used a separate `uiMeta?: Record<string, unknown>` field validated against `extensionsUiMetaTypeId`, which required custom Ajv validation and created parallel entities.
+**Problem:** An `Extension` instance may need domain-specific fields beyond the base Extension contract (e.g., `title`, `icon`, `size` for a widget domain).
 
-**Solution:** Instead of embedding domain-specific fields in a separate `uiMeta` field, derive the Extension type itself to include domain-specific fields directly. Domains specify `extensionsTypeId` pointing to a derived Extension type that extensions must conform to.
+**Solution:** Domain-specific fields are defined directly in derived Extension schemas rather than in a separate wrapper field. Domains specify `extensionsTypeId` pointing to a derived Extension type that extensions must conform to. This provides simpler validation, native GTS support, and no parallel hierarchies.
 
-**Key Design Change:** `ExtensionDomain.extensionsTypeId` replaces the previous `extensionsUiMetaTypeId` + `Extension.uiMeta` pattern. Domain-specific fields are defined directly in derived Extension schemas. Benefits: simpler (one entity vs two), native GTS validation, no parallel hierarchies, no Ajv dependency.
+**Design:** `ExtensionDomain.extensionsTypeId` optionally references a derived Extension type. Domain-specific fields are defined directly in derived Extension schemas. Benefits: simpler (one entity vs two), native GTS validation, no parallel hierarchies, no Ajv dependency.
 
 **Validation Implementation:**
 

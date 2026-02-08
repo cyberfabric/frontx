@@ -16,7 +16,7 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ### Standalone Functions vs Class-Based Capabilities
 
-The Phase 8.4 correction establishes the rule: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state.
+Phase 8.4 establishes the rule: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state.
 
 **Pure validation helpers** are exempt from this rule. The following functions are legitimately standalone because they are stateless -- they take inputs, return results, and have no side effects or internal state:
 
@@ -25,7 +25,7 @@ The Phase 8.4 correction establishes the rule: "NEVER standalone functions, ALWA
 - `validateDomainLifecycleHooks(domain)` -- checks domain lifecycle hooks reference supported stages (in `mfe-lifecycle.md`)
 - `validateExtensionLifecycleHooks(extension, domain)` -- checks extension lifecycle hooks reference domain-supported stages (in `mfe-lifecycle.md`)
 
-These functions receive all dependencies as parameters and produce a `ValidationResult` or `ContractValidationResult`. Wrapping them in a class would add indirection without benefit since there is no state to encapsulate and no abstraction to invert.
+These functions receive all dependencies as parameters and produce a `ContractValidationResult`. Wrapping them in a class would add indirection without benefit since there is no state to encapsulate and no abstraction to invert.
 
 ### ScreensetsRegistry as Facade
 
@@ -56,7 +56,7 @@ See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-b
 **Class-Based ScreensetsRegistry**:
 
 ```typescript
-// packages/screensets/src/runtime/ScreensetsRegistry.ts
+// packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
 
 /**
  * State for a registered extension domain.
@@ -70,11 +70,18 @@ interface ExtensionDomainState {
   propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
 }
 
+/** Internal tracking state for a registered extension. */
+interface ExtensionState {
+  extension: Extension;
+  entry: MfeEntry;
+  bridge: ParentMfeBridge | null;
+}
+
 class ScreensetsRegistry {
   private readonly domains = new Map<string, ExtensionDomainState>();
   private readonly extensions = new Map<string, ExtensionState>();
   private readonly childBridges = new Map<string, ParentMfeBridge>();
-  private readonly actionHandlers = new Map<string, ActionHandler>();
+  private readonly mediator: ActionsChainsMediator;
   private readonly handlers: MfeHandler[] = [];
   private readonly coordinator: RuntimeCoordinator; // Dependency Inversion (abstract class)
   private parentBridge: ParentMfeBridge | null = null;
@@ -137,7 +144,8 @@ class ScreensetsRegistry {
         entry.optionalProperties?.includes(propertyTypeId);
 
       if (subscribes) {
-        (extensionState.bridge as ParentMfeBridgeInternal).receivePropertyUpdate(propertyTypeId, value);
+        // Internal: bridge's receivePropertyUpdate is a private method on the concrete implementation
+        (extensionState.bridge as any).receivePropertyUpdate(propertyTypeId, value);
       }
     }
   }
@@ -153,7 +161,7 @@ class ScreensetsRegistry {
     }
   }
 
-  mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
+  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     const extension = this.extensions.get(extensionId)?.extension;
     if (!extension) throw new Error(`Extension '${extensionId}' not registered`);
 
@@ -166,14 +174,14 @@ class ScreensetsRegistry {
     const domainState = this.domains.get(extension.domain);
     if (!domainState) throw new Error(`Domain '${extension.domain}' not registered`);
 
-    const entry = this.getEntry(extension.entry);
+    const entry = this.resolveEntry(extension.entry);
     const contractResult = validateContract(entry, domainState.domain);
     if (!contractResult.valid) throw new ContractValidationError(contractResult.errors, extension.entry, extension.domain);
 
     const typeResult = validateExtensionType(this.typeSystem, extension, domainState.domain);
     if (!typeResult.valid) throw new ExtensionTypeError(extension.id, domainState.domain.extensionsTypeId!);
 
-    const instanceId = generateInstanceId();
+    const instanceId = crypto.randomUUID();
     const bridge = this.createBridge(domainState, entry, instanceId);
 
     this.extensions.set(instanceId, { extension, entry, bridge });
@@ -183,7 +191,7 @@ class ScreensetsRegistry {
     return bridge;
   }
 
-  async executeActionsChain(chain: ActionsChain): Promise<ChainResult> {
+  async executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult> {
     const { target, type, payload } = chain.action;
 
     // For action payload validation, we register and validate the action itself
@@ -204,7 +212,7 @@ class ScreensetsRegistry {
         throw new Error(`Unknown target: ${target}`);
       }
 
-      if (chain.next) return this.executeActionsChain(chain.next);
+      if (chain.next) return this.executeActionsChain(chain.next, options);
       return { completed: true, path: [chain.action.type] };
     } catch (error) {
       return this.handleChainFailure(chain, error);
@@ -265,6 +273,18 @@ class ScreensetsRegistry {
     }
   }
 
+  /**
+   * Resolve an MfeEntry by its type ID from the registry's internal state.
+   * Looks up the extension whose `entry` field matches the given entryId
+   * and returns the corresponding MfeEntry object.
+   */
+  private resolveEntry(entryId: string): MfeEntry {
+    for (const state of this.extensions.values()) {
+      if (state.entry?.id === entryId) return state.entry;
+    }
+    throw new Error(`No entry found for '${entryId}'`);
+  }
+
   dispose(): void {
     this.parentBridge?.dispose();
     for (const bridge of this.childBridges.values()) bridge.dispose();
@@ -274,6 +294,21 @@ class ScreensetsRegistry {
   }
 }
 ```
+
+### Concurrency and Operation Serialization
+
+**Context**: Phase 19 introduces async `registerExtension()`, `unregisterExtension()`, `mountExtension()`, and `unmountExtension()` methods. Without serialization, concurrent calls on the same entity can produce undefined behavior.
+
+**Rule**: All async registration and lifecycle operations on ScreensetsRegistry are **serialized per entity ID**. Specifically:
+
+- **Per-extension serialization**: Concurrent calls to `registerExtension`, `unregisterExtension`, `loadExtension`, `mountExtension`, or `unmountExtension` for the same extension ID are queued and executed sequentially. A second call waits for the first to complete before starting.
+- **Per-domain serialization**: `registerDomain` is synchronous. Concurrent calls to `unregisterDomain` for the same domain ID are queued and executed sequentially.
+- **Cross-entity independence**: Operations on different entity IDs may execute concurrently (e.g., registering extension A while mounting extension B).
+- **Mount during register**: Calling `mountExtension(extId)` while `registerExtension(extId)` is in progress will queue behind the registration. The mount proceeds only after registration completes successfully. If registration fails, the queued mount receives the registration error.
+- **Duplicate concurrent registration**: Calling `registerExtension(extId)` twice concurrently for the same ID will serialize -- the second call will detect the already-registered state and either no-op or throw, depending on the idempotency policy.
+- **Domain unregister during extension registration**: Calling `unregisterDomain(domainId)` while `registerExtension(extId)` (which targets that domain) is in progress will not interfere -- the extension registration holds a reference to the domain state. However, the extension will be cascade-unregistered by the domain unregistration once it completes.
+
+**Implementation**: Use a per-entity-ID promise chain or mutex pattern. This avoids global locks while preventing race conditions on individual entities.
 
 ### Decision 15: Error Class Hierarchy
 
@@ -327,9 +362,8 @@ class ScreensetsRegistry {
     // Unmount if mounted, remove from registry and domain, emit event
   }
 
-  async registerDomain(domain: ExtensionDomain): Promise<void> {
+  registerDomain(domain: ExtensionDomain): void {
     // Validate, register, emit event
-    // Trigger 'init' lifecycle stage
   }
 
   async unregisterDomain(domainId: string): Promise<void> {
@@ -378,6 +412,20 @@ class ScreensetsRegistry {
 
   async triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void> {
     // Trigger custom lifecycle stage for the domain itself
+  }
+
+  // === Query Methods ===
+
+  getExtension(extensionId: string): Extension | undefined {
+    // Return the registered Extension by its ID, or undefined if not registered
+  }
+
+  getDomain(domainId: string): ExtensionDomain | undefined {
+    // Return the registered ExtensionDomain by its ID, or undefined if not registered
+  }
+
+  getExtensionsForDomain(domainId: string): Extension[] {
+    // Return all registered Extensions that belong to the given domain
   }
 
   // === Events ===

@@ -2,7 +2,12 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 17 COMPLETE
+**Current Status**: Phase 18 complete. Ready for Phase 19.
+- **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
+- **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
+- **Phase 18** (all tasks): ✓ Complete — `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
+- **Phase 19** (all tasks): Dynamic registration model not yet implemented
+- **Phase 20** (all tasks): Framework dynamic registration actions not yet implemented
 
 ---
 
@@ -38,7 +43,7 @@
 
 **Goal**: Implement the GTS plugin as the default Type System implementation using the REAL `@globaltypesystem/gts-ts` package.
 
-**Status**: COMPLETE (RE-IMPLEMENTED)
+**Status**: COMPLETE
 
 ### 2.1 Create GTS Plugin
 
@@ -53,8 +58,6 @@
 - [x] 2.1.9 Implement `getAttribute()` using `GtsStore.getAttribute()`
 - [x] 2.1.10 Import from `@globaltypesystem/gts-ts`: `isValidGtsID`, `parseGtsID`, `GtsStore`, `GtsQuery`, `createJsonEntity`
 - [x] 2.1.11 Register all first-class citizen schemas during construction (built-in approach)
-
-Note: `buildTypeId()` was intentionally omitted from the plugin interface because GTS type IDs are consumed (validated, parsed) but never programmatically generated at runtime. All type IDs are defined as string constants.
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation, spec line 21
 
@@ -78,8 +81,6 @@ Note: `buildTypeId()` was intentionally omitted from the plugin interface becaus
 - [x] 2.3.5 Test query operations
 - [x] 2.3.6 Test `checkCompatibility()` returns proper CompatibilityResult
 - [x] 2.3.7 Test `getAttribute()` resolves attributes correctly
-
-Note: `buildTypeId()` test was removed because the method was intentionally omitted from the interface. GTS type IDs are consumed but never programmatically generated.
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - GTS plugin as default implementation, GTS type ID validation
 
@@ -237,7 +238,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 6.1 Update ExtensionDomain Type
 
-- [x] 6.1.1 ExtensionDomain TypeScript interface uses `extensionsTypeId?: string` (replaces `extensionsUiMetaTypeId`)
+- [x] 6.1.1 ExtensionDomain TypeScript interface uses `extensionsTypeId?: string`
 - [x] 6.1.2 ExtensionDomain GTS schema uses `extensionsTypeId` as optional string with `x-gts-ref` to derived Extension types
 - [x] 6.1.3 `extensionsTypeId` is not in required fields (it is optional)
 - [x] 6.1.4 Extension TypeScript interface does NOT have `uiMeta` field (removed)
@@ -268,7 +269,7 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 6.4 Update Error Classes
 
-- [x] 6.4.1 Replace `UiMetaValidationError` with `ExtensionTypeError`
+- [x] 6.4.1 Implement `ExtensionTypeError` class
 - [x] 6.4.2 `ExtensionTypeError` includes extensionTypeId and requiredBaseTypeId
 - [x] 6.4.3 Remove any Ajv-related validation code from screensets package
 
@@ -284,12 +285,15 @@ Note: `buildTypeId()` test was removed because the method was intentionally omit
 
 ### 7.0 GTS JSON File Structure
 
-The GTS entities are organized into two packages with JSON file storage:
+GTS entities are organized across two packages:
+
+- **@hai3/screensets (L1)**: Schemas and core MFE system instances (lifecycle stages, base actions).
+- **@hai3/framework (L2)**: Layout domain instances (runtime configuration).
 
 **Directory Structure:**
 ```
 packages/screensets/src/mfe/gts/
-  hai3.mfes/                          # Core MFE GTS package (hardcoded in @hai3/screensets)
+  hai3.mfes/                          # Core MFE GTS package (hardcoded in @hai3/screensets, L1)
     schemas/
       mfe/
         entry.v1.json                # MfeEntry schema (gts.hai3.mfes.mfe.entry.v1~)
@@ -307,14 +311,16 @@ packages/screensets/src/mfe/gts/
         hook.v1.json                 # LifecycleHook schema (gts.hai3.mfes.lifecycle.hook.v1~)
     instances/
       lifecycle/
-        init.v1.json                 # init lifecycle stage instance
-        activated.v1.json            # activated lifecycle stage instance
-        deactivated.v1.json          # deactivated lifecycle stage instance
-        destroyed.v1.json            # destroyed lifecycle stage instance
+        init.v1.json                 # init lifecycle stage instance (core MFE system)
+        activated.v1.json            # activated lifecycle stage instance (core MFE system)
+        deactivated.v1.json          # deactivated lifecycle stage instance (core MFE system)
+        destroyed.v1.json            # destroyed lifecycle stage instance (core MFE system)
       comm/
-        load_ext.v1.json             # load_ext action instance
-        unload_ext.v1.json           # unload_ext action instance
-  hai3.screensets/                   # Screensets layout GTS package (added at framework level)
+        load_ext.v1.json             # load_ext action instance (core MFE system)
+        unload_ext.v1.json           # unload_ext action instance (core MFE system)
+
+packages/framework/src/plugins/microfrontends/gts/
+  hai3.screensets/                   # Screensets layout GTS package (runtime config, L2)
     instances/
       domains/
         sidebar.v1.json              # Sidebar domain instance
@@ -323,7 +329,7 @@ packages/screensets/src/mfe/gts/
         overlay.v1.json              # Overlay domain instance
 ```
 
-**Key Principle**: TypeScript interfaces provide compile-time safety, JSON files provide runtime validation via GTS.
+**Key Principle**: TypeScript interfaces = compile-time safety; JSON files = runtime validation via GTS.
 
 ### 7.1 Core MFE Schemas (`hai3.mfes` package)
 
@@ -388,38 +394,27 @@ packages/screensets/src/mfe/gts/
 
 ### 7.4 Layout Domain Instances (`hai3.screensets` package)
 
-**Location**: `packages/screensets/src/mfe/gts/hai3.screensets/instances/domains/`
+**Location**: `packages/framework/src/plugins/microfrontends/gts/hai3.screensets/instances/domains/`
 
-- [x] 7.4.1 Create `sidebar.v1.json` - Sidebar domain instance
-  ```json
-  {
-    "id": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1",
-    "sharedProperties": [],
-    "actions": [
-      "gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1",
-      "gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1"
-    ],
-    "extensionsActions": [],
-    "defaultActionTimeout": 5000,
-    "lifecycleStages": [...],
-    "extensionsLifecycleStages": [...]
-  }
-  ```
-- [x] 7.4.2 Create `popup.v1.json` - Popup domain instance (supports load_ext and unload_ext)
-- [x] 7.4.3 Create `screen.v1.json` - Screen domain instance (supports ONLY load_ext, no unload_ext)
-- [x] 7.4.4 Create `overlay.v1.json` - Overlay domain instance (supports load_ext and unload_ext)
+Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/domains/` to `packages/framework/src/plugins/microfrontends/gts/hai3.screensets/instances/domains/` and delete the original.
+
+- [x] 7.4.1 `sidebar.v1.json` - Sidebar domain instance (supports load_ext and unload_ext)
+- [x] 7.4.2 `popup.v1.json` - Popup domain instance (supports load_ext and unload_ext)
+- [x] 7.4.3 `screen.v1.json` - Screen domain instance (supports ONLY load_ext, no unload_ext)
+- [x] 7.4.4 `overlay.v1.json` - Overlay domain instance (supports load_ext and unload_ext)
 
 **Traceability**: Requirement "Hierarchical Extension Domains" - Base layout domains as GTS instances
 
 ### 7.5 GTS JSON Loader Utilities
 
-**Location**: `packages/screensets/src/mfe/gts/loader.ts`
+**Location (L1 loaders)**: `packages/screensets/src/mfe/gts/loader.ts`
+**Location (L2 loaders)**: `packages/framework/src/plugins/microfrontends/gts/loader.ts`
 
 - [x] 7.5.1 Create `loadSchemas()` function to load all core schemas from JSON files
 - [x] 7.5.2 Create `loadLifecycleStages()` function to load default lifecycle stage instances
 - [x] 7.5.3 Create `loadBaseActions()` function to load base action instances
 - [x] 7.5.4 Update GTS plugin initialization to use JSON loaders instead of hardcoded objects
-- [x] 7.5.5 Export loader utilities from `@hai3/screensets`
+- [x] 7.5.5 Move `loadLayoutDomains()` to `packages/framework/src/plugins/microfrontends/gts/loader.ts`. Remove it and its domain JSON imports from `packages/screensets/src/mfe/gts/loader.ts` and `@hai3/screensets` exports.
 
 **Traceability**: Requirement "GTS Entity Storage Format" - Loading JSON schemas
 
@@ -427,11 +422,11 @@ packages/screensets/src/mfe/gts/
 
 **Location**: `packages/framework/src/plugins/microfrontends/base-domains.ts`
 
-- [x] 7.6.1 Update `createSidebarDomain()` to load from `hai3.screensets/instances/domains/sidebar.v1.json`
-- [x] 7.6.2 Update `createPopupDomain()` to load from `hai3.screensets/instances/domains/popup.v1.json`
-- [x] 7.6.3 Update `createScreenDomain()` to load from `hai3.screensets/instances/domains/screen.v1.json`
-- [x] 7.6.4 Update `createOverlayDomain()` to load from `hai3.screensets/instances/domains/overlay.v1.json`
-- [x] 7.6.5 Remove hardcoded TypeScript domain objects (current implementation is WRONG)
+- [x] 7.6.1 Update `createSidebarDomain()` to load from framework-local `./gts/hai3.screensets/instances/domains/sidebar.v1.json`
+- [x] 7.6.2 Update `createPopupDomain()` to load from framework-local `./gts/hai3.screensets/instances/domains/popup.v1.json`
+- [x] 7.6.3 Update `createScreenDomain()` to load from framework-local `./gts/hai3.screensets/instances/domains/screen.v1.json`
+- [x] 7.6.4 Update `createOverlayDomain()` to load from framework-local `./gts/hai3.screensets/instances/domains/overlay.v1.json`
+- [x] 7.6.5 Remove hardcoded TypeScript domain objects (replaced by JSON files)
 - [x] 7.6.6 Document that domains are registered via `runtime.registerDomain()` at runtime, NOT at plugin init
 
 **Traceability**: Requirement "Framework Plugin Propagation" - Base domains loaded from JSON files
@@ -502,33 +497,16 @@ packages/screensets/src/mfe/gts/
 
 ### 8.4 WeakMap-Based Runtime Coordination
 
-> **CORRECTION (Phase 8.4 rewritten twice):**
->
-> **First correction** identified that a standalone `coordination/index.ts` module with exported
-> functions violated the spec's encapsulation requirements (spec lines 771-831). However, the
-> replacement used standalone non-exported functions at module scope, which violates HAI3's
-> strict SOLID-compliant OOP requirement: NEVER standalone functions, ALWAYS abstract class
-> (exportable abstraction) + concrete class (encapsulated state).
->
-> **Second correction (current)** follows the same pattern used by `MfeHandler`/`MfeHandlerMF`
-> and `MfeBridgeFactory` throughout the codebase:
-> - `RuntimeCoordinator` abstract class defines the coordination contract
-> - `WeakMapRuntimeCoordinator` concrete class encapsulates the private `WeakMap`
-> - `ScreensetsRegistry` holds `private readonly coordinator: RuntimeCoordinator` (Dependency Inversion)
-> - The abstract class `RuntimeCoordinator` is exported from `@hai3/screensets` (it is the abstraction)
-> - The concrete `WeakMapRuntimeCoordinator` is internal (not exported from package)
-> - MFE code never sees the coordinator -- only `ChildMfeBridge` is exposed to MFEs
-
-- [x] 8.4.1 Replace `packages/screensets/src/mfe/coordination/index.ts` with barrel export for new abstract class pattern (standalone module was incorrect per spec)
-- [x] 8.4.2 Define `RuntimeCoordinator` abstract class in `packages/screensets/src/mfe/coordination/types.ts` with abstract methods: `register(container: Element, connection: RuntimeConnection): void`, `get(container: Element): RuntimeConnection | undefined`, `unregister(container: Element): void`
-- [x] 8.4.3 Define `RuntimeConnection` interface in `packages/screensets/src/mfe/coordination/types.ts` with `hostRuntime` and `bridges: Map<string, ParentMfeBridge>`
-- [x] 8.4.4 Implement `WeakMapRuntimeCoordinator` concrete class extending `RuntimeCoordinator` in `packages/screensets/src/mfe/coordination/weak-map-runtime-coordinator.ts` with `private readonly connections = new WeakMap<Element, RuntimeConnection>()`
-- [x] 8.4.5 Add `private readonly coordinator: RuntimeCoordinator` field to `ScreensetsRegistry` -- injected via config or defaulting to `new WeakMapRuntimeCoordinator()` (Dependency Inversion Principle)
-- [x] 8.4.6 Export abstract class `RuntimeCoordinator` and `RuntimeConnection` interface from `@hai3/screensets` (they are the abstractions; concrete class is NOT exported)
+- [x] 8.4.1 Replace `packages/screensets/src/mfe/coordination/index.ts` with barrel export for abstract class pattern
+- [x] 8.4.2 Define `RuntimeCoordinator` abstract class in `packages/screensets/src/mfe/coordination/types.ts` with abstract methods: `register`, `get`, `unregister`
+- [x] 8.4.3 Define `RuntimeConnection` interface in `packages/screensets/src/mfe/coordination/types.ts` with `parentRuntime` and `bridges: Map<string, ParentMfeBridge>`
+- [x] 8.4.4 Implement `WeakMapRuntimeCoordinator` concrete class extending `RuntimeCoordinator` in `packages/screensets/src/mfe/coordination/weak-map-runtime-coordinator.ts`
+- [x] 8.4.5 Add `private readonly coordinator: RuntimeCoordinator` field to `ScreensetsRegistry`, injected via config or defaulting to `new WeakMapRuntimeCoordinator()`
+- [x] 8.4.6 Export `RuntimeCoordinator` abstract class and `RuntimeConnection` interface from `@hai3/screensets`
 - [x] 8.4.7 Tests: verify `WeakMapRuntimeCoordinator` directly (register/get/unregister) and verify no window global pollution
-- [x] 8.4.8 Tests: verify coordination through `ScreensetsRegistry` API during mount/unmount (Phase 19.3 exercises the coordinator via `mountExtension`/`unmountExtension`)
+- [x] 8.4.8 Tests: verify coordination through `ScreensetsRegistry` API during mount/unmount
 
-**Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination (spec lines 771-831: PRIVATE, NOT exposed to MFE code, internally called by ScreensetsRegistry). Follows HAI3 OOP pattern: abstract class `RuntimeCoordinator` (exportable contract) + concrete `WeakMapRuntimeCoordinator` (private state), same as `MfeHandler`/`MfeHandlerMF` in `packages/screensets/src/mfe/handler/types.ts`
+**Traceability**: Requirement "Internal Runtime Coordination" - WeakMap-based coordination, private to ScreensetsRegistry
 
 ---
 
@@ -623,10 +601,6 @@ packages/screensets/src/mfe/gts/
 
 ### 11.1 MFE Handler and Bridge Factory
 
-> **Note**: Phase 11.1 completed the handler to match the full design in `mfe-loading.md` Decision 10,
-> where the constructor takes `(typeSystem, handledBaseTypeId, priority)`. Generic constraints updated
-> to `TBridge extends ChildMfeBridge = ChildMfeBridge` per design spec.
-
 - [x] 11.1.1 Implement `MfeBridgeFactory` abstract class in `packages/screensets/src/mfe/handler/types.ts`
 - [x] 11.1.2 Implement `MfeBridgeFactoryDefault` class that creates thin bridges (`mf-handler.ts`)
 - [x] 11.1.3 Implement `MfeHandler` abstract class with `canHandle()`, `bridgeFactory`, `handledBaseTypeId`
@@ -719,7 +693,7 @@ packages/screensets/src/mfe/gts/
 - [x] 13.2.2 Implement `loadExtension(extensionId)` action - emits `'mfe/loadRequested'` event
 - [x] 13.2.3 Implement `preloadExtension(extensionId)` action - emits `'mfe/preloadRequested'` event
 - [x] 13.2.4 Implement `mountExtension(extensionId)` action - emits `'mfe/mountRequested'` event
-- [x] 13.2.5 Implement `handleMfeHostAction(extensionId, actionTypeId, payload)` action
+- [x] 13.2.5 Implement `handleMfeChildAction(extensionId, actionTypeId, payload)` action
 - [x] 13.2.6 Export actions as `mfeActions` from plugin
 
 **Traceability**: Requirement "MFE Actions" - Load, preload, mount, and host action
@@ -987,13 +961,15 @@ packages/screensets/src/mfe/gts/
 
 **Goal**: Implement GTS type ID utilities and HAI3 constants.
 
+**Status**: COMPLETE ✓
+
 ### 18.1 GTS Utilities
 
-- [ ] 18.1.1 Create `packages/screensets/src/mfe/gts/index.ts`
-- [ ] 18.1.2 Define `GtsTypeId` branded type
-- [ ] 18.1.3 Implement `parseGtsId(typeId)` function
-- [ ] 18.1.4 Implement `conformsTo(derivedTypeId, baseTypeId)` function
-- [ ] 18.1.5 Export utilities from `@hai3/screensets`
+- [x] 18.1.1 Create `packages/screensets/src/mfe/gts/index.ts`
+- [x] 18.1.2 Remove `GtsTypeId` branded type and `ParsedGtsId` interface from `packages/screensets/src/mfe/gts/index.ts` (duplicates `gts-ts` runtime validation via `isValidGtsID()` / `validateGtsID()` and `parseGtsID()` return type)
+- [x] 18.1.3 Remove `parseGtsId()` custom implementation and its exports (duplicates `gts-ts` `parseGtsID()`)
+- [x] 18.1.4 Remove `conformsTo()` custom implementation and its exports (duplicates `TypeSystemPlugin.isTypeOf()`)
+- [x] 18.1.5 Remove `GtsTypeId` and `ParsedGtsId` exports entirely (all GTS type IDs are plain strings; runtime validation via `gts-ts`)
 
 **Traceability**: Requirement "GTS Type ID Utilities"
 
@@ -1001,12 +977,12 @@ packages/screensets/src/mfe/gts/
 
 > **Note**: These are ADDITIONAL convenience constants (action instance IDs, domain instance IDs, etc.) beyond the type ID reference constants (`HAI3_CORE_TYPE_IDS`, `HAI3_MF_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`) already defined in Phase 3.3.
 
-- [ ] 18.2.1 Create `packages/screensets/src/mfe/constants/index.ts`
-- [ ] 18.2.2 Define `HAI3_MFE_ENTRY`, `HAI3_MFE_ENTRY_MF`, `HAI3_MF_MANIFEST` constants
-- [ ] 18.2.3 Define `HAI3_EXT_DOMAIN`, `HAI3_EXT_EXTENSION`, `HAI3_EXT_ACTION` constants
-- [ ] 18.2.4 Define `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT` constants (DRY principle - generic actions for all domains)
-- [ ] 18.2.5 Define `HAI3_POPUP_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_SCREEN_DOMAIN`, `HAI3_OVERLAY_DOMAIN` constants
-- [ ] 18.2.6 Export constants from `@hai3/screensets`
+- [x] 18.2.1 Create `packages/screensets/src/mfe/constants/index.ts`
+- [x] 18.2.2 Define `HAI3_MFE_ENTRY`, `HAI3_MFE_ENTRY_MF`, `HAI3_MF_MANIFEST` constants (schema IDs)
+- [x] 18.2.3 Define `HAI3_EXT_DOMAIN`, `HAI3_EXT_EXTENSION`, `HAI3_EXT_ACTION` constants (schema IDs)
+- [x] 18.2.4 Define `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT` constants (core action instance IDs)
+- [x] 18.2.5 Move `HAI3_POPUP_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_SCREEN_DOMAIN`, `HAI3_OVERLAY_DOMAIN` constants to `@hai3/framework` (`packages/framework/src/plugins/microfrontends/constants.ts`). Remove from `@hai3/screensets`.
+- [x] 18.2.6 Update exports: remove domain instance constants from `@hai3/screensets` barrel exports, add them to `@hai3/framework` barrel exports
 
 **Traceability**: Requirements "HAI3 Action Constants", "HAI3 Type Constants"
 
@@ -1014,10 +990,10 @@ packages/screensets/src/mfe/gts/
 
 **Test file**: `packages/screensets/__tests__/mfe/gts/utilities.test.ts`
 
-- [ ] 18.3.1 Test GtsTypeId branded type
-- [ ] 18.3.2 Test parseGtsId with various type IDs
-- [ ] 18.3.3 Test conformsTo with derived and base types
-- [ ] 18.3.4 Test HAI3 constants values
+- [x] 18.3.1 Remove GtsTypeId branded type tests and ParsedGtsId tests (types removed)
+- [x] 18.3.2 Remove parseGtsId tests
+- [x] 18.3.3 Remove conformsTo tests
+- [x] 18.3.4 Test HAI3 constants values
 
 **Traceability**: Requirements "GTS Type ID Utilities", "HAI3 Action Constants", "HAI3 Type Constants"
 
@@ -1029,19 +1005,38 @@ packages/screensets/src/mfe/gts/
 
 ### 19.1 ScreensetsRegistry Dynamic API
 
+> **Concurrency note**: All async operations are serialized per entity ID to prevent race conditions. See [Concurrency and Operation Serialization](./design/registry-runtime.md#concurrency-and-operation-serialization) in `design/registry-runtime.md`.
+
 - [ ] 19.1.1 Implement `registerExtension(extension): Promise<void>` method
 - [ ] 19.1.2 Implement extension validation against GTS schema
 - [ ] 19.1.3 Implement domain existence check (must be registered first)
 - [ ] 19.1.4 Implement contract validation (entry vs domain)
 - [ ] 19.1.5 Implement `unregisterExtension(extensionId): Promise<void>` method
 - [ ] 19.1.6 Implement auto-unmount if MFE is currently mounted
-- [ ] 19.1.7 Implement `registerDomain(domain): Promise<void>` method
+- [ ] 19.1.7 Implement `registerDomain(domain): void` method (synchronous)
 - [ ] 19.1.8 Implement `unregisterDomain(domainId): Promise<void>` method
 - [ ] 19.1.9 Implement cascade unregister of extensions in domain
 
 Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshExtensionsFromBackend`, or `fetchInstance` methods. Entity fetching is outside MFE system scope.
 
 **Traceability**: Requirement "Dynamic Registration Model" - all scenarios
+
+### 19.1b ScreensetsRegistry Query Methods
+
+- [ ] 19.1b.1 Implement `getExtension(extensionId): Extension | undefined` method on ScreensetsRegistry -- returns the registered extension or undefined
+- [ ] 19.1b.2 Implement `getDomain(domainId): ExtensionDomain | undefined` method on ScreensetsRegistry -- returns the registered domain or undefined
+- [ ] 19.1b.3 Implement `getExtensionsForDomain(domainId): Extension[]` method on ScreensetsRegistry -- returns all extensions registered for the given domain
+
+**Test file**: `packages/screensets/__tests__/mfe/runtime/query-methods.test.ts`
+
+- [ ] 19.1b.4 Test `getExtension` returns registered extension
+- [ ] 19.1b.5 Test `getExtension` returns undefined for unregistered extension
+- [ ] 19.1b.6 Test `getDomain` returns registered domain
+- [ ] 19.1b.7 Test `getDomain` returns undefined for unregistered domain
+- [ ] 19.1b.8 Test `getExtensionsForDomain` returns all extensions for a domain
+- [ ] 19.1b.9 Test `getExtensionsForDomain` returns empty array for domain with no extensions
+
+**Traceability**: Requirement "ScreensetsRegistry Query Methods" - getExtension, getDomain, getExtensionsForDomain
 
 ### 19.2 Extension Loading API
 
@@ -1058,6 +1053,8 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 **Traceability**: Requirement "ScreensetsRegistry Dynamic API" - loadExtension/preloadExtension scenarios
 
 ### 19.3 Extension Mounting API
+
+> **Note**: Phase 13.6 (Navigation Integration) created skeleton implementations with Phase 19 dependency. When completing Phase 19.3, also complete the Phase 13.6 navigation skeletons (tasks 13.6.1-13.6.3) by wiring them to the real `mountExtension`/`unmountExtension` methods implemented here.
 
 - [ ] 19.3.1 Implement `mountExtension(extensionId, container): Promise<ParentMfeBridge>` method
 - [ ] 19.3.2 If extension not loaded, call loadExtension first (auto-load)
@@ -1110,10 +1107,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 ### 19.6 Lifecycle Stage Triggering Implementation
 
-> **Context**: `registry-runtime.md` defines `triggerLifecycleStage()`, `triggerDomainLifecycleStage()`, and
-> `triggerDomainOwnLifecycleStage()` methods on ScreensetsRegistry. These methods are called internally
-> during registration/unregistration/mounting/unmounting (default stages) and can be called externally
-> for custom stages. See [mfe-lifecycle.md](./design/mfe-lifecycle.md) for the triggering sequences.
+> See [mfe-lifecycle.md](./design/mfe-lifecycle.md) for triggering sequences and [registry-runtime.md](./design/registry-runtime.md) for the ScreensetsRegistry lifecycle API.
 
 - [ ] 19.6.1 Implement `triggerLifecycleStage(extensionId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on a specific extension
 - [ ] 19.6.2 Implement `triggerDomainLifecycleStage(domainId, stageId)` on ScreensetsRegistry -- triggers all lifecycle hooks for the given stage on all extensions in a domain

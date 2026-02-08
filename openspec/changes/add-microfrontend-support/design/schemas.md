@@ -383,7 +383,7 @@ GTS entities (schemas, instances, domains, extensions, etc.) are natively repres
 | Package | Purpose | Location | Loaded By |
 |---------|---------|----------|-----------|
 | `hai3.mfes` | Core MFE infrastructure schemas and base instances | `packages/screensets/src/mfe/gts/hai3.mfes/` | GTS plugin (hardcoded in @hai3/screensets) |
-| `hai3.screensets` | Layout-specific domain instances | `packages/screensets/src/mfe/gts/hai3.screensets/` | Framework level (added at runtime) |
+| `hai3.screensets` | Layout-specific domain instances | `packages/framework/src/plugins/microfrontends/gts/hai3.screensets/` | Framework level (added at runtime) |
 
 **Complete Directory Structure**:
 ```
@@ -413,7 +413,8 @@ packages/screensets/src/mfe/gts/
       comm/
         load_ext.v1.json             # gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
         unload_ext.v1.json           # gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1
-  hai3.screensets/                   # Screensets layout GTS package
+packages/framework/src/plugins/microfrontends/gts/
+  hai3.screensets/                   # Screensets layout GTS package (L2 - runtime config)
     instances/
       domains/
         sidebar.v1.json              # gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1
@@ -423,21 +424,21 @@ packages/screensets/src/mfe/gts/
 ```
 
 **What Goes Where**:
-- `hai3.mfes/schemas/` - All 10 type schemas organized by namespace (mfe, ext, comm, lifecycle)
-- `hai3.mfes/instances/lifecycle/` - The 4 default lifecycle stage instances
-- `hai3.mfes/instances/comm/` - Base action type instances (load_ext, unload_ext)
-- `hai3.screensets/instances/domains/` - Layout domain instances (sidebar, popup, screen, overlay)
+- `@hai3/screensets`: `hai3.mfes/schemas/` - All 10 type schemas organized by namespace (mfe, ext, comm, lifecycle)
+- `@hai3/screensets`: `hai3.mfes/instances/lifecycle/` - The 4 default lifecycle stage instances (core MFE system)
+- `@hai3/screensets`: `hai3.mfes/instances/comm/` - Base action type instances (load_ext, unload_ext) (core MFE system)
+- `@hai3/framework`: `hai3.screensets/instances/domains/` - Layout domain instances (sidebar, popup, screen, overlay) (runtime config)
 
 **Loading JSON Schemas**:
 ```typescript
 // Import JSON schema file
-import entrySchema from './gts/schemas/entry.v1.json';
+import entrySchema from './gts/hai3.mfes/schemas/mfe/entry.v1.json';
 
 // Register with plugin
 plugin.registerSchema(entrySchema);
 
 // Or load dynamically
-const schema = await fetch('/gts/schemas/entry.v1.json').then(r => r.json());
+const schema = await fetch('/gts/hai3.mfes/schemas/mfe/entry.v1.json').then(r => r.json());
 plugin.registerSchema(schema);
 ```
 
@@ -470,7 +471,7 @@ interface MfeEntry {
 - First-class citizen schemas - MUST be in JSON files under `hai3.mfes/schemas/`
 - Default lifecycle stages - MUST be in JSON files under `hai3.mfes/instances/lifecycle/`
 - Base action types - MUST be in JSON files under `hai3.mfes/instances/comm/`
-- Layout domain instances - MUST be in JSON files under `hai3.screensets/instances/domains/`
+- Layout domain instances - MUST be in JSON files under `hai3.screensets/instances/domains/` in `@hai3/framework` (L2, runtime config)
 - Any entity that will be registered with the GTS plugin at runtime
 
 ---

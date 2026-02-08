@@ -2,13 +2,13 @@
  * GTS JSON Loaders
  *
  * Utilities for loading GTS entities from JSON files.
- * These functions load schemas and instances from the hai3.mfe and hai3.screensets packages.
+ * These functions load schemas and instances from the hai3.mfes package.
  *
  * @packageDocumentation
  */
 
 import type { JSONSchema } from '../plugins/types';
-import type { LifecycleStage, Action, ExtensionDomain } from '../types';
+import type { LifecycleStage, Action } from '../types';
 
 // Import all schema JSON files
 import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
@@ -31,12 +31,6 @@ import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroye
 // Import action instances
 import loadExtActionInstance from './hai3.mfes/instances/comm/load_ext.v1.json';
 import unloadExtActionInstance from './hai3.mfes/instances/comm/unload_ext.v1.json';
-
-// Import layout domain instances
-import sidebarDomainInstance from './hai3.screensets/instances/domains/sidebar.v1.json';
-import popupDomainInstance from './hai3.screensets/instances/domains/popup.v1.json';
-import screenDomainInstance from './hai3.screensets/instances/domains/screen.v1.json';
-import overlayDomainInstance from './hai3.screensets/instances/domains/overlay.v1.json';
 
 /**
  * Load all core MFE schema JSON files.
@@ -84,14 +78,4 @@ export function loadLifecycleStages(): LifecycleStage[] {
  */
 export function loadBaseActions(): Action[] {
   return [loadExtActionInstance, unloadExtActionInstance] as Action[];
-}
-
-/**
- * Load layout domain instances from hai3.screensets package.
- * These are the 4 base layout domains: sidebar, popup, screen, overlay.
- *
- * @returns Array of layout domain instances
- */
-export function loadLayoutDomains(): ExtensionDomain[] {
-  return [sidebarDomainInstance, popupDomainInstance, screenDomainInstance, overlayDomainInstance] as ExtensionDomain[];
 }

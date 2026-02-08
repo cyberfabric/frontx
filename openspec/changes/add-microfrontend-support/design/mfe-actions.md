@@ -102,10 +102,10 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 +-----------+---------------+
             |
             v
-+-----------+---------------+
-|   Validate target         |
-|   (typeSystem.isValidId)  |
-+-----------+---------------+
++-----------+---------------------+
+|   Validate target               |
+|   (typeSystem.isValidTypeId)    |
++-----------+---------------------+
             |
             v
 +-----------+---------------+
@@ -120,10 +120,10 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 +-----------+---------------+
             |
             v
-+-----------+---------------+
-|   Validate payload        |
-|   (typeSystem.validate)   |
-+-----------+---------------+
++-----------+-------------------------+
+|   Validate payload                  |
+|   (typeSystem.validateInstance)     |
++-----------+-------------------------+
             |
             v
 +-----------+---------------+

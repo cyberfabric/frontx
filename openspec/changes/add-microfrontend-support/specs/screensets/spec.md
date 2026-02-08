@@ -507,26 +507,29 @@ The Type System plugin SHALL propagate from @hai3/screensets through @hai3/frame
 
 The system SHALL provide utilities for working with GTS type IDs, used by both screensets and framework layers.
 
-#### Scenario: GtsTypeId branded type
+#### Scenario: Type IDs as plain strings
 
-- **WHEN** importing `@hai3/screensets`
-- **THEN** the package SHALL export a `GtsTypeId` branded string type
-- **AND** functions accepting type IDs SHALL use this type for type safety
-- **AND** literal strings SHALL require explicit casting (`as GtsTypeId`)
+- **WHEN** working with GTS type IDs
+- **THEN** all type IDs SHALL be plain `string` values (no branded types)
+- **AND** the package SHALL NOT export a `GtsTypeId` branded type or `ParsedGtsId` interface
+- **AND** runtime validation SHALL use `gts-ts` functions (`isValidGtsID()`, `validateGtsID()`) via the TypeSystemPlugin
+- **AND** type ID parsing SHALL use `plugin.parseTypeId()` (which delegates to `gts-ts` `parseGtsID()`)
 
-#### Scenario: parseGtsId utility
+#### Scenario: Type ID parsing via plugin
 
-- **WHEN** calling `parseGtsId(typeId)`
-- **THEN** the function SHALL parse the GTS type ID into components
-- **AND** the result SHALL include vendor, package, namespace, type, and version
-- **AND** for derived types, the result SHALL include the base type components
+- **WHEN** metadata about a type ID is needed
+- **THEN** the system SHALL call `plugin.parseTypeId(id)` on the TypeSystemPlugin
+- **AND** the returned object structure SHALL be plugin-specific
+- **AND** for GTS plugin, the object SHALL contain vendor, package, namespace, type, version fields
+- **AND** there SHALL be NO standalone `parseGtsId()` utility function (use `plugin.parseTypeId()` instead)
 
-#### Scenario: conformsTo utility
+#### Scenario: Type hierarchy checking via plugin
 
-- **WHEN** calling `conformsTo(derivedTypeId, baseTypeId)`
-- **THEN** the function SHALL return `true` if the derived type conforms to the base type
-- **AND** `conformsTo('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `true`
-- **AND** `conformsTo('gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `false`
+- **WHEN** checking if a type conforms to a base type
+- **THEN** the system SHALL call `plugin.isTypeOf(derivedTypeId, baseTypeId)` on the TypeSystemPlugin
+- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `true`
+- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `false`
+- **AND** there SHALL be NO standalone `conformsTo()` utility function (use `plugin.isTypeOf()` instead)
 
 ### Requirement: MFE Bridge Interface
 
@@ -1036,7 +1039,7 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 #### Scenario: ScreensetsRegistry registerDomain method
 
 - **WHEN** calling `runtime.registerDomain(domain)`
-- **THEN** the method SHALL return `Promise<void>`
+- **THEN** the method SHALL return `void` (synchronous)
 - **AND** the domain SHALL be validated against GTS schema
 - **AND** the domain SHALL be added to registry
 - **AND** `domainRegistered` event SHALL be emitted

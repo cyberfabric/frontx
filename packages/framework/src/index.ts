@@ -52,6 +52,10 @@ export {
   MfeErrorBoundary,
   MfeLoadingIndicator,
   ShadowDomContainer,
+  HAI3_POPUP_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_SCREEN_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
 } from './plugins';
 
 // MFE Plugin Types

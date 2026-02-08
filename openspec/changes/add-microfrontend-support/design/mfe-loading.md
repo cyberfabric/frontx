@@ -128,6 +128,8 @@ abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfeBridge>
 
 /**
  * Default bridge factory - creates minimal ChildMfeBridge instances.
+ * ChildMfeBridgeImpl is the internal concrete class implementing ChildMfeBridge
+ * (defined in packages/screensets/src/mfe/bridge/impl.ts).
  */
 class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridge> {
   create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridge {

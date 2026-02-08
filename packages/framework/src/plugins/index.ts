@@ -44,4 +44,9 @@ export {
   type MfeErrorBoundaryConfig,
   type MfeLoadingIndicatorConfig,
   type ShadowDomContainerConfig,
+  // HAI3 layout domain constants
+  HAI3_POPUP_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_SCREEN_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
 } from './microfrontends';

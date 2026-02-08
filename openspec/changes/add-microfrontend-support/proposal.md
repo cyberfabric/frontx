@@ -105,7 +105,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 |---------------------|--------|---------|
 | `MfeBridgeFactory<TBridge>` | `create(domainId, entryTypeId, instanceId)` | Abstract factory for creating bridge instances |
 | `MfeHandler<TEntry, TBridge>` | `bridgeFactory, canHandle(entryTypeId), load(entry), preload?(entry), priority?` | Abstract handler class for different entry types |
-| `LoadedMfeInternal` | `lifecycle, entry, unload()` | Result of loading an MFE bundle (`@internal`) |
+| `LoadedMfeInternal` | `lifecycle, entry, manifest, unload()` | Result of loading an MFE bundle (`@internal`, conceptual -- not a runtime class) |
 
 ### Intentionally Omitted Methods
 

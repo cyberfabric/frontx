@@ -104,8 +104,20 @@ export { MfeHandlerMF, MfeBridgeFactoryDefault, ChildMfeBridgeImpl } from './mfe
 // HAI3 Type ID Constants
 export { HAI3_CORE_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS, HAI3_MF_TYPE_IDS } from './mfe';
 
+// HAI3 Convenience Constants
+export {
+  HAI3_MFE_ENTRY,
+  HAI3_MFE_ENTRY_MF,
+  HAI3_MF_MANIFEST,
+  HAI3_EXT_DOMAIN,
+  HAI3_EXT_EXTENSION,
+  HAI3_EXT_ACTION,
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_UNLOAD_EXT,
+} from './mfe';
+
 // GTS JSON Loaders (preferred method for loading schemas and instances)
-export { loadSchemas, loadLifecycleStages, loadBaseActions, loadLayoutDomains } from './mfe';
+export { loadSchemas, loadLifecycleStages, loadBaseActions } from './mfe';
 
 // MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)
 export { ScreensetsRegistry, createScreensetsRegistry } from './mfe';

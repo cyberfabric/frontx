@@ -208,22 +208,21 @@ When registering extensions or domains, the ScreensetsRegistry validates that al
 /**
  * Validate that a domain's lifecycle hooks reference only supported stages.
  */
-function validateDomainLifecycleHooks(domain: ExtensionDomain): ValidationResult {
-  if (!domain.lifecycle) return { valid: true };
+function validateDomainLifecycleHooks(domain: ExtensionDomain): ContractValidationResult {
+  if (!domain.lifecycle) return { valid: true, errors: [] };
 
-  const errors: string[] = [];
+  const errors: ContractError[] = [];
   for (const hook of domain.lifecycle) {
     if (!domain.lifecycleStages.includes(hook.stage)) {
-      errors.push(
-        `Domain '${domain.id}' has lifecycle hook for unsupported stage '${hook.stage}'. ` +
-        `Supported stages: ${domain.lifecycleStages.join(', ')}`
-      );
+      errors.push({
+        type: 'unsupported_action',
+        details: `Domain '${domain.id}' has lifecycle hook for unsupported stage '${hook.stage}'. ` +
+          `Supported stages: ${domain.lifecycleStages.join(', ')}`,
+      });
     }
   }
 
-  return errors.length > 0
-    ? { valid: false, errors }
-    : { valid: true };
+  return { valid: errors.length === 0, errors };
 }
 
 /**
@@ -233,23 +232,22 @@ function validateDomainLifecycleHooks(domain: ExtensionDomain): ValidationResult
 function validateExtensionLifecycleHooks(
   extension: Extension,
   domain: ExtensionDomain
-): ValidationResult {
-  if (!extension.lifecycle) return { valid: true };
+): ContractValidationResult {
+  if (!extension.lifecycle) return { valid: true, errors: [] };
 
-  const errors: string[] = [];
+  const errors: ContractError[] = [];
   for (const hook of extension.lifecycle) {
     if (!domain.extensionsLifecycleStages.includes(hook.stage)) {
-      errors.push(
-        `Extension '${extension.id}' has lifecycle hook for stage '${hook.stage}' ` +
-        `which is not supported by domain '${domain.id}'. ` +
-        `Supported stages: ${domain.extensionsLifecycleStages.join(', ')}`
-      );
+      errors.push({
+        type: 'unsupported_action',
+        details: `Extension '${extension.id}' has lifecycle hook for stage '${hook.stage}' ` +
+          `which is not supported by domain '${domain.id}'. ` +
+          `Supported stages: ${domain.extensionsLifecycleStages.join(', ')}`,
+      });
     }
   }
 
-  return errors.length > 0
-    ? { valid: false, errors }
-    : { valid: true };
+  return { valid: errors.length === 0, errors };
 }
 ```
 

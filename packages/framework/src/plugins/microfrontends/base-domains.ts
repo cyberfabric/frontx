@@ -5,7 +5,7 @@
  * These domains are NOT registered at plugin init - they are registered
  * dynamically at runtime via runtime.registerDomain().
  *
- * Domain definitions are loaded via the public API from @hai3/screensets.
+ * Domain definitions are loaded from framework-local JSON files.
  *
  * This follows the GTS entity storage principle: JSON as the native format,
  * TypeScript interfaces for compile-time type safety.
@@ -13,9 +13,10 @@
  * @packageDocumentation
  */
 
-import { loadLayoutDomains, type ExtensionDomain } from '@hai3/screensets';
+import type { ExtensionDomain } from '@hai3/screensets';
+import { loadLayoutDomains } from './gts/loader';
 
-// Load all layout domains from the @hai3/screensets package
+// Load all layout domains from framework-local JSON files
 // The loader returns an array of [sidebar, popup, screen, overlay]
 const layoutDomains = loadLayoutDomains();
 
