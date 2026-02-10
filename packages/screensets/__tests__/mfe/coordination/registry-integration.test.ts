@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
 import { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../../../src/mfe/plugins/types';

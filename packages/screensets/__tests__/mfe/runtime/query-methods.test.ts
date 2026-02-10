@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';

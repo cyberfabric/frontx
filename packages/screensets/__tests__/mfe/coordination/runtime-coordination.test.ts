@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
 import { RuntimeCoordinator, type RuntimeConnection } from '../../../src/mfe/coordination/types';
@@ -31,7 +31,7 @@ describe('Runtime Coordination', () => {
     container = document.createElement('div');
 
     // Create mock runtime
-    mockRuntime = new ScreensetsRegistry({
+    mockRuntime = createScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
 
@@ -310,8 +310,8 @@ describe('Runtime Coordination', () => {
       const container1 = document.createElement('div');
       const container2 = document.createElement('div');
 
-      const runtime1 = new ScreensetsRegistry({ typeSystem: gtsPlugin });
-      const runtime2 = new ScreensetsRegistry({ typeSystem: gtsPlugin });
+      const runtime1 = createScreensetsRegistry({ typeSystem: gtsPlugin });
+      const runtime2 = createScreensetsRegistry({ typeSystem: gtsPlugin });
 
       const entryTypeId1 = 'gts.hai3.mfes.mfe.entry.v1~test.entry1.v1';
       const entryTypeId2 = 'gts.hai3.mfes.mfe.entry.v1~test.entry2.v1';
@@ -355,7 +355,7 @@ describe('Runtime Coordination', () => {
   describe('ScreensetsRegistry integration', () => {
     it('should use coordinator from config', () => {
       const customCoordinator = new WeakMapRuntimeCoordinator();
-      const registry = new ScreensetsRegistry({
+      const registry = createScreensetsRegistry({
         typeSystem: gtsPlugin,
         coordinator: customCoordinator,
       });
@@ -366,7 +366,7 @@ describe('Runtime Coordination', () => {
     });
 
     it('should default to WeakMapRuntimeCoordinator if not provided', () => {
-      const registry = new ScreensetsRegistry({
+      const registry = createScreensetsRegistry({
         typeSystem: gtsPlugin,
       });
 

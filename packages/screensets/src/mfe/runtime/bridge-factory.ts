@@ -10,7 +10,7 @@
 
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
 import type { SharedProperty } from '../types';
-import type { ExtensionDomainState } from './ScreensetsRegistry';
+import type { ExtensionDomainState } from './extension-manager';
 import { ChildMfeBridgeImpl } from '../bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../bridge/ParentMfeBridge';
 

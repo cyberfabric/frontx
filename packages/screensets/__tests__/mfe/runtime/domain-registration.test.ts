@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { createGtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { DomainValidationError } from '../../../src/mfe/errors';

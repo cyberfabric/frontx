@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import type { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import type { ScreensetsRegistry } from '../../../src/mfe/runtime';
 
 describe('Phase 12.1: Integration Testing', () => {
   let runtime: ScreensetsRegistry;

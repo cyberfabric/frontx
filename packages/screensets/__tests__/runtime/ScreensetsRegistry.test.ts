@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createScreensetsRegistry } from '../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry } from '../../src/mfe/runtime';
 import type { ScreensetsRegistryConfig } from '../../src/mfe/runtime/config';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../src/mfe/plugins/types';
 import type { ExtensionDomain, Action, ActionsChain } from '../../src/mfe/types';

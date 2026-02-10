@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import { createMfeStateContainer, isMfeStateContainerDisposed } from '../../../src/mfe/state';
 import { SharedPropertiesProvider } from '../../../src/mfe/properties';
@@ -35,7 +35,7 @@ describe('Host State Protection', () => {
 
   beforeEach(() => {
     // Create host runtime
-    hostRuntime = new ScreensetsRegistry({
+    hostRuntime = createScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
 

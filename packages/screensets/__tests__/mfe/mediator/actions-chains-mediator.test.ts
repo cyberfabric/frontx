@@ -16,7 +16,7 @@ import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../sr
 import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
 import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry } from '../../../src/mfe/runtime';
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {

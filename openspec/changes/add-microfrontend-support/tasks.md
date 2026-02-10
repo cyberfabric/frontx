@@ -2,13 +2,13 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 20 complete. All phases 1-20 fully complete. Ready for Phase 21.
+**Current Status**: Phase 21 complete. All phases 1-21 fully complete.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
 - **Phase 19** (all tasks): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering. Test coverage: 366/366 tests passing
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
-- **Phase 21** (all tasks): Abstract class layers with factory construction -- ScreensetsRegistry abstraction, collaborator file splits, DIP consumer updates. Not yet started.
+- **Phase 21** (all tasks): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Zero circular dependencies. 366/366 tests passing
 
 ---
 
@@ -1226,57 +1226,57 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 ### 21.1 Extract Abstract ScreensetsRegistry
 
-- [ ] 21.1.1 Create `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts` as an abstract class with all public method signatures (~80 lines). Move the current concrete class out of this file.
-- [ ] 21.1.2 Create `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts` containing the concrete class that extends the abstract `ScreensetsRegistry`. Move all implementation code (constructor, collaborator wiring, method bodies) into this file (~670 lines).
-- [ ] 21.1.3 Add `@internal` test-only accessors on `DefaultScreensetsRegistry`: `get domains()`, `get extensions()`, `triggerLifecycleStageInternal()`, `getExtensionManager()`, `getLifecycleManager()` -- these are concrete-only `@internal` accessors and must NOT exist on the abstract class.
-- [ ] 21.1.4 Create `packages/screensets/src/mfe/runtime/create-screensets-registry.ts` with the factory function that returns the abstract `ScreensetsRegistry` type. This is the ONLY file that imports `DefaultScreensetsRegistry`.
-- [ ] 21.1.5 Update `@hai3/screensets` barrel exports: export `ScreensetsRegistry` (abstract), `createScreensetsRegistry` (factory), `ScreensetsRegistryConfig` (interface). Do NOT export `DefaultScreensetsRegistry`.
-- [ ] 21.1.6 Verify `createScreensetsRegistry()` return type is the abstract `ScreensetsRegistry`, not `DefaultScreensetsRegistry`.
+- [x] 21.1.1 Create `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts` as an abstract class with all public method signatures (~80 lines). Move the current concrete class out of this file.
+- [x] 21.1.2 Create `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts` containing the concrete class that extends the abstract `ScreensetsRegistry`. Move all implementation code (constructor, collaborator wiring, method bodies) into this file (~670 lines).
+- [x] 21.1.3 Add `@internal` test-only accessors on `DefaultScreensetsRegistry`: `get domains()`, `get extensions()`, `triggerLifecycleStageInternal()`, `getExtensionManager()`, `getLifecycleManager()` -- these are concrete-only `@internal` accessors and must NOT exist on the abstract class.
+- [x] 21.1.4 Create `packages/screensets/src/mfe/runtime/create-screensets-registry.ts` with the factory function that returns the abstract `ScreensetsRegistry` type. This is the ONLY file that imports `DefaultScreensetsRegistry`.
+- [x] 21.1.5 Update `@hai3/screensets` barrel exports: export `ScreensetsRegistry` (abstract), `createScreensetsRegistry` (factory), `ScreensetsRegistryConfig` (interface). Do NOT export `DefaultScreensetsRegistry`.
+- [x] 21.1.6 Verify `createScreensetsRegistry()` return type is the abstract `ScreensetsRegistry`, not `DefaultScreensetsRegistry`.
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - ScreensetsRegistry abstraction layer
 
 ### 21.2 Split Collaborator Files
 
-- [ ] 21.2.1 Split `extension-manager.ts` (643 lines): extract `DefaultExtensionManager` class into `default-extension-manager.ts` (~460 lines). Keep abstract `ExtensionManager` class, `ExtensionDomainState`, `ExtensionState`, and related types in `extension-manager.ts` (~185 lines).
-- [ ] 21.2.2 Split `lifecycle-manager.ts` (270 lines): extract `DefaultLifecycleManager` class into `default-lifecycle-manager.ts` (~170 lines). Keep abstract `LifecycleManager` class and callback type definitions (`ActionChainExecutor`, `ErrorHandler`, `LifecycleStageInternalTrigger`) in `lifecycle-manager.ts` (~100 lines).
-- [ ] 21.2.3 Split `mount-manager.ts` (414 lines): extract `DefaultMountManager` class into `default-mount-manager.ts` (~320 lines). Keep abstract `MountManager` class and callback type definitions (`Logger`, `ErrorHandler`, `ActionChainExecutor`, `LifecycleTrigger`) in `mount-manager.ts` (~97 lines).
-- [ ] 21.2.4 Leave `event-emitter.ts` (130 lines) as-is -- too small to split.
-- [ ] 21.2.5 Leave `operation-serializer.ts` (70 lines) as-is -- too small to split.
-- [ ] 21.2.6 Update imports in `DefaultScreensetsRegistry.ts` to import concrete classes from the new `default-*.ts` files.
+- [x] 21.2.1 Split `extension-manager.ts` (643 lines): extract `DefaultExtensionManager` class into `default-extension-manager.ts` (~460 lines). Keep abstract `ExtensionManager` class, `ExtensionDomainState`, `ExtensionState`, and related types in `extension-manager.ts` (~185 lines).
+- [x] 21.2.2 Split `lifecycle-manager.ts` (270 lines): extract `DefaultLifecycleManager` class into `default-lifecycle-manager.ts` (~170 lines). Keep abstract `LifecycleManager` class and callback type definitions (`ActionChainExecutor`, `ErrorHandler`, `LifecycleStageInternalTrigger`) in `lifecycle-manager.ts` (~100 lines).
+- [x] 21.2.3 Split `mount-manager.ts` (414 lines): extract `DefaultMountManager` class into `default-mount-manager.ts` (~320 lines). Keep abstract `MountManager` class and callback type definitions (`Logger`, `ErrorHandler`, `ActionChainExecutor`, `LifecycleTrigger`) in `mount-manager.ts` (~97 lines).
+- [x] 21.2.4 Leave `event-emitter.ts` (130 lines) as-is -- too small to split.
+- [x] 21.2.5 Leave `operation-serializer.ts` (70 lines) as-is -- too small to split.
+- [x] 21.2.6 Update imports in `DefaultScreensetsRegistry.ts` to import concrete classes from the new `default-*.ts` files.
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - Collaborator file splits
 
 ### 21.3 DIP Consumer Reference Updates
 
-- [ ] 21.3.1 Update `packages/screensets/src/mfe/coordination/types.ts`: ensure `RuntimeConnection.hostRuntime` types against the abstract `ScreensetsRegistry` (import from `ScreensetsRegistry.ts`, not `DefaultScreensetsRegistry.ts`).
-- [ ] 21.3.2 Update `packages/screensets/src/mfe/runtime/mount-manager.ts` (abstract file): ensure any `hostRuntime` parameter reference types against abstract `ScreensetsRegistry`.
-- [ ] 21.3.3 Update `packages/screensets/src/mfe/mediator/actions-chains-mediator.ts`: ensure references type against abstract `ScreensetsRegistry`.
-- [ ] 21.3.4 Update `packages/screensets/src/mfe/components/ExtensionDomainSlot.tsx`: ensure references type against abstract `ScreensetsRegistry`.
-- [ ] 21.3.5 Update `packages/framework/src/plugins/microfrontends/effects.ts`: ensure references type against abstract `ScreensetsRegistry`.
-- [ ] 21.3.6 Update `packages/framework/src/types.ts`: ensure `MfeScreensetsRegistry` type alias maps to abstract `ScreensetsRegistry`.
-- [ ] 21.3.7 Update `packages/screensets/src/mfe/runtime/bridge-factory.ts`: change `import { ExtensionDomainState } from './ScreensetsRegistry'` to `import { ExtensionDomainState } from './extension-manager'` (type moves to abstract file after Phase 21.2.1 split).
-- [ ] 21.3.8 Verify no module imports `DefaultScreensetsRegistry` directly except `create-screensets-registry.ts` and test files.
+- [x] 21.3.1 Update `packages/screensets/src/mfe/coordination/types.ts`: ensure `RuntimeConnection.hostRuntime` types against the abstract `ScreensetsRegistry` (import from `ScreensetsRegistry.ts`, not `DefaultScreensetsRegistry.ts`).
+- [x] 21.3.2 Update `packages/screensets/src/mfe/runtime/mount-manager.ts` (abstract file): ensure any `hostRuntime` parameter reference types against abstract `ScreensetsRegistry`.
+- [x] 21.3.3 Update `packages/screensets/src/mfe/mediator/actions-chains-mediator.ts`: ensure references type against abstract `ScreensetsRegistry`.
+- [x] 21.3.4 Update `packages/screensets/src/mfe/components/ExtensionDomainSlot.tsx`: ensure references type against abstract `ScreensetsRegistry`.
+- [x] 21.3.5 Update `packages/framework/src/plugins/microfrontends/effects.ts`: ensure references type against abstract `ScreensetsRegistry`.
+- [x] 21.3.6 Update `packages/framework/src/types.ts`: ensure `MfeScreensetsRegistry` type alias maps to abstract `ScreensetsRegistry`.
+- [x] 21.3.7 Update `packages/screensets/src/mfe/runtime/bridge-factory.ts`: change `import { ExtensionDomainState } from './ScreensetsRegistry'` to `import { ExtensionDomainState } from './extension-manager'` (type moves to abstract file after Phase 21.2.1 split).
+- [x] 21.3.8 Verify no module imports `DefaultScreensetsRegistry` directly except `create-screensets-registry.ts` and test files.
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - DIP compliance for ScreensetsRegistry references
 
 ### 21.4 Update Test Files
 
-- [ ] 21.4.1 Update test files that access `@internal` test shims (`domains`, `extensions`, `triggerLifecycleStageInternal`) to import `DefaultScreensetsRegistry` directly from `DefaultScreensetsRegistry.ts` using relative imports (NOT from public barrel).
-- [ ] 21.4.2 Update test files that create `ScreensetsRegistry` instances to use `createScreensetsRegistry()` factory instead of `new ScreensetsRegistry()`.
-- [ ] 21.4.3 Update test assertions to verify the factory returns the abstract `ScreensetsRegistry` type (i.e., `instanceof ScreensetsRegistry` is true).
-- [ ] 21.4.4 Update test files for extension-manager: import `DefaultExtensionManager` from `default-extension-manager.ts` where concrete internals are needed.
-- [ ] 21.4.5 Update test files for lifecycle-manager: import `DefaultLifecycleManager` from `default-lifecycle-manager.ts` where concrete internals are needed.
-- [ ] 21.4.6 Update test files for mount-manager: import `DefaultMountManager` from `default-mount-manager.ts` where concrete internals are needed.
+- [x] 21.4.1 Update test files that access `@internal` test shims (`domains`, `extensions`, `triggerLifecycleStageInternal`) to import `DefaultScreensetsRegistry` directly from `DefaultScreensetsRegistry.ts` using relative imports (NOT from public barrel).
+- [x] 21.4.2 Update test files that create `ScreensetsRegistry` instances to use `createScreensetsRegistry()` factory instead of `new ScreensetsRegistry()`.
+- [x] 21.4.3 Update test assertions to verify the factory returns the abstract `ScreensetsRegistry` type (i.e., `instanceof ScreensetsRegistry` is true).
+- [x] 21.4.4 Update test files for extension-manager: import `DefaultExtensionManager` from `default-extension-manager.ts` where concrete internals are needed.
+- [x] 21.4.5 Update test files for lifecycle-manager: import `DefaultLifecycleManager` from `default-lifecycle-manager.ts` where concrete internals are needed.
+- [x] 21.4.6 Update test files for mount-manager: import `DefaultMountManager` from `default-mount-manager.ts` where concrete internals are needed.
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - Test compatibility
 
 ### 21.5 Validation
 
-- [ ] 21.5.1 Run `npm run type-check` -- must pass with no errors
-- [ ] 21.5.2 Run `npm run lint` -- must pass (no ESLint rule changes required)
-- [ ] 21.5.3 Run `npm run test` -- all existing tests must pass with no behavioral changes
-- [ ] 21.5.4 Run `npm run build` -- must pass
-- [ ] 21.5.5 Verify no circular import warnings or errors in the build output
-- [ ] 21.5.6 Verify `DefaultScreensetsRegistry` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output)
+- [x] 21.5.1 Run `npm run type-check` -- must pass with no errors
+- [x] 21.5.2 Run `npm run lint` -- must pass (no ESLint rule changes required)
+- [x] 21.5.3 Run `npm run test` -- all existing tests must pass with no behavioral changes
+- [x] 21.5.4 Run `npm run build` -- must pass
+- [x] 21.5.5 Verify no circular import warnings or errors in the build output
+- [x] 21.5.6 Verify `DefaultScreensetsRegistry` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output)
 
 **Traceability**: Requirement "Abstract Class Layers with Factory Construction" - No regressions

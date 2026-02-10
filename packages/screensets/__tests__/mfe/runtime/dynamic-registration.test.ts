@@ -5,7 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge, MfeHandler } from '../../../src/mfe/handler/types';
@@ -73,6 +74,12 @@ describe('Dynamic Registration', () => {
 
     // Register the entry instance with GTS plugin before using it
     gtsPlugin.register(testEntry);
+  });
+
+  describe('factory', () => {
+    it('should return an instance of abstract ScreensetsRegistry', () => {
+      expect(registry).toBeInstanceOf(ScreensetsRegistry);
+    });
   });
 
   describe('registerExtension', () => {

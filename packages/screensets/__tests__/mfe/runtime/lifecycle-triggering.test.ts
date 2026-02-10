@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { createGtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry, ActionsChain } from '../../../src/mfe/types';

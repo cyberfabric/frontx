@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { createBridge, disposeBridge } from '../../../src/mfe/runtime/bridge-factory';
-import type { ExtensionDomainState } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import type { ExtensionDomainState } from '../../../src/mfe/runtime';
 import type { ExtensionDomain, SharedProperty } from '../../../src/mfe/types';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 
