@@ -17,6 +17,9 @@ export type MfeLoadState = 'idle' | 'loading' | 'loaded' | 'error';
 /** MFE mount state for an extension */
 export type MfeMountState = 'unmounted' | 'mounting' | 'mounted' | 'error';
 
+/** Extension registration state */
+export type ExtensionRegistrationState = 'unregistered' | 'registering' | 'registered' | 'error';
+
 /** State for a single extension */
 export interface ExtensionMfeState {
   loadState: MfeLoadState;
@@ -27,6 +30,7 @@ export interface ExtensionMfeState {
 /** MFE slice state */
 export interface MfeState {
   extensions: Record<string, ExtensionMfeState>;
+  registrationStates: Record<string, ExtensionRegistrationState>;
 }
 
 // ============================================================================
@@ -37,6 +41,7 @@ const SLICE_KEY = 'mfe' as const;
 
 const initialState: MfeState = {
   extensions: {},
+  registrationStates: {},
 };
 
 // ============================================================================
@@ -107,6 +112,25 @@ const { slice, ...actions } = createSlice({
       ext.mountState = 'error';
       ext.error = action.payload.error;
     },
+
+    // Registration state reducers
+    setExtensionRegistering: (state: MfeState, action: ReducerPayload<{ extensionId: string }>) => {
+      state.registrationStates[action.payload.extensionId] = 'registering';
+    },
+
+    setExtensionRegistered: (state: MfeState, action: ReducerPayload<{ extensionId: string }>) => {
+      state.registrationStates[action.payload.extensionId] = 'registered';
+    },
+
+    setExtensionUnregistered: (state: MfeState, action: ReducerPayload<{ extensionId: string }>) => {
+      state.registrationStates[action.payload.extensionId] = 'unregistered';
+    },
+
+    setExtensionError: (state: MfeState, action: ReducerPayload<{ extensionId: string; error: string }>) => {
+      state.registrationStates[action.payload.extensionId] = 'error';
+      const ext = getOrCreateExtension(state, action.payload.extensionId);
+      ext.error = action.payload.error;
+    },
   },
 });
 
@@ -126,6 +150,10 @@ export const {
   setMounted,
   setUnmounted,
   setMountError,
+  setExtensionRegistering,
+  setExtensionRegistered,
+  setExtensionUnregistered,
+  setExtensionError,
 } = actions;
 
 // ============================================================================
@@ -161,6 +189,24 @@ export function selectMfeError(state: { mfe: MfeState }, extensionId: string): s
  */
 export function selectAllExtensionStates(state: { mfe: MfeState }): Record<string, ExtensionMfeState> {
   return state.mfe.extensions;
+}
+
+/**
+ * Select extension registration state for an extension.
+ * Returns 'unregistered' if extension is not tracked.
+ */
+export function selectExtensionState(state: { mfe: MfeState }, extensionId: string): ExtensionRegistrationState {
+  return state.mfe.registrationStates[extensionId] ?? 'unregistered';
+}
+
+/**
+ * Select all registered extensions.
+ * Returns array of extension IDs with 'registered' state.
+ */
+export function selectRegisteredExtensions(state: { mfe: MfeState }): string[] {
+  return Object.entries(state.mfe.registrationStates)
+    .filter(([_, regState]) => regState === 'registered')
+    .map(([extensionId]) => extensionId);
 }
 
 export default slice.reducer;

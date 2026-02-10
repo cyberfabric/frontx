@@ -2,13 +2,12 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 19 implementation code complete; 8 additive test tasks remain unchecked. Ready for Phase 20 and Phase 21.
+**Current Status**: Phase 20 complete. All phases 1-20 fully complete. Ready for Phase 21.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
-- **Phase 19** (implementation code): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering
-- **Phase 19** (additive test tasks): 8 unchecked test tasks in section 19.5 (19.5.3, 19.5.7-19.5.12, 19.5.14) -- these are additive integration tests, not blockers
-- **Phase 20** (all tasks): Framework dynamic registration actions not yet implemented
+- **Phase 19** (all tasks): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering. Test coverage: 366/366 tests passing
+- **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
 - **Phase 21** (all tasks): Abstract class layers with factory construction -- ScreensetsRegistry abstraction, collaborator file splits, DIP consumer updates. Not yet started.
 
 ---
@@ -1092,18 +1091,18 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 - [x] 19.5.1 Test registerExtension after runtime initialization
 - [x] 19.5.2 Test registerExtension fails if domain not registered
-- [ ] 19.5.3 Test unregisterExtension unmounts MFE if mounted
+- [x] 19.5.3 Test unregisterExtension unmounts MFE if mounted
 - [x] 19.5.4 Test unregisterExtension is idempotent
 - [x] 19.5.5 Test registerDomain at any time
 - [x] 19.5.6 Test unregisterDomain cascades to extensions
-- [ ] 19.5.7 Test loadExtension requires extension to be registered
-- [ ] 19.5.8 Test loadExtension caches bundle for mounting
-- [ ] 19.5.9 Test preloadExtension has same behavior as loadExtension
-- [ ] 19.5.10 Test mountExtension auto-loads if not loaded
-- [ ] 19.5.11 Test mountExtension requires extension to be registered
-- [ ] 19.5.12 Test unmountExtension keeps extension registered and bundle loaded
+- [x] 19.5.7 Test loadExtension requires extension to be registered
+- [x] 19.5.8 Test loadExtension caches bundle for mounting
+- [x] 19.5.9 Test preloadExtension has same behavior as loadExtension
+- [x] 19.5.10 Test mountExtension auto-loads if not loaded
+- [x] 19.5.11 Test mountExtension requires extension to be registered
+- [x] 19.5.12 Test unmountExtension keeps extension registered and bundle loaded
 - [x] 19.5.13 Test registration events are emitted correctly
-- [ ] 19.5.14 Test hot-swap: unregister + register with same ID
+- [x] 19.5.14 Test hot-swap: unregister + register with same ID
 
 **Traceability**: Requirement "Dynamic Registration Model", "ScreensetsRegistry Dynamic API" - all scenarios
 
@@ -1136,50 +1135,52 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 ---
 
-## Phase 20: Framework Dynamic Registration Actions
+## Phase 20: Framework Dynamic Registration Actions ✓
 
 **Goal**: Add dynamic registration actions to @hai3/framework microfrontends plugin.
 
+**Status**: COMPLETE
+
 ### 20.1 Dynamic Registration Actions
 
-- [ ] 20.1.1 Add `registerExtension(extension)` action to mfeActions
-- [ ] 20.1.2 Emit `'mfe/registerExtensionRequested'` event
-- [ ] 20.1.3 Add `unregisterExtension(extensionId)` action to mfeActions
-- [ ] 20.1.4 Emit `'mfe/unregisterExtensionRequested'` event
-- [ ] 20.1.5 Add `registerDomain(domain)` action to mfeActions
-- [ ] 20.1.6 Emit `'mfe/registerDomainRequested'` event
-- [ ] 20.1.7 Add `unregisterDomain(domainId)` action to mfeActions
-- [ ] 20.1.8 Emit `'mfe/unregisterDomainRequested'` event
-- [ ] 20.1.9 Verify `loadExtension(extensionId)` and `preloadExtension(extensionId)` actions exist (from Phase 13.2)
+- [x] 20.1.1 Add `registerExtension(extension)` action to mfeActions
+- [x] 20.1.2 Emit `'mfe/registerExtensionRequested'` event
+- [x] 20.1.3 Add `unregisterExtension(extensionId)` action to mfeActions
+- [x] 20.1.4 Emit `'mfe/unregisterExtensionRequested'` event
+- [x] 20.1.5 Add `registerDomain(domain)` action to mfeActions
+- [x] 20.1.6 Emit `'mfe/registerDomainRequested'` event
+- [x] 20.1.7 Add `unregisterDomain(domainId)` action to mfeActions
+- [x] 20.1.8 Emit `'mfe/unregisterDomainRequested'` event
+- [x] 20.1.9 Verify `loadExtension(extensionId)` and `preloadExtension(extensionId)` actions exist (from Phase 13.2)
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - actions
 
 ### 20.2 Dynamic Registration Effects
 
-- [ ] 20.2.1 Handle `'mfe/registerExtensionRequested'` event
-- [ ] 20.2.2 Call `runtime.registerExtension()` in effect
-- [ ] 20.2.3 Dispatch `setExtensionRegistering` before call
-- [ ] 20.2.4 Dispatch `setExtensionRegistered` on success
-- [ ] 20.2.5 Dispatch `setExtensionError` on failure
-- [ ] 20.2.6 Handle `'mfe/unregisterExtensionRequested'` event
-- [ ] 20.2.7 Call `runtime.unregisterExtension()` in effect
-- [ ] 20.2.8 Handle `'mfe/registerDomainRequested'` event
-- [ ] 20.2.9 Call `runtime.registerDomain()` in effect
-- [ ] 20.2.10 Handle `'mfe/unregisterDomainRequested'` event
-- [ ] 20.2.11 Call `runtime.unregisterDomain()` in effect
+- [x] 20.2.1 Handle `'mfe/registerExtensionRequested'` event
+- [x] 20.2.2 Call `runtime.registerExtension()` in effect
+- [x] 20.2.3 Dispatch `setExtensionRegistering` before call
+- [x] 20.2.4 Dispatch `setExtensionRegistered` on success
+- [x] 20.2.5 Dispatch `setExtensionError` on failure
+- [x] 20.2.6 Handle `'mfe/unregisterExtensionRequested'` event
+- [x] 20.2.7 Call `runtime.unregisterExtension()` in effect
+- [x] 20.2.8 Handle `'mfe/registerDomainRequested'` event
+- [x] 20.2.9 Call `runtime.registerDomain()` in effect
+- [x] 20.2.10 Handle `'mfe/unregisterDomainRequested'` event
+- [x] 20.2.11 Call `runtime.unregisterDomain()` in effect
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - effects
 
 ### 20.3 Extension Registration Slice
 
-- [ ] 20.3.1 Add `extensionStates: Record<string, ExtensionRegistrationState>` to mfeSlice
-- [ ] 20.3.2 Define `ExtensionRegistrationState`: 'unregistered' | 'registering' | 'registered' | 'error'
-- [ ] 20.3.3 Add `setExtensionRegistering` reducer
-- [ ] 20.3.4 Add `setExtensionRegistered` reducer
-- [ ] 20.3.5 Add `setExtensionUnregistered` reducer
-- [ ] 20.3.6 Add `setExtensionError` reducer
-- [ ] 20.3.7 Add `selectExtensionState(state, extensionId)` selector
-- [ ] 20.3.8 Add `selectRegisteredExtensions(state)` selector
+- [x] 20.3.1 Add `registrationStates: Record<string, ExtensionRegistrationState>` to mfeSlice
+- [x] 20.3.2 Define `ExtensionRegistrationState`: 'unregistered' | 'registering' | 'registered' | 'error'
+- [x] 20.3.3 Add `setExtensionRegistering` reducer
+- [x] 20.3.4 Add `setExtensionRegistered` reducer
+- [x] 20.3.5 Add `setExtensionUnregistered` reducer
+- [x] 20.3.6 Add `setExtensionError` reducer
+- [x] 20.3.7 Add `selectExtensionState(state, extensionId)` selector
+- [x] 20.3.8 Add `selectRegisteredExtensions(state)` selector
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - slice
 
@@ -1187,13 +1188,13 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 > **Layer placement**: `useExtensionEvents` is a React hook and belongs in `@hai3/react` (L3), not `@hai3/framework` (L2). React hooks must not live in framework-agnostic packages per the layer architecture.
 
-- [ ] 20.4.1 Create `useExtensionEvents(domainId)` hook in `packages/react/src/mfe/hooks/useExtensionEvents.ts`
-- [ ] 20.4.2 Subscribe to runtime's `extensionRegistered` event
-- [ ] 20.4.3 Subscribe to runtime's `extensionUnregistered` event
-- [ ] 20.4.4 Filter events by domainId
-- [ ] 20.4.5 Return current extensions for domain
-- [ ] 20.4.6 Trigger re-render on changes
-- [ ] 20.4.7 Export from `@hai3/react` (NOT from `@hai3/framework`)
+- [x] 20.4.1 Create `useExtensionEvents(domainId)` hook in `packages/react/src/mfe/hooks/useExtensionEvents.ts`
+- [x] 20.4.2 Subscribe to runtime's `extensionRegistered` event
+- [x] 20.4.3 Subscribe to runtime's `extensionUnregistered` event
+- [x] 20.4.4 Filter events by domainId
+- [x] 20.4.5 Return current extensions for domain
+- [x] 20.4.6 Trigger re-render on changes
+- [x] 20.4.7 Export from `@hai3/react` (NOT from `@hai3/framework`)
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - events hook. Layer architecture: React hooks in L3 (@hai3/react)
 
@@ -1201,15 +1202,15 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Test file**: `packages/framework/__tests__/plugins/microfrontends/dynamic-registration.test.ts`
 
-- [ ] 20.5.1 Test registerExtension action emits event
-- [ ] 20.5.2 Test registerExtension effect calls runtime
-- [ ] 20.5.3 Test unregisterExtension action and effect
-- [ ] 20.5.4 Test registerDomain action and effect
-- [ ] 20.5.5 Test unregisterDomain action and effect
-- [ ] 20.5.6 Test slice state transitions
-- [ ] 20.5.7 Test selectExtensionState selector
-- [ ] 20.5.8 Test selectRegisteredExtensions selector
-- [ ] 20.5.9 Test useExtensionEvents hook (in `packages/react/__tests__/mfe/hooks/useExtensionEvents.test.ts`)
+- [x] 20.5.1 Test registerExtension action emits event
+- [x] 20.5.2 Test registerExtension effect calls runtime
+- [x] 20.5.3 Test unregisterExtension action and effect
+- [x] 20.5.4 Test registerDomain action and effect
+- [x] 20.5.5 Test unregisterDomain action and effect
+- [x] 20.5.6 Test slice state transitions
+- [x] 20.5.7 Test selectExtensionState selector
+- [x] 20.5.8 Test selectRegisteredExtensions selector
+- [x] 20.5.9 Test useExtensionEvents hook (in `packages/react/__tests__/mfe/hooks/useExtensionEvents.test.tsx`)
 
 **Traceability**: Requirement "Dynamic Registration Support in Framework" - all scenarios. Note: useExtensionEvents tests are in @hai3/react package per L3 layer placement
 

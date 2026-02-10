@@ -20,6 +20,10 @@ import {
   mountExtension,
   unmountExtension,
   handleMfeHostAction,
+  registerExtension,
+  unregisterExtension,
+  registerDomain,
+  unregisterDomain,
 } from './actions';
 
 /**
@@ -103,6 +107,10 @@ export function microfrontends(): HAI3Plugin {
         mountExtension,
         unmountExtension,
         handleMfeHostAction,
+        registerExtension,
+        unregisterExtension,
+        registerDomain,
+        unregisterDomain,
       },
     },
 
@@ -154,12 +162,20 @@ export {
   mountExtension,
   unmountExtension,
   handleMfeHostAction,
+  registerExtension,
+  unregisterExtension,
+  registerDomain,
+  unregisterDomain,
   MfeEvents,
   type LoadExtensionPayload,
   type PreloadExtensionPayload,
   type MountExtensionPayload,
   type UnmountExtensionPayload,
   type HostActionPayload,
+  type RegisterExtensionPayload,
+  type UnregisterExtensionPayload,
+  type RegisterDomainPayload,
+  type UnregisterDomainPayload,
 } from './actions';
 
 // Re-export MFE slice and selectors
@@ -170,10 +186,13 @@ export {
   selectMfeMountState,
   selectMfeError,
   selectAllExtensionStates,
+  selectExtensionState,
+  selectRegisteredExtensions,
   type MfeState,
   type MfeLoadState,
   type MfeMountState,
   type ExtensionMfeState,
+  type ExtensionRegistrationState,
 } from './slice';
 
 // Re-export MFE components

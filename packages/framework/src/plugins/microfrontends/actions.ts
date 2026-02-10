@@ -6,6 +6,7 @@
  */
 
 import { eventBus } from '@hai3/state';
+import type { Extension, ExtensionDomain } from '@hai3/screensets';
 
 // ============================================================================
 // Event Types
@@ -18,6 +19,10 @@ export const MfeEvents = {
   MountRequested: 'mfe/mountRequested',
   UnmountRequested: 'mfe/unmountRequested',
   HostActionRequested: 'mfe/hostActionRequested',
+  RegisterExtensionRequested: 'mfe/registerExtensionRequested',
+  UnregisterExtensionRequested: 'mfe/unregisterExtensionRequested',
+  RegisterDomainRequested: 'mfe/registerDomainRequested',
+  UnregisterDomainRequested: 'mfe/unregisterDomainRequested',
 } as const;
 
 /** Payload for load extension event */
@@ -48,6 +53,26 @@ export interface HostActionPayload {
   payload?: unknown;
 }
 
+/** Payload for register extension event */
+export interface RegisterExtensionPayload {
+  extension: Extension;
+}
+
+/** Payload for unregister extension event */
+export interface UnregisterExtensionPayload {
+  extensionId: string;
+}
+
+/** Payload for register domain event */
+export interface RegisterDomainPayload {
+  domain: ExtensionDomain;
+}
+
+/** Payload for unregister domain event */
+export interface UnregisterDomainPayload {
+  domainId: string;
+}
+
 // ============================================================================
 // Module Augmentation for Type-Safe Events
 // ============================================================================
@@ -59,6 +84,10 @@ declare module '@hai3/state' {
     'mfe/mountRequested': MountExtensionPayload;
     'mfe/unmountRequested': UnmountExtensionPayload;
     'mfe/hostActionRequested': HostActionPayload;
+    'mfe/registerExtensionRequested': RegisterExtensionPayload;
+    'mfe/unregisterExtensionRequested': UnregisterExtensionPayload;
+    'mfe/registerDomainRequested': RegisterDomainPayload;
+    'mfe/unregisterDomainRequested': UnregisterDomainPayload;
   }
 }
 
@@ -159,4 +188,82 @@ export function handleMfeHostAction(
   payload?: unknown
 ): void {
   eventBus.emit(MfeEvents.HostActionRequested, { extensionId, actionTypeId, payload });
+}
+
+/**
+ * Register an extension dynamically at runtime.
+ * Emits event that MFE effects handle via runtime.registerExtension().
+ *
+ * @param extension - Extension instance to register
+ *
+ * @example
+ * ```typescript
+ * import { registerExtension } from '@hai3/framework';
+ * const extension: Extension = {
+ *   id: 'gts.hai3.mfes.ext.extension.v1~my.extension.v1',
+ *   domain: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
+ *   entry: 'gts.hai3.mfes.mfe.entry.v1~my.entry.v1',
+ * };
+ * registerExtension(extension);
+ * ```
+ */
+export function registerExtension(extension: Extension): void {
+  eventBus.emit(MfeEvents.RegisterExtensionRequested, { extension });
+}
+
+/**
+ * Unregister an extension dynamically at runtime.
+ * Emits event that MFE effects handle via runtime.unregisterExtension().
+ *
+ * @param extensionId - Extension ID to unregister
+ *
+ * @example
+ * ```typescript
+ * import { unregisterExtension } from '@hai3/framework';
+ * unregisterExtension('gts.hai3.mfes.ext.extension.v1~my.extension.v1');
+ * ```
+ */
+export function unregisterExtension(extensionId: string): void {
+  eventBus.emit(MfeEvents.UnregisterExtensionRequested, { extensionId });
+}
+
+/**
+ * Register an extension domain dynamically at runtime.
+ * Emits event that MFE effects handle via runtime.registerDomain().
+ *
+ * @param domain - ExtensionDomain instance to register
+ *
+ * @example
+ * ```typescript
+ * import { registerDomain } from '@hai3/framework';
+ * const domain: ExtensionDomain = {
+ *   id: 'gts.hai3.mfes.ext.domain.v1~my.custom.domain.v1',
+ *   sharedProperties: [],
+ *   actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'],
+ *   extensionsActions: [],
+ *   defaultActionTimeout: 5000,
+ *   lifecycleStages: [],
+ *   extensionsLifecycleStages: [],
+ * };
+ * registerDomain(domain);
+ * ```
+ */
+export function registerDomain(domain: ExtensionDomain): void {
+  eventBus.emit(MfeEvents.RegisterDomainRequested, { domain });
+}
+
+/**
+ * Unregister an extension domain dynamically at runtime.
+ * Emits event that MFE effects handle via runtime.unregisterDomain().
+ *
+ * @param domainId - Domain ID to unregister
+ *
+ * @example
+ * ```typescript
+ * import { unregisterDomain } from '@hai3/framework';
+ * unregisterDomain('gts.hai3.mfes.ext.domain.v1~my.custom.domain.v1');
+ * ```
+ */
+export function unregisterDomain(domainId: string): void {
+  eventBus.emit(MfeEvents.UnregisterDomainRequested, { domainId });
 }

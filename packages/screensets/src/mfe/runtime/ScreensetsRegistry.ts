@@ -169,7 +169,10 @@ export class ScreensetsRegistry {
       triggerDomainOwnLifecycle: (domainId, stageId) => this.triggerDomainOwnLifecycleStage(domainId, stageId),
       log: (message, context) => this.log(message, context),
       handleError: (error, context) => this.handleError(error, context),
-      unmountExtension: (extensionId) => this.unmountExtension(extensionId),
+      // Bypass OperationSerializer: the parent operation (unregisterExtension)
+      // already holds the serializer lock for this entity ID, so calling
+      // registry.unmountExtension would deadlock. Go directly to MountManager.
+      unmountExtension: (extensionId) => this.mountManager.unmountExtension(extensionId),
     });
 
     // Initialize lifecycle manager (needs extension manager and error handler)

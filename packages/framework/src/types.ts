@@ -164,6 +164,10 @@ export interface HAI3Actions {
   mountExtension: (extensionId: string, containerElement: HTMLElement) => void;
   unmountExtension: (extensionId: string) => void;
   handleMfeHostAction: (extensionId: string, actionTypeId: string, payload?: unknown) => void;
+  registerExtension: (extension: import('@hai3/screensets').Extension) => void;
+  unregisterExtension: (extensionId: string) => void;
+  registerDomain: (domain: import('@hai3/screensets').ExtensionDomain) => void;
+  unregisterDomain: (domainId: string) => void;
 }
 
 /**

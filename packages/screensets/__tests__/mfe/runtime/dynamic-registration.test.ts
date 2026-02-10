@@ -8,7 +8,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { createScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
+import type { MfeEntryLifecycle, ChildMfeBridge, MfeHandler } from '../../../src/mfe/handler/types';
 
 // Helper to access private members for testing (replaces 'as never' with proper typing)
 interface ExtensionStateShape {
@@ -214,6 +214,333 @@ describe('Dynamic Registration', () => {
       registry.registerDomain(testDomain);
 
       expect(callback).toHaveBeenCalledWith({ domainId: testDomain.id });
+    });
+  });
+
+  describe('loadExtension and preloadExtension', () => {
+    let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
+    let mockHandler: {
+      bridgeFactory: unknown;
+      handledBaseTypeId: string;
+      canHandle: ReturnType<typeof vi.fn>;
+      load: ReturnType<typeof vi.fn>;
+      preload: ReturnType<typeof vi.fn>;
+      priority: number;
+    };
+
+    beforeEach(() => {
+      mockLifecycle = {
+        mount: vi.fn().mockResolvedValue(undefined),
+        unmount: vi.fn().mockResolvedValue(undefined),
+      };
+
+      mockHandler = {
+        bridgeFactory: {} as unknown,
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        canHandle: vi.fn().mockReturnValue(true),
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        preload: vi.fn().mockResolvedValue(undefined),
+        priority: 0,
+      };
+    });
+
+    it('should require extension to be registered (19.5.7)', async () => {
+      // Try to load non-existent extension
+      await expect(registry.loadExtension('nonexistent')).rejects.toThrow(/not registered/i);
+    });
+
+    it('should cache bundle for mounting (19.5.8)', async () => {
+      // Register handler
+      registry.registerHandler(mockHandler as unknown as MfeHandler);
+
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Mock resolveEntry
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Load extension twice
+      await registry.loadExtension(testExtension.id);
+      await registry.loadExtension(testExtension.id);
+
+      // Verify handler.load was only called once (cached)
+      expect(mockHandler.load).toHaveBeenCalledTimes(1);
+    });
+
+    it('should have same behavior as loadExtension for preloadExtension (19.5.9)', async () => {
+      // Register handler
+      registry.registerHandler(mockHandler as unknown as MfeHandler);
+
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Mock resolveEntry
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Preload extension
+      await registry.preloadExtension(testExtension.id);
+
+      // Verify loadState becomes 'loaded'
+      const state = internals.extensions.get(testExtension.id);
+      expect(state?.loadState).toBe('loaded');
+    });
+  });
+
+  describe('mountExtension and unmountExtension', () => {
+    let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
+    let mockHandler: {
+      bridgeFactory: unknown;
+      handledBaseTypeId: string;
+      canHandle: ReturnType<typeof vi.fn>;
+      load: ReturnType<typeof vi.fn>;
+      preload: ReturnType<typeof vi.fn>;
+      priority: number;
+    };
+
+    beforeEach(() => {
+      mockLifecycle = {
+        mount: vi.fn().mockResolvedValue(undefined),
+        unmount: vi.fn().mockResolvedValue(undefined),
+      };
+
+      mockHandler = {
+        bridgeFactory: {} as unknown,
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        canHandle: vi.fn().mockReturnValue(true),
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        preload: vi.fn().mockResolvedValue(undefined),
+        priority: 0,
+      };
+    });
+
+    it('should auto-load if not loaded (19.5.10)', async () => {
+      // Register handler
+      registry.registerHandler(mockHandler as unknown as MfeHandler);
+
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Mock resolveEntry
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Mount without prior loadExtension
+      const container = document.createElement('div');
+      await registry.mountExtension(testExtension.id, container);
+
+      // Verify handler.load was called (auto-load)
+      expect(mockHandler.load).toHaveBeenCalledTimes(1);
+
+      // Verify mount was called
+      expect(mockLifecycle.mount).toHaveBeenCalledWith(container, expect.anything());
+    });
+
+    it('should require extension to be registered (19.5.11)', async () => {
+      const container = document.createElement('div');
+
+      // Try to mount non-existent extension
+      await expect(registry.mountExtension('nonexistent', container)).rejects.toThrow(/not registered/i);
+    });
+
+    it('should keep extension registered and bundle loaded after unmount (19.5.12)', async () => {
+      // Register handler
+      registry.registerHandler(mockHandler as unknown as MfeHandler);
+
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Mock resolveEntry
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Load, mount, then unmount
+      await registry.loadExtension(testExtension.id);
+      const container = document.createElement('div');
+      await registry.mountExtension(testExtension.id, container);
+      await registry.unmountExtension(testExtension.id);
+
+      // Verify extension is still registered
+      const extension = registry.getExtension(testExtension.id);
+      expect(extension).toBeDefined();
+      expect(extension?.id).toBe(testExtension.id);
+
+      // Verify loadState is still 'loaded'
+      const state = internals.extensions.get(testExtension.id);
+      expect(state?.loadState).toBe('loaded');
+    });
+  });
+
+  describe('unregisterExtension with mounted MFE', () => {
+    let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
+    let mockHandler: {
+      bridgeFactory: unknown;
+      handledBaseTypeId: string;
+      canHandle: ReturnType<typeof vi.fn>;
+      load: ReturnType<typeof vi.fn>;
+      preload: ReturnType<typeof vi.fn>;
+      priority: number;
+    };
+
+    beforeEach(() => {
+      mockLifecycle = {
+        mount: vi.fn().mockResolvedValue(undefined),
+        unmount: vi.fn().mockResolvedValue(undefined),
+      };
+
+      mockHandler = {
+        bridgeFactory: {} as unknown,
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        canHandle: vi.fn().mockReturnValue(true),
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        preload: vi.fn().mockResolvedValue(undefined),
+        priority: 0,
+      };
+    });
+
+    it('should unmount MFE if mounted (19.5.3)', async () => {
+      // Register handler
+      registry.registerHandler(mockHandler as unknown as MfeHandler);
+
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Pre-cache entry
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Load and mount
+      const container = document.createElement('div');
+      await registry.loadExtension(testExtension.id);
+      await registry.mountExtension(testExtension.id, container);
+
+      // Verify mounted
+      expect(mockLifecycle.mount).toHaveBeenCalled();
+
+      // Unregister - should auto-unmount
+      await registry.unregisterExtension(testExtension.id);
+
+      // Verify unmount was called
+      expect(mockLifecycle.unmount).toHaveBeenCalled();
+
+      // Verify extension is unregistered
+      expect(registry.getExtension(testExtension.id)).toBeUndefined();
+    });
+  });
+
+  describe('hot-swap registration', () => {
+    it('should support unregister + register with same ID (19.5.14)', async () => {
+      // Register domain
+      registry.registerDomain(testDomain);
+
+      // Mock resolveEntry for first extension
+      const internals = getRegistryInternals(registry);
+      internals.extensions.set(testExtension.id, {
+        extension: testExtension,
+        entry: testEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      await registry.registerExtension(testExtension);
+
+      // Verify first registration
+      const firstExtension = registry.getExtension(testExtension.id);
+      expect(firstExtension).toBeDefined();
+      expect(firstExtension?.id).toBe(testExtension.id);
+
+      // Unregister
+      await registry.unregisterExtension(testExtension.id);
+
+      // Create new extension with same ID but different entry
+      const newEntry: MfeEntry = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~test.dynamic.reg.entry.v2',
+        requiredProperties: [],
+        optionalProperties: [],
+        actions: [],
+        domainActions: [],
+      };
+      gtsPlugin.register(newEntry);
+
+      const newExtension: Extension = {
+        id: testExtension.id, // Same ID
+        domain: testDomain.id,
+        entry: newEntry.id, // Different entry
+      };
+
+      // Mock resolveEntry for new extension
+      internals.extensions.set(newExtension.id, {
+        extension: newExtension,
+        entry: newEntry,
+        bridge: null,
+        loadState: 'idle',
+        mountState: 'unmounted',
+        container: null,
+        lifecycle: null,
+      });
+
+      // Register again with same ID
+      await registry.registerExtension(newExtension);
+
+      // Verify new registration
+      const secondExtension = registry.getExtension(newExtension.id);
+      expect(secondExtension).toBeDefined();
+      expect(secondExtension?.id).toBe(newExtension.id);
+      expect(secondExtension?.entry).toBe(newEntry.id);
     });
   });
 });
