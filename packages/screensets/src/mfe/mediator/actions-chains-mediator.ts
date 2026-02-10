@@ -9,7 +9,7 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ActionsChain, ExtensionDomain } from '../types';
-import type { ScreensetsRegistry } from '../runtime/ScreensetsRegistry';
+import type { ExtensionDomainState } from '../runtime/extension-manager';
 import {
   ActionsChainsMediator,
   type ChainResult,
@@ -50,10 +50,10 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   public readonly typeSystem: TypeSystemPlugin;
 
   /**
-   * Reference to the ScreensetsRegistry that owns this mediator.
-   * Used to access domains and extensions for target resolution.
+   * Callback to get domain state for target resolution.
+   * Injected during construction to avoid dependency on full ScreensetsRegistry.
    */
-  private readonly registry: ScreensetsRegistry;
+  private readonly getDomainState: (domainId: string) => ExtensionDomainState | undefined;
 
   /**
    * Map of extension IDs to their action handlers.
@@ -77,10 +77,13 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    */
   private readonly pendingDomainActions = new Map<string, Set<Promise<void>>>();
 
-  constructor(typeSystem: TypeSystemPlugin, registry: ScreensetsRegistry) {
+  constructor(config: {
+    typeSystem: TypeSystemPlugin;
+    getDomainState: (domainId: string) => ExtensionDomainState | undefined;
+  }) {
     super();
-    this.typeSystem = typeSystem;
-    this.registry = registry;
+    this.typeSystem = config.typeSystem;
+    this.getDomainState = config.getDomainState;
   }
 
   /**
@@ -170,7 +173,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
     // Validate that target domain supports this action (BLOCKER 4)
     // See design/mfe-actions.md line 221-243: Action Support Validation
-    const domainState = this.registry.getDomainState(action.target);
+    const domainState = this.getDomainState(action.target);
     if (domainState && !domainState.domain.actions.includes(action.type)) {
       throw new Error(
         `Domain '${action.target}' does not support action '${action.type}'. ` +
@@ -352,8 +355,8 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       return domain.defaultActionTimeout;
     }
 
-    // Default fallback (should not happen if domain is registered)
-    return 30000; // 30 seconds
+    // No domain found - this indicates a system error
+    throw new Error('Cannot resolve timeout: no domain found for target "' + action.target + '"');
   }
 
   /**
@@ -364,7 +367,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    */
   private async resolveDomain(targetId: string): Promise<ExtensionDomain | undefined> {
     // Check if target is a domain directly
-    const domainState = this.registry.getDomainState(targetId);
+    const domainState = this.getDomainState(targetId);
     if (domainState) {
       return domainState.domain;
     }
@@ -372,7 +375,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
     // Check if target is an extension, resolve its domain
     const extensionInfo = this.extensionHandlers.get(targetId);
     if (extensionInfo) {
-      const extensionDomainState = this.registry.getDomainState(extensionInfo.domainId);
+      const extensionDomainState = this.getDomainState(extensionInfo.domainId);
       if (extensionDomainState) {
         return extensionDomainState.domain;
       }

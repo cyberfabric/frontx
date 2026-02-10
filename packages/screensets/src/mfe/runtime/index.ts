@@ -15,6 +15,5 @@
  */
 
 export { ScreensetsRegistry } from './ScreensetsRegistry';
-export type { ExtensionDomainState } from './ScreensetsRegistry';
 export { createScreensetsRegistry } from './create-screensets-registry';
 export type { ScreensetsRegistryConfig } from './config';

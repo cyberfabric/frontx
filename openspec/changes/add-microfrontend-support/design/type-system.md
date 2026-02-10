@@ -679,6 +679,17 @@ interface ScreensetsRegistryConfig {
 
   /** Optional runtime coordinator for MFE isolation (defaults to WeakMapRuntimeCoordinator) */
   coordinator?: RuntimeCoordinator;
+
+  /**
+   * Optional actions chains mediator.
+   * Used for executing action chains with success/failure branching.
+   *
+   * If not provided, defaults to DefaultActionsChainsMediator.
+   * Custom mediators can be provided for testing or specialized behavior.
+   *
+   * @default DefaultActionsChainsMediator
+   */
+  mediator?: ActionsChainsMediator;
 }
 
 // In create-screensets-registry.ts (see Decision 18 in registry-runtime.md)

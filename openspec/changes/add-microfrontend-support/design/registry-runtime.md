@@ -171,7 +171,7 @@ runtime.updateDomainProperties(domainId, new Map([
 **Why**:
 - **Dependency Inversion Principle (DIP)**: Consumers depend on stable abstractions, not volatile implementations
 - **Testability**: Tests can substitute mock implementations of the abstract class without knowing the concrete class
-- **Encapsulation**: Test-only accessors (`get domains()`, `get extensions()`, `triggerLifecycleStageInternal`) live on the concrete class only and are invisible to public consumers
+- **Encapsulation**: Test-only accessors (`get domains()`, `get extensions()`, `triggerLifecycleStageInternal`, `getDomainState()`) live on the concrete class only and are invisible to public consumers
 - **Circular import prevention**: Modules that reference `ScreensetsRegistry` import only the abstract class, breaking circular dependency chains that occur when importing the concrete class with all its collaborator imports
 - **Consistency**: Aligns `ScreensetsRegistry` with the existing pattern used by `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `ActionsChainsMediator`/`DefaultActionsChainsMediator`, `MfeHandler`/`MfeHandlerMF`, `ExtensionManager`/`DefaultExtensionManager`, etc.
 
@@ -207,7 +207,6 @@ import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { ExtensionDomain, Extension, ActionsChain } from '../types';
 import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
-import type { ExtensionDomainState } from './extension-manager';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -249,7 +248,6 @@ export abstract class ScreensetsRegistry {
   abstract getExtension(extensionId: string): Extension | undefined;
   abstract getDomain(domainId: string): ExtensionDomain | undefined;
   abstract getExtensionsForDomain(domainId: string): Extension[];
-  abstract getDomainState(domainId: string): ExtensionDomainState | undefined;
 
   // --- Action Handlers (mediator-facing) ---
   abstract registerExtensionActionHandler(extensionId: string, domainId: string, entryId: string, handler: ActionHandler): void;
@@ -313,6 +311,11 @@ class DefaultScreensetsRegistry extends ScreensetsRegistry {
     return this.lifecycleManager.triggerLifecycleStageInternal(entity, stageId);
   }
 
+  // @internal -- concrete-only query method (NOT on abstract class)
+  getDomainState(domainId: string): ExtensionDomainState | undefined {
+    return this.extensionManager.getDomainState(domainId);
+  }
+
   // @internal -- concrete-only accessors for collaborator instances (NOT on abstract class)
   getExtensionManager(): ExtensionManager { return this.extensionManager; }
   getLifecycleManager(): LifecycleManager { return this.lifecycleManager; }
@@ -333,6 +336,55 @@ Collaborators that currently co-locate abstract + concrete in a single file are 
 
 **Import rule after split**: Only the `DefaultScreensetsRegistry` constructor imports concrete collaborator classes. All other code imports only abstract classes.
 
+#### Callback Injection for Mediator's getDomainState Dependency
+
+`DefaultActionsChainsMediator` needs `getDomainState(domainId)` for two purposes:
+
+1. **Action support validation** (line ~173 in implementation): check that the target domain supports the action type before delivery.
+2. **Timeout resolution** (line ~367 in implementation): resolve `domain.defaultActionTimeout` for actions that do not specify an explicit timeout.
+
+Since `getDomainState()` is concrete-only (`@internal` on `DefaultScreensetsRegistry`) and must NOT appear on the abstract `ScreensetsRegistry`, the mediator receives this capability via **callback injection** in its constructor config -- consistent with how `DefaultExtensionManager` receives `emit`, `triggerLifecycle`, `log`, etc. and how `DefaultMountManager` receives `triggerLifecycle`, `executeActionsChain`, `log`, `errorHandler`, etc.
+
+**Before (broken -- calls concrete-only method via abstract type):**
+```typescript
+constructor(typeSystem: TypeSystemPlugin, registry: ScreensetsRegistry) {
+  this.registry = registry;
+}
+// later: this.registry.getDomainState(targetId)  // COMPILE ERROR: not on abstract class
+```
+
+**After (callback injection -- no dependency on ScreensetsRegistry type at all):**
+```typescript
+constructor(config: {
+  typeSystem: TypeSystemPlugin;
+  getDomainState: (domainId: string) => ExtensionDomainState | undefined;
+}) {
+  this.typeSystem = config.typeSystem;
+  this.getDomainState = config.getDomainState;
+}
+// later: this.getDomainState(targetId)  // OK: uses injected callback
+```
+
+The `DefaultScreensetsRegistry` constructor wires this callback when creating the mediator:
+
+```typescript
+this.mediator = new DefaultActionsChainsMediator({
+  typeSystem: this.typeSystem,
+  getDomainState: (domainId: string) => this.extensionManager.getDomainState(domainId),
+});
+```
+
+This eliminates the mediator's dependency on the full `ScreensetsRegistry` type entirely. The mediator only knows about `TypeSystemPlugin` and the narrow callback it actually needs.
+
+#### Concrete-Only Test Accessors on ExtensionManager
+
+The abstract `ExtensionManager` class currently declares `getDomainsMap()` and `getExtensionsMap()` as abstract methods with `@internal` annotations. These are test-only accessors that expose raw internal maps for test compatibility. They must be moved to the concrete `DefaultExtensionManager` class only, matching the same principle applied to `getDomainState()` on `ScreensetsRegistry`:
+
+- **Before**: `abstract getDomainsMap()` and `abstract getExtensionsMap()` on abstract `ExtensionManager`
+- **After**: `getDomainsMap()` and `getExtensionsMap()` on concrete `DefaultExtensionManager` only
+
+The `DefaultScreensetsRegistry` concrete class already accesses these via `this.extensionManager.getDomainsMap()` and `this.extensionManager.getExtensionsMap()` in its own `@internal` `get domains()` and `get extensions()` accessors. Since `DefaultScreensetsRegistry` owns a concrete `DefaultExtensionManager` instance (not the abstract type), these calls remain valid after the move. No callback injection is needed here -- the accessor is called only from concrete-to-concrete wiring code.
+
 #### DIP Consumer Reference Updates
 
 All modules that currently reference the concrete `ScreensetsRegistry` class are updated to import the abstract class. Because the abstract class replaces the concrete class at the same file path (`ScreensetsRegistry.ts`), most import statements do not change. The exceptions are noted below.
@@ -341,7 +393,7 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 |---|---|
 | `coordination/types.ts` | No import change needed |
 | `mount-manager.ts` | No import change needed; now types against abstract class, which breaks the circular import on the concrete class |
-| `mediator/actions-chains-mediator.ts` | No import change needed |
+| `mediator/actions-chains-mediator.ts` | **Import removed**: `DefaultActionsChainsMediator` no longer imports `ScreensetsRegistry` at all. It receives `getDomainState` as a callback in its constructor config instead of holding a full registry reference. |
 | `components/ExtensionDomainSlot.tsx` | No import change needed |
 | `framework/effects.ts` | No import change needed |
 | `framework/types.ts` | No import change needed; `MfeScreensetsRegistry` alias now maps to abstract class |

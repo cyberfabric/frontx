@@ -62,8 +62,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   /**
    * Extension manager for managing extension and domain state.
    * INTERNAL: Delegates extension/domain registration and query operations.
+   * Note: Typed as DefaultExtensionManager (concrete) to allow access to test-only methods.
    */
-  private readonly extensionManager: ExtensionManager;
+  private readonly extensionManager: DefaultExtensionManager;
 
   /**
    * Lifecycle manager for triggering lifecycle stages.
@@ -140,7 +141,10 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
 
     // Initialize mediator (Dependency Inversion: use provided or default to DefaultActionsChainsMediator)
-    this.mediator = config.mediator ?? new DefaultActionsChainsMediator(this.typeSystem, this);
+    this.mediator = config.mediator ?? new DefaultActionsChainsMediator({
+      typeSystem: this.typeSystem,
+      getDomainState: (domainId) => this.extensionManager.getDomainState(domainId),
+    });
 
     // Initialize event emitter and operation serializer
     this.eventEmitter = new DefaultEventEmitter();

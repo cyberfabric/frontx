@@ -179,18 +179,4 @@ export abstract class ExtensionManager {
    * Called during disposal to cleanup internal state.
    */
   abstract clear(): void;
-
-  /**
-   * Get the domains map for direct access.
-   * INTERNAL: Used by ScreensetsRegistry for test compatibility.
-   * @internal
-   */
-  abstract getDomainsMap(): Map<string, ExtensionDomainState>;
-
-  /**
-   * Get the extensions map for direct access.
-   * INTERNAL: Used by ScreensetsRegistry for test compatibility.
-   * @internal
-   */
-  abstract getExtensionsMap(): Map<string, ExtensionState>;
 }

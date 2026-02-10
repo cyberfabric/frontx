@@ -17,6 +17,7 @@ import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
 import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -102,7 +103,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
   beforeEach(() => {
     plugin = createMockPlugin();
     registry = createScreensetsRegistry({ typeSystem: plugin });
-    mediator = new DefaultActionsChainsMediator(plugin, registry);
+    mediator = new DefaultActionsChainsMediator({
+      typeSystem: plugin,
+      getDomainState: (domainId) => (registry as DefaultScreensetsRegistry).getDomainState(domainId),
+    });
   });
 
   describe('9.3.1 Success path execution', () => {
@@ -383,7 +387,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
       };
 
       const failingRegistry = createScreensetsRegistry({ typeSystem: failingPlugin });
-      const failingMediator = new DefaultActionsChainsMediator(failingPlugin, failingRegistry);
+      const failingMediator = new DefaultActionsChainsMediator({
+        typeSystem: failingPlugin,
+        getDomainState: (domainId) => (failingRegistry as DefaultScreensetsRegistry).getDomainState(domainId),
+      });
 
       const chain: ActionsChain = {
         action: {

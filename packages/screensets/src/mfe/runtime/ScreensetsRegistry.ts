@@ -17,10 +17,6 @@ import type {
   ActionsChain,
 } from '../types';
 import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
-import type { ExtensionDomainState } from './extension-manager';
-
-// Re-export ExtensionDomainState for external consumers (e.g., ActionsChainsMediator)
-export type { ExtensionDomainState } from './extension-manager';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -261,15 +257,6 @@ export abstract class ScreensetsRegistry {
    * @returns Array of extensions in the domain (empty if domain not found or has no extensions)
    */
   abstract getExtensionsForDomain(domainId: string): Extension[];
-
-  /**
-   * Get domain state for a registered domain.
-   * INTERNAL: Used by ActionsChainsMediator for domain resolution.
-   *
-   * @param domainId - ID of the domain
-   * @returns Domain state, or undefined if not found
-   */
-  abstract getDomainState(domainId: string): ExtensionDomainState | undefined;
 
   // --- Action Handlers (mediator-facing) ---
 
