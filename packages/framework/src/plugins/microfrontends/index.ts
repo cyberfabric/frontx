@@ -8,8 +8,8 @@
  * @packageDocumentation
  */
 
-import { createGtsPlugin } from '@hai3/screensets/plugins/gts';
-import { createScreensetsRegistry } from '@hai3/screensets';
+import { screensetsRegistryFactory } from '@hai3/screensets';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { HAI3Plugin } from '../../types';
 import { mfeSlice } from './slice';
 import { initMfeEffects } from './effects';
@@ -36,7 +36,7 @@ import {
  * **Key Principles:**
  * - NO configuration parameters - plugin accepts nothing
  * - NO static domain registration - domains are registered at runtime
- * - Creates GTS plugin and ScreensetsRegistry during plugin initialization
+ * - Builds screensetsRegistry with GTS plugin at plugin initialization
  * - Same TypeSystemPlugin instance is propagated throughout
  * - Integrates MFE lifecycle with Flux data flow (actions, effects, slice)
  *
@@ -71,16 +71,10 @@ export function microfrontends(): HAI3Plugin {
     );
   }
 
-  // Create GTS plugin instance - this will be shared across all MFE operations
-  // The same plugin instance ensures consistent type validation throughout
-  const gtsPlugin = createGtsPlugin();
-
-  // Create ScreensetsRegistry with the GTS plugin
+  // Build the ScreensetsRegistry instance with GTS plugin
   // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
-  const screensetsRegistry = createScreensetsRegistry({
-    typeSystem: gtsPlugin,
-    debug: false, // Will be set based on app.config.devMode in onInit
-  });
+  // TypeSystemPlugin binding happens here at application wiring level.
+  const screensetsRegistry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
   // Store cleanup functions in closure (encapsulated per plugin instance)
   let effectsCleanup: (() => void) | null = null;
@@ -122,7 +116,7 @@ export function microfrontends(): HAI3Plugin {
       // Update debug mode based on app config
       if (app.config.devMode) {
         console.log('[microfrontends] Plugin initialized');
-        console.log('[microfrontends] TypeSystemPlugin:', gtsPlugin.name, gtsPlugin.version);
+        console.log('[microfrontends] TypeSystemPlugin:', screensetsRegistry.typeSystem.name, screensetsRegistry.typeSystem.version);
         console.log('[microfrontends] Base domains are NOT pre-registered');
         console.log('[microfrontends] Register domains at runtime via app.screensetsRegistry.registerDomain()');
         console.log('[microfrontends] MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension, handleMfeHostAction');

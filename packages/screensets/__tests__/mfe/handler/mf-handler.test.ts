@@ -7,7 +7,7 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
-import { createGtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { MfeEntryMF, MfManifest } from '../../../src/mfe/types';
 import { MfeLoadError } from '../../../src/mfe/errors';
 
@@ -28,7 +28,7 @@ describe('MfeHandlerMF - Phase 17 Caching', () => {
   let containerNames: string[] = [];
 
   beforeEach(() => {
-    const typeSystem = createGtsPlugin();
+    const typeSystem = new GtsPlugin();
     handler = new MfeHandlerMF(typeSystem, { timeout: 5000, retries: 0 });
 
     // Save original document

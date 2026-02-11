@@ -13,7 +13,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
 import { RuntimeCoordinator, type RuntimeConnection } from '../../../src/mfe/coordination/types';
@@ -31,7 +32,7 @@ describe('Runtime Coordination', () => {
     container = document.createElement('div');
 
     // Create mock runtime
-    mockRuntime = createScreensetsRegistry({
+    mockRuntime = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
 
@@ -310,8 +311,8 @@ describe('Runtime Coordination', () => {
       const container1 = document.createElement('div');
       const container2 = document.createElement('div');
 
-      const runtime1 = createScreensetsRegistry({ typeSystem: gtsPlugin });
-      const runtime2 = createScreensetsRegistry({ typeSystem: gtsPlugin });
+      const runtime1 = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
+      const runtime2 = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
 
       const entryTypeId1 = 'gts.hai3.mfes.mfe.entry.v1~test.entry1.v1';
       const entryTypeId2 = 'gts.hai3.mfes.mfe.entry.v1~test.entry2.v1';
@@ -355,7 +356,7 @@ describe('Runtime Coordination', () => {
   describe('ScreensetsRegistry integration', () => {
     it('should use coordinator from config', () => {
       const customCoordinator = new WeakMapRuntimeCoordinator();
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: gtsPlugin,
         coordinator: customCoordinator,
       });
@@ -366,7 +367,7 @@ describe('Runtime Coordination', () => {
     });
 
     it('should default to WeakMapRuntimeCoordinator if not provided', () => {
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: gtsPlugin,
       });
 

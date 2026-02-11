@@ -1,51 +1,16 @@
 /**
- * MFE State Container Factory
+ * MFE State Container
  *
- * Provides framework-agnostic state container creation for MFE instances.
- * Each call to createMfeStateContainer() creates an independent store instance,
- * ensuring instance-level isolation (default handler behavior).
+ * Framework-agnostic state container for MFE instances.
+ * DefaultMfeStateContainer is used internally by DefaultMountManager for bridge construction.
  *
  * Key Principles:
- * - Framework-agnostic (no Redux, no React assumptions)
+ * - Framework-agnostic (no store slice, no React assumptions)
  * - Instance-level isolation (each MFE gets its own store)
  * - Proper disposal on unmount
  *
  * @packageDocumentation
  */
-
-/**
- * Simple state container for MFE instances.
- *
- * This is a minimal framework-agnostic state container that provides:
- * - State storage
- * - State updates
- * - Subscription mechanism
- * - Disposal
- */
-export interface MfeStateContainer<TState = unknown> {
-  /**
-   * Get the current state.
-   */
-  getState(): TState;
-
-  /**
-   * Update the state.
-   * @param updater - Function to compute new state from current state
-   */
-  setState(updater: (state: TState) => TState): void;
-
-  /**
-   * Subscribe to state changes.
-   * @param listener - Function called when state changes
-   * @returns Unsubscribe function
-   */
-  subscribe(listener: (state: TState) => void): () => void;
-
-  /**
-   * Dispose the container and cleanup all subscriptions.
-   */
-  dispose(): void;
-}
 
 /**
  * Configuration for creating an MFE state container.
@@ -58,108 +23,114 @@ export interface MfeStateContainerConfig<TState = unknown> {
 }
 
 /**
- * Create an independent MFE state container.
+ * Abstract class defining the MFE state container contract.
  *
- * Each call creates a completely isolated store instance.
- * This is the default handler behavior for instance-level isolation.
+ * This is a minimal framework-agnostic state container that provides:
+ * - State storage
+ * - State updates
+ * - Subscription mechanism
+ * - Disposal
  *
- * **Framework-agnostic:** This is a pure TypeScript implementation
- * with no dependencies on React, Redux, or any specific framework.
- *
- * @param config - Configuration for the state container
- * @returns A new isolated state container
- *
- * @example
- * ```typescript
- * // Create isolated state for an MFE instance
- * const stateContainer = createMfeStateContainer({
- *   initialState: { count: 0, user: null }
- * });
- *
- * // Subscribe to changes
- * const unsubscribe = stateContainer.subscribe((state) => {
- *   console.log('State changed:', state);
- * });
- *
- * // Update state
- * stateContainer.setState((state) => ({ ...state, count: state.count + 1 }));
- *
- * // Cleanup on unmount
- * stateContainer.dispose();
- * ```
+ * Exported from @hai3/screensets for DIP -- consumers type against this.
  */
-export function createMfeStateContainer<TState = unknown>(
-  config: MfeStateContainerConfig<TState>
-): MfeStateContainer<TState> {
-  let state: TState | null = config.initialState;
-  const listeners = new Set<(state: TState) => void>();
-  let disposed = false;
+export abstract class MfeStateContainer<TState = unknown> {
+  /**
+   * Get the current state.
+   */
+  abstract getState(): TState;
 
-  return {
-    getState(): TState {
-      if (disposed || state === null) {
-        throw new Error('Cannot get state from disposed container');
-      }
-      return state;
-    },
+  /**
+   * Update the state.
+   * @param updater - Function to compute new state from current state
+   */
+  abstract setState(updater: (state: TState) => TState): void;
 
-    setState(updater: (state: TState) => TState): void {
-      if (disposed || state === null) {
-        throw new Error('Cannot set state on disposed container');
-      }
+  /**
+   * Subscribe to state changes.
+   * @param listener - Function called when state changes
+   * @returns Unsubscribe function
+   */
+  abstract subscribe(listener: (state: TState) => void): () => void;
 
-      const newState = updater(state);
-      if (newState !== state) {
-        state = newState;
-        // Notify all listeners
-        listeners.forEach((listener) => {
-          try {
-            listener(state as TState);
-          } catch (error) {
-            console.error('Error in state listener:', error);
-          }
-        });
-      }
-    },
+  /**
+   * Dispose the container and cleanup all subscriptions.
+   */
+  abstract dispose(): void;
 
-    subscribe(listener: (state: TState) => void): () => void {
-      if (disposed) {
-        throw new Error('Cannot subscribe to disposed container');
-      }
-
-      listeners.add(listener);
-
-      // Return unsubscribe function
-      return () => {
-        listeners.delete(listener);
-      };
-    },
-
-    dispose(): void {
-      if (disposed) {
-        return; // Idempotent
-      }
-
-      disposed = true;
-      listeners.clear();
-      state = null;
-    },
-  };
+  /**
+   * Whether the container is disposed.
+   * Returns true if the container is disposed (attempts to use will throw).
+   */
+  abstract get disposed(): boolean;
 }
 
 /**
- * Type guard to check if a container is disposed.
- *
- * @param container - The container to check
- * @returns True if the container is disposed (attempts to use will throw)
+ * Default concrete implementation of MfeStateContainer.
+ * INTERNAL: Used only by DefaultMountManager for bridge construction.
+ * NOT exported from public barrel.
  */
-export function isMfeStateContainerDisposed<TState>(
-  container: MfeStateContainer<TState>
-): boolean {
-  try {
-    container.getState();
-    return false;
-  } catch {
-    return true;
+export class DefaultMfeStateContainer<TState = unknown> extends MfeStateContainer<TState> {
+  private currentState: TState | null;
+  private listeners: Set<(state: TState) => void>;
+  private isDisposed: boolean;
+
+  constructor(config: MfeStateContainerConfig<TState>) {
+    super();
+    this.currentState = config.initialState;
+    this.listeners = new Set();
+    this.isDisposed = false;
+  }
+
+  getState(): TState {
+    if (this.isDisposed || this.currentState === null) {
+      throw new Error('Cannot get state from disposed container');
+    }
+    return this.currentState;
+  }
+
+  setState(updater: (state: TState) => TState): void {
+    if (this.isDisposed || this.currentState === null) {
+      throw new Error('Cannot set state on disposed container');
+    }
+
+    const newState = updater(this.currentState);
+    if (newState !== this.currentState) {
+      this.currentState = newState;
+      // Notify all listeners
+      this.listeners.forEach((listener) => {
+        try {
+          listener(this.currentState as TState);
+        } catch (error) {
+          console.error('Error in state listener:', error);
+        }
+      });
+    }
+  }
+
+  subscribe(listener: (state: TState) => void): () => void {
+    if (this.isDisposed) {
+      throw new Error('Cannot subscribe to disposed container');
+    }
+
+    this.listeners.add(listener);
+
+    // Return unsubscribe function
+    return () => {
+      this.listeners.delete(listener);
+    };
+  }
+
+  dispose(): void {
+    if (this.isDisposed) {
+      return; // Idempotent
+    }
+
+    this.isDisposed = true;
+    this.listeners.clear();
+    this.currentState = null;
+  }
+
+  get disposed(): boolean {
+    return this.isDisposed;
   }
 }

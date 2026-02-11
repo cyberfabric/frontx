@@ -417,9 +417,11 @@ export class LoggingPluginWrapper implements TypeSystemPlugin {
 }
 
 // Usage
+import { DefaultScreensetsRegistry, gtsPlugin } from '@hai3/screensets';
+
 const loggedPlugin = new LoggingPluginWrapper(gtsPlugin, myLogger);
 
-const runtime = createScreensetsRegistry({
+const runtime = new DefaultScreensetsRegistry({
   typeSystem: loggedPlugin,
 });
 ```
@@ -565,13 +567,13 @@ describe('CustomPlugin', () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { createScreensetsRegistry } from '@hai3/screensets';
+import { DefaultScreensetsRegistry } from '@hai3/screensets';
 import { createCustomPlugin } from './custom-plugin';
 
 describe('CustomPlugin Integration', () => {
   it('should work with ScreensetsRegistry', async () => {
     const plugin = createCustomPlugin();
-    const runtime = createScreensetsRegistry({
+    const runtime = new DefaultScreensetsRegistry({
       typeSystem: plugin,
     });
 

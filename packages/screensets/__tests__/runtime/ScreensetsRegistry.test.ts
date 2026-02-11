@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { createScreensetsRegistry } from '../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { ScreensetsRegistryConfig } from '../../src/mfe/runtime/config';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../src/mfe/plugins/types';
 import type { ExtensionDomain, Action, ActionsChain } from '../../src/mfe/types';
@@ -98,14 +98,14 @@ describe('ScreensetsRegistry - Phase 4', () => {
   describe('4.1 Runtime Configuration', () => {
     it('should create registry with required typeSystem parameter', () => {
       const config = createTestConfig();
-      const registry = createScreensetsRegistry(config);
+      const registry = new DefaultScreensetsRegistry(config);
       expect(registry).toBeDefined();
       expect(registry.typeSystem).toBe(config.typeSystem);
     });
 
     it('should throw error if typeSystem is missing', () => {
       const invalidConfig = {} as ScreensetsRegistryConfig;
-      expect(() => createScreensetsRegistry(invalidConfig)).toThrow(
+      expect(() => new DefaultScreensetsRegistry(invalidConfig)).toThrow(
         'ScreensetsRegistry requires a TypeSystemPlugin'
       );
     });
@@ -116,7 +116,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: createMockPlugin(),
         onError,
       };
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
@@ -125,7 +125,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: createMockPlugin(),
         debug: true,
       };
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
@@ -134,7 +134,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: createMockPlugin(),
         loadingComponent: 'LoadingComponent',
       };
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
@@ -143,7 +143,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: createMockPlugin(),
         errorFallbackComponent: 'ErrorComponent',
       };
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
@@ -158,7 +158,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: createMockPlugin(),
         mfeHandler: mockHandler as unknown,
       };
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
   });
@@ -166,14 +166,14 @@ describe('ScreensetsRegistry - Phase 4', () => {
   describe('4.2 ScreensetsRegistry Core with Plugin', () => {
     it('should store plugin reference as readonly typeSystem', () => {
       const config = createTestConfig();
-      const registry = createScreensetsRegistry(config);
+      const registry = new DefaultScreensetsRegistry(config);
       expect(registry.typeSystem).toBe(config.typeSystem);
       expect(registry.typeSystem.name).toBe('MockPlugin');
       expect(registry.typeSystem.version).toBe('1.0.0');
     });
 
     it('should verify first-class schemas are available', () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       const coreTypeIds = [
         'gts.hai3.mfes.mfe.entry.v1~',
@@ -202,7 +202,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: incompletePlugin,
       };
 
-      expect(() => createScreensetsRegistry(incompleteConfig)).toThrow(
+      expect(() => new DefaultScreensetsRegistry(incompleteConfig)).toThrow(
         'TypeSystemPlugin is missing first-class citizen schemas'
       );
     });
@@ -221,14 +221,14 @@ describe('ScreensetsRegistry - Phase 4', () => {
         mfeHandler: mockHandler as unknown,
       };
 
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
   });
 
   describe('4.3 Type ID Validation via Plugin', () => {
     it('should validate domain type ID via plugin before registration', () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       const validDomain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
@@ -244,7 +244,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
     });
 
     it('should validate action type ID via plugin before chain execution', async () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -272,7 +272,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
     });
 
     it('should return validation error if type IDs are invalid', async () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       const invalidAction: Action = {
         type: 'invalid-type-id', // Missing required format
@@ -292,7 +292,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
   describe('4.4 Payload Validation via Plugin', () => {
     it('should validate payload via plugin before delivery', async () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -339,7 +339,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         typeSystem: failingPlugin,
       };
 
-      const registry = createScreensetsRegistry(registryConfig);
+      const registry = new DefaultScreensetsRegistry(registryConfig);
 
       const actionWithInvalidPayload: Action = {
         type: 'gts.hai3.screensets.ext.action.v1~test.action.v1~',
@@ -358,7 +358,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
     });
 
     it('should allow actions without payload', async () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -388,7 +388,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
   describe('Registry Disposal', () => {
     it('should dispose registry and clean up resources', () => {
-      const registry = createScreensetsRegistry(createTestConfig());
+      const registry = new DefaultScreensetsRegistry(createTestConfig());
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',

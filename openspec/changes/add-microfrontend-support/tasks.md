@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 21.7 complete. All phases 1-21 fully complete (including 21.7 EventEmitter removal).
+**Current Status**: Phase 21.10 complete. All standalone factory functions eliminated. Construction patterns: singleton constant (`gtsPlugin`), factory-with-cache (`screensetsRegistryFactory`), and internal construction (`MfeStateContainer` by `DefaultMountManager`). 363/363 screensets + 19/19 react tests passing.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
@@ -10,6 +10,14 @@
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
 - **Phase 21** (21.1-21.6): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, ParentMfeBridge 2; EventEmitter removed entirely in Phase 21.7). Zero circular dependencies. 367/367 tests passing
 - **Phase 21.7**: ✓ Complete -- EventEmitter system removed entirely. `event-emitter.ts` deleted, `on`/`off` removed from abstract ScreensetsRegistry, all `emit()` calls removed from collaborators. `useExtensionEvents` renamed to `useDomainExtensions` with store subscription. Specs updated. 363/363 screensets + 19/19 react tests passing
+
+### Current State Summary
+
+| Component | Current Pattern | Authoritative Phase |
+|-----------|----------------|-------------------|
+| GtsPlugin | Singleton constant (`gtsPlugin`) | Phase 21.9.1 |
+| ScreensetsRegistry | Factory-with-cache (`screensetsRegistryFactory`) | Phase 21.10 |
+| MfeStateContainer | Internal construction by `DefaultMountManager` | Phase 21.9.2 |
 
 ---
 
@@ -65,7 +73,7 @@
 
 ### 2.2 Export GTS Plugin
 
-- [x] 2.2.1 Export `createGtsPlugin()` factory function
+- [x] 2.2.1 Export `createGtsPlugin()` factory function -- **REOPENED (3rd time)**: Standalone factory must be removed entirely. GtsPlugin is a singleton; only `gtsPlugin` constant is exported. See Phase 21.9.1. **RESOLVED by Phase 21.9.1.**
 - [x] 2.2.2 Export `gtsPlugin` singleton instance
 - [x] 2.2.3 Configure package.json exports for `@hai3/screensets/plugins/gts`
 - [x] 2.2.4 Add `@globaltypesystem/gts-ts` as a proper dependency (NOT optional)
@@ -153,7 +161,7 @@
 - [x] 4.1.1 Create `ScreensetsRegistryConfig` interface
 - [x] 4.1.2 Add required `typeSystem` parameter
 - [x] 4.1.3 Add optional `onError`, `loadingComponent`, `errorFallbackComponent`, `debug`, `mfeHandler`, `parentBridge` parameters
-- [x] 4.1.4 Implement `createScreensetsRegistry(config)` factory
+- [x] 4.1.4 Implement `createScreensetsRegistry(config)` factory -- **REOPENED (4th time)**: Singleton constant hardcodes `gtsPlugin` at module initialization, defeating `TypeSystemPlugin` pluggability. Must be replaced with factory-with-cache pattern (`ScreensetsRegistryFactory`). See Phase 21.10. **Previously resolved by Phase 21.9.3; reopened for Phase 21.10.**
 
 **Traceability**: Requirement "Type System Plugin Abstraction" - Plugin requirement at initialization
 
@@ -443,7 +451,7 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 
 ### 7.8 Plugin Propagation
 
-- [x] 7.8.1 Pass plugin to `createScreensetsRegistry()` in setup
+- [x] 7.8.1 Pass plugin to `createScreensetsRegistry()` in setup -- **SUPERSEDED by Phase 21.10** -- plugin is wired via `screensetsRegistryFactory.build(config)` at application wiring time.
 - [x] 7.8.2 Expose runtime via `framework.provide('screensetsRegistry', runtime)`
 - [x] 7.8.3 Ensure same plugin instance is used throughout
 
@@ -473,7 +481,7 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 
 ### 8.1 State Container Factory
 
-- [x] 8.1.1 Create `createMfeStateContainer()` factory function
+- [x] 8.1.1 Create `createMfeStateContainer()` factory function -- **REOPENED (3rd time)**: Standalone factory must be removed; `MfeStateContainer` is a pure abstract class with no static methods; `DefaultMountManager` constructs instances directly. See Phase 21.9.2. **RESOLVED by Phase 21.9.2.**
 - [x] 8.1.2 Ensure each call creates independent store instance (default handler behavior)
 - [x] 8.1.3 Implement store disposal on MFE unmount
 - [x] 8.1.4 Add store isolation verification tests
@@ -1227,7 +1235,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 
 **Prerequisite**: Phase 19 implementation complete. This phase is a structural refactoring -- no new features, no behavioral changes.
 
-**Architectural Reference**: [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction), [Principles - Abstract Class Layers](./design/principles.md#abstract-class-layers-with-factory-construction)
+**Architectural Reference**: [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction), [Principles - Abstract Class Layers](./design/principles.md#abstract-class-layers-with-singleton-construction)
 
 ### 21.1 Extract Abstract ScreensetsRegistry
 
@@ -1269,7 +1277,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 ### 21.4 Update Test Files
 
 - [x] 21.4.1 Update test files that access `@internal` test shims (`domains`, `extensions`, `triggerLifecycleStageInternal`) to import `DefaultScreensetsRegistry` directly from `DefaultScreensetsRegistry.ts` using relative imports (NOT from public barrel).
-- [x] 21.4.2 Update test files that create `ScreensetsRegistry` instances to use `createScreensetsRegistry()` factory instead of `new ScreensetsRegistry()`.
+- [x] 21.4.2 Update test files that create `ScreensetsRegistry` instances to use `createScreensetsRegistry()` factory instead of `new ScreensetsRegistry()`. -- **SUPERSEDED by Phase 21.9.3** -- test files that need custom configurations import `DefaultScreensetsRegistry` directly; production code uses the `screensetsRegistry` singleton.
 - [x] 21.4.3 Update test assertions to verify the factory returns the abstract `ScreensetsRegistry` type (i.e., `instanceof ScreensetsRegistry` is true).
 - [x] 21.4.4 Update test files for extension-manager: import `DefaultExtensionManager` from `default-extension-manager.ts` where concrete internals are needed.
 - [x] 21.4.5 Update test files for lifecycle-manager: import `DefaultLifecycleManager` from `default-lifecycle-manager.ts` where concrete internals are needed.
@@ -1450,3 +1458,181 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - [x] 21.7.35 Verify no references to `useExtensionEvents` remain in any spec or source file.
 
 **Traceability**: EventEmitter removal validation -- no regressions, event system is fully eliminated from implementation, specs, and tests.
+
+---
+
+## Phase 21.8: Class-Based Refactoring for GtsPlugin and MfeStateContainer
+
+**Goal**: Refactor two architectural violations where factory functions return plain objects with closure-based state instead of the required abstract class + concrete class pattern. This aligns `GtsPlugin` and `MfeStateContainer` with every other stateful component in the MFE runtime.
+
+**Prerequisite**: Phase 21.7 complete. This phase is a structural refactoring -- no new features, no behavioral changes.
+
+**Architectural Reference**: [Registry Runtime - No Functional Factories for Stateful Components](./design/registry-runtime.md#no-functional-factories-for-stateful-components), [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction)
+
+### 21.8.1 Refactor GtsPlugin to Class-Based Pattern
+
+**Violation**: `createGtsPlugin()` in `packages/screensets/src/mfe/plugins/gts/index.ts` returns a plain object literal implementing `TypeSystemPlugin`. The `GtsStore` instance is hidden in a closure variable instead of a private class field.
+
+- [x] 21.8.1.1 Create concrete `GtsPlugin` class implementing `TypeSystemPlugin` in `packages/screensets/src/mfe/plugins/gts/index.ts`. Move the `GtsStore` instance to a `private readonly gtsStore` field. Move all method implementations from the returned object literal into class methods that reference `this.gtsStore` instead of the closure variable.
+- [x] 21.8.1.2 Update `createGtsPlugin()` factory to instantiate `new GtsPlugin()` and return it typed as `TypeSystemPlugin`. The factory function remains for API compatibility. -- **SUPERSEDED by Phase 21.9.1** -- `createGtsPlugin()` factory is removed entirely.
+- [x] 21.8.1.3 Update `gtsPlugin` singleton to use the typed factory: `export const gtsPlugin: TypeSystemPlugin = createGtsPlugin()`. -- **SUPERSEDED by Phase 21.9.1** -- `gtsPlugin` is instantiated directly via `new GtsPlugin()`, not via factory.
+- [x] 21.8.1.4 Do NOT export the `GtsPlugin` class from the public barrel. Only `createGtsPlugin` and `gtsPlugin` are exported. The concrete class is an implementation detail. -- **SUPERSEDED by Phase 21.9.1** -- only `gtsPlugin` is exported; `createGtsPlugin` is removed.
+- [x] 21.8.1.5 Verify all existing GTS plugin tests pass without modification. The refactoring is behavioral no-op -- tests interact through the `TypeSystemPlugin` interface.
+
+**Traceability**: Reopened task 2.2.1. Design: [type-system.md - GTS Plugin Implementation](./design/type-system.md#decision-1-type-system-plugin-interface). Principle: "No Functional Factories for Stateful Components" in registry-runtime.md.
+
+### 21.8.2 Refactor MfeStateContainer to Abstract Class + Concrete Class Pattern
+
+**Violation**: `createMfeStateContainer()` in `packages/screensets/src/mfe/state/index.ts` returns a plain object `{ getState(), setState(), subscribe(), dispose() }` with state hidden in closure variables (`state`, `listeners`, `disposed`).
+
+- [x] 21.8.2.1 Replace the existing `MfeStateContainer<TState>` interface with an abstract class of the same name in `packages/screensets/src/mfe/state/index.ts` (or a new file `mfe-state-container.ts` if the file is too large). Remove the old interface definition. Define abstract methods: `getState(): TState`, `setState(updater: (prev: TState) => TState): void`, `subscribe(listener: (state: TState) => void): () => void`, `dispose(): void`, and `readonly disposed: boolean` abstract getter.
+- [x] 21.8.2.2 Create concrete `DefaultMfeStateContainer<TState>` extending `MfeStateContainer<TState>` in the same module. Move closure variables to private fields: `private state: TState`, `private listeners: Set<(state: TState) => void>`, `private _disposed: boolean`. Implement all abstract methods using `this.state`, `this.listeners`, `this._disposed` instead of closure references.
+- [x] 21.8.2.3 Update `createMfeStateContainer<TState>(config: MfeStateContainerConfig<TState>): MfeStateContainer<TState>` factory to instantiate `new DefaultMfeStateContainer(config)`. Preserve the existing config-object signature -- this is a structural refactoring, not an API change. The return type changes from a plain object type to `MfeStateContainer<TState>`.
+- [x] 21.8.2.4 Integrate `isMfeStateContainerDisposed()` into the abstract class as the `disposed` getter. Remove the standalone function if it becomes redundant. If external code calls `isMfeStateContainerDisposed(container)`, update those call sites to use `container.disposed` instead.
+- [x] 21.8.2.5 Export the abstract `MfeStateContainer` class from `@hai3/screensets` (for DIP -- consumers type against the abstract class). Do NOT export `DefaultMfeStateContainer` from the public barrel.
+- [x] 21.8.2.6 Update all test files that reference the old plain object type or `isMfeStateContainerDisposed()` to use the new `MfeStateContainer<TState>` type and `container.disposed` getter. Verify all existing state container tests pass.
+
+**Traceability**: Reopened task 8.1.1. Design: "No Functional Factories for Stateful Components" in registry-runtime.md. Requirement: "Instance-Level Isolation (Default Behavior, Framework-Agnostic)" -- MFE state isolation.
+
+### 21.8.3 Validation
+
+- [x] 21.8.3.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.8.3.2 Run `npm run test` -- all existing tests must pass with no behavioral changes.
+- [x] 21.8.3.3 Run `npm run build` -- must pass.
+- [x] 21.8.3.4 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 21.8.3.5 Verify `GtsPlugin` class is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output). Only `createGtsPlugin` and `gtsPlugin` appear. -- **SUPERSEDED by Phase 21.9.1** -- `createGtsPlugin` must no longer appear in `.d.ts` output.
+- [x] 21.8.3.6 Verify `DefaultMfeStateContainer` class is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output). Only `MfeStateContainer` (abstract) and `createMfeStateContainer` appear. -- **SUPERSEDED by Phase 21.9.2** -- `createMfeStateContainer` must no longer appear in `.d.ts` output.
+
+**Traceability**: Class-based refactoring validation -- no regressions, public API surface is correct.
+
+---
+
+## Phase 21.9: Eliminate Standalone Factory Functions
+
+**Goal**: Remove all standalone factory functions (`createGtsPlugin()`, `createMfeStateContainer()`, `createScreensetsRegistry()`) and replace them with the correct patterns: singleton constants (for single-instance components) or direct construction in internal wiring code (for multi-instance components). Standalone factory functions and static factory methods on abstract classes both violate the class-based architecture principle.
+
+**Prerequisite**: Phase 21.8 complete. This phase is a structural refactoring -- no new features, no behavioral changes.
+
+**Architectural Reference**: [Registry Runtime - No Standalone Factory Functions](./design/registry-runtime.md#no-standalone-factory-functions-for-stateful-components), [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction)
+
+### 21.9.1 GtsPlugin Singleton (Remove createGtsPlugin)
+
+GtsPlugin is a singleton -- one GTS type system per application. The `createGtsPlugin()` factory allows creating multiple instances, which is architecturally wrong. Remove the factory entirely; `gtsPlugin` is the only public export.
+
+- [x] 21.9.1.1 Remove `createGtsPlugin()` standalone function from `packages/screensets/src/mfe/plugins/gts/index.ts`.
+- [x] 21.9.1.2 Change `gtsPlugin` to instantiate directly: `export const gtsPlugin: TypeSystemPlugin = new GtsPlugin()` (no factory indirection).
+- [x] 21.9.1.3 Remove `createGtsPlugin` from barrel exports in `packages/screensets/src/mfe/index.ts` and `packages/screensets/src/index.ts`.
+- [x] 21.9.1.4 Update any call sites that use `createGtsPlugin()` to use the `gtsPlugin` singleton instead. Search the entire codebase for `createGtsPlugin`.
+
+**Traceability**: Reopened task 2.2.1. Design: [type-system.md - GtsPlugin Singleton](./design/type-system.md#decision-1-type-system-plugin-interface). Principle: "No Standalone Factory Functions" in registry-runtime.md.
+
+### 21.9.2 MfeStateContainer Pure Abstract (Replace createMfeStateContainer)
+
+Make `MfeStateContainer` a pure abstract class with NO static methods. Remove standalone `createMfeStateContainer()`. `DefaultMountManager` constructs `DefaultMfeStateContainer` instances directly (internal wiring). No public construction path exists.
+
+- [x] 21.9.2.1 Remove `static create()` from abstract `MfeStateContainer` class if present. The abstract class must be a pure contract with NO static methods and NO import of `DefaultMfeStateContainer`.
+- [x] 21.9.2.2 Remove standalone `createMfeStateContainer()` function from its source file.
+- [x] 21.9.2.3 Update barrel exports: remove `createMfeStateContainer` from all barrel files. `MfeStateContainer` (abstract class, pure contract) remains exported for DIP typing.
+- [x] 21.9.2.4 Update all call sites: `DefaultMountManager` constructs `new DefaultMfeStateContainer(config)` directly (internal wiring code that already knows concrete types). Search the entire codebase for `createMfeStateContainer` and `MfeStateContainer.create` to ensure none remain.
+
+**Traceability**: Reopened task 8.1.1. Design: [registry-runtime.md - MfeStateContainer](./design/registry-runtime.md#mfestatecontainer). Principle: "No Standalone Factory Functions" in registry-runtime.md.
+
+### 21.9.3 ScreensetsRegistry Singleton (Replace createScreensetsRegistry)
+
+**SUPERSEDED by Phase 21.10** -- the `screensetsRegistry` singleton constant created in this phase is replaced by the `screensetsRegistryFactory` factory-with-cache pattern. See Phase 21.10 for the current construction approach.
+
+Make `ScreensetsRegistry` a pure abstract class with NO static methods. Remove standalone `createScreensetsRegistry()`. Create a `screensetsRegistry` singleton constant in the barrel/initialization file. Delete `create-screensets-registry.ts`.
+
+- [x] 21.9.3.1 Remove `static create()` from abstract `ScreensetsRegistry` class in `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts` if present. The abstract class must be a pure contract with NO static methods and NO import of `DefaultScreensetsRegistry`.
+- [x] 21.9.3.2 Create singleton `screensetsRegistry` constant in `packages/screensets/src/mfe/runtime/index.ts` (barrel/initialization file): `export const screensetsRegistry: ScreensetsRegistry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin })`. This is the ONLY code that imports `DefaultScreensetsRegistry`.
+- [x] 21.9.3.3 Remove standalone `createScreensetsRegistry()` function from `packages/screensets/src/mfe/runtime/create-screensets-registry.ts`.
+- [x] 21.9.3.4 Delete the `create-screensets-registry.ts` file entirely (it only contained the standalone factory function).
+- [x] 21.9.3.5 Update barrel exports: remove `createScreensetsRegistry` from all barrel files. Export `screensetsRegistry` (singleton constant) and `ScreensetsRegistry` (abstract class, pure contract) from the barrel.
+- [x] 21.9.3.6 Update all call sites from `createScreensetsRegistry(config)` or `ScreensetsRegistry.create(config)` to use the `screensetsRegistry` singleton. Search the entire codebase for `createScreensetsRegistry` and `ScreensetsRegistry.create` to ensure none remain.
+
+**Traceability**: Reopened task 4.1.4. Design: [registry-runtime.md - Factory-with-Cache Pattern](./design/registry-runtime.md#factory-with-cache-pattern) (was "Singleton Pattern" before Phase 21.10 replaced it with factory-with-cache). Principle: "No Standalone Factory Functions" in registry-runtime.md.
+
+### 21.9.4 Validation
+
+- [x] 21.9.4.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.9.4.2 Run `npm run test` -- all existing tests must pass with no behavioral changes.
+- [x] 21.9.4.3 Run `npm run build` -- must pass.
+- [x] 21.9.4.4 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 21.9.4.5 Verify no standalone `create*` factory functions and no static `create()` methods on abstract classes appear in public `.d.ts` output. Specifically: `createGtsPlugin`, `createMfeStateContainer`, `createScreensetsRegistry`, `ScreensetsRegistry.create`, and `MfeStateContainer.create` must NOT appear. Only `screensetsRegistry` (singleton constant) and `gtsPlugin` (singleton constant) should appear as construction points.
+
+**Traceability**: Standalone factory function and static factory method elimination validation -- no regressions, public API surface is correct.
+
+---
+
+## Phase 21.10: Factory-with-Cache for ScreensetsRegistry
+
+**Goal**: Replace the `screensetsRegistry` singleton constant (which hardcodes `gtsPlugin` at module initialization time) with a `ScreensetsRegistryFactory` factory-with-cache pattern. This makes `TypeSystemPlugin` truly pluggable by deferring the binding of the type system plugin to application wiring time. The factory caches the instance after the first `build()` call and returns it on subsequent calls.
+
+**Prerequisite**: Phase 21.9 complete. This phase is a structural refactoring -- no new features, no behavioral changes to existing consumers that use GTS.
+
+**Architectural Reference**: [Registry Runtime - Factory-with-Cache Pattern](./design/registry-runtime.md#factory-with-cache-pattern), [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction), [Principles - Abstract Class Layers](./design/principles.md#abstract-class-layers-with-singleton-construction)
+
+**Motivation**: The current pattern creates the `ScreensetsRegistry` singleton as `new DefaultScreensetsRegistry({ typeSystem: gtsPlugin })` in the barrel file. This hardcodes `gtsPlugin` at import time, defeating the entire purpose of `TypeSystemPlugin` being a pluggable abstraction. A custom type system plugin can never be provided because the registry is already constructed with GTS by the time any consumer code runs.
+
+### 21.10.1 Create ScreensetsRegistryFactory Abstract Class
+
+- [x] 21.10.1.1 Create `packages/screensets/src/mfe/runtime/ScreensetsRegistryFactory.ts` as an abstract class with a single abstract method: `abstract build(config: ScreensetsRegistryConfig): ScreensetsRegistry`. The class is a pure contract -- NO static methods, NO knowledge of `DefaultScreensetsRegistryFactory` or `DefaultScreensetsRegistry`.
+
+**Traceability**: Requirement "Abstract Class Layers" -- factory abstraction is a pure contract. Reopened task 4.1.4 -- `TypeSystemPlugin` must be truly pluggable.
+
+### 21.10.2 Create DefaultScreensetsRegistryFactory Concrete Class
+
+- [x] 21.10.2.1 Create `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistryFactory.ts` containing a concrete class extending `ScreensetsRegistryFactory`. The class has a `private instance: ScreensetsRegistry | null = null` field and a `private cachedConfig: ScreensetsRegistryConfig | null = null` field. The `build(config)` method: (a) if `this.instance` is not null, checks that `config.typeSystem` matches the cached config's typeSystem; throws an error if they differ (config-mismatch detection to catch misconfiguration early); otherwise returns `this.instance` (cached singleton); (b) if `this.instance` is null, creates `new DefaultScreensetsRegistry(config)`, caches the config, stores the instance in `this.instance`, and returns it. This is the ONLY code that imports `DefaultScreensetsRegistry` (alongside test files that import it directly for testing concrete internals).
+
+**Traceability**: Requirement "Abstract Class Layers" -- concrete factory caches the instance. Reopened task 4.1.4.
+
+### 21.10.3 Export screensetsRegistryFactory Singleton Constant
+
+- [x] 21.10.3.1 In `packages/screensets/src/mfe/runtime/index.ts` (barrel), create the singleton factory constant: `export const screensetsRegistryFactory: ScreensetsRegistryFactory = new DefaultScreensetsRegistryFactory()`. Import `DefaultScreensetsRegistryFactory` from `./DefaultScreensetsRegistryFactory`.
+
+**Traceability**: Requirement "Abstract Class Layers" -- singleton factory constant is the only construction point. Reopened task 4.1.4.
+
+### 21.10.4 Remove screensetsRegistry Pre-Built Singleton
+
+- [x] 21.10.4.1 Remove the `screensetsRegistry` singleton constant from `packages/screensets/src/mfe/runtime/index.ts`. It no longer exists -- the factory provides the instance. Remove the `import { gtsPlugin }` and `import { DefaultScreensetsRegistry }` lines that were used only for the singleton constant construction (note: `DefaultScreensetsRegistryFactory` import replaces the `DefaultScreensetsRegistry` import in the barrel).
+
+**Traceability**: Reopened task 4.1.4 -- the pre-built singleton hardcodes `gtsPlugin`, defeating pluggability.
+
+### 21.10.5 Update Barrel Exports
+
+- [x] 21.10.5.1 Update `packages/screensets/src/mfe/runtime/index.ts` barrel: export `ScreensetsRegistryFactory` (abstract class) from `./ScreensetsRegistryFactory` and `screensetsRegistryFactory` (singleton factory constant). Remove the `screensetsRegistry` export.
+- [x] 21.10.5.2 Update `packages/screensets/src/mfe/index.ts` barrel: replace `screensetsRegistry` re-export with `screensetsRegistryFactory` and `ScreensetsRegistryFactory` re-exports.
+- [x] 21.10.5.3 Update `packages/screensets/src/index.ts` barrel: replace `screensetsRegistry` re-export with `screensetsRegistryFactory` and `ScreensetsRegistryFactory` re-exports.
+
+**Traceability**: [Design - Export Policy](./design/registry-runtime.md#export-policy). `screensetsRegistry` is removed; `screensetsRegistryFactory` and `ScreensetsRegistryFactory` are the replacements.
+
+### 21.10.6 Update Framework Plugin
+
+- [x] 21.10.6.1 Update `packages/framework/src/plugins/microfrontends/` to use `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` instead of importing `screensetsRegistry` directly. The `gtsPlugin` import remains from `@hai3/screensets`. This is the application wiring point where the type system binding occurs.
+
+**Traceability**: Requirement "Type System Plugin Abstraction" -- GTS binding happens at framework wiring, not module initialization.
+
+### 21.10.7 Update Test Files
+
+- [x] 21.10.7.1 Update test files that imported `screensetsRegistry` singleton to use the factory instead: `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })`. Tests that need custom configs continue to use `new DefaultScreensetsRegistry(config)` directly (unchanged -- they import from the concrete file path).
+- [x] 21.10.7.2 Search the entire codebase for `screensetsRegistry` (excluding `screensetsRegistryFactory`) to ensure no references to the removed singleton remain.
+
+**Traceability**: Reopened task 4.1.4 -- test compatibility with factory-with-cache pattern.
+
+### 21.10.8 Update Documentation References
+
+- [x] 21.10.8.1 Search all `openspec/` files and update remaining references to `screensetsRegistry` singleton to reference `screensetsRegistryFactory.build(config)`. This includes spec files, design docs, and any code examples that show `screensetsRegistry.registerDomain(...)` or similar patterns -- they should show obtaining the registry from the factory first.
+- [x] 21.10.8.2 Update JSDoc example in `packages/screensets/src/mfe/plugins/gts/index.ts` to show `screensetsRegistryFactory.build(config)` instead of `import { screensetsRegistry } from '@hai3/screensets'`.
+
+**Traceability**: Documentation consistency with factory-with-cache pattern.
+
+### 21.10.9 Validation
+
+- [x] 21.10.9.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.10.9.2 Run `npm run test` -- all existing tests must pass with no behavioral changes.
+- [x] 21.10.9.3 Run `npm run build` -- must pass.
+- [x] 21.10.9.4 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 21.10.9.5 Verify `screensetsRegistry` singleton constant does NOT appear in `@hai3/screensets` public type declarations (`.d.ts` output). Only `screensetsRegistryFactory` (singleton factory constant), `ScreensetsRegistryFactory` (abstract class), and `ScreensetsRegistry` (abstract class) should appear as public API surface for registry construction.
+- [x] 21.10.9.6 Verify `DefaultScreensetsRegistryFactory` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output).
+
+**Traceability**: Factory-with-cache refactoring validation -- no regressions, public API surface is correct. Reopened task 4.1.4 fully resolved.

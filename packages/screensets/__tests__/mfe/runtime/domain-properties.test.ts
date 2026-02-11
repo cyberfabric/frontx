@@ -10,7 +10,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 
@@ -78,7 +79,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
   const USER_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.auth.user.v1';
 
   beforeEach(() => {
-    registry = createScreensetsRegistry({
+    registry = new DefaultScreensetsRegistry({
       typeSystem: createMockPlugin(),
     });
 

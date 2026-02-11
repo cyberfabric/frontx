@@ -224,7 +224,7 @@ eventBus.on('mfe/childActionRequested', async ({ extensionId, actionTypeId, payl
 
 ### Requirement: MFE Load State Tracking
 
-The system SHALL track MFE load and mount states via a Redux slice using extension IDs.
+The system SHALL track MFE load and mount states via a store slice using extension IDs.
 
 #### Scenario: Query MFE load state
 

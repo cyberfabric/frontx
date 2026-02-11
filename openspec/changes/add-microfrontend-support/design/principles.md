@@ -17,7 +17,7 @@ This document covers the core architectural principles for the MFE system.
 3. **Extensibility via Handlers** - Companies extend via custom handlers, not core changes
 4. **MFE Independence (Default)** - Each MFE instance takes full responsibility for its own needs
 5. **Hierarchical Composition** - Domains can exist at any level; MFEs can be both extensions and domain providers
-6. **Abstract Class Layers with Factory Construction** - Every major stateful component has an abstract class (public contract) and a concrete implementation (hidden behind a factory). Consumers always depend on abstract types.
+6. **Abstract Class Layers with Singleton Construction** - Every major stateful component has an abstract class (pure contract, NO static methods) and a concrete implementation. Single-instance components with no configuration are exposed as singleton constants; single-instance components that require configuration use the factory-with-cache pattern (e.g., `screensetsRegistryFactory`); multi-instance components are constructed by internal wiring code. Standalone factory functions and static factory methods on abstract classes are both forbidden. Consumers always depend on abstract types.
 
 ---
 
@@ -106,8 +106,14 @@ PUBLIC (Architecture Level)     PRIVATE (Implementation Level)
 
 ---
 
-## Abstract Class Layers with Factory Construction
+## Abstract Class Layers with Singleton Construction
 
-Every major stateful component has an abstract class defining the public contract and a concrete implementation hidden behind a factory function. Consumers always depend on abstract types, never concrete classes. This enforces Dependency Inversion (DIP) at every boundary.
+Every major stateful component has an abstract class defining the public contract (a pure abstract class with NO static methods) and a concrete implementation. The construction pattern depends on the component's nature:
 
-See [Registry Runtime - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-factory-construction) for the complete design including component table, file layout, exemptions, and code examples.
+- **Singleton constant** (no configuration needed): e.g., `gtsPlugin` -- created in barrel/initialization files.
+- **Factory-with-cache** (configurable singleton): e.g., `screensetsRegistryFactory` -- a factory abstract class provides a `build(config)` method that caches the instance after the first call. This defers configuration binding to application wiring time while preserving singleton semantics.
+- **Direct construction** (multi-instance): e.g., `MfeStateContainer` -- constructed directly by internal wiring code (e.g., `DefaultMountManager`).
+
+Consumers always depend on abstract types, never concrete classes. Standalone factory functions and static factory methods on abstract classes are both forbidden. This enforces Dependency Inversion (DIP) at every boundary.
+
+See [Registry Runtime - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete design including component table, file layout, exemptions, and code examples.

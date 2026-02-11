@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
@@ -29,12 +29,12 @@ interface RegistryInternals {
   extensions: Map<string, ExtensionStateShape>;
 }
 
-function getRegistryInternals(registry: ReturnType<typeof createScreensetsRegistry>): RegistryInternals {
+function getRegistryInternals(registry: DefaultScreensetsRegistry): RegistryInternals {
   return registry as unknown as RegistryInternals;
 }
 
 describe('ScreensetsRegistry Query Methods', () => {
-  let registry: ReturnType<typeof createScreensetsRegistry>;
+  let registry: DefaultScreensetsRegistry;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.testorg.query.domain.v1',
@@ -69,7 +69,7 @@ describe('ScreensetsRegistry Query Methods', () => {
   };
 
   beforeEach(() => {
-    registry = createScreensetsRegistry({
+    registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
       debug: false,
     });

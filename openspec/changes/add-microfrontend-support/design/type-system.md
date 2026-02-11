@@ -277,142 +277,24 @@ function extractTypeIdFromSchema(schema: JSONSchema): string {
   return schema.$id.replace(/^gts:\/\//, '');
 }
 
-export function createGtsPlugin(): TypeSystemPlugin {
-  const gtsStore = new GtsStore();
+/**
+ * GtsPlugin -- concrete implementation of TypeSystemPlugin using @globaltypesystem/gts-ts.
+ *
+ * - Implements all TypeSystemPlugin methods by delegating to a private GtsStore instance.
+ * - Registers all first-class citizen schemas during construction (plugin is ready immediately).
+ * - Exported @internal for test files that need fresh instances for isolation.
+ *   Production code uses the gtsPlugin singleton.
+ *
+ * See packages/screensets/src/mfe/plugins/gts/index.ts for the authoritative implementation.
+ */
+class GtsPlugin implements TypeSystemPlugin { /* ... */ }
 
-  // Register all first-class citizen schemas during construction.
-  // JSON schemas are loaded from gts/ directory and wrapped with createJsonEntity().
-  const firstClassSchemas = loadSchemas();
-
-  for (const schema of firstClassSchemas) {
-    // createJsonEntity() wraps the raw JSON schema for gts-ts registration
-    gtsStore.register(createJsonEntity(schema));
-  }
-
-  return {
-    name: 'gts',
-    version: '1.0.0',
-
-    // Type ID operations - using standalone functions from gts-ts
-    isValidTypeId(id: string): boolean {
-      return isValidGtsID(id);
-    },
-
-    // Note: buildTypeId() is intentionally omitted. GTS type IDs are consumed
-    // (validated, parsed) but never programmatically generated at runtime.
-    // All type IDs are defined as string constants.
-
-    parseTypeId(id: string): Record<string, unknown> {
-      // parseGtsID returns ParseResult { ok, segments, error }
-      // segments is an array of GtsIDSegment
-      const result: ParseResult = parseGtsID(id);
-      if (!result.ok || result.segments.length === 0) {
-        throw new Error(result.error ?? `Invalid GTS ID: ${id}`);
-      }
-      // Return the first segment's components (primary type identifier)
-      const segment: GtsIDSegment = result.segments[0];
-      return {
-        vendor: segment.vendor,
-        package: segment.package,
-        namespace: segment.namespace,
-        type: segment.type,
-        verMajor: segment.verMajor,
-        verMinor: segment.verMinor,
-        // For derived types, include additional segments
-        segments: result.segments,
-      };
-    },
-
-    // Schema registry - for vendor/dynamic schemas only
-    // First-class schemas are already registered during construction
-    registerSchema(schema: JSONSchema): void {
-      gtsStore.register(createJsonEntity(schema));
-    },
-
-    getSchema(typeId: string): JSONSchema | undefined {
-      // GtsStore.get() returns the entity or undefined
-      const entity = gtsStore.get(typeId);
-      if (!entity) return undefined;
-      return entity as JSONSchema;
-    },
-
-    // Instance registration (GTS-native approach)
-    register(entity: unknown): void {
-      // gtsStore.register() accepts any GTS entity (schema or instance)
-      // For instances, the entity must have an `id` field
-      gtsStore.register(entity);
-    },
-
-    // Validate a registered instance by its instance ID
-    validateInstance(instanceId: string): ValidationResult {
-      // GtsStore.validateInstance takes the instance ID (NOT schema ID)
-      // gts-ts extracts the schema ID from the chained instance ID:
-      // - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.ext.widget.v1
-      // - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
-      const result: GtsValidationResult = gtsStore.validateInstance(instanceId);
-      return {
-        valid: result.ok && (result.valid ?? false),
-        errors: result.error ? [{
-          path: '',
-          message: result.error,
-          keyword: 'validation',
-        }] : [],
-      };
-    },
-
-    // Query - using GtsQuery.query() static method
-    query(pattern: string, limit?: number): string[] {
-      const result = GtsQuery.query(gtsStore, pattern, limit);
-      return result;
-    },
-
-    // Type Hierarchy
-    isTypeOf(typeId: string, baseTypeId: string): boolean {
-      // GTS type derivation: derived types include the base type ID as a prefix
-      // e.g., 'gts.hai3.mfes.mfe.entry.v1~acme.corp.mfe.entry_acme.v1'
-      // is derived from 'gts.hai3.mfes.mfe.entry.v1~'
-      // Note: Instance IDs don't end with ~, schema IDs do
-      return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
-    },
-
-    // Compatibility (REQUIRED) - checkCompatibility is on GtsStore
-    checkCompatibility(oldTypeId: string, newTypeId: string): CompatibilityResult {
-      const result: GtsCompatibilityResult = gtsStore.checkCompatibility(oldTypeId, newTypeId);
-      return {
-        compatible: result.compatible,
-        breaking: !result.compatible && result.errors.length > 0,
-        changes: [
-          ...result.errors.map(e => ({
-            type: 'removed' as const,
-            path: '',
-            description: e,
-          })),
-          ...result.warnings.map(w => ({
-            type: 'modified' as const,
-            path: '',
-            description: w,
-          })),
-        ],
-      };
-    },
-
-    // Attribute Access (REQUIRED for dynamic schema resolution)
-    getAttribute(typeId: string, path: string): AttributeResult {
-      const result = gtsStore.getAttribute(typeId, path);
-      return {
-        typeId,
-        path,
-        resolved: result !== undefined,
-        value: result,
-        error: result === undefined ? `Attribute '${path}' not found in type '${typeId}'` : undefined,
-      };
-    },
-  };
-}
-
-// Default export for convenience - creates a singleton plugin instance
-// Plugin is immediately ready to use with all first-class schemas registered
-export const gtsPlugin = createGtsPlugin();
+/**
+ * Singleton GTS plugin instance -- the primary public export.
+ * There is no factory function and no create() method.
+ * GtsPlugin is a singleton: one GTS type system per application.
+ */
+export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();
 ```
 
 #### Instance ID Convention
@@ -499,7 +381,7 @@ export const HAI3_MF_TYPE_IDS = {
 
 // NOTE: No registerHai3Types() function needed.
 // The GTS plugin registers all first-class schemas during construction.
-// See createGtsPlugin() in gts/index.ts for implementation.
+// See gtsPlugin singleton in gts/index.ts for implementation.
 ```
 
 ### Decision 5: Vendor Type Registration
@@ -692,33 +574,16 @@ interface ScreensetsRegistryConfig {
   mediator?: ActionsChainsMediator;
 }
 
-// In create-screensets-registry.ts (see Decision 18 in registry-runtime.md)
-/**
- * Create the ScreensetsRegistry with required Type System plugin.
- * Returns the abstract ScreensetsRegistry type -- consumers never see the concrete class.
- */
-function createScreensetsRegistry(
-  config: ScreensetsRegistryConfig
-): ScreensetsRegistry {
-  // Factory internally creates DefaultScreensetsRegistry (concrete, not exported).
-  // Validation and schema readiness are handled by the concrete constructor.
-  return new DefaultScreensetsRegistry(config);
-}
+// Factory-with-cache (see Decision 18 in registry-runtime.md)
+// screensetsRegistryFactory.build(config) is the ONLY way to obtain an instance.
+// There is no standalone createScreensetsRegistry() function, no static create() method,
+// and no pre-built screensetsRegistry singleton constant.
 
-// Usage with GTS (default)
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+// Usage with GTS (default) -- bind at application wiring time
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 
-const runtime = createScreensetsRegistry({
-  typeSystem: gtsPlugin,
-  debug: process.env.NODE_ENV === 'development',
-});
-
-// Usage with custom plugin
-import { customPlugin } from './my-custom-plugin';
-
-const runtimeWithCustomPlugin = createScreensetsRegistry({
-  typeSystem: customPlugin,
-});
+// GTS binding happens at application wiring level, not module level
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 ```
 
 ### Decision 7: Framework Plugin Model (No Static Configuration)
@@ -743,9 +608,8 @@ function microfrontends(): FrameworkPlugin {
     name: 'microfrontends',
 
     setup(framework) {
-      // Screensets runtime is already initialized by HAI3 core
-      // We just need to get the reference and wire it into Flux
-      const runtime = framework.get<ScreensetsRegistry>('screensetsRegistry');
+      // Create ScreensetsRegistry via factory-with-cache at wiring time
+      const runtime = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
       // Register MFE actions and effects
       framework.registerActions(mfeActions);

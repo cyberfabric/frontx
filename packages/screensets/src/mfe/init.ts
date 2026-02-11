@@ -65,8 +65,7 @@ export const HAI3_MF_TYPE_IDS = {
  * NOTE: No registerHai3Types() function is needed.
  *
  * The GTS plugin registers all first-class citizen schemas during construction.
- * When you create a plugin via createGtsPlugin() or use the gtsPlugin singleton,
- * all HAI3 core types are immediately available.
+ * The gtsPlugin singleton has all HAI3 core types immediately available.
  *
  * See packages/screensets/src/mfe/plugins/gts/index.ts for implementation.
  */

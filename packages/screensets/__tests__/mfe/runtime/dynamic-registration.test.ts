@@ -5,7 +5,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
@@ -27,12 +27,12 @@ interface RegistryInternals {
   extensions: Map<string, ExtensionStateShape>;
 }
 
-function getRegistryInternals(registry: ReturnType<typeof createScreensetsRegistry>): RegistryInternals {
+function getRegistryInternals(registry: DefaultScreensetsRegistry): RegistryInternals {
   return registry as unknown as RegistryInternals;
 }
 
 describe('Dynamic Registration', () => {
-  let registry: ReturnType<typeof createScreensetsRegistry>;
+  let registry: DefaultScreensetsRegistry;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.dynamic.reg.domain.v1',
@@ -67,7 +67,7 @@ describe('Dynamic Registration', () => {
   };
 
   beforeEach(() => {
-    registry = createScreensetsRegistry({
+    registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
       debug: false,
     });

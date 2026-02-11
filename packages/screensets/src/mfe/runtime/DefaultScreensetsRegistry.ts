@@ -5,7 +5,7 @@
  * It wires all collaborators together and implements the facade API.
  *
  * INTERNAL: This class is NOT exported from the public barrel.
- * External consumers obtain instances via createScreensetsRegistry() factory.
+ * External consumers obtain instances via screensetsRegistryFactory.build(config).
  *
  * @packageDocumentation
  * @internal
@@ -124,7 +124,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       throw new Error(
         'ScreensetsRegistry requires a TypeSystemPlugin. ' +
         'Provide it via config.typeSystem parameter. ' +
-        'Example: createScreensetsRegistry({ typeSystem: gtsPlugin })'
+        'Use screensetsRegistryFactory.build({ typeSystem: gtsPlugin }) to create an instance.'
       );
     }
 

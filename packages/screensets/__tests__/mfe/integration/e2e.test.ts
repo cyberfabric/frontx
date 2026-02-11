@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ScreensetsRegistry } from '../../../src/mfe/runtime';
 
@@ -7,7 +7,7 @@ describe('Phase 12.1: Integration Testing', () => {
   let runtime: ScreensetsRegistry;
 
   beforeEach(() => {
-    runtime = createScreensetsRegistry({
+    runtime = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
       debug: false,
     });
@@ -130,8 +130,8 @@ describe('Phase 12.1: Integration Testing', () => {
   describe('12.1.5: Test custom plugin integration', () => {
     it('should work with custom TypeSystemPlugin wrapper', () => {
       // Create a custom plugin that wraps GTS
-      const customPlugin = {
-        ...gtsPlugin,
+      // Note: With class-based plugin, we need to delegate properly
+      const customPlugin: TypeSystemPlugin = {
         name: 'custom-test',
         version: '1.0.0',
         // Override parseTypeId to add custom metadata
@@ -142,9 +142,19 @@ describe('Phase 12.1: Integration Testing', () => {
             custom: 'metadata',
           };
         },
+        // Delegate all other methods to gtsPlugin
+        isValidTypeId: (id: string) => gtsPlugin.isValidTypeId(id),
+        registerSchema: (schema) => gtsPlugin.registerSchema(schema),
+        getSchema: (typeId: string) => gtsPlugin.getSchema(typeId),
+        register: (entity: unknown) => gtsPlugin.register(entity),
+        validateInstance: (instanceId: string) => gtsPlugin.validateInstance(instanceId),
+        query: (pattern: string, limit?: number) => gtsPlugin.query(pattern, limit),
+        isTypeOf: (typeId: string, baseTypeId: string) => gtsPlugin.isTypeOf(typeId, baseTypeId),
+        checkCompatibility: (oldTypeId: string, newTypeId: string) => gtsPlugin.checkCompatibility(oldTypeId, newTypeId),
+        getAttribute: (typeId: string, path: string) => gtsPlugin.getAttribute(typeId, path),
       };
 
-      const customRuntime = createScreensetsRegistry({
+      const customRuntime = new DefaultScreensetsRegistry({
         typeSystem: customPlugin,
         debug: false,
       });
@@ -164,18 +174,27 @@ describe('Phase 12.1: Integration Testing', () => {
 
     it('should support custom plugin with extended functionality', () => {
       // Create a plugin with custom validation logic
-      const validationCountPlugin = {
-        ...gtsPlugin,
+      let validationCount = 0;
+      const validationCountPlugin: TypeSystemPlugin = {
         name: 'validation-counter',
         version: '1.0.0',
-        validationCount: 0,
-        isValidTypeId: function(id: string): boolean {
-          this.validationCount++;
+        isValidTypeId: (id: string): boolean => {
+          validationCount++;
           return gtsPlugin.isValidTypeId(id);
         },
+        // Delegate all other methods to gtsPlugin
+        parseTypeId: (id: string) => gtsPlugin.parseTypeId(id),
+        registerSchema: (schema) => gtsPlugin.registerSchema(schema),
+        getSchema: (typeId: string) => gtsPlugin.getSchema(typeId),
+        register: (entity: unknown) => gtsPlugin.register(entity),
+        validateInstance: (instanceId: string) => gtsPlugin.validateInstance(instanceId),
+        query: (pattern: string, limit?: number) => gtsPlugin.query(pattern, limit),
+        isTypeOf: (typeId: string, baseTypeId: string) => gtsPlugin.isTypeOf(typeId, baseTypeId),
+        checkCompatibility: (oldTypeId: string, newTypeId: string) => gtsPlugin.checkCompatibility(oldTypeId, newTypeId),
+        getAttribute: (typeId: string, path: string) => gtsPlugin.getAttribute(typeId, path),
       };
 
-      const runtime2 = createScreensetsRegistry({
+      const runtime2 = new DefaultScreensetsRegistry({
         typeSystem: validationCountPlugin,
         debug: false,
       });
@@ -186,7 +205,7 @@ describe('Phase 12.1: Integration Testing', () => {
       runtime2.typeSystem.isValidTypeId('invalid');
 
       // Verify custom functionality
-      expect(validationCountPlugin.validationCount).toBe(3);
+      expect(validationCount).toBe(3);
     });
   });
 });

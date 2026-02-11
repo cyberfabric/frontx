@@ -55,11 +55,8 @@ export type {
   SharedDependencyConfig,
 } from './types';
 
-// Runtime
-export {
-  ScreensetsRegistry,
-  createScreensetsRegistry,
-} from './runtime';
+// Runtime (includes factory)
+export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory } from './runtime';
 export type { ScreensetsRegistryConfig } from './runtime';
 
 // Handler Types and Abstract Classes (concrete implementations are internal)
@@ -118,7 +115,11 @@ export {
 } from './shadow';
 export type { ShadowRootOptions } from './shadow';
 
-// NOTE: State Container Factory, Shared Properties Provider, and Runtime Coordination
+// MFE State Container (abstract class for DIP, concrete implementation is internal)
+export { MfeStateContainer } from './state';
+export type { MfeStateContainerConfig } from './state';
+
+// NOTE: Shared Properties Provider and Runtime Coordination
 // are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.
 // These are encapsulated within the registry class per SOLID principles.
 // If you need these for internal development or testing, import directly from the source files.

@@ -32,12 +32,13 @@ export interface ScreensetsRegistryConfig {
    *
    * @example
    * ```typescript
-   * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-   * import { createScreensetsRegistry } from '@hai3/screensets';
+   * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
    *
-   * const registry = createScreensetsRegistry({
-   *   typeSystem: gtsPlugin
-   * });
+   * // Build the registry with GTS plugin at application wiring time
+   * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+   *
+   * // Use the registry
+   * registry.registerDomain(myDomain);
    * ```
    */
   typeSystem: TypeSystemPlugin;
@@ -79,16 +80,11 @@ export interface ScreensetsRegistryConfig {
    *
    * @example
    * ```typescript
-   * import { createScreensetsRegistry } from '@hai3/screensets';
+   * import { DefaultScreensetsRegistry } from '@hai3/screensets/runtime/DefaultScreensetsRegistry';
    * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
    *
-   * // Use default coordinator (WeakMapRuntimeCoordinator)
-   * const registry = createScreensetsRegistry({
-   *   typeSystem: gtsPlugin
-   * });
-   *
-   * // Or provide a custom coordinator
-   * const registry = createScreensetsRegistry({
+   * // For testing: create custom registry with custom coordinator
+   * const registry = new DefaultScreensetsRegistry({
    *   typeSystem: gtsPlugin,
    *   coordinator: new MyCustomCoordinator()
    * });
@@ -107,16 +103,11 @@ export interface ScreensetsRegistryConfig {
    *
    * @example
    * ```typescript
-   * import { createScreensetsRegistry } from '@hai3/screensets';
+   * import { DefaultScreensetsRegistry } from '@hai3/screensets/runtime/DefaultScreensetsRegistry';
    * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
    *
-   * // Use default mediator (DefaultActionsChainsMediator)
-   * const registry = createScreensetsRegistry({
-   *   typeSystem: gtsPlugin
-   * });
-   *
-   * // Or provide a custom mediator
-   * const registry = createScreensetsRegistry({
+   * // For testing: create custom registry with custom mediator
+   * const registry = new DefaultScreensetsRegistry({
    *   typeSystem: gtsPlugin,
    *   mediator: new MyCustomMediator(gtsPlugin, registry)
    * });

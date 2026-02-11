@@ -468,18 +468,14 @@ export async function registerAnalyticsMfe(runtime: ScreensetsRegistry) {
 ### Host application usage
 
 ```typescript
-import { createScreensetsRegistry } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 import { registerAnalyticsMfe } from './register';
 
-// Initialize runtime
-const runtime = createScreensetsRegistry({
-  typeSystem: gtsPlugin,
-  debug: true,
-});
+// Build the registry with GTS plugin at application wiring time
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
 // Register sidebar domain first
-await runtime.registerDomain({
+await registry.registerDomain({
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
   sharedProperties: [
     'gts.hai3.mfes.comm.shared_property.v1~acme.analytics.theme.v1',
@@ -623,13 +619,12 @@ describe('Analytics MFE', () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { createScreensetsRegistry } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { DefaultScreensetsRegistry, gtsPlugin } from '@hai3/screensets';
 import { registerAnalyticsMfe } from './register';
 
 describe('Analytics MFE Integration', () => {
   it('should register and mount successfully', async () => {
-    const runtime = createScreensetsRegistry({ typeSystem: gtsPlugin });
+    const runtime = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
 
     // Register domain first
     await runtime.registerDomain({ /* ... */ });

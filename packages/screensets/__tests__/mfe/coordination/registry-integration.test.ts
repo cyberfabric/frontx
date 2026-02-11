@@ -7,7 +7,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
 import { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../../../src/mfe/plugins/types';
@@ -98,7 +99,7 @@ function createMockPlugin(): TypeSystemPlugin {
 describe('Runtime Coordinator Integration - Task 8.4.8', () => {
   describe('Default coordinator initialization', () => {
     it('should create WeakMapRuntimeCoordinator by default', () => {
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
       });
 
@@ -110,7 +111,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     it('should accept custom coordinator via config', () => {
       const customCoordinator = new WeakMapRuntimeCoordinator();
 
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator: customCoordinator,
       });
@@ -122,7 +123,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
   describe('Coordinator encapsulation', () => {
     it('should keep coordinator encapsulated within registry', () => {
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
       });
 
@@ -134,7 +135,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     });
 
     it('should not pollute window global scope', () => {
-      createScreensetsRegistry({
+      new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
       });
 
@@ -172,7 +173,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
       const testCoordinator = new TestCoordinator();
 
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator: testCoordinator,
       });
@@ -185,7 +186,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       // Verify that config accepts the abstract class type
       const coordinator: RuntimeCoordinator = new WeakMapRuntimeCoordinator();
 
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator,
       });
@@ -197,7 +198,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
   describe('Integration with registry lifecycle', () => {
     it('should initialize coordinator during registry construction', () => {
       // This test verifies that coordinator is ready when registry is created
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
       });
 
@@ -217,7 +218,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     });
 
     it('should clean up coordinator on registry disposal', () => {
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
       });
 
@@ -235,7 +236,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       // This test documents the expected coordinator usage in Phase 19.3
       const coordinator = new WeakMapRuntimeCoordinator();
 
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator,
       });
@@ -269,7 +270,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     it('should support multiple simultaneous runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
 
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator,
       });
@@ -328,7 +329,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       const customCoordinator = new CustomCoordinator();
 
       // Registry accepts abstract type, not concrete WeakMapRuntimeCoordinator
-      const registry = createScreensetsRegistry({
+      const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
         coordinator: customCoordinator,
       });

@@ -96,11 +96,10 @@ export interface AttributeResult {
  * @example
  * ```typescript
  * // Using the GTS plugin (default)
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
  *
- * const runtime = createScreensetsRegistry({
- *   typeSystem: gtsPlugin
- * });
+ * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * registry.registerDomain(myDomain);
  * ```
  */
 export interface TypeSystemPlugin {

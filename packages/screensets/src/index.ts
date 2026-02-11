@@ -119,12 +119,16 @@ export {
 export { loadSchemas, loadLifecycleStages, loadBaseActions } from './mfe';
 
 // MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)
-export { ScreensetsRegistry, createScreensetsRegistry } from './mfe';
+export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory } from './mfe';
 export type { ScreensetsRegistryConfig } from './mfe';
 
 // Shadow DOM Utilities
 export { createShadowRoot, injectCssVariables, injectStylesheet } from './mfe';
 export type { ShadowRootOptions } from './mfe';
+
+// MFE State Container (abstract class for DIP, concrete implementation is internal)
+export { MfeStateContainer } from './mfe';
+export type { MfeStateContainerConfig } from './mfe';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
 // for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'

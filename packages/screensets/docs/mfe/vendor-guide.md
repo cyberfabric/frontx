@@ -421,7 +421,7 @@ const extensionWithHooks: Extension = {
 Extensions can be registered at any time during runtime:
 
 ```typescript
-// Get the runtime instance
+// Get the registry instance from the framework
 const runtime = framework.get<ScreensetsRegistry>('screensetsRegistry');
 
 // Register your extension dynamically

@@ -4,7 +4,7 @@
  * Abstract class defining the public API contract for the MFE runtime.
  * External consumers ALWAYS depend on this abstraction, never on concrete implementations.
  *
- * Create instances via createScreensetsRegistry() factory.
+ * Obtain instances via screensetsRegistryFactory.build(config).
  *
  * @packageDocumentation
  */
@@ -22,7 +22,7 @@ import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../media
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
  *
  * This is the ONLY type external consumers should depend on.
- * Create instances via createScreensetsRegistry() factory.
+ * Obtain instances via screensetsRegistryFactory.build(config).
  *
  * Key Responsibilities:
  * - Type validation via TypeSystemPlugin
@@ -35,17 +35,10 @@ import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../media
  *
  * @example
  * ```typescript
- * import { createScreensetsRegistry } from '@hai3/screensets';
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
  *
- * const registry = createScreensetsRegistry({
- *   typeSystem: gtsPlugin
- * });
- *
- * // Register a domain
+ * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain);
- *
- * // Register an extension
  * await registry.registerExtension(myExtension);
  * ```
  */

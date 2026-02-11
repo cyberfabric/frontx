@@ -8,10 +8,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import {
-  createMfeStateContainer,
-  isMfeStateContainerDisposed,
-} from '../../../src/mfe/state';
+import { DefaultMfeStateContainer } from '../../../src/mfe/state';
 
 interface TestState {
   count: number;
@@ -19,10 +16,10 @@ interface TestState {
 }
 
 describe('MFE State Container Factory', () => {
-  describe('createMfeStateContainer', () => {
+  describe('new DefaultMfeStateContainer', () => {
     it('should create a state container with initial state', () => {
       const initialState: TestState = { count: 0, user: null };
-      const container = createMfeStateContainer({ initialState });
+      const container = new DefaultMfeStateContainer({ initialState });
 
       expect(container.getState()).toEqual(initialState);
     });
@@ -30,8 +27,8 @@ describe('MFE State Container Factory', () => {
     it('should create independent instances on each call', () => {
       const initialState: TestState = { count: 0, user: null };
 
-      const container1 = createMfeStateContainer({ initialState });
-      const container2 = createMfeStateContainer({ initialState });
+      const container1 = new DefaultMfeStateContainer({ initialState });
+      const container2 = new DefaultMfeStateContainer({ initialState });
 
       // Update container1
       container1.setState((state) => ({ ...state, count: 1 }));
@@ -45,8 +42,8 @@ describe('MFE State Container Factory', () => {
       const initialState: TestState = { count: 0, user: null };
 
       // Simulate two instances of the same MFE entry
-      const instanceA = createMfeStateContainer({ initialState });
-      const instanceB = createMfeStateContainer({ initialState });
+      const instanceA = new DefaultMfeStateContainer({ initialState });
+      const instanceB = new DefaultMfeStateContainer({ initialState });
 
       // Update instance A
       instanceA.setState((state) => ({ ...state, count: 5 }));
@@ -77,13 +74,13 @@ describe('MFE State Container Factory', () => {
   describe('getState', () => {
     it('should return current state', () => {
       const initialState: TestState = { count: 0, user: null };
-      const container = createMfeStateContainer({ initialState });
+      const container = new DefaultMfeStateContainer({ initialState });
 
       expect(container.getState()).toBe(initialState);
     });
 
     it('should throw if container is disposed', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -97,7 +94,7 @@ describe('MFE State Container Factory', () => {
 
   describe('setState', () => {
     it('should update state with updater function', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -107,7 +104,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should notify subscribers on state change', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -121,7 +118,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should not notify if state reference does not change', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -135,7 +132,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should handle errors in listeners gracefully', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -166,7 +163,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should throw if container is disposed', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -180,7 +177,7 @@ describe('MFE State Container Factory', () => {
 
   describe('subscribe', () => {
     it('should call listener on state updates', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -196,7 +193,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should return unsubscribe function', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -213,7 +210,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should support multiple subscribers', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -233,7 +230,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should allow unsubscribing individual listeners', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -252,7 +249,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should throw if container is disposed', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -266,7 +263,7 @@ describe('MFE State Container Factory', () => {
 
   describe('dispose', () => {
     it('should clear all subscriptions', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -284,7 +281,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should be idempotent', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
@@ -293,7 +290,7 @@ describe('MFE State Container Factory', () => {
     });
 
     it('should clear state reference for garbage collection', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: { name: 'Test' } },
       });
 
@@ -304,23 +301,23 @@ describe('MFE State Container Factory', () => {
     });
   });
 
-  describe('isMfeStateContainerDisposed', () => {
+  describe('disposed property', () => {
     it('should return false for active container', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
-      expect(isMfeStateContainerDisposed(container)).toBe(false);
+      expect(container.disposed).toBe(false);
     });
 
     it('should return true for disposed container', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 
       container.dispose();
 
-      expect(isMfeStateContainerDisposed(container)).toBe(true);
+      expect(container.disposed).toBe(true);
     });
   });
 
@@ -337,10 +334,10 @@ describe('MFE State Container Factory', () => {
         selectedPoint: null,
       };
 
-      const chartInstance1 = createMfeStateContainer({
+      const chartInstance1 = new DefaultMfeStateContainer({
         initialState: chartInitialState,
       });
-      const chartInstance2 = createMfeStateContainer({
+      const chartInstance2 = new DefaultMfeStateContainer({
         initialState: chartInitialState,
       });
 
@@ -373,12 +370,12 @@ describe('MFE State Container Factory', () => {
       chartInstance1.dispose();
       chartInstance2.dispose();
 
-      expect(isMfeStateContainerDisposed(chartInstance1)).toBe(true);
-      expect(isMfeStateContainerDisposed(chartInstance2)).toBe(true);
+      expect(chartInstance1.disposed).toBe(true);
+      expect(chartInstance2.disposed).toBe(true);
     });
 
     it('should verify disposal on unmount', () => {
-      const container = createMfeStateContainer({
+      const container = new DefaultMfeStateContainer({
         initialState: { count: 0, user: null },
       });
 

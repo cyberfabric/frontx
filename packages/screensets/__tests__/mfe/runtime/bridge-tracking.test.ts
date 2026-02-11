@@ -10,7 +10,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
 
@@ -31,7 +32,7 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
   let registry: ScreensetsRegistry;
 
   beforeEach(() => {
-    registry = createScreensetsRegistry({
+    registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
   });

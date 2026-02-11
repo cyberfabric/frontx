@@ -16,18 +16,21 @@ This document covers the ScreensetsRegistry runtime isolation model, action chai
 
 ### Standalone Functions vs Class-Based Capabilities
 
-The established rule is: "NEVER standalone functions, ALWAYS abstract class + concrete class." This rule applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions using internal storage (e.g., WeakMap coordination, bridge factories, handler registries). These require the abstract class + concrete class pattern for Dependency Inversion, testability, and encapsulation of mutable state. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete pattern including `ScreensetsRegistry` itself.
+The established rule is: "NEVER standalone functions, ALWAYS abstract class + concrete class." This applies to **stateful capabilities** -- components that manage coordination, state, or property subscriptions. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete pattern.
 
-**Pure validation helpers** are exempt from this rule. The following functions are legitimately standalone because they are stateless -- they take inputs, return results, and have no side effects or internal state:
+**Exempt from this rule:**
+- **Pure validation helpers** (stateless, all dependencies as parameters): `validateContract`, `validateExtensionType`, `validateDomainLifecycleHooks`, `validateExtensionLifecycleHooks`.
+- **Small stateful utilities** with minimal surface area: `OperationSerializer` (70 lines, single public method).
 
-- `validateContract(entry, domain)` -- checks entry/domain contract compatibility (in `type-system.md`, used by `ScreensetsRegistry`)
-- `validateExtensionType(plugin, extension, domain)` -- checks extension type hierarchy against domain's `extensionsTypeId` (in `type-system.md`)
-- `validateDomainLifecycleHooks(domain)` -- checks domain lifecycle hooks reference supported stages (in `mfe-lifecycle.md`)
-- `validateExtensionLifecycleHooks(extension, domain)` -- checks extension lifecycle hooks reference domain-supported stages (in `mfe-lifecycle.md`)
+### No Standalone Factory Functions for Stateful Components
 
-These functions receive all dependencies as parameters and produce a `ContractValidationResult`. Wrapping them in a class would add indirection without benefit since there is no state to encapsulate and no abstraction to invert.
+Standalone factory functions and static factory methods on abstract classes are both **forbidden**. The only allowed construction patterns are:
 
-**Small stateful utilities** are also exempt when their surface area is minimal. `OperationSerializer` (70 lines, single public method) manages a per-entity-ID promise chain but does not warrant an abstract class split due to its small size and single responsibility.
+1. **Singleton constant** -- no configuration needed (e.g., `gtsPlugin`)
+2. **Factory-with-cache** -- configurable singleton (e.g., `ScreensetsRegistry` via `screensetsRegistryFactory`, Phase 21.10)
+3. **Direct construction in internal wiring code** -- multi-instance (e.g., `MfeStateContainer` by `DefaultMountManager`)
+
+See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for code examples, violation patterns, and rationale.
 
 ### No Event System -- Lifecycle Stages with Actions Chains Only
 
@@ -55,9 +58,9 @@ The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`
 | Bridge creation | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
 | Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
 
-The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details hidden behind the factory.
+The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details. Currently exposed via `screensetsRegistry` singleton constant; Phase 21.10 replaces this with the `screensetsRegistryFactory` factory-with-cache pattern.
 
-**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines) defining the public method signatures. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Consumers obtain an instance exclusively through `createScreensetsRegistry()`, which returns the abstract type. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete design.
+**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines, pure contract) defining the public method signatures with NO static methods. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Currently, consumers obtain the instance via the `screensetsRegistry` singleton constant. Phase 21.10 replaces this with `screensetsRegistryFactory.build(config)`. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete design.
 
 ### Concurrency and Operation Serialization
 
@@ -82,7 +85,7 @@ The public API is cohesive (all methods relate to MFE runtime management), and t
 
 See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the complete isolation model, architecture diagrams, and recommendations.
 
-`ScreensetsRegistry` uses the abstract class + concrete implementation + factory pattern. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete abstract class definition, `DefaultScreensetsRegistry` concrete class, factory function, and file layout.
+`ScreensetsRegistry` uses the abstract class + concrete implementation + factory-with-cache pattern. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete abstract class definition, `DefaultScreensetsRegistry` concrete class, `ScreensetsRegistryFactory`, and file layout.
 
 ### Decision 15: Error Class Hierarchy
 
@@ -117,7 +120,7 @@ function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): voi
 
 #### ScreensetsRegistry Dynamic API
 
-The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abstract method signatures. See [Decision 18](#decision-18-abstract-class-layers-with-factory-construction) for the complete abstract class definition.
+The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abstract method signatures. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete abstract class definition.
 
 **System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./overview.md#system-boundary) for details.
 
@@ -173,9 +176,9 @@ runtime.updateDomainProperties(domainId, new Map([
 
 ---
 
-### Decision 18: Abstract Class Layers with Factory Construction
+### Decision 18: Abstract Class Layers with Singleton Construction
 
-**What**: Every major stateful component MUST have an abstract class defining the public contract and a concrete implementation hidden behind a factory function. External consumers ALWAYS depend on abstract types, never concrete classes.
+**What**: Every major stateful component MUST have an abstract class defining the public contract (a pure abstract class with NO static methods) and a concrete implementation. Single-instance components with no configuration are exposed as singleton constants; single-instance components that require configuration use the factory-with-cache pattern; multi-instance components are constructed directly by internal wiring code. External consumers ALWAYS depend on abstract types, never concrete classes. Standalone factory functions and static factory methods on abstract classes are both forbidden.
 
 **Why**:
 - **Dependency Inversion Principle (DIP)**: Consumers depend on stable abstractions, not volatile implementations
@@ -197,19 +200,23 @@ RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
 ActionsChainsMediator               -->  DefaultActionsChainsMediator
 MfeHandler                          -->  MfeHandlerMF
 MfeBridgeFactory                    -->  MfeBridgeFactoryDefault
+TypeSystemPlugin                    -->  GtsPlugin
+MfeStateContainer<TState>           -->  DefaultMfeStateContainer<TState>
 
-FACTORY (only place that knows concrete)
-========================================
-createScreensetsRegistry(config)    -->  returns ScreensetsRegistry (abstract type)
+CONSTRUCTION (only place that knows concrete)
+==============================================
+screensetsRegistryFactory.build(config) (factory-with-cache)  -->  ScreensetsRegistry (one instance, deferred to application wiring)
+new DefaultMfeStateContainer(config)                          -->  MfeStateContainer<TState> (internal wiring only, by DefaultMountManager)
+gtsPlugin (singleton constant)                                -->  TypeSystemPlugin (one instance, no factory)
 ```
 
-**Rule**: Only factories and constructors (wiring code) reference concrete classes. All other code types against the abstract class.
+**Rule**: Only singleton constant initializers (in barrel/initialization files), factory-with-cache implementations, and internal wiring constructors reference concrete classes. Abstract classes are pure contracts with NO static methods. All other code types against the abstract class. Standalone factory functions and static factory methods on abstract classes are both forbidden.
 
 #### ScreensetsRegistry Abstract Class
 
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
-// ~75 lines -- abstract class with public method signatures
+// ~75 lines -- pure abstract class with public method signatures only, NO static methods
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
@@ -220,7 +227,9 @@ import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../media
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
  *
  * This is the ONLY type external consumers should depend on.
- * Create instances via createScreensetsRegistry() factory.
+ * Current: obtain via screensetsRegistry singleton constant.
+ * Phase 21.10: obtain via screensetsRegistryFactory.build(config).
+ * This class has NO static methods and NO knowledge of DefaultScreensetsRegistry.
  */
 export abstract class ScreensetsRegistry {
   abstract readonly typeSystem: TypeSystemPlugin;
@@ -271,25 +280,69 @@ export abstract class ScreensetsRegistry {
 }
 ```
 
-#### Factory Function
+#### Factory-with-Cache Pattern (Phase 21.10)
+
+**Phase 21.10** replaces the current `screensetsRegistry` singleton constant with a `screensetsRegistryFactory` factory-with-cache pattern. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance. The abstract `ScreensetsRegistry` class is a pure contract with NO static methods. The abstract `ScreensetsRegistryFactory` class is also a pure contract with NO static methods.
+
+**Why factory-with-cache instead of singleton constant**: The `ScreensetsRegistry` requires a `TypeSystemPlugin` at construction time (via `ScreensetsRegistryConfig.typeSystem`). The current singleton constant hardcodes `gtsPlugin` at module initialization time, defeating the pluggability of `TypeSystemPlugin`. The factory-with-cache pattern defers this binding to application wiring time, allowing consumers to provide any `TypeSystemPlugin` implementation.
 
 ```typescript
-// packages/screensets/src/mfe/runtime/create-screensets-registry.ts
-// This is the ONLY file that imports DefaultScreensetsRegistry
-
-import type { ScreensetsRegistryConfig } from './config';
-import { ScreensetsRegistry } from './ScreensetsRegistry';
-import { DefaultScreensetsRegistry } from './DefaultScreensetsRegistry';
+// packages/screensets/src/mfe/runtime/ScreensetsRegistryFactory.ts
+// Pure contract, NO static methods
 
 /**
- * Create a ScreensetsRegistry instance.
- * Returns the abstract ScreensetsRegistry type -- consumers never see the concrete class.
+ * Abstract factory for creating the ScreensetsRegistry singleton.
+ * The build() method accepts configuration and returns the registry instance.
+ * After the first build(), subsequent calls return the cached instance.
  */
-export function createScreensetsRegistry(
-  config: ScreensetsRegistryConfig
-): ScreensetsRegistry {
-  return new DefaultScreensetsRegistry(config);
+export abstract class ScreensetsRegistryFactory {
+  abstract build(config: ScreensetsRegistryConfig): ScreensetsRegistry;
 }
+```
+
+```typescript
+// packages/screensets/src/mfe/runtime/DefaultScreensetsRegistryFactory.ts
+// Concrete factory, NOT exported from barrel
+
+import { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
+import { DefaultScreensetsRegistry } from './DefaultScreensetsRegistry';
+
+class DefaultScreensetsRegistryFactory extends ScreensetsRegistryFactory {
+  private instance: ScreensetsRegistry | null = null;
+  private cachedConfig: ScreensetsRegistryConfig | null = null;
+
+  build(config: ScreensetsRegistryConfig): ScreensetsRegistry {
+    if (this.instance) {
+      if (config.typeSystem !== this.cachedConfig!.typeSystem) {
+        throw new Error('ScreensetsRegistry already built with a different configuration');
+      }
+      return this.instance;
+    }
+    this.cachedConfig = config;
+    this.instance = new DefaultScreensetsRegistry(config);
+    return this.instance;
+  }
+}
+```
+
+```typescript
+// In packages/screensets/src/mfe/runtime/index.ts (barrel/initialization file)
+
+import { DefaultScreensetsRegistryFactory } from './DefaultScreensetsRegistryFactory';
+
+export { ScreensetsRegistry } from './ScreensetsRegistry';  // abstract class (pure contract)
+export { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';  // abstract factory (pure contract)
+
+// Singleton factory constant -- the ONLY way to obtain a ScreensetsRegistry instance
+export const screensetsRegistryFactory: ScreensetsRegistryFactory = new DefaultScreensetsRegistryFactory();
+```
+
+```typescript
+// Consumer usage (in framework plugin or application wiring code)
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+
+// GTS binding happens at application wiring level, not module level
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 ```
 
 #### DefaultScreensetsRegistry (Concrete, NOT Exported)
@@ -458,7 +511,7 @@ After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal co
 | `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed |
 | `serializer` | `OperationSerializer` (concrete, no abstract) | Small utility, no abstract class |
 
-This is acceptable because `DefaultScreensetsRegistry` is `@internal` wiring code that creates all collaborator instances in its constructor. It is never exposed to external consumers. External consumers only see the abstract `ScreensetsRegistry` returned by the factory.
+This is acceptable because `DefaultScreensetsRegistry` is `@internal` wiring code that creates all collaborator instances in its constructor. It is never exposed to external consumers. External consumers only see the abstract `ScreensetsRegistry` via `screensetsRegistryFactory.build(config)`.
 
 #### DIP Consumer Reference Updates
 
@@ -478,9 +531,11 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 
 ```
 packages/screensets/src/mfe/runtime/
-  ScreensetsRegistry.ts              # ABSTRACT class (~75 lines)
-  DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported)
-  create-screensets-registry.ts      # Factory function (only file that imports concrete)
+  ScreensetsRegistry.ts              # ABSTRACT class (~75 lines, pure contract, NO static methods)
+  ScreensetsRegistryFactory.ts       # ABSTRACT factory class (~10 lines, pure contract, NO static methods)
+  DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported from barrel)
+  DefaultScreensetsRegistryFactory.ts # CONCRETE factory (~20 lines, NOT exported from barrel)
+  index.ts                           # Barrel: exports abstract classes + screensetsRegistryFactory singleton
   config.ts                          # ScreensetsRegistryConfig interface (unchanged)
   extension-manager.ts               # ABSTRACT class + types (~185 lines)
   default-extension-manager.ts       # CONCRETE class (~460 lines)
@@ -491,15 +546,112 @@ packages/screensets/src/mfe/runtime/
   operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
 ```
 
+The abstract `ScreensetsRegistry` class has NO static methods and NO knowledge of `DefaultScreensetsRegistry`. The abstract `ScreensetsRegistryFactory` class has NO static methods and NO knowledge of `DefaultScreensetsRegistryFactory`.
+
 #### Export Policy
 
-The `@hai3/screensets` public barrel exports:
-- `ScreensetsRegistry` (abstract class)
-- `createScreensetsRegistry` (factory function)
+**Current (Phase 21.9)** -- the `@hai3/screensets` public barrel exports:
+- `ScreensetsRegistry` (abstract class, pure contract -- NO static methods)
+- `screensetsRegistry` (singleton `ScreensetsRegistry` instance, hardcoded with `gtsPlugin`)
 - `ScreensetsRegistryConfig` (interface)
+- `MfeStateContainer` (abstract class, pure contract -- NO static methods)
+- `MfeStateContainerConfig` (interface)
+- `gtsPlugin` (singleton `TypeSystemPlugin` instance)
+- `GtsPlugin` (concrete class, exported `@internal` for test files that need fresh instances; production code uses the `gtsPlugin` singleton)
+- `TypeSystemPlugin` (interface)
 
-The barrel does NOT export:
-- `DefaultScreensetsRegistry` (concrete class)
-- `DefaultExtensionManager`, `DefaultLifecycleManager`, `DefaultMountManager` (concrete collaborators)
+**Phase 21.10** changes to exports:
+- `screensetsRegistry` removed -- obtain via `screensetsRegistryFactory.build(config)`
+- `ScreensetsRegistryFactory` added (abstract class, pure contract -- NO static methods)
+- `screensetsRegistryFactory` added (singleton `ScreensetsRegistryFactory` instance)
 
-Test files that need access to concrete internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
+All other concrete classes, internal collaborators, and factory functions are internal implementation details and are NOT exported. Test files that need access to concrete internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
+
+#### MfeStateContainer
+
+`MfeStateContainer` manages isolated per-MFE state. It requires MULTIPLE instances (one per MFE), so it CANNOT be a singleton. The abstract class is a pure contract with NO static methods and NO knowledge of `DefaultMfeStateContainer`. Instances are created directly by internal wiring code (`DefaultMountManager`) that already knows about the concrete type. There is no public construction path.
+
+```typescript
+// packages/screensets/src/mfe/state/mfe-state-container.ts
+
+interface MfeStateContainerConfig<TState> {
+  initialState: TState;
+}
+
+/**
+ * Abstract class defining the MFE state container contract.
+ * Exported from @hai3/screensets for DIP -- consumers type against this.
+ * This class has NO static methods and NO knowledge of DefaultMfeStateContainer.
+ * Instances are created internally by DefaultMountManager.
+ */
+abstract class MfeStateContainer<TState> {
+  abstract getState(): TState;
+  abstract setState(updater: (state: TState) => TState): void;
+  abstract subscribe(listener: (state: TState) => void): () => void;
+  abstract dispose(): void;
+  abstract get disposed(): boolean;
+}
+```
+
+```typescript
+// packages/screensets/src/mfe/state/default-mfe-state-container.ts
+// NOT exported from public barrel
+
+class DefaultMfeStateContainer<TState> extends MfeStateContainer<TState> {
+  private currentState: TState;
+  private listeners: Set<(state: TState) => void>;
+  private isDisposed: boolean;
+
+  constructor(config: MfeStateContainerConfig<TState>) {
+    super();
+    this.currentState = config.initialState;
+    this.listeners = new Set();
+    this.isDisposed = false;
+  }
+
+  // ... implements all abstract methods using private fields
+}
+```
+
+```typescript
+// In DefaultMountManager -- internal wiring code that creates MfeStateContainer instances
+// This is the ONLY code that knows about DefaultMfeStateContainer.
+import { DefaultMfeStateContainer } from '../state/default-mfe-state-container';
+
+// Inside mountExtension():
+const stateContainer = new DefaultMfeStateContainer({ initialState });
+```
+
+There is no standalone `createMfeStateContainer()` function and no `MfeStateContainer.create()` static method. `DefaultMountManager` constructs instances directly.
+
+**Export policy**: `MfeStateContainer` (abstract class, pure contract -- NO static methods) and `MfeStateContainerConfig` (interface) are exported from `@hai3/screensets`. `DefaultMfeStateContainer` and any standalone factory function are NOT exported.
+
+#### GtsPlugin Singleton
+
+`GtsPlugin` is a **singleton** -- there is one GTS type system per application. The class constructor is private to the module. The `gtsPlugin` constant is the only instance and the only public export for this component.
+
+```typescript
+// packages/screensets/src/mfe/plugins/gts/index.ts
+
+/**
+ * Concrete GTS plugin class implementing TypeSystemPlugin.
+ * NOT exported from the public barrel. Constructor is private to this module.
+ */
+class GtsPlugin implements TypeSystemPlugin {
+  readonly name = 'gts';
+  readonly version = '1.0.0';
+  private readonly gtsStore: GtsStore;
+
+  constructor() { /* ... registers first-class schemas ... */ }
+  // ... implements all TypeSystemPlugin methods ...
+}
+
+/**
+ * Singleton GTS plugin instance - the ONLY public export for GtsPlugin.
+ * There is no factory function and no create() method.
+ * GtsPlugin is a singleton: one GTS type system per application.
+ */
+export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();
+```
+
+**Export policy**: `gtsPlugin` (singleton constant typed as `TypeSystemPlugin`) is the primary export from the public barrel. `GtsPlugin` class is exported `@internal` for test files that need fresh instances for isolation; production code uses the `gtsPlugin` singleton. This is consistent with how `DefaultScreensetsRegistry` tests import the concrete class directly. There is no `createGtsPlugin()` function.

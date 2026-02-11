@@ -16,17 +16,16 @@ The GTS plugin is included with `@hai3/screensets` and requires `@globaltypesyst
 
 ## Basic Usage
 
-### Importing the Plugin
+### Building the Registry
 
 ```typescript
-import { createScreensetsRegistry } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 
-// Create runtime with GTS plugin
-const runtime = createScreensetsRegistry({
-  typeSystem: gtsPlugin,
-  debug: false,
-});
+// Build the registry with GTS plugin at application wiring time
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+
+// Use the registry
+registry.registerDomain(myDomain);
 ```
 
 ### Plugin is Ready Immediately
@@ -34,10 +33,10 @@ const runtime = createScreensetsRegistry({
 The GTS plugin ships with all HAI3 first-class citizen schemas **built-in**. No registration needed:
 
 ```typescript
-// ✅ Correct - Plugin is ready to use
-const runtime = createScreensetsRegistry({
-  typeSystem: gtsPlugin,
-});
+// ✅ Correct - Build registry with factory
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+registry.registerDomain(myDomain);
 
 // ❌ Wrong - No need to register core schemas
 // gtsPlugin.registerSchema(mfeEntrySchema); // Don't do this
@@ -433,10 +432,11 @@ Register vendor schemas once during application initialization:
 
 ```typescript
 // ✅ Good - Register once at startup
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+
 function initializeApp() {
-  const runtime = createScreensetsRegistry({ typeSystem: gtsPlugin });
   registerVendorSchemas(gtsPlugin);
-  return runtime;
+  return screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 }
 
 // ❌ Bad - Registering repeatedly
@@ -463,7 +463,10 @@ const results = gtsPlugin.query('gts.*.*.*.*.*'); // Expensive!
 ### Enable Debug Mode
 
 ```typescript
-const runtime = createScreensetsRegistry({
+// For custom configurations, create a new instance
+import { DefaultScreensetsRegistry, gtsPlugin } from '@hai3/screensets';
+
+const runtime = new DefaultScreensetsRegistry({
   typeSystem: gtsPlugin,
   debug: true, // Enable debug logging
 });

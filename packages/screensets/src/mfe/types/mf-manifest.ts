@@ -41,7 +41,7 @@ export interface SharedDependencyConfig {
    *
    * IMPORTANT for MfeHandlerMF (default handler):
    * - Only set to true for truly stateless utilities (lodash, date-fns)
-   * - Libraries with state (React, Redux, GTS, @hai3/*) should use false
+   * - Libraries with state (React, state management libraries, GTS, @hai3/*) should use false
    *
    * Custom handlers may use different defaults based on isolation requirements.
    */

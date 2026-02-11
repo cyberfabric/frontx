@@ -3,17 +3,17 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime';
-import { createGtsPlugin } from '../../../src/mfe/plugins/gts';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { DomainValidationError } from '../../../src/mfe/errors';
 
 describe('Domain Registration', () => {
-  const plugin = createGtsPlugin();
-  let registry: ReturnType<typeof createScreensetsRegistry>;
+  const plugin = new GtsPlugin();
+  let registry: DefaultScreensetsRegistry;
 
   beforeEach(() => {
-    registry = createScreensetsRegistry({
+    registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
       debug: false,
     });

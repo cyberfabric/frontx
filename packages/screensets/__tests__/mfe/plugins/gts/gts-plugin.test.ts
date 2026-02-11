@@ -6,12 +6,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createGtsPlugin, gtsPlugin } from '../../../../src/mfe/plugins/gts/index';
+import { gtsPlugin, GtsPlugin } from '../../../../src/mfe/plugins/gts/index';
 import { HAI3_CORE_TYPE_IDS } from '../../../../src/mfe/init';
 
 describe('GTS Plugin', () => {
   describe('2.3.1 - isValidTypeId accepts valid GTS type IDs', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('accepts base type ID', () => {
       const result = plugin.isValidTypeId('gts.hai3.mfes.mfe.entry.v1~');
@@ -32,7 +32,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.2 - isValidTypeId rejects invalid formats', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('rejects missing gts prefix', () => {
       const result = plugin.isValidTypeId('hai3.mfes.mfe.entry.v1~');
@@ -56,7 +56,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.3 - parseTypeId returns correct components', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('parses base type ID', () => {
       const result = plugin.parseTypeId('gts.hai3.mfes.mfe.entry.v1~');
@@ -89,7 +89,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.4 - schema registration and validation', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('has all core schemas registered', () => {
       const schema = plugin.getSchema(HAI3_CORE_TYPE_IDS.mfeEntry);
@@ -153,7 +153,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.5 - query operations', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('queries extension types', () => {
       const results = plugin.query('gts.hai3.mfes.*');
@@ -174,7 +174,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.6 - checkCompatibility returns proper CompatibilityResult', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('same version is compatible', () => {
       const result = plugin.checkCompatibility(
@@ -207,7 +207,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('2.3.7 - getAttribute resolves attributes correctly', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('resolves properties from domain schema', () => {
       const result = plugin.getAttribute(HAI3_CORE_TYPE_IDS.extensionDomain, 'properties.extensionsTypeId');
@@ -241,7 +241,7 @@ describe('GTS Plugin', () => {
   });
 
   describe('isTypeOf - type hierarchy checking', () => {
-    const plugin = createGtsPlugin();
+    const plugin = new GtsPlugin();
 
     it('same type returns true', () => {
       const result = plugin.isTypeOf(

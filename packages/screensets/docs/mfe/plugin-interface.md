@@ -222,26 +222,30 @@ Used for dynamic schema resolution. This method is **REQUIRED** - all plugins mu
 
 ## Usage Examples
 
-### Initializing the Runtime
+### Building the Registry
 
 ```typescript
-import { createScreensetsRegistry } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 
-const runtime = createScreensetsRegistry({
-  typeSystem: gtsPlugin,
-  debug: false,
-});
+// Build the registry with GTS plugin at application wiring time
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+
+// Use the registry
+registry.registerDomain(myDomain);
 ```
 
 ### Registering and Validating Entities
 
 ```typescript
+import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+
+const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+
 // Register an extension (as a GTS entity)
-runtime.typeSystem.register(extension);
+registry.typeSystem.register(extension);
 
 // Validate the registered extension by its instance ID
-const validation = runtime.typeSystem.validateInstance(extension.id);
+const validation = registry.typeSystem.validateInstance(extension.id);
 if (!validation.valid) {
   console.error('Extension validation failed:', validation.errors);
 }
@@ -339,7 +343,7 @@ const MY_ACTION_TYPE = 'gts.acme.analytics.comm.action.v1~acme.analytics.comm.re
 
 ## Plugin Lifecycle
 
-1. **Creation**: Plugin is created via factory function (e.g., `createGtsPlugin()`)
+1. **Creation**: Plugin singleton is pre-instantiated (e.g., `gtsPlugin`)
 2. **Initialization**: First-class schemas are registered during construction
 3. **Runtime Registration**: Vendor schemas registered via `registerSchema()`
 4. **Entity Registration**: Entities registered via `register()`

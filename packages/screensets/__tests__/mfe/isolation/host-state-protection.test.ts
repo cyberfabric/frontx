@@ -8,9 +8,10 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry, createScreensetsRegistry } from '../../../src/mfe/runtime';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import { createMfeStateContainer, isMfeStateContainerDisposed } from '../../../src/mfe/state';
+import { DefaultMfeStateContainer } from '../../../src/mfe/state';
 import { SharedPropertiesProvider } from '../../../src/mfe/properties';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
 import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
@@ -29,13 +30,13 @@ interface MfeState {
 
 describe('Host State Protection', () => {
   let hostRuntime: ScreensetsRegistry;
-  let _hostStateContainer: ReturnType<typeof createMfeStateContainer<HostState>>;
+  let _hostStateContainer: DefaultMfeStateContainer<HostState>;
   let _container: HTMLDivElement;
   let coordinator: WeakMapRuntimeCoordinator;
 
   beforeEach(() => {
     // Create host runtime
-    hostRuntime = createScreensetsRegistry({
+    hostRuntime = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
 
@@ -43,7 +44,7 @@ describe('Host State Protection', () => {
     coordinator = new WeakMapRuntimeCoordinator();
 
     // Create host state (should be inaccessible to MFE)
-    _hostStateContainer = createMfeStateContainer<HostState>({
+    _hostStateContainer = new DefaultMfeStateContainer<HostState>({
       initialState: {
         currentScreenset: 'dashboard',
         layoutConfig: { theme: 'dark' },
@@ -57,7 +58,7 @@ describe('Host State Protection', () => {
 
   describe('MFE cannot access host store directly', () => {
     it('should not expose host state _container to MFE', () => {
-      const mfeStateContainer = createMfeStateContainer<MfeState>({
+      const mfeStateContainer = new DefaultMfeStateContainer<MfeState>({
         initialState: {
           widgetData: null,
           localState: null,
@@ -126,7 +127,7 @@ describe('Host State Protection', () => {
   describe('Boundary enforcement', () => {
     it('should enforce state isolation via separate _containers', () => {
       // Host state
-      const hostState = createMfeStateContainer<HostState>({
+      const hostState = new DefaultMfeStateContainer<HostState>({
         initialState: {
           currentScreenset: 'dashboard',
           layoutConfig: {},
@@ -135,7 +136,7 @@ describe('Host State Protection', () => {
       });
 
       // MFE state (completely separate)
-      const mfeState = createMfeStateContainer<MfeState>({
+      const mfeState = new DefaultMfeStateContainer<MfeState>({
         initialState: {
           widgetData: null,
           localState: null,
@@ -218,7 +219,7 @@ describe('Host State Protection', () => {
       // === HOST SIDE ===
 
       // Host has its own state
-      const hostState = createMfeStateContainer<HostState>({
+      const hostState = new DefaultMfeStateContainer<HostState>({
         initialState: {
           currentScreenset: 'dashboard',
           layoutConfig: { sidebar: 'collapsed' },
@@ -236,7 +237,7 @@ describe('Host State Protection', () => {
       // === MFE SIDE ===
 
       // MFE has its own state (completely isolated)
-      const mfeState = createMfeStateContainer<MfeState>({
+      const mfeState = new DefaultMfeStateContainer<MfeState>({
         initialState: {
           widgetData: { items: [] },
           localState: { filter: 'all' },
@@ -283,7 +284,7 @@ describe('Host State Protection', () => {
 
     it('should demonstrate multiple MFE instances cannot access each other', () => {
       // MFE Instance A
-      const mfeStateA = createMfeStateContainer({
+      const mfeStateA = new DefaultMfeStateContainer({
         initialState: { data: 'A' },
       });
 
@@ -294,7 +295,7 @@ describe('Host State Protection', () => {
       );
 
       // MFE Instance B (same entry, different instance)
-      const mfeStateB = createMfeStateContainer({
+      const mfeStateB = new DefaultMfeStateContainer({
         initialState: { data: 'B' },
       });
 
@@ -335,7 +336,7 @@ describe('Host State Protection', () => {
 
   describe('Cleanup on unmount', () => {
     it('should cleanup all MFE resources on unmount', () => {
-      const mfeState = createMfeStateContainer({
+      const mfeState = new DefaultMfeStateContainer({
         initialState: { data: 'test' },
       });
 
@@ -365,7 +366,7 @@ describe('Host State Protection', () => {
       coordinator.unregister(_container);
 
       // All resources should be cleaned up
-      expect(isMfeStateContainerDisposed(mfeState)).toBe(true);
+      expect(mfeState.disposed).toBe(true);
       expect(sharedProps.isDisposed()).toBe(true);
       expect(coordinator.get(_container)).toBeUndefined();
     });

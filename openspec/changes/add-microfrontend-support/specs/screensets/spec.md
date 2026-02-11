@@ -487,7 +487,7 @@ The Type System plugin SHALL propagate from @hai3/screensets through @hai3/frame
 - **WHEN** initializing the @hai3/framework microfrontends plugin
 - **THEN** the plugin SHALL accept NO configuration parameters
 - **AND** calling `microfrontends({ anything })` SHALL throw an error
-- **AND** the plugin SHALL obtain the screensetsRegistry from the framework (already provided by screensets plugin)
+- **AND** the plugin SHALL create the ScreensetsRegistry via `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` at framework wiring time
 - **AND** the same TypeSystemPlugin instance SHALL be used throughout the application
 
 #### Scenario: Base domains registration via runtime

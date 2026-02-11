@@ -12,8 +12,9 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { createScreensetsRegistry, ScreensetsRegistry } from '../../../src/mfe/runtime';
-import { createGtsPlugin } from '../../../src/mfe/plugins/gts';
+import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry, ActionsChain } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
@@ -107,8 +108,8 @@ describe('Lifecycle Stage Triggering', () => {
 
   beforeEach(() => {
     // Create fresh plugin and registry for each test
-    plugin = createGtsPlugin();
-    registry = createScreensetsRegistry({
+    plugin = new GtsPlugin();
+    registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
       debug: false,
     });

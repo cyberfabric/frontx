@@ -16,7 +16,6 @@ import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../sr
 import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
 import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
-import { createScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 
 // Mock Type System Plugin
@@ -98,14 +97,14 @@ function createMockPlugin(): TypeSystemPlugin {
 describe('ActionsChainsMediator - Phase 9', () => {
   let plugin: TypeSystemPlugin;
   let mediator: DefaultActionsChainsMediator;
-  let registry: ReturnType<typeof createScreensetsRegistry>;
+  let registry: DefaultScreensetsRegistry;
 
   beforeEach(() => {
     plugin = createMockPlugin();
-    registry = createScreensetsRegistry({ typeSystem: plugin });
+    registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
     mediator = new DefaultActionsChainsMediator({
       typeSystem: plugin,
-      getDomainState: (domainId) => (registry as DefaultScreensetsRegistry).getDomainState(domainId),
+      getDomainState: (domainId) => registry.getDomainState(domainId),
     });
   });
 
@@ -386,7 +385,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         }),
       };
 
-      const failingRegistry = createScreensetsRegistry({ typeSystem: failingPlugin });
+      const failingRegistry = new DefaultScreensetsRegistry({ typeSystem: failingPlugin });
       const failingMediator = new DefaultActionsChainsMediator({
         typeSystem: failingPlugin,
         getDomainState: (domainId) => (failingRegistry as DefaultScreensetsRegistry).getDomainState(domainId),
