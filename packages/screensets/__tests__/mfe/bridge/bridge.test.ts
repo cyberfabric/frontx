@@ -9,6 +9,7 @@ import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import type { ActionsChain, SharedProperty } from '../../../src/mfe/types';
 import type { ChainResult } from '../../../src/mfe/mediator/types';
+import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mfe/errors';
 
 describe('Bridge Implementation', () => {
   describe('ChildMfeBridge', () => {
@@ -211,9 +212,7 @@ describe('Bridge Implementation', () => {
         action: { type: 'test', target: 'target' },
       };
 
-      await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(
-        'Bridge has been disposed'
-      );
+      await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(BridgeDisposedError);
 
       await expect(parentBridge.handleChildAction(chain)).rejects.toThrow(
         'Bridge has been disposed'
@@ -224,14 +223,8 @@ describe('Bridge Implementation', () => {
       }).toThrow('Bridge has been disposed');
     });
 
-    it('should throw error when sendActionsChain is called (not yet implemented)', async () => {
-      const chain: ActionsChain = {
-        action: { type: 'test-action', target: 'test-target' },
-      };
-
-      await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(
-        'not yet implemented'
-      );
+    it('should expose instanceId', () => {
+      expect(parentBridge.instanceId).toBe('instance');
     });
   });
 
@@ -311,6 +304,261 @@ describe('Bridge Implementation', () => {
       parentBridge.dispose();
       const subscribersAfterDispose = parentBridge.getPropertySubscribers();
       expect(subscribersAfterDispose.size).toBe(0);
+    });
+  });
+
+  describe('Phase 21.11: executeActionsChain capability pass-through', () => {
+    let childBridge: ChildMfeBridgeImpl;
+    let parentBridge: ParentMfeBridgeImpl;
+
+    beforeEach(() => {
+      childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'test-instance');
+      parentBridge = new ParentMfeBridgeImpl(childBridge);
+      childBridge.setParentBridge(parentBridge);
+    });
+
+    describe('ChildMfeBridge.executeActionsChain', () => {
+      it('should delegate to injected registry callback', async () => {
+        const mockResult: ChainResult = { completed: true, path: ['registry-action'] };
+        const registryCallback = vi.fn().mockResolvedValue(mockResult);
+        childBridge.setExecuteActionsChainCallback(registryCallback);
+
+        const chain: ActionsChain = {
+          action: { type: 'test-action', target: 'domain' },
+        };
+        const options = { timeout: 5000 };
+
+        const result = await childBridge.executeActionsChain(chain, options);
+
+        expect(registryCallback).toHaveBeenCalledWith(chain, options);
+        expect(result).toEqual(mockResult);
+      });
+
+      it('should throw when callback is not wired', async () => {
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        await expect(childBridge.executeActionsChain(chain)).rejects.toThrow(
+          'Bridge not connected'
+        );
+      });
+
+      it('should propagate errors from registry callback', async () => {
+        const callbackError = new Error('Registry execution failed');
+        const registryCallback = vi.fn().mockRejectedValue(callbackError);
+        childBridge.setExecuteActionsChainCallback(registryCallback);
+
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        await expect(childBridge.executeActionsChain(chain)).rejects.toThrow(
+          'Registry execution failed'
+        );
+      });
+
+      it('should clear callback on cleanup', async () => {
+        const registryCallback = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        childBridge.setExecuteActionsChainCallback(registryCallback);
+
+        childBridge.cleanup();
+
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        await expect(childBridge.executeActionsChain(chain)).rejects.toThrow(
+          'Bridge not connected'
+        );
+      });
+    });
+  });
+
+  describe('Phase 21.11: Parent-to-child action chain delivery', () => {
+    let childBridge: ChildMfeBridgeImpl;
+    let parentBridge: ParentMfeBridgeImpl;
+
+    beforeEach(() => {
+      childBridge = new ChildMfeBridgeImpl('domain', 'entry', 'test-instance');
+      parentBridge = new ParentMfeBridgeImpl(childBridge);
+      childBridge.setParentBridge(parentBridge);
+    });
+
+    describe('ChildMfeBridge.onActionsChain', () => {
+      it('should register a handler and return unsubscribe function', () => {
+        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const unsubscribe = childBridge.onActionsChain(handler);
+
+        expect(typeof unsubscribe).toBe('function');
+
+        // Unsubscribe should clear the handler
+        unsubscribe();
+      });
+
+      it('should warn when replacing an existing handler', () => {
+        const consoleWarnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+        const handler1 = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const handler2 = vi.fn().mockResolvedValue({ completed: true, path: [] });
+
+        childBridge.onActionsChain(handler1);
+        childBridge.onActionsChain(handler2); // Should warn
+
+        expect(consoleWarnSpy).toHaveBeenCalledWith(
+          expect.stringContaining("onActionsChain: replacing existing handler for instance 'test-instance'")
+        );
+
+        consoleWarnSpy.mockRestore();
+      });
+
+      it('should clear handler when unsubscribe is called', async () => {
+        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        const unsubscribe = childBridge.onActionsChain(handler);
+
+        // Verify handler works
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+        await childBridge.handleParentActionsChain(chain);
+        expect(handler).toHaveBeenCalledTimes(1);
+
+        // Unsubscribe
+        unsubscribe();
+
+        // Should throw after unsubscribe
+        try {
+          await childBridge.handleParentActionsChain(chain);
+          expect.fail('Should have thrown NoActionsChainHandlerError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
+        }
+      });
+
+      it('should clear handler on cleanup', async () => {
+        const handler = vi.fn().mockResolvedValue({ completed: true, path: [] });
+        childBridge.onActionsChain(handler);
+
+        childBridge.cleanup();
+
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+        try {
+          await childBridge.handleParentActionsChain(chain);
+          expect.fail('Should have thrown NoActionsChainHandlerError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
+        }
+      });
+    });
+
+    describe('ChildMfeBridge.handleParentActionsChain', () => {
+      it('should call registered handler with chain and options', async () => {
+        const mockResult: ChainResult = { completed: true, path: ['action1'] };
+        const handler = vi.fn().mockResolvedValue(mockResult);
+        childBridge.onActionsChain(handler);
+
+        const chain: ActionsChain = {
+          action: { type: 'test-action', target: 'domain' },
+        };
+        const options = { timeout: 5000 };
+
+        const result = await childBridge.handleParentActionsChain(chain, options);
+
+        expect(handler).toHaveBeenCalledWith(chain, options);
+        expect(result).toEqual(mockResult);
+      });
+
+      it('should throw NoActionsChainHandlerError when no handler registered', async () => {
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        try {
+          await childBridge.handleParentActionsChain(chain);
+          expect.fail('Should have thrown NoActionsChainHandlerError');
+        } catch (error) {
+          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
+          if (error instanceof NoActionsChainHandlerError) {
+            expect(error.instanceId).toBe('test-instance');
+            expect(error.message).toContain('test-instance');
+            expect(error.code).toBe('NO_ACTIONS_CHAIN_HANDLER');
+          }
+        }
+      });
+    });
+
+    describe('ParentMfeBridge.sendActionsChain', () => {
+      it('should forward actions chain to child handler', async () => {
+        const mockResult: ChainResult = { completed: true, path: ['forwarded'] };
+        const handler = vi.fn().mockResolvedValue(mockResult);
+        childBridge.onActionsChain(handler);
+
+        const chain: ActionsChain = {
+          action: { type: 'parent-action', target: 'child-domain' },
+        };
+        const options = { timeout: 3000 };
+
+        const result = await parentBridge.sendActionsChain(chain, options);
+
+        expect(handler).toHaveBeenCalledWith(chain, options);
+        expect(result).toEqual(mockResult);
+      });
+
+      it('should throw BridgeDisposedError when bridge is disposed', async () => {
+        parentBridge.dispose();
+
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(
+          BridgeDisposedError
+        );
+
+        try {
+          await parentBridge.sendActionsChain(chain);
+        } catch (error) {
+          expect(error).toBeInstanceOf(BridgeDisposedError);
+          if (error instanceof BridgeDisposedError) {
+            expect(error.instanceId).toBe('test-instance');
+            expect(error.code).toBe('BRIDGE_DISPOSED');
+          }
+        }
+      });
+
+      it('should propagate errors from child handler', async () => {
+        const handlerError = new Error('Child handler failed');
+        const handler = vi.fn().mockRejectedValue(handlerError);
+        childBridge.onActionsChain(handler);
+
+        const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
+
+        await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(
+          'Child handler failed'
+        );
+      });
+    });
+
+    describe('Integration: Bidirectional action chain delivery', () => {
+      it('should support both child-to-parent and parent-to-child delivery', async () => {
+        // Setup parent handler for child-to-parent
+        const parentHandler = vi.fn().mockResolvedValue({
+          completed: true,
+          path: ['parent-handled'],
+        });
+        parentBridge.onChildAction(parentHandler);
+
+        // Setup child handler for parent-to-child
+        const childHandler = vi.fn().mockResolvedValue({
+          completed: true,
+          path: ['child-handled'],
+        });
+        childBridge.onActionsChain(childHandler);
+
+        // Child sends to parent
+        const childToParentChain: ActionsChain = {
+          action: { type: 'child-action', target: 'parent-domain' },
+        };
+        const resultFromParent = await childBridge.sendActionsChain(childToParentChain);
+        expect(parentHandler).toHaveBeenCalledWith(childToParentChain, undefined);
+        expect(resultFromParent.path).toEqual(['parent-handled']);
+
+        // Parent sends to child
+        const parentToChildChain: ActionsChain = {
+          action: { type: 'parent-action', target: 'child-domain' },
+        };
+        const resultFromChild = await parentBridge.sendActionsChain(parentToChildChain);
+        expect(childHandler).toHaveBeenCalledWith(parentToChildChain, undefined);
+        expect(resultFromChild.path).toEqual(['child-handled']);
+      });
     });
   });
 });

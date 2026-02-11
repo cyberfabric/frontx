@@ -11,6 +11,7 @@ import type { ParentMfeBridge } from '../handler/types';
 import type { ActionsChain, SharedProperty } from '../types';
 import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 import type { ChildMfeBridgeImpl } from './ChildMfeBridge';
+import { BridgeDisposedError } from '../errors';
 
 /**
  * Internal implementation of ParentMfeBridge.
@@ -39,8 +40,14 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    */
   private readonly propertySubscribers = new Map<string, (value: SharedProperty) => void>();
 
+  /**
+   * Unique instance ID for the child MFE.
+   */
+  readonly instanceId: string;
+
   constructor(childBridge: ChildMfeBridgeImpl) {
     this.childBridge = childBridge;
+    this.instanceId = childBridge.instanceId;
   }
 
   /**
@@ -48,22 +55,18 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * Used by the host to send actions to the MFE.
    *
    * @param chain - Actions chain to send
-   * @param _options - Optional execution options (reserved for future use)
+   * @param options - Optional execution options
    * @returns Promise resolving to chain result
-   * @throws {Error} Not yet implemented - action delivery to child MFE requires action handler registration mechanism
+   * @throws {BridgeDisposedError} If bridge has been disposed
    */
   async sendActionsChain(
     chain: ActionsChain,
-    _options?: ChainExecutionOptions
+    options?: ChainExecutionOptions
   ): Promise<ChainResult> {
     if (this.disposed) {
-      throw new Error('Bridge has been disposed');
+      throw new BridgeDisposedError(this.instanceId);
     }
-    throw new Error(
-      `ParentMfeBridge.sendActionsChain() is not yet implemented. ` +
-      `Action delivery to child MFE requires action handler registration mechanism. ` +
-      `Action type: ${chain.action.type}`
-    );
+    return this.childBridge.handleParentActionsChain(chain, options);
   }
 
   /**

@@ -190,6 +190,36 @@ export class UnsupportedLifecycleStageError extends MfeError {
   }
 }
 
+/**
+ * Error thrown when no actions chain handler is registered on a child bridge
+ */
+export class NoActionsChainHandlerError extends MfeError {
+  constructor(
+    public readonly instanceId: string
+  ) {
+    super(
+      `No actions chain handler registered for instance '${instanceId}'. Child MFEs must call bridge.onActionsChain() to receive parent actions chains.`,
+      'NO_ACTIONS_CHAIN_HANDLER'
+    );
+    this.name = 'NoActionsChainHandlerError';
+  }
+}
+
+/**
+ * Error thrown when attempting to use a disposed bridge
+ */
+export class BridgeDisposedError extends MfeError {
+  constructor(
+    public readonly instanceId: string
+  ) {
+    super(
+      `Bridge has been disposed for instance '${instanceId}'`,
+      'BRIDGE_DISPOSED'
+    );
+    this.name = 'BridgeDisposedError';
+  }
+}
+
 // NOTE: MfeErrorHandler, RetryHandler, and ErrorHandlerConfig are NOT re-exported here
 // to avoid circular dependency (error-handler.ts imports from this file).
 // Import them directly from '@hai3/screensets' or from './error-handler'.

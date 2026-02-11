@@ -121,7 +121,7 @@ mfeActions.handleMfeChildAction(extensionId, actionTypeId, payload);
 // Emits: 'mfe/childActionRequested' with { extensionId, actionTypeId, payload }
 ```
 
-- **WHEN** the ScreensetsRegistry's `onChildAction` callback is invoked
+- **WHEN** the child bridge forwards an action chain to the parent via internal bridge wiring
 - **THEN** it SHALL call `handleMfeChildAction` action
 - **AND** the action SHALL emit `'mfe/childActionRequested'` event
 - **AND** effects SHALL handle the event and call ScreensetsRegistry methods
@@ -367,9 +367,9 @@ The system SHALL support loading MFE extensions into any domain using generic `l
 import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
-// Inside MFE component - bridge sends action chain to parent
+// Inside MFE component - bridge executes action chain via registry pass-through
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
-await bridge.sendActionsChain({
+await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
@@ -381,17 +381,16 @@ await bridge.sendActionsChain({
 });
 
 // Flow:
-// 1. Bridge validates action chain against GTS schema
-// 2. Bridge calls onChildAction callback
-// 3. Callback invokes handleMfeChildAction action
-// 4. Action emits 'mfe/childActionRequested' event
-// 5. Effect handles event, calls runtime.loadExtension() with domain and extension
-// 6. Popup domain handles by showing modal with the extension
+// 1. bridge.executeActionsChain() delegates to registry.executeActionsChain() via injected callback
+// 2. Registry validates action chain against GTS schema
+// 3. ActionsChainsMediator routes chain to target domain
+// 4. Effect handles event, calls runtime.loadExtension() with domain and extension
+// 5. Popup domain handles by showing modal with the extension
 ```
 
 - **WHEN** an MFE requests load_ext with popup domain
 - **THEN** the bridge (from @hai3/screensets) SHALL validate the action chain
-- **AND** the bridge SHALL call onChildAction callback
+- **AND** the bridge SHALL delegate to `registry.executeActionsChain()` via the injected callback (the bridge is a pass-through, not a router)
 - **AND** the effect SHALL call `runtime.loadExtension()` with domain and extension
 - **AND** the popup domain SHALL render the extension as a modal
 
@@ -403,7 +402,7 @@ import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 // Inside MFE popup
 // HAI3_ACTION_UNLOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1
-await bridge.sendActionsChain({
+await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_UNLOAD_EXT,
     target: HAI3_POPUP_DOMAIN,
@@ -425,7 +424,7 @@ import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
 
 // HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
-await bridge.sendActionsChain({
+await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
@@ -463,7 +462,7 @@ import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT } from '@hai3/screensets';
 import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 // This works - screen domain supports load_ext (navigate to screen)
-await bridge.sendActionsChain({
+await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_SCREEN_DOMAIN,
@@ -476,7 +475,7 @@ await bridge.sendActionsChain({
 // This will FAIL - screen domain does NOT support unload_ext
 // You cannot have "no screen selected"
 try {
-  await bridge.sendActionsChain({
+  await bridge.executeActionsChain({
     action: {
       type: HAI3_ACTION_UNLOAD_EXT,
       target: HAI3_SCREEN_DOMAIN,

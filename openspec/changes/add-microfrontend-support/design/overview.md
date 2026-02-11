@@ -66,20 +66,20 @@ The MFE system's scope is **registration and lifecycle**, NOT fetching. How MFE 
 
 ## How MFE Instances Communicate
 
-MFE instances don't talk directly to each other. Each MFE **instance** has its own **ChildMfeBridge** to its parent domain. All communication goes through the parent.
+MFE instances don't talk directly to each other. Each MFE **instance** has its own **ChildMfeBridge** to its parent domain. All communication goes through the registry.
 
 ```
 ┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│    MFE A    │      │    PARENT    │      │    MFE B    │
+│    MFE A    │      │   REGISTRY   │      │    MFE B    │
 │             │      │              │      │             │
 │             │◀─────│──(properties)│─────▶│             │
 │             │      │              │      │             │
-│  (chains)   │─────▶│              │◀─────│  (chains)   │
-│             │◀─────│(chains both  │─────▶│             │
-│             │      │    ways)     │      │             │
+│ execute     │─────▶│executeAC()   │◀─────│ execute     │
+│ ActionsChain│      │(mediator     │      │ ActionsChain│
+│ (via bridge)│      │  routes)     │      │ (via bridge)│
 └─────────────┘      └──────────────┘      └─────────────┘
 ChildMfeBridge A                        ChildMfeBridge B
-     (own)                                     (own)
+.executeActionsChain()                  .executeActionsChain()
 ```
 
 ### Two Communication Mechanisms
@@ -88,10 +88,46 @@ ChildMfeBridge A                        ChildMfeBridge B
    - User context, theme, selected items
    - MFEs subscribe and react to changes
 
-2. **[Actions Chains](./mfe-actions.md)** - Bidirectional: routed to targets
-   - ActionsChains are sent to targets (domains or extensions)
+2. **[Actions Chains](./mfe-actions.md)** - Executed via registry
+   - `registry.executeActionsChain(chain)` is the ONLY public API for triggering actions chains
+   - Child MFEs access this via `childBridge.executeActionsChain()` (pass-through to registry)
    - ActionsChainsMediator routes chains to targets based on `action.target`
    - Action types in contracts define what targets can send/receive; ActionsChains are the messages
+
+### Action Chain Execution
+
+The **public API** for executing actions chains is `registry.executeActionsChain(chain, options)` -- this is the single entry point for ALL runtimes. Child MFEs access this capability via `childBridge.executeActionsChain()`, which delegates directly to the registry (a convenience pass-through, not routing).
+
+**Child MFE executes a chain:** The child calls `childBridge.executeActionsChain(chain)`, which invokes the registry's `executeActionsChain()` via an injected callback. No "sending" or "routing" -- the bridge simply provides access to the registry's execution capability.
+
+**Hierarchical composition (private internal transport):** For MFEs that define their own domains, bridge-to-bridge transport between mediator instances is supported but is entirely **private** (concrete-only methods on `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl`). This is internal wiring for the mediator, not a public API.
+
+```
+  Public API (child executes chain):
+
+  ChildMfeBridge
+  .executeActionsChain(chain)   <-- delegates to registry
+       |
+       v
+  registry.executeActionsChain(chain)
+```
+
+```
+  Private Transport (hierarchical composition, concrete-only):
+
+  ParentMfeBridgeImpl                ChildMfeBridgeImpl
+  .sendActionsChain(chain)  -------> .handleParentActionsChain(chain)
+  [concrete-only]                    [concrete-only]
+                                          |
+                                          v
+                                     onActionsChain handler
+                                     [concrete-only registration]
+                                     (e.g., childRegistry.executeActionsChain)
+```
+
+The `ParentMfeBridge` public interface has only `instanceId` and `dispose()`. The parent uses `registry.executeActionsChain()` directly for chain execution. `sendActionsChain` on bridge implementations is concrete-only for internal mediator transport.
+
+See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for implementation details and code examples.
 
 ---
 
@@ -209,7 +245,7 @@ See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must imple
 
 ## Error Handling
 
-When things go wrong, the system provides [specific error types](./mfe-errors.md). See [MFE Errors](./mfe-errors.md) for the complete error class hierarchy including all 11 error classes.
+When things go wrong, the system provides [specific error types](./mfe-errors.md). See [MFE Errors](./mfe-errors.md) for the complete error class hierarchy (13 error classes).
 
 ---
 

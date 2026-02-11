@@ -81,6 +81,7 @@ describe('Host State Protection', () => {
       // Register runtime connection
       const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
       const mockBridge: ParentMfeBridge = {
+        instanceId: 'test-instance-1',
         dispose: () => {},
       };
 
@@ -111,7 +112,7 @@ describe('Host State Protection', () => {
         bridge: {
           // ChildMfeBridge interface (defined in later phases)
           entryTypeId: 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1',
-          sendActionsChain: () => {},
+          executeActionsChain: () => {},
           subscribeToProperty: () => () => {},
           // NO access to: hostRuntime, hostState, etc.
         },
@@ -191,6 +192,7 @@ describe('Host State Protection', () => {
     it('should verify coordination is module-private', () => {
       const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
       const mockBridge: ParentMfeBridge = {
+        instanceId: 'test-instance-2',
         dispose: () => {},
       };
 
@@ -348,6 +350,7 @@ describe('Host State Protection', () => {
 
       const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
       const mockBridge: ParentMfeBridge = {
+        instanceId: 'test-instance-3',
         dispose: () => {
           mfeState.dispose();
           sharedProps.dispose();

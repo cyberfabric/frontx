@@ -190,7 +190,8 @@ export class DefaultMountManager extends MountManager {
       const { parentBridge, childBridge } = bridgeFactory.createBridge(
         domainState,
         extensionId,
-        extensionState.entry.id
+        extensionState.entry.id,
+        (chain, options) => this.executeActionsChain(chain, options)
       );
 
       // Register with RuntimeCoordinator
@@ -205,11 +206,6 @@ export class DefaultMountManager extends MountManager {
           bridges: new Map([[extensionId, parentBridge]]),
         });
       }
-
-      // Connect parent bridge to mediator for child action handling
-      parentBridge.onChildAction((chain, options) => {
-        return this.executeActionsChain(chain, options);
-      });
 
       // Call lifecycle.mount(container, childBridge)
       const lifecycle = extensionState.lifecycle;

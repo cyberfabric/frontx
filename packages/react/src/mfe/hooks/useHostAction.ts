@@ -19,7 +19,7 @@ import { useMfeContext } from '../MfeContext';
  * Returns a callback function that sends an actions chain to the host.
  * Must be used within a MfeProvider (i.e., inside an MFE component).
  *
- * NOTE: This hook provides the interface. Bridge sendActionsChain() method should be implemented.
+ * NOTE: This hook provides the interface. Bridge executeActionsChain() delegates to the registry.
  *
  * @param actionTypeId - Type ID of the action to request
  * @returns Callback function to request the action with payload
@@ -56,7 +56,7 @@ export function useHostAction<TPayload extends Record<string, unknown> = Record<
     };
 
     // Send the chain to the host
-    bridge.sendActionsChain(chain).catch((error) => {
+    bridge.executeActionsChain(chain).catch((error: Error) => {
       console.error(
         `[useHostAction] Failed to send action '${actionTypeId}':`,
         error

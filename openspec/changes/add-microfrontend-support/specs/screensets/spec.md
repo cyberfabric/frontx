@@ -539,19 +539,34 @@ The system SHALL provide bridge interfaces for communication between parent and 
 
 - **WHEN** an MFE component (child) needs to communicate with the parent
 - **THEN** the MFE SHALL receive a `ChildMfeBridge` instance via props
-- **AND** `ChildMfeBridge` SHALL provide `sendActionsChain(chain)` method for sending actions chains to the parent
+- **AND** `ChildMfeBridge` SHALL provide `executeActionsChain(chain, options?)` method as a capability pass-through to the registry's `executeActionsChain()`
+- **AND** `ChildMfeBridge` SHALL NOT provide `sendActionsChain()` on the public interface (internal transport, concrete-only)
+- **AND** `ChildMfeBridge` SHALL NOT provide `onActionsChain()` on the public interface (internal transport wiring, concrete-only)
 - **AND** `ChildMfeBridge` SHALL provide `subscribeToProperty(propertyTypeId, callback)` method
 - **AND** `ChildMfeBridge` SHALL expose `entryTypeId` for self-identification
 
 #### Scenario: ParentMfeBridge interface
 
 - **WHEN** the parent creates a bridge for a mounted MFE (child)
-- **THEN** `ParentMfeBridge` SHALL extend `ChildMfeBridge`
-- **AND** it SHALL provide `sendActionsChain(chain, options?)` for sending actions to MFE (child)
-- **AND** the `options` parameter SHALL be optional `ChainExecutionOptions`
-- **AND** it SHALL provide `onChildAction(handler)` for registering handlers for actions from the MFE (child)
+- **THEN** `ParentMfeBridge` SHALL be a separate interface from `ChildMfeBridge` (they are independent abstractions for parent and child sides of the bridge)
+- **AND** `ParentMfeBridge` SHALL expose `readonly instanceId: string` for identifying the child instance
+- **AND** `ParentMfeBridge` SHALL NOT expose `sendActionsChain()` on the public interface (internal transport, concrete-only)
+- **AND** `ParentMfeBridge` SHALL NOT expose internal wiring methods (`onChildAction`, `receivePropertyUpdate`) -- these are concrete-only on `ParentMfeBridgeImpl`
 - **AND** it SHALL provide `dispose()` for cleanup
 - **AND** property updates SHALL be managed at the DOMAIN level via `registry.updateDomainProperty()`, NOT on ParentMfeBridge
+- **AND** the parent SHALL use `registry.executeActionsChain()` directly for action chain execution, NOT a method on the bridge
+
+#### Scenario: Hierarchical composition internal transport via bridge
+
+- **GIVEN** a child MFE that defines its own domains (hierarchical composition)
+- **AND** the child MFE's concrete bridge implementation registers a handler via `childBridgeImpl.onActionsChain(handler)` (concrete-only, not public interface)
+- **WHEN** the parent's mediator needs to deliver an actions chain to the child's domain hierarchy
+- **THEN** the system SHALL forward the actions chain via `parentBridgeImpl.sendActionsChain()` (concrete-only, not public interface)
+- **AND** the chain SHALL be forwarded to `childBridgeImpl.handleParentActionsChain()` (concrete-only)
+- **AND** the handler SHALL return a `ChainResult` from executing the actions chain
+- **AND** if no handler is registered, the system SHALL throw `NoActionsChainHandlerError`
+- **AND** if the bridge has been disposed, the system SHALL throw `BridgeDisposedError`
+- **AND** this entire transport mechanism is private/internal -- it does NOT appear on any public interface
 
 ### Requirement: Framework-Agnostic MFE Module Interface
 
@@ -597,7 +612,7 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 - **WHEN** implementing an MFE in Vanilla JavaScript
 - **THEN** the MFE SHALL export a `mount` function that directly manipulates the container DOM
 - **AND** the MFE SHALL export an `unmount` function that cleans up the container
-- **AND** the MFE SHALL use the bridge for property subscriptions and sending actions chains
+- **AND** the MFE SHALL use the bridge for property subscriptions and executing actions chains
 
 #### Scenario: MFE mount receives bridge
 
@@ -818,7 +833,7 @@ The system SHALL provide PRIVATE coordination mechanisms between parent and MFE 
 
 - **WHEN** an MFE component is rendered
 - **THEN** the only communication interface visible to MFE code SHALL be ChildMfeBridge
-- **AND** ChildMfeBridge SHALL provide: `sendActionsChain`, `subscribeToProperty`, `getProperty`, `subscribeToAllProperties`
+- **AND** ChildMfeBridge SHALL provide: `executeActionsChain`, `subscribeToProperty`, `getProperty`, `subscribeToAllProperties`
 - **AND** ChildMfeBridge SHALL NOT expose: RuntimeCoordinator, TypeSystemPlugin, schema registry, internal state
 
 #### Scenario: Internal coordination for property updates
@@ -938,11 +953,11 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 - **AND** action timeouts SHALL be resolved from action and domain type definitions
 - **AND** on timeout or any failure: execute fallback chain if defined
 
-#### Scenario: ParentMfeBridge method signature
+#### Scenario: ChildMfeBridge executeActionsChain method signature
 
-- **WHEN** using ParentMfeBridge
-- **THEN** `sendActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
-- **AND** the options SHALL be passed through to the underlying mediator
+- **WHEN** using ChildMfeBridge
+- **THEN** `executeActionsChain(chain, options?)` SHALL accept optional `ChainExecutionOptions`
+- **AND** the method SHALL delegate directly to the registry's `executeActionsChain()` via an injected callback
 - **AND** action timeouts SHALL be resolved from action and domain type definitions
 
 ### Requirement: Dynamic Registration Model

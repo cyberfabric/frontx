@@ -2,7 +2,7 @@
 
 ## Progress Summary
 
-**Current Status**: Phase 21.10 complete. All standalone factory functions eliminated. Construction patterns: singleton constant (`gtsPlugin`), factory-with-cache (`screensetsRegistryFactory`), and internal construction (`MfeStateContainer` by `DefaultMountManager`). 363/363 screensets + 19/19 react tests passing.
+**Current Status**: Phases 1-21.11 complete. 377/377 screensets + 19/19 react tests passing.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
@@ -10,6 +10,10 @@
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
 - **Phase 21** (21.1-21.6): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, ParentMfeBridge 2; EventEmitter removed entirely in Phase 21.7). Zero circular dependencies. 367/367 tests passing
 - **Phase 21.7**: ✓ Complete -- EventEmitter system removed entirely. `event-emitter.ts` deleted, `on`/`off` removed from abstract ScreensetsRegistry, all `emit()` calls removed from collaborators. `useExtensionEvents` renamed to `useDomainExtensions` with store subscription. Specs updated. 363/363 screensets + 19/19 react tests passing
+
+**Note:** Phases 1-21.11 are complete.
+
+> Completed phase details below are retained for traceability.
 
 ### Current State Summary
 
@@ -841,7 +845,7 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 ### 15.1 Bridge Core
 
 - [x] 15.1.1 Create `packages/screensets/src/mfe/bridge/ChildMfeBridge.ts`
-- [x] 15.1.2 Implement `sendActionsChain()` with payload validation
+- [x] 15.1.2 Implement `sendActionsChain()` with payload validation -- **SUPERSEDED by Phase 21.11**: `sendActionsChain` moved to concrete-only on `ChildMfeBridgeImpl`. Public `ChildMfeBridge` now exposes `executeActionsChain` (capability pass-through to registry).
 - [x] 15.1.3 Implement `subscribeToProperty()` with callback management
 - [x] 15.1.4 Implement `getProperty()` for synchronous access
 - [x] 15.1.5 Implement `subscribeToAllProperties()` for bulk subscription
@@ -851,9 +855,9 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 ### 15.2 Bridge Connection
 
 - [x] 15.2.1 Create `packages/screensets/src/mfe/bridge/ParentMfeBridge.ts`
-- [x] 15.2.2 Implement `sendActionsChain(chain, options?)` for domain-to-MFE actions with chain-level options only
+- [x] 15.2.2 Implement `sendActionsChain(chain, options?)` for domain-to-MFE actions with chain-level options only -- **SUPERSEDED by Phase 21.11**: `sendActionsChain` moved to concrete-only on `ParentMfeBridgeImpl`. Public `ParentMfeBridge` now exposes only `instanceId` + `dispose()`.
 - [x] 15.2.3 Implement property update notification - bridge subscribers are notified when `registry.updateDomainProperty()` is called (see spec: property updates managed at DOMAIN level)
-- [x] 15.2.4 Implement `onChildAction()` handler registration
+- [x] 15.2.4 Implement `onChildAction()` handler registration -- **SUPERSEDED by Phase 21.11**: `onChildAction` moved to concrete-only on `ParentMfeBridgeImpl`. Public `ParentMfeBridge` now exposes only `instanceId` + `dispose()`.
 - [x] 15.2.5 Implement `dispose()` for cleanup
 
 **Traceability**: Requirement "MFE Bridge Interface" - ParentMfeBridge, Requirement "Explicit Timeout Configuration"
@@ -872,9 +876,9 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 **Test file**: `packages/screensets/__tests__/mfe/bridge/bridge.test.ts`
 
 - [x] 15.4.1 Test ChildMfeBridge property subscription
-- [x] 15.4.2 Test ChildMfeBridge sendActionsChain request
+- [x] 15.4.2 Test ChildMfeBridge sendActionsChain request -- **SUPERSEDED by Phase 21.11**: tests updated to verify `executeActionsChain` on public interface.
 - [x] 15.4.3 Test ParentMfeBridge property updates
-- [x] 15.4.4 Test ParentMfeBridge actions chain delivery
+- [x] 15.4.4 Test ParentMfeBridge actions chain delivery -- **SUPERSEDED by Phase 21.11**: `sendActionsChain` moved to concrete-only on `ParentMfeBridgeImpl`. Tests updated for reduced public interface (`instanceId` + `dispose()`).
 - [x] 15.4.5 Test bridge disposal and cleanup
 
 **Traceability**: Requirement "MFE Bridge Interface" - all scenarios
@@ -913,7 +917,7 @@ Move each file from `packages/screensets/src/mfe/gts/hai3.screensets/instances/d
 - [x] 16.2.12 Implement `UnsupportedLifecycleStageError` with stage ID, entity ID, and supported stages
 - [x] 16.2.13 Export all error classes from `@hai3/screensets`
 
-**Traceability**: Requirement "MFE Error Classes" - All 11 error classes defined in [mfe-errors.md](./design/mfe-errors.md)
+**Traceability**: Requirement "MFE Error Classes" - see [mfe-errors.md](./design/mfe-errors.md) for the complete list of error classes
 
 ### 16.3 Shadow DOM and Error Tests
 
@@ -1346,7 +1350,7 @@ Note: The ScreensetsRegistry does NOT have `setTypeInstanceProvider`, `refreshEx
 - `packages/screensets/__tests__/mfe/bridge/bridge.test.ts` -- creates `ParentMfeBridgeImpl` instances directly (typed as `ParentMfeBridgeImpl`), so calls to these methods compile against the concrete class. No changes expected.
 - `packages/screensets/__tests__/mfe/runtime/bridge-factory.test.ts` -- already uses `(parentBridge as ParentMfeBridgeImpl)` casts to access these methods. No changes expected.
 
-**Traceability**: [Design - Group C: ParentMfeBridge interface](./design/registry-runtime.md#group-c-parentmfebridge-interface----2-methods-removed-from-public-type). Public interface cleanup: internal-only methods must not appear on public types.
+**Traceability**: [Design - Group C: ParentMfeBridge interface](./design/registry-runtime.md#group-c-parentmfebridge-interface----4-methods-removed-from-public-type). Public interface cleanup: internal-only methods must not appear on public types.
 
 #### Validation
 
@@ -1608,7 +1612,7 @@ Make `ScreensetsRegistry` a pure abstract class with NO static methods. Remove s
 
 ### 21.10.6 Update Framework Plugin
 
-- [x] 21.10.6.1 Update `packages/framework/src/plugins/microfrontends/` to use `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` instead of importing `screensetsRegistry` directly. The `gtsPlugin` import remains from `@hai3/screensets`. This is the application wiring point where the type system binding occurs.
+- [x] 21.10.6.1 Update `packages/framework/src/plugins/microfrontends/` to use `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` instead of importing `screensetsRegistry` directly. Import `screensetsRegistryFactory` from `@hai3/screensets` and `gtsPlugin` from `@hai3/screensets/plugins/gts` (subpath export). This is the application wiring point where the type system binding occurs.
 
 **Traceability**: Requirement "Type System Plugin Abstraction" -- GTS binding happens at framework wiring, not module initialization.
 
@@ -1636,3 +1640,138 @@ Make `ScreensetsRegistry` a pure abstract class with NO static methods. Remove s
 - [x] 21.10.9.6 Verify `DefaultScreensetsRegistryFactory` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output).
 
 **Traceability**: Factory-with-cache refactoring validation -- no regressions, public API surface is correct. Reopened task 4.1.4 fully resolved.
+
+---
+
+## Phase 21.11: Bridge API Architecture Correction
+
+**Goal**: Correct the bridge API so that `registry.executeActionsChain()` is the ONLY public entry point for actions chain execution. Child MFEs get `executeActionsChain` on the bridge as a capability pass-through to the registry. All bridge transport methods (`sendActionsChain`, `onActionsChain`) become concrete-only (private internal transport for hierarchical composition). `ParentMfeBridge` public interface is reduced to only `instanceId` + `dispose()`.
+
+**Prerequisite**: Phase 21.10 complete. This phase corrects the bridge API architecture: transport methods moved to concrete-only, `executeActionsChain` added as capability pass-through.
+
+**Architectural Reference**: [MFE API - Bridge Interfaces](./design/mfe-api.md#mfe-bridge-interfaces), [MFE API - Action Chain Execution Model](./design/mfe-api.md#action-chain-execution-model), [Registry Runtime - Group C](./design/registry-runtime.md#group-c-parentmfebridge-interface----4-methods-removed-from-public-type), [Overview - Action Chain Execution](./design/overview.md#action-chain-execution)
+
+### 21.11.1 Remove internal wiring methods from public ParentMfeBridge interface
+
+- [x] 21.11.1.0 Add `readonly instanceId: string` to both the `ParentMfeBridge` abstract interface in `packages/screensets/src/mfe/handler/types.ts` AND the concrete `ParentMfeBridgeImpl` class in `packages/screensets/src/mfe/bridge/ParentMfeBridge.ts`. The design doc (`mfe-api.md`) declares `instanceId` on the public interface, and validation task 21.11.8.5 expects it in the `.d.ts` output. Currently only `ChildMfeBridgeImpl` has `instanceId`; `ParentMfeBridgeImpl` does not. The concrete class should expose it as a getter derived from `this.childBridge.instanceId` or accept it as a constructor parameter.
+- [x] 21.11.1.1 Remove `onChildAction(callback)` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
+- [x] 21.11.1.2 Remove `receivePropertyUpdate(propertyTypeId, value)` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class (unchanged).
+- [x] 21.11.1.3 Move `onChildAction` wiring into `createBridge()` in `bridge-factory.ts`. The function already performs all wiring setup, so adding the `onChildAction` wiring there keeps all bridge setup in one place.
+- [x] 21.11.1.4 Update `createBridge()` in `bridge-factory.ts` to accept an `executeActionsChain` callback parameter and call `parentBridgeImpl.onChildAction(executeActionsChain)` before returning. Update the `DefaultMountManager.mountExtension()` call site to pass the `executeActionsChain` callback to `createBridge()`. Remove the separate `parentBridge.onChildAction(...)` call from `DefaultMountManager`.
+- [x] 21.11.1.5 Verify that `bridge-factory.ts` subscriber callbacks that call `parentBridgeImpl.receivePropertyUpdate()` still compile -- they already use the concrete `parentBridgeImpl` variable (not the interface type). No changes expected.
+
+**Traceability**: [Design - Group C: ParentMfeBridge interface](./design/registry-runtime.md#group-c-parentmfebridge-interface----4-methods-removed-from-public-type). Public interface cleanup: internal wiring methods must not appear on public types.
+
+### 21.11.2 Concrete-only internal methods for hierarchical composition transport
+
+- [x] 21.11.2.1 `onActionsChain(handler)` implemented on `ChildMfeBridgeImpl` as a concrete-only method. NOT on the public `ChildMfeBridge` interface.
+- [x] 21.11.2.2 `handleParentActionsChain(chain, options)` implemented on `ChildMfeBridgeImpl` as a concrete-only method. Called by `ParentMfeBridgeImpl.sendActionsChain()` for internal transport.
+- [x] 21.11.2.3 `NoActionsChainHandlerError` error class created in `packages/screensets/src/mfe/errors/index.ts`.
+- [x] 21.11.2.4 `ChildMfeBridgeImpl.cleanup()` clears the `actionsChainHandler` field.
+
+**Traceability**: [MFE API - ChildMfeBridge concrete-only methods](./design/mfe-api.md#childmfebridge-interface). Internal transport for hierarchical composition.
+
+### 21.11.3 `ParentMfeBridgeImpl.sendActionsChain()` as concrete-only
+
+- [x] 21.11.3.1 `ParentMfeBridgeImpl.sendActionsChain()` implemented with forwarding to `childBridge.handleParentActionsChain()`. `BridgeDisposedError` class created.
+
+**Traceability**: [MFE API - ParentMfeBridge concrete-only methods](./design/mfe-api.md#parentmfebridge-interface). Concrete-only transport for hierarchical composition.
+
+### 21.11.4 Remove `sendActionsChain` from public ParentMfeBridge interface
+
+- [x] 21.11.4.0 Remove `sendActionsChain(chain, options?)` from the `ParentMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ParentMfeBridgeImpl` class (concrete-only for internal hierarchical composition transport). After this change, the public `ParentMfeBridge` interface has ONLY `instanceId` and `dispose()`.
+
+**Traceability**: [Design - Group C](./design/registry-runtime.md#group-c-parentmfebridge-interface----4-methods-removed-from-public-type). `sendActionsChain` implies routing which is an internal concern. The parent uses `registry.executeActionsChain()` directly.
+
+### 21.11.5 Remove `sendActionsChain` and `onActionsChain` from public ChildMfeBridge interface, add `executeActionsChain`
+
+- [x] 21.11.5.0 Remove `sendActionsChain(chain, options?)` from the `ChildMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ChildMfeBridgeImpl` class (concrete-only for internal child-to-parent transport).
+
+- [x] 21.11.5.1 Remove `onActionsChain(handler)` from the `ChildMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`. The method remains on `ChildMfeBridgeImpl` class (concrete-only for internal hierarchical composition wiring).
+
+- [x] 21.11.5.2 Add `executeActionsChain(chain, options?)` to the `ChildMfeBridge` interface in `packages/screensets/src/mfe/handler/types.ts`:
+  ```typescript
+  /**
+   * Execute an actions chain via the registry.
+   * This is a capability pass-through -- the bridge delegates directly to
+   * the registry's executeActionsChain(). This is the ONLY public API for
+   * child MFEs to trigger actions chains.
+   *
+   * @param chain - Actions chain to execute
+   * @param options - Optional execution options
+   * @returns Promise resolving to chain result
+   */
+  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  ```
+
+- [x] 21.11.5.3 Implement `executeActionsChain(chain, options)` on `ChildMfeBridgeImpl` in `packages/screensets/src/mfe/bridge/ChildMfeBridge.ts`:
+  - Add a `private executeActionsChainCallback` field (initially `null`).
+  - The method calls `this.executeActionsChainCallback(chain, options)` and returns the result.
+  - If the callback is null (bridge not wired), throw an error indicating the bridge is not connected.
+
+- [x] 21.11.5.4 Add a `setExecuteActionsChainCallback(callback)` internal method on `ChildMfeBridgeImpl` for `createBridge()` to inject the registry callback.
+
+- [x] 21.11.5.5 Update `ChildMfeBridgeImpl.cleanup()` to clear the `executeActionsChainCallback` field (set to `null`).
+
+**Traceability**: [MFE API - ChildMfeBridge Interface](./design/mfe-api.md#childmfebridge-interface). `executeActionsChain` is the public capability. `sendActionsChain` and `onActionsChain` are internal transport.
+
+### 21.11.6 Update `createBridge()` to wire `executeActionsChain` callback
+
+- [x] 21.11.6.0 Update `createBridge()` in `packages/screensets/src/mfe/runtime/bridge-factory.ts` to accept an additional `registryExecuteActionsChain` callback parameter (the registry's `executeActionsChain` method).
+
+- [x] 21.11.6.1 In `createBridge()`, after creating the `ChildMfeBridgeImpl`, call `childBridge.setExecuteActionsChainCallback(registryExecuteActionsChain)` to wire the registry's execution capability to the child bridge.
+
+- [x] 21.11.6.2 Update `DefaultMountManager.mountExtension()` in `packages/screensets/src/mfe/runtime/default-mount-manager.ts` to pass the registry's `executeActionsChain` callback to `createBridge()`.
+
+**Traceability**: [MFE API - Action Chain Execution Model](./design/mfe-api.md#action-chain-execution-model). The bridge delegates to the registry, not routes through the parent.
+
+### 21.11.7 Update design docs, specs, and proposal
+
+- [x] 21.11.7.0 Error classes `NoActionsChainHandlerError` and `BridgeDisposedError` already exist in `design/mfe-errors.md`.
+
+- [x] 21.11.7.1 Spec scenarios for ParentMfeBridge and ChildMfeBridge already applied in previous phases.
+
+- [x] 21.11.7.2 Update the "ChildMfeBridge interface" scenario in `specs/screensets/spec.md`: assert `executeActionsChain` is present, assert `sendActionsChain` and `onActionsChain` are NOT present on the public interface.
+
+- [x] 21.11.7.3 Update the "ParentMfeBridge interface" scenario in `specs/screensets/spec.md`: assert `sendActionsChain` is NOT present on the public interface, assert only `instanceId` and `dispose()` remain.
+
+- [x] 21.11.7.4 Update the "Parent-to-child action chain delivery" scenario in `specs/screensets/spec.md`: change from public API scenario to internal transport scenario (concrete-only methods).
+
+- [x] 21.11.7.5 Update code examples in `specs/microfrontends/spec.md`: replace `bridge.sendActionsChain()` with `bridge.executeActionsChain()`.
+
+- [x] 21.11.7.6 Update `design/mfe-api.md`: ChildMfeBridge public interface shows `executeActionsChain` instead of `sendActionsChain`/`onActionsChain`. ParentMfeBridge public interface shows only `instanceId` + `dispose()`. Bridge transport methods documented as concrete-only.
+
+- [x] 21.11.7.7 Update `design/overview.md`: "Action Chain Execution" section reflects `registry.executeActionsChain()` as the only public entry point.
+
+- [x] 21.11.7.8 Update `design/registry-runtime.md` Group C: add `sendActionsChain` (both bridges) and `onActionsChain` (ChildMfeBridge) to the concrete-only table. Update "After Phase 21.11" summary.
+
+- [x] 21.11.7.9 Update `proposal.md` Bridge Interface Names: reflect new public API.
+
+**Traceability**: Spec alignment with corrected architecture. All "SHALL" assertions must match the actual public interface.
+
+### 21.11.8 Update tests and validation
+
+- [x] 21.11.8.0 Add tests in `packages/screensets/__tests__/mfe/bridge/bridge.test.ts`:
+  - Test `ChildMfeBridgeImpl.executeActionsChain()` delegates to the injected registry callback.
+  - Test `ChildMfeBridgeImpl.executeActionsChain()` throws when callback is not wired.
+  - Test `ChildMfeBridgeImpl.onActionsChain()` registers a handler (concrete-only, test via concrete type).
+  - Test `ChildMfeBridgeImpl.handleParentActionsChain()` calls the registered handler (concrete-only).
+  - Test `ChildMfeBridgeImpl.handleParentActionsChain()` throws when no handler is registered.
+  - Test `ParentMfeBridgeImpl.sendActionsChain()` forwards to child bridge's handler (concrete-only).
+  - Test `ParentMfeBridgeImpl.sendActionsChain()` throws when bridge is disposed.
+  - Test cleanup clears both `executeActionsChainCallback` and `actionsChainHandler`.
+
+- [x] 21.11.8.1 Update existing tests that reference `sendActionsChain` or `onActionsChain` on the public interface types:
+  - Any test using `bridge.sendActionsChain()` on a `ChildMfeBridge`-typed variable must be changed to `bridge.executeActionsChain()`.
+  - Any test using `parentBridge.sendActionsChain()` on a `ParentMfeBridge`-typed variable must either cast to `ParentMfeBridgeImpl` or use `registry.executeActionsChain()`.
+
+- [x] 21.11.8.2 Verify `DefaultMountManager` integration tests still pass with the updated `createBridge()` signature.
+
+- [x] 21.11.8.3 Run `npm run type-check` -- must pass with no errors.
+- [x] 21.11.8.4 Run `npm run test` -- all existing tests must pass plus new/updated tests.
+- [x] 21.11.8.5 Run `npm run build` -- must pass.
+- [x] 21.11.8.6 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 21.11.8.7 Verify `.d.ts` output for `ParentMfeBridge`: ONLY `instanceId` and `dispose()`. No `sendActionsChain`, `onChildAction`, or `receivePropertyUpdate`.
+- [x] 21.11.8.8 Verify `.d.ts` output for `ChildMfeBridge`: has `executeActionsChain`. Does NOT have `sendActionsChain`, `onActionsChain`, or `handleParentActionsChain`.
+
+**Traceability**: Bridge API architecture correction validation -- correct public surface, no regressions.

@@ -58,9 +58,9 @@ The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`
 | Bridge creation | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
 | Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
 
-The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details. Currently exposed via `screensetsRegistry` singleton constant; Phase 21.10 replaces this with the `screensetsRegistryFactory` factory-with-cache pattern.
+The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details. Consumers obtain the instance via the `screensetsRegistryFactory` factory-with-cache pattern (`screensetsRegistryFactory.build(config)`).
 
-**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines, pure contract) defining the public method signatures with NO static methods. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Currently, consumers obtain the instance via the `screensetsRegistry` singleton constant. Phase 21.10 replaces this with `screensetsRegistryFactory.build(config)`. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete design.
+**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines, pure contract) defining the public method signatures with NO static methods. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Consumers obtain the instance via `screensetsRegistryFactory.build(config)`. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete design.
 
 ### Concurrency and Operation Serialization
 
@@ -227,8 +227,7 @@ import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../media
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
  *
  * This is the ONLY type external consumers should depend on.
- * Current: obtain via screensetsRegistry singleton constant.
- * Phase 21.10: obtain via screensetsRegistryFactory.build(config).
+ * Obtain via screensetsRegistryFactory.build(config).
  * This class has NO static methods and NO knowledge of DefaultScreensetsRegistry.
  */
 export abstract class ScreensetsRegistry {
@@ -282,9 +281,9 @@ export abstract class ScreensetsRegistry {
 
 #### Factory-with-Cache Pattern (Phase 21.10)
 
-**Phase 21.10** replaces the current `screensetsRegistry` singleton constant with a `screensetsRegistryFactory` factory-with-cache pattern. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance. The abstract `ScreensetsRegistry` class is a pure contract with NO static methods. The abstract `ScreensetsRegistryFactory` class is also a pure contract with NO static methods.
+The `screensetsRegistryFactory` factory-with-cache pattern is the current construction mechanism for `ScreensetsRegistry`. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance. The abstract `ScreensetsRegistry` class is a pure contract with NO static methods. The abstract `ScreensetsRegistryFactory` class is also a pure contract with NO static methods.
 
-**Why factory-with-cache instead of singleton constant**: The `ScreensetsRegistry` requires a `TypeSystemPlugin` at construction time (via `ScreensetsRegistryConfig.typeSystem`). The current singleton constant hardcodes `gtsPlugin` at module initialization time, defeating the pluggability of `TypeSystemPlugin`. The factory-with-cache pattern defers this binding to application wiring time, allowing consumers to provide any `TypeSystemPlugin` implementation.
+**Why factory-with-cache instead of singleton constant**: The `ScreensetsRegistry` requires a `TypeSystemPlugin` at construction time (via `ScreensetsRegistryConfig.typeSystem`). A singleton constant would hardcode `gtsPlugin` at module initialization time, defeating the pluggability of `TypeSystemPlugin`. The factory-with-cache pattern defers this binding to application wiring time, allowing consumers to provide any `TypeSystemPlugin` implementation.
 
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistryFactory.ts
@@ -339,7 +338,8 @@ export const screensetsRegistryFactory: ScreensetsRegistryFactory = new DefaultS
 
 ```typescript
 // Consumer usage (in framework plugin or application wiring code)
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory } from '@hai3/screensets';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 
 // GTS binding happens at application wiring level, not module level
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
@@ -483,20 +483,49 @@ The following methods on abstract `ExtensionManager` are only used internally by
 **Collaborator field type change**:
 - `DefaultScreensetsRegistry`: its `lifecycleManager` field typed as `DefaultLifecycleManager` instead of `LifecycleManager`, so it can call `triggerLifecycleStageInternal()`.
 
-##### Group C: ParentMfeBridge interface -- 2 methods removed from public type
+##### Group C: ParentMfeBridge interface -- 4 methods removed from public type
 
-| Method | Return Type | Callers | Reason |
-|---|---|---|---|
-| `getPropertySubscribers()` | `Map<string, (value: SharedProperty) => void>` | `bridge-factory.ts` (`disposeBridge`) | `@internal`, only used by internal factory |
-| `registerPropertySubscriber(propertyTypeId, subscriber)` | `void` | `bridge-factory.ts` (`createBridge`) | `@internal`, only used by internal factory |
+**Phase 21.6 (complete):** Removed `getPropertySubscribers()` and `registerPropertySubscriber()` from the public `ParentMfeBridge` interface.
 
-**Context**: `ParentMfeBridge` in `handler/types.ts` is a **public interface** exported from `@hai3/screensets`. The concrete implementation is `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts`. The `bridge-factory.ts` creates `ParentMfeBridgeImpl` instances and is the **only** caller of `getPropertySubscribers()` and `registerPropertySubscriber()`.
+**Phase 21.11 (complete):** Removes `onChildAction()`, `receivePropertyUpdate()`, and `sendActionsChain()` from the public `ParentMfeBridge` interface. Removes `sendActionsChain()` and `onActionsChain()` from the public `ChildMfeBridge` interface. These are all internal wiring/transport methods that should not be callable by consumers. Adds `executeActionsChain()` to the public `ChildMfeBridge` interface as a capability pass-through to the registry.
 
-**Solution**:
-1. Remove `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface in `handler/types.ts`. The public interface retains only: `sendActionsChain()`, `onChildAction()`, `receivePropertyUpdate()`, `dispose()`.
+| Method | Interface | Return Type | Callers | Reason | Phase |
+|---|---|---|---|---|---|
+| `getPropertySubscribers()` | `ParentMfeBridge` | `Map<string, (value: SharedProperty) => void>` | `bridge-factory.ts` (`disposeBridge`) | `@internal`, only used by internal factory | 21.6 (done) |
+| `registerPropertySubscriber(propertyTypeId, subscriber)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` (`createBridge`) | `@internal`, only used by internal factory | 21.6 (done) |
+| `onChildAction(callback)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` | Internal wiring: connects child-to-parent flow via mediator. Not a consumer-facing API. | 21.11 |
+| `receivePropertyUpdate(propertyTypeId, value)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` subscribers | Internal wiring: pushes domain property updates to child bridge. | 21.11 |
+| `sendActionsChain(chain, options?)` | `ParentMfeBridge` | `Promise<ChainResult>` | Internal mediator transport | Internal: parent-to-child transport for hierarchical composition. Concrete-only. | 21.11 |
+| `sendActionsChain(chain, options?)` | `ChildMfeBridge` | `Promise<ChainResult>` | Internal bridge transport | Internal: child-to-parent transport via parent bridge. Concrete-only. | 21.11 |
+| `onActionsChain(handler)` | `ChildMfeBridge` | `() => void` | Internal bridge wiring | Internal: registers handler for parent-to-child transport. Concrete-only. | 21.11 |
+
+**Context**: `ParentMfeBridge` and `ChildMfeBridge` in `handler/types.ts` are **public interfaces** exported from `@hai3/screensets`. The concrete implementations are `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl` classes in `bridge/`. Internal wiring code (`bridge-factory.ts`, `DefaultMountManager`) works with concrete types directly.
+
+**After Phase 21.11**, the public `ParentMfeBridge` interface retains only:
+- `instanceId` -- identifies the child instance
+- `dispose()` -- clean up resources
+
+**After Phase 21.11**, the public `ChildMfeBridge` interface retains only:
+- `domainId`, `entryTypeId`, `instanceId` -- identification
+- `executeActionsChain(chain, options?)` -- capability pass-through to registry
+- `subscribeToProperty(propertyTypeId, callback)` -- property subscription
+- `getProperty(propertyTypeId)` -- synchronous property access
+- `subscribeToAllProperties(callback)` -- all-properties subscription
+
+**Solution for Phase 21.6 methods (getPropertySubscribers, registerPropertySubscriber):**
+1. Remove `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface in `handler/types.ts`.
 2. Keep these methods on the `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
 3. In `bridge-factory.ts` `createBridge()`: the function already constructs a `ParentMfeBridgeImpl` instance (via `new ParentMfeBridgeImpl(childBridge)`) and calls `registerPropertySubscriber()` on it before returning. Since the local variable is already the concrete type (TypeScript infers `ParentMfeBridgeImpl` from the constructor), no type annotation change is needed -- the call to `registerPropertySubscriber()` compiles against the concrete class. The function return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (the narrow public interface), which is satisfied because `ParentMfeBridgeImpl` extends `ParentMfeBridge`.
 4. In `bridge-factory.ts` `disposeBridge()`: the parameter type **stays** `ParentMfeBridge` (the public interface). This is necessary because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge`, which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing the parameter to `ParentMfeBridgeImpl` would cause a type mismatch at all call sites. Instead, `disposeBridge()` casts internally: `const impl = parentBridge as ParentMfeBridgeImpl;` and then calls `impl.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same file). The `ExtensionState.bridge` field type remains `ParentMfeBridge | null` -- no change needed. `DefaultMountManager` callers remain unchanged.
+
+**Solution for Phase 21.11 methods (onChildAction, receivePropertyUpdate, sendActionsChain on ParentMfeBridge; sendActionsChain, onActionsChain on ChildMfeBridge):**
+1. Remove `sendActionsChain(chain, options?)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep the method on `ParentMfeBridgeImpl` (concrete-only for internal transport).
+2. Remove `onChildAction(callback)` and `receivePropertyUpdate(propertyTypeId, value)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep these methods on `ParentMfeBridgeImpl` (unchanged).
+3. Remove `sendActionsChain(chain, options?)` and `onActionsChain(handler)` from the `ChildMfeBridge` interface in `handler/types.ts`. Keep these methods on `ChildMfeBridgeImpl` (concrete-only for internal transport).
+4. Add `executeActionsChain(chain, options?)` to the `ChildMfeBridge` interface in `handler/types.ts`. This is a capability pass-through to the registry's `executeActionsChain()`.
+5. Implement `executeActionsChain()` on `ChildMfeBridgeImpl` using an injected callback (set via `createBridge()` in `bridge-factory.ts`). The callback delegates to the registry's `executeActionsChain()`.
+6. Update `createBridge()` in `bridge-factory.ts` to accept and wire the `executeActionsChain` callback to the child bridge.
+7. In `bridge-factory.ts`: all internal wiring calls (`onChildAction`, `receivePropertyUpdate`) use `parentBridgeImpl` which is the concrete type. No changes needed for those calls.
 
 ##### Summary: DefaultScreensetsRegistry Collaborator Field Types
 
@@ -550,20 +579,20 @@ The abstract `ScreensetsRegistry` class has NO static methods and NO knowledge o
 
 #### Export Policy
 
-**Current (Phase 21.9)** -- the `@hai3/screensets` public barrel exports:
+The `@hai3/screensets` public barrel exports:
 - `ScreensetsRegistry` (abstract class, pure contract -- NO static methods)
-- `screensetsRegistry` (singleton `ScreensetsRegistry` instance, hardcoded with `gtsPlugin`)
+- `ScreensetsRegistryFactory` (abstract class, pure contract -- NO static methods)
+- `screensetsRegistryFactory` (singleton `ScreensetsRegistryFactory` instance -- the ONLY way to obtain a `ScreensetsRegistry`)
 - `ScreensetsRegistryConfig` (interface)
 - `MfeStateContainer` (abstract class, pure contract -- NO static methods)
 - `MfeStateContainerConfig` (interface)
-- `gtsPlugin` (singleton `TypeSystemPlugin` instance)
-- `GtsPlugin` (concrete class, exported `@internal` for test files that need fresh instances; production code uses the `gtsPlugin` singleton)
 - `TypeSystemPlugin` (interface)
 
-**Phase 21.10** changes to exports:
-- `screensetsRegistry` removed -- obtain via `screensetsRegistryFactory.build(config)`
-- `ScreensetsRegistryFactory` added (abstract class, pure contract -- NO static methods)
-- `screensetsRegistryFactory` added (singleton `ScreensetsRegistryFactory` instance)
+The `@hai3/screensets/plugins/gts` subpath export provides:
+- `gtsPlugin` (singleton `TypeSystemPlugin` instance)
+- `GtsPlugin` (concrete class, `@internal` for test files that need fresh instances; production code uses the `gtsPlugin` singleton)
+
+These are NOT re-exported from the main `@hai3/screensets` barrel to avoid pulling in `@globaltypesystem/gts-ts` for consumers who do not need it.
 
 All other concrete classes, internal collaborators, and factory functions are internal implementation details and are NOT exported. Test files that need access to concrete internals import directly from the concrete file paths using relative imports, bypassing the public barrel.
 
@@ -628,14 +657,14 @@ There is no standalone `createMfeStateContainer()` function and no `MfeStateCont
 
 #### GtsPlugin Singleton
 
-`GtsPlugin` is a **singleton** -- there is one GTS type system per application. The class constructor is private to the module. The `gtsPlugin` constant is the only instance and the only public export for this component.
+`GtsPlugin` is a **singleton** -- there is one GTS type system per application. The class is exported as `@internal` for test isolation only; production code uses the `gtsPlugin` singleton constant.
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
 
 /**
  * Concrete GTS plugin class implementing TypeSystemPlugin.
- * NOT exported from the public barrel. Constructor is private to this module.
+ * Exported as @internal for test isolation only; use gtsPlugin constant.
  */
 class GtsPlugin implements TypeSystemPlugin {
   readonly name = 'gts';
@@ -654,4 +683,4 @@ class GtsPlugin implements TypeSystemPlugin {
 export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();
 ```
 
-**Export policy**: `gtsPlugin` (singleton constant typed as `TypeSystemPlugin`) is the primary export from the public barrel. `GtsPlugin` class is exported `@internal` for test files that need fresh instances for isolation; production code uses the `gtsPlugin` singleton. This is consistent with how `DefaultScreensetsRegistry` tests import the concrete class directly. There is no `createGtsPlugin()` function.
+**Export policy**: `gtsPlugin` (singleton constant typed as `TypeSystemPlugin`) and `GtsPlugin` (concrete class, `@internal` for test files that need fresh instances) are exported from the `@hai3/screensets/plugins/gts` subpath export. They are NOT re-exported from the main `@hai3/screensets` barrel to avoid pulling in `@globaltypesystem/gts-ts` for consumers who do not need it. Production code uses the `gtsPlugin` singleton. There is no `createGtsPlugin()` function.

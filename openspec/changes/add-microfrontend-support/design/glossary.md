@@ -19,10 +19,10 @@ A binding that connects an MFE entry to a specific domain, creating a concrete M
 The contract that an MFE declares with its parent domain. Specifies required/optional properties and bidirectional action capabilities. MfeEntry is abstract; derived types (like MfeEntryMF) add loader-specific fields. See [mfe-entry-mf.md](./mfe-entry-mf.md).
 
 ### ChildMfeBridge
-The communication channel exposed to MFE instance (child) code for interacting with its parent domain. Provides methods for subscribing to shared properties and sending actions chains to the parent. See [mfe-api.md](./mfe-api.md). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+The communication channel exposed to MFE instance (child) code for interacting with its parent domain. Provides `executeActionsChain()` (pass-through to the registry) and methods for subscribing to shared properties. See [mfe-api.md](./mfe-api.md). For isolation model, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
 
 ### ParentMfeBridge
-The extended bridge interface used by the parent to manage MFE instance (child) communication. Extends ChildMfeBridge with methods to send actions chains to children and register handlers for actions coming from children. See [mfe-api.md](./mfe-api.md).
+The parent-side bridge interface for managing a mounted MFE instance. Provides `instanceId` for identifying the child and `dispose()` for cleanup. The parent uses `registry.executeActionsChain()` directly for action chain execution. See [mfe-api.md](./mfe-api.md).
 
 ---
 
@@ -67,7 +67,7 @@ An abstract factory that creates bridge instances for specific entry types. Each
 The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. The public API is `registry.executeActionsChain()`, which delegates to the ActionsChainsMediator internally. See [mfe-actions.md](./mfe-actions.md).
 
 ### Runtime
-Conventional variable name for a `ScreensetsRegistry` instance. Example: `const runtime = new ScreensetsRegistry(config);`. Throughout these documents, "runtime" and "registry" refer to the same `ScreensetsRegistry` instance.
+Conventional variable name for a `ScreensetsRegistry` instance. Example: `const runtime = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });`. Throughout these documents, "runtime" and "registry" refer to the same `ScreensetsRegistry` instance.
 
 ---
 

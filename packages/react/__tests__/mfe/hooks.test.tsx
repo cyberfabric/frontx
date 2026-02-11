@@ -28,7 +28,7 @@ const mockBridge: ChildMfeBridge = {
   domainId: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
   entryTypeId: 'gts.hai3.mfes.mfe.entry.v1~test.sidebar_entry.v1',
   instanceId: 'test-instance-123',
-  sendActionsChain: vi.fn().mockResolvedValue({ success: true }),
+  executeActionsChain: vi.fn().mockResolvedValue({ completed: true, path: [] }),
   subscribeToProperty: vi.fn().mockReturnValue(() => {}),
   getProperty: vi.fn().mockReturnValue(undefined),
   subscribeToAllProperties: vi.fn().mockReturnValue(() => {}),
@@ -222,8 +222,8 @@ describe('MfeContext', () => {
       // Invoke the callback
       result.current({ path: '/dashboard' });
 
-      // Should call bridge.sendActionsChain with proper structure
-      expect(mockBridge.sendActionsChain).toHaveBeenCalledWith({
+      // Should call bridge.executeActionsChain with proper structure
+      expect(mockBridge.executeActionsChain).toHaveBeenCalledWith({
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~test.navigate.v1',
           target: mockBridge.domainId,
@@ -239,7 +239,7 @@ describe('MfeContext', () => {
       //
       // HAI3Provider MFE detection (when mfeBridge prop is provided) requires:
       // 1. Full HAI3 app instance with store, registries, and plugin initialization
-      // 2. MFE bridge implementation with sendActionsChain() and subscribeToProperty()
+      // 2. MFE bridge implementation with executeActionsChain() and subscribeToProperty()
       // 3. Integration testing with actual MFE loading and mounting scenarios
       //
       // The implementation in HAI3Provider is straightforward (9 lines):

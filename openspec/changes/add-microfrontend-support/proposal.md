@@ -114,9 +114,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 ### Bridge Interface Names
 
-The MFE Bridge interfaces are named to clarify which side of the parent/child relationship each interface is for:
-- **ChildMfeBridge**: The interface exposed to MFE/child code for communicating with the parent domain
-- **ParentMfeBridge**: The interface used by the parent to manage child MFE communication (extends ChildMfeBridge)
+The MFE Bridge interfaces are named to clarify which side of the parent/child relationship each interface is for. See [MFE API - Bridge Interfaces](./design/mfe-api.md#mfe-bridge-interfaces) for the complete interface definitions, methods, and examples.
 
 ### GTS Type ID Format
 

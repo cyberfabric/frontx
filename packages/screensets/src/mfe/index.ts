@@ -101,6 +101,8 @@ export {
   ExtensionValidationError,
   UnsupportedDomainActionError,
   UnsupportedLifecycleStageError,
+  NoActionsChainHandlerError,
+  BridgeDisposedError,
 } from './errors';
 
 // Error Handling Utilities (separate export to avoid circular dependency)

@@ -27,7 +27,7 @@ import type { ChildMfeBridge } from '@hai3/screensets';
  *   const bridge = useMfeBridge();
  *
  *   // Bridge methods:
- *   // bridge.sendActionsChain(chain);
+ *   // bridge.executeActionsChain(chain);
  *   // bridge.subscribeToProperty(propertyTypeId, callback);
  *
  *   return <div>Domain: {bridge.domainId}</div>;

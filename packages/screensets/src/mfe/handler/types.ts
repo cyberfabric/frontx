@@ -17,29 +17,9 @@ import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
  */
 export interface ParentMfeBridge {
   /**
-   * Send an actions chain to the child MFE.
-   *
-   * @param chain - Actions chain to send
-   * @param options - Optional execution options
-   * @returns Promise resolving to chain result
+   * Unique instance ID for the child MFE.
    */
-  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
-
-  /**
-   * Register a handler for actions sent from the child to the host.
-   *
-   * @param callback - Handler for child actions
-   */
-  onChildAction(callback: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>): void;
-
-  /**
-   * Receive a property update from the host domain.
-   * Called by ScreensetsRegistry when domain property updates.
-   *
-   * @param propertyTypeId - Type ID of the property
-   * @param value - New property value
-   */
-  receivePropertyUpdate(propertyTypeId: string, value: unknown): void;
+  readonly instanceId: string;
 
   /**
    * Dispose the bridge and clean up resources.
@@ -57,13 +37,19 @@ export interface ChildMfeBridge {
   readonly instanceId: string;
 
   /**
-   * Send an actions chain to the host domain.
+   * Execute an actions chain via the registry.
+   * This is a capability pass-through -- the bridge delegates directly to
+   * the registry's executeActionsChain(). This is the ONLY public API for
+   * actions chain execution from child MFEs.
    *
-   * @param chain - Actions chain to send
+   * Child MFEs should use this method to execute actions chains in the host
+   * domain or target other domains.
+   *
+   * @param chain - Actions chain to execute
    * @param options - Optional execution options
    * @returns Promise resolving to chain result
    */
-  sendActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
 
   /**
    * Subscribe to a specific property's updates.

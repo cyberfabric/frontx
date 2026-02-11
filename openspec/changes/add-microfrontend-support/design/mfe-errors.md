@@ -210,6 +210,40 @@ class UnsupportedLifecycleStageError extends MfeError {
   }
 }
 
+/**
+ * Error thrown when internal bridge transport attempts to forward an actions chain
+ * to a child that has no handler registered via the concrete-only
+ * ChildMfeBridgeImpl.onActionsChain() method. This occurs during hierarchical
+ * composition when the parent mediator tries to deliver a chain into a child's
+ * domain hierarchy, but the child has not registered its executeActionsChain handler.
+ */
+class NoActionsChainHandlerError extends MfeError {
+  constructor(
+    public readonly instanceId: string
+  ) {
+    super(
+      `No actions chain handler registered for instance '${instanceId}'. Child MFEs that define their own domains must have their bridge's onActionsChain handler wired for hierarchical composition.`,
+      'NO_ACTIONS_CHAIN_HANDLER'
+    );
+    this.name = 'NoActionsChainHandlerError';
+  }
+}
+
+/**
+ * Error thrown when an operation is attempted on a disposed bridge
+ */
+class BridgeDisposedError extends MfeError {
+  constructor(
+    public readonly instanceId: string
+  ) {
+    super(
+      `Bridge for instance '${instanceId}' has been disposed`,
+      'BRIDGE_DISPOSED'
+    );
+    this.name = 'BridgeDisposedError';
+  }
+}
+
 export {
   MfeError,
   MfeLoadError,
@@ -222,5 +256,7 @@ export {
   ExtensionValidationError,
   UnsupportedDomainActionError,
   UnsupportedLifecycleStageError,
+  NoActionsChainHandlerError,
+  BridgeDisposedError,
 };
 ```

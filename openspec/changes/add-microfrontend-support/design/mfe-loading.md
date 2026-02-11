@@ -101,7 +101,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
 #### MfeBridgeFactory Abstract Class
 
 ```typescript
-// packages/screensets/src/mfe/bridge/factory.ts
+// packages/screensets/src/mfe/handler/types.ts
 
 /**
  * Abstract factory for creating MFE bridges.
@@ -129,7 +129,7 @@ abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfeBridge>
 /**
  * Default bridge factory - creates minimal ChildMfeBridge instances.
  * ChildMfeBridgeImpl is the internal concrete class implementing ChildMfeBridge
- * (defined in packages/screensets/src/mfe/bridge/impl.ts).
+ * (defined in packages/screensets/src/mfe/bridge/ChildMfeBridge.ts).
  */
 class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridge> {
   create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridge {
@@ -485,7 +485,7 @@ How the manifest data is obtained (backend API, static config, etc.) is outside 
 | Contract validation overhead | Cache validation results, validate once at registration |
 | Module Federation bundle size | Tree-shaking, shared dependencies, lazy loading |
 | Manifest availability | Clear error messages when manifest not registered |
-| Dynamic registration race conditions | Sequential registration with async/await, event-based coordination |
+| Dynamic registration race conditions | Sequential registration with async/await, per-entity operation serialization |
 
 ## Testing Strategy
 

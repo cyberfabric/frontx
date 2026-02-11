@@ -9,7 +9,8 @@
  */
 
 import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
-import type { SharedProperty } from '../types';
+import type { SharedProperty, ActionsChain } from '../types';
+import type { ChainResult, ChainExecutionOptions } from '../mediator/types';
 import type { ExtensionDomainState } from './extension-manager';
 import { ChildMfeBridgeImpl } from '../bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../bridge/ParentMfeBridge';
@@ -21,12 +22,14 @@ import { ParentMfeBridgeImpl } from '../bridge/ParentMfeBridge';
  * @param domainState - Domain state containing properties and subscribers
  * @param extensionId - ID of the extension
  * @param entryTypeId - Type ID of the MFE entry
+ * @param executeActionsChain - Callback for executing actions chains from child to parent
  * @returns Object containing parent and child bridge instances
  */
 export function createBridge(
   domainState: ExtensionDomainState,
   extensionId: string,
-  entryTypeId: string
+  entryTypeId: string,
+  executeActionsChain: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>
 ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
 
   // Generate unique instance ID
@@ -40,6 +43,12 @@ export function createBridge(
 
   // Connect child to parent
   childBridge.setParentBridge(parentBridgeImpl);
+
+  // Wire child action handler (internal wiring, not on public interface)
+  parentBridgeImpl.onChildAction(executeActionsChain);
+
+  // Wire registry's executeActionsChain to child bridge as capability pass-through
+  childBridge.setExecuteActionsChainCallback(executeActionsChain);
 
   // Populate initial properties from domain state
   for (const [propertyTypeId, sharedProperty] of domainState.properties) {
@@ -74,8 +83,11 @@ export function disposeBridge(
   domainState: ExtensionDomainState,
   parentBridge: ParentMfeBridge
 ): void {
-  // Cast to concrete type to access internal methods
-  const impl = parentBridge as ParentMfeBridgeImpl;
+  // Access concrete type for internal methods
+  if (!(parentBridge instanceof ParentMfeBridgeImpl)) {
+    throw new Error('disposeBridge requires a ParentMfeBridgeImpl instance');
+  }
+  const impl = parentBridge;
 
   // Remove property subscribers from domain before disposing bridge
   const subscribers = impl.getPropertySubscribers();

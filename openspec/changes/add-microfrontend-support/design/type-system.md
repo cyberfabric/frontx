@@ -580,7 +580,8 @@ interface ScreensetsRegistryConfig {
 // and no pre-built screensetsRegistry singleton constant.
 
 // Usage with GTS (default) -- bind at application wiring time
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory } from '@hai3/screensets';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 
 // GTS binding happens at application wiring level, not module level
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
