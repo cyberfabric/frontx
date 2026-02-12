@@ -91,7 +91,7 @@ Actions use `type` as their identifier rather than `id`. The Action schema annot
 
 ## Actions Chain Mediation
 
-The **ActionsChainsMediator** delivers action chains to targets and handles success/failure branching. The Type System plugin validates all type IDs and payloads.
+The **ActionsChainsMediator** delivers action chains to targets and handles success/failure branching. The Type System plugin validates all type IDs and payloads. For targets in child runtimes (hierarchical composition), a `ChildDomainForwardingHandler` bridges the parent mediator to the child mediator -- see [MFE API - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition).
 
 ### Execution Flow Diagram
 
@@ -170,25 +170,25 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 
 ### ActionsChainsMediator Interface
 
-> **Interface vs Class**: The `ActionsChainsMediator` interface below defines the **public contract** -- the API surface that `ScreensetsRegistry` delegates to. The concrete class implementing this interface is **internal** to the screensets package and is not exported. This follows the same abstract/concrete pattern used by other MFE components (`MfeHandler`/`MfeHandlerMF`, `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `MfeBridgeFactory`/`MfeBridgeFactoryDefault`): an exported abstraction defines the contract, while the concrete implementation encapsulates internal state and is injected via Dependency Inversion.
+> **Abstract Class vs Interface**: The `ActionsChainsMediator` abstract class below defines the **public contract** -- the API surface that `ScreensetsRegistry` delegates to. The concrete class extending this abstract class is **internal** to the screensets package and is not exported. This follows the same abstract/concrete pattern used by other MFE components (`MfeHandler`/`MfeHandlerMF`, `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `MfeBridgeFactory`/`MfeBridgeFactoryDefault`): an exported abstraction defines the contract, while the concrete implementation encapsulates internal state and is injected via Dependency Inversion.
 
 ```typescript
 /**
  * ActionsChainsMediator - Mediates action chain delivery between domains and extensions.
  */
-interface ActionsChainsMediator {
+abstract class ActionsChainsMediator {
   /** The Type System plugin used by this mediator */
-  readonly typeSystem: TypeSystemPlugin;
+  abstract readonly typeSystem: TypeSystemPlugin;
 
   /**
    * Execute an action chain, routing to targets and handling success/failure branching.
    * @param chain - The actions chain to execute
    * @param options - Optional per-request execution options (override defaults)
    */
-  executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
+  abstract executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>;
 
   /** Register an extension's action handler for receiving actions */
-  registerExtensionHandler(
+  abstract registerExtensionHandler(
     extensionId: string,
     domainId: string,
     entryId: string,
@@ -196,27 +196,23 @@ interface ActionsChainsMediator {
   ): void;
 
   /** Unregister an extension's action handler */
-  unregisterExtensionHandler(extensionId: string): void;
+  abstract unregisterExtensionHandler(extensionId: string): void;
 
   /** Register a domain's action handler for receiving actions from extensions */
-  registerDomainHandler(
+  abstract registerDomainHandler(
     domainId: string,
     handler: ActionHandler
   ): void;
 
   /** Unregister a domain's action handler */
-  unregisterDomainHandler(domainId: string): void;
+  abstract unregisterDomainHandler(domainId: string): void;
 }
 
 interface ActionHandler {
   handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
 }
 
-interface ChainResult {
-  completed: boolean;
-  path: string[];  // Action IDs executed
-  error?: string;  // If failed
-}
+// ChainResult -- see full 5-field definition in "Chain-Level Configuration" section below
 ```
 
 ### Action Support Validation

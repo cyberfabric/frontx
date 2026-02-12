@@ -1,5 +1,5 @@
 /**
- * Tests for Bridge Factory
+ * Tests for Runtime Bridge Factory
  *
  * Verifies:
  * - Bridge creation with property subscription
@@ -8,13 +8,14 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { createBridge, disposeBridge } from '../../../src/mfe/runtime/bridge-factory';
+import { DefaultRuntimeBridgeFactory } from '../../../src/mfe/runtime/default-runtime-bridge-factory';
 import type { ExtensionDomainState } from '../../../src/mfe/runtime';
 import type { ExtensionDomain, SharedProperty } from '../../../src/mfe/types';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 
-describe('Bridge Factory', () => {
+describe('Runtime Bridge Factory', () => {
   let domainState: ExtensionDomainState;
+  let bridgeFactory: DefaultRuntimeBridgeFactory;
 
   beforeEach(() => {
     const domain: ExtensionDomain = {
@@ -33,14 +34,19 @@ describe('Bridge Factory', () => {
       extensions: new Set(),
       propertySubscribers: new Map(),
     };
+
+    bridgeFactory = new DefaultRuntimeBridgeFactory();
   });
 
   describe('createBridge', () => {
     it('should create parent and child bridges', () => {
-      const { parentBridge, childBridge } = createBridge(
+      const { parentBridge, childBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       expect(parentBridge).toBeDefined();
@@ -51,10 +57,13 @@ describe('Bridge Factory', () => {
     });
 
     it('should populate child bridge with initial properties', () => {
-      const { childBridge } = createBridge(
+      const { childBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       const prop1 = childBridge.getProperty('prop1');
@@ -65,10 +74,13 @@ describe('Bridge Factory', () => {
     });
 
     it('should subscribe to domain property updates', () => {
-      const { parentBridge } = createBridge(
+      const { parentBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Verify subscribers were added to domain
@@ -86,10 +98,13 @@ describe('Bridge Factory', () => {
     });
 
     it('should forward property updates from domain to child', () => {
-      const { childBridge } = createBridge(
+      const { childBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Subscribe to property updates on child
@@ -113,10 +128,13 @@ describe('Bridge Factory', () => {
 
   describe('disposeBridge', () => {
     it('should remove property subscribers from domain', () => {
-      const { parentBridge } = createBridge(
+      const { parentBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Verify subscribers exist
@@ -125,7 +143,7 @@ describe('Bridge Factory', () => {
       expect(domainState.propertySubscribers.get('prop3')?.size).toBe(1);
 
       // Dispose bridge
-      disposeBridge(domainState, parentBridge);
+      bridgeFactory.disposeBridge(domainState, parentBridge);
 
       // Subscribers should be removed from domain
       expect(domainState.propertySubscribers.get('prop1')?.size).toBe(0);
@@ -134,14 +152,17 @@ describe('Bridge Factory', () => {
     });
 
     it('should dispose the bridge', () => {
-      const { parentBridge } = createBridge(
+      const { parentBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Dispose bridge
-      disposeBridge(domainState, parentBridge);
+      bridgeFactory.disposeBridge(domainState, parentBridge);
 
       // Bridge should be disposed
       const trackedSubscribers = (parentBridge as ParentMfeBridgeImpl).getPropertySubscribers();
@@ -151,17 +172,20 @@ describe('Bridge Factory', () => {
     it('should prevent memory leaks across multiple mount/unmount cycles', () => {
       // Simulate multiple mount/unmount cycles
       for (let i = 0; i < 10; i++) {
-        const { parentBridge } = createBridge(
+        const { parentBridge } = bridgeFactory.createBridge(
           domainState,
           `test-extension-${i}`,
-          'gts.hai3.mfes.mfe.entry.v1~test.entry'
+          'gts.hai3.mfes.mfe.entry.v1~test.entry',
+          async () => ({ success: true }),
+          () => {},
+          () => {}
         );
 
         // Each bridge should add subscribers (size = 1 since we dispose after each iteration)
         expect(domainState.propertySubscribers.get('prop1')?.size).toBe(1);
 
         // Dispose bridge
-        disposeBridge(domainState, parentBridge);
+        bridgeFactory.disposeBridge(domainState, parentBridge);
 
         // Subscribers should be removed
         expect(domainState.propertySubscribers.get('prop1')?.size).toBe(0);
@@ -174,45 +198,54 @@ describe('Bridge Factory', () => {
     });
 
     it('should handle disposal when property subscribers are missing', () => {
-      const { parentBridge } = createBridge(
+      const { parentBridge } = bridgeFactory.createBridge(
         domainState,
         'test-extension',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Clear property subscribers manually (simulate corrupted state)
       domainState.propertySubscribers.clear();
 
       // Should not throw
-      expect(() => disposeBridge(domainState, parentBridge)).not.toThrow();
+      expect(() => bridgeFactory.disposeBridge(domainState, parentBridge)).not.toThrow();
     });
   });
 
   describe('Multiple bridges on same domain', () => {
     it('should manage multiple bridges independently', () => {
-      const { parentBridge: bridge1 } = createBridge(
+      const { parentBridge: bridge1 } = bridgeFactory.createBridge(
         domainState,
         'extension-1',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
-      const { parentBridge: bridge2 } = createBridge(
+      const { parentBridge: bridge2 } = bridgeFactory.createBridge(
         domainState,
         'extension-2',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry'
+        'gts.hai3.mfes.mfe.entry.v1~test.entry',
+        async () => ({ success: true }),
+        () => {},
+        () => {}
       );
 
       // Both bridges should add subscribers
       expect(domainState.propertySubscribers.get('prop1')?.size).toBe(2);
 
       // Dispose first bridge
-      disposeBridge(domainState, bridge1);
+      bridgeFactory.disposeBridge(domainState, bridge1);
 
       // First bridge's subscribers should be removed, second bridge's should remain
       expect(domainState.propertySubscribers.get('prop1')?.size).toBe(1);
 
       // Dispose second bridge
-      disposeBridge(domainState, bridge2);
+      bridgeFactory.disposeBridge(domainState, bridge2);
 
       // All subscribers should be removed
       expect(domainState.propertySubscribers.get('prop1')?.size).toBe(0);

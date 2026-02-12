@@ -19,7 +19,7 @@ See [MFE System Overview](./overview.md) for architecture details.
 
 ### Goals
 
-1. **Instance-Level State Isolation (Default)**: HAI3's default handler enforces instance-level isolation. See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for details.
+1. **Instance-Level State Isolation (Default)**: See [Runtime Isolation](./overview.md#runtime-isolation-default-behavior) for the canonical description of the isolation model.
 2. **Symmetric Contracts**: Clear bidirectional communication contracts
 3. **Contract Validation**: Compile-time and runtime validation of compatibility
 4. **Mediated Actions**: Centralized action chain delivery through ActionsChainsMediator
@@ -649,6 +649,7 @@ const app = createHAI3()
 // Note: Manifest is internal to MfeHandlerMF - no public registerManifest()
 
 // Example: Register base domains dynamically after app initialization
+// Note: eventBus is the framework (L2) event bus, not the removed screensets EventEmitter.
 eventBus.on('app/ready', () => {
   mfeActions.registerDomain(HAI3_SIDEBAR_DOMAIN);
   mfeActions.registerDomain(HAI3_POPUP_DOMAIN);

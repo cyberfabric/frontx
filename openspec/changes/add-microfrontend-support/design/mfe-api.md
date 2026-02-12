@@ -26,9 +26,9 @@ These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svel
 ## MfeEntryLifecycle Interface
 
 ```typescript
-interface MfeEntryLifecycle {
-  mount(container: HTMLElement, bridge: ChildMfeBridge): void;
-  unmount(container: HTMLElement): void;
+interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
+  mount(container: Element, bridge: TBridge): void | Promise<void>;
+  unmount(container: Element): void | Promise<void>;
 }
 ```
 
@@ -124,11 +124,11 @@ interface ParentMfeBridge {
 | Method | Purpose | Callers |
 |---|---|---|
 | `sendActionsChain(chain, options)` | Internal: forwards actions chains from parent to child via `childBridge.handleParentActionsChain()`. Used for hierarchical composition transport. Concrete-only -- not on the public interface. | Internal bridge transport |
-| `onChildAction(callback)` | Wiring method: connects child-to-parent action chain flow via the mediator | `bridge-factory.ts` |
-| `receivePropertyUpdate(propertyTypeId, value)` | Wiring method: pushes domain property updates to the child bridge | `bridge-factory.ts` subscribers |
+| `onChildAction(callback)` | Wiring method: connects child-to-parent action chain flow via the mediator | `DefaultRuntimeBridgeFactory.createBridge()` |
+| `receivePropertyUpdate(propertyTypeId, value)` | Wiring method: pushes domain property updates to the child bridge | `DefaultRuntimeBridgeFactory.createBridge()` subscribers |
 | `handleChildAction(chain, options)` | Internal: called by `ChildMfeBridgeImpl.sendActionsChain()` to forward chains to parent | `ChildMfeBridgeImpl` |
-| `registerPropertySubscriber(propertyTypeId, subscriber)` | Internal: tracks property subscribers for cleanup | `bridge-factory.ts` |
-| `getPropertySubscribers()` | Internal: returns subscribers map for disposal cleanup | `bridge-factory.ts` |
+| `registerPropertySubscriber(propertyTypeId, subscriber)` | Internal: tracks property subscribers for cleanup | `DefaultRuntimeBridgeFactory.createBridge()` |
+| `getPropertySubscribers()` | Internal: returns subscribers map for disposal cleanup | `DefaultRuntimeBridgeFactory.disposeBridge()` |
 
 ### Bridge Creation Flow
 
@@ -160,7 +160,7 @@ Public API -- How child MFEs execute chains:
        | this.executeActionsChainCallback(chain, options)
        v
   registry.executeActionsChain(chain, options)
-  (injected callback from createBridge)
+  (injected callback from DefaultRuntimeBridgeFactory.createBridge)
 ```
 
 ```
@@ -198,6 +198,195 @@ mount(container, bridge) {
   bridge.executeActionsChain(someChain);
 }
 ```
+
+### Cross-Runtime Action Chain Routing (Hierarchical Composition)
+
+When a child MFE defines its own domains via a child `ScreensetsRegistry`, those domains are registered in the **child's** mediator, not the parent's. The parent's mediator has no visibility into child-runtime registrations. This section defines the mechanism for routing actions across runtime boundaries.
+
+**Problem**: An actions chain targeting a domain that lives inside a child runtime cannot be resolved by the parent's `ActionsChainsMediator.resolveHandler()` -- the parent's `extensionHandlers` and `domainHandlers` maps only contain locally registered entities.
+
+**Solution -- ChildDomainForwardingHandler**: When a child MFE registers a domain in its child registry and wants that domain to be reachable from the parent runtime, it registers a **forwarding `ActionHandler`** in the parent's mediator for that domain ID. This forwarding handler wraps the existing private bridge transport (`parentBridgeImpl.sendActionsChain()`) in an `ActionHandler` implementation. No new transport mechanism is needed -- the existing concrete-only bridge methods are sufficient.
+
+#### Architecture
+
+```
+Parent Runtime                          Child Runtime
+==============                          =============
+
+Parent Mediator                         Child Mediator
+  extensionHandlers: {...}                extensionHandlers: {...}
+  domainHandlers: {                       domainHandlers: {
+    parentDomainId -> parentHandler          childDomainId -> childHandler
+    childDomainId  -> forwardingHandler   }
+  }
+       |
+       | resolveHandler(childDomainId)
+       | finds forwardingHandler
+       |
+       v
+  ChildDomainForwardingHandler
+       |
+       | wraps chain in ActionsChain, calls
+       | parentBridgeImpl.sendActionsChain(chain)
+       v
+  ParentMfeBridgeImpl [concrete-only]
+       |
+       | childBridge.handleParentActionsChain(chain)
+       v
+  ChildMfeBridgeImpl [concrete-only]
+       |
+       | actionsChainHandler(chain) = childRegistry.executeActionsChain
+       v
+  Child Registry's Mediator
+       |
+       | resolveHandler(childDomainId)
+       | finds childHandler locally
+       v
+  Child Domain Handler
+```
+
+#### ChildDomainForwardingHandler
+
+A concrete class implementing `ActionHandler` that forwards actions to a child runtime via the bridge transport. This class is `@internal` and lives alongside the bridge implementations.
+
+```typescript
+// packages/screensets/src/mfe/bridge/ChildDomainForwardingHandler.ts
+
+import type { ActionHandler } from '../mediator/types';
+import type { ParentMfeBridgeImpl } from './ParentMfeBridge';
+
+/**
+ * Forwards actions targeting a child domain through the bridge transport.
+ *
+ * When a child MFE registers its own domains, the parent runtime needs a way
+ * to route actions to those domains. This handler is registered in the parent's
+ * mediator for each child domain ID. When the parent's mediator resolves a target
+ * that matches a child domain, it invokes this handler, which wraps the action
+ * in an ActionsChain and forwards it via the private bridge transport.
+ *
+ * @internal
+ */
+class ChildDomainForwardingHandler implements ActionHandler {
+  constructor(
+    private readonly parentBridgeImpl: ParentMfeBridgeImpl,
+    private readonly childDomainId: string
+  ) {}
+
+  async handleAction(
+    actionTypeId: string,
+    payload: Record<string, unknown> | undefined
+  ): Promise<void> {
+    // Wrap the action in an ActionsChain for bridge transport.
+    // The child registry's mediator will unwrap and execute it.
+    const chain = {
+      action: {
+        type: actionTypeId,
+        target: this.childDomainId,
+        payload,
+      },
+    };
+
+    // sendActionsChain() returns Promise<ChainResult>.
+    // ActionHandler.handleAction() returns Promise<void>.
+    // Map ChainResult to the void contract: reject if the chain did not complete.
+    const result = await this.parentBridgeImpl.sendActionsChain(chain);
+    if (!result.completed) {
+      throw new Error(result.error ?? 'Chain execution failed in child domain');
+    }
+  }
+}
+```
+
+#### Wiring Sequence (Canonical Approach)
+
+The wiring happens in the child MFE's `mount()` function via **callback injection**. The child MFE uses concrete-only methods on `ChildMfeBridgeImpl` that are wired by `DefaultRuntimeBridgeFactory.createBridge()` -- the child MFE never accesses `ParentMfeBridgeImpl`, `parentRegistry`, or `ChildDomainForwardingHandler` directly. This is the ONLY canonical wiring path.
+
+```typescript
+// Child MFE's mount() -- canonical hierarchical composition wiring:
+mount(container, bridge) {
+  const childRegistry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+
+  // 1. Wire bridge transport: parent -> child delivery
+  //    The concrete ChildMfeBridgeImpl.onActionsChain() connects the bridge
+  //    to the child registry's executeActionsChain().
+  //    (Internal wiring -- concrete-only method, not on public interface)
+  (bridge as ChildMfeBridgeImpl).onActionsChain(
+    (chain, options) => childRegistry.executeActionsChain(chain, options)
+  );
+
+  // 2. Register child domains in the child registry
+  childRegistry.registerDomain(myDomain);
+
+  // 3. Register forwarding in parent via concrete-only method on ChildMfeBridgeImpl.
+  //    Internally, DefaultRuntimeBridgeFactory.createBridge() wired this to create a ChildDomainForwardingHandler
+  //    and call parentRegistry.registerDomainActionHandler(domainId, handler).
+  //    The child MFE does NOT access parentBridgeImpl or parentRegistry directly.
+  (bridge as ChildMfeBridgeImpl).registerChildDomain(myDomain.id);
+
+  // 4. Register child extensions in the child registry
+  childRegistry.registerExtension(myExtension);
+
+  // Child MFE uses bridge for its own chain execution:
+  bridge.executeActionsChain(someChain);
+}
+
+// Child MFE's unmount():
+unmount(container) {
+  // Unregister forwarding from parent (concrete-only method)
+  (bridge as ChildMfeBridgeImpl).unregisterChildDomain(myDomain.id);
+
+  // Dispose child registry
+  childRegistry.dispose();
+}
+```
+
+**Key Constraints:**
+
+1. The parent does NOT need to know about the child's internal structure. The parent's mediator simply sees a `domainHandler` entry that happens to forward through a bridge.
+2. The `ChildDomainForwardingHandler` uses only the existing concrete-only `parentBridgeImpl.sendActionsChain()` -- no new transport mechanism. The child MFE never instantiates `ChildDomainForwardingHandler` directly; `DefaultRuntimeBridgeFactory.createBridge()` encapsulates this.
+3. The child MFE is responsible for the wiring. This is consistent with the principle that hierarchical composition is opt-in.
+4. When the child MFE unmounts, the parent's forwarding handlers must be unregistered. This is handled by `ChildMfeBridgeImpl.cleanup()` -- see [Cleanup on Unmount](#cleanup-on-unmount) below.
+
+#### Cleanup on Unmount
+
+When a child MFE is unmounted, the forwarding handlers registered in the parent's mediator must be removed. Cleanup is performed exclusively by `ChildMfeBridgeImpl.cleanup()`:
+
+1. `ChildMfeBridgeImpl` tracks registered child domain IDs in a private `childDomainIds: Set<string>` field. Each call to `registerChildDomain(domainId)` adds to this set; each call to `unregisterChildDomain(domainId)` removes from it.
+2. When `cleanup()` is called (during bridge disposal on unmount), it performs the following steps **in this exact order**:
+   - (a) Iterate `childDomainIds` and call `unregisterChildDomain(domainId)` for each entry -- this invokes the callback that removes the forwarding handler from the parent's mediator.
+   - (b) Clear the `childDomainIds` set.
+   - (c) Set `registerChildDomainCallback` and `unregisterChildDomainCallback` to `null`.
+3. This ordering is critical: the callbacks MUST remain wired while `unregisterChildDomain()` is called, otherwise the calls would no-op and forwarding handlers would leak.
+
+The child MFE may also explicitly call `unregisterChildDomain()` in its `unmount()` callback, but `cleanup()` guarantees all remaining registrations are cleaned up regardless. `DefaultMountManager` does NOT independently track or clean up forwarding handlers -- `ChildMfeBridgeImpl.cleanup()` is the single authoritative cleanup path.
+
+#### How DefaultRuntimeBridgeFactory.createBridge() Encapsulates Concrete Types
+
+The `ChildDomainForwardingHandler` requires access to the concrete `ParentMfeBridgeImpl` and the parent's `registerDomainActionHandler`/`unregisterDomainActionHandler` methods. These are NOT exposed on public interfaces. `DefaultRuntimeBridgeFactory.createBridge()` encapsulates all of this via callback injection:
+
+```typescript
+// On ChildMfeBridgeImpl (concrete-only, NOT on public ChildMfeBridge interface):
+// registerChildDomain(domainId: string): void
+// unregisterChildDomain(domainId: string): void
+//
+// These are wired by DefaultRuntimeBridgeFactory.createBridge() to register/unregister
+// forwarding handlers in the parent's mediator. The injected callbacks encapsulate:
+// 1. Creating a ChildDomainForwardingHandler with the parentBridgeImpl
+// 2. Calling registerDomainActionHandler(domainId, handler)
+//
+// Child MFE code NEVER accesses ParentMfeBridgeImpl, parentRegistry,
+// or ChildDomainForwardingHandler directly.
+```
+
+For the canonical child MFE usage pattern, see [Wiring Sequence](#wiring-sequence-canonical-approach) above.
+
+#### Domain ID Uniqueness Across Runtimes
+
+When a child MFE registers a domain via `registerChildDomain(domainId)`, the forwarding handler is registered in the parent's mediator using that domain ID. If the domain ID collides with an existing domain ID in the parent's mediator (either a parent-owned domain or another child's forwarded domain), the existing handler is silently overwritten. **Domain ID uniqueness across runtimes is an application-level responsibility enforced by the GTS type system.** GTS type IDs are globally unique by convention (namespace + version), so collisions indicate a misconfiguration. The framework does not guard against this at runtime -- it is a programming error.
+
+#### Factory Cache and Child Registry Isolation
+
+The `screensetsRegistryFactory` uses a factory-with-cache pattern (Phase 21.10) where `build(config)` caches the instance after the first call. When a child MFE calls `screensetsRegistryFactory.build(config)` to create its own child registry for hierarchical composition, it MUST pass a **distinct** `ScreensetsRegistryConfig` (e.g., a different `TypeSystemPlugin` instance or config object) to ensure the factory creates a new, isolated instance rather than returning the cached parent instance. If the child passes the same config reference, the factory returns the parent's cached instance, which defeats isolation. This is the expected behavior of the factory-with-cache pattern and is not a bug. Strategies for ensuring distinct configs (e.g., per-MFE factory instances or a `forceNew` option) are outside the scope of Phase 22.
 
 ### Domain-Level Property Updates
 
@@ -262,12 +451,12 @@ import { App } from './App';
 
 let root: Root | null = null;
 
-export function mount(container: HTMLElement, bridge: ChildMfeBridge): void {
-  root = createRoot(container);
+export function mount(container: Element, bridge: ChildMfeBridge): void {
+  root = createRoot(container as HTMLElement);
   root.render(<App bridge={bridge} />);
 }
 
-export function unmount(container: HTMLElement): void {
+export function unmount(container: Element): void {
   root?.unmount();
   root = null;
 }
@@ -281,12 +470,12 @@ import App from './App.vue';
 
 let app: VueApp | null = null;
 
-export function mount(container: HTMLElement, bridge: ChildMfeBridge): void {
+export function mount(container: Element, bridge: ChildMfeBridge): void {
   app = createApp(App, { bridge });
   app.mount(container);
 }
 
-export function unmount(container: HTMLElement): void {
+export function unmount(container: Element): void {
   app?.unmount();
   app = null;
 }
@@ -299,11 +488,11 @@ import App from './App.svelte';
 
 let component: App | null = null;
 
-export function mount(container: HTMLElement, bridge: ChildMfeBridge): void {
+export function mount(container: Element, bridge: ChildMfeBridge): void {
   component = new App({ target: container, props: { bridge } });
 }
 
-export function unmount(container: HTMLElement): void {
+export function unmount(container: Element): void {
   component?.$destroy();
   component = null;
 }
@@ -313,18 +502,19 @@ export function unmount(container: HTMLElement): void {
 ```typescript
 import { ChildMfeBridge } from '@hai3/screensets';
 
-export function mount(container: HTMLElement, bridge: ChildMfeBridge): void {
-  container.innerHTML = '<div class="my-widget">Loading...</div>';
+export function mount(container: Element, bridge: ChildMfeBridge): void {
+  const el = container as HTMLElement;
+  el.innerHTML = '<div class="my-widget">Loading...</div>';
   bridge.subscribeToProperty(
     'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1',
     (property) => {
       const theme = property.value;
-      container.style.background = theme === 'dark' ? '#333' : '#fff';
+      el.style.background = theme === 'dark' ? '#333' : '#fff';
     }
   );
 }
 
-export function unmount(container: HTMLElement): void {
-  container.innerHTML = '';
+export function unmount(container: Element): void {
+  (container as HTMLElement).innerHTML = '';
 }
 ```

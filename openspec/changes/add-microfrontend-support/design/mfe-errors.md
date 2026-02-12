@@ -222,7 +222,7 @@ class NoActionsChainHandlerError extends MfeError {
     public readonly instanceId: string
   ) {
     super(
-      `No actions chain handler registered for instance '${instanceId}'. Child MFEs that define their own domains must have their bridge's onActionsChain handler wired for hierarchical composition.`,
+      `No actions chain handler registered for instance '${instanceId}'. Child MFEs must call bridge.onActionsChain() to receive parent actions chains.`,
       'NO_ACTIONS_CHAIN_HANDLER'
     );
     this.name = 'NoActionsChainHandlerError';
@@ -237,7 +237,7 @@ class BridgeDisposedError extends MfeError {
     public readonly instanceId: string
   ) {
     super(
-      `Bridge for instance '${instanceId}' has been disposed`,
+      `Bridge has been disposed for instance '${instanceId}'`,
       'BRIDGE_DISPOSED'
     );
     this.name = 'BridgeDisposedError';

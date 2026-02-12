@@ -81,7 +81,7 @@ export interface ChildMfeBridge {
  * MFE lifecycle interface.
  * All MFE entries must implement this interface.
  */
-export interface MfeEntryLifecycle<TBridge = ParentMfeBridge> {
+export interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
   /**
    * Mount the MFE to a DOM container.
    *

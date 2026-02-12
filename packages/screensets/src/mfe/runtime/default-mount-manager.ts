@@ -10,10 +10,12 @@
 
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
+import type { ActionHandler } from '../mediator/types';
 import { DefaultExtensionManager } from './default-extension-manager';
 import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
 import type { Logger, ActionChainExecutor, LifecycleTrigger } from './mount-manager';
+import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 
 /**
  * Default mount manager implementation.
@@ -58,6 +60,21 @@ export class DefaultMountManager extends MountManager {
    */
   private readonly hostRuntime: ScreensetsRegistry;
 
+  /**
+   * Callback for registering domain action handlers.
+   */
+  private readonly registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
+
+  /**
+   * Callback for unregistering domain action handlers.
+   */
+  private readonly unregisterDomainActionHandler: (domainId: string) => void;
+
+  /**
+   * Runtime bridge factory for creating bridge connections.
+   */
+  private readonly bridgeFactory: RuntimeBridgeFactory;
+
   constructor(config: {
     extensionManager: DefaultExtensionManager;
     handlers: MfeHandler[];
@@ -66,6 +83,9 @@ export class DefaultMountManager extends MountManager {
     executeActionsChain: ActionChainExecutor;
     log: Logger;
     hostRuntime: ScreensetsRegistry;
+    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
+    unregisterDomainActionHandler: (domainId: string) => void;
+    bridgeFactory: RuntimeBridgeFactory;
   }) {
     super();
     this.extensionManager = config.extensionManager;
@@ -75,6 +95,9 @@ export class DefaultMountManager extends MountManager {
     this.executeActionsChain = config.executeActionsChain;
     this.log = config.log;
     this.hostRuntime = config.hostRuntime;
+    this.registerDomainActionHandler = config.registerDomainActionHandler;
+    this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
+    this.bridgeFactory = config.bridgeFactory;
   }
 
   /**
@@ -186,12 +209,13 @@ export class DefaultMountManager extends MountManager {
       }
 
       // Create bridge using bridge factory
-      const bridgeFactory = await import('./bridge-factory');
-      const { parentBridge, childBridge } = bridgeFactory.createBridge(
+      const { parentBridge, childBridge } = this.bridgeFactory.createBridge(
         domainState,
         extensionId,
         extensionState.entry.id,
-        (chain, options) => this.executeActionsChain(chain, options)
+        (chain, options) => this.executeActionsChain(chain, options),
+        (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
+        (domainId) => this.unregisterDomainActionHandler(domainId)
       );
 
       // Register with RuntimeCoordinator
@@ -276,8 +300,7 @@ export class DefaultMountManager extends MountManager {
       if (extensionState.bridge) {
         const domainState = this.extensionManager.getDomainState(extensionState.extension.domain);
         if (domainState) {
-          const bridgeFactory = await import('./bridge-factory');
-          bridgeFactory.disposeBridge(domainState, extensionState.bridge);
+          this.bridgeFactory.disposeBridge(domainState, extensionState.bridge);
         }
       }
 

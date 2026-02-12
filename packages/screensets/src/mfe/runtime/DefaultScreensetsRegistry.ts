@@ -31,6 +31,8 @@ import { DefaultLifecycleManager } from './default-lifecycle-manager';
 import { MountManager } from './mount-manager';
 import { DefaultMountManager } from './default-mount-manager';
 import { OperationSerializer } from './operation-serializer';
+import { RuntimeBridgeFactory } from './runtime-bridge-factory';
+import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';
 
 /**
  * Default concrete implementation of ScreensetsRegistry.
@@ -77,6 +79,12 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * INTERNAL: Delegates loading and mounting operations.
    */
   private readonly mountManager: MountManager;
+
+  /**
+   * Runtime bridge factory for creating bridge connections.
+   * INTERNAL: Abstract type stored for internal wiring.
+   */
+  private readonly bridgeFactory: RuntimeBridgeFactory;
 
   /**
    * Operation serializer for per-entity concurrency control.
@@ -168,6 +176,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       (entity, stageId) => this.triggerLifecycleStageInternalForTests(entity, stageId)
     );
 
+    // Initialize runtime bridge factory
+    this.bridgeFactory = new DefaultRuntimeBridgeFactory();
+
     // Initialize mount manager (needs all collaborators)
     this.mountManager = new DefaultMountManager({
       extensionManager: this.extensionManager,
@@ -177,6 +188,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       executeActionsChain: (chain, options) => this.executeActionsChain(chain, options),
       log: (message, context) => this.log(message, context),
       hostRuntime: this,
+      registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
+      unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
+      bridgeFactory: this.bridgeFactory,
     });
 
     // Verify first-class schemas are available
@@ -365,7 +379,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     }
   }
 
-  // NOTE: Bridge factory is in ./bridge-factory.ts (used by mountExtension)
+  // NOTE: Bridge factory is injected into DefaultMountManager via constructor (used by mountExtension)
 
   /**
    * Register an extension dynamically at runtime.

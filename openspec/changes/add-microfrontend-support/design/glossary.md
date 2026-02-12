@@ -61,10 +61,16 @@ A binding between a lifecycle stage and an actions chain. When the stage trigger
 An abstract class that handles loading MFE bundles for specific entry types. Handlers use type hierarchy matching to determine which entries they can handle. HAI3 provides MfeHandlerMF for Module Federation; companies can register custom handlers. See [mfe-loading.md](./mfe-loading.md).
 
 ### MfeBridgeFactory
-An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. Custom handlers can provide rich bridges with additional services (routing, API clients, etc.).
+An abstract factory that creates bridge instances for specific entry types. Each handler has an associated bridge factory. Custom handlers can provide rich bridges with additional services (routing, API clients, etc.). This is the **handler-level** factory for custom bridge implementations. See [mfe-loading.md](./mfe-loading.md).
+
+### RuntimeBridgeFactory
+An `@internal` abstract class that defines the contract for internal bridge wiring between host and child MFEs. `DefaultRuntimeBridgeFactory` (concrete) implements the bridge creation and disposal logic: creating `ParentMfeBridgeImpl`/`ChildMfeBridgeImpl` pairs, connecting property subscriptions, wiring action chain callbacks, and setting up child domain forwarding. This is a **different concern** from `MfeBridgeFactory` (handler-level) -- `RuntimeBridgeFactory` handles the runtime wiring, while `MfeBridgeFactory` creates custom bridge instances for handler implementations. See [registry-runtime.md - Runtime Bridge Factory](./registry-runtime.md#runtime-bridge-factory-class-based).
 
 ### ActionsChainsMediator
 The runtime component that routes action chains to their targets and handles success/failure branching. Validates action types against domain contracts before delivery. Each isolated runtime has its own mediator instance. **Note**: Always use the full name "ActionsChainsMediator" (not abbreviated) to maintain clarity. The public API is `registry.executeActionsChain()`, which delegates to the ActionsChainsMediator internally. See [mfe-actions.md](./mfe-actions.md).
+
+### ChildDomainForwardingHandler
+An `@internal` concrete class implementing `ActionHandler` that forwards actions targeting a child domain through the bridge transport to a child runtime. Registered in the parent's mediator for each child domain ID during hierarchical composition wiring. When the parent's mediator resolves a target matching a child domain, it invokes this handler, which wraps the action in an `ActionsChain` and forwards it via `parentBridgeImpl.sendActionsChain()`. See [mfe-api.md - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition).
 
 ### Runtime
 Conventional variable name for a `ScreensetsRegistry` instance. Example: `const runtime = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });`. Throughout these documents, "runtime" and "registry" refer to the same `ScreensetsRegistry` instance.

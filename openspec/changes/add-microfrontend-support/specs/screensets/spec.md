@@ -576,8 +576,8 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export an `MfeEntryLifecycle` interface
-- **AND** the interface SHALL define `mount(container: HTMLElement, bridge: ChildMfeBridge): void`
-- **AND** the interface SHALL define `unmount(container: HTMLElement): void`
+- **AND** the interface SHALL define `mount(container: Element, bridge: TBridge): void | Promise<void>` where `TBridge` defaults to `ChildMfeBridge`
+- **AND** the interface SHALL define `unmount(container: Element): void | Promise<void>`
 - **AND** all MFE entries SHALL export functions conforming to this interface
 
 #### Scenario: MFE module validation on load
@@ -785,6 +785,39 @@ The system SHALL provide typed error classes for MFE operations.
 
 - **WHEN** a type ID fails conformance check against a base type
 - **THEN** `MfeTypeConformanceError` SHALL be thrown with `typeId` and `expectedBaseType`
+
+#### Scenario: DomainValidationError class
+
+- **WHEN** domain registration validation fails (e.g., missing required fields, invalid schema)
+- **THEN** `DomainValidationError` SHALL be thrown with `errors` array and `domainTypeId`
+- **AND** each error SHALL include `path` and `message` describing the validation failure
+- **AND** the error code SHALL be `'DOMAIN_VALIDATION_ERROR'`
+
+#### Scenario: ExtensionValidationError class
+
+- **WHEN** extension registration validation fails (e.g., missing required fields, invalid schema)
+- **THEN** `ExtensionValidationError` SHALL be thrown with `errors` array and `extensionTypeId`
+- **AND** each error SHALL include `path` and `message` describing the validation failure
+- **AND** the error code SHALL be `'EXTENSION_VALIDATION_ERROR'`
+
+#### Scenario: UnsupportedLifecycleStageError class
+
+- **WHEN** a lifecycle hook references a stage not supported by the domain
+- **THEN** `UnsupportedLifecycleStageError` SHALL be thrown with `stageId`, `entityId`, and `supportedStages`
+- **AND** the error code SHALL be `'UNSUPPORTED_LIFECYCLE_STAGE'`
+
+#### Scenario: NoActionsChainHandlerError class
+
+- **WHEN** internal bridge transport attempts to forward an actions chain to a child that has no handler registered via `ChildMfeBridgeImpl.onActionsChain()`
+- **THEN** `NoActionsChainHandlerError` SHALL be thrown with `instanceId`
+- **AND** the error message SHALL indicate the child MFE must call `bridge.onActionsChain()` to receive parent actions chains
+- **AND** the error code SHALL be `'NO_ACTIONS_CHAIN_HANDLER'`
+
+#### Scenario: BridgeDisposedError class
+
+- **WHEN** an operation (e.g., `executeActionsChain`, `subscribeToProperty`) is attempted on a disposed bridge
+- **THEN** `BridgeDisposedError` SHALL be thrown with `instanceId`
+- **AND** the error code SHALL be `'BRIDGE_DISPOSED'`
 
 ### Requirement: Internal Runtime Coordination
 

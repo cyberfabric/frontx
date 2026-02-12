@@ -97,7 +97,7 @@ The MFE system uses these internal TypeScript interfaces. Each type has an `id: 
 
 | TypeScript Interface | Fields | Purpose |
 |---------------------|--------|---------|
-| `MfeEntryLifecycle` | `mount(container, bridge), unmount(container)` | Lifecycle interface for MFE entries |
+| `MfeEntryLifecycle<TBridge>` | `mount(container: Element, bridge: TBridge): void \| Promise<void>, unmount(container: Element): void \| Promise<void>` | Lifecycle interface for MFE entries (TBridge defaults to ChildMfeBridge) |
 
 **Handler Abstraction (3 types):**
 
@@ -187,8 +187,7 @@ Every major stateful component has an abstract class (pure contract) and a concr
 - `packages/screensets/src/mfe/plugins/` - Type System plugin interface and implementations
 - `packages/screensets/src/mfe/plugins/gts/` - GTS plugin implementation (default)
 - `packages/screensets/src/mfe/handler/` - MfeHandler abstract class, MfeBridgeFactory, and handler registry
-- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF (Module Federation default handler)
-- `packages/screensets/src/mfe/handler/bridge-factory-default.ts` - MfeBridgeFactoryDefault (thin bridge factory)
+- `packages/screensets/src/mfe/handler/mf-handler.ts` - MfeHandlerMF and MfeBridgeFactoryDefault (Module Federation default handler)
 
 **Modified packages:**
 - `packages/screensets/src/state/` - Isolated state instances (uses @hai3/state)

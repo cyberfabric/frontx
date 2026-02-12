@@ -137,6 +137,7 @@ import { ScreensetsRegistry } from '@hai3/screensets';
 
 // Effect subscribes to event, calls runtime, dispatches to slice
 // extensionId is Extension type: gts.hai3.mfes.ext.extension.v1~...
+// Note: eventBus is the framework (L2) event bus, not the removed screensets EventEmitter.
 eventBus.on('mfe/loadRequested', async ({ extensionId }) => {
   dispatch(mfeSlice.actions.setLoading({ extensionId }));
   try {

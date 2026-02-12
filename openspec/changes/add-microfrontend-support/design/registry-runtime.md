@@ -22,6 +22,105 @@ The established rule is: "NEVER standalone functions, ALWAYS abstract class + co
 - **Pure validation helpers** (stateless, all dependencies as parameters): `validateContract`, `validateExtensionType`, `validateDomainLifecycleHooks`, `validateExtensionLifecycleHooks`.
 - **Small stateful utilities** with minimal surface area: `OperationSerializer` (70 lines, single public method).
 
+### Runtime Bridge Factory (Class-Based)
+
+The `bridge-factory.ts` module provides the internal bridge wiring logic that connects host and child MFEs. This is a **distinct concern** from the handler's `MfeBridgeFactory` (in `handler/types.ts`), which is a public abstraction for custom bridge implementations by MFE handlers.
+
+**Two bridge factory concepts:**
+
+| Factory | Responsibility | Location | Visibility |
+|---|---|---|---|
+| `MfeBridgeFactory` (handler) | Creates `ChildMfeBridge` instances for custom handler implementations | `handler/types.ts` | Public abstract class |
+| `RuntimeBridgeFactory` (runtime) | Wires internal bridge connections: creates `ParentMfeBridgeImpl`/`ChildMfeBridgeImpl` pair, connects property subscriptions, wires action chain callbacks, sets up child domain forwarding | `runtime/runtime-bridge-factory.ts` (abstract) / `runtime/default-runtime-bridge-factory.ts` (concrete) | `@internal`, NOT exported from barrel |
+
+The runtime bridge factory follows the same abstract + concrete pattern as all other collaborators:
+
+```typescript
+// packages/screensets/src/mfe/runtime/runtime-bridge-factory.ts
+// ABSTRACT class (~20 lines, pure contract)
+
+import type { ParentMfeBridge, ChildMfeBridge } from '../handler/types';
+import type { ExtensionDomainState } from './extension-manager';
+import type { ActionsChain } from '../types';
+import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator/types';
+
+/**
+ * Abstract runtime bridge factory -- contract for internal bridge wiring.
+ *
+ * Creates bidirectional bridge connections between host and child MFEs,
+ * including property subscription wiring, action chain callback injection,
+ * and child domain forwarding setup.
+ *
+ * This is NOT the same as MfeBridgeFactory in handler/types.ts, which is
+ * a public abstraction for custom handler bridge implementations.
+ *
+ * @internal
+ */
+export abstract class RuntimeBridgeFactory {
+  /**
+   * Create a bridge connection between host and child MFE.
+   *
+   * @param domainState - Domain state containing properties and subscribers
+   * @param extensionId - ID of the extension
+   * @param entryTypeId - Type ID of the MFE entry
+   * @param executeActionsChain - Callback for executing actions chains
+   * @param registerDomainActionHandler - Callback for registering child domain action handlers
+   * @param unregisterDomainActionHandler - Callback for unregistering child domain action handlers
+   * @returns Object containing parent and child bridge instances
+   */
+  abstract createBridge(
+    domainState: ExtensionDomainState,
+    extensionId: string,
+    entryTypeId: string,
+    executeActionsChain: (chain: ActionsChain, options?: ChainExecutionOptions) => Promise<ChainResult>,
+    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
+    unregisterDomainActionHandler: (domainId: string) => void
+  ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };
+
+  /**
+   * Dispose a bridge connection and clean up domain subscribers.
+   *
+   * @param domainState - Domain state containing property subscribers
+   * @param parentBridge - Parent bridge to dispose
+   */
+  abstract disposeBridge(
+    domainState: ExtensionDomainState,
+    parentBridge: ParentMfeBridge
+  ): void;
+}
+```
+
+```typescript
+// packages/screensets/src/mfe/runtime/default-runtime-bridge-factory.ts
+// CONCRETE class, NOT exported from barrel
+
+import { RuntimeBridgeFactory } from './runtime-bridge-factory';
+// ... all concrete imports (ChildMfeBridgeImpl, ParentMfeBridgeImpl, ChildDomainForwardingHandler, etc.)
+
+/**
+ * Default runtime bridge factory implementation.
+ *
+ * Handles all internal bridge wiring: creates bridge pairs, connects
+ * property subscriptions, wires action chain callbacks, and sets up
+ * child domain forwarding.
+ *
+ * @internal
+ */
+class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
+  createBridge(/* same params */): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
+    // Same implementation as current createBridge() standalone function
+  }
+
+  disposeBridge(/* same params */): void {
+    // Same implementation as current disposeBridge() standalone function
+  }
+}
+```
+
+**Construction**: `DefaultRuntimeBridgeFactory` is constructed directly by `DefaultScreensetsRegistry` (internal wiring code) and passed to `DefaultMountManager` via constructor injection. `DefaultMountManager` stores the abstract `RuntimeBridgeFactory` type (not the concrete class) and calls `this.bridgeFactory.createBridge(...)` and `this.bridgeFactory.disposeBridge(...)` instead of dynamically importing the standalone functions.
+
+**Why constructor injection instead of dynamic import**: The current code does `const bridgeFactory = await import('./bridge-factory')` inside `mountExtension()` and `unmountExtension()`. This was originally done to "avoid unused code warnings." With a class injected via the constructor, there is no unused code issue -- the class is a proper dependency of `DefaultMountManager`. Constructor injection also makes the dependency explicit and testable (tests can inject a mock `RuntimeBridgeFactory`).
+
 ### No Standalone Factory Functions for Stateful Components
 
 Standalone factory functions and static factory methods on abstract classes are both **forbidden**. The only allowed construction patterns are:
@@ -42,6 +141,10 @@ The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`
 
 **What about `extensionLoaded`?** Loading is an internal implementation detail (fetching a JavaScript bundle), not a lifecycle stage. There is no need to observe it externally. If an extension needs to react to being loaded, it does so in its `MfeEntryLifecycle.mount()` callback (which is called after loading completes).
 
+### Cross-Runtime Action Chain Routing
+
+When a child MFE defines its own domains in a child `ScreensetsRegistry`, the parent's `ActionsChainsMediator` has no visibility into those registrations. The `ChildDomainForwardingHandler` (an `@internal` class implementing `ActionHandler`) bridges this gap: it is registered in the parent's mediator for each child domain ID and forwards actions via `parentBridgeImpl.sendActionsChain()` through the existing bridge transport. No new transport mechanism or mediator changes are needed -- the forwarding handler is a standard `ActionHandler` that the mediator resolves like any other domain handler. See [MFE API - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition) for the complete design.
+
 ### ScreensetsRegistry as Facade
 
 `ScreensetsRegistry` has a large public API surface (~24 methods spanning registration, loading, mounting, property management, action chain execution, and lifecycle triggering). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
@@ -55,7 +158,8 @@ The MFE runtime intentionally has **no pub-sub event system** (no `EventEmitter`
 | Action chain execution | `ActionsChainsMediator` (abstract) / `DefaultActionsChainsMediator` (concrete) | [mfe-actions.md](./mfe-actions.md) |
 | WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | This document |
 | MFE bundle loading | `MfeHandler` polymorphism (`MfeHandlerMF`, custom handlers) | [mfe-loading.md](./mfe-loading.md) |
-| Bridge creation | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
+| Bridge creation (handler) | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
+| Bridge wiring (runtime) | `RuntimeBridgeFactory` (abstract) / `DefaultRuntimeBridgeFactory` (concrete) | This document |
 | Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
 
 The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details. Consumers obtain the instance via the `screensetsRegistryFactory` factory-with-cache pattern (`screensetsRegistryFactory.build(config)`).
@@ -107,6 +211,8 @@ function createShadowRoot(element: HTMLElement, options: ShadowRootOptions = {})
 function injectCssVariables(shadowRoot: ShadowRoot, variables: Record<string, string>): void;
 function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): void;
 ```
+
+**Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. Since `MfeEntryLifecycle.mount()` receives `container: Element`, MFE implementations that use shadow DOM must narrow via `container as HTMLElement` when calling `createShadowRoot()`.
 
 ### Decision 17: Dynamic Registration Model
 
@@ -200,12 +306,14 @@ RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
 ActionsChainsMediator               -->  DefaultActionsChainsMediator
 MfeHandler                          -->  MfeHandlerMF
 MfeBridgeFactory                    -->  MfeBridgeFactoryDefault
+RuntimeBridgeFactory                -->  DefaultRuntimeBridgeFactory
 TypeSystemPlugin                    -->  GtsPlugin
 MfeStateContainer<TState>           -->  DefaultMfeStateContainer<TState>
 
 CONSTRUCTION (only place that knows concrete)
 ==============================================
 screensetsRegistryFactory.build(config) (factory-with-cache)  -->  ScreensetsRegistry (one instance, deferred to application wiring)
+new DefaultRuntimeBridgeFactory()                             -->  RuntimeBridgeFactory (internal wiring only, by DefaultScreensetsRegistry)
 new DefaultMfeStateContainer(config)                          -->  MfeStateContainer<TState> (internal wiring only, by DefaultMountManager)
 gtsPlugin (singleton constant)                                -->  TypeSystemPlugin (one instance, no factory)
 ```
@@ -491,15 +599,15 @@ The following methods on abstract `ExtensionManager` are only used internally by
 
 | Method | Interface | Return Type | Callers | Reason | Phase |
 |---|---|---|---|---|---|
-| `getPropertySubscribers()` | `ParentMfeBridge` | `Map<string, (value: SharedProperty) => void>` | `bridge-factory.ts` (`disposeBridge`) | `@internal`, only used by internal factory | 21.6 (done) |
-| `registerPropertySubscriber(propertyTypeId, subscriber)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` (`createBridge`) | `@internal`, only used by internal factory | 21.6 (done) |
-| `onChildAction(callback)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` | Internal wiring: connects child-to-parent flow via mediator. Not a consumer-facing API. | 21.11 |
-| `receivePropertyUpdate(propertyTypeId, value)` | `ParentMfeBridge` | `void` | `bridge-factory.ts` subscribers | Internal wiring: pushes domain property updates to child bridge. | 21.11 |
+| `getPropertySubscribers()` | `ParentMfeBridge` | `Map<string, (value: SharedProperty) => void>` | `DefaultRuntimeBridgeFactory.disposeBridge()` | `@internal`, only used by internal factory | 21.6 (done) |
+| `registerPropertySubscriber(propertyTypeId, subscriber)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` | `@internal`, only used by internal factory | 21.6 (done) |
+| `onChildAction(callback)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` | Internal wiring: connects child-to-parent flow via mediator. Not a consumer-facing API. | 21.11 |
+| `receivePropertyUpdate(propertyTypeId, value)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` subscribers | Internal wiring: pushes domain property updates to child bridge. | 21.11 |
 | `sendActionsChain(chain, options?)` | `ParentMfeBridge` | `Promise<ChainResult>` | Internal mediator transport | Internal: parent-to-child transport for hierarchical composition. Concrete-only. | 21.11 |
 | `sendActionsChain(chain, options?)` | `ChildMfeBridge` | `Promise<ChainResult>` | Internal bridge transport | Internal: child-to-parent transport via parent bridge. Concrete-only. | 21.11 |
 | `onActionsChain(handler)` | `ChildMfeBridge` | `() => void` | Internal bridge wiring | Internal: registers handler for parent-to-child transport. Concrete-only. | 21.11 |
 
-**Context**: `ParentMfeBridge` and `ChildMfeBridge` in `handler/types.ts` are **public interfaces** exported from `@hai3/screensets`. The concrete implementations are `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl` classes in `bridge/`. Internal wiring code (`bridge-factory.ts`, `DefaultMountManager`) works with concrete types directly.
+**Context**: `ParentMfeBridge` and `ChildMfeBridge` in `handler/types.ts` are **public interfaces** exported from `@hai3/screensets`. The concrete implementations are `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl` classes in `bridge/`. Internal wiring code (`DefaultRuntimeBridgeFactory`, `DefaultMountManager`) works with concrete types directly.
 
 **After Phase 21.11**, the public `ParentMfeBridge` interface retains only:
 - `instanceId` -- identifies the child instance
@@ -515,17 +623,17 @@ The following methods on abstract `ExtensionManager` are only used internally by
 **Solution for Phase 21.6 methods (getPropertySubscribers, registerPropertySubscriber):**
 1. Remove `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface in `handler/types.ts`.
 2. Keep these methods on the `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
-3. In `bridge-factory.ts` `createBridge()`: the function already constructs a `ParentMfeBridgeImpl` instance (via `new ParentMfeBridgeImpl(childBridge)`) and calls `registerPropertySubscriber()` on it before returning. Since the local variable is already the concrete type (TypeScript infers `ParentMfeBridgeImpl` from the constructor), no type annotation change is needed -- the call to `registerPropertySubscriber()` compiles against the concrete class. The function return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (the narrow public interface), which is satisfied because `ParentMfeBridgeImpl` extends `ParentMfeBridge`.
-4. In `bridge-factory.ts` `disposeBridge()`: the parameter type **stays** `ParentMfeBridge` (the public interface). This is necessary because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge`, which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing the parameter to `ParentMfeBridgeImpl` would cause a type mismatch at all call sites. Instead, `disposeBridge()` casts internally: `const impl = parentBridge as ParentMfeBridgeImpl;` and then calls `impl.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same file). The `ExtensionState.bridge` field type remains `ParentMfeBridge | null` -- no change needed. `DefaultMountManager` callers remain unchanged.
+3. In `DefaultRuntimeBridgeFactory.createBridge()`: the method already constructs a `ParentMfeBridgeImpl` instance (via `new ParentMfeBridgeImpl(childBridge)`) and calls `registerPropertySubscriber()` on it before returning. Since the local variable is already the concrete type (TypeScript infers `ParentMfeBridgeImpl` from the constructor), no type annotation change is needed -- the call to `registerPropertySubscriber()` compiles against the concrete class. The method return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (the narrow public interface), which is satisfied because `ParentMfeBridgeImpl` extends `ParentMfeBridge`.
+4. In `DefaultRuntimeBridgeFactory.disposeBridge()`: the parameter type **stays** `ParentMfeBridge` (the public interface). This is necessary because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge`, which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing the parameter to `ParentMfeBridgeImpl` would cause a type mismatch at all call sites. Instead, `disposeBridge()` casts internally: `const impl = parentBridge as ParentMfeBridgeImpl;` and then calls `impl.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same class). The `ExtensionState.bridge` field type remains `ParentMfeBridge | null` -- no change needed. `DefaultMountManager` callers remain unchanged.
 
 **Solution for Phase 21.11 methods (onChildAction, receivePropertyUpdate, sendActionsChain on ParentMfeBridge; sendActionsChain, onActionsChain on ChildMfeBridge):**
 1. Remove `sendActionsChain(chain, options?)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep the method on `ParentMfeBridgeImpl` (concrete-only for internal transport).
 2. Remove `onChildAction(callback)` and `receivePropertyUpdate(propertyTypeId, value)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep these methods on `ParentMfeBridgeImpl` (unchanged).
 3. Remove `sendActionsChain(chain, options?)` and `onActionsChain(handler)` from the `ChildMfeBridge` interface in `handler/types.ts`. Keep these methods on `ChildMfeBridgeImpl` (concrete-only for internal transport).
 4. Add `executeActionsChain(chain, options?)` to the `ChildMfeBridge` interface in `handler/types.ts`. This is a capability pass-through to the registry's `executeActionsChain()`.
-5. Implement `executeActionsChain()` on `ChildMfeBridgeImpl` using an injected callback (set via `createBridge()` in `bridge-factory.ts`). The callback delegates to the registry's `executeActionsChain()`.
-6. Update `createBridge()` in `bridge-factory.ts` to accept and wire the `executeActionsChain` callback to the child bridge.
-7. In `bridge-factory.ts`: all internal wiring calls (`onChildAction`, `receivePropertyUpdate`) use `parentBridgeImpl` which is the concrete type. No changes needed for those calls.
+5. Implement `executeActionsChain()` on `ChildMfeBridgeImpl` using an injected callback (set via `DefaultRuntimeBridgeFactory.createBridge()`). The callback delegates to the registry's `executeActionsChain()`.
+6. Update `DefaultRuntimeBridgeFactory.createBridge()` to accept and wire the `executeActionsChain` callback to the child bridge.
+7. In `DefaultRuntimeBridgeFactory`: all internal wiring calls (`onChildAction`, `receivePropertyUpdate`) use `parentBridgeImpl` which is the concrete type. No changes needed for those calls.
 
 ##### Summary: DefaultScreensetsRegistry Collaborator Field Types
 
@@ -536,6 +644,7 @@ After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal co
 | `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()`, `getDomainsMap()`, `getExtensionsMap()` |
 | `lifecycleManager` | `DefaultLifecycleManager` (concrete) | Needs `triggerLifecycleStageInternal()` |
 | `mountManager` | `MountManager` (abstract) | No concrete-only methods needed |
+| `bridgeFactory` | `RuntimeBridgeFactory` (abstract) | No concrete-only methods needed; passed to `DefaultMountManager` via constructor injection |
 | `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection) |
 | `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed |
 | `serializer` | `OperationSerializer` (concrete, no abstract) | Small utility, no abstract class |
@@ -554,7 +663,7 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 | `components/ExtensionDomainSlot.tsx` | No import change needed |
 | `framework/effects.ts` | No import change needed |
 | `framework/types.ts` | No import change needed; `MfeScreensetsRegistry` alias now maps to abstract class |
-| `runtime/bridge-factory.ts` | **Import path changes**: `import { ExtensionDomainState } from './extension-manager'` (type moves to the abstract file after the collaborator split) |
+| `runtime/default-runtime-bridge-factory.ts` | Replaces `runtime/bridge-factory.ts`. Imports `ExtensionDomainState` from `./extension-manager` (abstract file). Imports concrete bridge classes (`ChildMfeBridgeImpl`, `ParentMfeBridgeImpl`, `ChildDomainForwardingHandler`) from `../bridge/`. |
 
 #### File Layout After Refactoring
 
@@ -572,8 +681,12 @@ packages/screensets/src/mfe/runtime/
   default-lifecycle-manager.ts       # CONCRETE class (~170 lines)
   mount-manager.ts                   # ABSTRACT class + callback types (~97 lines)
   default-mount-manager.ts           # CONCRETE class (~320 lines)
+  runtime-bridge-factory.ts          # ABSTRACT class (~20 lines, pure contract, @internal)
+  default-runtime-bridge-factory.ts  # CONCRETE class (~120 lines, @internal, NOT exported from barrel)
   operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
 ```
+
+**Note on bridge-factory.ts**: The original `bridge-factory.ts` file (containing standalone `createBridge()` and `disposeBridge()` functions) is deleted and replaced by `runtime-bridge-factory.ts` (abstract) and `default-runtime-bridge-factory.ts` (concrete). See [Runtime Bridge Factory](#runtime-bridge-factory-class-based) design note.
 
 The abstract `ScreensetsRegistry` class has NO static methods and NO knowledge of `DefaultScreensetsRegistry`. The abstract `ScreensetsRegistryFactory` class has NO static methods and NO knowledge of `DefaultScreensetsRegistryFactory`.
 

@@ -89,7 +89,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
   /**
    * Load an MFE bundle and return its lifecycle interface.
    */
-  abstract load(entry: TEntry): Promise<MfeEntryLifecycle>;
+  abstract load(entry: TEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>>;
 
   /**
    * Preload MFE bundles for faster mounting.
@@ -162,7 +162,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   // canHandle() inherited from base class uses:
   // this.typeSystem.isTypeOf(entryTypeId, this.handledBaseTypeId)
 
-  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle> {
+  async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     // Resolve manifest from entry - manifest info is embedded in MfeEntryMF
     // or referenced by type ID and resolved internally
     const manifest = await this.resolveManifest(entry.manifest);
@@ -200,7 +200,7 @@ class MfeHandlerAcme extends MfeHandler<MfeEntryAcme, ChildMfeBridgeAcme> {
     this.bridgeFactory = new MfeBridgeFactoryAcme(router, apiClient);
   }
 
-  async load(entry: MfeEntryAcme): Promise<MfeEntryLifecycle> {
+  async load(entry: MfeEntryAcme): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     // Custom loading with preload assets, feature flags, etc.
   }
 }
@@ -244,7 +244,7 @@ class MfeHandlerRegistry {
   /**
    * Load an entry using the appropriate handler.
    */
-  async load(entry: MfeEntry): Promise<MfeEntryLifecycle> {
+  async load(entry: MfeEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     // GTS instance IDs embed the schema ID prefix, so isTypeOf() within
     // canHandle() can match entry.id against the handler's base type hierarchy.
     const handler = this.getHandler(entry.id);
@@ -282,7 +282,7 @@ Module Federation's shared dependencies provide TWO independent benefits:
 
 #### Why `singleton: false` is the Correct Default
 
-HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation through `singleton: false`. For the complete isolation model, benefits, and recommendations, see [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior).
+`singleton: false` gives both code sharing and instance isolation. See [Runtime Isolation in overview.md](./overview.md#runtime-isolation-default-behavior) for the full isolation model and recommendations.
 
 #### When `singleton: true` is Safe
 
@@ -303,90 +303,27 @@ HAI3's default handler (`MfeHandlerMF`) enforces instance-level isolation throug
 > (see [Relationship to MfeHandlerMF](#mfeloader-relationship-to-mfehandlermf) below).
 > Do NOT implement this as a standalone class.
 
-```typescript
-// ============================================================
-// REFERENCE ONLY -- NOT A RUNTIME CLASS
-// This code block documents loading concerns (manifest resolution,
-// container caching, retry/timeout, lifecycle validation) for
-// understanding. In the actual implementation, all this logic
-// lives inside MfeHandlerMF. There is NO separate MfeLoader class.
-// ============================================================
+**Loading algorithm (pseudocode):**
 
-// packages/screensets/src/mfe/loader/index.ts (CONCEPTUAL ONLY)
-
-/** @internal */
-interface MfeLoaderConfig {
-  timeout?: number;   // default: 30000
-  retries?: number;   // default: 2
-  preload?: boolean;
-}
-
-/** @internal */
-interface LoadedMfeInternal {
-  lifecycle: MfeEntryLifecycle;
-  entry: MfeEntryMF;
-  manifest: MfManifest;
-  unload: () => void;
-}
-
-/** @internal */
-class MfeLoader {
-  private loadedManifests = new Map<string, MfManifest>();
-  private loadedContainers = new Map<string, Container>();
-
-  constructor(
-    private typeSystem: TypeSystemPlugin,
-    private config: MfeLoaderConfig = {}
-  ) {}
-
-  async load(entry: MfeEntryMF): Promise<LoadedMfeInternal> {
-    // 1. Validate entry against Module Federation entry schema
-    // 2. Resolve and validate manifest
-    // 3. Load remote container (cached per remoteName)
-    // 4. Get the exposed module using entry.exposedModule
-    // 5. Validate the module exports mount/unmount functions
-    const manifest = await this.resolveManifest(entry.manifest);
-    const container = await this.loadRemoteContainer(manifest);
-    const moduleFactory = await container.get(entry.exposedModule);
-    const loadedModule = moduleFactory();
-
-    if (typeof loadedModule.mount !== 'function' || typeof loadedModule.unmount !== 'function') {
-      throw new MfeLoadError(
-        `Module '${entry.exposedModule}' must implement MfeEntryLifecycle interface`,
-        entry.id
-      );
-    }
-
-    return {
-      lifecycle: loadedModule as MfeEntryLifecycle,
-      entry,
-      manifest,
-      unload: () => this.unloadIfUnused(manifest.remoteName),
-    };
-  }
-
-  async preload(entries: MfeEntryMF[]): Promise<void> {
-    const byManifest = new Map<string, MfeEntryMF[]>();
-    for (const entry of entries) {
-      const existing = byManifest.get(entry.manifest) || [];
-      existing.push(entry);
-      byManifest.set(entry.manifest, existing);
-    }
-
-    await Promise.allSettled(
-      Array.from(byManifest.keys()).map(async (manifestId) => {
-        const manifest = await this.resolveManifest(manifestId);
-        await this.loadRemoteContainer(manifest);
-      })
-    );
-  }
-
-  private async resolveManifest(manifestTypeId: string): Promise<MfManifest>;
-  private async loadRemoteContainer(manifest: MfManifest): Promise<Container>;
-  private async loadScript(url: string): Promise<void>;
-  private unloadIfUnused(remoteName: string): void;
-}
 ```
+load(entry: MfeEntryMF):
+  1. Resolve manifest via typeSystem (cached by manifest type ID)
+  2. Load remote container via Module Federation (cached by remoteName)
+     - On failure: throw MfeLoadError with entryTypeId and cause
+     - Retry up to config.retries (default: 2) with config.timeout (default: 30s)
+  3. Get exposed module factory: container.get(entry.exposedModule)
+  4. Execute factory and validate mount/unmount exist on the returned module
+     - If missing: throw MfeLoadError ("must implement MfeEntryLifecycle")
+  5. Return { lifecycle, entry, manifest, unload }
+
+preload(entries: MfeEntryMF[]):
+  - Group entries by manifest, resolve and cache containers in parallel
+    (uses Promise.allSettled -- individual failures do not block others)
+```
+
+Configuration: `timeout` (default 30000ms), `retries` (default 2), `preload` (boolean).
+
+Internal caches: `Map<string, MfManifest>` for resolved manifests, `Map<string, Container>` for loaded containers. Both keyed by `remoteName`.
 
 <a name="mfeloader-relationship-to-mfehandlermf"></a>
 #### MfeLoader: Relationship to MfeHandlerMF

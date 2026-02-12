@@ -127,6 +127,8 @@ The **public API** for executing actions chains is `registry.executeActionsChain
 
 The `ParentMfeBridge` public interface has only `instanceId` and `dispose()`. The parent uses `registry.executeActionsChain()` directly for chain execution. `sendActionsChain` on bridge implementations is concrete-only for internal mediator transport.
 
+**Cross-runtime routing/discovery:** When a child MFE registers domains in its own child registry, the parent's mediator has no visibility into those registrations. To enable cross-runtime action routing, a `ChildDomainForwardingHandler` (implementing `ActionHandler`) is registered in the **parent's** mediator for each child domain ID. This forwarding handler wraps `parentBridgeImpl.sendActionsChain()`, which delivers the chain to the child's registry via the bridge transport. The parent's mediator resolves the child domain target like any other domain -- it finds the forwarding handler and invokes it. No new transport mechanism is needed. See [MFE API - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition) for the full design.
+
 See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for implementation details and code examples.
 
 ---

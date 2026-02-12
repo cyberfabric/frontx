@@ -2,16 +2,16 @@
 
 ## Progress Summary
 
-**Current Status**: Phases 1-21.11 complete. 377/377 screensets + 19/19 react tests passing.
+**Current Status**: Phases 1-22.7 complete. 390/390 screensets + 19/19 react tests passing.
 - **Phase 7.4** (tasks 7.4.1-7.4.4): ✓ Layout domain instance JSON files moved to `@hai3/framework`
 - **Phase 7.5.5**: ✓ `loadLayoutDomains()` moved to `@hai3/framework`
 - **Phase 18** (all tasks): ✓ Complete -- `GtsTypeId` and `ParsedGtsId` removed, users should use `gts-ts` directly
 - **Phase 19** (all tasks): ✓ Complete -- Dynamic registration model implemented with full lifecycle triggering. Test coverage: 366/366 tests passing
 - **Phase 20** (all tasks): ✓ Complete -- Framework dynamic registration actions, effects, slice, and React hook implemented with full test coverage
-- **Phase 21** (21.1-21.6): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, ParentMfeBridge 2; EventEmitter removed entirely in Phase 21.7). Zero circular dependencies. 367/367 tests passing
+- **Phase 21** (21.1-21.6): ✓ Complete -- Abstract class layers with factory construction. ScreensetsRegistry split into abstract + DefaultScreensetsRegistry + factory. Collaborators split: extension-manager, lifecycle-manager, mount-manager. Mediator refactored to callback injection. Internal methods moved from abstract to concrete-only (ExtensionManager 5, LifecycleManager 1, ParentMfeBridge 2; EventEmitter removed entirely in Phase 21.7). Zero circular dependencies. 367/367 screensets tests passing
 - **Phase 21.7**: ✓ Complete -- EventEmitter system removed entirely. `event-emitter.ts` deleted, `on`/`off` removed from abstract ScreensetsRegistry, all `emit()` calls removed from collaborators. `useExtensionEvents` renamed to `useDomainExtensions` with store subscription. Specs updated. 363/363 screensets + 19/19 react tests passing
 
-**Note:** Phases 1-21.11 are complete.
+**Note:** All phases (1-22.7) are complete.
 
 > Completed phase details below are retained for traceability.
 
@@ -1775,3 +1775,166 @@ Make `ScreensetsRegistry` a pure abstract class with NO static methods. Remove s
 - [x] 21.11.8.8 Verify `.d.ts` output for `ChildMfeBridge`: has `executeActionsChain`. Does NOT have `sendActionsChain`, `onActionsChain`, or `handleParentActionsChain`.
 
 **Traceability**: Bridge API architecture correction validation -- correct public surface, no regressions.
+
+---
+
+## Phase 22: Cross-Runtime Action Chain Routing
+
+**Goal**: Implement the routing/discovery mechanism that connects the parent's `ActionsChainsMediator` to child runtime domains. When a child MFE registers its own domains in a child `ScreensetsRegistry`, the parent's mediator must be able to route actions targeting those domains through the bridge transport.
+
+**Prerequisite**: Phase 21.11 complete. This phase adds the final piece of hierarchical composition: the parent mediator's ability to discover and route to child domains.
+
+**Architectural Reference**: [MFE API - Cross-Runtime Action Chain Routing](./design/mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition), [Overview - Cross-runtime routing/discovery](./design/overview.md#action-chain-execution)
+
+### 22.1 Create ChildDomainForwardingHandler
+
+**Goal**: Create an `ActionHandler` implementation that forwards actions to a child runtime via bridge transport.
+
+- [x] 22.1.1 Create `packages/screensets/src/mfe/bridge/ChildDomainForwardingHandler.ts`. The class implements `ActionHandler` and holds a reference to `ParentMfeBridgeImpl` and the child domain ID. The `handleAction(actionTypeId, payload)` method wraps the action in an `ActionsChain` and calls `this.parentBridgeImpl.sendActionsChain(chain)`. Because `sendActionsChain()` returns `Promise<ChainResult>` but `ActionHandler.handleAction()` returns `Promise<void>`, the method MUST check the result and reject on failure: `const result = await this.parentBridgeImpl.sendActionsChain(chain); if (!result.completed) throw new Error(result.error ?? 'Chain execution failed in child domain');`.
+- [x] 22.1.2 The class is `@internal` -- NOT exported from the `@hai3/screensets` barrel. It is used only by internal bridge wiring code.
+- [x] 22.1.3 Export `ChildDomainForwardingHandler` from the bridge barrel (`packages/screensets/src/mfe/bridge/index.ts`) for internal use by sibling modules.
+
+**Traceability**: [MFE API - ChildDomainForwardingHandler](./design/mfe-api.md#childdomainforwardinghandler). Requirement "Hierarchical Composition" -- cross-runtime action routing.
+
+### 22.2 Add registerChildDomain / unregisterChildDomain on ChildMfeBridgeImpl
+
+**Goal**: Add concrete-only methods on `ChildMfeBridgeImpl` that allow a child MFE to register/unregister its domains for cross-runtime forwarding. These methods are NOT on the public `ChildMfeBridge` interface.
+
+- [x] 22.2.1 Add a `private registerChildDomainCallback: ((domainId: string) => void) | null = null` field on `ChildMfeBridgeImpl`.
+- [x] 22.2.2 Add a `private unregisterChildDomainCallback: ((domainId: string) => void) | null = null` field on `ChildMfeBridgeImpl`.
+- [x] 22.2.3 Add `registerChildDomain(domainId: string): void` concrete-only method on `ChildMfeBridgeImpl`. Calls `this.registerChildDomainCallback(domainId)` and adds `domainId` to `childDomainIds`. Throws a generic `Error` if callback is not wired (message: `'registerChildDomain callback not wired'`). A generic `Error` is acceptable here because this is a programming error (misuse of internal API), not a runtime failure that needs typed error handling.
+- [x] 22.2.4 Add `unregisterChildDomain(domainId: string): void` concrete-only method on `ChildMfeBridgeImpl`. Calls `this.unregisterChildDomainCallback(domainId)` and removes `domainId` from `childDomainIds`. No-ops silently if callback is null (allows safe calls during cleanup).
+- [x] 22.2.5 Add `setChildDomainCallbacks(register, unregister)` internal method on `ChildMfeBridgeImpl` for `createBridge()` to inject the callbacks.
+- [x] 22.2.6 Update `ChildMfeBridgeImpl.cleanup()` to clean up child domain registrations. The ordering is a MUST requirement to prevent forwarding handler leaks: (1) iterate `childDomainIds` and call `this.unregisterChildDomain(domainId)` for each entry -- the callbacks MUST still be wired at this point so `unregisterChildDomain()` can invoke the unregister callback; (2) clear the `childDomainIds` set; (3) set `registerChildDomainCallback` and `unregisterChildDomainCallback` to `null`. If callbacks are nulled before iterating, `unregisterChildDomain()` will no-op and forwarding handlers will leak in the parent mediator.
+- [x] 22.2.7 Add a `private readonly childDomainIds: Set<string> = new Set()` field on `ChildMfeBridgeImpl` to track which child domains have been registered via `registerChildDomain()`. The `registerChildDomain()` method adds to this set; `unregisterChildDomain()` removes from it. The set is used by `cleanup()` (see 22.2.6) to ensure all forwarding handlers are removed from the parent mediator when the bridge is disposed.
+
+**Traceability**: [MFE API - Cross-Runtime Action Chain Routing](./design/mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition). Requirement "Hierarchical Composition" -- concrete-only wiring methods for cross-runtime domain registration.
+
+### 22.3 Wire cross-runtime callbacks in createBridge()
+
+**Goal**: Update `createBridge()` in `bridge-factory.ts` to wire the child domain forwarding callbacks using `ChildDomainForwardingHandler` and the parent mediator. **Note:** Phase 22.7 subsequently refactored `bridge-factory.ts` into class-based `DefaultRuntimeBridgeFactory`.
+
+- [x] 22.3.1 Update `createBridge()` signature to accept additional parameters: `registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void` and `unregisterDomainActionHandler: (domainId: string) => void` callbacks.
+- [x] 22.3.2 In `createBridge()`, create the register callback: `(domainId) => { const handler = new ChildDomainForwardingHandler(parentBridgeImpl, domainId); registerDomainActionHandler(domainId, handler); }`.
+- [x] 22.3.3 In `createBridge()`, create the unregister callback: `(domainId) => { unregisterDomainActionHandler(domainId); }`.
+- [x] 22.3.4 Call `childBridge.setChildDomainCallbacks(registerCb, unregisterCb)` in `createBridge()`.
+- [x] 22.3.5 Extend `DefaultMountManager`'s constructor config to include `registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void` and `unregisterDomainActionHandler: (domainId: string) => void` callback fields. These are required for the mount manager to pass to `createBridge()`.
+- [x] 22.3.6 Update `DefaultScreensetsRegistry`'s constructor to pass its own `registerDomainActionHandler` and `unregisterDomainActionHandler` methods (bound to `this`) when constructing the `DefaultMountManager` instance, so the mount manager can forward them to `createBridge()`.
+- [x] 22.3.7 Update `DefaultMountManager.mountExtension()` to pass the `registerDomainActionHandler` and `unregisterDomainActionHandler` callbacks from its config to `createBridge()`.
+
+**Traceability**: [MFE API - Cross-Runtime Action Chain Routing](./design/mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition). Requirement "Hierarchical Composition" -- bridge factory wiring for cross-runtime forwarding.
+
+### 22.4 Tests
+
+**Test file**: `packages/screensets/__tests__/mfe/bridge/cross-runtime-routing.test.ts`
+
+- [x] 22.4.1 Test `ChildDomainForwardingHandler.handleAction()` wraps action in `ActionsChain` and calls `parentBridgeImpl.sendActionsChain()`. When `sendActionsChain()` returns `{ completed: true }`, `handleAction()` resolves. When `sendActionsChain()` returns `{ completed: false, error: 'some error' }`, `handleAction()` rejects with `Error('some error')`. When `sendActionsChain()` returns `{ completed: false }` (no error field), `handleAction()` rejects with `Error('Chain execution failed in child domain')`.
+- [x] 22.4.2 Test `ChildMfeBridgeImpl.registerChildDomain()` calls the injected callback and adds domainId to tracked set.
+- [x] 22.4.3 Test `ChildMfeBridgeImpl.unregisterChildDomain()` calls the injected callback and removes domainId from tracked set.
+- [x] 22.4.4 Test `ChildMfeBridgeImpl.registerChildDomain()` throws `Error('registerChildDomain callback not wired')` when callbacks are not wired.
+- [x] 22.4.5 Test `ChildMfeBridgeImpl.cleanup()` unregisters all tracked child domains before nulling callbacks. Verify ordering: the unregister callback MUST be invoked for each tracked domain, and THEN callbacks are set to null. Verify that calling `registerChildDomain()` after cleanup throws (callback is null).
+- [x] 22.4.6 Test end-to-end: parent mediator routes an action targeting a child domain through `ChildDomainForwardingHandler` -> bridge transport -> child registry's `executeActionsChain()`. Verify the child's domain handler receives the action.
+- [x] 22.4.7 Test cleanup: after child MFE unmount, the parent's mediator no longer has a handler for the child domain ID.
+- [x] 22.4.8 Test that actions targeting the parent's own domains are NOT affected by cross-runtime wiring (parent domain handlers still work as before).
+
+**Traceability**: [MFE API - Cross-Runtime Action Chain Routing](./design/mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition). Requirement "Hierarchical Composition" -- cross-runtime routing verification.
+
+### 22.5 Validation
+
+- [x] 22.5.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 22.5.2 Run `npm run test` -- all existing tests must pass plus new tests.
+- [x] 22.5.3 Run `npm run build` -- must pass.
+- [x] 22.5.4 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 22.5.5 Verify `ChildDomainForwardingHandler` is NOT present in `@hai3/screensets` public type declarations (`.d.ts` output).
+- [x] 22.5.6 Verify `registerChildDomain` and `unregisterChildDomain` are NOT present on the public `ChildMfeBridge` interface in `.d.ts` output.
+
+**Traceability**: Cross-runtime routing validation -- correct public surface, no regressions.
+
+### 22.6 Fix MfeEntryLifecycle Generic Default
+
+**Goal**: Change the default generic parameter of `MfeEntryLifecycle` from `ParentMfeBridge` to `ChildMfeBridge` in the implementation. All MFE implementations receive a `ChildMfeBridge`, so the default should reflect the consumer-facing type.
+
+- [x] 22.6.1 In `packages/screensets/src/mfe/handler/types.ts`, change `MfeEntryLifecycle<TBridge = ParentMfeBridge>` to `MfeEntryLifecycle<TBridge = ChildMfeBridge>`. Ensure `ChildMfeBridge` is imported.
+- [x] 22.6.2 Run `npm run type-check` -- must pass with no errors (existing usages should be unaffected since they either specify `TBridge` explicitly or already pass `ChildMfeBridge`).
+- [x] 22.6.3 Run `npm run test` -- all existing tests must pass.
+
+**Traceability**: Proposal "Framework-Agnostic Lifecycle Interface" table (TBridge defaults to ChildMfeBridge). Design [MFE API - MfeEntryLifecycle Interface](./design/mfe-api.md#mfeentrylifecycle-interface). Screensets spec "MfeEntryLifecycle interface definition" scenario.
+
+---
+
+## Phase 22.7: Class-Based RuntimeBridgeFactory (Replace Standalone bridge-factory.ts Functions)
+
+**Goal**: Convert the standalone `createBridge()` and `disposeBridge()` functions in `bridge-factory.ts` into the abstract + concrete class pattern (`RuntimeBridgeFactory` / `DefaultRuntimeBridgeFactory`). Replace the dynamic `await import('./bridge-factory')` calls in `DefaultMountManager` with constructor-injected `RuntimeBridgeFactory` dependency. Delete the old `bridge-factory.ts` file.
+
+**Prerequisite**: Phase 22 complete. This phase is a structural refactoring -- no new features, no behavioral changes. All 390/390 screensets + 19/19 react tests must continue to pass.
+
+**Architectural Reference**: [Registry Runtime - Runtime Bridge Factory (Class-Based)](./design/registry-runtime.md#runtime-bridge-factory-class-based), [Registry Runtime - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction)
+
+**Motivation**: `bridge-factory.ts` exports two standalone functions (`createBridge()` and `disposeBridge()`). This violates the project's core rule: "EVERY component MUST be a class." All other collaborators (`ExtensionManager`, `LifecycleManager`, `MountManager`, `ActionsChainsMediator`, `RuntimeCoordinator`, etc.) follow the abstract + concrete pattern. The runtime bridge factory must be aligned.
+
+### 22.7.1 Create RuntimeBridgeFactory Abstract Class
+
+- [x] 22.7.1.1 Create `packages/screensets/src/mfe/runtime/runtime-bridge-factory.ts` containing the abstract `RuntimeBridgeFactory` class with two abstract methods: `createBridge(domainState, extensionId, entryTypeId, executeActionsChain, registerDomainActionHandler, unregisterDomainActionHandler)` returning `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }`, and `disposeBridge(domainState, parentBridge)` returning `void`. The class is `@internal` -- NOT exported from the `@hai3/screensets` public barrel. Import types only (no concrete bridge imports): `ParentMfeBridge`, `ChildMfeBridge` from `../handler/types`, `ExtensionDomainState` from `./extension-manager`, `ActionsChain` from `../types`, `ChainResult`, `ChainExecutionOptions`, `ActionHandler` from `../mediator/types`.
+- [x] 22.7.1.2 Add TSDoc `@packageDocumentation` and `@internal` annotations. Document the distinction from handler's `MfeBridgeFactory` in the class-level JSDoc.
+
+**Traceability**: [Design - Runtime Bridge Factory](./design/registry-runtime.md#runtime-bridge-factory-class-based). Requirement "Abstract Class Layers" -- every stateful component follows abstract + concrete pattern.
+
+### 22.7.2 Create DefaultRuntimeBridgeFactory Concrete Class
+
+- [x] 22.7.2.1 Create `packages/screensets/src/mfe/runtime/default-runtime-bridge-factory.ts` containing the concrete `DefaultRuntimeBridgeFactory` class extending `RuntimeBridgeFactory`. Move the full implementation of `createBridge()` from the standalone function in `bridge-factory.ts` into the `createBridge()` method. Move the full implementation of `disposeBridge()` from the standalone function into the `disposeBridge()` method. All imports from the old `bridge-factory.ts` (`ChildMfeBridgeImpl`, `ParentMfeBridgeImpl`, `ChildDomainForwardingHandler`, `SharedProperty`) move to this file.
+- [x] 22.7.2.2 Add `@internal` annotation to the class. The class is NOT exported from the barrel.
+- [x] 22.7.2.3 Verify the `createBridge()` method return type is `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (narrow public interface, same as current standalone function).
+- [x] 22.7.2.4 Verify the `disposeBridge()` method parameter type for `parentBridge` stays `ParentMfeBridge` (public interface). The internal cast to `ParentMfeBridgeImpl` is kept inside the method body (same as current standalone function).
+
+**Traceability**: [Design - Runtime Bridge Factory](./design/registry-runtime.md#runtime-bridge-factory-class-based). Requirement "Abstract Class Layers" -- concrete class is `@internal`, not exported.
+
+### 22.7.3 Inject RuntimeBridgeFactory into DefaultMountManager
+
+- [x] 22.7.3.1 Add a `bridgeFactory: RuntimeBridgeFactory` field to `DefaultMountManager`'s constructor config type in `packages/screensets/src/mfe/runtime/default-mount-manager.ts`. Store it as a `private readonly bridgeFactory: RuntimeBridgeFactory` field on the class.
+- [x] 22.7.3.2 Replace the dynamic import in `mountExtension()`: change `const bridgeFactory = await import('./bridge-factory'); const { parentBridge, childBridge } = bridgeFactory.createBridge(...)` to `const { parentBridge, childBridge } = this.bridgeFactory.createBridge(...)`. Remove the `await import('./bridge-factory')` call entirely.
+- [x] 22.7.3.3 Replace the dynamic import in `unmountExtension()`: change `const bridgeFactory = await import('./bridge-factory'); bridgeFactory.disposeBridge(...)` to `this.bridgeFactory.disposeBridge(...)`. Remove the `await import('./bridge-factory')` call entirely.
+- [x] 22.7.3.4 Add `import { RuntimeBridgeFactory } from './runtime-bridge-factory';` to `default-mount-manager.ts`. Remove the old dynamic import of `./bridge-factory`.
+
+**Traceability**: [Design - Runtime Bridge Factory](./design/registry-runtime.md#runtime-bridge-factory-class-based). Constructor injection replaces dynamic import, making the dependency explicit and testable.
+
+### 22.7.4 Wire RuntimeBridgeFactory in DefaultScreensetsRegistry
+
+- [x] 22.7.4.1 In `DefaultScreensetsRegistry`'s constructor in `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`, construct `new DefaultRuntimeBridgeFactory()` and pass it to `DefaultMountManager`'s config as the `bridgeFactory` field. The `DefaultScreensetsRegistry` may store it as `private readonly bridgeFactory: RuntimeBridgeFactory` (abstract type) if other collaborators need it, or pass it directly to the mount manager constructor if no other collaborator needs it.
+- [x] 22.7.4.2 Add `import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';` and `import { RuntimeBridgeFactory } from './runtime-bridge-factory';` to `DefaultScreensetsRegistry.ts`.
+- [x] 22.7.4.3 Update or remove the stale comment at line ~370 in `DefaultScreensetsRegistry.ts` that references `bridge-factory.ts`.
+
+**Traceability**: [Design - Runtime Bridge Factory](./design/registry-runtime.md#runtime-bridge-factory-class-based). `DefaultScreensetsRegistry` is the ONLY code that imports the concrete `DefaultRuntimeBridgeFactory`.
+
+### 22.7.5 Delete bridge-factory.ts
+
+- [x] 22.7.5.1 Delete `packages/screensets/src/mfe/runtime/bridge-factory.ts` entirely. All functionality has been moved to `DefaultRuntimeBridgeFactory`.
+- [x] 22.7.5.2 Search the entire codebase for `import.*bridge-factory` and `from.*bridge-factory` to verify no remaining imports of the deleted file.
+
+**Traceability**: Old standalone function file is replaced by class-based pattern. No references should remain.
+
+### 22.7.6 Update Test Files
+
+- [x] 22.7.6.1 Update `packages/screensets/__tests__/mfe/runtime/bridge-factory.test.ts`: rename to `runtime-bridge-factory.test.ts`. Update imports from `bridge-factory` to import `DefaultRuntimeBridgeFactory` from the concrete file path. Update test setup to instantiate `new DefaultRuntimeBridgeFactory()` and call methods on the instance instead of calling standalone functions. All existing test assertions should apply to the class methods with no behavioral changes.
+- [x] 22.7.6.2 Update any other test files that import from `bridge-factory.ts` to import from the new file paths. Search test files for `bridge-factory` to find all references.
+- [x] 22.7.6.3 Verify that `DefaultMountManager` integration tests still pass -- the mount manager now receives `RuntimeBridgeFactory` via constructor injection instead of using dynamic import. Test files that construct `DefaultMountManager` directly must include `bridgeFactory: new DefaultRuntimeBridgeFactory()` in the config.
+
+**Traceability**: Test compatibility with class-based pattern. All existing test assertions remain valid -- this is a structural refactoring.
+
+### 22.7.7 Update Abstract MountManager Type
+
+- [x] 22.7.7.1 Verify that the abstract `MountManager` class in `packages/screensets/src/mfe/runtime/mount-manager.ts` does NOT reference `RuntimeBridgeFactory` in its abstract method signatures. The bridge factory is an implementation detail of `DefaultMountManager`, not part of the public abstract contract. The abstract `MountManager` defines `mountExtension(extensionId, container)` and `unmountExtension(extensionId)` -- how bridges are created/disposed is the concrete class's responsibility.
+
+**Traceability**: [Design - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction). Abstract class is pure contract; bridge factory is implementation detail.
+
+### 22.7.8 Validation
+
+- [x] 22.7.8.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 22.7.8.2 Run `npm run test` -- all 390/390 screensets + 19/19 react tests must pass with no behavioral changes.
+- [x] 22.7.8.3 Run `npm run build` -- must pass.
+- [x] 22.7.8.4 Run `npm run lint` -- must pass (no ESLint rule changes required).
+- [x] 22.7.8.5 Verify `bridge-factory.ts` does not exist in the built output.
+- [x] 22.7.8.6 Verify `RuntimeBridgeFactory` and `DefaultRuntimeBridgeFactory` are NOT present in `@hai3/screensets` public type declarations (`.d.ts` output) -- they are `@internal`.
+- [x] 22.7.8.7 Verify no remaining `await import('./bridge-factory')` calls exist in any source file.
+- [x] 22.7.8.8 Verify no remaining `createBridge` or `disposeBridge` standalone function exports exist (only class methods).
+
+**Traceability**: Class-based bridge factory validation -- no regressions, no public API surface changes, old standalone functions fully eliminated.
