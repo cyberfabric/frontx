@@ -7,9 +7,9 @@
 export { MfeContext, useMfeContext, type MfeContextValue } from './MfeContext';
 export { MfeProvider, type MfeProviderProps } from './MfeProvider';
 export {
-  useMfeState,
   useMfeBridge,
   useSharedProperty,
   useHostAction,
-  type UseMfeStateReturn,
 } from './hooks';
+export { RefContainerProvider } from './components/RefContainerProvider';
+export { ExtensionDomainSlot, type ExtensionDomainSlotProps } from './components/ExtensionDomainSlot';

@@ -19,11 +19,11 @@ import {
   preloadExtension,
   mountExtension,
   unmountExtension,
-  handleMfeHostAction,
   registerExtension,
   unregisterExtension,
   registerDomain,
   unregisterDomain,
+  setMfeRegistry,
 } from './actions';
 
 /**
@@ -52,11 +52,11 @@ import {
  *
  * // Register domains dynamically at runtime:
  * const sidebarDomain = createSidebarDomain();
- * app.screensetsRegistry.registerDomain(sidebarDomain);
+ * app.screensetsRegistry.registerDomain(sidebarDomain, containerProvider);
  *
  * // Use MFE actions:
  * app.actions.loadExtension('my.extension.v1');
- * app.actions.mountExtension('my.extension.v1', containerElement);
+ * app.actions.mountExtension('my.extension.v1');
  * ```
  */
 export function microfrontends(): HAI3Plugin {
@@ -100,7 +100,6 @@ export function microfrontends(): HAI3Plugin {
         preloadExtension,
         mountExtension,
         unmountExtension,
-        handleMfeHostAction,
         registerExtension,
         unregisterExtension,
         registerDomain,
@@ -109,6 +108,9 @@ export function microfrontends(): HAI3Plugin {
     },
 
     onInit(app): void {
+      // Wire the registry reference into actions module
+      setMfeRegistry(screensetsRegistry);
+
       // Initialize effects and store cleanup references
       effectsCleanup = initMfeEffects(screensetsRegistry);
       navigationCleanup = initMfeNavigation();
@@ -119,7 +121,7 @@ export function microfrontends(): HAI3Plugin {
         console.log('[microfrontends] TypeSystemPlugin:', screensetsRegistry.typeSystem.name, screensetsRegistry.typeSystem.version);
         console.log('[microfrontends] Base domains are NOT pre-registered');
         console.log('[microfrontends] Register domains at runtime via app.screensetsRegistry.registerDomain()');
-        console.log('[microfrontends] MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension, handleMfeHostAction');
+        console.log('[microfrontends] MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension');
       }
 
       // Plugin is now ready
@@ -155,17 +157,10 @@ export {
   preloadExtension,
   mountExtension,
   unmountExtension,
-  handleMfeHostAction,
   registerExtension,
   unregisterExtension,
   registerDomain,
   unregisterDomain,
-  MfeEvents,
-  type LoadExtensionPayload,
-  type PreloadExtensionPayload,
-  type MountExtensionPayload,
-  type UnmountExtensionPayload,
-  type HostActionPayload,
   type RegisterExtensionPayload,
   type UnregisterExtensionPayload,
   type RegisterDomainPayload,
@@ -176,16 +171,10 @@ export {
 export {
   mfeSlice,
   mfeActions,
-  selectMfeLoadState,
-  selectMfeMountState,
-  selectMfeError,
-  selectAllExtensionStates,
   selectExtensionState,
   selectRegisteredExtensions,
+  selectExtensionError,
   type MfeState,
-  type MfeLoadState,
-  type MfeMountState,
-  type ExtensionMfeState,
   type ExtensionRegistrationState,
 } from './slice';
 
@@ -208,10 +197,11 @@ export {
   type ScreenChangedPayload as MfeScreenChangedPayload,
 } from './navigation';
 
-// Re-export HAI3 layout domain constants
+// Re-export HAI3 layout domain constants and MfeEvents
 export {
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,
   HAI3_SCREEN_DOMAIN,
   HAI3_OVERLAY_DOMAIN,
+  MfeEvents,
 } from './constants';

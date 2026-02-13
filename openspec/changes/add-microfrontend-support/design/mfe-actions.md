@@ -2,6 +2,9 @@
 
 This document covers the Action and ActionsChain types and their usage in the MFE system.
 
+**Related Documents:**
+- [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) - `load_ext`, `mount_ext`, `unmount_ext` action types and domain support matrix
+
 ---
 
 ## Context

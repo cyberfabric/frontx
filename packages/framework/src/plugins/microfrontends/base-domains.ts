@@ -27,14 +27,14 @@ const [sidebarDomainJson, popupDomainJson, screenDomainJson, overlayDomainJson] 
  * Create a sidebar domain by loading from JSON.
  *
  * Sidebar domains provide a collapsible side panel for extensions.
- * They support both load_ext and unload_ext actions.
+ * They support load_ext, mount_ext, and unmount_ext actions.
  *
  * @returns Sidebar domain instance loaded from JSON
  *
  * @example
  * ```typescript
  * const sidebarDomain = createSidebarDomain();
- * runtime.registerDomain(sidebarDomain);
+ * runtime.registerDomain(sidebarDomain, containerProvider);
  * ```
  */
 export function createSidebarDomain(): ExtensionDomain {
@@ -45,14 +45,14 @@ export function createSidebarDomain(): ExtensionDomain {
  * Create a popup domain by loading from JSON.
  *
  * Popup domains provide modal dialog slots for extensions.
- * They support both load_ext and unload_ext actions.
+ * They support load_ext, mount_ext, and unmount_ext actions.
  *
  * @returns Popup domain instance loaded from JSON
  *
  * @example
  * ```typescript
  * const popupDomain = createPopupDomain();
- * runtime.registerDomain(popupDomain);
+ * runtime.registerDomain(popupDomain, containerProvider);
  * ```
  */
 export function createPopupDomain(): ExtensionDomain {
@@ -63,15 +63,15 @@ export function createPopupDomain(): ExtensionDomain {
  * Create a screen domain by loading from JSON.
  *
  * Screen domains provide the main content area for extensions.
- * They only support load_ext (navigation to a screen).
- * They do NOT support unload_ext - you cannot have "no screen selected".
+ * They support load_ext and mount_ext (with swap semantics).
+ * They do NOT support unmount_ext - you cannot have "no screen selected".
  *
  * @returns Screen domain instance loaded from JSON
  *
  * @example
  * ```typescript
  * const screenDomain = createScreenDomain();
- * runtime.registerDomain(screenDomain);
+ * runtime.registerDomain(screenDomain, containerProvider);
  * ```
  */
 export function createScreenDomain(): ExtensionDomain {
@@ -82,14 +82,14 @@ export function createScreenDomain(): ExtensionDomain {
  * Create an overlay domain by loading from JSON.
  *
  * Overlay domains provide full-screen overlay slots for extensions.
- * They support both load_ext and unload_ext actions.
+ * They support load_ext, mount_ext, and unmount_ext actions.
  *
  * @returns Overlay domain instance loaded from JSON
  *
  * @example
  * ```typescript
  * const overlayDomain = createOverlayDomain();
- * runtime.registerDomain(overlayDomain);
+ * runtime.registerDomain(overlayDomain, containerProvider);
  * ```
  */
 export function createOverlayDomain(): ExtensionDomain {

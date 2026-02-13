@@ -8,28 +8,32 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { createHAI3 } from '../../../src/createHAI3';
 import { screensets } from '../../../src/plugins/screensets';
 import { effects } from '../../../src/plugins/effects';
 import {
   microfrontends,
   loadExtension,
-  preloadExtension,
-  mountExtension,
-  unmountExtension,
-  handleMfeHostAction,
   MfeEvents,
-  selectMfeLoadState,
-  selectMfeMountState,
-  selectMfeError,
+  selectExtensionState,
+  selectExtensionError,
   MfeErrorBoundary,
   MfeLoadingIndicator,
   ShadowDomContainer,
 } from '../../../src/plugins/microfrontends';
-import { eventBus } from '@hai3/state';
+import { eventBus, resetStore } from '@hai3/state';
+import type { Extension } from '@hai3/screensets';
+import type { HAI3App } from '../../../src/types';
 
 describe('microfrontends plugin - Phase 13', () => {
+  let apps: HAI3App[] = [];
+
+  afterEach(() => {
+    apps.forEach(app => app.destroy());
+    apps = [];
+    resetStore();
+  });
   describe('13.8.1 - plugin registration', () => {
     it('should register plugin with Flux wiring', () => {
       const plugin = microfrontends();
@@ -53,7 +57,7 @@ describe('microfrontends plugin - Phase 13', () => {
       expect(plugin.provides?.actions).toHaveProperty('preloadExtension');
       expect(plugin.provides?.actions).toHaveProperty('mountExtension');
       expect(plugin.provides?.actions).toHaveProperty('unmountExtension');
-      expect(plugin.provides?.actions).toHaveProperty('handleMfeHostAction');
+      expect(plugin.provides?.actions).not.toHaveProperty('handleMfeHostAction');
     });
 
     it('should make MFE actions available on app.actions', () => {
@@ -62,181 +66,100 @@ describe('microfrontends plugin - Phase 13', () => {
         .use(effects())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       expect(typeof app.actions.loadExtension).toBe('function');
       expect(typeof app.actions.preloadExtension).toBe('function');
       expect(typeof app.actions.mountExtension).toBe('function');
       expect(typeof app.actions.unmountExtension).toBe('function');
-      expect(typeof app.actions.handleMfeHostAction).toBe('function');
+      expect(app.actions.handleMfeHostAction).toBeUndefined();
     });
   });
 
-  describe('13.8.2 - MFE actions event emission', () => {
-    let eventSpy: ReturnType<typeof vi.fn>;
+  describe('13.8.2 - MFE lifecycle actions call executeActionsChain', () => {
+    it('should call executeActionsChain for loadExtension', () => {
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends())
+        .build();
+      apps.push(app);
 
-    beforeEach(() => {
-      eventSpy = vi.fn();
-    });
+      // Mock getExtension to return extension (avoids GTS validation)
+      const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
+      const testExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext.v1';
+      const testExtension: Extension = {
+        id: testExtensionId,
+        domain: testDomainId,
+        entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
+      };
 
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
+      vi.spyOn(app.screensetsRegistry, 'getExtension').mockReturnValue(testExtension);
+      const spy = vi.spyOn(app.screensetsRegistry, 'executeActionsChain').mockResolvedValue(undefined);
 
-    it('should emit loadRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.LoadRequested, eventSpy);
+      // Call loadExtension - should call executeActionsChain fire-and-forget
+      loadExtension(testExtensionId);
 
-      loadExtension('test.extension.v1');
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        extensionId: 'test.extension.v1',
+      expect(spy).toHaveBeenCalledWith({
+        action: {
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          target: testDomainId,
+          payload: { extensionId: testExtensionId },
+        },
       });
-
-      unsub.unsubscribe();
     });
 
-    it('should emit preloadRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.PreloadRequested, eventSpy);
+    it('should verify registration events still work', () => {
+      const eventSpy = vi.fn();
+      const unsub = eventBus.on(MfeEvents.RegisterExtensionRequested, eventSpy);
 
-      preloadExtension('test.extension.v1');
+      const testExtension: Extension = {
+        id: 'gts.hai3.mfes.ext.extension.v1~test.ext.v1',
+        domain: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1',
+        entry: 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1',
+      };
 
-      expect(eventSpy).toHaveBeenCalledWith({
-        extensionId: 'test.extension.v1',
-      });
+      // Use event bus directly (not the action, which is async)
+      eventBus.emit(MfeEvents.RegisterExtensionRequested, { extension: testExtension });
 
-      unsub.unsubscribe();
-    });
-
-    it('should emit mountRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.MountRequested, eventSpy);
-      const container = document.createElement('div');
-
-      mountExtension('test.extension.v1', container);
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        extensionId: 'test.extension.v1',
-        containerElement: container,
-      });
-
-      unsub.unsubscribe();
-    });
-
-    it('should emit unmountRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.UnmountRequested, eventSpy);
-
-      unmountExtension('test.extension.v1');
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        extensionId: 'test.extension.v1',
-      });
-
-      unsub.unsubscribe();
-    });
-
-    it('should emit hostActionRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.HostActionRequested, eventSpy);
-
-      handleMfeHostAction('test.extension.v1', 'test.action.v1', { data: 'test' });
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        extensionId: 'test.extension.v1',
-        actionTypeId: 'test.action.v1',
-        payload: { data: 'test' },
-      });
+      expect(eventSpy).toHaveBeenCalledWith({ extension: testExtension });
 
       unsub.unsubscribe();
     });
   });
 
-  describe('13.8.3 - MFE effects and slice', () => {
+  describe('13.8.3 - MFE slice (registration only)', () => {
     it('should initialize MFE slice in store', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const state = app.store.getState();
       expect(state).toHaveProperty('mfe');
-      expect(state.mfe).toHaveProperty('extensions');
+      expect(state.mfe).toHaveProperty('registrationStates');
+      expect(state.mfe).toHaveProperty('errors');
     });
 
-    it('should track load state via selectors', () => {
+    it('should track registration state via selectors', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const state = app.store.getState();
 
-      // Initial state should be 'idle' for extensions that haven't been touched yet
-      // Use a unique extension ID that won't be affected by other tests
+      // Initial state should be 'unregistered' for extensions not registered yet
       const uniqueExtId = 'test.unique.extension.v1';
-      const loadState = selectMfeLoadState(state, uniqueExtId);
-      expect(loadState).toBe('idle');
+      const registrationState = selectExtensionState(state, uniqueExtId);
+      expect(registrationState).toBe('unregistered');
 
-      const mountState = selectMfeMountState(state, uniqueExtId);
-      expect(mountState).toBe('unmounted');
-
-      const error = selectMfeError(state, uniqueExtId);
+      const error = selectExtensionError(state, uniqueExtId);
       expect(error).toBeUndefined();
-    });
-
-    it('should update load state when load action is dispatched', async () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(effects())
-        .use(microfrontends())
-        .build();
-
-      // Trigger load action
-      loadExtension('test.extension.v1');
-
-      // Wait for async effect to process
-      await new Promise((resolve) => setTimeout(resolve, 10));
-
-      const state = app.store.getState();
-
-      // Should be in loading or error state (Phase 19 stubs throw)
-      const loadState = selectMfeLoadState(state, 'test.extension.v1');
-      expect(['loading', 'error']).toContain(loadState);
-    });
-  });
-
-  describe('13.8.4 - MFE slice state transitions', () => {
-    it('should handle multiple extensions independently', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(effects())
-        .use(microfrontends())
-        .build();
-
-      // Trigger loads for different extensions
-      loadExtension('ext1.v1');
-      loadExtension('ext2.v1');
-
-      const state = app.store.getState();
-
-      // Both extensions should be tracked
-      expect(state.mfe.extensions).toHaveProperty('ext1.v1');
-      expect(state.mfe.extensions).toHaveProperty('ext2.v1');
-    });
-
-    it('should track separate load and mount states', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(effects())
-        .use(microfrontends())
-        .build();
-
-      const state = app.store.getState();
-
-      // Load state and mount state are independent
-      const loadState = selectMfeLoadState(state, 'test.ext.v1');
-      const mountState = selectMfeMountState(state, 'test.ext.v1');
-
-      expect(loadState).toBe('idle');
-      expect(mountState).toBe('unmounted');
     });
   });
 
@@ -398,6 +321,7 @@ describe('microfrontends plugin - Phase 13', () => {
         .use(effects())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       // Plugin should initialize navigation integration
       // This is tested indirectly via plugin onInit
@@ -410,8 +334,9 @@ describe('microfrontends plugin - Phase 13', () => {
         .use(effects())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
-      // Should not throw on destroy
+      // Should not throw on destroy (afterEach handles actual cleanup)
       expect(() => app.destroy()).not.toThrow();
     });
   });

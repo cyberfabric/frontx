@@ -54,12 +54,18 @@ export const HAI3_EXT_ACTION = 'gts.hai3.mfes.comm.action.v1~';
 
 /**
  * Load extension action instance ID.
- * Generic action used by all domains to load an extension.
+ * Preload an extension's bundle (fetch JS, no DOM rendering).
  */
-export const HAI3_ACTION_LOAD_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1';
+export const HAI3_ACTION_LOAD_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1';
 
 /**
- * Unload extension action instance ID.
- * Generic action used by all domains to unload an extension.
+ * Mount extension action instance ID.
+ * Mount an extension into a domain (render to DOM).
  */
-export const HAI3_ACTION_UNLOAD_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1';
+export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1';
+
+/**
+ * Unmount extension action instance ID.
+ * Unmount an extension from a domain (remove from DOM).
+ */
+export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1';

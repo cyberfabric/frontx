@@ -42,4 +42,54 @@ export const frameworkConfig: ConfigArray = [
       ],
     },
   },
+
+  // Flux Architecture: Effects cannot import actions
+  {
+    files: ['**/*Effects.ts', '**/*Effects.tsx', '**/effects.ts', '**/effects.tsx', '**/effects/**/*'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: [
+                './actions',
+                '../actions',
+                '**/actions',
+                '**/actions/**',
+                '../actions/**',
+                './actions/**',
+                '**/core/actions/**',
+              ],
+              message:
+                'FLUX VIOLATION: Effects cannot import actions (circular flow risk). Effects only listen to events and update slices. See EVENTS.md.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+
+  // Flux Architecture: Effects cannot emit events or call executeActionsChain
+  {
+    files: ['**/*Effects.ts', '**/effects.ts', '**/effects/**/*.ts'],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "CallExpression[callee.object.name='eventBus'][callee.property.name='emit']",
+          message:
+            'FLUX VIOLATION: Effects cannot emit events (creates circular flow). Effects should only listen to events and update slices.',
+        },
+        {
+          selector:
+            "CallExpression[callee.property.name='executeActionsChain']",
+          message:
+            'FLUX VIOLATION: Effects cannot call executeActionsChain() (triggers ActionsChainsMediator, effectively running actions). Call executeActionsChain() from actions instead.',
+        },
+      ],
+    },
+  },
 ];

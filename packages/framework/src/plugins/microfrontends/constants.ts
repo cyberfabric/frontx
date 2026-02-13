@@ -35,3 +35,15 @@ export const HAI3_SCREEN_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.l
  * Extension domain for full-screen overlays.
  */
 export const HAI3_OVERLAY_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1';
+
+// ============================================================================
+// MFE Event Names
+// ============================================================================
+
+/** MFE event names (registration events only) */
+export const MfeEvents = {
+  RegisterExtensionRequested: 'mfe/registerExtensionRequested',
+  UnregisterExtensionRequested: 'mfe/unregisterExtensionRequested',
+  RegisterDomainRequested: 'mfe/registerDomainRequested',
+  UnregisterDomainRequested: 'mfe/unregisterDomainRequested',
+} as const;

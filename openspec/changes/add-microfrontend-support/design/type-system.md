@@ -514,7 +514,7 @@ The ScreensetsRegistry requires a Type System plugin at initialization:
  *
  * Note on loading/error components:
  * - Components configured here serve as REGISTRY-LEVEL DEFAULTS
- * - Individual domain containers (e.g., ExtensionDomainSlot) can OVERRIDE these defaults
+ * - Individual domain containers (e.g., ExtensionDomainSlot from @hai3/react) can OVERRIDE these defaults
  * - This enables per-use customization while providing sensible defaults
  */
 interface ScreensetsRegistryConfig {
@@ -640,21 +640,22 @@ const app = createHAI3()
   .build();
 
 // All registration happens dynamically at runtime via actions:
-// - mfeActions.registerDomain({ domain })
+// - mfeActions.registerDomain(domain, containerProvider)
 // - mfeActions.registerExtension({ extension })
 
 // Or via runtime API:
-// - runtime.registerDomain(domain)
+// - runtime.registerDomain(domain, containerProvider)
 // - runtime.registerExtension(extension)
 // Note: Manifest is internal to MfeHandlerMF - no public registerManifest()
 
 // Example: Register base domains dynamically after app initialization
 // Note: eventBus is the framework (L2) event bus, not the removed screensets EventEmitter.
+// Each domain requires a ContainerProvider (see mfe-ext-lifecycle-actions.md)
 eventBus.on('app/ready', () => {
-  mfeActions.registerDomain(HAI3_SIDEBAR_DOMAIN);
-  mfeActions.registerDomain(HAI3_POPUP_DOMAIN);
-  mfeActions.registerDomain(HAI3_SCREEN_DOMAIN);
-  mfeActions.registerDomain(HAI3_OVERLAY_DOMAIN);
+  mfeActions.registerDomain(HAI3_SIDEBAR_DOMAIN, sidebarContainerProvider);
+  mfeActions.registerDomain(HAI3_POPUP_DOMAIN, popupContainerProvider);
+  mfeActions.registerDomain(HAI3_SCREEN_DOMAIN, screenContainerProvider);
+  mfeActions.registerDomain(HAI3_OVERLAY_DOMAIN, overlayContainerProvider);
 });
 ```
 

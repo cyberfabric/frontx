@@ -8,8 +8,11 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { ScreensetsRegistry } from '../runtime/ScreensetsRegistry';
-import type { ParentMfeBridge } from '../handler/types';
+import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/screensets';
+import {
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/screensets';
 
 /**
  * Props for ExtensionDomainSlot component
@@ -110,13 +113,36 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         setIsLoading(true);
         setError(null);
 
-        // Mount the extension (auto-loads if not already loaded)
-        const newBridge = await registry.mountExtension(extensionId, containerRef.current);
+        // Mount the extension via actions chain (auto-loads if not already loaded)
+        // Container is provided by the domain's ContainerProvider (registered at domain registration time)
+        await registry.executeActionsChain({
+          action: {
+            type: HAI3_ACTION_MOUNT_EXT,
+            target: domainId,
+            payload: {
+              extensionId,
+            },
+          },
+        });
 
         if (!mounted) {
           // Component was unmounted while mounting - clean up
-          await registry.unmountExtension(extensionId);
+          await registry.executeActionsChain({
+            action: {
+              type: HAI3_ACTION_UNMOUNT_EXT,
+              target: domainId,
+              payload: {
+                extensionId,
+              },
+            },
+          });
           return;
+        }
+
+        // Query the bridge after mount completes
+        const newBridge = registry.getParentBridge(extensionId);
+        if (!newBridge) {
+          throw new Error(`Failed to obtain bridge for extension ${extensionId} after mount`);
         }
 
         currentBridge = newBridge;
@@ -150,8 +176,16 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
       mounted = false;
 
       if (currentBridge) {
-        // Unmount extension asynchronously
-        void registry.unmountExtension(extensionId).then(() => {
+        // Unmount extension asynchronously via actions chain
+        void registry.executeActionsChain({
+          action: {
+            type: HAI3_ACTION_UNMOUNT_EXT,
+            target: domainId,
+            payload: {
+              extensionId,
+            },
+          },
+        }).then(() => {
           if (onUnmounted) {
             onUnmounted();
           }

@@ -121,7 +121,7 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
 
     // Flux Architecture: Effects cannot import actions
     {
-      files: ['**/*Effects.ts', '**/*Effects.tsx', '**/effects/**/*'],
+      files: ['**/*Effects.ts', '**/*Effects.tsx', '**/effects.ts', '**/effects.tsx', '**/effects/**/*'],
       rules: {
         'no-restricted-imports': [
           'error',
@@ -129,6 +129,9 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
             patterns: [
               {
                 group: [
+                  './actions',
+                  '../actions',
+                  '**/actions',
                   '**/actions/**',
                   '../actions/**',
                   './actions/**',
@@ -262,7 +265,7 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
 
     // Flux Architecture: Effects cannot emit events
     {
-      files: ['**/*Effects.ts', '**/effects/**/*.ts'],
+      files: ['**/*Effects.ts', '**/effects.ts', '**/effects/**/*.ts'],
       ignores: ['**/*.test.*', '**/*.spec.*'],
       rules: {
         'no-restricted-syntax': [
@@ -272,6 +275,12 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
               "CallExpression[callee.object.name='eventBus'][callee.property.name='emit']",
             message:
               'FLUX VIOLATION: Effects cannot emit events (creates circular flow). Effects should only listen to events and update slices.',
+          },
+          {
+            selector:
+              "CallExpression[callee.property.name='executeActionsChain']",
+            message:
+              'FLUX VIOLATION: Effects cannot call executeActionsChain() (triggers ActionsChainsMediator, effectively running actions). Call executeActionsChain() from actions instead.',
           },
         ],
       },

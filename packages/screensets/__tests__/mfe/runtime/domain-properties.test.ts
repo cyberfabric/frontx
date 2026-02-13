@@ -14,6 +14,7 @@ import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
+import { MockContainerProvider } from '../test-utils';
 
 // Create a lenient mock plugin for testing domain properties
 function createMockPlugin(): TypeSystemPlugin {
@@ -74,6 +75,7 @@ function createMockPlugin(): TypeSystemPlugin {
 describe('ScreensetsRegistry - Domain Properties', () => {
   let registry: ScreensetsRegistry;
   let testDomain: ExtensionDomain;
+  let mockContainerProvider: MockContainerProvider;
   const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.test.widget.slot.v1';
   const THEME_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1';
   const USER_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.auth.user.v1';
@@ -82,6 +84,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: createMockPlugin(),
     });
+    mockContainerProvider = new MockContainerProvider();
 
     testDomain = {
       id: DOMAIN_ID,
@@ -97,7 +100,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
       ],
     };
 
-    registry.registerDomain(testDomain);
+    registry.registerDomain(testDomain, mockContainerProvider);
   });
 
   describe('updateDomainProperty', () => {
@@ -226,7 +229,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
         ],
       };
 
-      registry.registerDomain(domain2);
+      registry.registerDomain(domain2, mockContainerProvider);
     });
 
     it('should keep properties isolated between domains', () => {

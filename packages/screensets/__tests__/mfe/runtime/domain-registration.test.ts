@@ -7,16 +7,19 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { DomainValidationError } from '../../../src/mfe/errors';
+import { MockContainerProvider } from '../test-utils';
 
 describe('Domain Registration', () => {
   const plugin = new GtsPlugin();
   let registry: DefaultScreensetsRegistry;
+  let mockContainerProvider: MockContainerProvider;
 
   beforeEach(() => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
       debug: false,
     });
+    mockContainerProvider = new MockContainerProvider();
   });
 
   describe('registerDomain with GTS validation', () => {
@@ -40,7 +43,7 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(domain);
+        registry.registerDomain(domain, mockContainerProvider);
       }).not.toThrow();
 
       // Verify domain is registered
@@ -70,7 +73,7 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(domain);
+        registry.registerDomain(domain, mockContainerProvider);
       }).not.toThrow();
 
       const domainState = registry.getDomainState(domain.id);
@@ -86,7 +89,7 @@ describe('Domain Registration', () => {
       } as unknown as ExtensionDomain;
 
       expect(() => {
-        registry.registerDomain(invalidDomain);
+        registry.registerDomain(invalidDomain, mockContainerProvider);
       }).toThrow(DomainValidationError);
     });
 
@@ -114,7 +117,7 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(domain);
+        registry.registerDomain(domain, mockContainerProvider);
       }).not.toThrow();
     });
   });
@@ -125,8 +128,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -145,13 +149,13 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(sidebarDomain);
+        registry.registerDomain(sidebarDomain, mockContainerProvider);
       }).not.toThrow();
 
       const domainState = registry.getDomainState(sidebarDomain.id);
       expect(domainState).toBeDefined();
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1');
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
     });
 
     it('should successfully register screen domain (load_ext only)', () => {
@@ -159,8 +163,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          // Note: NO unload_ext for screen domain
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          // Note: NO unmount_ext for screen domain (swap semantics)
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -179,13 +184,13 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(screenDomain);
+        registry.registerDomain(screenDomain, mockContainerProvider);
       }).not.toThrow();
 
       const domainState = registry.getDomainState(screenDomain.id);
       expect(domainState).toBeDefined();
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1');
-      expect(domainState?.domain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
+      expect(domainState?.domain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
     });
 
     it('should successfully register popup domain', () => {
@@ -193,8 +198,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -213,7 +219,7 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(popupDomain);
+        registry.registerDomain(popupDomain, mockContainerProvider);
       }).not.toThrow();
     });
 
@@ -222,8 +228,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -242,7 +249,7 @@ describe('Domain Registration', () => {
       };
 
       expect(() => {
-        registry.registerDomain(overlayDomain);
+        registry.registerDomain(overlayDomain, mockContainerProvider);
       }).not.toThrow();
     });
   });

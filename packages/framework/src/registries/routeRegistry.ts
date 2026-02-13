@@ -114,10 +114,10 @@ export function createRouteRegistry(
     /**
      * Get screen loader by screenId only.
      */
-    getScreenById(screenId: string): ScreenLoader | undefined {
+    getScreenById(screenId: string): (() => Promise<{ default: import('react').ComponentType }>) | undefined {
       const allRoutes = buildRoutes();
       const route = allRoutes.find((r) => r.screenId === screenId);
-      return route?.loader;
+      return route?.loader as (() => Promise<{ default: import('react').ComponentType }>) | undefined;
     },
 
     /**
@@ -126,12 +126,12 @@ export function createRouteRegistry(
     getScreen(
       screensetId: string,
       screenId: string
-    ): ScreenLoader | undefined {
+    ): (() => Promise<{ default: import('react').ComponentType }>) | undefined {
       const allRoutes = buildRoutes();
       const route = allRoutes.find(
         (r) => r.screensetId === screensetId && r.screenId === screenId
       );
-      return route?.loader;
+      return route?.loader as (() => Promise<{ default: import('react').ComponentType }>) | undefined;
     },
 
     /**

@@ -29,8 +29,9 @@ import lifecycleDeactivatedInstance from './hai3.mfes/instances/lifecycle/deacti
 import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroyed.v1.json';
 
 // Import action instances
-import loadExtActionInstance from './hai3.mfes/instances/comm/load_ext.v1.json';
-import unloadExtActionInstance from './hai3.mfes/instances/comm/unload_ext.v1.json';
+import loadExtActionInstance from './hai3.mfes/instances/ext/load_ext.v1.json';
+import mountExtActionInstance from './hai3.mfes/instances/ext/mount_ext.v1.json';
+import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.json';
 
 /**
  * Load all core MFE schema JSON files.
@@ -72,10 +73,10 @@ export function loadLifecycleStages(): LifecycleStage[] {
 
 /**
  * Load base action instances.
- * These are the generic load_ext and unload_ext actions used by all domains.
+ * These are the generic extension lifecycle actions used by all domains.
  *
  * @returns Array of action instances
  */
 export function loadBaseActions(): Action[] {
-  return [loadExtActionInstance, unloadExtActionInstance] as Action[];
+  return [loadExtActionInstance, mountExtActionInstance, unmountExtActionInstance] as Action[];
 }

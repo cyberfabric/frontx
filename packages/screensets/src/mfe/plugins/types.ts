@@ -99,7 +99,7 @@ export interface AttributeResult {
  * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
- * registry.registerDomain(myDomain);
+ * registry.registerDomain(myDomain, containerProvider);
  * ```
  */
 export interface TypeSystemPlugin {

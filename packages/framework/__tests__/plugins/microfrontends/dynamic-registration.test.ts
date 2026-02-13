@@ -21,9 +21,34 @@ import {
   selectExtensionState,
   selectRegisteredExtensions,
 } from '../../../src/plugins/microfrontends';
-import { eventBus } from '@hai3/state';
+import { eventBus, resetStore } from '@hai3/state';
 import type { Extension, ExtensionDomain } from '@hai3/screensets';
+import { ContainerProvider } from '@hai3/screensets';
 import type { HAI3App } from '../../../src/types';
+
+// Mock Container Provider for framework tests
+class TestContainerProvider extends ContainerProvider {
+  private mockContainer: Element;
+
+  constructor() {
+    super();
+    // Create a mock DOM element for testing
+    if (typeof document !== 'undefined') {
+      this.mockContainer = document.createElement('div');
+    } else {
+      // Fallback for non-DOM environments
+      this.mockContainer = { tagName: 'DIV' } as Element;
+    }
+  }
+
+  getContainer(_extensionId: string): Element {
+    return this.mockContainer;
+  }
+
+  releaseContainer(_extensionId: string): void {
+    // no-op
+  }
+}
 
 describe('dynamic registration - Phase 20', () => {
   let apps: HAI3App[] = [];
@@ -32,6 +57,8 @@ describe('dynamic registration - Phase 20', () => {
     // Cleanup all apps created in tests
     apps.forEach(app => app.destroy());
     apps = [];
+    // Reset global store to prevent state pollution between tests
+    resetStore();
   });
   const mockExtension: Extension = {
     id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.extension.v1',
@@ -42,7 +69,10 @@ describe('dynamic registration - Phase 20', () => {
   const mockDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
     sharedProperties: [],
-    actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'],
+    actions: [
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+    ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
     lifecycleStages: [],
@@ -83,7 +113,8 @@ describe('dynamic registration - Phase 20', () => {
       app.screensetsRegistry.registerExtension = registerExtensionSpy;
 
       // First register the domain
-      app.screensetsRegistry.registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Trigger action
       registerExtension(mockExtension);
@@ -179,10 +210,12 @@ describe('dynamic registration - Phase 20', () => {
     it('should emit registerDomainRequested event', () => {
       const unsub = eventBus.on(MfeEvents.RegisterDomainRequested, eventSpy);
 
-      registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      registerDomain(mockDomain, testContainerProvider);
 
       expect(eventSpy).toHaveBeenCalledWith({
         domain: mockDomain,
+        containerProvider: testContainerProvider,
       });
 
       unsub.unsubscribe();
@@ -197,13 +230,14 @@ describe('dynamic registration - Phase 20', () => {
       app.screensetsRegistry.registerDomain = registerDomainSpy;
 
       // Trigger action
-      registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      registerDomain(mockDomain, testContainerProvider);
 
       // Wait for async effect
       await new Promise((resolve) => setTimeout(resolve, 50));
 
-      // Verify runtime method was called
-      expect(registerDomainSpy).toHaveBeenCalledWith(mockDomain);
+      // Verify runtime method was called with both domain and containerProvider
+      expect(registerDomainSpy).toHaveBeenCalledWith(mockDomain, testContainerProvider);
     });
   });
 
@@ -260,7 +294,8 @@ describe('dynamic registration - Phase 20', () => {
       });
 
       // Register domain first
-      app.screensetsRegistry.registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Initial state
       let state = app.store.getState();
@@ -295,7 +330,8 @@ describe('dynamic registration - Phase 20', () => {
       apps.push(app);
 
       app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
-      app.screensetsRegistry.registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       registerExtension(mockExtension);
       await new Promise((resolve) => setTimeout(resolve, 50));
@@ -319,7 +355,8 @@ describe('dynamic registration - Phase 20', () => {
       apps.push(app);
 
       app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
-      app.screensetsRegistry.registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };
       const ext2 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext2.v1' };
@@ -340,7 +377,8 @@ describe('dynamic registration - Phase 20', () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
       apps.push(app);
 
-      app.screensetsRegistry.registerDomain(mockDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Mock one success and one failure
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };

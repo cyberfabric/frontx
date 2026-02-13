@@ -25,6 +25,8 @@ export interface ExtensionDomainState {
   properties: Map<string, SharedProperty>;
   extensions: Set<string>;
   propertySubscribers: Map<string, Set<(value: SharedProperty) => void>>;
+  /** Currently mounted extension ID (single extension per domain invariant) */
+  mountedExtension: string | undefined;
 }
 
 /**
@@ -132,4 +134,22 @@ export abstract class ExtensionManager {
    * @returns Property value, or undefined if not set
    */
   abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
+
+  /**
+   * Get the currently mounted extension in a domain.
+   * Each domain supports at most one mounted extension at a time.
+   *
+   * @param domainId - ID of the domain
+   * @returns Extension ID if mounted, undefined otherwise
+   */
+  abstract getMountedExtension(domainId: string): string | undefined;
+
+  /**
+   * Set the mounted extension for a domain.
+   * Called by MountManager when an extension is mounted.
+   *
+   * @param domainId - ID of the domain
+   * @param extensionId - ID of the mounted extension, or undefined to clear
+   */
+  abstract setMountedExtension(domainId: string, extensionId: string | undefined): void;
 }

@@ -30,7 +30,8 @@ export {
   HAI3_EXT_EXTENSION,
   HAI3_EXT_ACTION,
   HAI3_ACTION_LOAD_EXT,
-  HAI3_ACTION_UNLOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
 } from './constants';
 
 // GTS JSON Loaders (preferred method for loading schemas and instances)
@@ -53,10 +54,13 @@ export type {
   LifecycleHook,
   MfManifest,
   SharedDependencyConfig,
+  LoadExtPayload,
+  MountExtPayload,
+  UnmountExtPayload,
 } from './types';
 
 // Runtime (includes factory)
-export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory } from './runtime';
+export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory, ContainerProvider } from './runtime';
 export type { ScreensetsRegistryConfig } from './runtime';
 
 // Handler Types and Abstract Classes (concrete implementations are internal)

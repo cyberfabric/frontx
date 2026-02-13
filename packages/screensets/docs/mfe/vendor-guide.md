@@ -421,25 +421,76 @@ const extensionWithHooks: Extension = {
 Extensions can be registered at any time during runtime:
 
 ```typescript
+import { ContainerProvider } from '@hai3/screensets';
+
+// Define a ContainerProvider for your domain
+class WidgetContainerProvider extends ContainerProvider {
+  getContainer(extensionId: string): Element {
+    // Return the DOM element where the extension should mount
+    return document.getElementById('widget-container')!;
+  }
+
+  releaseContainer(extensionId: string): void {
+    // Cleanup if needed (optional)
+  }
+}
+
 // Get the registry instance from the framework
 const runtime = framework.get<ScreensetsRegistry>('screensetsRegistry');
+
+// Register domain with container provider
+const containerProvider = new WidgetContainerProvider();
+await runtime.registerDomain(myDomain, containerProvider);
 
 // Register your extension dynamically
 await runtime.registerExtension(myExtension);
 
-// Load the MFE bundle (if not already loaded)
-await runtime.loadExtension(myExtension.id);
+// Mount via actions chain (auto-loads if needed, container from provider)
+await runtime.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_MOUNT_EXT,
+    target: myExtension.domain,
+    payload: { extensionId: myExtension.id },
+  },
+});
 
-// Mount to a DOM container
-const container = document.getElementById('widget-container');
-const bridge = await runtime.mountExtension(myExtension.id, container);
+// Query bridge after mount
+const bridge = runtime.getParentBridge(myExtension.id);
 
-// Later: unmount (keeps extension registered and bundle loaded)
-await runtime.unmountExtension(myExtension.id);
+// Later: unmount via actions chain (keeps extension registered and bundle loaded)
+await runtime.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_UNMOUNT_EXT,
+    target: myExtension.domain,
+    payload: { extensionId: myExtension.id },
+  },
+});
 
 // Finally: unregister (triggers destroyed lifecycle, auto-unmounts if mounted)
 await runtime.unregisterExtension(myExtension.id);
 ```
+
+### ContainerProvider Abstract Class
+
+The `ContainerProvider` abstract class defines how containers are allocated for extensions:
+
+```typescript
+abstract class ContainerProvider {
+  /**
+   * Allocate a DOM container for an extension.
+   * Called during mount_ext action.
+   */
+  abstract getContainer(extensionId: string): Element;
+
+  /**
+   * Release a DOM container after unmount.
+   * Called during unmount_ext action.
+   */
+  abstract releaseContainer(extensionId: string): void;
+}
+```
+
+Implement this class to control where extensions mount in your application.
 
 ## Best Practices
 
@@ -463,7 +514,7 @@ await runtime.unregisterExtension(myExtension.id);
 
 ### 4. Performance
 
-- Use `preloadExtension()` for hover-to-load UX
+- Use `executeActionsChain()` with `HAI3_ACTION_LOAD_EXT` for hover-to-load UX
 - Minimize shared dependency versions for better code sharing
 - Keep MFE bundles small (lazy load heavy dependencies)
 

@@ -17,6 +17,7 @@ import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
 import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { MockContainerProvider } from '../test-utils';
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -98,10 +99,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
   let plugin: TypeSystemPlugin;
   let mediator: DefaultActionsChainsMediator;
   let registry: DefaultScreensetsRegistry;
+  let mockContainerProvider: MockContainerProvider;
 
   beforeEach(() => {
     plugin = createMockPlugin();
     registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
+    mockContainerProvider = new MockContainerProvider();
     mediator = new DefaultActionsChainsMediator({
       typeSystem: plugin,
       getDomainState: (domainId) => registry.getDomainState(domainId),
@@ -129,7 +132,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -170,7 +173,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const payload = { data: 'test value' };
       const chain: ActionsChain = {
@@ -209,7 +212,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -250,7 +253,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -284,7 +287,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -318,7 +321,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -429,7 +432,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -483,7 +486,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -533,7 +536,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -567,7 +570,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -598,7 +601,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -643,7 +646,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -679,7 +682,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -712,7 +715,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -746,7 +749,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {
@@ -786,7 +789,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      registry.registerDomain(domain);
+      registry.registerDomain(domain, mockContainerProvider);
 
       const chain: ActionsChain = {
         action: {

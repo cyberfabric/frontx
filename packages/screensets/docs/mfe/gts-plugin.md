@@ -19,13 +19,24 @@ The GTS plugin is included with `@hai3/screensets` and requires `@globaltypesyst
 ### Building the Registry
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin, ContainerProvider } from '@hai3/screensets';
 
 // Build the registry with GTS plugin at application wiring time
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
-// Use the registry
-registry.registerDomain(myDomain);
+// Create a container provider for your domain
+class MyContainerProvider extends ContainerProvider {
+  getContainer(extensionId: string): Element {
+    return document.getElementById('my-container')!;
+  }
+  releaseContainer(extensionId: string): void {
+    // Cleanup if needed
+  }
+}
+
+// Use the registry (with container provider)
+const containerProvider = new MyContainerProvider();
+registry.registerDomain(myDomain, containerProvider);
 ```
 
 ### Plugin is Ready Immediately
@@ -36,7 +47,7 @@ The GTS plugin ships with all HAI3 first-class citizen schemas **built-in**. No 
 // ✅ Correct - Build registry with factory
 import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
-registry.registerDomain(myDomain);
+registry.registerDomain(myDomain, containerProvider);
 
 // ❌ Wrong - No need to register core schemas
 // gtsPlugin.registerSchema(mfeEntrySchema); // Don't do this

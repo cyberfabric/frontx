@@ -7,9 +7,8 @@
  * NOTE: Layout state shapes (HeaderState, MenuState, etc.) are in @hai3/framework
  */
 
-import type { ComponentType } from 'react';
-
-// Note: ComponentType is only used for ScreenLoader return type
+// NOTE: ScreenLoader uses a framework-agnostic type for the default export.
+// L2/L3 layers (e.g., @hai3/react AppRouter) cast to React.ComponentType when needed.
 
 // ============================================================================
 // Layout Domain Enum
@@ -126,7 +125,7 @@ export interface MenuItemConfig {
  * const loader: ScreenLoader = () => import('./screens/HomeScreen');
  * ```
  */
-export type ScreenLoader = () => Promise<{ default: ComponentType }>;
+export type ScreenLoader = () => Promise<{ default: unknown }>;
 
 /**
  * Screen Configuration

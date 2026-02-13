@@ -93,6 +93,7 @@ ChildMfeBridge A                        ChildMfeBridge B
    - Child MFEs access this via `childBridge.executeActionsChain()` (pass-through to registry)
    - ActionsChainsMediator routes chains to targets based on `action.target`
    - Action types in contracts define what targets can send/receive; ActionsChains are the messages
+   - **[Extension lifecycle actions](./mfe-ext-lifecycle-actions.md)** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for loading, mounting, and unmounting extensions -- direct registry methods are internal
 
 ### Action Chain Execution
 
@@ -216,13 +217,13 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          ▼
     ┌─────────┐
     │  LOAD   │  Bundle fetched via Module Federation
-    └────┬────┘
+    └────┬────┘  (triggered by load_ext action chain)
          │
          ▼
     ┌─────────┐
     │  MOUNT  │  MFE's mount() called with container and bridge
-    └────┬────┘  [activated] lifecycle stage triggered
-         │
+    └────┬────┘  (triggered by mount_ext action chain)
+         │       [activated] lifecycle stage triggered
          ▼
     ┌─────────┐
     │  RUN    │  MFE renders UI, subscribes to properties,
@@ -231,7 +232,8 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
          ▼
     ┌─────────┐
     │ UNMOUNT │  MFE's unmount() called, cleanup performed
-    └────┬────┘  [deactivated] lifecycle stage triggered
+    └────┬────┘  (triggered by unmount_ext action chain)
+         │       [deactivated] lifecycle stage triggered
          │
          ▼
     ┌─────────┐
@@ -240,6 +242,8 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
 ```
 
 **Lifecycle stages** allow extensions and domains to declare explicit actions chains that execute at each stage. See [MFE Lifecycle](./mfe-lifecycle.md) for details.
+
+**Extension lifecycle actions** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for triggering load, mount, and unmount operations via `executeActionsChain()`. The `ScreensetsRegistry` abstract class does NOT expose `loadExtension`, `mountExtension`, `unmountExtension`, or `preloadExtension` methods. These operations are internal to `MountManager` and accessed by the `ExtensionLifecycleActionHandler` via focused callbacks through `OperationSerializer`. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete design.
 
 See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 
@@ -263,6 +267,7 @@ For detailed specifications, see:
 | [mfe-manifest.md](./mfe-manifest.md) | Module Federation configuration |
 | [mfe-loading.md](./mfe-loading.md) | Handler architecture and bundle loading |
 | [mfe-actions.md](./mfe-actions.md) | Action types and actions chains |
+| [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) | Extension lifecycle actions (load, mount, unmount) |
 | [mfe-shared-property.md](./mfe-shared-property.md) | Shared properties |
 | [mfe-lifecycle.md](./mfe-lifecycle.md) | Lifecycle stages and hooks |
 | [mfe-api.md](./mfe-api.md) | MFE lifecycle and bridge interfaces |

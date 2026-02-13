@@ -12,6 +12,7 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
+import { MockContainerProvider } from '../test-utils';
 
 // Helper to access private members for testing (replaces 'as never' with proper typing)
 interface ExtensionStateShape {
@@ -35,6 +36,7 @@ function getRegistryInternals(registry: DefaultScreensetsRegistry): RegistryInte
 
 describe('ScreensetsRegistry Query Methods', () => {
   let registry: DefaultScreensetsRegistry;
+  let mockContainerProvider: MockContainerProvider;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.testorg.query.domain.v1',
@@ -73,6 +75,7 @@ describe('ScreensetsRegistry Query Methods', () => {
       typeSystem: gtsPlugin,
       debug: false,
     });
+    mockContainerProvider = new MockContainerProvider();
 
     // Register the entry instance with GTS plugin before using it
     gtsPlugin.register(testEntry);
@@ -81,7 +84,7 @@ describe('ScreensetsRegistry Query Methods', () => {
   describe('getExtension', () => {
     it('should return registered extension', async () => {
       // Register domain and extension
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       // Mock resolveEntry by pre-caching
       const internals = getRegistryInternals(registry);
@@ -111,7 +114,7 @@ describe('ScreensetsRegistry Query Methods', () => {
 
   describe('getDomain', () => {
     it('should return registered domain', () => {
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       const result = registry.getDomain(testDomain.id);
       expect(result).toBeDefined();
@@ -133,7 +136,7 @@ describe('ScreensetsRegistry Query Methods', () => {
       };
 
       // Register domain
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       // Mock resolveEntry by pre-caching both extensions
       const internals = getRegistryInternals(registry);
@@ -167,7 +170,7 @@ describe('ScreensetsRegistry Query Methods', () => {
     });
 
     it('should return empty array for domain with no extensions', () => {
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       const result = registry.getExtensionsForDomain(testDomain.id);
       expect(result).toEqual([]);

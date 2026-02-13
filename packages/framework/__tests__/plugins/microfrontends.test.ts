@@ -18,6 +18,31 @@ import {
   createOverlayDomain,
 } from '../../src/plugins/microfrontends';
 import type { ScreensetsRegistry } from '@hai3/screensets';
+import { ContainerProvider } from '@hai3/screensets';
+
+// Mock Container Provider for framework tests
+class TestContainerProvider extends ContainerProvider {
+  private mockContainer: Element;
+
+  constructor() {
+    super();
+    // Create a mock DOM element for testing
+    if (typeof document !== 'undefined') {
+      this.mockContainer = document.createElement('div');
+    } else {
+      // Fallback for non-DOM environments
+      this.mockContainer = { tagName: 'DIV' } as Element;
+    }
+  }
+
+  getContainer(_extensionId: string): Element {
+    return this.mockContainer;
+  }
+
+  releaseContainer(_extensionId: string): void {
+    // no-op
+  }
+}
 
 describe('microfrontends plugin - Phase 7.9', () => {
   describe('plugin factory', () => {
@@ -132,7 +157,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       const sidebarDomain = createSidebarDomain();
 
       expect(() => {
-        registry.registerDomain(sidebarDomain);
+        const testContainerProvider = new TestContainerProvider();
+        registry.registerDomain(sidebarDomain, testContainerProvider);
       }).not.toThrow();
     });
 
@@ -146,7 +172,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       const popupDomain = createPopupDomain();
 
       expect(() => {
-        registry.registerDomain(popupDomain);
+        const testContainerProvider = new TestContainerProvider();
+        registry.registerDomain(popupDomain, testContainerProvider);
       }).not.toThrow();
     });
 
@@ -160,7 +187,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       const screenDomain = createScreenDomain();
 
       expect(() => {
-        registry.registerDomain(screenDomain);
+        const testContainerProvider = new TestContainerProvider();
+        registry.registerDomain(screenDomain, testContainerProvider);
       }).not.toThrow();
     });
 
@@ -174,7 +202,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
       const overlayDomain = createOverlayDomain();
 
       expect(() => {
-        registry.registerDomain(overlayDomain);
+        const testContainerProvider = new TestContainerProvider();
+        registry.registerDomain(overlayDomain, testContainerProvider);
       }).not.toThrow();
     });
 
@@ -185,12 +214,13 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .build();
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
+      const testProvider = new TestContainerProvider();
 
       expect(() => {
-        registry.registerDomain(createSidebarDomain());
-        registry.registerDomain(createPopupDomain());
-        registry.registerDomain(createScreenDomain());
-        registry.registerDomain(createOverlayDomain());
+        registry.registerDomain(createSidebarDomain(), testProvider);
+        registry.registerDomain(createPopupDomain(), testProvider);
+        registry.registerDomain(createScreenDomain(), testProvider);
+        registry.registerDomain(createOverlayDomain(), testProvider);
       }).not.toThrow();
     });
   });
@@ -279,7 +309,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
       // Register the domain (this triggers validation internally)
       expect(() => {
-        registry.registerDomain(sidebarDomain);
+        const testContainerProvider = new TestContainerProvider();
+        registry.registerDomain(sidebarDomain, testContainerProvider);
       }).not.toThrow();
     });
 
@@ -308,17 +339,19 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(sidebarDomain.actions.length).toBe(2);
 
       // Verify action IDs
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1');
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
     });
 
-    it('should handle screen domain with only load_ext action', () => {
+    it('should handle screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
       const screenDomain = createScreenDomain();
 
-      // Screen domain should only have load_ext, not unload_ext
-      expect(screenDomain.actions.length).toBe(1);
-      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1');
-      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1');
+      // Screen domain should have load_ext and mount_ext, but not unmount_ext (swap semantics)
+      expect(screenDomain.actions.length).toBe(2);
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
+      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
     });
   });
 
@@ -330,8 +363,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -347,8 +381,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -364,7 +399,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -381,8 +417,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,

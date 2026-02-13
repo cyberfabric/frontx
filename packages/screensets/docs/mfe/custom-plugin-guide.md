@@ -591,7 +591,7 @@ describe('CustomPlugin Integration', () => {
       extensionsLifecycleStages: [],
     };
 
-    await expect(runtime.registerDomain(domain)).resolves.not.toThrow();
+    await expect(runtime.registerDomain(domain, containerProvider)).resolves.not.toThrow();
   });
 });
 ```

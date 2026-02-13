@@ -17,6 +17,7 @@ import type {
   ActionsChain,
 } from '../types';
 import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
+import type { ContainerProvider } from './container-provider';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -28,17 +29,15 @@ import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../media
  * - Type validation via TypeSystemPlugin
  * - Extension and domain registration
  * - Domain property management
- * - Bridge lifecycle management
  * - Runtime coordination (internal)
- * - Action chain mediation
- * - MFE loading and mounting
+ * - Action chain mediation and execution
  *
  * @example
  * ```typescript
  * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
- * registry.registerDomain(myDomain);
+ * registry.registerDomain(myDomain, containerProvider);
  * await registry.registerExtension(myExtension);
  * ```
  */
@@ -57,10 +56,11 @@ export abstract class ScreensetsRegistry {
    * NOTE: registerDomain is synchronous, but lifecycle triggering happens fire-and-forget.
    *
    * @param domain - Domain to register
+   * @param containerProvider - Container provider for the domain
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
-  abstract registerDomain(domain: ExtensionDomain): void;
+  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void;
 
   /**
    * Unregister a domain from the registry.
@@ -103,49 +103,6 @@ export abstract class ScreensetsRegistry {
    */
   abstract unregisterExtension(extensionId: string): Promise<void>;
 
-  // --- Loading ---
-
-  /**
-   * Load an extension bundle.
-   * Finds appropriate MfeHandler and loads the bundle.
-   * The loaded lifecycle is cached for mounting.
-   *
-   * @param extensionId - ID of the extension to load
-   * @returns Promise resolving when bundle is loaded
-   */
-  abstract loadExtension(extensionId: string): Promise<void>;
-
-  /**
-   * Preload an extension bundle without mounting.
-   * Semantically same as loadExtension, but may use handler.preload() for batch optimization.
-   *
-   * @param extensionId - ID of the extension to preload
-   * @returns Promise resolving when bundle is preloaded
-   */
-  abstract preloadExtension(extensionId: string): Promise<void>;
-
-  // --- Mounting ---
-
-  /**
-   * Mount an extension into a container element.
-   * Auto-loads the bundle if not already loaded.
-   * Creates bridge, registers with coordinator, mounts to DOM, triggers lifecycle.
-   *
-   * @param extensionId - ID of the extension to mount
-   * @param container - DOM element to mount into
-   * @returns Promise resolving to the parent bridge
-   */
-  abstract mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
-
-  /**
-   * Unmount an extension from its container.
-   * Calls lifecycle.unmount(), disposes bridge, unregisters from coordinator.
-   * The extension remains registered and bundle remains loaded after unmount.
-   *
-   * @param extensionId - ID of the extension to unmount
-   * @returns Promise resolving when unmount is complete
-   */
-  abstract unmountExtension(extensionId: string): Promise<void>;
 
   // --- Domain Properties ---
 
@@ -249,6 +206,31 @@ export abstract class ScreensetsRegistry {
    * @returns Array of extensions in the domain (empty if domain not found or has no extensions)
    */
   abstract getExtensionsForDomain(domainId: string): Extension[];
+
+  /**
+   * Get the currently mounted extension in a domain.
+   * Each domain supports at most one mounted extension at a time.
+   *
+   * @param domainId - ID of the domain
+   * @returns Extension ID if mounted, undefined otherwise
+   */
+  abstract getMountedExtension(domainId: string): string | undefined;
+
+  /**
+   * Returns the ParentMfeBridge for the given extension, or null if the extension
+   * is not mounted or does not exist. This is a query method (same category as
+   * getMountedExtension) -- it reads from ExtensionState.bridge, which is set
+   * by MountManager.mountExtension() during mount and cleared during unmount.
+   *
+   * Usage pattern: mount via executeActionsChain(), then query the bridge:
+   *
+   *   await registry.executeActionsChain({ action: { type: HAI3_ACTION_MOUNT_EXT, ... } });
+   *   const bridge = registry.getParentBridge(extensionId);
+   *
+   * @param extensionId - ID of the extension
+   * @returns ParentMfeBridge if extension is mounted, null otherwise
+   */
+  abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
 
   // --- Action Handlers (mediator-facing) ---
 

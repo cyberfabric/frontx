@@ -410,9 +410,10 @@ packages/screensets/src/mfe/gts/
         activated.v1.json            # gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1
         deactivated.v1.json          # gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1
         destroyed.v1.json            # gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1
-      comm/
-        load_ext.v1.json             # gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
-        unload_ext.v1.json           # gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1
+      ext/
+        load_ext.v1.json             # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1
+        mount_ext.v1.json            # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
+        unmount_ext.v1.json          # gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1
 packages/framework/src/plugins/microfrontends/gts/
   hai3.screensets/                   # Screensets layout GTS package (L2 - runtime config)
     instances/
@@ -426,7 +427,7 @@ packages/framework/src/plugins/microfrontends/gts/
 **What Goes Where**:
 - `@hai3/screensets`: `hai3.mfes/schemas/` - All 10 type schemas organized by namespace (mfe, ext, comm, lifecycle)
 - `@hai3/screensets`: `hai3.mfes/instances/lifecycle/` - The 4 default lifecycle stage instances (core MFE system)
-- `@hai3/screensets`: `hai3.mfes/instances/comm/` - Base action type instances (load_ext, unload_ext) (core MFE system)
+- `@hai3/screensets`: `hai3.mfes/instances/ext/` - Extension lifecycle action instances (load_ext, mount_ext, unmount_ext) (core MFE system)
 - `@hai3/framework`: `hai3.screensets/instances/domains/` - Layout domain instances (sidebar, popup, screen, overlay) (runtime config)
 
 **Loading JSON Schemas**:

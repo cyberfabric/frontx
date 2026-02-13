@@ -454,14 +454,18 @@ export async function registerAnalyticsMfe(runtime: ScreensetsRegistry) {
   // Step 5: Register extension with runtime
   await runtime.registerExtension(extension);
 
-  // Step 6: Load and mount
-  await runtime.loadExtension(extension.id);
+  // Step 6: Mount via actions chain (auto-loads if needed)
+  await runtime.executeActionsChain({
+    action: {
+      type: 'gts.hai3.mfes.ext.action.v1~hai3.mfes.ext.mount_ext.v1',
+      target: extension.domain,
+      payload: { extensionId: extension.id },
+    },
+  });
 
-  const container = document.getElementById('sidebar-widget-slot');
-  if (container) {
-    const bridge = await runtime.mountExtension(extension.id, container);
-    console.log('Analytics MFE mounted with bridge:', bridge);
-  }
+  // Query bridge after mount
+  const bridge = runtime.getParentBridge(extension.id);
+  console.log('Analytics MFE mounted with bridge:', bridge);
 }
 ```
 
@@ -474,14 +478,29 @@ import { registerAnalyticsMfe } from './register';
 // Build the registry with GTS plugin at application wiring time
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
-// Register sidebar domain first
+// Create a container provider for the domain
+import { ContainerProvider } from '@hai3/screensets';
+
+class SidebarContainerProvider extends ContainerProvider {
+  getContainer(extensionId: string): Element {
+    return document.getElementById('sidebar-widget-slot')!;
+  }
+
+  releaseContainer(extensionId: string): void {
+    // Cleanup if needed
+  }
+}
+
+const containerProvider = new SidebarContainerProvider();
+
+// Register sidebar domain first (with container provider)
 await registry.registerDomain({
   id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
   sharedProperties: [
     'gts.hai3.mfes.comm.shared_property.v1~acme.analytics.theme.v1',
   ],
   actions: [
-    'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
+    'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
   ],
   extensionsActions: [
     'gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1',
@@ -496,7 +515,7 @@ await registry.registerDomain({
   extensionsLifecycleStages: [
     'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
   ],
-});
+}, containerProvider);
 
 // Register and load the analytics MFE
 await registerAnalyticsMfe(runtime);
@@ -627,7 +646,7 @@ describe('Analytics MFE Integration', () => {
     const runtime = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
 
     // Register domain first
-    await runtime.registerDomain({ /* ... */ });
+    await runtime.registerDomain({ /* ... */ }, containerProvider);
 
     // Register MFE
     await expect(registerAnalyticsMfe(runtime)).resolves.not.toThrow();

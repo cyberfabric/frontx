@@ -112,6 +112,21 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** the result SHALL contain the value if resolved
 - **AND** the result SHALL contain an error message if not resolved
 
+#### Scenario: Type hierarchy checking via plugin
+
+- **WHEN** checking if a type conforms to a base type
+- **THEN** the system SHALL call `plugin.isTypeOf(derivedTypeId, baseTypeId)` on the TypeSystemPlugin
+- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `true`
+- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `false`
+- **AND** there SHALL be NO standalone `conformsTo()` utility function (use `plugin.isTypeOf()` instead)
+
+#### Scenario: Type IDs as plain strings
+
+- **WHEN** working with GTS type IDs
+- **THEN** all type IDs SHALL be plain `string` values (no branded types)
+- **AND** the package SHALL NOT export a `GtsTypeId` branded type or `ParsedGtsId` interface
+- **AND** runtime validation SHALL use `gts-ts` functions via the TypeSystemPlugin
+
 ### Requirement: Domain-Specific Extension Validation via Derived Types
 
 The system SHALL validate Extension instances using derived Extension types when domains specify `extensionsTypeId`. This enables domain-specific fields without separate uiMeta entities or custom Ajv validation.
@@ -207,7 +222,7 @@ The system SHALL define internal TypeScript types for microfrontend architecture
 - **AND** the domain MAY specify `extensionsTypeId` (optional string, reference to a derived Extension type ID)
 - **AND** the domain SHALL specify `defaultActionTimeout` (REQUIRED, number in milliseconds)
 - **AND** sharedProperties SHALL reference SharedProperty type IDs
-- **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_UNLOAD_EXT`, plus any domain-specific actions)
+- **AND** `actions` SHALL list Action type IDs the domain can send TO extensions (e.g., `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`, plus any domain-specific actions)
 - **AND** `extensionsActions` SHALL list Action type IDs extensions can send TO this domain
 - **AND** if `extensionsTypeId` is specified, extensions must use types that derive from that type
 - **AND** derived domains MAY specify their own `extensionsTypeId` to override or narrow the validation
@@ -503,34 +518,6 @@ The Type System plugin SHALL propagate from @hai3/screensets through @hai3/frame
 - **AND** type IDs from different layers SHALL be compatible
 - **AND** schema validation SHALL be consistent
 
-### Requirement: GTS Type ID Utilities
-
-The system SHALL provide utilities for working with GTS type IDs, used by both screensets and framework layers.
-
-#### Scenario: Type IDs as plain strings
-
-- **WHEN** working with GTS type IDs
-- **THEN** all type IDs SHALL be plain `string` values (no branded types)
-- **AND** the package SHALL NOT export a `GtsTypeId` branded type or `ParsedGtsId` interface
-- **AND** runtime validation SHALL use `gts-ts` functions (`isValidGtsID()`, `validateGtsID()`) via the TypeSystemPlugin
-- **AND** type ID parsing SHALL use `plugin.parseTypeId()` (which delegates to `gts-ts` `parseGtsID()`)
-
-#### Scenario: Type ID parsing via plugin
-
-- **WHEN** metadata about a type ID is needed
-- **THEN** the system SHALL call `plugin.parseTypeId(id)` on the TypeSystemPlugin
-- **AND** the returned object structure SHALL be plugin-specific
-- **AND** for GTS plugin, the object SHALL contain vendor, package, namespace, type, version fields
-- **AND** there SHALL be NO standalone `parseGtsId()` utility function (use `plugin.parseTypeId()` instead)
-
-#### Scenario: Type hierarchy checking via plugin
-
-- **WHEN** checking if a type conforms to a base type
-- **THEN** the system SHALL call `plugin.isTypeOf(derivedTypeId, baseTypeId)` on the TypeSystemPlugin
-- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.dashboard.mfe.main.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `true`
-- **AND** `plugin.isTypeOf('gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.mfe.manifest.v1', 'gts.hai3.mfes.mfe.entry.v1~')` SHALL return `false`
-- **AND** there SHALL be NO standalone `conformsTo()` utility function (use `plugin.isTypeOf()` instead)
-
 ### Requirement: MFE Bridge Interface
 
 The system SHALL provide bridge interfaces for communication between parent and MFE (child).
@@ -555,18 +542,6 @@ The system SHALL provide bridge interfaces for communication between parent and 
 - **AND** it SHALL provide `dispose()` for cleanup
 - **AND** property updates SHALL be managed at the DOMAIN level via `registry.updateDomainProperty()`, NOT on ParentMfeBridge
 - **AND** the parent SHALL use `registry.executeActionsChain()` directly for action chain execution, NOT a method on the bridge
-
-#### Scenario: Hierarchical composition internal transport via bridge
-
-- **GIVEN** a child MFE that defines its own domains (hierarchical composition)
-- **AND** the child MFE's concrete bridge implementation registers a handler via `childBridgeImpl.onActionsChain(handler)` (concrete-only, not public interface)
-- **WHEN** the parent's mediator needs to deliver an actions chain to the child's domain hierarchy
-- **THEN** the system SHALL forward the actions chain via `parentBridgeImpl.sendActionsChain()` (concrete-only, not public interface)
-- **AND** the chain SHALL be forwarded to `childBridgeImpl.handleParentActionsChain()` (concrete-only)
-- **AND** the handler SHALL return a `ChainResult` from executing the actions chain
-- **AND** if no handler is registered, the system SHALL throw `NoActionsChainHandlerError`
-- **AND** if the bridge has been disposed, the system SHALL throw `BridgeDisposedError`
-- **AND** this entire transport mechanism is private/internal -- it does NOT appear on any public interface
 
 ### Requirement: Framework-Agnostic MFE Module Interface
 
@@ -631,73 +606,79 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 
 ### Requirement: HAI3 Action Constants
 
-The system SHALL export constants for standard HAI3 actions following the DRY principle. Instead of domain-specific actions (show_popup, hide_popup, show_sidebar, hide_sidebar), HAI3 provides generic extension lifecycle actions that each domain handles according to its layout behavior.
+The system SHALL export constants for standard HAI3 extension lifecycle actions following the DRY principle. Three generic actions replace domain-specific action types. See [Extension Lifecycle Actions](../../design/mfe-ext-lifecycle-actions.md) for the complete design.
 
 #### Scenario: Standard action type IDs
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export action type ID constants:
-  - `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1`
-  - `HAI3_ACTION_UNLOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1`
-
-#### Scenario: DRY principle for extension actions
-
-- **WHEN** an MFE needs to load an extension into any domain (popup, sidebar, screen, overlay)
-- **THEN** it SHALL use `HAI3_ACTION_LOAD_EXT` with payload specifying target domain and extension
-- **AND** each domain SHALL handle the generic action according to its specific layout behavior
+  - `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1`
+  - `HAI3_ACTION_MOUNT_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1`
+  - `HAI3_ACTION_UNMOUNT_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1`
 - **AND** there SHALL NOT be separate action types for each domain (no show_popup, show_sidebar, etc.)
 
 #### Scenario: load_ext action payload structure
 
 - **WHEN** dispatching a `load_ext` action
-- **THEN** the payload SHALL include `domainTypeId` (string) - the target domain to load into
-- **AND** the payload SHALL include `extensionTypeId` (string) - the extension to load
-- **AND** the payload MAY include additional domain-specific parameters
+- **THEN** the payload SHALL include `extensionId` (string) - the extension to load
+- **AND** the action target SHALL be a domain type ID (set on the Action.target field)
 
-#### Scenario: unload_ext action payload structure
+#### Scenario: mount_ext action payload structure
 
-- **WHEN** dispatching an `unload_ext` action
-- **THEN** the payload SHALL include `domainTypeId` (string) - the domain to unload from
-- **AND** the payload SHALL include `extensionTypeId` (string) - the extension to unload
+- **WHEN** dispatching a `mount_ext` action
+- **THEN** the payload SHALL include `extensionId` (string) - the extension to mount
+- **AND** the payload SHALL NOT include a `container` field (container is provided by the domain's ContainerProvider)
+- **AND** the action target SHALL be a domain type ID (set on the Action.target field)
+
+#### Scenario: unmount_ext action payload structure
+
+- **WHEN** dispatching an `unmount_ext` action
+- **THEN** the payload SHALL include `extensionId` (string) - the extension to unmount
+- **AND** the action target SHALL be a domain type ID (set on the Action.target field)
 
 ### Requirement: Domain-Specific Action Support
 
-The system SHALL allow domains to declare which HAI3 actions they support. Not all domains can support all actions semantically.
+The system SHALL allow domains to declare which HAI3 extension lifecycle actions they support. Not all domains can support all actions semantically. See [Extension Lifecycle Actions - Domain Action Support Matrix](../../design/mfe-ext-lifecycle-actions.md#domain-action-support-matrix) for the complete matrix.
 
 #### Scenario: Domain declares supported actions
 
 - **WHEN** defining an ExtensionDomain
 - **THEN** the domain SHALL include an `actions` field listing supported HAI3 actions
 - **AND** the `actions` field SHALL be an array of action type IDs (strings)
-- **AND** all domains MUST support `HAI3_ACTION_LOAD_EXT` at minimum
-- **AND** domains MAY optionally support `HAI3_ACTION_UNLOAD_EXT`
+- **AND** all extension domains MUST support `HAI3_ACTION_LOAD_EXT` and `HAI3_ACTION_MOUNT_EXT` at minimum
+- **AND** domains MAY optionally support `HAI3_ACTION_UNMOUNT_EXT`
 
-#### Scenario: Popup domain supports both load and unload
+#### Scenario: Popup domain supports all three lifecycle actions
 
 - **WHEN** defining the popup base domain
 - **THEN** `actions` SHALL include `HAI3_ACTION_LOAD_EXT`
-- **AND** `actions` SHALL include `HAI3_ACTION_UNLOAD_EXT`
-- **AND** popup can be shown (load) and hidden (unload)
+- **AND** `actions` SHALL include `HAI3_ACTION_MOUNT_EXT`
+- **AND** `actions` SHALL include `HAI3_ACTION_UNMOUNT_EXT`
+- **AND** popup can be preloaded (load), shown (mount), and dismissed (unmount)
 
-#### Scenario: Sidebar domain supports both load and unload
+#### Scenario: Sidebar domain supports all three lifecycle actions
 
 - **WHEN** defining the sidebar base domain
 - **THEN** `actions` SHALL include `HAI3_ACTION_LOAD_EXT`
-- **AND** `actions` SHALL include `HAI3_ACTION_UNLOAD_EXT`
-- **AND** sidebar can be shown (load) and hidden (unload)
+- **AND** `actions` SHALL include `HAI3_ACTION_MOUNT_EXT`
+- **AND** `actions` SHALL include `HAI3_ACTION_UNMOUNT_EXT`
+- **AND** sidebar can be preloaded (load), shown (mount), and hidden (unmount)
 
-#### Scenario: Overlay domain supports both load and unload
+#### Scenario: Overlay domain supports all three lifecycle actions
 
 - **WHEN** defining the overlay base domain
 - **THEN** `actions` SHALL include `HAI3_ACTION_LOAD_EXT`
-- **AND** `actions` SHALL include `HAI3_ACTION_UNLOAD_EXT`
-- **AND** overlay can be shown (load) and hidden (unload)
+- **AND** `actions` SHALL include `HAI3_ACTION_MOUNT_EXT`
+- **AND** `actions` SHALL include `HAI3_ACTION_UNMOUNT_EXT`
+- **AND** overlay can be preloaded (load), shown (mount), and dismissed (unmount)
 
-#### Scenario: Screen domain only supports load
+#### Scenario: Screen domain supports load and mount only
 
 - **WHEN** defining the screen base domain
 - **THEN** `actions` SHALL include `HAI3_ACTION_LOAD_EXT`
-- **AND** `actions` SHALL NOT include `HAI3_ACTION_UNLOAD_EXT`
+- **AND** `actions` SHALL include `HAI3_ACTION_MOUNT_EXT`
+- **AND** `actions` SHALL NOT include `HAI3_ACTION_UNMOUNT_EXT`
+- **AND** mount uses swap semantics (unmount current, mount new)
 - **AND** you can navigate TO a screen but cannot have "no screen selected"
 
 #### Scenario: ActionsChainsMediator validates domain action support
@@ -1029,7 +1010,8 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 #### Scenario: Register domain dynamically
 
 - **WHEN** a screenset needs to add a new extension point at runtime
-- **THEN** the system SHALL allow calling `runtime.registerDomain(domain)` at any time
+- **THEN** the system SHALL allow calling `runtime.registerDomain(domain, containerProvider)` at any time
+- **AND** the `containerProvider` parameter SHALL be a `ContainerProvider` instance that supplies DOM containers for extensions in this domain
 - **AND** the domain SHALL be validated against schema before registration
 - **AND** extensions MAY then be registered for this domain
 
@@ -1040,97 +1022,52 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 - **AND** all extensions in this domain SHALL be unregistered first
 - **AND** all mounted MFEs in this domain SHALL be unmounted
 
-#### Scenario: Mount extension on demand
-
-- **WHEN** an extension is registered but not yet mounted
-- **THEN** the system SHALL allow calling `runtime.mountExtension(extensionId, container)`
-- **AND** the extension MUST be registered before mounting (validation dependency)
-- **AND** the MFE bundle SHALL be loaded via MfeHandler
-- **AND** a bridge connection SHALL be created and returned
-- **AND** the MFE SHALL be mounted into the container element
-
-#### Scenario: Unmount extension
-
-- **WHEN** an extension is no longer needed but should remain registered
-- **THEN** the system SHALL allow calling `runtime.unmountExtension(extensionId)`
-- **AND** the bridge SHALL be disposed
-- **AND** the MFE SHALL be unmounted from the container
-- **AND** the extension SHALL remain registered for future mounting
-
-### Requirement: ScreensetsRegistry Dynamic API
-
-The ScreensetsRegistry SHALL provide a complete API for dynamic registration and lifecycle management.
-
-#### Scenario: ScreensetsRegistry registerExtension method
+#### Scenario: registerExtension method contract
 
 - **WHEN** calling `runtime.registerExtension(extension)`
 - **THEN** the method SHALL return `Promise<void>`
 - **AND** the extension SHALL be validated against GTS schema
 - **AND** the domain MUST exist (registered earlier or dynamically)
-- **AND** the entry SHALL be resolved (from cache or provider)
 - **AND** the contract SHALL be validated (entry vs domain)
 - **AND** the extension type hierarchy SHALL be validated against domain's extensionsTypeId (if specified)
 
-#### Scenario: ScreensetsRegistry unregisterExtension method
+#### Scenario: unregisterExtension method contract
 
 - **WHEN** calling `runtime.unregisterExtension(extensionId)`
 - **THEN** the method SHALL return `Promise<void>`
 - **AND** if extension is mounted, the MFE SHALL be unmounted first
-- **AND** the extension SHALL be removed from registry
-- **AND** the extension SHALL be removed from domain's extension set
+- **AND** the extension SHALL be removed from registry and domain's extension set
 - **AND** the operation SHALL be idempotent (no error if already unregistered)
 
-#### Scenario: ScreensetsRegistry registerDomain method
+#### Scenario: registerDomain method contract
 
-- **WHEN** calling `runtime.registerDomain(domain)`
+- **WHEN** calling `runtime.registerDomain(domain, containerProvider)`
 - **THEN** the method SHALL return `void` (synchronous)
+- **AND** the `containerProvider` SHALL be a `ContainerProvider` instance
 - **AND** the domain SHALL be validated against GTS schema
-- **AND** the domain SHALL be added to registry
+- **AND** the `containerProvider` SHALL be stored alongside the domain state
 
-#### Scenario: ScreensetsRegistry unregisterDomain method
+#### Scenario: unregisterDomain method contract
 
 - **WHEN** calling `runtime.unregisterDomain(domainId)`
 - **THEN** the method SHALL return `Promise<void>`
 - **AND** all extensions in domain SHALL be unregistered first
-- **AND** the domain SHALL be removed from registry
 - **AND** the operation SHALL be idempotent
 
-#### Scenario: ScreensetsRegistry loadExtension method
+#### Scenario: Mount extension on demand
 
-- **WHEN** calling `runtime.loadExtension(extensionId)`
-- **THEN** the method SHALL return `Promise<void>`
-- **AND** the extension MUST be registered
-- **AND** the MFE bundle SHALL be loaded via the appropriate MfeHandler
-- **AND** the loaded lifecycle SHALL be cached for mounting
-- **AND** the MFE SHALL NOT be mounted to DOM (loading only)
-- **AND** subsequent load calls SHALL be no-ops if already loaded
+- **WHEN** an extension is registered but not yet mounted
+- **THEN** the system SHALL allow mounting via `runtime.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` action targeting the domain
+- **AND** the extension MUST be registered before mounting (validation dependency)
+- **AND** the MFE bundle SHALL be loaded via MfeHandler (internally by MountManager)
+- **AND** a bridge connection SHALL be created
 
-#### Scenario: ScreensetsRegistry preloadExtension method
+#### Scenario: Unmount extension
 
-- **WHEN** calling `runtime.preloadExtension(extensionId)`
-- **THEN** the method SHALL return `Promise<void>`
-- **AND** the extension MUST be registered
-- **AND** the behavior SHALL be identical to loadExtension
-- **AND** this method SHALL be used semantically for preloading (e.g., on hover)
-- **AND** the handler MAY use batch optimization via `handler.preload()` if available
-
-#### Scenario: ScreensetsRegistry mountExtension method
-
-- **WHEN** calling `runtime.mountExtension(extensionId, container)`
-- **THEN** the method SHALL return `Promise<ParentMfeBridge>`
-- **AND** the extension MUST be registered
-- **AND** if extension is not loaded, it SHALL be loaded automatically
-- **AND** a bridge SHALL be created and connected
-- **AND** the runtime SHALL be registered with coordinator
-- **AND** the MFE lifecycle.mount() SHALL be called with container and bridge
-
-#### Scenario: ScreensetsRegistry unmountExtension method
-
-- **WHEN** calling `runtime.unmountExtension(extensionId)`
-- **THEN** the method SHALL return `Promise<void>`
+- **WHEN** an extension is no longer needed but should remain registered
+- **THEN** the system SHALL allow unmounting via `runtime.executeActionsChain()` with `HAI3_ACTION_UNMOUNT_EXT` action targeting the domain
 - **AND** the bridge SHALL be disposed
-- **AND** the runtime SHALL be unregistered from coordinator
-- **AND** the extension SHALL remain registered
+- **AND** the extension SHALL remain registered for future mounting
 - **AND** the bundle SHALL remain loaded (cached for remounting)
 
 #### Scenario: Load vs mount distinction
@@ -1138,6 +1075,66 @@ The ScreensetsRegistry SHALL provide a complete API for dynamic registration and
 Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](../../design/registry-runtime.md#load-vs-mount) for details.
 
 - **WHEN** understanding the difference between load and mount
-- **THEN** `loadExtension()` SHALL fetch and initialize the JavaScript bundle only
-- **AND** `mountExtension()` SHALL render the loaded extension to a DOM container
+- **THEN** the load operation SHALL fetch and initialize the JavaScript bundle only
+- **AND** the mount operation SHALL render the loaded extension to a DOM container
 - **AND** an extension CAN be loaded but not mounted (preloading scenario)
+- **AND** these operations are NOT exposed as methods on the abstract `ScreensetsRegistry` -- they are internal to `MountManager` and accessed via `ExtensionLifecycleActionHandler` callbacks
+
+### Requirement: Container Provider Abstraction
+
+The system SHALL provide a `ContainerProvider` abstract class that shifts DOM container management from action callers to the domain. See [Extension Lifecycle Actions - ContainerProvider](../../design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) for the complete design.
+
+#### Scenario: ContainerProvider abstract class definition
+
+- **WHEN** importing `@hai3/screensets`
+- **THEN** the package SHALL export a `ContainerProvider` abstract class
+- **AND** the class SHALL define `abstract getContainer(extensionId: string): Element`
+- **AND** the class SHALL define `abstract releaseContainer(extensionId: string): void`
+
+#### Scenario: ContainerProvider registered with domain
+
+- **WHEN** calling `runtime.registerDomain(domain, containerProvider)`
+- **THEN** the `containerProvider` parameter SHALL be required
+- **AND** the containerProvider SHALL be stored alongside the domain state
+- **AND** the containerProvider SHALL be passed to the `ExtensionLifecycleActionHandler` at construction time
+
+#### Scenario: mount_ext uses ContainerProvider
+
+- **WHEN** the `ExtensionLifecycleActionHandler` handles a `mount_ext` action
+- **THEN** the handler SHALL call `this.containerProvider.getContainer(extensionId)` to obtain the DOM container
+- **AND** the handler SHALL pass the obtained container to `this.callbacks.mountExtension(extensionId, container)`
+- **AND** the callback SHALL route through `OperationSerializer` to `MountManager.mountExtension(id, container)`
+- **AND** the `mount_ext` payload SHALL NOT contain a `container` field
+- **AND** the handler SHALL be the single owner of all `ContainerProvider` interactions (both `getContainer` and `releaseContainer`)
+
+#### Scenario: unmount_ext releases container
+
+- **WHEN** the `ExtensionLifecycleActionHandler` handles an `unmount_ext` action
+- **THEN** after `MountManager.unmountExtension()` completes, the handler SHALL call `containerProvider.releaseContainer(extensionId)`
+
+#### Scenario: swap-semantics domain mount_ext with currently mounted extension
+
+- **WHEN** `mount_ext` is dispatched on a swap-semantics domain (screen domain)
+- **AND** there is a currently mounted extension in that domain
+- **THEN** the handler SHALL call `unmountExtension` for the current extension
+- **AND** the handler SHALL call `releaseContainer(currentExtensionId)` for the current extension
+- **THEN** the handler SHALL call `getContainer(newExtensionId)` for the new extension
+- **AND** the handler SHALL call `mountExtension` for the new extension with the obtained container
+- **AND** the transition SHALL be seamless (no visible empty state)
+
+#### Scenario: getContainer failure
+
+- **WHEN** `containerProvider.getContainer(extensionId)` throws an error
+- **THEN** the mount operation SHALL fail
+- **AND** the error SHALL propagate as the mount_ext action failure
+- **AND** the fallback chain SHALL be executed if defined
+
+#### Scenario: ExtensionDomainSlot and RefContainerProvider (React layer)
+
+- **WHEN** a React-rendered extension domain is registered
+- **THEN** the registration code SHALL use a concrete `RefContainerProvider` (from `@hai3/react`) wrapping the `ExtensionDomainSlot` component's React ref
+- **AND** `RefContainerProvider` and `ExtensionDomainSlot` SHALL live in `@hai3/react`, NOT in `@hai3/screensets` (`@hai3/screensets` is SDK Layer L1 with zero dependencies -- it must not import React)
+- **AND** the `RefContainerProvider` SHALL be passed to `registerDomain()` as the `containerProvider` parameter
+- **AND** the `ExtensionDomainSlot` component itself SHALL NOT call `registerDomain()` (it only dispatches mount/unmount actions)
+- **AND** `getContainer()` SHALL read `ref.current` lazily at call time and return the ref's current element
+- **AND** `releaseContainer()` SHALL be a no-op (React manages ref lifecycle)

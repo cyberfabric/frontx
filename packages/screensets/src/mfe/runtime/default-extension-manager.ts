@@ -136,6 +136,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       properties: new Map(),
       extensions: new Set(),
       propertySubscribers: new Map(),
+      mountedExtension: undefined,
     });
 
     // Step 4: Trigger 'init' lifecycle stage (fire-and-forget)
@@ -408,18 +409,28 @@ export class DefaultExtensionManager extends ExtensionManager {
   }
 
   /**
-   * Resolve an MfeEntry from its ID by looking up in extension states.
+   * Resolve an MfeEntry from its ID by looking up in extension states or the type system.
    *
    * @param entryId - Entry ID to resolve
    * @returns The MfeEntry, or undefined if not found
    * @private
    */
   private resolveEntry(entryId: string): MfeEntry | undefined {
+    // First, check existing extension states
     for (const state of this.extensions.values()) {
       if (state.entry.id === entryId) {
         return state.entry;
       }
     }
+
+    // If not found in extensions, try to resolve from type system
+    // This allows newly registered entries (via gtsPlugin.register/typeSystem.register) to be used
+    // getSchema() returns the entity's content, which for instances is the instance data itself
+    const schema = this.typeSystem.getSchema(entryId);
+    if (schema) {
+      return schema as unknown as MfeEntry;
+    }
+
     return undefined;
   }
 
@@ -446,5 +457,32 @@ export class DefaultExtensionManager extends ExtensionManager {
    */
   getExtensionsMap(): Map<string, ExtensionState> {
     return this.extensions;
+  }
+
+  /**
+   * Get the currently mounted extension in a domain.
+   * Each domain supports at most one mounted extension at a time.
+   *
+   * @param domainId - ID of the domain
+   * @returns Extension ID if mounted, undefined otherwise
+   */
+  getMountedExtension(domainId: string): string | undefined {
+    const domainState = this.domains.get(domainId);
+    return domainState?.mountedExtension;
+  }
+
+  /**
+   * Set the mounted extension for a domain.
+   * Called by MountManager when an extension is mounted.
+   *
+   * @param domainId - ID of the domain
+   * @param extensionId - ID of the mounted extension, or undefined to clear
+   */
+  setMountedExtension(domainId: string, extensionId: string | undefined): void {
+    const domainState = this.domains.get(domainId);
+    if (!domainState) {
+      throw new Error(`Domain '${domainId}' not registered`);
+    }
+    domainState.mountedExtension = extensionId;
   }
 }

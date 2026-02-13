@@ -13,6 +13,7 @@ import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-ma
 import { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../../../src/mfe/plugins/types';
 import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
+import { MockContainerProvider } from '../test-utils';
 
 // Helper to access private members for testing (replaces 'as any' with proper typing)
 interface RegistryInternals {
@@ -205,6 +206,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       // Registry should be fully functional immediately
       expect(registry.typeSystem).toBeDefined();
       expect(() => {
+        const mockContainerProvider = new MockContainerProvider();
         registry.registerDomain({
           id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
           sharedProperties: [],
@@ -213,7 +215,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
           defaultActionTimeout: 5000,
           lifecycleStages: [],
           extensionsLifecycleStages: [],
-        });
+        }, mockContainerProvider);
       }).not.toThrow();
     });
 

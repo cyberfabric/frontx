@@ -48,12 +48,34 @@ export default [
 
   // Framework package: Allow unknown/object types (wraps SDK with plugin architecture)
   // Also disable layer enforcement - framework imports from SDK packages
+  // BUT keep Flux rules for effects files
   {
     files: ['packages/framework/**/*.ts'],
+    ignores: ['**/effects.ts', '**/*Effects.ts', '**/effects/**/*.ts'],
     rules: {
       'no-restricted-syntax': 'off',
       '@typescript-eslint/no-empty-object-type': 'off',
       '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
+    },
+  },
+
+  // Framework effects: Keep Flux rules but disable layer enforcement
+  {
+    files: ['packages/framework/**/effects.ts', 'packages/framework/**/*Effects.ts'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
+      '@typescript-eslint/no-empty-object-type': 'off',
+      // Keep no-restricted-syntax (enforced by frameworkConfig Flux rules)
+    },
+  },
+
+  // Framework action files in effects directory: Allow event emission but disable layer enforcement
+  {
+    files: ['packages/framework/**/effects/**/*Actions.ts', 'packages/framework/**/effects/**/actions.ts'],
+    rules: {
+      'no-restricted-syntax': 'off', // Actions emit events as their primary purpose
+      '@typescript-eslint/no-restricted-imports': 'off', // Framework imports from SDK (L1) packages
+      '@typescript-eslint/no-empty-object-type': 'off',
     },
   },
 

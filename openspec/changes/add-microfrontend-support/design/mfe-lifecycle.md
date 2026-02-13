@@ -104,7 +104,7 @@ unregisterExtension(extId)
 
 **Domain Lifecycle:**
 ```
-registerDomain(domain)
+registerDomain(domain, containerProvider)
     |
     v
 [init]  <-- Triggers domain.lifecycle hooks for 'init' stage
@@ -379,7 +379,7 @@ const widgetSlotDomain: ExtensionDomain = {
   sharedProperties: [
     'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.user_context.v1',
   ],
-  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT],
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
   extensionsActions: [
     'gts.hai3.mfes.comm.action.v1~acme.dashboard.ext.data_update.v1',
   ],

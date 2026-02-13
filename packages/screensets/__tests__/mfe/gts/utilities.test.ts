@@ -13,7 +13,8 @@ import {
   HAI3_EXT_EXTENSION,
   HAI3_EXT_ACTION,
   HAI3_ACTION_LOAD_EXT,
-  HAI3_ACTION_UNLOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
 
 describe('HAI3 constants values', () => {
@@ -43,16 +44,20 @@ describe('HAI3 constants values', () => {
   describe('action instance IDs', () => {
     it('should have correct action instance IDs', () => {
       expect(HAI3_ACTION_LOAD_EXT).toBe(
-        'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'
       );
-      expect(HAI3_ACTION_UNLOAD_EXT).toBe(
-        'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1'
+      expect(HAI3_ACTION_MOUNT_EXT).toBe(
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1'
+      );
+      expect(HAI3_ACTION_UNMOUNT_EXT).toBe(
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1'
       );
     });
 
     it('should confirm action IDs do not end with ~', () => {
       expect(HAI3_ACTION_LOAD_EXT.endsWith('~')).toBe(false);
-      expect(HAI3_ACTION_UNLOAD_EXT.endsWith('~')).toBe(false);
+      expect(HAI3_ACTION_MOUNT_EXT.endsWith('~')).toBe(false);
+      expect(HAI3_ACTION_UNMOUNT_EXT.endsWith('~')).toBe(false);
     });
   });
 });

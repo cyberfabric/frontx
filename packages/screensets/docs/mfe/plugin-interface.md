@@ -231,7 +231,7 @@ import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
 // Use the registry
-registry.registerDomain(myDomain);
+registry.registerDomain(myDomain, containerProvider);
 ```
 
 ### Registering and Validating Entities

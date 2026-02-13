@@ -26,9 +26,9 @@ const app = createHAI3()
 
 // All registration happens dynamically at runtime:
 // - dispatch(registerExtension({ extension }))
-// - dispatch(registerDomain({ domain }))
+// - dispatch(registerDomain(domain, containerProvider))
 // - runtime.registerExtension(extension)
-// - runtime.registerDomain(domain)
+// - runtime.registerDomain(domain, containerProvider)
 ```
 
 - **WHEN** building an app with microfrontends plugin
@@ -51,9 +51,9 @@ HAI3's default handler enforces instance-level isolation. See [Runtime Isolation
 - **THEN** each MFE instance SHALL have its own isolated runtime
 - **AND** only stateless utilities (lodash, date-fns) MAY be shared for bundle optimization
 
-### Requirement: MFE Actions
+### Requirement: MFE Lifecycle Actions
 
-The system SHALL provide MFE actions that emit events only, following HAI3 Flux pattern (no async, return void).
+The system SHALL provide MFE lifecycle actions that call `screensetsRegistry.executeActionsChain()` directly (fire-and-forget), following HAI3 Flux pattern (no async, return void). Lifecycle actions do NOT emit events -- they resolve the extension's domain and invoke the actions chain synchronously.
 
 #### Scenario: Load MFE bundle action
 
@@ -63,34 +63,32 @@ import { mfeActions } from '@hai3/framework';
 // Extension type ID (plain string - runtime validation via gts-ts)
 const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
-// Action emits event, returns void - loads JS bundle only
+// Action calls executeActionsChain fire-and-forget, returns void
 mfeActions.loadExtension(ANALYTICS_EXTENSION_ID);
-// Emits: 'mfe/loadRequested' with { extensionId }
+// Resolves domain, calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_LOAD_EXT
 ```
 
 - **WHEN** calling `loadExtension` action
-- **THEN** it SHALL emit `'mfe/loadRequested'` event with `extensionId`
-- **AND** it SHALL return `void` (no Promise)
-- **AND** it SHALL NOT perform any async operations
-- **AND** the effect SHALL call `runtime.loadExtension()` to fetch the JS bundle
+- **THEN** it SHALL resolve the extension's domain from the registry
+- **AND** it SHALL call `screensetsRegistry.executeActionsChain()` with `HAI3_ACTION_LOAD_EXT` fire-and-forget
+- **AND** it SHALL return `void` (no Promise, no await)
+- **AND** it SHALL NOT emit any events
 
 #### Scenario: Preload MFE bundle action
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
 
-// Extension type ID (plain string - runtime validation via gts-ts)
 const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
-// Action emits event for preloading - fetch bundle before user navigates
+// Action calls executeActionsChain fire-and-forget
 mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
-// Emits: 'mfe/preloadRequested' with { extensionId }
+// Same as loadExtension -- resolves domain, calls executeActionsChain with HAI3_ACTION_LOAD_EXT
 ```
 
 - **WHEN** calling `preloadExtension` action
-- **THEN** it SHALL emit `'mfe/preloadRequested'` event with `extensionId`
-- **AND** it SHALL return `void` (no Promise)
-- **AND** the effect SHALL call `runtime.preloadExtension()` to fetch the JS bundle
+- **THEN** it SHALL resolve the extension's domain and call `screensetsRegistry.executeActionsChain()` with `HAI3_ACTION_LOAD_EXT` fire-and-forget
+- **AND** it SHALL return `void` (no Promise, no await)
 - **AND** this is semantically for preloading (e.g., on hover)
 
 #### Scenario: Mount MFE action
@@ -98,173 +96,74 @@ mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID);
 ```typescript
 import { mfeActions } from '@hai3/framework';
 
-// Extension type ID (plain string - runtime validation via gts-ts)
 const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
-// Action emits event, returns void - mounts to DOM (auto-loads if needed)
+// Action calls executeActionsChain fire-and-forget
 mfeActions.mountExtension(ANALYTICS_EXTENSION_ID);
-// Emits: 'mfe/mountRequested' with { extensionId }
+// Resolves domain, calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_MOUNT_EXT
 ```
 
 - **WHEN** calling `mountExtension` action
-- **THEN** it SHALL emit `'mfe/mountRequested'` event with `extensionId`
-- **AND** it SHALL return `void` (no Promise)
-- **AND** it SHALL NOT perform any async operations
-- **AND** the effect SHALL call `runtime.mountExtension()` (which auto-loads if needed)
+- **THEN** it SHALL resolve the extension's domain from the registry
+- **AND** it SHALL call `screensetsRegistry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` fire-and-forget
+- **AND** it SHALL return `void` (no Promise, no await)
+- **AND** it SHALL NOT emit any events
 
-#### Scenario: Handle MFE child action
+### Requirement: MFE Registration Effects
 
-```typescript
-// Called by ScreensetsRegistry when MFE (child) sends an action chain to parent
-// actionTypeId references gts.hai3.mfes.comm.action.v1~
-mfeActions.handleMfeChildAction(extensionId, actionTypeId, payload);
-// Emits: 'mfe/childActionRequested' with { extensionId, actionTypeId, payload }
-```
+The system SHALL provide MFE effects for registration operations only. Effects subscribe to registration events, call ScreensetsRegistry methods, and dispatch to slices. Lifecycle operations (load, preload, mount, unmount) are handled directly by actions -- NOT by effects.
 
-- **WHEN** the child bridge forwards an action chain to the parent via internal bridge wiring
-- **THEN** it SHALL call `handleMfeChildAction` action
-- **AND** the action SHALL emit `'mfe/childActionRequested'` event
-- **AND** effects SHALL handle the event and call ScreensetsRegistry methods
-
-### Requirement: MFE Effects
-
-The system SHALL provide MFE effects that subscribe to events, call ScreensetsRegistry methods, and dispatch to slices.
-
-#### Scenario: Load effect handles loadRequested event
+#### Scenario: Register extension effect
 
 ```typescript
-import { ScreensetsRegistry } from '@hai3/screensets';
-
-// Effect subscribes to event, calls runtime, dispatches to slice
-// extensionId is Extension type: gts.hai3.mfes.ext.extension.v1~...
-// Note: eventBus is the framework (L2) event bus, not the removed screensets EventEmitter.
-eventBus.on('mfe/loadRequested', async ({ extensionId }) => {
-  dispatch(mfeSlice.actions.setLoading({ extensionId }));
+eventBus.on('mfe/registerExtensionRequested', async ({ extension }) => {
+  dispatch(mfeSlice.actions.setExtensionRegistering({ extensionId: extension.id }));
   try {
-    await runtime.loadExtension(extensionId);
-    dispatch(mfeSlice.actions.setBundleLoaded({ extensionId }));
+    await screensetsRegistry.registerExtension(extension);
+    dispatch(mfeSlice.actions.setExtensionRegistered({ extensionId: extension.id }));
   } catch (error) {
-    dispatch(mfeSlice.actions.setError({ extensionId, error: error.message }));
+    dispatch(mfeSlice.actions.setExtensionError({ extensionId: extension.id, error: error.message }));
   }
 });
 ```
 
-- **WHEN** `'mfe/loadRequested'` event is emitted
-- **THEN** the effect SHALL dispatch `setLoading` to mfeSlice
-- **AND** the effect SHALL call `runtime.loadExtension()` to fetch the JS bundle
-- **AND** on success, the effect SHALL dispatch `setBundleLoaded`
-- **AND** on failure, the effect SHALL dispatch `setError`
-- **AND** the bundle is loaded but NOT mounted to DOM
+- **WHEN** `'mfe/registerExtensionRequested'` event is emitted
+- **THEN** the effect SHALL dispatch `setExtensionRegistering` to mfeSlice
+- **AND** the effect SHALL call `screensetsRegistry.registerExtension()`
+- **AND** on success, the effect SHALL dispatch `setExtensionRegistered`
+- **AND** on failure, the effect SHALL dispatch `setExtensionError`
 
-#### Scenario: Preload effect handles preloadRequested event
+#### Scenario: Effects must NOT call executeActionsChain
 
-```typescript
-// Effect for preloading - similar to load but fires in background
-eventBus.on('mfe/preloadRequested', async ({ extensionId }) => {
-  try {
-    await runtime.preloadExtension(extensionId);
-    dispatch(mfeSlice.actions.setBundleLoaded({ extensionId }));
-  } catch (error) {
-    // Preload failures are logged but don't block UI
-    console.warn(`Failed to preload ${extensionId}:`, error);
-  }
-});
-```
+- **WHEN** writing effect code
+- **THEN** effects SHALL NOT call `screensetsRegistry.executeActionsChain()`
+- **AND** effects SHALL NOT call action-like commands that trigger the ActionsChainsMediator
+- **AND** ESLint SHALL enforce this via `no-restricted-syntax` on `executeActionsChain` calls in effects files
 
-- **WHEN** `'mfe/preloadRequested'` event is emitted
-- **THEN** the effect SHALL call `runtime.preloadExtension()` to fetch the JS bundle
-- **AND** on success, the effect SHALL dispatch `setBundleLoaded`
-- **AND** on failure, the effect SHALL log a warning (non-blocking)
-- **AND** preload SHALL NOT show loading UI to user
+### Requirement: MFE Registration State Tracking
 
-#### Scenario: Mount effect handles mountRequested event
+The system SHALL track MFE registration states via a store slice using extension IDs. Load and mount state tracking is handled internally by the screensets registry (`ExtensionState`) and is NOT duplicated in the framework store slice.
+
+#### Scenario: Query extension registration state
 
 ```typescript
-import { ScreensetsRegistry } from '@hai3/screensets';
+import { selectExtensionState, selectRegisteredExtensions } from '@hai3/framework';
 
-// Effect subscribes to event, calls runtime, dispatches to slice
-// extensionId is Extension type: gts.hai3.mfes.ext.extension.v1~...
-eventBus.on('mfe/mountRequested', async ({ extensionId }) => {
-  dispatch(mfeSlice.actions.setMounting({ extensionId }));
-  try {
-    await runtime.mountExtension(extensionId, container);
-    dispatch(mfeSlice.actions.setMounted({ extensionId }));
-  } catch (error) {
-    dispatch(mfeSlice.actions.setError({ extensionId, error: error.message }));
-  }
-});
+const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
+
+// Registration state tracks extension registration lifecycle
+const state = useAppSelector((s) => selectExtensionState(s, extensionId));
+// 'unregistered' | 'registering' | 'registered' | 'error'
+
+// Get all registered extensions
+const registeredExtensions = useAppSelector(selectRegisteredExtensions);
+// string[]
 ```
 
-- **WHEN** `'mfe/mountRequested'` event is emitted
-- **THEN** the effect SHALL dispatch `setMounting` to mfeSlice
-- **AND** the effect SHALL call `runtime.mountExtension()` (which auto-loads if needed)
-- **AND** on success, the effect SHALL dispatch `setMounted`
-- **AND** on failure, the effect SHALL dispatch `setError`
-- **AND** the effect SHALL NOT call any actions (prevents loops)
-
-#### Scenario: Child action effect handles extension load request
-
-```typescript
-import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
-
-// actionTypeId conforms to gts.hai3.mfes.comm.action.v1~
-eventBus.on('mfe/childActionRequested', async ({ extensionId, actionTypeId, payload }) => {
-  if (runtime.typeSystem.isTypeOf(actionTypeId, HAI3_ACTION_LOAD_EXT)) {
-    const { domainTypeId, targetExtensionId, ...params } = payload as LoadExtPayload;
-    // Domain handles the load according to its layout behavior (popup shows modal, sidebar shows panel, etc.)
-    runtime.mountExtension(targetExtensionId, params.container);
-    dispatch(layoutSlice.actions.extensionLoaded({ domainTypeId, extensionId: targetExtensionId }));
-  }
-});
-```
-
-- **WHEN** `'mfe/childActionRequested'` event with `load_ext` action is received
-- **THEN** the effect SHALL call `runtime.mountExtension()` with the target extension
-- **AND** the domain SHALL handle the extension according to its specific layout behavior
-- **AND** the effect SHALL dispatch to `layoutSlice`
-
-### Requirement: MFE Load State Tracking
-
-The system SHALL track MFE load and mount states via a store slice using extension IDs.
-
-#### Scenario: Query MFE load state
-
-```typescript
-import { selectMfeLoadState, selectMfeMountState, selectMfeError } from '@hai3/framework';
-
-// Extension type ID (plain string - runtime validation via gts-ts)
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
-
-// Load state tracks bundle loading
-const loadState = useAppSelector((state) =>
-  selectMfeLoadState(state, ANALYTICS_EXTENSION_ID)
-);
-// 'idle' | 'loading' | 'loaded' | 'error'
-
-// Mount state tracks DOM mounting
-const mountState = useAppSelector((state) =>
-  selectMfeMountState(state, ANALYTICS_EXTENSION_ID)
-);
-// 'unmounted' | 'mounting' | 'mounted' | 'error'
-
-const error = useAppSelector((state) =>
-  selectMfeError(state, ANALYTICS_EXTENSION_ID)
-);
-```
-
-- **WHEN** querying MFE load state
-- **THEN** `selectMfeLoadState()` SHALL accept an extension GTS type ID
-- **AND** load states SHALL be: 'idle', 'loading', 'loaded', 'error'
-- **AND** `selectMfeMountState()` SHALL return mount states: 'unmounted', 'mounting', 'mounted', 'error'
-- **AND** `selectMfeError()` SHALL return the error if either state is 'error'
-
-#### Scenario: Load vs mount state distinction
-
-- **WHEN** tracking MFE lifecycle
-- **THEN** load state SHALL track JavaScript bundle loading
-- **AND** mount state SHALL track DOM rendering
-- **AND** an extension CAN be 'loaded' but 'unmounted' (preloaded scenario)
-- **AND** an extension CANNOT be 'mounted' without being 'loaded' first
+- **WHEN** querying MFE registration state
+- **THEN** `selectExtensionState()` SHALL accept an extension GTS type ID
+- **AND** registration states SHALL be: 'unregistered', 'registering', 'registered', 'error'
+- **AND** `selectRegisteredExtensions()` SHALL return list of registered extension IDs
 
 ### Requirement: MFE Container Component
 
@@ -278,7 +177,7 @@ import { MfeContainer } from '@hai3/framework';
 // Extension type ID (plain string - runtime validation via gts-ts)
 const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
 
-// MfeContainer handles mounting via ScreensetsRegistry.mountExtension() and Shadow DOM isolation
+// MfeContainer handles mounting via executeActionsChain(HAI3_ACTION_MOUNT_EXT) and Shadow DOM isolation
 <MfeContainer
   extensionId={ANALYTICS_EXTENSION}
   cssVariables={themeVariables}
@@ -286,7 +185,7 @@ const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashb
 ```
 
 - **WHEN** rendering an MFE via `MfeContainer`
-- **THEN** the component SHALL call `runtime.mountExtension(extensionId, container)` (loading is handled internally)
+- **THEN** the component SHALL call `runtime.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` (loading is handled internally by MountManager)
 - **AND** it SHALL create a shadow root using `createShadowRoot()` from `@hai3/screensets`
 - **AND** it SHALL inject CSS variables using `injectCssVariables()` from `@hai3/screensets`
 - **AND** internally, the runtime calls `lifecycle.mount(shadowRoot, bridge)` on the loaded MfeEntryLifecycle
@@ -295,7 +194,7 @@ const ANALYTICS_EXTENSION = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashb
 #### Scenario: MfeContainer unmount cleanup
 
 - **WHEN** the `MfeContainer` component is unmounted
-- **THEN** it SHALL call `runtime.unmountExtension(extensionId)` (cleanup is handled internally)
+- **THEN** it SHALL call `runtime.executeActionsChain()` with `HAI3_ACTION_UNMOUNT_EXT` (cleanup is handled internally by MountManager)
 - **AND** internally, the runtime calls `lifecycle.unmount(shadowRoot)` on the MfeEntryLifecycle
 - **AND** the MFE SHALL clean up its framework-specific resources
 - **AND** the shadow root content SHALL be cleared
@@ -328,8 +227,6 @@ The system SHALL integrate MFE loading with the navigation plugin using actions/
 
 ```typescript
 import { mfeActions } from '@hai3/framework';
-import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
-import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
 // Navigate by mounting the extension on the screen domain
 // Screen domain interprets mount as "navigate to this screen"
@@ -337,46 +234,46 @@ mfeActions.mountExtension(
   'gts.hai3.mfes.ext.extension.v1~acme.analytics.screens.dashboard.v1',
 );
 // Note: Instance IDs do NOT end with ~ (only schema/type IDs do)
-// Effect handles: calls runtime.mountExtension() on the screen domain
+// Action resolves domain and calls screensetsRegistry.executeActionsChain() with HAI3_ACTION_MOUNT_EXT
 // Screen domain replaces current screen with the extension
 ```
 
 - **WHEN** mounting an extension on a screen domain
-- **THEN** the effect SHALL call `runtime.mountExtension()`
+- **THEN** the action SHALL resolve the domain and call `screensetsRegistry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` fire-and-forget
 - **AND** the screen domain SHALL replace the current screen with the extension
-- **AND** on error, the effect SHALL dispatch error to slice
 
 #### Scenario: Navigate away from MFE
 
 ```typescript
 app.actions.navigateToScreenset({ screensetId: 'local-screenset' });
-// Effect unmounts previous MFE via runtime
+// Navigation action triggers mount_ext on screen domain with new screenset
+// Screen domain swap semantics unmount the previous MFE automatically
 // Runtime cleans up bridge subscriptions
 ```
 
 - **WHEN** navigating away from an MFE screenset
-- **THEN** the effect SHALL unmount the previous MFE via runtime
-- **AND** the runtime SHALL clean up all bridge subscriptions
+- **THEN** the navigation action SHALL trigger screen domain swap semantics (mount new replaces old)
+- **AND** the runtime SHALL clean up all bridge subscriptions for the unmounted MFE
 
 ### Requirement: MFE Extension Loading (DRY Principle)
 
-The system SHALL support loading MFE extensions into any domain using generic `load_ext` and `unload_ext` actions. Each domain (popup, sidebar, screen, overlay) handles these actions according to its specific layout behavior. This follows the DRY principle - no need for domain-specific action types.
+The system SHALL support managing MFE extension lifecycle in any domain using three generic extension lifecycle actions: `load_ext`, `mount_ext`, and `unmount_ext`. Each domain (popup, sidebar, screen, overlay) handles these actions according to its specific layout behavior. This follows the DRY principle - no need for domain-specific action types. See [Extension Lifecycle Actions](../../design/mfe-ext-lifecycle-actions.md) for the complete design.
 
-#### Scenario: MFE requests extension load into popup domain
+#### Scenario: MFE requests extension mount into popup domain
 
 ```typescript
-import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
+import { HAI3_ACTION_MOUNT_EXT } from '@hai3/screensets';
 import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
 // Inside MFE component - bridge executes action chain via registry pass-through
-// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
+// HAI3_ACTION_MOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
 await bridge.executeActionsChain({
   action: {
-    type: HAI3_ACTION_LOAD_EXT,
+    type: HAI3_ACTION_MOUNT_EXT,
     target: HAI3_POPUP_DOMAIN,  // Target domain handles layout behavior
+    // The domain's ContainerProvider supplies the DOM container — callers do not pass it.
     payload: {
-      extensionTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
-      props: { format: 'pdf' },
+      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
     },
   },
 });
@@ -385,52 +282,52 @@ await bridge.executeActionsChain({
 // 1. bridge.executeActionsChain() delegates to registry.executeActionsChain() via injected callback
 // 2. Registry validates action chain against GTS schema
 // 3. ActionsChainsMediator routes chain to target domain
-// 4. Effect handles event, calls runtime.loadExtension() with domain and extension
+// 4. ExtensionLifecycleActionHandler calls mountExtension callback (OperationSerializer -> MountManager)
 // 5. Popup domain handles by showing modal with the extension
 ```
 
-- **WHEN** an MFE requests load_ext with popup domain
+- **WHEN** an MFE requests mount_ext with popup domain
 - **THEN** the bridge (from @hai3/screensets) SHALL validate the action chain
 - **AND** the bridge SHALL delegate to `registry.executeActionsChain()` via the injected callback (the bridge is a pass-through, not a router)
-- **AND** the effect SHALL call `runtime.loadExtension()` with domain and extension
+- **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `mountExtension` callback (OperationSerializer -> MountManager)
 - **AND** the popup domain SHALL render the extension as a modal
 
-#### Scenario: MFE requests extension unload from popup domain
+#### Scenario: MFE requests extension unmount from popup domain
 
 ```typescript
-import { HAI3_ACTION_UNLOAD_EXT } from '@hai3/screensets';
+import { HAI3_ACTION_UNMOUNT_EXT } from '@hai3/screensets';
 import { HAI3_POPUP_DOMAIN } from '@hai3/framework';
 
-// Inside MFE popup
-// HAI3_ACTION_UNLOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1
+// Inside MFE popup -- dismiss/close the popup
+// HAI3_ACTION_UNMOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1
 await bridge.executeActionsChain({
   action: {
-    type: HAI3_ACTION_UNLOAD_EXT,
+    type: HAI3_ACTION_UNMOUNT_EXT,
     target: HAI3_POPUP_DOMAIN,
     payload: {
-      extensionTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
+      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.popups.export.v1',
     },
   },
 });
 ```
 
-- **WHEN** an MFE requests unload_ext from popup domain
+- **WHEN** an MFE requests unmount_ext from popup domain
 - **THEN** the parent SHALL unmount the extension from the popup domain
-- **AND** the extension's bridge SHALL be destroyed
+- **AND** the extension's bridge SHALL be disposed
 
-#### Scenario: MFE requests extension load into sidebar domain
+#### Scenario: MFE requests extension preload into sidebar domain
 
 ```typescript
 import { HAI3_ACTION_LOAD_EXT } from '@hai3/screensets';
 import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
 
-// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1
+// HAI3_ACTION_LOAD_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1
 await bridge.executeActionsChain({
   action: {
     type: HAI3_ACTION_LOAD_EXT,
     target: HAI3_SIDEBAR_DOMAIN,  // Target domain handles layout behavior
     payload: {
-      extensionTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
+      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
     },
   },
 });
@@ -438,69 +335,97 @@ await bridge.executeActionsChain({
 
 - **WHEN** an MFE requests load_ext with sidebar domain
 - **THEN** the parent SHALL validate the action chain against the action schema
-- **AND** the effect SHALL call `runtime.loadExtension()` with domain and extension
+- **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `loadExtension` callback (OperationSerializer -> MountManager)
+- **AND** the extension's JS bundle SHALL be fetched and cached (no DOM rendering)
+- **AND** subsequent mount SHALL be instant
+
+#### Scenario: MFE requests extension mount into sidebar domain
+
+```typescript
+import { HAI3_ACTION_MOUNT_EXT } from '@hai3/screensets';
+import { HAI3_SIDEBAR_DOMAIN } from '@hai3/framework';
+
+// HAI3_ACTION_MOUNT_EXT is: gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1
+await bridge.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_MOUNT_EXT,
+    target: HAI3_SIDEBAR_DOMAIN,
+    // The domain's ContainerProvider supplies the DOM container — callers do not pass it.
+    payload: {
+      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.analytics.sidebars.quick_stats.v1',
+    },
+  },
+});
+```
+
+- **WHEN** an MFE requests mount_ext with sidebar domain
+- **THEN** the parent SHALL validate the action chain against the action schema
+- **AND** the domain's `ExtensionLifecycleActionHandler` SHALL call its `mountExtension` callback (OperationSerializer -> MountManager)
 - **AND** the sidebar domain SHALL render the extension as a side panel
 - **AND** the extension SHALL render in Shadow DOM
 
 #### Scenario: Domain-agnostic extension lifecycle
 
-- **WHEN** using `HAI3_ACTION_LOAD_EXT` or `HAI3_ACTION_UNLOAD_EXT`
-- **THEN** the same action type SHALL work for ANY extension domain (popup, sidebar, screen, overlay, custom)
+- **WHEN** using `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, or `HAI3_ACTION_UNMOUNT_EXT`
+- **THEN** the same action types SHALL work for ANY extension domain (popup, sidebar, screen, overlay, custom)
 - **AND** the domain SHALL interpret the action according to its layout semantics
 - **AND** no domain-specific action constants SHALL be needed
 
 #### Scenario: Domain-specific action support validation
 
 - **WHEN** an MFE requests an action on a domain
-- **THEN** the effect SHALL validate the domain supports the requested action
+- **THEN** the mediator SHALL validate the domain supports the requested action
 - **AND** if the domain does NOT support the action, the request SHALL fail
 - **AND** `UnsupportedDomainActionError` SHALL be thrown with clear error message
 
-#### Scenario: Screen domain only supports load_ext
+#### Scenario: Screen domain supports load and mount but not unmount
 
 ```typescript
-import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_UNLOAD_EXT } from '@hai3/screensets';
+import { HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT } from '@hai3/screensets';
 import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
 
-// This works - screen domain supports load_ext (navigate to screen)
+// This works - screen domain supports mount_ext (swap semantics: unmount current, mount new)
 await bridge.executeActionsChain({
   action: {
-    type: HAI3_ACTION_LOAD_EXT,
+    type: HAI3_ACTION_MOUNT_EXT,
     target: HAI3_SCREEN_DOMAIN,
+    // The domain's ContainerProvider supplies the DOM container — callers do not pass it.
     payload: {
-      extensionTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+      extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.screens.analytics.v1',
     },
   },
 });
 
-// This will FAIL - screen domain does NOT support unload_ext
+// This will FAIL - screen domain does NOT support unmount_ext
 // You cannot have "no screen selected"
 try {
   await bridge.executeActionsChain({
     action: {
-      type: HAI3_ACTION_UNLOAD_EXT,
+      type: HAI3_ACTION_UNMOUNT_EXT,
       target: HAI3_SCREEN_DOMAIN,
       payload: {
-        extensionTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.screens.analytics.v1',
+        extensionId: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.screens.analytics.v1',
       },
     },
   });
 } catch (error) {
-  // UnsupportedDomainActionError: Domain does not support action 'unload_ext'
+  // UnsupportedDomainActionError: Domain 'screen' does not support action 'unmount_ext'
 }
 ```
 
-- **WHEN** an MFE requests `unload_ext` on the screen domain
+- **WHEN** an MFE requests `unmount_ext` on the screen domain
 - **THEN** the request SHALL fail with `UnsupportedDomainActionError`
-- **AND** the error SHALL indicate the screen domain does not support unload
+- **AND** the error SHALL indicate the screen domain does not support unmount
 - **AND** the screen SHALL remain displayed (no navigation away to "nothing")
 
-#### Scenario: Popup, sidebar, overlay domains support both load and unload
+#### Scenario: Popup, sidebar, overlay domains support all three lifecycle actions
 
 - **WHEN** an MFE requests `load_ext` on popup, sidebar, or overlay domain
-- **THEN** the request SHALL succeed (all these domains support load)
-- **WHEN** an MFE requests `unload_ext` on popup, sidebar, or overlay domain
-- **THEN** the request SHALL succeed (all these domains support unload)
+- **THEN** the request SHALL succeed (all these domains support preloading)
+- **WHEN** an MFE requests `mount_ext` on popup, sidebar, or overlay domain
+- **THEN** the request SHALL succeed (all these domains support mounting)
+- **WHEN** an MFE requests `unmount_ext` on popup, sidebar, or overlay domain
+- **THEN** the request SHALL succeed (all these domains support unmounting)
 - **AND** the extension SHALL be hidden/closed appropriately for the domain
 
 ### Requirement: Error Boundary for MFEs
@@ -579,63 +504,16 @@ const MFE_ANALYTICS_ENTRY = 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v
 
 ### Requirement: MFE Preloading
 
-The system SHALL support preloading MFE bundles before navigation using extension IDs. Preloading loads the JS bundle without mounting to DOM.
+The system SHALL support preloading MFE bundles before navigation. Preloading behavior is defined in [Preload MFE bundle action](#scenario-preload-mfe-bundle-action) -- both `loadExtension` and `preloadExtension` resolve the domain and call `executeActionsChain()` with `HAI3_ACTION_LOAD_EXT` fire-and-forget. The distinction is semantic (intent: explicit load vs background preload).
 
-#### Scenario: Preload on menu hover
+#### Scenario: Preload usage patterns
 
-```typescript
-import { mfeActions } from '@hai3/framework';
-
-// Extension type ID (plain string - runtime validation via gts-ts)
-const ANALYTICS_EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1';
-
-// Preload is triggered via action, not static configuration
-// On click, mount the extension on its screen domain (which navigates to it)
-<MenuItem
-  onMouseEnter={() => mfeActions.preloadExtension(ANALYTICS_EXTENSION_ID)}
-  onClick={() => mfeActions.mountExtension(ANALYTICS_EXTENSION_ID)}
->
-  Analytics
-</MenuItem>
-```
-
-- **WHEN** preloading an MFE
-- **THEN** the preload action SHALL call `runtime.preloadExtension()` to fetch the JS bundle
-- **AND** the bundle SHALL be cached for instant mounting
-- **AND** preload SHALL NOT mount the MFE to DOM
-- **AND** subsequent mount calls SHALL be instant (bundle already loaded)
-
-#### Scenario: Immediate preload on app initialization
-
-```typescript
-import { mfeActions } from '@hai3/framework';
-
-// Preload can be triggered immediately after app initialization
-// via an effect that listens to app ready event
-// NOT via static plugin configuration
-
-// In an effect or app initialization hook:
-eventBus.on('app/ready', () => {
-  // Preload frequently used extensions dynamically
-  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.analytics.dashboard.v1');
-  mfeActions.preloadExtension('gts.hai3.mfes.ext.extension.v1~acme.billing.overview.v1');
-});
-// Analytics and billing bundles fetched after app startup
-```
-
-- **WHEN** preloading MFEs on app startup
-- **THEN** the preload action SHALL be triggered dynamically (e.g., in an effect)
-- **AND** the MFE bundles SHALL be fetched in the background
-- **AND** mounting to those MFEs SHALL be instant (bundles already loaded)
-
-#### Scenario: Load vs preload distinction
-
-Loading fetches the bundle; mounting renders to DOM. See [Load vs Mount](../../design/registry-runtime.md#load-vs-mount) for details.
-
-- **WHEN** using loadExtension vs preloadExtension
-- **THEN** both SHALL fetch and cache the JS bundle
-- **AND** loadExtension SHALL show loading UI (via slice state)
-- **AND** preloadExtension SHALL NOT show loading UI (silent background fetch)
+- **WHEN** preloading on menu hover
+- **THEN** calling `mfeActions.preloadExtension(extensionId)` on `onMouseEnter` SHALL fetch the bundle in the background
+- **AND** subsequent `mfeActions.mountExtension(extensionId)` on click SHALL be instant (bundle already cached)
+- **WHEN** preloading on app startup
+- **THEN** calling `mfeActions.preloadExtension(extensionId)` in an initialization effect SHALL fetch bundles in the background
+- **AND** preloading SHALL be triggered dynamically, NOT via static plugin configuration
 
 ### Requirement: ScreensetsRegistry Query Methods
 
@@ -698,8 +576,10 @@ import { MfeVersionMismatchError } from '@hai3/screensets';
 // If host uses React 18.x and MFE built with React 17.x:
 // The handler validates shared dependency versions when loading the MFE bundle
 try {
-  // Load extension - MfeHandlerMF resolves manifest internally from MfeEntryMF
-  await runtime.loadExtension(extensionId);
+  // Load extension via actions chain - MfeHandlerMF resolves manifest internally from MfeEntryMF
+  await runtime.executeActionsChain({
+    action: { type: HAI3_ACTION_LOAD_EXT, target: domainId, payload: { extensionId } },
+  });
 } catch (error) {
   if (error instanceof MfeVersionMismatchError) {
     console.log(`MFE entry ${error.manifestTypeId} has incompatible deps`);
@@ -839,8 +719,9 @@ eventBus.on('auth/loginSuccess', async ({ token }) => {
   const { domains, extensions } = await response.json();
 
   // MFE system only handles registration of already-fetched entities
+  // Each domain requires a ContainerProvider (see mfe-ext-lifecycle-actions.md)
   for (const domain of domains) {
-    mfeActions.registerDomain(domain);
+    mfeActions.registerDomain(domain, containerProviderForDomain(domain.id));
   }
   for (const extension of extensions) {
     mfeActions.registerExtension(extension);
@@ -877,3 +758,28 @@ function WidgetSlot() {
 - **AND** it SHALL call `runtime.getExtensionsForDomain(domainId)` to resolve the current extension list
 - **AND** it SHALL trigger re-render when the extension list for the domain changes
 - **AND** it SHALL return the current list of extensions for the domain
+
+### Requirement: ESLint Flux Protection for Effects
+
+The system SHALL enforce via ESLint that effects files cannot call `executeActionsChain()` or import action modules. This prevents the Flux architecture violation where effects trigger action-like commands.
+
+#### Scenario: Effects file naming convention coverage
+
+- **WHEN** an effects file is named `effects.ts` (lowercase)
+- **THEN** the ESLint rules for effects SHALL apply to it
+- **AND** the file globs SHALL include both `**/*Effects.ts` and `**/effects.ts` patterns
+- **AND** the rules SHALL be enforced in BOTH `screenset.ts` (L4) and `framework.ts` (L2) ESLint configs
+- **AND** the monorepo root `eslint.config.js` SHALL NOT disable `no-restricted-syntax` for effects files in the framework package
+
+#### Scenario: Effects cannot call executeActionsChain
+
+- **WHEN** an effects file calls `executeActionsChain()` on any object
+- **THEN** ESLint SHALL report a FLUX VIOLATION error
+- **AND** the error message SHALL state that effects cannot call `executeActionsChain()` because it triggers the ActionsChainsMediator
+
+#### Scenario: Effects cannot import actions
+
+- **WHEN** an effects file imports from an actions module
+- **THEN** ESLint SHALL report a FLUX VIOLATION error
+- **AND** the error message SHALL state that effects cannot import actions (circular flow risk)
+- **AND** event constants (e.g., `MfeEvents`) SHALL be extracted to a shared constants file so effects can import them without importing from actions

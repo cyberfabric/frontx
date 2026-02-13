@@ -91,6 +91,10 @@ export type {
   LifecycleHook,
   MfManifest,
   SharedDependencyConfig,
+  // Action payloads
+  LoadExtPayload,
+  MountExtPayload,
+  UnmountExtPayload,
   // Handler types
   ParentMfeBridge,
   ChildMfeBridge,
@@ -112,14 +116,15 @@ export {
   HAI3_EXT_EXTENSION,
   HAI3_EXT_ACTION,
   HAI3_ACTION_LOAD_EXT,
-  HAI3_ACTION_UNLOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
 } from './mfe';
 
 // GTS JSON Loaders (preferred method for loading schemas and instances)
 export { loadSchemas, loadLifecycleStages, loadBaseActions } from './mfe';
 
 // MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)
-export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory } from './mfe';
+export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory, ContainerProvider } from './mfe';
 export type { ScreensetsRegistryConfig } from './mfe';
 
 // Shadow DOM Utilities

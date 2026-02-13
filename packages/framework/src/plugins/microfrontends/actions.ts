@@ -1,57 +1,54 @@
 /**
  * MFE Actions
  *
- * Event-emitting action functions for MFE lifecycle operations.
- * These actions emit events that MFE effects handle.
+ * Action functions for MFE lifecycle and registration operations.
+ * Lifecycle actions call executeActionsChain() directly (fire-and-forget).
+ * Registration actions emit events that MFE effects handle.
  */
 
 import { eventBus } from '@hai3/state';
-import type { Extension, ExtensionDomain } from '@hai3/screensets';
+import { MfeEvents } from './constants';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+  type Extension,
+  type ExtensionDomain,
+  type ContainerProvider,
+  type ScreensetsRegistry,
+} from '@hai3/screensets';
 
 // ============================================================================
-// Event Types
+// Module-Level Registry Reference
 // ============================================================================
 
-/** MFE event names */
-export const MfeEvents = {
-  LoadRequested: 'mfe/loadRequested',
-  PreloadRequested: 'mfe/preloadRequested',
-  MountRequested: 'mfe/mountRequested',
-  UnmountRequested: 'mfe/unmountRequested',
-  HostActionRequested: 'mfe/hostActionRequested',
-  RegisterExtensionRequested: 'mfe/registerExtensionRequested',
-  UnregisterExtensionRequested: 'mfe/unregisterExtensionRequested',
-  RegisterDomainRequested: 'mfe/registerDomainRequested',
-  UnregisterDomainRequested: 'mfe/unregisterDomainRequested',
-} as const;
+let screensetsRegistry: ScreensetsRegistry | null = null;
 
-/** Payload for load extension event */
-export interface LoadExtensionPayload {
-  extensionId: string;
+/**
+ * Set the MFE-enabled ScreensetsRegistry reference.
+ * Called during plugin initialization.
+ */
+export function setMfeRegistry(registry: ScreensetsRegistry): void {
+  screensetsRegistry = registry;
 }
 
-/** Payload for preload extension event */
-export interface PreloadExtensionPayload {
-  extensionId: string;
+/**
+ * Helper to resolve domain ID for an extension.
+ */
+function resolveDomainId(extensionId: string): string {
+  if (!screensetsRegistry) {
+    throw new Error('MFE registry not initialized. Call setMfeRegistry() before using lifecycle actions.');
+  }
+  const extension = screensetsRegistry.getExtension(extensionId);
+  if (!extension) {
+    throw new Error(`Extension '${extensionId}' is not registered. Register it before calling lifecycle actions.`);
+  }
+  return extension.domain;
 }
 
-/** Payload for mount extension event */
-export interface MountExtensionPayload {
-  extensionId: string;
-  containerElement: HTMLElement;
-}
-
-/** Payload for unmount extension event */
-export interface UnmountExtensionPayload {
-  extensionId: string;
-}
-
-/** Payload for host action event */
-export interface HostActionPayload {
-  extensionId: string;
-  actionTypeId: string;
-  payload?: unknown;
-}
+// ============================================================================
+// Event Payload Types (Registration Events Only)
+// ============================================================================
 
 /** Payload for register extension event */
 export interface RegisterExtensionPayload {
@@ -66,6 +63,7 @@ export interface UnregisterExtensionPayload {
 /** Payload for register domain event */
 export interface RegisterDomainPayload {
   domain: ExtensionDomain;
+  containerProvider: ContainerProvider;
 }
 
 /** Payload for unregister domain event */
@@ -79,11 +77,6 @@ export interface UnregisterDomainPayload {
 
 declare module '@hai3/state' {
   interface EventPayloadMap {
-    'mfe/loadRequested': LoadExtensionPayload;
-    'mfe/preloadRequested': PreloadExtensionPayload;
-    'mfe/mountRequested': MountExtensionPayload;
-    'mfe/unmountRequested': UnmountExtensionPayload;
-    'mfe/hostActionRequested': HostActionPayload;
     'mfe/registerExtensionRequested': RegisterExtensionPayload;
     'mfe/unregisterExtensionRequested': UnregisterExtensionPayload;
     'mfe/registerDomainRequested': RegisterDomainPayload;
@@ -92,12 +85,12 @@ declare module '@hai3/state' {
 }
 
 // ============================================================================
-// Action Functions
+// Lifecycle Action Functions
 // ============================================================================
 
 /**
  * Load an MFE extension bundle.
- * Emits event that MFE effects handle via runtime.loadExtension().
+ * Calls executeActionsChain() directly (fire-and-forget).
  *
  * @param extensionId - Extension to load
  *
@@ -108,13 +101,24 @@ declare module '@hai3/state' {
  * ```
  */
 export function loadExtension(extensionId: string): void {
-  eventBus.emit(MfeEvents.LoadRequested, { extensionId });
+  const domainId = resolveDomainId(extensionId);
+
+  // Call executeActionsChain fire-and-forget (no await)
+  screensetsRegistry!.executeActionsChain({
+    action: {
+      type: HAI3_ACTION_LOAD_EXT,
+      target: domainId,
+      payload: { extensionId },
+    },
+  }).catch((error) => {
+    console.error(`[MFE] Load failed for ${extensionId}:`, error);
+  });
 }
 
 /**
  * Preload an MFE extension bundle without mounting.
  * Useful for optimizing load times for extensions that will be mounted soon.
- * Emits event that MFE effects handle via runtime.preloadExtension().
+ * Calls executeActionsChain() directly (fire-and-forget).
  *
  * @param extensionId - Extension to preload
  *
@@ -125,31 +129,54 @@ export function loadExtension(extensionId: string): void {
  * ```
  */
 export function preloadExtension(extensionId: string): void {
-  eventBus.emit(MfeEvents.PreloadRequested, { extensionId });
+  const domainId = resolveDomainId(extensionId);
+
+  // Call executeActionsChain fire-and-forget (no await)
+  // Preload uses the same load_ext action (fetches bundle without mounting)
+  screensetsRegistry!.executeActionsChain({
+    action: {
+      type: HAI3_ACTION_LOAD_EXT,
+      target: domainId,
+      payload: { extensionId },
+    },
+  }).catch((error) => {
+    // Silently ignore preload errors (they're optional optimizations)
+    console.warn(`[MFE] Preload failed for ${extensionId}:`, error);
+  });
 }
 
 /**
- * Mount an MFE extension to a container element.
+ * Mount an MFE extension.
  * Auto-loads the extension if not already loaded.
- * Emits event that MFE effects handle via runtime.mountExtension().
+ * The container is provided by the domain's ContainerProvider (registered at domain registration time).
+ * Calls executeActionsChain() directly (fire-and-forget).
  *
  * @param extensionId - Extension to mount
- * @param containerElement - DOM element to mount into
  *
  * @example
  * ```typescript
  * import { mountExtension } from '@hai3/framework';
- * const container = document.getElementById('sidebar-container');
- * mountExtension('gts.hai3.mfes.ext.extension.v1~my.extension.v1', container);
+ * mountExtension('gts.hai3.mfes.ext.extension.v1~my.extension.v1');
  * ```
  */
-export function mountExtension(extensionId: string, containerElement: HTMLElement): void {
-  eventBus.emit(MfeEvents.MountRequested, { extensionId, containerElement });
+export function mountExtension(extensionId: string): void {
+  const domainId = resolveDomainId(extensionId);
+
+  // Call executeActionsChain fire-and-forget (no await)
+  screensetsRegistry!.executeActionsChain({
+    action: {
+      type: HAI3_ACTION_MOUNT_EXT,
+      target: domainId,
+      payload: { extensionId },
+    },
+  }).catch((error) => {
+    console.error(`[MFE] Mount failed for ${extensionId}:`, error);
+  });
 }
 
 /**
  * Unmount an MFE extension from its container.
- * Emits event that MFE effects handle via runtime.unmountExtension().
+ * Calls executeActionsChain() directly (fire-and-forget).
  *
  * @param extensionId - Extension to unmount
  *
@@ -160,34 +187,18 @@ export function mountExtension(extensionId: string, containerElement: HTMLElemen
  * ```
  */
 export function unmountExtension(extensionId: string): void {
-  eventBus.emit(MfeEvents.UnmountRequested, { extensionId });
-}
+  const domainId = resolveDomainId(extensionId);
 
-/**
- * Send a host action to an MFE extension.
- * Used for load_ext/unload_ext actions in popup, sidebar, overlay, and custom domains.
- * Emits event that MFE effects handle via bridge and action chain execution.
- *
- * @param extensionId - Extension to send action to
- * @param actionTypeId - Action type ID (e.g., 'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1')
- * @param payload - Optional action payload
- *
- * @example
- * ```typescript
- * import { handleMfeHostAction } from '@hai3/framework';
- * handleMfeHostAction(
- *   'gts.hai3.mfes.ext.extension.v1~my.extension.v1',
- *   'gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1',
- *   { data: 'example' }
- * );
- * ```
- */
-export function handleMfeHostAction(
-  extensionId: string,
-  actionTypeId: string,
-  payload?: unknown
-): void {
-  eventBus.emit(MfeEvents.HostActionRequested, { extensionId, actionTypeId, payload });
+  // Call executeActionsChain fire-and-forget (no await)
+  screensetsRegistry!.executeActionsChain({
+    action: {
+      type: HAI3_ACTION_UNMOUNT_EXT,
+      target: domainId,
+      payload: { extensionId },
+    },
+  }).catch((error) => {
+    console.error(`[MFE] Unmount failed for ${extensionId}:`, error);
+  });
 }
 
 /**
@@ -232,24 +243,28 @@ export function unregisterExtension(extensionId: string): void {
  * Emits event that MFE effects handle via runtime.registerDomain().
  *
  * @param domain - ExtensionDomain instance to register
+ * @param containerProvider - ContainerProvider for the domain
  *
  * @example
  * ```typescript
  * import { registerDomain } from '@hai3/framework';
+ * import type { ExtensionDomain, ContainerProvider } from '@hai3/screensets';
+ *
  * const domain: ExtensionDomain = {
  *   id: 'gts.hai3.mfes.ext.domain.v1~my.custom.domain.v1',
  *   sharedProperties: [],
- *   actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'],
+ *   actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'],
  *   extensionsActions: [],
  *   defaultActionTimeout: 5000,
  *   lifecycleStages: [],
  *   extensionsLifecycleStages: [],
  * };
- * registerDomain(domain);
+ *
+ * registerDomain(domain, containerProvider);
  * ```
  */
-export function registerDomain(domain: ExtensionDomain): void {
-  eventBus.emit(MfeEvents.RegisterDomainRequested, { domain });
+export function registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void {
+  eventBus.emit(MfeEvents.RegisterDomainRequested, { domain, containerProvider });
 }
 
 /**

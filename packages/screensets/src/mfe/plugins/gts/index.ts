@@ -237,7 +237,7 @@ export class GtsPlugin implements TypeSystemPlugin {
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  *
  * // Use the registry
- * registry.registerDomain(myDomain);
+ * registry.registerDomain(myDomain, containerProvider);
  * ```
  */
 export const gtsPlugin: TypeSystemPlugin = new GtsPlugin();

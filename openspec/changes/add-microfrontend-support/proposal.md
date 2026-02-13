@@ -29,9 +29,9 @@ const app = createHAI3()
 
 // All registration happens dynamically at runtime:
 // - mfeActions.registerExtension({ extension })
-// - mfeActions.registerDomain({ domain })
+// - mfeActions.registerDomain(domain, containerProvider)
 // - runtime.registerExtension(extension)
-// - runtime.registerDomain(domain)
+// - runtime.registerDomain(domain, containerProvider)
 ```
 
 ### Core Architecture
@@ -156,13 +156,13 @@ ActionsChainsMediator delivers actions chains to targets. On success: executes `
 
 Domains can exist at any level: host provides base layout domains (`sidebar`, `popup`, `screen`, `overlay`); MFEs can define their own domains for nested extensions; an MFE can be both extension and domain provider simultaneously. See [MFE Domain - Hierarchical Domains](./design/mfe-domain.md#hierarchical-extension-domains) for diagrams.
 
-### DRY Principle for Extension Actions
+### Extension Lifecycle Actions
 
-Extension lifecycle uses two generic actions for ALL domains:
-- `HAI3_ACTION_LOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1`
-- `HAI3_ACTION_UNLOAD_EXT`: `gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.unload_ext.v1`
+Three generic actions (`load_ext`, `mount_ext`, `unmount_ext`) serve as the consumer-facing API for extension lifecycle. Each domain handles them according to its layout semantics; `executeActionsChain()` is the only consumer-facing entry point. See [Extension Lifecycle Actions](./design/mfe-ext-lifecycle-actions.md) for action constant IDs, GTS instance IDs, domain support matrix, and the complete design.
 
-Each domain handles these according to its layout semantics (popup shows modal, sidebar shows panel, screen navigates). Not all domains support all actions (e.g., screen only supports `load_ext`). The `ActionsChainsMediator` validates action support before delivery, throwing `UnsupportedDomainActionError` on mismatch.
+### Container Provider Abstraction
+
+A `ContainerProvider` abstract class shifts DOM container management from action callers to the domain. The provider is passed at domain registration time via `registerDomain(domain, containerProvider)`, and the `ExtensionLifecycleActionHandler` is the single owner of all provider interactions. See [Extension Lifecycle Actions - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) for the complete design including the ownership model, `RefContainerProvider`, and callback wiring.
 
 ### Dynamic Registration Model
 
@@ -171,6 +171,34 @@ Extensions and MFEs are NOT known at app initialization time. `ScreensetsRegistr
 ### Architectural Requirement: Abstract Class Layers
 
 Every major stateful component has an abstract class (pure contract) and a concrete implementation. See [Principle #6](./design/principles.md#abstract-class-layers-with-singleton-construction) and [Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete design including construction patterns (singleton constant, factory-with-cache, direct construction), export policy, and file layout.
+
+### Flux Architecture Compliance for MFE Lifecycle Actions
+
+The framework MFE effects layer currently calls `screensetsRegistry.executeActionsChain()` from within effects for load/preload/mount/unmount operations. This violates the HAI3 Flux architecture rule: effects must NOT call action-like commands. The `executeActionsChain()` method triggers the `ActionsChainsMediator` which dispatches to handlers -- effectively running actions from within effects.
+
+**What changes:**
+
+1. **Actions call `executeActionsChain()` directly** (fire-and-forget). The `loadExtension`, `preloadExtension`, `mountExtension`, and `unmountExtension` actions resolve the extension's domain, build the chain, and call `screensetsRegistry.executeActionsChain()` -- all synchronously (fire-and-forget, no await). The lifecycle actions (load, preload, mount, unmount) no longer emit events.
+
+2. **Remove lifecycle effects**. The load/preload/mount/unmount event listeners in `effects.ts` are removed. Effects remain only for `registerExtension`, `unregisterExtension`, `registerDomain`, and `unregisterDomain` (legitimate async operations that need store state tracking).
+
+3. **Remove lifecycle store slice dispatching from effects**. The `setLoading`, `setBundleLoaded`, `setMounting`, `setMounted`, `setUnmounted` slice dispatches are removed from effects. Load/mount state is already tracked internally by the screensets registry via `ExtensionState`. The MFE store slice retains registration state tracking only.
+
+4. **Remove lifecycle events**. The `mfe/loadRequested`, `mfe/preloadRequested`, `mfe/mountRequested`, `mfe/unmountRequested` events and their type declarations are removed (the `handleMfeHostAction` event is also removed). Only registration events remain.
+
+5. **ESLint protection** (ESLint rule modification required):
+   - Add `**/effects.ts` to the effects file glob patterns (current patterns `**/*Effects.ts` miss files named `effects.ts`)
+   - Add a rule preventing effects from calling `executeActionsChain` (which triggers the ActionsChainsMediator, effectively running actions)
+   - Add Flux rules to `internal/eslint-config/framework.ts` (L2 config), not just `screenset.ts` (L4 config) -- the framework effects file uses L2 config
+   - Scope the monorepo root `eslint.config.js` framework override to not disable `no-restricted-syntax` for effects files
+
+6. **Downstream consumer cleanup**:
+   - Remove `useMfeState` hook from `@hai3/react` (imports removed selectors/types)
+   - Remove `useMfeState` tests from `@hai3/react`
+   - Clean up all framework re-exports of removed symbols (`handleMfeHostAction`, load/mount selectors, load/mount types, lifecycle payload types)
+   - Extract remaining registration event constants from `MfeEvents` to a shared `constants.ts` file so effects can import event names without importing from the actions module
+
+7. **Fix `setExtensionError` reducer**: The reducer currently calls `getOrCreateExtension()` and writes to `ext.error` on the `extensions` record -- both removed. Replace with a separate `errors: Record<string, string>` field on `MfeState`.
 
 ## Impact
 

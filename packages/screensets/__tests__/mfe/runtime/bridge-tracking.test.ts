@@ -176,18 +176,27 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
       // Verify that public API does NOT expose bridge management
       const registryPublicAPI = Object.getOwnPropertyNames(Object.getPrototypeOf(registry));
 
-      // Should NOT have public methods for bridge manipulation
+      // Should NOT have public methods for bridge manipulation (except getParentBridge, which was added in Phase 24)
       expect(registryPublicAPI).not.toContain('getChildBridge');
       expect(registryPublicAPI).not.toContain('addChildBridge');
       expect(registryPublicAPI).not.toContain('removeChildBridge');
-      expect(registryPublicAPI).not.toContain('getParentBridge');
       expect(registryPublicAPI).not.toContain('setParentBridge');
+
+      // Phase 24 added getParentBridge as a public method
+      expect(registryPublicAPI).toContain('getParentBridge');
+
+      // Should NOT have direct lifecycle methods (removed in Phase 24)
+      expect(registryPublicAPI).not.toContain('loadExtension');
+      expect(registryPublicAPI).not.toContain('preloadExtension');
+      expect(registryPublicAPI).not.toContain('mountExtension');
+      expect(registryPublicAPI).not.toContain('unmountExtension');
 
       // Should have domain and property management methods
       expect(registryPublicAPI).toContain('registerDomain');
       expect(registryPublicAPI).toContain('updateDomainProperty');
       expect(registryPublicAPI).toContain('getDomainProperty');
       expect(registryPublicAPI).toContain('updateDomainProperties');
+      expect(registryPublicAPI).toContain('executeActionsChain');
       expect(registryPublicAPI).toContain('dispose');
     });
   });

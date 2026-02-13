@@ -126,7 +126,7 @@ class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
 Standalone factory functions and static factory methods on abstract classes are both **forbidden**. The only allowed construction patterns are:
 
 1. **Singleton constant** -- no configuration needed (e.g., `gtsPlugin`)
-2. **Factory-with-cache** -- configurable singleton (e.g., `ScreensetsRegistry` via `screensetsRegistryFactory`, Phase 21.10)
+2. **Factory-with-cache** -- configurable singleton (e.g., `ScreensetsRegistry` via `screensetsRegistryFactory`)
 3. **Direct construction in internal wiring code** -- multi-instance (e.g., `MfeStateContainer` by `DefaultMountManager`)
 
 See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for code examples, violation patterns, and rationale.
@@ -147,35 +147,18 @@ When a child MFE defines its own domains in a child `ScreensetsRegistry`, the pa
 
 ### ScreensetsRegistry as Facade
 
-`ScreensetsRegistry` has a large public API surface (~24 methods spanning registration, loading, mounting, property management, action chain execution, and lifecycle triggering). This is intentional: it serves as a **facade** that provides a single entry point for the MFE runtime while internally delegating to specialized collaborators:
-
-| Responsibility | Internal Collaborator | Design Document |
-|---|---|---|
-| Extension/domain registration | `ExtensionManager` (abstract) / `DefaultExtensionManager` (concrete) | This document |
-| Lifecycle stage triggering | `LifecycleManager` (abstract) / `DefaultLifecycleManager` (concrete) | [mfe-lifecycle.md](./mfe-lifecycle.md) |
-| MFE loading and mounting | `MountManager` (abstract) / `DefaultMountManager` (concrete) | This document |
-| Operation serialization | `OperationSerializer` (concrete, small utility) | This document |
-| Action chain execution | `ActionsChainsMediator` (abstract) / `DefaultActionsChainsMediator` (concrete) | [mfe-actions.md](./mfe-actions.md) |
-| WeakMap runtime coordination | `RuntimeCoordinator` (abstract) / `WeakMapRuntimeCoordinator` (concrete) | This document |
-| MFE bundle loading | `MfeHandler` polymorphism (`MfeHandlerMF`, custom handlers) | [mfe-loading.md](./mfe-loading.md) |
-| Bridge creation (handler) | `MfeBridgeFactory` polymorphism (`MfeBridgeFactoryDefault`, custom factories) | [mfe-loading.md](./mfe-loading.md) |
-| Bridge wiring (runtime) | `RuntimeBridgeFactory` (abstract) / `DefaultRuntimeBridgeFactory` (concrete) | This document |
-| Type validation | `TypeSystemPlugin` (injected) | [type-system.md](./type-system.md) |
-
-The public API is cohesive (all methods relate to MFE runtime management), and the internal delegation keeps each collaborator focused on a single responsibility. Consumer code interacts only with the **abstract** `ScreensetsRegistry`; both the concrete `DefaultScreensetsRegistry` and all collaborators are implementation details. Consumers obtain the instance via the `screensetsRegistryFactory` factory-with-cache pattern (`screensetsRegistryFactory.build(config)`).
-
-**Abstract class layer**: `ScreensetsRegistry` is an abstract class (~75 lines, pure contract) defining the public method signatures with NO static methods. `DefaultScreensetsRegistry` is the concrete implementation (~650 lines) that wires all collaborators together. Consumers obtain the instance via `screensetsRegistryFactory.build(config)`. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete design.
+`ScreensetsRegistry` is a facade (~20 public methods) that delegates internally to specialized collaborators. See [Decision 18](#decision-18-abstract-class-layers-with-singleton-construction) for the complete abstract class definition, collaborator table, and construction pattern.
 
 ### Concurrency and Operation Serialization
 
-**Context**: The async `registerExtension()`, `unregisterExtension()`, `mountExtension()`, and `unmountExtension()` methods require serialization to prevent undefined behavior from concurrent calls on the same entity.
+**Context**: The async `registerExtension()`, `unregisterExtension()` methods on the registry, and internal load/mount/unmount operations (triggered via actions chains), require serialization to prevent undefined behavior from concurrent calls on the same entity.
 
-**Rule**: All async registration and lifecycle operations on ScreensetsRegistry are **serialized per entity ID**. Specifically:
+**Rule**: All async registration and lifecycle operations are **serialized per entity ID**. Specifically:
 
-- **Per-extension serialization**: Concurrent calls to `registerExtension`, `unregisterExtension`, `loadExtension`, `mountExtension`, or `unmountExtension` for the same extension ID are queued and executed sequentially. A second call waits for the first to complete before starting.
+- **Per-extension serialization**: Concurrent calls to `registerExtension`, `unregisterExtension`, and internal load/mount/unmount operations (via `ExtensionLifecycleActionHandler` callbacks through `OperationSerializer`) for the same extension ID are queued and executed sequentially. A second call waits for the first to complete before starting.
 - **Per-domain serialization**: `registerDomain` is synchronous. Concurrent calls to `unregisterDomain` for the same domain ID are queued and executed sequentially.
 - **Cross-entity independence**: Operations on different entity IDs may execute concurrently (e.g., registering extension A while mounting extension B).
-- **Mount during register**: Calling `mountExtension(extId)` while `registerExtension(extId)` is in progress will queue behind the registration. The mount proceeds only after registration completes successfully. If registration fails, the queued mount receives the registration error.
+- **Mount during register**: Triggering a mount (via `mount_ext` action) for an extension while `registerExtension(extId)` is in progress will queue behind the registration (both go through the same per-extension serializer). The mount proceeds only after registration completes successfully. If registration fails, the queued mount receives the registration error.
 - **Duplicate concurrent registration**: Calling `registerExtension(extId)` twice concurrently for the same ID will serialize -- the second call will detect the already-registered state and either no-op or throw, depending on the idempotency policy.
 - **Domain unregister during extension registration**: Calling `unregisterDomain(domainId)` while `registerExtension(extId)` (which targets that domain) is in progress will not interfere -- the extension registration holds a reference to the domain state. However, the extension will be cascade-unregistered by the domain unregistration once it completes.
 
@@ -231,7 +214,7 @@ The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abs
 **System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./overview.md#system-boundary) for details.
 
 <a name="load-vs-mount"></a>
-**Load vs Mount:** Loading fetches the JavaScript bundle; mounting renders to DOM. An extension can be loaded but not mounted (preloading scenario). `mountExtension()` auto-loads if not already loaded. `unmountExtension()` does NOT unload the bundle (stays cached for remounting).
+**Load vs Mount:** Loading fetches the JavaScript bundle; mounting renders to DOM. An extension can be loaded but not mounted (preloading scenario). The mount operation (triggered via `HAI3_ACTION_MOUNT_EXT` action) auto-loads if not already loaded. The unmount operation (triggered via `HAI3_ACTION_UNMOUNT_EXT` action) does NOT unload the bundle (stays cached for remounting). These operations are NOT exposed as methods on the abstract `ScreensetsRegistry` -- they are internal to `MountManager` and accessed via focused callbacks in `ExtensionLifecycleActionHandler`.
 
 **Manifest Handling:** MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf) for details.
 
@@ -240,19 +223,29 @@ The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abs
 ```typescript
 // Dynamic registration after user action
 settingsButton.onClick = async () => {
+  const extensionId = 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1';
+  const domainId = 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1';
+
   // Extension using derived type that includes domain-specific fields
   // Note: Instance IDs do NOT end with ~ (only schema IDs do)
   await runtime.registerExtension({
-    id: 'gts.hai3.mfes.ext.extension.v1~acme.dashboard.ext.widget_extension.v1~acme.analytics_widget.v1',
-    domain: 'gts.hai3.mfes.ext.domain.v1~acme.dashboard.layout.widget_slot.v1',
+    id: extensionId,
+    domain: domainId,
     entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~acme.analytics.mfe.chart.v1',
     // Domain-specific fields from derived Extension type (no uiMeta wrapper)
     title: 'Analytics',
     size: 'medium',
   });
 
-  const container = document.getElementById('widget-slot-1');
-  const bridge = await runtime.mountExtension(extensionId, container);
+  // Mount via actions chain (NOT via direct registry method)
+  // Container is provided by the domain's ContainerProvider (registered with the domain)
+  await runtime.executeActionsChain({
+    action: {
+      type: HAI3_ACTION_MOUNT_EXT,
+      target: domainId,
+      payload: { extensionId },
+    },
+  });
 };
 
 // Registration after backend API response (application handles fetching)
@@ -264,8 +257,9 @@ async function onUserLogin(user: User) {
   const { domains, extensions } = await response.json();
 
   // MFE system only handles registration of already-fetched entities
+  // Each domain requires a ContainerProvider (see mfe-ext-lifecycle-actions.md)
   for (const domain of domains) {
-    await runtime.registerDomain(domain);
+    runtime.registerDomain(domain, containerProviderForDomain(domain.id));
   }
   for (const extension of extensions) {
     await runtime.registerExtension(extension);
@@ -325,11 +319,16 @@ gtsPlugin (singleton constant)                                -->  TypeSystemPlu
 ```typescript
 // packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts
 // ~75 lines -- pure abstract class with public method signatures only, NO static methods
+// NOTE: loadExtension, mountExtension, unmountExtension, preloadExtension are NOT here.
+// These operations are internal to MountManager, accessed via callbacks in
+// ExtensionLifecycleActionHandler. See mfe-ext-lifecycle-actions.md.
+// getParentBridge IS here -- it is a query method, not a lifecycle operation.
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { ExtensionDomain, Extension, ActionsChain } from '../types';
 import type { ChainResult, ChainExecutionOptions, ActionHandler } from '../mediator';
+import type { ContainerProvider } from './container-provider';
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -342,18 +341,10 @@ export abstract class ScreensetsRegistry {
   abstract readonly typeSystem: TypeSystemPlugin;
 
   // --- Registration ---
-  abstract registerDomain(domain: ExtensionDomain): void;
+  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void;
   abstract unregisterDomain(domainId: string): Promise<void>;
   abstract registerExtension(extension: Extension): Promise<void>;
   abstract unregisterExtension(extensionId: string): Promise<void>;
-
-  // --- Loading ---
-  abstract loadExtension(extensionId: string): Promise<void>;
-  abstract preloadExtension(extensionId: string): Promise<void>;
-
-  // --- Mounting ---
-  abstract mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
-  abstract unmountExtension(extensionId: string): Promise<void>;
 
   // --- Domain Properties ---
   abstract updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void;
@@ -373,6 +364,30 @@ export abstract class ScreensetsRegistry {
   abstract getDomain(domainId: string): ExtensionDomain | undefined;
   abstract getExtensionsForDomain(domainId: string): Extension[];
 
+  /**
+   * Returns the extension ID currently mounted in the given domain, or undefined if
+   * no extension is mounted. Used by ExtensionLifecycleActionHandler for swap
+   * semantics (screen domain unmounts the current extension before mounting a new one).
+   *
+   * Each domain supports at most one mounted extension at a time.
+   */
+  abstract getMountedExtension(domainId: string): string | undefined;
+
+  /**
+   * Returns the ParentMfeBridge for the given extension, or null if the extension
+   * is not mounted or does not exist. This is a query method (same category as
+   * getMountedExtension) -- it reads from ExtensionState.bridge, which is set
+   * by MountManager.mountExtension() during mount and cleared during unmount.
+   *
+   * Usage pattern: mount via executeActionsChain(), then query the bridge:
+   *
+   *   await registry.executeActionsChain({ action: { type: HAI3_ACTION_MOUNT_EXT, ... } });
+   *   const bridge = registry.getParentBridge(extensionId);
+   *
+   * See mfe-ext-lifecycle-actions.md - ParentMfeBridge Return Value Gap.
+   */
+  abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
+
   // --- Action Handlers (mediator-facing) ---
   abstract registerExtensionActionHandler(extensionId: string, domainId: string, entryId: string, handler: ActionHandler): void;
   abstract unregisterExtensionActionHandler(extensionId: string): void;
@@ -385,9 +400,21 @@ export abstract class ScreensetsRegistry {
   // --- Lifecycle ---
   abstract dispose(): void;
 }
+
+// NOTE: loadExtension(), mountExtension(), unmountExtension(), and preloadExtension()
+// are NOT on the abstract ScreensetsRegistry. These operations are performed exclusively
+// via actions chains (executeActionsChain with HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT,
+// HAI3_ACTION_UNMOUNT_EXT). The ExtensionLifecycleActionHandler receives focused callbacks
+// that go through OperationSerializer -> MountManager, bypassing the registry entirely.
+// See mfe-ext-lifecycle-actions.md for the complete design.
+//
+// getParentBridge(extensionId) IS on the abstract class -- it is a query method that
+// returns the bridge stored in ExtensionState.bridge after a mount completes. This closes
+// the return value gap left by removing mountExtension() (which returned ParentMfeBridge).
+// See mfe-ext-lifecycle-actions.md - ParentMfeBridge Return Value Gap.
 ```
 
-#### Factory-with-Cache Pattern (Phase 21.10)
+#### Factory-with-Cache Pattern
 
 The `screensetsRegistryFactory` factory-with-cache pattern is the current construction mechanism for `ScreensetsRegistry`. The factory provides a `build(config)` method to obtain the `ScreensetsRegistry` instance. The abstract `ScreensetsRegistry` class is a pure contract with NO static methods. The abstract `ScreensetsRegistryFactory` class is also a pure contract with NO static methods.
 
@@ -457,7 +484,12 @@ const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
 ```typescript
 // packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts
-// ~650 lines -- full implementation, NOT exported from public barrel
+// ~600 lines -- full implementation, NOT exported from public barrel
+// NOTE: loadExtension, mountExtension, unmountExtension, preloadExtension are NOT
+// implemented here. These operations are internal to MountManager. The
+// ExtensionLifecycleActionHandler receives focused callbacks wired in registerDomain()
+// that go through OperationSerializer -> MountManager.
+// getParentBridge IS implemented here -- delegates to extensionManager.getExtensionState().
 
 import { ScreensetsRegistry } from './ScreensetsRegistry';
 // ... all collaborator imports ...
@@ -551,89 +583,15 @@ The `DefaultScreensetsRegistry` concrete class already accesses these via `this.
 
 #### Concrete-Only Internal Methods on Collaborator Abstract Classes
 
-The abstract classes for internal collaborators (`@internal`, not barrel-exported) must expose only the methods that define the public **contract** of the abstraction. Methods that are only called by sibling concrete collaborators or by `DefaultScreensetsRegistry` for disposal/test purposes must live on the concrete class only. This section documents which methods must be moved from abstract to concrete-only.
+Internal-only methods live on concrete classes, not abstract:
 
-**Principle**: Since `ExtensionManager` and `LifecycleManager` are both `@internal` (never exported from the `@hai3/screensets` barrel), the internal collaborators that call these methods can safely type their fields as the concrete type (`DefaultExtensionManager`, `DefaultLifecycleManager`) rather than the abstract type. This is an acceptable trade-off for internal wiring code: it preserves a clean abstract contract while allowing concrete-to-concrete access for internal implementation details.
-
-##### Group A: ExtensionManager -- 5 methods to concrete-only
-
-The following methods on abstract `ExtensionManager` are only used internally by sibling concrete collaborators and must be moved to `DefaultExtensionManager`:
-
-| Method | Return Type | Callers | Reason |
+| Group | Component | Methods on Concrete Only | Result |
 |---|---|---|---|
-| `getDomainState(domainId)` | `ExtensionDomainState \| undefined` | `DefaultMountManager`, `DefaultLifecycleManager`, `DefaultScreensetsRegistry` | Exposes internal `ExtensionDomainState` type; read-only query for internal wiring |
-| `getExtensionState(extensionId)` | `ExtensionState \| undefined` | `DefaultMountManager`, `DefaultLifecycleManager`, `DefaultScreensetsRegistry` | Exposes internal `ExtensionState` type; read-only query for internal wiring |
-| `getExtensionStatesForDomain(domainId)` | `ExtensionState[]` | `DefaultScreensetsRegistry`, `DefaultLifecycleManager` | Exposes internal `ExtensionState[]`; bulk query for internal wiring |
-| `resolveEntry(entryId)` | `MfeEntry \| undefined` | `DefaultExtensionManager` (self) | Only called by the concrete class itself; make `private` on `DefaultExtensionManager` after removing from abstract |
-| `clear()` | `void` | `DefaultScreensetsRegistry.dispose()` | Disposal cleanup only |
+| A | ExtensionManager | 5 methods (`getDomainState`, `getExtensionState`, `getExtensionStatesForDomain`, `resolveEntry`, `clear`) | Abstract keeps only registration + property methods |
+| B | LifecycleManager | 1 method (`triggerLifecycleStageInternal`) | Abstract keeps only public trigger methods |
+| C | Bridge interfaces | 7 methods removed from public `ParentMfeBridge`/`ChildMfeBridge`; `executeActionsChain` added to `ChildMfeBridge` | Public interfaces trimmed to consumer-facing API only |
 
-**After move**, the abstract `ExtensionManager` keeps only:
-- `registerDomain()`, `unregisterDomain()`
-- `registerExtension()`, `unregisterExtension()`
-- `updateDomainProperty()`, `getDomainProperty()`
-
-**Collaborator field type changes** (concrete-to-concrete wiring):
-- `DefaultMountManager`: its config's `extensionManager` field typed as `DefaultExtensionManager` instead of `ExtensionManager`
-- `DefaultLifecycleManager`: its constructor param typed as `DefaultExtensionManager` instead of `ExtensionManager`
-- `DefaultScreensetsRegistry`: its `extensionManager` field typed as `DefaultExtensionManager` (already partially done for `getDomainsMap`/`getExtensionsMap` -- verify it is fully `DefaultExtensionManager`)
-
-##### Group B: LifecycleManager -- 1 method to concrete-only
-
-| Method | Return Type | Callers | Reason |
-|---|---|---|---|
-| `triggerLifecycleStageInternal(entity, stageId, skipCallback?)` | `Promise<void>` | `DefaultScreensetsRegistry` | Explicitly `@internal`, test compatibility shim |
-
-**After move**, the abstract `LifecycleManager` keeps only:
-- `triggerLifecycleStage(extensionId, stageId)`
-- `triggerDomainLifecycleStage(domainId, stageId)`
-- `triggerDomainOwnLifecycleStage(domainId, stageId)`
-
-**Collaborator field type change**:
-- `DefaultScreensetsRegistry`: its `lifecycleManager` field typed as `DefaultLifecycleManager` instead of `LifecycleManager`, so it can call `triggerLifecycleStageInternal()`.
-
-##### Group C: ParentMfeBridge interface -- 4 methods removed from public type
-
-**Phase 21.6 (complete):** Removed `getPropertySubscribers()` and `registerPropertySubscriber()` from the public `ParentMfeBridge` interface.
-
-**Phase 21.11 (complete):** Removes `onChildAction()`, `receivePropertyUpdate()`, and `sendActionsChain()` from the public `ParentMfeBridge` interface. Removes `sendActionsChain()` and `onActionsChain()` from the public `ChildMfeBridge` interface. These are all internal wiring/transport methods that should not be callable by consumers. Adds `executeActionsChain()` to the public `ChildMfeBridge` interface as a capability pass-through to the registry.
-
-| Method | Interface | Return Type | Callers | Reason | Phase |
-|---|---|---|---|---|---|
-| `getPropertySubscribers()` | `ParentMfeBridge` | `Map<string, (value: SharedProperty) => void>` | `DefaultRuntimeBridgeFactory.disposeBridge()` | `@internal`, only used by internal factory | 21.6 (done) |
-| `registerPropertySubscriber(propertyTypeId, subscriber)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` | `@internal`, only used by internal factory | 21.6 (done) |
-| `onChildAction(callback)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` | Internal wiring: connects child-to-parent flow via mediator. Not a consumer-facing API. | 21.11 |
-| `receivePropertyUpdate(propertyTypeId, value)` | `ParentMfeBridge` | `void` | `DefaultRuntimeBridgeFactory.createBridge()` subscribers | Internal wiring: pushes domain property updates to child bridge. | 21.11 |
-| `sendActionsChain(chain, options?)` | `ParentMfeBridge` | `Promise<ChainResult>` | Internal mediator transport | Internal: parent-to-child transport for hierarchical composition. Concrete-only. | 21.11 |
-| `sendActionsChain(chain, options?)` | `ChildMfeBridge` | `Promise<ChainResult>` | Internal bridge transport | Internal: child-to-parent transport via parent bridge. Concrete-only. | 21.11 |
-| `onActionsChain(handler)` | `ChildMfeBridge` | `() => void` | Internal bridge wiring | Internal: registers handler for parent-to-child transport. Concrete-only. | 21.11 |
-
-**Context**: `ParentMfeBridge` and `ChildMfeBridge` in `handler/types.ts` are **public interfaces** exported from `@hai3/screensets`. The concrete implementations are `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl` classes in `bridge/`. Internal wiring code (`DefaultRuntimeBridgeFactory`, `DefaultMountManager`) works with concrete types directly.
-
-**After Phase 21.11**, the public `ParentMfeBridge` interface retains only:
-- `instanceId` -- identifies the child instance
-- `dispose()` -- clean up resources
-
-**After Phase 21.11**, the public `ChildMfeBridge` interface retains only:
-- `domainId`, `entryTypeId`, `instanceId` -- identification
-- `executeActionsChain(chain, options?)` -- capability pass-through to registry
-- `subscribeToProperty(propertyTypeId, callback)` -- property subscription
-- `getProperty(propertyTypeId)` -- synchronous property access
-- `subscribeToAllProperties(callback)` -- all-properties subscription
-
-**Solution for Phase 21.6 methods (getPropertySubscribers, registerPropertySubscriber):**
-1. Remove `getPropertySubscribers()` and `registerPropertySubscriber()` from the `ParentMfeBridge` interface in `handler/types.ts`.
-2. Keep these methods on the `ParentMfeBridgeImpl` class in `bridge/ParentMfeBridge.ts` (unchanged).
-3. In `DefaultRuntimeBridgeFactory.createBridge()`: the method already constructs a `ParentMfeBridgeImpl` instance (via `new ParentMfeBridgeImpl(childBridge)`) and calls `registerPropertySubscriber()` on it before returning. Since the local variable is already the concrete type (TypeScript infers `ParentMfeBridgeImpl` from the constructor), no type annotation change is needed -- the call to `registerPropertySubscriber()` compiles against the concrete class. The method return type remains `{ parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge }` (the narrow public interface), which is satisfied because `ParentMfeBridgeImpl` extends `ParentMfeBridge`.
-4. In `DefaultRuntimeBridgeFactory.disposeBridge()`: the parameter type **stays** `ParentMfeBridge` (the public interface). This is necessary because callers (`DefaultMountManager.unmountExtension()`) pass `extensionState.bridge`, which is typed as `ParentMfeBridge | null` (from `ExtensionState.bridge` in `extension-manager.ts`). Changing the parameter to `ParentMfeBridgeImpl` would cause a type mismatch at all call sites. Instead, `disposeBridge()` casts internally: `const impl = parentBridge as ParentMfeBridgeImpl;` and then calls `impl.getPropertySubscribers()`. This cast is safe because `disposeBridge` is `@internal` and only ever receives `ParentMfeBridgeImpl` instances (created by `createBridge` in the same class). The `ExtensionState.bridge` field type remains `ParentMfeBridge | null` -- no change needed. `DefaultMountManager` callers remain unchanged.
-
-**Solution for Phase 21.11 methods (onChildAction, receivePropertyUpdate, sendActionsChain on ParentMfeBridge; sendActionsChain, onActionsChain on ChildMfeBridge):**
-1. Remove `sendActionsChain(chain, options?)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep the method on `ParentMfeBridgeImpl` (concrete-only for internal transport).
-2. Remove `onChildAction(callback)` and `receivePropertyUpdate(propertyTypeId, value)` from the `ParentMfeBridge` interface in `handler/types.ts`. Keep these methods on `ParentMfeBridgeImpl` (unchanged).
-3. Remove `sendActionsChain(chain, options?)` and `onActionsChain(handler)` from the `ChildMfeBridge` interface in `handler/types.ts`. Keep these methods on `ChildMfeBridgeImpl` (concrete-only for internal transport).
-4. Add `executeActionsChain(chain, options?)` to the `ChildMfeBridge` interface in `handler/types.ts`. This is a capability pass-through to the registry's `executeActionsChain()`.
-5. Implement `executeActionsChain()` on `ChildMfeBridgeImpl` using an injected callback (set via `DefaultRuntimeBridgeFactory.createBridge()`). The callback delegates to the registry's `executeActionsChain()`.
-6. Update `DefaultRuntimeBridgeFactory.createBridge()` to accept and wire the `executeActionsChain` callback to the child bridge.
-7. In `DefaultRuntimeBridgeFactory`: all internal wiring calls (`onChildAction`, `receivePropertyUpdate`) use `parentBridgeImpl` which is the concrete type. No changes needed for those calls.
+**Principle**: Internal collaborators (`@internal`, not barrel-exported) can safely type fields as concrete types for concrete-to-concrete wiring. `DefaultScreensetsRegistry` types `extensionManager` as `DefaultExtensionManager` and `lifecycleManager` as `DefaultLifecycleManager` to access concrete-only methods.
 
 ##### Summary: DefaultScreensetsRegistry Collaborator Field Types
 
@@ -660,7 +618,7 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 | `coordination/types.ts` | No import change needed |
 | `mount-manager.ts` | No import change needed; now types against abstract class, which breaks the circular import on the concrete class |
 | `mediator/actions-chains-mediator.ts` | **Import removed**: `DefaultActionsChainsMediator` no longer imports `ScreensetsRegistry` at all. It receives `getDomainState` as a callback in its constructor config instead of holding a full registry reference. |
-| `components/ExtensionDomainSlot.tsx` | No import change needed |
+| `@hai3/react` `ExtensionDomainSlot.tsx` | No import change needed (lives in `@hai3/react`, not `@hai3/screensets`) |
 | `framework/effects.ts` | No import change needed |
 | `framework/types.ts` | No import change needed; `MfeScreensetsRegistry` alias now maps to abstract class |
 | `runtime/default-runtime-bridge-factory.ts` | Replaces `runtime/bridge-factory.ts`. Imports `ExtensionDomainState` from `./extension-manager` (abstract file). Imports concrete bridge classes (`ChildMfeBridgeImpl`, `ParentMfeBridgeImpl`, `ChildDomainForwardingHandler`) from `../bridge/`. |
@@ -669,7 +627,7 @@ All modules that currently reference the concrete `ScreensetsRegistry` class are
 
 ```
 packages/screensets/src/mfe/runtime/
-  ScreensetsRegistry.ts              # ABSTRACT class (~75 lines, pure contract, NO static methods)
+  ScreensetsRegistry.ts              # ABSTRACT class (~85 lines, pure contract, NO static methods, includes getParentBridge)
   ScreensetsRegistryFactory.ts       # ABSTRACT factory class (~10 lines, pure contract, NO static methods)
   DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported from barrel)
   DefaultScreensetsRegistryFactory.ts # CONCRETE factory (~20 lines, NOT exported from barrel)
@@ -681,6 +639,7 @@ packages/screensets/src/mfe/runtime/
   default-lifecycle-manager.ts       # CONCRETE class (~170 lines)
   mount-manager.ts                   # ABSTRACT class + callback types (~97 lines)
   default-mount-manager.ts           # CONCRETE class (~320 lines)
+  container-provider.ts              # ABSTRACT class (~15 lines, pure contract, exported from barrel)
   runtime-bridge-factory.ts          # ABSTRACT class (~20 lines, pure contract, @internal)
   default-runtime-bridge-factory.ts  # CONCRETE class (~120 lines, @internal, NOT exported from barrel)
   operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
@@ -697,6 +656,7 @@ The `@hai3/screensets` public barrel exports:
 - `ScreensetsRegistryFactory` (abstract class, pure contract -- NO static methods)
 - `screensetsRegistryFactory` (singleton `ScreensetsRegistryFactory` instance -- the ONLY way to obtain a `ScreensetsRegistry`)
 - `ScreensetsRegistryConfig` (interface)
+- `ContainerProvider` (abstract class, pure contract -- consumers extend this for custom domain container management)
 - `MfeStateContainer` (abstract class, pure contract -- NO static methods)
 - `MfeStateContainerConfig` (interface)
 - `TypeSystemPlugin` (interface)

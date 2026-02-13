@@ -20,6 +20,7 @@ import type { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 
 export { ScreensetsRegistry } from './ScreensetsRegistry';
 export { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
+export { ContainerProvider } from './container-provider';
 export type { ScreensetsRegistryConfig } from './config';
 
 /**
@@ -40,8 +41,8 @@ export type { ScreensetsRegistryConfig } from './config';
  * // Build the registry with GTS plugin at application wiring time
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  *
- * // Register a domain
- * registry.registerDomain(myDomain);
+ * // Register a domain with container provider
+ * registry.registerDomain(myDomain, containerProvider);
  *
  * // Register an extension
  * await registry.registerExtension(myExtension);

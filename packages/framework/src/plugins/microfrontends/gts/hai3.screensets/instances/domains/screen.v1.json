@@ -2,7 +2,8 @@
   "id": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
   "sharedProperties": [],
   "actions": [
-    "gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1"
+    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1",
+    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1"
   ],
   "extensionsActions": [],
   "defaultActionTimeout": 5000,

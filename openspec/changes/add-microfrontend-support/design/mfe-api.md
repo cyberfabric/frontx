@@ -133,11 +133,25 @@ interface ParentMfeBridge {
 ### Bridge Creation Flow
 
 ```typescript
-// When mounting an extension
-const bridge = await runtime.mountExtension(extensionId, container);
+// When mounting an extension (via actions chain -- the only consumer-facing API)
+await runtime.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_MOUNT_EXT,
+    target: domainId,
+    payload: { extensionId }, // Domain's ContainerProvider supplies the container
+  },
+});
+// Bridge is created internally by MountManager during mount.
+// ParentMfeBridge is stored in ExtensionState for internal use.
 
-// When unmounting
-await runtime.unmountExtension(extensionId);
+// When unmounting (via actions chain)
+await runtime.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_UNMOUNT_EXT,
+    target: domainId,
+    payload: { extensionId },
+  },
+});
 ```
 
 ### Action Chain Execution Model
@@ -192,7 +206,8 @@ mount(container, bridge) {
   // is wired internally (not called by MFE code directly via public interface).
 
   // Register child's own domains and extensions...
-  childRegistry.registerDomain(myDomain);
+  // Child MFE provides its own ContainerProvider for each domain it defines
+  childRegistry.registerDomain(myDomain, myContainerProvider);
 
   // Child MFE executes chains via the public API:
   bridge.executeActionsChain(someChain);
@@ -315,7 +330,8 @@ mount(container, bridge) {
   );
 
   // 2. Register child domains in the child registry
-  childRegistry.registerDomain(myDomain);
+  //    Child MFE provides its own ContainerProvider for each domain
+  childRegistry.registerDomain(myDomain, myContainerProvider);
 
   // 3. Register forwarding in parent via concrete-only method on ChildMfeBridgeImpl.
   //    Internally, DefaultRuntimeBridgeFactory.createBridge() wired this to create a ChildDomainForwardingHandler
@@ -386,7 +402,7 @@ When a child MFE registers a domain via `registerChildDomain(domainId)`, the for
 
 #### Factory Cache and Child Registry Isolation
 
-The `screensetsRegistryFactory` uses a factory-with-cache pattern (Phase 21.10) where `build(config)` caches the instance after the first call. When a child MFE calls `screensetsRegistryFactory.build(config)` to create its own child registry for hierarchical composition, it MUST pass a **distinct** `ScreensetsRegistryConfig` (e.g., a different `TypeSystemPlugin` instance or config object) to ensure the factory creates a new, isolated instance rather than returning the cached parent instance. If the child passes the same config reference, the factory returns the parent's cached instance, which defeats isolation. This is the expected behavior of the factory-with-cache pattern and is not a bug. Strategies for ensuring distinct configs (e.g., per-MFE factory instances or a `forceNew` option) are outside the scope of Phase 22.
+The `screensetsRegistryFactory` uses a factory-with-cache pattern where `build(config)` caches the instance after the first call. When a child MFE calls `screensetsRegistryFactory.build(config)` to create its own child registry for hierarchical composition, it MUST pass a **distinct** `ScreensetsRegistryConfig` (e.g., a different `TypeSystemPlugin` instance or config object) to ensure the factory creates a new, isolated instance rather than returning the cached parent instance. If the child passes the same config reference, the factory returns the parent's cached instance, which defeats isolation. This is the expected behavior of the factory-with-cache pattern and is not a bug.
 
 ### Domain-Level Property Updates
 

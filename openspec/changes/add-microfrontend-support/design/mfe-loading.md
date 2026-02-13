@@ -332,7 +332,7 @@ The `MfeLoader` class shown above is a **conceptual reference** that documents t
 
 - `MfeHandlerMF.load(entry)` performs manifest resolution, container loading, and module factory extraction directly (shown in the `MfeHandlerMF` code above)
 - `MfeHandlerMF.preload(entries)` batches container preloading directly
-- `ManifestCache` is an internal helper class **inside** `mf-handler.ts` (see Decision 12 below and Phase 17 in tasks.md), not a standalone module
+- `ManifestCache` is an internal helper class **inside** `mf-handler.ts` (see Decision 12 below), not a standalone module
 - Retry and timeout configuration are handled within `MfeHandlerMF`'s private methods
 
 This means there is **no separate `MfeLoader` class at runtime**. The `MfeLoader` code block above serves as documentation of the loading algorithm and concerns. All loading logic lives in `MfeHandlerMF` (file: `packages/screensets/src/mfe/handler/mf-handler.ts`), keeping the handler self-contained and avoiding an unnecessary indirection layer.
@@ -381,7 +381,7 @@ class ManifestCache {
 
 #### How Manifests are Resolved
 
-When `loadExtension()` is called for an extension referencing MfeEntryMF:
+When the load operation is triggered (via `HAI3_ACTION_LOAD_EXT` action, routed to `MountManager.loadExtension()`) for an extension referencing MfeEntryMF:
 
 1. MfeHandlerMF receives the entry with `manifest` field (a type ID or inline manifest)
 2. Handler resolves the manifest internally (from cache or by parsing the entry)
@@ -399,11 +399,12 @@ runtime.registerExtension({
   title: 'Analytics Dashboard',
 });
 
-// Loading is handled by MfeHandlerMF internally
-await runtime.loadExtension(extensionId);  // Handler resolves manifest from entry
-
-// Mount to DOM
-await runtime.mountExtension(extensionId, container);
+// Loading and mounting are handled via actions chains (not direct registry methods).
+// Internally, ExtensionLifecycleActionHandler routes to MountManager which uses
+// MfeHandlerMF to resolve manifests and load bundles.
+await runtime.executeActionsChain({
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: domainId, payload: { extensionId } }, // Domain's ContainerProvider supplies the container
+});
 ```
 
 **Note**: The MfeEntryMF type includes a `manifest` field that can be:

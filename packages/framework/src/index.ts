@@ -44,11 +44,9 @@ export {
   preloadExtension,
   mountExtension,
   unmountExtension,
-  handleMfeHostAction,
-  selectMfeLoadState,
-  selectMfeMountState,
-  selectMfeError,
-  selectAllExtensionStates,
+  selectExtensionState,
+  selectRegisteredExtensions,
+  selectExtensionError,
   MfeErrorBoundary,
   MfeLoadingIndicator,
   ShadowDomContainer,
@@ -58,17 +56,21 @@ export {
   HAI3_OVERLAY_DOMAIN,
 } from './plugins';
 
+// MFE Action Constants (re-exported from @hai3/screensets for convenience)
+export {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/screensets';
+
 // MFE Plugin Types
 export type {
   MfeState,
-  MfeLoadState,
-  MfeMountState,
-  ExtensionMfeState,
-  LoadExtensionPayload,
-  PreloadExtensionPayload,
-  MountExtensionPayload,
-  UnmountExtensionPayload,
-  HostActionPayload,
+  ExtensionRegistrationState,
+  RegisterExtensionPayload,
+  UnregisterExtensionPayload,
+  RegisterDomainPayload,
+  UnregisterDomainPayload,
   MfeErrorBoundaryConfig,
   MfeLoadingIndicatorConfig,
   ShadowDomContainerConfig,
@@ -266,12 +268,14 @@ export type { MockState } from './slices/mockSlice';
 // Tenant effects and events
 export {
   initTenantEffects,
-  changeTenant,
-  clearTenantAction,
-  setTenantLoadingState,
   TenantEvents,
 } from './effects/tenantEffects';
 export type { TenantChangedPayload, TenantClearedPayload } from './effects/tenantEffects';
+export {
+  changeTenant,
+  clearTenantAction,
+  setTenantLoadingState,
+} from './effects/tenantActions';
 
 // Mock effects and events
 export {

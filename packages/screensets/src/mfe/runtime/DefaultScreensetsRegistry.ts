@@ -33,6 +33,9 @@ import { DefaultMountManager } from './default-mount-manager';
 import { OperationSerializer } from './operation-serializer';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';
+import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks } from './extension-lifecycle-action-handler';
+import type { ContainerProvider } from './container-provider';
+import { HAI3_ACTION_UNMOUNT_EXT } from '../constants';
 
 /**
  * Default concrete implementation of ScreensetsRegistry.
@@ -266,8 +269,36 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
-  registerDomain(domain: ExtensionDomain): void {
+  registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void {
+    // Step 1: Register domain state
     this.extensionManager.registerDomain(domain);
+
+    // Step 2: Determine domain semantics based on actions array
+    // If unmount_ext is NOT supported, use 'swap' semantics (screen domain)
+    // If unmount_ext IS supported, use 'toggle' semantics (sidebar/popup/overlay)
+    const supportsUnmount = domain.actions.includes(HAI3_ACTION_UNMOUNT_EXT);
+    const domainSemantics = supportsUnmount ? 'toggle' : 'swap';
+
+    // Step 3: Create lifecycle callbacks that route through OperationSerializer to MountManager
+    const lifecycleCallbacks: ExtensionLifecycleCallbacks = {
+      loadExtension: (id) =>
+        this.operationSerializer.serializeOperation(id, () => this.mountManager.loadExtension(id)),
+      mountExtension: (id, container) =>
+        this.operationSerializer.serializeOperation(id, () => this.mountManager.mountExtension(id, container)),
+      unmountExtension: (id) =>
+        this.operationSerializer.serializeOperation(id, () => this.mountManager.unmountExtension(id)),
+      getMountedExtension: (domainId) =>
+        this.extensionManager.getMountedExtension(domainId),
+    };
+
+    // Step 4: Create and register extension lifecycle action handler for this domain
+    const actionHandler = new ExtensionLifecycleActionHandler(
+      domain.id,
+      lifecycleCallbacks,
+      domainSemantics,
+      containerProvider
+    );
+    this.registerDomainActionHandler(domain.id, actionHandler);
   }
 
   /**
@@ -367,6 +398,30 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   }
 
   /**
+   * Get the currently mounted extension in a domain.
+   * Delegates to ExtensionManager.
+   *
+   * @param domainId - ID of the domain
+   * @returns Extension ID if mounted, undefined otherwise
+   */
+  getMountedExtension(domainId: string): string | undefined {
+    return this.extensionManager.getMountedExtension(domainId);
+  }
+
+  /**
+   * Returns the ParentMfeBridge for the given extension, or null if the extension
+   * is not mounted or does not exist. This is a query method -- it reads from
+   * ExtensionState.bridge, which is set by MountManager.mountExtension() during
+   * mount and cleared during unmount.
+   *
+   * @param extensionId - ID of the extension
+   * @returns ParentMfeBridge if extension is mounted, null otherwise
+   */
+  getParentBridge(extensionId: string): ParentMfeBridge | null {
+    return this.extensionManager.getExtensionState(extensionId)?.bridge ?? null;
+  }
+
+  /**
    * Update multiple domain properties at once.
    * More efficient than calling updateDomainProperty multiple times.
    *
@@ -430,62 +485,14 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   async unregisterDomain(domainId: string): Promise<void> {
     return this.operationSerializer.serializeOperation(domainId, async () => {
+      // Step 1: Unregister domain action handler
+      this.unregisterDomainActionHandler(domainId);
+
+      // Step 2: Unregister domain from extension manager (cascade-unregisters extensions)
       return this.extensionManager.unregisterDomain(domainId);
     });
   }
 
-  /**
-   * Load an extension bundle.
-   * Delegates to MountManager.
-   *
-   * @param extensionId - ID of the extension to load
-   * @returns Promise resolving when bundle is loaded
-   */
-  async loadExtension(extensionId: string): Promise<void> {
-    return this.operationSerializer.serializeOperation(extensionId, async () => {
-      return this.mountManager.loadExtension(extensionId);
-    });
-  }
-
-  /**
-   * Preload an extension bundle without mounting.
-   * Delegates to MountManager.
-   *
-   * @param extensionId - ID of the extension to preload
-   * @returns Promise resolving when bundle is preloaded
-   */
-  async preloadExtension(extensionId: string): Promise<void> {
-    return this.operationSerializer.serializeOperation(extensionId, async () => {
-      return this.mountManager.preloadExtension(extensionId);
-    });
-  }
-
-  /**
-   * Mount an extension into a container element.
-   * Delegates to MountManager.
-   *
-   * @param extensionId - ID of the extension to mount
-   * @param container - DOM element to mount into
-   * @returns Promise resolving to the parent bridge
-   */
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
-    return this.operationSerializer.serializeOperation(extensionId, async () => {
-      return this.mountManager.mountExtension(extensionId, container);
-    });
-  }
-
-  /**
-   * Unmount an extension from its container.
-   * Delegates to MountManager.
-   *
-   * @param extensionId - ID of the extension to unmount
-   * @returns Promise resolving when unmount is complete
-   */
-  async unmountExtension(extensionId: string): Promise<void> {
-    return this.operationSerializer.serializeOperation(extensionId, async () => {
-      return this.mountManager.unmountExtension(extensionId);
-    });
-  }
 
   /**
    * Get a registered extension by its ID.
@@ -609,6 +616,25 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   getLifecycleManager(): LifecycleManager {
     return this.lifecycleManager;
+  }
+
+  /**
+   * INTERNAL: Get mount manager (for testing).
+   * Tests that need to call load/mount/unmount directly use this
+   * instead of going through executeActionsChain (which requires full
+   * GTS action validation that synthetic test domains cannot pass).
+   * @internal
+   */
+  getMountManager(): MountManager {
+    return this.mountManager;
+  }
+
+  /**
+   * INTERNAL: Get operation serializer (for testing).
+   * @internal
+   */
+  getOperationSerializer(): OperationSerializer {
+    return this.operationSerializer;
   }
 
   /**

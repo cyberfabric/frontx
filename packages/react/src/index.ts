@@ -40,16 +40,17 @@ export {
   MfeContext,
   useMfeContext,
   MfeProvider,
-  useMfeState,
   useMfeBridge,
   useSharedProperty,
   useHostAction,
+  RefContainerProvider,
+  ExtensionDomainSlot,
 } from './mfe';
 
 export type {
   MfeContextValue,
   MfeProviderProps,
-  UseMfeStateReturn,
+  ExtensionDomainSlotProps,
 } from './mfe';
 
 // ============================================================================

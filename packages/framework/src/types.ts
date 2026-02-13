@@ -161,12 +161,11 @@ export interface HAI3Actions {
   // ==========================================================================
   loadExtension: (extensionId: string) => void;
   preloadExtension: (extensionId: string) => void;
-  mountExtension: (extensionId: string, containerElement: HTMLElement) => void;
+  mountExtension: (extensionId: string) => void;
   unmountExtension: (extensionId: string) => void;
-  handleMfeHostAction: (extensionId: string, actionTypeId: string, payload?: unknown) => void;
   registerExtension: (extension: import('@hai3/screensets').Extension) => void;
   unregisterExtension: (extensionId: string) => void;
-  registerDomain: (domain: import('@hai3/screensets').ExtensionDomain) => void;
+  registerDomain: (domain: import('@hai3/screensets').ExtensionDomain, containerProvider: import('@hai3/screensets').ContainerProvider) => void;
   unregisterDomain: (domainId: string) => void;
 }
 
@@ -464,7 +463,7 @@ export type MfeScreensetsRegistry = import('@hai3/screensets').ScreensetsRegistr
  *
  * // Access MFE registry (if microfrontends plugin is used)
  * if (app.screensetsRegistry) {
- *   app.screensetsRegistry.registerDomain(myDomain);
+ *   app.screensetsRegistry.registerDomain(myDomain, containerProvider);
  * }
  * ```
  */

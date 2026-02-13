@@ -169,10 +169,10 @@ const result = plugin.validateInstance(widgetSlotDomain.id);
 
 Different domain layouts have different semantics for extension lifecycle:
 
-- **Popup, Sidebar, Overlay** - Can be shown/hidden (extension can be loaded/unloaded)
-- **Screen** - Always has a screen selected (can navigate between screens, but can't have "no screen")
+- **Popup, Sidebar, Overlay** - Support all three lifecycle actions (`load_ext`, `mount_ext`, `unmount_ext`). Extensions can be shown or removed; empty state is valid.
+- **Screen** - Supports `load_ext` and `mount_ext` only. `mount_ext` has **swap semantics**: it internally unmounts the current screen and mounts the new one (no empty screen state). `unmount_ext` is not supported.
 
-The ActionsChainsMediator handles these semantics when processing actions. See [MFE Actions](./mfe-actions.md) for details on action chain execution.
+The ActionsChainsMediator validates action support against the domain's `actions` array before delivery. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete domain support matrix and swap semantics design.
 
 ---
 

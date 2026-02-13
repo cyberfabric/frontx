@@ -16,7 +16,26 @@ import { screensets } from '@hai3/framework';
 import { effects } from '@hai3/framework';
 import { microfrontends } from '@hai3/framework';
 import type { Extension, ExtensionDomain } from '@hai3/screensets';
+import { ContainerProvider } from '@hai3/screensets';
 import type { HAI3App } from '@hai3/framework';
+
+// Mock Container Provider for React tests
+class TestContainerProvider extends ContainerProvider {
+  private mockContainer: Element;
+
+  constructor() {
+    super();
+    this.mockContainer = document.createElement('div');
+  }
+
+  getContainer(_extensionId: string): Element {
+    return this.mockContainer;
+  }
+
+  releaseContainer(_extensionId: string): void {
+    // no-op
+  }
+}
 
 describe('useDomainExtensions hook - Phase 21.7', () => {
   const sidebarDomainId = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1';
@@ -32,7 +51,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   const mockSidebarDomain: ExtensionDomain = {
     id: sidebarDomainId,
     sharedProperties: [],
-    actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'],
+    actions: [
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+    ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
     lifecycleStages: [],
@@ -42,7 +64,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   const mockPopupDomain: ExtensionDomain = {
     id: popupDomainId,
     sharedProperties: [],
-    actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.comm.load_ext.v1'],
+    actions: [
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+    ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
     lifecycleStages: [],
@@ -120,8 +145,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   describe('Store subscription', () => {
     it('should return extensions for the specified domain', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
-      app.screensetsRegistry.registerDomain(mockPopupDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
+      const testContainerProvider2 = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockPopupDomain, testContainerProvider2);
       await app.screensetsRegistry.registerExtension(sidebarExtension1);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
@@ -132,7 +159,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
 
     it('should update when extension is registered', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
@@ -153,7 +181,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   describe('Unregistration detection', () => {
     it('should update when extension is unregistered', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
       await app.screensetsRegistry.registerExtension(sidebarExtension1);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
@@ -173,8 +202,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   describe('Domain filtering', () => {
     it('should only return extensions for the specified domain', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
-      app.screensetsRegistry.registerDomain(mockPopupDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
+      const testContainerProvider2 = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockPopupDomain, testContainerProvider2);
 
       await app.screensetsRegistry.registerExtension(sidebarExtension1);
       await app.screensetsRegistry.registerExtension(sidebarExtension2);
@@ -193,8 +224,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
 
     it('should not re-render when extensions in other domains change but list is same', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
-      app.screensetsRegistry.registerDomain(mockPopupDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
+      const testContainerProvider2 = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockPopupDomain, testContainerProvider2);
 
       await app.screensetsRegistry.registerExtension(sidebarExtension1);
 
@@ -224,7 +257,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   describe('Current extensions list', () => {
     it('should return all current extensions for domain', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
 
       await app.screensetsRegistry.registerExtension(sidebarExtension1);
       await app.screensetsRegistry.registerExtension(sidebarExtension2);
@@ -238,7 +272,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
 
     it('should return empty array for domain with no extensions', () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
@@ -249,7 +284,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
   describe('Re-render on state changes', () => {
     it('should re-render when extensions change', async () => {
       const app = buildApp();
-      app.screensetsRegistry.registerDomain(mockSidebarDomain);
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 

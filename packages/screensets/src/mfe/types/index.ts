@@ -17,5 +17,8 @@ export type { Action } from './action';
 export type { ActionsChain } from './actions-chain';
 export type { LifecycleStage, LifecycleHook } from './lifecycle';
 
+// Action payloads
+export type { LoadExtPayload, MountExtPayload, UnmountExtPayload } from './action-payloads';
+
 // Module Federation types
 export type { MfManifest, SharedDependencyConfig } from './mf-manifest';

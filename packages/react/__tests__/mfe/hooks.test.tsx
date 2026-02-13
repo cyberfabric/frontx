@@ -12,7 +12,6 @@ import { configureStore } from '@reduxjs/toolkit';
 import {
   MfeProvider,
   useMfeContext,
-  useMfeState,
   useMfeBridge,
   useSharedProperty,
   useHostAction,
@@ -46,23 +45,14 @@ const mockMfeContextValue: MfeContextValue = {
 // ============================================================================
 
 /**
- * Create a mock Redux store with MFE slice.
+ * Create a mock Redux store.
  */
-function createMockStore(extensionState?: {
-  loadState?: string;
-  mountState?: string;
-  error?: string;
-}) {
+function createMockStore() {
   return configureStore({
     reducer: {
       mfe: () => ({
-        extensions: {
-          'test-extension-1': {
-            loadState: extensionState?.loadState ?? 'idle',
-            mountState: extensionState?.mountState ?? 'unmounted',
-            error: extensionState?.error,
-          },
-        },
+        registrationStates: {},
+        errors: {},
       }),
     },
   });
@@ -108,57 +98,7 @@ describe('MfeContext', () => {
     });
   });
 
-  describe('14.5.2 useMfeState hook', () => {
-    it('should return MFE state with bridge info and Redux states', () => {
-      const store = createMockStore({
-        loadState: 'loaded',
-        mountState: 'mounted',
-      });
-      const wrapper = createWrapper(mockMfeContextValue, store);
-
-      const { result } = renderHook(() => useMfeState(), { wrapper });
-
-      expect(result.current).toEqual({
-        extensionId: 'test-extension-1',
-        domainId: mockBridge.domainId,
-        entryTypeId: mockBridge.entryTypeId,
-        instanceId: mockBridge.instanceId,
-        loadState: 'loaded',
-        mountState: 'mounted',
-        error: undefined,
-      });
-    });
-
-    it('should return error state when extension has error', () => {
-      const store = createMockStore({
-        loadState: 'error',
-        mountState: 'error',
-        error: 'Load failed',
-      });
-      const wrapper = createWrapper(mockMfeContextValue, store);
-
-      const { result } = renderHook(() => useMfeState(), { wrapper });
-
-      expect(result.current.loadState).toBe('error');
-      expect(result.current.error).toBe('Load failed');
-    });
-
-    it('should return idle/unmounted when extension not tracked', () => {
-      const store = configureStore({
-        reducer: {
-          mfe: () => ({ extensions: {} }),
-        },
-      });
-      const wrapper = createWrapper(mockMfeContextValue, store);
-
-      const { result } = renderHook(() => useMfeState(), { wrapper });
-
-      expect(result.current.loadState).toBe('idle');
-      expect(result.current.mountState).toBe('unmounted');
-    });
-  });
-
-  describe('14.5.3 useMfeBridge hook', () => {
+  describe('14.5.2 useMfeBridge hook', () => {
     it('should return bridge from context', () => {
       const store = createMockStore();
       const wrapper = createWrapper(mockMfeContextValue, store);
@@ -177,7 +117,7 @@ describe('MfeContext', () => {
     });
   });
 
-  describe('14.5.4 useSharedProperty subscription', () => {
+  describe('14.5.3 useSharedProperty subscription', () => {
     it('should return undefined when property is not set', () => {
       const store = createMockStore();
       const wrapper = createWrapper(mockMfeContextValue, store);

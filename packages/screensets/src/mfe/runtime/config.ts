@@ -37,8 +37,8 @@ export interface ScreensetsRegistryConfig {
    * // Build the registry with GTS plugin at application wiring time
    * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
    *
-   * // Use the registry
-   * registry.registerDomain(myDomain);
+   * // Use the registry with container provider
+   * registry.registerDomain(myDomain, containerProvider);
    * ```
    */
   typeSystem: TypeSystemPlugin;

@@ -18,6 +18,12 @@ import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry, ActionsChain } from '../../../src/mfe/types';
 import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../../../src/mfe/constants';
+import { MockContainerProvider } from '../test-utils';
 
 // Helper to access private members for testing (replaces 'as any' with proper typing)
 interface ExtensionStateShape {
@@ -51,6 +57,7 @@ function getRegistryInternals(registry: ScreensetsRegistry): RegistryInternals {
 describe('Lifecycle Stage Triggering', () => {
   let registry: ScreensetsRegistry;
   let plugin: TypeSystemPlugin;
+  let mockContainerProvider: MockContainerProvider;
 
   const customStageId = 'gts.hai3.mfes.lifecycle.stage.v1~test.lifecycle.trigger.custom_stage.v1';
   const initStageId = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1';
@@ -58,7 +65,11 @@ describe('Lifecycle Stage Triggering', () => {
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.lifecycle.trigger.domain.v1',
     sharedProperties: [],
-    actions: [],
+    actions: [
+      HAI3_ACTION_LOAD_EXT,
+      HAI3_ACTION_MOUNT_EXT,
+      HAI3_ACTION_UNMOUNT_EXT,
+    ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
     lifecycleStages: [
@@ -80,7 +91,11 @@ describe('Lifecycle Stage Triggering', () => {
     requiredProperties: [],
     optionalProperties: [],
     actions: [],
-    domainActions: [],
+    domainActions: [
+      HAI3_ACTION_LOAD_EXT,
+      HAI3_ACTION_MOUNT_EXT,
+      HAI3_ACTION_UNMOUNT_EXT,
+    ],
   };
 
   const testExtension: Extension = {
@@ -113,6 +128,7 @@ describe('Lifecycle Stage Triggering', () => {
       typeSystem: plugin,
       debug: false,
     });
+    mockContainerProvider = new MockContainerProvider();
 
     // Pre-register test entities with GTS
     plugin.register(testEntry);
@@ -124,7 +140,7 @@ describe('Lifecycle Stage Triggering', () => {
   describe('triggerLifecycleStage', () => {
     it('should execute hooks for a specific extension and stage', async () => {
       // Register domain and extension without hooks (passes GTS validation)
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -168,7 +184,7 @@ describe('Lifecycle Stage Triggering', () => {
 
   describe('triggerDomainLifecycleStage', () => {
     it('should execute hooks for all extensions in a domain', async () => {
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -212,7 +228,7 @@ describe('Lifecycle Stage Triggering', () => {
   describe('triggerDomainOwnLifecycleStage', () => {
     it('should execute hooks on the domain itself', async () => {
       // Register domain without hooks first (passes GTS validation)
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       // Add lifecycle hooks to the internal domain state
       const internals = getRegistryInternals(registry);
@@ -257,7 +273,7 @@ describe('Lifecycle Stage Triggering', () => {
       const internals = getRegistryInternals(registry);
       const spy = vi.spyOn(internals, 'triggerLifecycleStageInternal').mockResolvedValue(undefined);
 
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -274,7 +290,7 @@ describe('Lifecycle Stage Triggering', () => {
       const internals = getRegistryInternals(registry);
       const spy = vi.spyOn(internals, 'triggerLifecycleStageInternal').mockResolvedValue(undefined);
 
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
 
       // registerDomain should trigger init lifecycle stage (fire-and-forget)
       expect(spy).toHaveBeenCalledWith(
@@ -287,7 +303,7 @@ describe('Lifecycle Stage Triggering', () => {
 
     it('should trigger activated stage during mountExtension', async () => {
       // Register domain and extension first
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -307,9 +323,11 @@ describe('Lifecycle Stage Triggering', () => {
       // Spy on triggerLifecycleStage to verify activated is triggered
       const spy = vi.spyOn(registry, 'triggerLifecycleStage').mockResolvedValue(undefined);
 
-      // Mount the extension
+      // Mount the extension via mount manager (bypasses GTS action validation which
+      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
+      const mountManager = (registry as DefaultScreensetsRegistry).getMountManager();
       const container = document.createElement('div');
-      await registry.mountExtension(testExtension.id, container);
+      await mountManager.mountExtension(testExtension.id, container);
 
       // mountExtension should trigger activated lifecycle stage
       expect(spy).toHaveBeenCalledWith(
@@ -322,7 +340,7 @@ describe('Lifecycle Stage Triggering', () => {
 
     it('should trigger deactivated stage during unmountExtension', async () => {
       // Register domain and extension first
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -338,15 +356,17 @@ describe('Lifecycle Stage Triggering', () => {
       extensionState.lifecycle = mockLifecycle;
       extensionState.loadState = 'loaded';
 
-      // Mount the extension first
+      // Mount the extension first via mount manager (bypasses GTS action validation which
+      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
+      const mountManager = (registry as DefaultScreensetsRegistry).getMountManager();
       const container = document.createElement('div');
-      await registry.mountExtension(testExtension.id, container);
+      await mountManager.mountExtension(testExtension.id, container);
 
       // Spy on triggerLifecycleStage to verify deactivated is triggered
       const spy = vi.spyOn(registry, 'triggerLifecycleStage').mockResolvedValue(undefined);
 
-      // Unmount the extension
-      await registry.unmountExtension(testExtension.id);
+      // Unmount the extension via mount manager
+      await mountManager.unmountExtension(testExtension.id);
 
       // unmountExtension should trigger deactivated lifecycle stage
       expect(spy).toHaveBeenCalledWith(
@@ -359,7 +379,7 @@ describe('Lifecycle Stage Triggering', () => {
 
     it('should trigger destroyed stage during unregisterExtension', async () => {
       // Register domain and extension first
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -381,7 +401,7 @@ describe('Lifecycle Stage Triggering', () => {
 
   describe('hook execution order', () => {
     it('should execute hooks in declaration order', async () => {
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension);
 
@@ -430,7 +450,7 @@ describe('Lifecycle Stage Triggering', () => {
 
   describe('entity with no lifecycle hooks', () => {
     it('should skip triggering gracefully', async () => {
-      registry.registerDomain(testDomain);
+      registry.registerDomain(testDomain, mockContainerProvider);
       preCacheEntry();
       await registry.registerExtension(testExtension); // no lifecycle hooks
 

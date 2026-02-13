@@ -246,6 +246,9 @@ export class DefaultMountManager extends MountManager {
       extensionState.container = container;
       extensionState.mountState = 'mounted';
 
+      // Track mounted extension in domain (single extension per domain invariant)
+      this.extensionManager.setMountedExtension(extensionState.extension.domain, extensionId);
+
       // Trigger 'activated' lifecycle stage
       await this.triggerLifecycle(
         extensionId,
@@ -321,6 +324,12 @@ export class DefaultMountManager extends MountManager {
       extensionState.container = null;
       extensionState.mountState = 'unmounted';
       extensionState.error = undefined;
+
+      // Clear mounted extension tracking in domain
+      const domainState = this.extensionManager.getDomainState(extensionState.extension.domain);
+      if (domainState && domainState.mountedExtension === extensionId) {
+        this.extensionManager.setMountedExtension(extensionState.extension.domain, undefined);
+      }
 
       this.log('Extension unmounted', { extensionId });
     } catch (error) {
