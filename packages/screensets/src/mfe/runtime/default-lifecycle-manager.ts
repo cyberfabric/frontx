@@ -13,8 +13,6 @@ import { DefaultExtensionManager } from './default-extension-manager';
 import {
   LifecycleManager,
   type ActionChainExecutor,
-  type ErrorHandler,
-  type LifecycleStageInternalTrigger,
 } from './lifecycle-manager';
 
 /**
@@ -35,28 +33,13 @@ export class DefaultLifecycleManager extends LifecycleManager {
    */
   private readonly executeActionsChain: ActionChainExecutor;
 
-  /**
-   * Error handler for handling errors during lifecycle execution.
-   */
-  private readonly errorHandler: ErrorHandler;
-
-  /**
-   * Optional callback for internal lifecycle stage triggering.
-   * Used for testing compatibility - allows tests to spy on internal method calls.
-   */
-  private readonly internalTriggerCallback?: LifecycleStageInternalTrigger;
-
   constructor(
     extensionManager: DefaultExtensionManager,
-    executeActionsChain: ActionChainExecutor,
-    errorHandler: ErrorHandler,
-    internalTriggerCallback?: LifecycleStageInternalTrigger
+    executeActionsChain: ActionChainExecutor
   ) {
     super();
     this.extensionManager = extensionManager;
     this.executeActionsChain = executeActionsChain;
-    this.errorHandler = errorHandler;
-    this.internalTriggerCallback = internalTriggerCallback;
   }
 
   /**
@@ -73,12 +56,7 @@ export class DefaultLifecycleManager extends LifecycleManager {
       throw new Error(`Cannot trigger lifecycle stage: extension '${extensionId}' is not registered`);
     }
 
-    // Call through callback if provided (for test compatibility)
-    if (this.internalTriggerCallback) {
-      await this.internalTriggerCallback(extensionState.extension, stageId);
-    } else {
-      await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
-    }
+    await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
   }
 
   /**
@@ -97,12 +75,7 @@ export class DefaultLifecycleManager extends LifecycleManager {
 
     const extensionStates = this.extensionManager.getExtensionStatesForDomain(domainId);
     for (const extensionState of extensionStates) {
-      // Call through callback if provided (for test compatibility)
-      if (this.internalTriggerCallback) {
-        await this.internalTriggerCallback(extensionState.extension, stageId);
-      } else {
-        await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
-      }
+      await this.triggerLifecycleStageInternal(extensionState.extension, stageId);
     }
   }
 
@@ -120,46 +93,19 @@ export class DefaultLifecycleManager extends LifecycleManager {
       throw new Error(`Cannot trigger lifecycle stage: domain '${domainId}' is not registered`);
     }
 
-    // Call through callback if provided (for test compatibility)
-    if (this.internalTriggerCallback) {
-      await this.internalTriggerCallback(domainState.domain, stageId);
-    } else {
-      await this.triggerLifecycleStageInternal(domainState.domain, stageId);
-    }
+    await this.triggerLifecycleStageInternal(domainState.domain, stageId);
   }
 
   /**
    * Internal helper for triggering lifecycle stages.
    * Collects hooks matching the stage and executes their actions chains in declaration order.
    *
-   * INTERNAL: Made public for direct access from registry's test compatibility shim.
-   *
    * @param entity - Extension or ExtensionDomain entity
    * @param stageId - ID of the lifecycle stage to trigger
-   * @param skipCallback - If true, skip the callback and execute directly (used when called from registry shim)
    * @returns Promise resolving when all hooks have executed
-   * @internal
-   */
-  async triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string,
-    skipCallback = false
-  ): Promise<void> {
-    // If callback is set and we're not skipping it, use the callback for test compatibility
-    if (!skipCallback && this.internalTriggerCallback) {
-      return this.internalTriggerCallback(entity, stageId);
-    }
-
-    // Otherwise, execute the actual implementation
-    return this.triggerLifecycleStageInternalImpl(entity, stageId);
-  }
-
-  /**
-   * Actual implementation of lifecycle stage triggering.
-   * This is the real logic, separated to avoid circular calls.
    * @private
    */
-  private async triggerLifecycleStageInternalImpl(
+  private async triggerLifecycleStageInternal(
     entity: Extension | ExtensionDomain,
     stageId: string
   ): Promise<void> {
@@ -179,10 +125,12 @@ export class DefaultLifecycleManager extends LifecycleManager {
         await this.executeActionsChain(hook.actions_chain);
       } catch (error) {
         // Log error but don't stop execution of remaining hooks
-        this.errorHandler(
-          error instanceof Error ? error : new Error(String(error)),
-          { entityId: entity.id, stageId, hookStage: hook.stage }
-        );
+        const errorObj = error instanceof Error ? error : new Error(String(error));
+        console.error('[DefaultLifecycleManager] Lifecycle hook error:', errorObj, {
+          entityId: entity.id,
+          stageId,
+          hookStage: hook.stage
+        });
       }
     }
   }

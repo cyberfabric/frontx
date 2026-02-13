@@ -26,9 +26,9 @@ const app = createHAI3()
 
 // All registration happens dynamically at runtime:
 // - dispatch(registerExtension({ extension }))
-// - dispatch(registerDomain(domain, containerProvider))
+// - dispatch(registerDomain(domain, containerProvider, onInitError?))
 // - runtime.registerExtension(extension)
-// - runtime.registerDomain(domain, containerProvider)
+// - runtime.registerDomain(domain, containerProvider, onInitError?)
 ```
 
 - **WHEN** building an app with microfrontends plugin

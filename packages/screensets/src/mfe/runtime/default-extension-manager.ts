@@ -21,8 +21,6 @@ import {
   type ExtensionState,
   type LifecycleTriggerCallback,
   type DomainLifecycleTriggerCallback,
-  type LoggerCallback,
-  type ErrorHandlerCallback,
 } from './extension-manager';
 import { validateDomainLifecycleHooks, validateExtensionLifecycleHooks } from '../validation/lifecycle';
 import { validateContract } from '../validation/contract';
@@ -70,16 +68,6 @@ export class DefaultExtensionManager extends ExtensionManager {
   private readonly triggerDomainOwnLifecycle: DomainLifecycleTriggerCallback;
 
   /**
-   * Logger callback.
-   */
-  private readonly log: LoggerCallback;
-
-  /**
-   * Error handler callback.
-   */
-  private readonly handleError: ErrorHandlerCallback;
-
-  /**
    * Unmount extension callback.
    */
   private readonly unmountExtension: (extensionId: string) => Promise<void>;
@@ -88,16 +76,12 @@ export class DefaultExtensionManager extends ExtensionManager {
     typeSystem: TypeSystemPlugin;
     triggerLifecycle: LifecycleTriggerCallback;
     triggerDomainOwnLifecycle: DomainLifecycleTriggerCallback;
-    log: LoggerCallback;
-    handleError: ErrorHandlerCallback;
     unmountExtension: (extensionId: string) => Promise<void>;
   }) {
     super();
     this.typeSystem = config.typeSystem;
     this.triggerLifecycle = config.triggerLifecycle;
     this.triggerDomainOwnLifecycle = config.triggerDomainOwnLifecycle;
-    this.log = config.log;
-    this.handleError = config.handleError;
     this.unmountExtension = config.unmountExtension;
   }
 
@@ -106,8 +90,9 @@ export class DefaultExtensionManager extends ExtensionManager {
    * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param domain - Domain to register
+   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
    */
-  registerDomain(domain: ExtensionDomain): void {
+  registerDomain(domain: ExtensionDomain, onInitError?: (error: Error) => void): void {
     // Step 1: GTS-native validation - register then validate by ID
     this.typeSystem.register(domain);
     const validation = this.typeSystem.validateInstance(domain.id);
@@ -141,18 +126,19 @@ export class DefaultExtensionManager extends ExtensionManager {
 
     // Step 4: Trigger 'init' lifecycle stage (fire-and-forget)
     // Since registerDomain is synchronous but lifecycle is async,
-    // we fire-and-forget and handle errors internally
+    // we fire-and-forget and handle errors via onInitError callback
     this.triggerDomainOwnLifecycle(
       domain.id,
       'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1'
     ).catch(error => {
-      this.handleError(
-        error instanceof Error ? error : new Error(String(error)),
-        { domainId: domain.id, stage: 'init' }
-      );
+      const mfeError = error instanceof Error ? error : new Error(String(error));
+      if (onInitError) {
+        onInitError(mfeError);
+      } else {
+        // Minimal fallback: log to console.error
+        console.error('[DefaultExtensionManager] Domain init error:', mfeError, { domainId: domain.id });
+      }
     });
-
-    this.log('Domain registered', { domainId: domain.id });
   }
 
   /**
@@ -183,8 +169,6 @@ export class DefaultExtensionManager extends ExtensionManager {
 
     // 3. Remove domain
     this.domains.delete(domainId);
-
-    this.log('Domain unregistered', { domainId });
   }
 
   /**
@@ -278,8 +262,6 @@ export class DefaultExtensionManager extends ExtensionManager {
       extension.id,
       'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1'
     );
-
-    this.log('Extension registered', { extensionId: extension.id, domainId: extension.domain });
   }
 
   /**
@@ -315,8 +297,6 @@ export class DefaultExtensionManager extends ExtensionManager {
     }
 
     this.extensions.delete(extensionId);
-
-    this.log('Extension unregistered', { extensionId });
   }
 
   /**
@@ -427,11 +407,26 @@ export class DefaultExtensionManager extends ExtensionManager {
     // This allows newly registered entries (via gtsPlugin.register/typeSystem.register) to be used
     // getSchema() returns the entity's content, which for instances is the instance data itself
     const schema = this.typeSystem.getSchema(entryId);
-    if (schema) {
-      return schema as unknown as MfeEntry;
+    if (schema && this.isMfeEntry(schema)) {
+      return schema;
     }
 
     return undefined;
+  }
+
+  /**
+   * Runtime type guard for MfeEntry.
+   * Validates that the value has the required structural shape.
+   */
+  private isMfeEntry(value: unknown): value is MfeEntry {
+    if (typeof value !== 'object' || value === null) return false;
+    const candidate = value as Record<string, unknown>;
+    return (
+      typeof candidate.id === 'string' &&
+      Array.isArray(candidate.requiredProperties) &&
+      Array.isArray(candidate.actions) &&
+      Array.isArray(candidate.domainActions)
+    );
   }
 
   /**
@@ -443,21 +438,6 @@ export class DefaultExtensionManager extends ExtensionManager {
     this.extensions.clear();
   }
 
-  /**
-   * INTERNAL: Direct access to domains map (for testing).
-   * @internal
-   */
-  getDomainsMap(): Map<string, ExtensionDomainState> {
-    return this.domains;
-  }
-
-  /**
-   * INTERNAL: Direct access to extensions map (for testing).
-   * @internal
-   */
-  getExtensionsMap(): Map<string, ExtensionState> {
-    return this.extensions;
-  }
 
   /**
    * Get the currently mounted extension in a domain.

@@ -9,7 +9,6 @@ describe('Phase 12.1: Integration Testing', () => {
   beforeEach(() => {
     runtime = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
-      debug: false,
     });
   });
 
@@ -156,7 +155,6 @@ describe('Phase 12.1: Integration Testing', () => {
 
       const customRuntime = new DefaultScreensetsRegistry({
         typeSystem: customPlugin,
-        debug: false,
       });
 
       // Verify custom plugin is used
@@ -196,7 +194,6 @@ describe('Phase 12.1: Integration Testing', () => {
 
       const runtime2 = new DefaultScreensetsRegistry({
         typeSystem: validationCountPlugin,
-        debug: false,
       });
 
       // Perform validations

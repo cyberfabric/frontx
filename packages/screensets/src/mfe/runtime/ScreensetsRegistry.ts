@@ -57,10 +57,15 @@ export abstract class ScreensetsRegistry {
    *
    * @param domain - Domain to register
    * @param containerProvider - Container provider for the domain
+   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
-  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void;
+  abstract registerDomain(
+    domain: ExtensionDomain,
+    containerProvider: ContainerProvider,
+    onInitError?: (error: Error) => void
+  ): void;
 
   /**
    * Unregister a domain from the registry.

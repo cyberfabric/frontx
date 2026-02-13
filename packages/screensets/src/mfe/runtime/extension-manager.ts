@@ -54,16 +54,6 @@ export type LifecycleTriggerCallback = (extensionId: string, stageId: string) =>
 export type DomainLifecycleTriggerCallback = (domainId: string, stageId: string) => Promise<void>;
 
 /**
- * Logger callback type.
- */
-export type LoggerCallback = (message: string, context?: Record<string, unknown>) => void;
-
-/**
- * Error handler callback type.
- */
-export type ErrorHandlerCallback = (error: Error, context: Record<string, unknown>) => void;
-
-/**
  * Abstract extension manager for extension and domain state management.
  *
  * This is the exportable abstraction that defines the contract for
@@ -87,8 +77,9 @@ export abstract class ExtensionManager {
    * Performs validation, stores state, and triggers init lifecycle.
    *
    * @param domain - Domain to register
+   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
    */
-  abstract registerDomain(domain: ExtensionDomain): void;
+  abstract registerDomain(domain: ExtensionDomain, onInitError?: (error: Error) => void): void;
 
   /**
    * Unregister a domain.

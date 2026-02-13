@@ -17,7 +17,6 @@ describe('Domain Registration', () => {
   beforeEach(() => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
-      debug: false,
     });
     mockContainerProvider = new MockContainerProvider();
   });

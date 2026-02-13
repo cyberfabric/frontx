@@ -10,29 +10,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '../../../src/mfe/handler/types';
+import type { ExtensionDomain, Extension } from '../../../src/mfe/types';
 import { MockContainerProvider } from '../test-utils';
-
-// Helper to access private members for testing (replaces 'as never' with proper typing)
-interface ExtensionStateShape {
-  extension: Extension;
-  entry: MfeEntry;
-  bridge: unknown;
-  loadState: 'idle' | 'loading' | 'loaded' | 'error';
-  mountState: 'unmounted' | 'mounting' | 'mounted' | 'error';
-  container: Element | null;
-  lifecycle: MfeEntryLifecycle<ChildMfeBridge> | null;
-  error?: Error;
-}
-
-interface RegistryInternals {
-  extensions: Map<string, ExtensionStateShape>;
-}
-
-function getRegistryInternals(registry: DefaultScreensetsRegistry): RegistryInternals {
-  return registry as unknown as RegistryInternals;
-}
 
 describe('ScreensetsRegistry Query Methods', () => {
   let registry: DefaultScreensetsRegistry;
@@ -73,7 +52,6 @@ describe('ScreensetsRegistry Query Methods', () => {
   beforeEach(() => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
-      debug: false,
     });
     mockContainerProvider = new MockContainerProvider();
 
@@ -85,19 +63,6 @@ describe('ScreensetsRegistry Query Methods', () => {
     it('should return registered extension', async () => {
       // Register domain and extension
       registry.registerDomain(testDomain, mockContainerProvider);
-
-      // Mock resolveEntry by pre-caching
-      const internals = getRegistryInternals(registry);
-      internals.extensions.set(testExtension.id, {
-        extension: testExtension,
-        entry: testEntry,
-        bridge: null,
-        loadState: 'idle',
-        mountState: 'unmounted',
-        container: null,
-        lifecycle: null,
-      });
-
       await registry.registerExtension(testExtension);
 
       const result = registry.getExtension(testExtension.id);
@@ -137,27 +102,6 @@ describe('ScreensetsRegistry Query Methods', () => {
 
       // Register domain
       registry.registerDomain(testDomain, mockContainerProvider);
-
-      // Mock resolveEntry by pre-caching both extensions
-      const internals = getRegistryInternals(registry);
-      internals.extensions.set(testExtension.id, {
-        extension: testExtension,
-        entry: testEntry,
-        bridge: null,
-        loadState: 'idle',
-        mountState: 'unmounted',
-        container: null,
-        lifecycle: null,
-      });
-      internals.extensions.set(testExtension2.id, {
-        extension: testExtension2,
-        entry: testEntry,
-        bridge: null,
-        loadState: 'idle',
-        mountState: 'unmounted',
-        container: null,
-        lifecycle: null,
-      });
 
       // Register extensions
       await registry.registerExtension(testExtension);

@@ -510,42 +510,15 @@ The ScreensetsRegistry requires a Type System plugin at initialization:
 // packages/screensets/src/mfe/runtime/config.ts
 
 /**
- * Configuration for the ScreensetsRegistry
+ * Configuration for the ScreensetsRegistry.
  *
- * Note on loading/error components:
- * - Components configured here serve as REGISTRY-LEVEL DEFAULTS
- * - Individual domain containers (e.g., ExtensionDomainSlot from @hai3/react) can OVERRIDE these defaults
- * - This enables per-use customization while providing sensible defaults
+ * Only consumer-facing options belong here. Internal collaborators
+ * (coordinator, mediator) are always constructed internally by
+ * DefaultScreensetsRegistry and are never injected via config.
  */
 interface ScreensetsRegistryConfig {
   /** Required: Type System plugin for type handling */
   typeSystem: TypeSystemPlugin;
-
-  /** Optional: Custom error handler */
-  onError?: (error: MfeError) => void;
-
-  /**
-   * Optional: Default loading state component for the registry.
-   * Domain containers can override this at the container level for per-use customization.
-   *
-   * Note: @hai3/screensets is L1 (framework-agnostic). This uses a generic type
-   * so it works with any UI framework. The L2/L3 layers (e.g., @hai3/framework,
-   * @hai3/react) provide typed wrappers that accept framework-specific components.
-   */
-  loadingComponent?: unknown;
-
-  /**
-   * Optional: Default error fallback component for the registry.
-   * Domain containers can override this at the container level for per-use customization.
-   *
-   * Note: @hai3/screensets is L1 (framework-agnostic). This uses a generic type
-   * so it works with any UI framework. The L2/L3 layers (e.g., @hai3/framework,
-   * @hai3/react) provide typed wrappers that accept framework-specific components.
-   */
-  errorFallbackComponent?: unknown;
-
-  /** Optional: Enable debug logging */
-  debug?: boolean;
 
   /**
    * Optional custom MFE handler instance.
@@ -555,23 +528,6 @@ interface ScreensetsRegistryConfig {
    * Applications must explicitly provide handlers they want to use.
    */
   mfeHandler?: MfeHandler;
-
-  /** Initial parent bridge (if loaded as MFE) */
-  parentBridge?: ParentMfeBridge;
-
-  /** Optional runtime coordinator for MFE isolation (defaults to WeakMapRuntimeCoordinator) */
-  coordinator?: RuntimeCoordinator;
-
-  /**
-   * Optional actions chains mediator.
-   * Used for executing action chains with success/failure branching.
-   *
-   * If not provided, defaults to DefaultActionsChainsMediator.
-   * Custom mediators can be provided for testing or specialized behavior.
-   *
-   * @default DefaultActionsChainsMediator
-   */
-  mediator?: ActionsChainsMediator;
 }
 
 // Factory-with-cache (see Decision 18 in registry-runtime.md)
@@ -640,11 +596,11 @@ const app = createHAI3()
   .build();
 
 // All registration happens dynamically at runtime via actions:
-// - mfeActions.registerDomain(domain, containerProvider)
+// - mfeActions.registerDomain(domain, containerProvider, onInitError?)
 // - mfeActions.registerExtension({ extension })
 
 // Or via runtime API:
-// - runtime.registerDomain(domain, containerProvider)
+// - runtime.registerDomain(domain, containerProvider, onInitError?)
 // - runtime.registerExtension(extension)
 // Note: Manifest is internal to MfeHandlerMF - no public registerManifest()
 

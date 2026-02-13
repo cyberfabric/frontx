@@ -283,7 +283,7 @@ runtime.updateDomainProperties(domainId, new Map([
 **Why**:
 - **Dependency Inversion Principle (DIP)**: Consumers depend on stable abstractions, not volatile implementations
 - **Testability**: Tests can substitute mock implementations of the abstract class without knowing the concrete class
-- **Encapsulation**: Test-only accessors (`get domains()`, `get extensions()`, `triggerLifecycleStageInternal`, `getDomainState()`) live on the concrete class only and are invisible to public consumers
+- **Encapsulation**: Internal methods (e.g., `getDomainState()`, `triggerLifecycleStageInternal()`) live on concrete classes only and are invisible to public consumers. No public API exists for testing purposes.
 - **Circular import prevention**: Modules that reference `ScreensetsRegistry` import only the abstract class, breaking circular dependency chains that occur when importing the concrete class with all its collaborator imports
 - **Consistency**: Aligns `ScreensetsRegistry` with the existing pattern used by `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `ActionsChainsMediator`/`DefaultActionsChainsMediator`, `MfeHandler`/`MfeHandlerMF`, `ExtensionManager`/`DefaultExtensionManager`, etc.
 
@@ -341,7 +341,7 @@ export abstract class ScreensetsRegistry {
   abstract readonly typeSystem: TypeSystemPlugin;
 
   // --- Registration ---
-  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void;
+  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void): void;
   abstract unregisterDomain(domainId: string): Promise<void>;
   abstract registerExtension(extension: Extension): Promise<void>;
   abstract unregisterExtension(extensionId: string): Promise<void>;
@@ -497,27 +497,19 @@ import { ScreensetsRegistry } from './ScreensetsRegistry';
 class DefaultScreensetsRegistry extends ScreensetsRegistry {
   // ... full implementation of all abstract methods ...
 
-  // @internal -- test shims live ONLY on the concrete class
-  get domains(): Map<string, ExtensionDomainState> { return this.extensionManager.getDomainsMap(); }
-  get extensions(): Map<string, ExtensionState> { return this.extensionManager.getExtensionsMap(); }
-
-  async triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string
-  ): Promise<void> {
-    return this.lifecycleManager.triggerLifecycleStageInternal(entity, stageId);
+  // Internal collaborators are ALWAYS constructed in the constructor.
+  // coordinator and mediator are never injected via config.
+  constructor(config: ScreensetsRegistryConfig) {
+    super();
+    this.typeSystem = config.typeSystem;
+    this.coordinator = new WeakMapRuntimeCoordinator();
+    this.mediator = new DefaultActionsChainsMediator({ /* ... */ });
+    // ... remaining collaborator construction ...
   }
-
-  // @internal -- concrete-only query method (NOT on abstract class)
-  getDomainState(domainId: string): ExtensionDomainState | undefined {
-    return this.extensionManager.getDomainState(domainId);
-  }
-
-  // @internal -- concrete-only accessors for collaborator instances (NOT on abstract class)
-  getExtensionManager(): ExtensionManager { return this.extensionManager; }
-  getLifecycleManager(): LifecycleManager { return this.lifecycleManager; }
 }
 ```
+
+**No test-only public APIs**: `DefaultScreensetsRegistry` does NOT expose any public methods or accessors that exist solely for test consumption. Tests must exercise the public API defined on the abstract `ScreensetsRegistry` class. Internal state is verified through observable behavior (e.g., registering an extension and then querying it via `getExtension()`), not by inspecting private collaborator maps.
 
 #### Collaborator File Splits
 
@@ -572,14 +564,9 @@ this.mediator = new DefaultActionsChainsMediator({
 
 This eliminates the mediator's dependency on the full `ScreensetsRegistry` type entirely. The mediator only knows about `TypeSystemPlugin` and the narrow callback it actually needs.
 
-#### Concrete-Only Test Accessors on ExtensionManager
+#### No Test-Only Accessors on ExtensionManager
 
-The abstract `ExtensionManager` class currently declares `getDomainsMap()` and `getExtensionsMap()` as abstract methods with `@internal` annotations. These are test-only accessors that expose raw internal maps for test compatibility. They must be moved to the concrete `DefaultExtensionManager` class only, matching the same principle applied to `getDomainState()` on `ScreensetsRegistry`:
-
-- **Before**: `abstract getDomainsMap()` and `abstract getExtensionsMap()` on abstract `ExtensionManager`
-- **After**: `getDomainsMap()` and `getExtensionsMap()` on concrete `DefaultExtensionManager` only
-
-The `DefaultScreensetsRegistry` concrete class already accesses these via `this.extensionManager.getDomainsMap()` and `this.extensionManager.getExtensionsMap()` in its own `@internal` `get domains()` and `get extensions()` accessors. Since `DefaultScreensetsRegistry` owns a concrete `DefaultExtensionManager` instance (not the abstract type), these calls remain valid after the move. No callback injection is needed here -- the accessor is called only from concrete-to-concrete wiring code.
+`DefaultExtensionManager` does NOT expose `getDomainsMap()` or `getExtensionsMap()` methods. These were test-only accessors that exposed raw internal maps. Tests must verify behavior through the public API (e.g., `registry.getExtension()`, `registry.getDomain()`, `registry.getExtensionsForDomain()`) rather than inspecting internal state directly.
 
 #### Concrete-Only Internal Methods on Collaborator Abstract Classes
 
@@ -599,15 +586,15 @@ After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal co
 
 | Field | Type | Reason |
 |---|---|---|
-| `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()`, `getDomainsMap()`, `getExtensionsMap()` |
+| `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()` |
 | `lifecycleManager` | `DefaultLifecycleManager` (concrete) | Needs `triggerLifecycleStageInternal()` |
 | `mountManager` | `MountManager` (abstract) | No concrete-only methods needed |
 | `bridgeFactory` | `RuntimeBridgeFactory` (abstract) | No concrete-only methods needed; passed to `DefaultMountManager` via constructor injection |
-| `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection) |
-| `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed |
+| `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection); always constructed internally |
+| `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed; always constructed internally |
 | `serializer` | `OperationSerializer` (concrete, no abstract) | Small utility, no abstract class |
 
-This is acceptable because `DefaultScreensetsRegistry` is `@internal` wiring code that creates all collaborator instances in its constructor. It is never exposed to external consumers. External consumers only see the abstract `ScreensetsRegistry` via `screensetsRegistryFactory.build(config)`.
+All collaborators are constructed internally by `DefaultScreensetsRegistry` in its constructor. `coordinator` and `mediator` are never injected via `ScreensetsRegistryConfig`. `DefaultScreensetsRegistry` is `@internal` wiring code -- external consumers only see the abstract `ScreensetsRegistry` via `screensetsRegistryFactory.build(config)`.
 
 #### DIP Consumer Reference Updates
 

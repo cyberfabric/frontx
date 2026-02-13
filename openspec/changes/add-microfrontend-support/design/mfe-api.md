@@ -42,9 +42,10 @@ When an MFE's `unmount()` function throws an error:
    - The bridge connection is disposed
    - The runtime coordination entry is removed
    - Resources are not leaked
-3. **Error is surfaced**: The error is passed to `onError` callback if configured in `ScreensetsRegistryConfig`, allowing the parent application to handle it appropriately (e.g., show a notification, report to monitoring)
 
 **Rationale**: A failing `unmount()` should not leave the system in an inconsistent state. The MFE may have internal issues, but the parent must maintain control of the extension lifecycle. Cleanup is best-effort - any resources the MFE failed to release are its own responsibility.
+
+**Note**: The `onInitError` callback on `registerDomain()` does NOT handle unmount errors. It handles errors from the fire-and-forget lifecycle `init` stage only. Unmount errors are caught and logged internally.
 
 ---
 

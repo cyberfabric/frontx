@@ -8,7 +8,7 @@
  * @internal
  */
 
-import type { ExtensionDomain, Extension, ActionsChain } from '../types';
+import type { ActionsChain } from '../types';
 
 /**
  * Action chain executor function type.
@@ -16,20 +16,6 @@ import type { ExtensionDomain, Extension, ActionsChain } from '../types';
  */
 export type ActionChainExecutor = (chain: ActionsChain) => Promise<void>;
 
-/**
- * Error handler function type.
- * Used to handle errors during lifecycle execution.
- */
-export type ErrorHandler = (error: Error, context: Record<string, unknown>) => void;
-
-/**
- * Lifecycle stage internal trigger function type.
- * Used for testing compatibility - allows tests to spy on internal method calls.
- */
-export type LifecycleStageInternalTrigger = (
-  entity: Extension | ExtensionDomain,
-  stageId: string
-) => Promise<void>;
 
 /**
  * Abstract lifecycle manager for lifecycle stage triggering.

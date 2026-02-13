@@ -14,7 +14,7 @@ import type { ActionHandler } from '../mediator/types';
 import { DefaultExtensionManager } from './default-extension-manager';
 import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
-import type { Logger, ActionChainExecutor, LifecycleTrigger } from './mount-manager';
+import type { ActionChainExecutor, LifecycleTrigger } from './mount-manager';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 
 /**
@@ -51,11 +51,6 @@ export class DefaultMountManager extends MountManager {
   private readonly executeActionsChain: ActionChainExecutor;
 
   /**
-   * Logger for debug messages.
-   */
-  private readonly log: Logger;
-
-  /**
    * Host runtime for RuntimeConnection registration.
    */
   private readonly hostRuntime: ScreensetsRegistry;
@@ -81,7 +76,6 @@ export class DefaultMountManager extends MountManager {
     coordinator: RuntimeCoordinator;
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
-    log: Logger;
     hostRuntime: ScreensetsRegistry;
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterDomainActionHandler: (domainId: string) => void;
@@ -93,7 +87,6 @@ export class DefaultMountManager extends MountManager {
     this.coordinator = config.coordinator;
     this.triggerLifecycle = config.triggerLifecycle;
     this.executeActionsChain = config.executeActionsChain;
-    this.log = config.log;
     this.hostRuntime = config.hostRuntime;
     this.registerDomainActionHandler = config.registerDomainActionHandler;
     this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
@@ -145,8 +138,6 @@ export class DefaultMountManager extends MountManager {
       // Cache loaded lifecycle for mounting
       extensionState.lifecycle = lifecycle;
       extensionState.loadState = 'loaded';
-
-      this.log('Extension loaded', { extensionId, handlerBaseTypeId: handler.handledBaseTypeId });
     } catch (error) {
       extensionState.loadState = 'error';
       extensionState.error = error instanceof Error ? error : new Error(String(error));
@@ -255,8 +246,6 @@ export class DefaultMountManager extends MountManager {
         'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1'
       );
 
-      this.log('Extension mounted', { extensionId, domainId: extensionState.extension.domain });
-
       return parentBridge;
     } catch (error) {
       extensionState.mountState = 'error';
@@ -330,8 +319,6 @@ export class DefaultMountManager extends MountManager {
       if (domainState && domainState.mountedExtension === extensionId) {
         this.extensionManager.setMountedExtension(extensionState.extension.domain, undefined);
       }
-
-      this.log('Extension unmounted', { extensionId });
     } catch (error) {
       extensionState.mountState = 'error';
       extensionState.error = error instanceof Error ? error : new Error(String(error));

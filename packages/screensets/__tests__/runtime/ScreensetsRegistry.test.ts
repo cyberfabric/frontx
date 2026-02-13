@@ -93,7 +93,6 @@ function createMockPlugin(): TypeSystemPlugin {
 describe('ScreensetsRegistry - Phase 4', () => {
   const createTestConfig = (): ScreensetsRegistryConfig => ({
     typeSystem: createMockPlugin(),
-    debug: false,
   });
 
   describe('4.1 Runtime Configuration', () => {
@@ -124,7 +123,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
     it('should accept optional debug flag', () => {
       const registryConfig: ScreensetsRegistryConfig = {
         typeSystem: createMockPlugin(),
-        debug: true,
       };
       const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();

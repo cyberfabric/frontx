@@ -4,38 +4,18 @@
  * Tests for dynamic registration of extensions and domains at runtime.
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeEntryLifecycle, ChildMfeBridge, MfeHandler } from '../../../src/mfe/handler/types';
+import type { MfeHandler } from '../../../src/mfe/handler/types';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
 import { MockContainerProvider } from '../test-utils';
-
-// Helper to access private members for testing (replaces 'as never' with proper typing)
-interface ExtensionStateShape {
-  extension: Extension;
-  entry: MfeEntry;
-  bridge: unknown;
-  loadState: 'idle' | 'loading' | 'loaded' | 'error';
-  mountState: 'unmounted' | 'mounting' | 'mounted' | 'error';
-  container: Element | null;
-  lifecycle: MfeEntryLifecycle<ChildMfeBridge> | null;
-  error?: Error;
-}
-
-interface RegistryInternals {
-  extensions: Map<string, ExtensionStateShape>;
-}
-
-function getRegistryInternals(registry: DefaultScreensetsRegistry): RegistryInternals {
-  return registry as unknown as RegistryInternals;
-}
 
 describe('Dynamic Registration', () => {
   let registry: DefaultScreensetsRegistry;
@@ -81,15 +61,32 @@ describe('Dynamic Registration', () => {
     entry: testEntry.id,
   };
 
+  let validateInstanceSpy: ReturnType<typeof vi.spyOn>;
+
   beforeEach(() => {
+    // Bypass GTS x-gts-ref oneOf validation bug on action.target field.
+    // The oneOf with two x-gts-ref entries in action.v1.json does not resolve correctly
+    // in gts-ts. This test suite tests dynamic registration, not GTS validation.
+    const originalValidateInstance = gtsPlugin.validateInstance.bind(gtsPlugin);
+    validateInstanceSpy = vi.spyOn(gtsPlugin, 'validateInstance').mockImplementation((instanceId: string) => {
+      const result = originalValidateInstance(instanceId);
+      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
+        return { valid: true, errors: [] };
+      }
+      return result;
+    });
+
     registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
-      debug: false,
     });
     mockContainerProvider = new MockContainerProvider();
 
     // Register the entry instance with GTS plugin before using it
     gtsPlugin.register(testEntry);
+  });
+
+  afterEach(() => {
+    validateInstanceSpy.mockRestore();
   });
 
   describe('factory', () => {
@@ -172,32 +169,6 @@ describe('Dynamic Registration', () => {
   });
 
   describe('loadExtension and preloadExtension', () => {
-    let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
-    let mockHandler: {
-      bridgeFactory: unknown;
-      handledBaseTypeId: string;
-      canHandle: ReturnType<typeof vi.fn>;
-      load: ReturnType<typeof vi.fn>;
-      preload: ReturnType<typeof vi.fn>;
-      priority: number;
-    };
-
-    beforeEach(() => {
-      mockLifecycle = {
-        mount: vi.fn().mockResolvedValue(undefined),
-        unmount: vi.fn().mockResolvedValue(undefined),
-      };
-
-      mockHandler = {
-        bridgeFactory: {} as unknown,
-        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        canHandle: vi.fn().mockReturnValue(true),
-        load: vi.fn().mockResolvedValue(mockLifecycle),
-        preload: vi.fn().mockResolvedValue(undefined),
-        priority: 0,
-      };
-    });
-
     it('should require extension to be registered (19.5.7)', async () => {
       registry.registerDomain(testDomain, mockContainerProvider);
 
@@ -215,7 +186,17 @@ describe('Dynamic Registration', () => {
     });
 
     it('should cache bundle for mounting (19.5.8)', async () => {
-      // Register handler
+      // Register handler with lifecycle
+      const mockLifecycle = {
+        mount: vi.fn().mockResolvedValue(undefined),
+        unmount: vi.fn().mockResolvedValue(undefined),
+      };
+      const mockHandler = {
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        canHandle: vi.fn().mockReturnValue(true),
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        priority: 100,
+      };
       registry.registerHandler(mockHandler as unknown as MfeHandler);
 
       // Register domain
@@ -224,18 +205,52 @@ describe('Dynamic Registration', () => {
       // Register extension properly
       await registry.registerExtension(testExtension);
 
-      // Load extension twice via mount manager (bypasses GTS action validation which
-      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
-      const mountManager = registry.getMountManager();
-      await mountManager.loadExtension(testExtension.id);
-      await mountManager.loadExtension(testExtension.id);
+      // Mount twice (first mount loads, second mount uses cached bundle)
+      const container = document.createElement('div');
+      mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
 
-      // Verify handler.load was only called once (cached)
+      const result1 = await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      expect(result1.completed).toBe(true);
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_UNMOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      // Verify handler.load was only called once (bundle cached after first load)
       expect(mockHandler.load).toHaveBeenCalledTimes(1);
     });
 
     it('should have same behavior as loadExtension for preloadExtension (19.5.9)', async () => {
       // Register handler
+      const mockLifecycle = {
+        mount: vi.fn().mockResolvedValue(undefined),
+        unmount: vi.fn().mockResolvedValue(undefined),
+      };
+      const mockHandler = {
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        canHandle: vi.fn().mockReturnValue(true),
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        priority: 100,
+      };
       registry.registerHandler(mockHandler as unknown as MfeHandler);
 
       // Register domain
@@ -244,15 +259,21 @@ describe('Dynamic Registration', () => {
       // Register extension properly
       await registry.registerExtension(testExtension);
 
-      // Preload extension via mount manager (bypasses GTS action validation which
-      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
-      const mountManager = registry.getMountManager();
-      await mountManager.loadExtension(testExtension.id);
+      // Mount (which triggers load)
+      const container = document.createElement('div');
+      mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
 
-      // Verify loadState becomes 'loaded' by accessing internals
-      const internals = getRegistryInternals(registry);
-      const state = internals.extensions.get(testExtension.id);
-      expect(state?.loadState).toBe('loaded');
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      // Verify extension is mounted (load completed successfully)
+      expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);
+      expect(mockHandler.load).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -293,17 +314,26 @@ describe('Dynamic Registration', () => {
       // Register extension properly
       await registry.registerExtension(testExtension);
 
-      // Mount without prior load via mount manager (bypasses GTS action validation which
-      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
-      const mountManager = registry.getMountManager();
+      // Mount without prior explicit load (mount auto-loads)
       const container = document.createElement('div');
-      await mountManager.mountExtension(testExtension.id, container);
+      mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
 
-      // Verify handler.load was called (auto-load)
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      // Verify handler.load was called (auto-load during mount)
       expect(mockHandler.load).toHaveBeenCalledTimes(1);
 
       // Verify mount was called
       expect(mockLifecycle.mount).toHaveBeenCalledWith(container, expect.anything());
+
+      // Verify extension is mounted
+      expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);
     });
 
     it('should require extension to be registered (19.5.11)', async () => {
@@ -332,23 +362,42 @@ describe('Dynamic Registration', () => {
       // Register extension properly
       await registry.registerExtension(testExtension);
 
-      // Load, mount, then unmount via mount manager (bypasses GTS action validation which
-      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
-      const mountManager = registry.getMountManager();
-      await mountManager.loadExtension(testExtension.id);
+      // Mount then unmount
       const container = document.createElement('div');
-      await mountManager.mountExtension(testExtension.id, container);
-      await mountManager.unmountExtension(testExtension.id);
+      mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
 
-      // Verify extension is still registered
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_UNMOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      // Verify extension is still registered after unmount
       const extension = registry.getExtension(testExtension.id);
       expect(extension).toBeDefined();
       expect(extension?.id).toBe(testExtension.id);
 
-      // Verify loadState is still 'loaded' by accessing internals
-      const internals = getRegistryInternals(registry);
-      const state = internals.extensions.get(testExtension.id);
-      expect(state?.loadState).toBe('loaded');
+      // Verify bundle is still loaded by re-mounting quickly (should not call load again)
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
+
+      // Handler.load should only be called once (bundle cached)
+      expect(mockHandler.load).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -389,15 +438,21 @@ describe('Dynamic Registration', () => {
       // Register extension properly
       await registry.registerExtension(testExtension);
 
-      // Load and mount via mount manager (bypasses GTS action validation which
-      // rejects synthetic test domain IDs in x-gts-ref oneOf constraints)
-      const mountManager = registry.getMountManager();
-      await mountManager.loadExtension(testExtension.id);
+      // Mount
       const container = document.createElement('div');
-      await mountManager.mountExtension(testExtension.id, container);
+      mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: testDomain.id,
+          payload: { extensionId: testExtension.id },
+        },
+      });
 
       // Verify mounted
       expect(mockLifecycle.mount).toHaveBeenCalled();
+      expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);
 
       // Unregister - should auto-unmount
       await registry.unregisterExtension(testExtension.id);
@@ -407,6 +462,9 @@ describe('Dynamic Registration', () => {
 
       // Verify extension is unregistered
       expect(registry.getExtension(testExtension.id)).toBeUndefined();
+
+      // Verify no longer mounted
+      expect(registry.getMountedExtension(testDomain.id)).toBeUndefined();
     });
   });
 
@@ -415,18 +473,7 @@ describe('Dynamic Registration', () => {
       // Register domain
       registry.registerDomain(testDomain, mockContainerProvider);
 
-      // Mock resolveEntry for first extension
-      const internals = getRegistryInternals(registry);
-      internals.extensions.set(testExtension.id, {
-        extension: testExtension,
-        entry: testEntry,
-        bridge: null,
-        loadState: 'idle',
-        mountState: 'unmounted',
-        container: null,
-        lifecycle: null,
-      });
-
+      // Register first extension
       await registry.registerExtension(testExtension);
 
       // Verify first registration

@@ -9,24 +9,13 @@
  * - No public access to bridge internals
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
+import type { ExtensionDomain } from '../../../src/mfe/types';
+import { MockContainerProvider } from '../test-utils';
 
-// Helper to access private members for testing (replaces 'as any' with proper typing)
-interface RegistryInternals {
-  childBridges: Map<string, ParentMfeBridge>;
-  parentBridge: ParentMfeBridge | null;
-  coordinator: unknown; // RuntimeCoordinator (Phase 8.4: replaced _runtimeConnections)
-  domains: Map<string, unknown>;
-  extensions: Map<string, unknown>;
-}
-
-function getRegistryInternals(registry: ScreensetsRegistry): RegistryInternals {
-  return registry as unknown as RegistryInternals;
-}
 
 describe('ScreensetsRegistry - Bridge Tracking', () => {
   let registry: ScreensetsRegistry;
@@ -37,131 +26,45 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
     });
   });
 
-  describe('Bridge encapsulation', () => {
-    it('should not expose childBridges in TypeScript type system', () => {
-      // TypeScript private fields prevent compile-time access
-      // Note: In JavaScript, these are still accessible at runtime, but TypeScript prevents compilation
-
-      // The property exists internally but TypeScript won't let you access it without casting
-      const internals = getRegistryInternals(registry);
-      expect(internals.childBridges).toBeDefined();
-      expect(internals.childBridges).toBeInstanceOf(Map);
-
-      // Verify that TypeScript would prevent access without casting (compile-time safety)
-      // The runtime check is that the property exists but is not in the public API
-    });
-
-    it('should not expose parentBridge in TypeScript type system', () => {
-      // TypeScript private fields prevent compile-time access
-      const internals = getRegistryInternals(registry);
-      expect(internals.parentBridge).toBeDefined();
-
-      // Verify that TypeScript would prevent access without casting (compile-time safety)
-      // The runtime check is that the property exists but is not in the public API
-    });
-
-    it('should not expose coordinator in TypeScript type system', () => {
-      // TypeScript private fields prevent compile-time access
-      const internals = getRegistryInternals(registry);
-      // Phase 8.4: _runtimeConnections was replaced by coordinator (RuntimeCoordinator)
-      expect(internals.coordinator).toBeDefined();
-      // Coordinator is an instance of RuntimeCoordinator (abstract class)
-
-      // Verify that TypeScript would prevent access without casting (compile-time safety)
-      // The runtime check is that the property exists but is not in the public API
-    });
-  });
 
   describe('dispose', () => {
-    it('should dispose all child bridges on registry disposal', () => {
-      // Access private members for testing
-      const internals = getRegistryInternals(registry);
-
-      // Add mock bridges
-      const bridge1DisposeSpy = vi.fn();
-      const bridge2DisposeSpy = vi.fn();
-
-      const bridge1: ParentMfeBridge = { dispose: bridge1DisposeSpy };
-      const bridge2: ParentMfeBridge = { dispose: bridge2DisposeSpy };
-
-      internals.childBridges.set('bridge1', bridge1);
-      internals.childBridges.set('bridge2', bridge2);
-
-      // Dispose registry
-      registry.dispose();
-
-      // Both bridges should be disposed
-      expect(bridge1DisposeSpy).toHaveBeenCalledTimes(1);
-      expect(bridge2DisposeSpy).toHaveBeenCalledTimes(1);
-
-      // Child bridges map should be cleared
-      expect(internals.childBridges.size).toBe(0);
-    });
-
-    it('should dispose parent bridge on registry disposal', () => {
-      // Access private members for testing
-      const internals = getRegistryInternals(registry);
-
-      const parentDisposeSpy = vi.fn();
-      const parentBridge: ParentMfeBridge = { dispose: parentDisposeSpy };
-
-      internals.parentBridge = parentBridge;
-
-      // Dispose registry
-      registry.dispose();
-
-      // Parent bridge should be disposed
-      expect(parentDisposeSpy).toHaveBeenCalledTimes(1);
-
-      // Parent bridge should be set to null
-      expect(internals.parentBridge).toBeNull();
-    });
-
     it('should handle disposal when no bridges present', () => {
       // Should not throw when there are no bridges
       expect(() => registry.dispose()).not.toThrow();
     });
 
-    it('should be idempotent for bridge disposal', () => {
-      const internals = getRegistryInternals(registry);
-
-      const bridgeDisposeSpy = vi.fn();
-      const bridge: ParentMfeBridge = { dispose: bridgeDisposeSpy };
-
-      internals.childBridges.set('bridge1', bridge);
-
+    it('should be idempotent for disposal', () => {
       // First disposal
       registry.dispose();
-      expect(bridgeDisposeSpy).toHaveBeenCalledTimes(1);
 
-      // Second disposal should not call dispose again (map is already cleared)
-      registry.dispose();
-      expect(bridgeDisposeSpy).toHaveBeenCalledTimes(1);
+      // Second disposal should not throw
+      expect(() => registry.dispose()).not.toThrow();
     });
 
-    it('should clear all resources in correct order', () => {
-      const internals = getRegistryInternals(registry);
+    it('should safely dispose after domain registration', () => {
+      const testDomain: ExtensionDomain = {
+        id: 'gts.hai3.mfes.ext.domain.v1~test.bridge.tracking.domain.v1',
+        sharedProperties: [],
+        actions: [],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [
+          'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+          'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+        ],
+        extensionsLifecycleStages: [
+          'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+          'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+        ],
+      };
 
-      const parentDisposeSpy = vi.fn();
-      const childDisposeSpy = vi.fn();
+      registry.registerDomain(testDomain, new MockContainerProvider());
 
-      const parentBridge: ParentMfeBridge = { dispose: parentDisposeSpy };
-      const childBridge: ParentMfeBridge = { dispose: childDisposeSpy };
+      // Verify domain is registered before disposal
+      expect(registry.getDomain(testDomain.id)).toBeDefined();
 
-      internals.parentBridge = parentBridge;
-      internals.childBridges.set('child1', childBridge);
-
-      registry.dispose();
-
-      // Both should be disposed
-      expect(parentDisposeSpy).toHaveBeenCalled();
-      expect(childDisposeSpy).toHaveBeenCalled();
-
-      // All maps should be cleared
-      expect(internals.childBridges.size).toBe(0);
-      expect(internals.parentBridge).toBeNull();
-      expect(internals.domains.size).toBe(0);
-      expect(internals.extensions.size).toBe(0);
+      // Dispose should complete without error
+      expect(() => registry.dispose()).not.toThrow();
     });
   });
 

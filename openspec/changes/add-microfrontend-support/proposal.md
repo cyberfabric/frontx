@@ -29,9 +29,9 @@ const app = createHAI3()
 
 // All registration happens dynamically at runtime:
 // - mfeActions.registerExtension({ extension })
-// - mfeActions.registerDomain(domain, containerProvider)
+// - mfeActions.registerDomain(domain, containerProvider, onInitError?)
 // - runtime.registerExtension(extension)
-// - runtime.registerDomain(domain, containerProvider)
+// - runtime.registerDomain(domain, containerProvider, onInitError?)
 ```
 
 ### Core Architecture
@@ -162,7 +162,7 @@ Three generic actions (`load_ext`, `mount_ext`, `unmount_ext`) serve as the cons
 
 ### Container Provider Abstraction
 
-A `ContainerProvider` abstract class shifts DOM container management from action callers to the domain. The provider is passed at domain registration time via `registerDomain(domain, containerProvider)`, and the `ExtensionLifecycleActionHandler` is the single owner of all provider interactions. See [Extension Lifecycle Actions - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) for the complete design including the ownership model, `RefContainerProvider`, and callback wiring.
+A `ContainerProvider` abstract class shifts DOM container management from action callers to the domain. The provider is passed at domain registration time via `registerDomain(domain, containerProvider, onInitError?)`, and the `ExtensionLifecycleActionHandler` is the single owner of all provider interactions. See [Extension Lifecycle Actions - ContainerProvider](./design/mfe-ext-lifecycle-actions.md#container-provider-abstraction) for the complete design including the ownership model, `RefContainerProvider`, and callback wiring.
 
 ### Dynamic Registration Model
 

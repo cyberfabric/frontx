@@ -20,13 +20,12 @@ import type {
   ActionsChain,
 } from '../types';
 import { ScreensetsRegistry } from './ScreensetsRegistry';
-import { RuntimeCoordinator } from '../coordination/types';
 import { WeakMapRuntimeCoordinator } from '../coordination/weak-map-runtime-coordinator';
-import { ActionsChainsMediator, type ChainResult, type ChainExecutionOptions } from '../mediator';
+import { RuntimeCoordinator } from '../coordination/types';
+import { type ChainResult, type ChainExecutionOptions, ActionsChainsMediator } from '../mediator';
 import { DefaultActionsChainsMediator } from '../mediator/actions-chains-mediator';
-import { ExtensionManager, type ExtensionDomainState, type ExtensionState } from './extension-manager';
+import { type ExtensionDomainState } from './extension-manager';
 import { DefaultExtensionManager } from './default-extension-manager';
-import { LifecycleManager } from './lifecycle-manager';
 import { DefaultLifecycleManager } from './default-lifecycle-manager';
 import { MountManager } from './mount-manager';
 import { DefaultMountManager } from './default-mount-manager';
@@ -58,22 +57,16 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   public readonly typeSystem: TypeSystemPlugin;
 
-  /**
-   * Configuration options.
-   */
-  private readonly config: ScreensetsRegistryConfig;
 
   /**
    * Extension manager for managing extension and domain state.
    * INTERNAL: Delegates extension/domain registration and query operations.
-   * Note: Typed as DefaultExtensionManager (concrete) to allow access to test-only methods.
    */
   private readonly extensionManager: DefaultExtensionManager;
 
   /**
    * Lifecycle manager for triggering lifecycle stages.
    * INTERNAL: Delegates lifecycle hook execution.
-   * Note: Typed as DefaultLifecycleManager (concrete) to allow access to concrete-only methods.
    */
   private readonly lifecycleManager: DefaultLifecycleManager;
 
@@ -85,9 +78,21 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
 
   /**
    * Runtime bridge factory for creating bridge connections.
-   * INTERNAL: Abstract type stored for internal wiring.
+   * INTERNAL: Always constructed internally.
    */
   private readonly bridgeFactory: RuntimeBridgeFactory;
+
+  /**
+   * Runtime coordinator for managing runtime connections.
+   * INTERNAL: Always constructed internally.
+   */
+  private readonly coordinator: RuntimeCoordinator;
+
+  /**
+   * Actions chains mediator for action chain execution.
+   * INTERNAL: Always constructed internally.
+   */
+  private readonly mediator: ActionsChainsMediator;
 
   /**
    * Operation serializer for per-entity concurrency control.
@@ -112,21 +117,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   private parentBridge: ParentMfeBridge | null = null;
 
-  /**
-   * Runtime coordinator for managing runtime connections.
-   * INTERNAL: Uses Dependency Inversion Principle - depends on abstract RuntimeCoordinator.
-   * Defaults to WeakMapRuntimeCoordinator if not provided in config.
-   * Maps container elements to runtime connections for MFE coordination.
-   */
-  private readonly coordinator: RuntimeCoordinator;
-
-  /**
-   * Actions chains mediator for action chain execution.
-   * INTERNAL: Uses Dependency Inversion Principle - depends on abstract ActionsChainsMediator.
-   * Handles action routing, validation, and success/failure branching.
-   */
-  private readonly mediator: ActionsChainsMediator;
-
   constructor(config: ScreensetsRegistryConfig) {
     super();
 
@@ -139,48 +129,41 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       );
     }
 
-    this.config = config;
     this.typeSystem = config.typeSystem;
-
-    // Initialize coordinator (Dependency Inversion: use provided or default to WeakMapRuntimeCoordinator)
-    this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
-
-    // Initialize mediator (Dependency Inversion: use provided or default to DefaultActionsChainsMediator)
-    this.mediator = config.mediator ?? new DefaultActionsChainsMediator({
-      typeSystem: this.typeSystem,
-      getDomainState: (domainId) => this.extensionManager.getDomainState(domainId),
-    });
 
     // Initialize operation serializer
     this.operationSerializer = new OperationSerializer();
+
+    // Initialize coordinator (always construct internally)
+    this.coordinator = new WeakMapRuntimeCoordinator();
+
+    // Initialize runtime bridge factory
+    this.bridgeFactory = new DefaultRuntimeBridgeFactory();
+
+    // Initialize mediator (always construct internally)
+    // Note: mediator needs getDomainState callback, which delegates to extensionManager
+    // that is initialized later, but this callback is only invoked after construction
+    this.mediator = new DefaultActionsChainsMediator({
+      typeSystem: this.typeSystem,
+      getDomainState: (domainId) => this.extensionManager.getDomainState(domainId),
+    });
 
     // Initialize extension manager (needs dependencies for business logic)
     this.extensionManager = new DefaultExtensionManager({
       typeSystem: this.typeSystem,
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
       triggerDomainOwnLifecycle: (domainId, stageId) => this.triggerDomainOwnLifecycleStage(domainId, stageId),
-      log: (message, context) => this.log(message, context),
-      handleError: (error, context) => this.handleError(error, context),
       // Bypass OperationSerializer: the parent operation (unregisterExtension)
       // already holds the serializer lock for this entity ID, so calling
       // registry.unmountExtension would deadlock. Go directly to MountManager.
       unmountExtension: (extensionId) => this.mountManager.unmountExtension(extensionId),
     });
 
-    // Initialize lifecycle manager (needs extension manager and error handler)
-    // Pass a spy-compatible callback that routes internal calls through a method tests can spy on
+    // Initialize lifecycle manager (needs extension manager)
     this.lifecycleManager = new DefaultLifecycleManager(
       this.extensionManager,
-      async (chain) => { await this.executeActionsChain(chain); },
-      (error, context) => this.handleError(error, context),
-      // Callback for test compatibility: routes internal lifecycle triggers through
-      // the registry's triggerLifecycleStageInternal method so tests can spy on it
-      // This creates an indirection: LifecycleManager -> registry.triggerLifecycleStageInternal -> LifecycleManager.impl
-      (entity, stageId) => this.triggerLifecycleStageInternalForTests(entity, stageId)
+      async (chain) => { await this.executeActionsChain(chain); }
     );
-
-    // Initialize runtime bridge factory
-    this.bridgeFactory = new DefaultRuntimeBridgeFactory();
 
     // Initialize mount manager (needs all collaborators)
     this.mountManager = new DefaultMountManager({
@@ -189,7 +172,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       coordinator: this.coordinator,
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
       executeActionsChain: (chain, options) => this.executeActionsChain(chain, options),
-      log: (message, context) => this.log(message, context),
       hostRuntime: this,
       registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
       unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
@@ -203,11 +185,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     if (config.mfeHandler) {
       this.registerHandler(config.mfeHandler);
     }
-
-    this.log('ScreensetsRegistry initialized', {
-      plugin: this.typeSystem.name,
-      pluginVersion: this.typeSystem.version,
-    });
   }
 
   /**
@@ -242,8 +219,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
         `Ensure the plugin has all built-in schemas registered during construction.`
       );
     }
-
-    this.log('First-class schemas verified', { count: coreTypeIds.length });
   }
 
   /**
@@ -254,10 +229,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   registerHandler(handler: MfeHandler): void {
     this.handlers.push(handler);
     this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
-    this.log('Handler registered', {
-      handledBaseTypeId: handler.handledBaseTypeId,
-      priority: handler.priority ?? 0,
-    });
   }
 
   /**
@@ -266,12 +237,18 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * NOTE: registerDomain is synchronous, but lifecycle triggering happens fire-and-forget.
    *
    * @param domain - Domain to register
+   * @param containerProvider - Container provider for the domain
+   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
-  registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void {
-    // Step 1: Register domain state
-    this.extensionManager.registerDomain(domain);
+  registerDomain(
+    domain: ExtensionDomain,
+    containerProvider: ContainerProvider,
+    onInitError?: (error: Error) => void
+  ): void {
+    // Step 1: Register domain state (with onInitError callback)
+    this.extensionManager.registerDomain(domain, onInitError);
 
     // Step 2: Determine domain semantics based on actions array
     // If unmount_ext is NOT supported, use 'swap' semantics (screen domain)
@@ -373,16 +350,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param value - New property value
    */
   updateDomainProperty(domainId: string, propertyTypeId: string, value: unknown): void {
-    try {
-      this.extensionManager.updateDomainProperty(domainId, propertyTypeId, value);
-      this.log('Domain property updated', { domainId, propertyTypeId });
-    } catch (error) {
-      this.handleError(
-        error instanceof Error ? error : new Error(String(error)),
-        { domainId, propertyTypeId }
-      );
-      throw error;
-    }
+    this.extensionManager.updateDomainProperty(domainId, propertyTypeId, value);
   }
 
   /**
@@ -565,32 +533,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   }
 
   /**
-   * Log a message if debug is enabled.
-   *
-   * @param message - Message to log
-   * @param context - Additional context
-   */
-  private log(message: string, context?: Record<string, unknown>): void {
-    if (this.config.debug) {
-      console.log('[ScreensetsRegistry]', message, context ?? '');
-    }
-  }
-
-  /**
-   * Handle an error.
-   *
-   * @param error - Error to handle
-   * @param context - Additional context
-   */
-  private handleError(error: Error, context: Record<string, unknown>): void {
-    if (this.config.onError) {
-      this.config.onError(error, context);
-    } else {
-      console.error('[ScreensetsRegistry] Error:', error, context);
-    }
-  }
-
-  /**
    * Get domain state for a registered domain.
    * INTERNAL: Used by ActionsChainsMediator for domain resolution.
    * Delegates to ExtensionManager.
@@ -602,87 +544,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     return this.extensionManager.getDomainState(domainId);
   }
 
-  /**
-   * INTERNAL: Get extension manager (for testing).
-   * @internal
-   */
-  getExtensionManager(): ExtensionManager {
-    return this.extensionManager;
-  }
-
-  /**
-   * INTERNAL: Get lifecycle manager (for testing).
-   * @internal
-   */
-  getLifecycleManager(): LifecycleManager {
-    return this.lifecycleManager;
-  }
-
-  /**
-   * INTERNAL: Get mount manager (for testing).
-   * Tests that need to call load/mount/unmount directly use this
-   * instead of going through executeActionsChain (which requires full
-   * GTS action validation that synthetic test domains cannot pass).
-   * @internal
-   */
-  getMountManager(): MountManager {
-    return this.mountManager;
-  }
-
-  /**
-   * INTERNAL: Get operation serializer (for testing).
-   * @internal
-   */
-  getOperationSerializer(): OperationSerializer {
-    return this.operationSerializer;
-  }
-
-  /**
-   * INTERNAL: Compatibility shim for tests - exposes domains map.
-   * Tests currently access internal domains property via type assertion.
-   * This getter preserves test compatibility during refactoring.
-   * @internal
-   */
-  get domains(): Map<string, ExtensionDomainState> {
-    return this.extensionManager.getDomainsMap();
-  }
-
-  /**
-   * INTERNAL: Compatibility shim for tests - exposes extensions map.
-   * Tests currently access internal extensions property via type assertion.
-   * This getter preserves test compatibility during refactoring.
-   * @internal
-   */
-  get extensions(): Map<string, ExtensionState> {
-    return this.extensionManager.getExtensionsMap();
-  }
-
-  /**
-   * INTERNAL: Test compatibility wrapper.
-   * This is called by the LifecycleManager callback and then calls triggerLifecycleStageInternal.
-   * @internal
-   */
-  private async triggerLifecycleStageInternalForTests(
-    entity: Extension | ExtensionDomain,
-    stageId: string
-  ): Promise<void> {
-    // Call the public triggerLifecycleStageInternal which tests spy on
-    return this.triggerLifecycleStageInternal(entity, stageId);
-  }
-
-  /**
-   * INTERNAL: Compatibility shim for tests - exposes triggerLifecycleStageInternal.
-   * Tests spy on this method. Directly calls the LifecycleManager's implementation.
-   * @internal
-   */
-  async triggerLifecycleStageInternal(
-    entity: Extension | ExtensionDomain,
-    stageId: string
-  ): Promise<void> {
-    // Forward directly to the LifecycleManager's implementation, skipping the callback
-    // to avoid infinite recursion (callback would call back to this method)
-    return this.lifecycleManager.triggerLifecycleStageInternal(entity, stageId, true);
-  }
 
   /**
    * Dispose the registry and clean up resources.
@@ -712,7 +573,5 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     // No need to manually clear it. The coordinator is used for bridge coordination.
     // Reference here to avoid TypeScript unused warning:
     void this.coordinator;
-
-    this.log('ScreensetsRegistry disposed');
   }
 }

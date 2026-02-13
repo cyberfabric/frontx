@@ -7,22 +7,12 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
-import { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../../../src/mfe/plugins/types';
 import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
 import { MockContainerProvider } from '../test-utils';
 
-// Helper to access private members for testing (replaces 'as any' with proper typing)
-interface RegistryInternals {
-  coordinator: RuntimeCoordinator;
-}
-
-function getRegistryInternals(registry: ScreensetsRegistry): RegistryInternals {
-  return registry as unknown as RegistryInternals;
-}
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -108,33 +98,9 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       // Coordinator is private, but we can verify the registry works properly
       expect(registry.typeSystem).toBeDefined();
     });
-
-    it('should accept custom coordinator via config', () => {
-      const customCoordinator = new WeakMapRuntimeCoordinator();
-
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-        coordinator: customCoordinator,
-      });
-
-      expect(registry).toBeDefined();
-      expect(registry.typeSystem).toBeDefined();
-    });
   });
 
   describe('Coordinator encapsulation', () => {
-    it('should keep coordinator encapsulated within registry', () => {
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-      });
-
-      // The coordinator property exists but is private - TypeScript prevents access
-      // This test verifies that there's no public getter method
-      expect(registry).not.toHaveProperty('getCoordinator');
-      const internals = getRegistryInternals(registry);
-      expect(internals.coordinator).toBeDefined();
-    });
-
     it('should not pollute window global scope', () => {
       new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
@@ -148,53 +114,6 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     });
   });
 
-  describe('Coordinator abstraction pattern', () => {
-    it('should support custom coordinator implementations', () => {
-      // Create a custom test coordinator
-      class TestCoordinator extends RuntimeCoordinator {
-        private connections = new Map<Element, RuntimeConnection>();
-
-        register(container: Element, connection: RuntimeConnection): void {
-          this.connections.set(container, connection);
-        }
-
-        get(container: Element): RuntimeConnection | undefined {
-          return this.connections.get(container);
-        }
-
-        unregister(container: Element): void {
-          this.connections.delete(container);
-        }
-
-        // Test-specific method
-        getConnectionCount(): number {
-          return this.connections.size;
-        }
-      }
-
-      const testCoordinator = new TestCoordinator();
-
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-        coordinator: testCoordinator,
-      });
-
-      expect(registry).toBeDefined();
-      expect(testCoordinator.getConnectionCount()).toBe(0);
-    });
-
-    it('should accept RuntimeCoordinator abstract class', () => {
-      // Verify that config accepts the abstract class type
-      const coordinator: RuntimeCoordinator = new WeakMapRuntimeCoordinator();
-
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-        coordinator,
-      });
-
-      expect(registry).toBeDefined();
-    });
-  });
 
   describe('Integration with registry lifecycle', () => {
     it('should initialize coordinator during registry construction', () => {
@@ -233,22 +152,16 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     });
   });
 
-  describe('Coordinator usage preparation', () => {
-    it('should be ready for Phase 19.3 mount/unmount operations', () => {
-      // This test documents the expected coordinator usage in Phase 19.3
+  describe('WeakMapRuntimeCoordinator standalone unit tests', () => {
+    it('should register and retrieve runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
-
       const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
-        coordinator,
       });
 
       // Create a mock container element
       const container = document.createElement('div');
 
-      // In Phase 19.3, mountExtension will:
-      // 1. Create a bridge
-      // 2. Register runtime connection via coordinator
       const mockConnection: RuntimeConnection = {
         hostRuntime: registry,
         bridges: new Map(),
@@ -260,9 +173,21 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       const retrieved = coordinator.get(container);
       expect(retrieved).toBe(mockConnection);
       expect(retrieved?.hostRuntime).toBe(registry);
+    });
 
-      // In Phase 19.3, unmountExtension will:
-      // Unregister runtime connection via coordinator
+    it('should unregister runtime connections', () => {
+      const coordinator = new WeakMapRuntimeCoordinator();
+      const registry = new DefaultScreensetsRegistry({
+        typeSystem: createMockPlugin(),
+      });
+
+      const container = document.createElement('div');
+      const mockConnection: RuntimeConnection = {
+        hostRuntime: registry,
+        bridges: new Map(),
+      };
+
+      coordinator.register(container, mockConnection);
       coordinator.unregister(container);
 
       // Verify connection is unregistered
@@ -271,10 +196,8 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
     it('should support multiple simultaneous runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
-
       const registry = new DefaultScreensetsRegistry({
         typeSystem: createMockPlugin(),
-        coordinator,
       });
 
       // Create multiple containers
@@ -314,29 +237,6 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       expect(coordinator.get(container1)).toBe(connection1);
       expect(coordinator.get(container2)).toBeUndefined();
       expect(coordinator.get(container3)).toBe(connection3);
-    });
-  });
-
-  describe('Dependency Inversion Principle', () => {
-    it('should depend on abstract RuntimeCoordinator, not concrete implementation', () => {
-      // Create custom coordinator extending abstract class
-      class CustomCoordinator extends RuntimeCoordinator {
-        register(): void {}
-        get(): RuntimeConnection | undefined {
-          return undefined;
-        }
-        unregister(): void {}
-      }
-
-      const customCoordinator = new CustomCoordinator();
-
-      // Registry accepts abstract type, not concrete WeakMapRuntimeCoordinator
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-        coordinator: customCoordinator,
-      });
-
-      expect(registry).toBeDefined();
     });
   });
 });

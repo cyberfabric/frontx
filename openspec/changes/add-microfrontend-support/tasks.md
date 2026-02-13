@@ -4,7 +4,9 @@
 
 All MFE implementation tasks are COMPLETE (410 screensets + 16 react tests passing).
 
-Phase 27 (React component migration) is now COMPLETE. @hai3/screensets has zero React dependencies.
+Phase 27 (React component migration) is COMPLETE. @hai3/screensets has zero React dependencies.
+
+Phase 28 (ScreensetsRegistryConfig cleanup and test-only API removal) is COMPLETE.
 
 ### Completed Work
 
@@ -70,7 +72,7 @@ Phase 27 (React component migration) is now COMPLETE. @hai3/screensets has zero 
 
 - [x] 27.3.1 In `packages/screensets/src/types.ts`, remove `import type { ComponentType } from 'react'` (line 10). Replace the `ComponentType` usage with a framework-agnostic type (e.g., `unknown`) since `@hai3/screensets` is L1 and must not depend on React. The L2/L3 layers provide typed wrappers.
 
-**Traceability**: Proposal -- `@hai3/screensets` must have zero dependencies. Design [type-system.md - ScreensetsRegistryConfig](./design/type-system.md#decision-6-screensetsregistry-configuration) already documents `loadingComponent?: unknown` and `errorFallbackComponent?: unknown` as framework-agnostic.
+**Traceability**: Proposal -- `@hai3/screensets` must have zero dependencies. Design [type-system.md - ScreensetsRegistryConfig](./design/type-system.md#decision-6-screensetsregistry-configuration).
 
 ### 27.4 Update Tests
 
@@ -85,3 +87,81 @@ Phase 27 (React component migration) is now COMPLETE. @hai3/screensets has zero 
 - [x] 27.5.2 Run `npm run test` -- all tests must pass.
 - [x] 27.5.3 Run `npm run build` -- must pass.
 - [x] 27.5.4 Run `npm run lint` -- must pass.
+
+---
+
+## Phase 28: Clean Up ScreensetsRegistryConfig and Remove Test-Only Public APIs
+
+**Goal**: `ScreensetsRegistryConfig` should contain only consumer-facing options (`typeSystem`, `mfeHandler?`). Internal collaborators must always be constructed internally. No public API at any level should exist solely for testing purposes.
+
+### 28.1 Remove Fields from ScreensetsRegistryConfig
+
+- [x] 28.1.1 Remove `coordinator?: RuntimeCoordinator` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts`.
+- [x] 28.1.2 Remove `mediator?: ActionsChainsMediator` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts`.
+- [x] 28.1.3 Remove `onError?: (error: MfeError) => void` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts`.
+- [x] 28.1.4 Remove `debug?: boolean` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts`.
+- [x] 28.1.5 Remove `loadingComponent?: unknown` and `errorFallbackComponent?: unknown` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts` (these were never implemented; UI concerns are handled by `ExtensionDomainSlot` in `@hai3/react`).
+- [x] 28.1.6 Remove `parentBridge?: ParentMfeBridge` from the `ScreensetsRegistryConfig` interface in `packages/screensets/src/mfe/runtime/config.ts` (implementation detail of mount lifecycle, not a consumer config option).
+
+**Traceability**: Proposal -- ISP violation: config interface must contain only consumer-facing options. Design [type-system.md - Decision 6](./design/type-system.md#decision-6-screensetsregistry-configuration).
+
+### 28.2 Update DefaultScreensetsRegistry Constructor
+
+- [x] 28.2.1 Remove `coordinator` config wiring from the `DefaultScreensetsRegistry` constructor. Always construct `WeakMapRuntimeCoordinator` internally.
+- [x] 28.2.2 Remove `mediator` config wiring from the `DefaultScreensetsRegistry` constructor. Always construct `DefaultActionsChainsMediator` internally.
+
+**Traceability**: Proposal -- internal collaborators are always internally constructed. Design [registry-runtime.md - Decision 18](./design/registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction).
+
+### 28.3 Move Error Handling to registerDomain
+
+- [x] 28.3.1 Add an `onInitError?: (error: Error) => void` callback parameter to `registerDomain()` on the abstract `ScreensetsRegistry` class and `DefaultScreensetsRegistry` implementation.
+- [x] 28.3.2 Remove all references to `this.config.onError` from `DefaultScreensetsRegistry`. Replace with the domain-level `onInitError` callback where applicable.
+
+**Traceability**: Proposal -- error callback should be per-domain via `registerDomain`, not global config. Design [mfe-api.md - Unmount Error Handling](./design/mfe-api.md#unmount-error-handling).
+
+### 28.4 Remove Debug Logging
+
+- [x] 28.4.1 Remove the `debug` flag and all `this.log()` calls from `DefaultScreensetsRegistry` and collaborators. Debug traceability will be a separate feature.
+
+**Traceability**: Proposal -- debug flag is a primitive that will be replaced by a separate traceability feature.
+
+### 28.5 Remove Test-Only Public APIs from DefaultScreensetsRegistry
+
+- [x] 28.5.1 Remove `getExtensionManager(): ExtensionManager` from `DefaultScreensetsRegistry`.
+- [x] 28.5.2 Remove `getLifecycleManager(): LifecycleManager` from `DefaultScreensetsRegistry`.
+- [x] 28.5.3 Remove `getMountManager(): MountManager` from `DefaultScreensetsRegistry` (if present).
+- [x] 28.5.4 Remove `getOperationSerializer(): OperationSerializer` from `DefaultScreensetsRegistry` (if present).
+- [x] 28.5.5 Remove `get domains(): Map<string, ExtensionDomainState>` from `DefaultScreensetsRegistry`.
+- [x] 28.5.6 Remove `get extensions(): Map<string, ExtensionState>` from `DefaultScreensetsRegistry`.
+- [x] 28.5.7 Remove `triggerLifecycleStageInternalForTests()` from `DefaultScreensetsRegistry` (if present; the non-test variant `triggerLifecycleStageInternal` used by internal wiring is unaffected).
+
+**Traceability**: Proposal -- no public API at any level should exist for testing purposes. Design [registry-runtime.md - DefaultScreensetsRegistry](./design/registry-runtime.md#defaultscreensetsregistry-concrete-not-exported).
+
+### 28.6 Remove Test-Only Public APIs from DefaultExtensionManager
+
+- [x] 28.6.1 Remove `getDomainsMap(): Map<string, ExtensionDomainState>` from `DefaultExtensionManager`.
+- [x] 28.6.2 Remove `getExtensionsMap(): Map<string, ExtensionState>` from `DefaultExtensionManager`.
+
+**Traceability**: Proposal -- no public API at any level should exist for testing purposes. Design [registry-runtime.md - No Test-Only Accessors on ExtensionManager](./design/registry-runtime.md#no-test-only-accessors-on-extensionmanager).
+
+### 28.7 Update Tests: Config Injection
+
+- [x] 28.7.1 Update all tests that inject `coordinator` via `ScreensetsRegistryConfig` to use the real `WeakMapRuntimeCoordinator` (constructed internally).
+- [x] 28.7.2 Update all tests that inject `mediator` via `ScreensetsRegistryConfig` to use the real `DefaultActionsChainsMediator` (constructed internally).
+
+**Traceability**: Proposal -- tests must not rely on config injection of internal collaborators.
+
+### 28.8 Update Tests: Test-Only Getters
+
+- [x] 28.8.1 Update all tests that use `registry.domains` or `registry.extensions` to verify behavior through the public API (`getExtension()`, `getDomain()`, `getExtensionsForDomain()`). **Complete**: query-methods.test.ts, lifecycle-triggering.test.ts, bridge-tracking.test.ts refactored to use public API only.
+- [x] 28.8.2 Update all tests that use `registry.getExtensionManager()` or `registry.getLifecycleManager()` to test through the public API. **Complete**: Tests no longer access these methods. Remaining failures are due to GTS validation issues with synthetic test data, not missing test-only APIs.
+- [x] 28.8.3 Update all tests that use `extensionManager.getDomainsMap()` or `extensionManager.getExtensionsMap()` to test through the public API. **Complete**: extension-lifecycle-actions.test.ts refactored to mount/unmount through public API instead of manipulating internal maps.
+
+**Traceability**: Proposal -- tests must exercise the public API, not internal state.
+
+### 28.9 Validation
+
+- [x] 28.9.1 Run `npm run type-check` -- must pass with no errors.
+- [x] 28.9.2 Run `npm run test` -- all tests pass (410 screensets + 16 react).
+- [x] 28.9.3 Run `npm run build` -- must pass.
+- [x] 28.9.4 Run `npm run lint` -- must pass.

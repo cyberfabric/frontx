@@ -104,7 +104,7 @@ unregisterExtension(extId)
 
 **Domain Lifecycle:**
 ```
-registerDomain(domain, containerProvider)
+registerDomain(domain, containerProvider, onInitError?)
     |
     v
 [init]  <-- Triggers domain.lifecycle hooks for 'init' stage

@@ -11,16 +11,6 @@
 import type { ParentMfeBridge } from '../handler/types';
 
 /**
- * Logger function type.
- */
-export type Logger = (message: string, context?: Record<string, unknown>) => void;
-
-/**
- * Error handler function type.
- */
-export type ErrorHandler = (error: Error, context: Record<string, unknown>) => void;
-
-/**
  * Action chain executor function type.
  */
 export type ActionChainExecutor = (

@@ -1010,7 +1010,7 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 #### Scenario: Register domain dynamically
 
 - **WHEN** a screenset needs to add a new extension point at runtime
-- **THEN** the system SHALL allow calling `runtime.registerDomain(domain, containerProvider)` at any time
+- **THEN** the system SHALL allow calling `runtime.registerDomain(domain, containerProvider, onInitError?)` at any time
 - **AND** the `containerProvider` parameter SHALL be a `ContainerProvider` instance that supplies DOM containers for extensions in this domain
 - **AND** the domain SHALL be validated against schema before registration
 - **AND** extensions MAY then be registered for this domain
@@ -1041,11 +1041,14 @@ The system SHALL support dynamic registration of extensions, domains, and MFEs a
 
 #### Scenario: registerDomain method contract
 
-- **WHEN** calling `runtime.registerDomain(domain, containerProvider)`
+- **WHEN** calling `runtime.registerDomain(domain, containerProvider, onInitError?)`
 - **THEN** the method SHALL return `void` (synchronous)
 - **AND** the `containerProvider` SHALL be a `ContainerProvider` instance
+- **AND** `onInitError` SHALL be an optional callback `(error: Error) => void`
 - **AND** the domain SHALL be validated against GTS schema
 - **AND** the `containerProvider` SHALL be stored alongside the domain state
+- **AND** if `onInitError` is provided, it SHALL be called when the fire-and-forget lifecycle `init` stage errors occur for extensions in this domain
+- **AND** `onInitError` SHALL NOT be called for unmount errors or other lifecycle errors
 
 #### Scenario: unregisterDomain method contract
 
@@ -1093,7 +1096,7 @@ The system SHALL provide a `ContainerProvider` abstract class that shifts DOM co
 
 #### Scenario: ContainerProvider registered with domain
 
-- **WHEN** calling `runtime.registerDomain(domain, containerProvider)`
+- **WHEN** calling `runtime.registerDomain(domain, containerProvider, onInitError?)`
 - **THEN** the `containerProvider` parameter SHALL be required
 - **AND** the containerProvider SHALL be stored alongside the domain state
 - **AND** the containerProvider SHALL be passed to the `ExtensionLifecycleActionHandler` at construction time

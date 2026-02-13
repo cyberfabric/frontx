@@ -376,7 +376,7 @@ class ExtensionLifecycleActionHandler implements ActionHandler {
 #### Callback Wiring in DefaultScreensetsRegistry.registerDomain()
 
 ```typescript
-// In DefaultScreensetsRegistry.registerDomain(domain, containerProvider):
+// In DefaultScreensetsRegistry.registerDomain(domain, containerProvider, onInitError?):
 const lifecycleCallbacks: ExtensionLifecycleCallbacks = {
   loadExtension: (id) =>
     this.operationSerializer.serializeOperation(id, () => this.mountManager.loadExtension(id)),
@@ -591,7 +591,7 @@ export abstract class ContainerProvider {
 
 ```typescript
 // On abstract ScreensetsRegistry:
-abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider): void;
+abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void): void;
 ```
 
 The `ContainerProvider` is stored alongside the domain state and passed to the `ExtensionLifecycleActionHandler` at construction time.
@@ -686,7 +686,7 @@ export function mountExtension(extensionId: string): void {
 
 ```typescript
 // packages/framework/src/types.ts
-registerDomain: (domain: ExtensionDomain, containerProvider: ContainerProvider) => void;
+registerDomain: (domain: ExtensionDomain, containerProvider: ContainerProvider, onInitError?: (error: Error) => void) => void;
 ```
 
 ### ContainerProvider Ownership Model
@@ -702,7 +702,7 @@ registerDomain: (domain: ExtensionDomain, containerProvider: ContainerProvider) 
 
 **Two-step registration pattern for React-rendered domains**:
 
-1. **Domain registration**: Framework-level code calls `registerDomain(domain, containerProvider)` with a `RefContainerProvider` wrapping a React ref. The ref's `.current` may be `null` at this point.
+1. **Domain registration**: Framework-level code calls `registerDomain(domain, containerProvider, onInitError?)` with a `RefContainerProvider` wrapping a React ref. The ref's `.current` may be `null` at this point.
 2. **React mount**: When `ExtensionDomainSlot` mounts, the React ref attaches to the DOM element. `RefContainerProvider.getContainer()` reads `ref.current` lazily at call time, so it returns the correct element once React has mounted.
 
 This works because `getContainer()` is only called during `mount_ext` handling, which happens AFTER the React component has rendered and the ref is attached.
@@ -723,7 +723,7 @@ This works because `getContainer()` is only called during `mount_ext` handling, 
 
 5. **Handler owns all ContainerProvider interactions** -- single point of ownership for `getContainer` and `releaseContainer`.
 
-6. **Breaking change** -- `registerDomain(domain)` becomes `registerDomain(domain, containerProvider)`. Acceptable for alpha stage.
+6. **Breaking change** -- `registerDomain(domain)` becomes `registerDomain(domain, containerProvider, onInitError?)`. Acceptable for alpha stage.
 
 ### Non-Serializable ContainerProvider in Event Bus
 
