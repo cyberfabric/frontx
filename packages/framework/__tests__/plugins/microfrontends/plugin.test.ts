@@ -18,9 +18,6 @@ import {
   MfeEvents,
   selectExtensionState,
   selectExtensionError,
-  MfeErrorBoundary,
-  MfeLoadingIndicator,
-  ShadowDomContainer,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@hai3/state';
 import type { Extension } from '@hai3/screensets';
@@ -54,7 +51,6 @@ describe('microfrontends plugin - Phase 13', () => {
       const plugin = microfrontends();
 
       expect(plugin.provides?.actions).toHaveProperty('loadExtension');
-      expect(plugin.provides?.actions).toHaveProperty('preloadExtension');
       expect(plugin.provides?.actions).toHaveProperty('mountExtension');
       expect(plugin.provides?.actions).toHaveProperty('unmountExtension');
       expect(plugin.provides?.actions).not.toHaveProperty('handleMfeHostAction');
@@ -69,7 +65,6 @@ describe('microfrontends plugin - Phase 13', () => {
       apps.push(app);
 
       expect(typeof app.actions.loadExtension).toBe('function');
-      expect(typeof app.actions.preloadExtension).toBe('function');
       expect(typeof app.actions.mountExtension).toBe('function');
       expect(typeof app.actions.unmountExtension).toBe('function');
       expect(app.actions.handleMfeHostAction).toBeUndefined();
@@ -160,157 +155,6 @@ describe('microfrontends plugin - Phase 13', () => {
 
       const error = selectExtensionError(state, uniqueExtId);
       expect(error).toBeUndefined();
-    });
-  });
-
-  describe('13.8.5 - ShadowDomContainer', () => {
-    it('should create shadow root', () => {
-      const host = document.createElement('div');
-      document.body.appendChild(host);
-
-      const container = new ShadowDomContainer({
-        hostElement: host,
-        mode: 'open',
-      });
-
-      const shadowRoot = container.create();
-
-      expect(shadowRoot).toBeDefined();
-      expect(shadowRoot.mode).toBe('open');
-      expect(container.isCreated()).toBe(true);
-
-      container.destroy();
-      document.body.removeChild(host);
-    });
-
-    it('should inject CSS variables', () => {
-      const host = document.createElement('div');
-      document.body.appendChild(host);
-
-      const container = new ShadowDomContainer({
-        hostElement: host,
-        mode: 'open',
-        cssVariables: {
-          '--primary-color': 'blue',
-          '--font-family': 'Arial',
-        },
-      });
-
-      container.create();
-      const shadowRoot = container.getShadowRoot();
-
-      expect(shadowRoot).toBeDefined();
-      // CSS variables are injected via style element
-      const styles = shadowRoot?.querySelectorAll('style');
-      expect(styles?.length).toBeGreaterThan(0);
-
-      container.destroy();
-      document.body.removeChild(host);
-    });
-
-    it('should update CSS variables', () => {
-      const host = document.createElement('div');
-      document.body.appendChild(host);
-
-      const container = new ShadowDomContainer({
-        hostElement: host,
-        mode: 'open',
-        cssVariables: { '--color': 'red' },
-      });
-
-      container.create();
-      container.updateCssVariables({ '--color': 'blue' });
-
-      const shadowRoot = container.getShadowRoot();
-      expect(shadowRoot).toBeDefined();
-
-      container.destroy();
-      document.body.removeChild(host);
-    });
-  });
-
-  describe('13.8.6 - MfeErrorBoundary', () => {
-    it('should render error UI', () => {
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-
-      const boundary = new MfeErrorBoundary({
-        container,
-        error: new Error('Test error'),
-        extensionId: 'test.ext.v1',
-      });
-
-      boundary.render();
-
-      expect(container.innerHTML).toContain('MFE Load Error');
-      expect(container.innerHTML).toContain('Test error');
-      expect(container.innerHTML).toContain('test.ext.v1');
-
-      boundary.destroy();
-      document.body.removeChild(container);
-    });
-
-    it('should call retry callback', () => {
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-
-      const onRetry = vi.fn();
-      const boundary = new MfeErrorBoundary({
-        container,
-        error: 'Test error',
-        onRetry,
-      });
-
-      boundary.render();
-
-      const button = container.querySelector('button');
-      expect(button).toBeDefined();
-
-      button?.click();
-      expect(onRetry).toHaveBeenCalled();
-
-      boundary.destroy();
-      document.body.removeChild(container);
-    });
-  });
-
-  describe('13.8.7 - MfeLoadingIndicator', () => {
-    it('should render loading UI', () => {
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-
-      const indicator = new MfeLoadingIndicator({
-        container,
-        message: 'Loading extension...',
-        extensionId: 'test.ext.v1',
-      });
-
-      indicator.render();
-
-      expect(container.innerHTML).toContain('Loading extension...');
-      expect(container.innerHTML).toContain('test.ext.v1');
-
-      indicator.destroy();
-      document.body.removeChild(container);
-    });
-
-    it('should update message', () => {
-      const container = document.createElement('div');
-      document.body.appendChild(container);
-
-      const indicator = new MfeLoadingIndicator({
-        container,
-        message: 'Initial message',
-      });
-
-      indicator.render();
-      expect(container.innerHTML).toContain('Initial message');
-
-      indicator.updateMessage('Updated message');
-      expect(container.innerHTML).toContain('Updated message');
-
-      indicator.destroy();
-      document.body.removeChild(container);
     });
   });
 

@@ -44,6 +44,4 @@ export const HAI3_OVERLAY_DOMAIN = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.
 export const MfeEvents = {
   RegisterExtensionRequested: 'mfe/registerExtensionRequested',
   UnregisterExtensionRequested: 'mfe/unregisterExtensionRequested',
-  RegisterDomainRequested: 'mfe/registerDomainRequested',
-  UnregisterDomainRequested: 'mfe/unregisterDomainRequested',
 } as const;

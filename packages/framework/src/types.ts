@@ -160,13 +160,10 @@ export interface HAI3Actions {
   // MFE actions (from microfrontends plugin)
   // ==========================================================================
   loadExtension: (extensionId: string) => void;
-  preloadExtension: (extensionId: string) => void;
   mountExtension: (extensionId: string) => void;
   unmountExtension: (extensionId: string) => void;
   registerExtension: (extension: import('@hai3/screensets').Extension) => void;
   unregisterExtension: (extensionId: string) => void;
-  registerDomain: (domain: import('@hai3/screensets').ExtensionDomain, containerProvider: import('@hai3/screensets').ContainerProvider) => void;
-  unregisterDomain: (domainId: string) => void;
 }
 
 /**

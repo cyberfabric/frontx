@@ -15,15 +15,13 @@ import {
   microfrontends,
   registerExtension,
   unregisterExtension,
-  registerDomain,
-  unregisterDomain,
   MfeEvents,
   selectExtensionState,
   selectRegisteredExtensions,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@hai3/state';
-import type { Extension, ExtensionDomain } from '@hai3/screensets';
-import { ContainerProvider } from '@hai3/screensets';
+import type { Extension, ExtensionDomain } from '@hai3/framework';
+import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '../../../src/types';
 
 // Mock Container Provider for framework tests
@@ -60,12 +58,6 @@ describe('dynamic registration - Phase 20', () => {
     // Reset global store to prevent state pollution between tests
     resetStore();
   });
-  const mockExtension: Extension = {
-    id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.extension.v1',
-    domain: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
-    entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
-  };
-
   const mockDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
     sharedProperties: [],
@@ -77,6 +69,12 @@ describe('dynamic registration - Phase 20', () => {
     defaultActionTimeout: 5000,
     lifecycleStages: [],
     extensionsLifecycleStages: [],
+  };
+
+  const mockExtension: Extension = {
+    id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.extension.v1',
+    domain: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
+    entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
   };
 
   describe('20.5.1 - registerExtension action emits event', () => {
@@ -193,93 +191,6 @@ describe('dynamic registration - Phase 20', () => {
       // Verify state transition
       const state = app.store.getState();
       expect(selectExtensionState(state, mockExtension.id)).toBe('unregistered');
-    });
-  });
-
-  describe('20.5.4 - registerDomain action and effect', () => {
-    let eventSpy: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-      eventSpy = vi.fn();
-    });
-
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it('should emit registerDomainRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.RegisterDomainRequested, eventSpy);
-
-      const testContainerProvider = new TestContainerProvider();
-      registerDomain(mockDomain, testContainerProvider);
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        domain: mockDomain,
-        containerProvider: testContainerProvider,
-      });
-
-      unsub.unsubscribe();
-    });
-
-    it('should call runtime.registerDomain', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
-      apps.push(app);
-
-      // Mock runtime method
-      const registerDomainSpy = vi.fn();
-      app.screensetsRegistry.registerDomain = registerDomainSpy;
-
-      // Trigger action
-      const testContainerProvider = new TestContainerProvider();
-      registerDomain(mockDomain, testContainerProvider);
-
-      // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // Verify runtime method was called with both domain and containerProvider
-      expect(registerDomainSpy).toHaveBeenCalledWith(mockDomain, testContainerProvider);
-    });
-  });
-
-  describe('20.5.5 - unregisterDomain action and effect', () => {
-    let eventSpy: ReturnType<typeof vi.fn>;
-
-    beforeEach(() => {
-      eventSpy = vi.fn();
-    });
-
-    afterEach(() => {
-      vi.clearAllMocks();
-    });
-
-    it('should emit unregisterDomainRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.UnregisterDomainRequested, eventSpy);
-
-      unregisterDomain(mockDomain.id);
-
-      expect(eventSpy).toHaveBeenCalledWith({
-        domainId: mockDomain.id,
-      });
-
-      unsub.unsubscribe();
-    });
-
-    it('should call runtime.unregisterDomain', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
-      apps.push(app);
-
-      // Mock runtime method
-      const unregisterDomainSpy = vi.fn().mockResolvedValue(undefined);
-      app.screensetsRegistry.unregisterDomain = unregisterDomainSpy;
-
-      // Trigger action
-      unregisterDomain(mockDomain.id);
-
-      // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 50));
-
-      // Verify runtime method was called
-      expect(unregisterDomainSpy).toHaveBeenCalledWith(mockDomain.id);
     });
   });
 

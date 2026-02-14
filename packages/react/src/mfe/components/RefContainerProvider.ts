@@ -9,7 +9,7 @@
  */
 
 import type { RefObject } from 'react';
-import { ContainerProvider } from '@hai3/screensets';
+import { ContainerProvider } from '@hai3/framework';
 
 /**
  * Concrete ContainerProvider that wraps a React ref.

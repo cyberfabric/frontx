@@ -16,13 +16,10 @@ import { initMfeEffects } from './effects';
 import { initMfeNavigation } from './navigation';
 import {
   loadExtension,
-  preloadExtension,
   mountExtension,
   unmountExtension,
   registerExtension,
   unregisterExtension,
-  registerDomain,
-  unregisterDomain,
   setMfeRegistry,
 } from './actions';
 
@@ -51,7 +48,6 @@ import {
  *   .build();
  *
  * // Register domains dynamically at runtime:
- * const sidebarDomain = createSidebarDomain();
  * app.screensetsRegistry.registerDomain(sidebarDomain, containerProvider);
  *
  * // Use MFE actions:
@@ -97,13 +93,10 @@ export function microfrontends(): HAI3Plugin {
       // We only initialize effects in onInit to avoid duplicate event listeners.
       actions: {
         loadExtension,
-        preloadExtension,
         mountExtension,
         unmountExtension,
         registerExtension,
         unregisterExtension,
-        registerDomain,
-        unregisterDomain,
       },
     },
 
@@ -121,7 +114,7 @@ export function microfrontends(): HAI3Plugin {
         console.log('[microfrontends] TypeSystemPlugin:', screensetsRegistry.typeSystem.name, screensetsRegistry.typeSystem.version);
         console.log('[microfrontends] Base domains are NOT pre-registered');
         console.log('[microfrontends] Register domains at runtime via app.screensetsRegistry.registerDomain()');
-        console.log('[microfrontends] MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension');
+        console.log('[microfrontends] MFE actions available: loadExtension, mountExtension, unmountExtension');
       }
 
       // Plugin is now ready
@@ -143,28 +136,15 @@ export function microfrontends(): HAI3Plugin {
   };
 }
 
-// Re-export base domain factories for convenience
-export {
-  createSidebarDomain,
-  createPopupDomain,
-  createScreenDomain,
-  createOverlayDomain,
-} from './base-domains';
-
 // Re-export MFE actions for direct usage
 export {
   loadExtension,
-  preloadExtension,
   mountExtension,
   unmountExtension,
   registerExtension,
   unregisterExtension,
-  registerDomain,
-  unregisterDomain,
   type RegisterExtensionPayload,
   type UnregisterExtensionPayload,
-  type RegisterDomainPayload,
-  type UnregisterDomainPayload,
 } from './actions';
 
 // Re-export MFE slice and selectors
@@ -177,16 +157,6 @@ export {
   type MfeState,
   type ExtensionRegistrationState,
 } from './slice';
-
-// Re-export MFE components
-export {
-  MfeErrorBoundary,
-  MfeLoadingIndicator,
-  ShadowDomContainer,
-  type MfeErrorBoundaryConfig,
-  type MfeLoadingIndicatorConfig,
-  type ShadowDomContainerConfig,
-} from './components';
 
 // Re-export navigation integration
 export {

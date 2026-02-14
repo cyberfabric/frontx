@@ -168,49 +168,7 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 
 > **Abstract Class vs Interface**: The `ActionsChainsMediator` abstract class below defines the **public contract** -- the API surface that `ScreensetsRegistry` delegates to. The concrete class extending this abstract class is **internal** to the screensets package and is not exported. This follows the same abstract/concrete pattern used by other MFE components (`MfeHandler`/`MfeHandlerMF`, `RuntimeCoordinator`/`WeakMapRuntimeCoordinator`, `MfeBridgeFactory`/`MfeBridgeFactoryDefault`): an exported abstraction defines the contract, while the concrete implementation encapsulates internal state and is injected via Dependency Inversion.
 
-```typescript
-/**
- * ActionsChainsMediator - Mediates action chain delivery between domains and extensions.
- */
-abstract class ActionsChainsMediator {
-  /** The Type System plugin used by this mediator */
-  abstract readonly typeSystem: TypeSystemPlugin;
-
-  /**
-   * Execute an action chain, routing to targets and handling success/failure branching.
-   * @param chain - The actions chain to execute
-   */
-  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
-
-  /** Register an extension's action handler for receiving actions */
-  abstract registerExtensionHandler(
-    extensionId: string,
-    domainId: string,
-    entryId: string,
-    handler: ActionHandler
-  ): void;
-
-  /** Unregister an extension's action handler */
-  abstract unregisterExtensionHandler(extensionId: string): void;
-
-  /** Register a domain's action handler for receiving actions from extensions */
-  abstract registerDomainHandler(
-    domainId: string,
-    handler: ActionHandler
-  ): void;
-
-  /** Unregister a domain's action handler */
-  abstract unregisterDomainHandler(domainId: string): void;
-}
-
-interface ActionHandler {
-  handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
-}
-
-// ChainResult and ChainExecutionOptions are internal to the concrete
-// DefaultActionsChainsMediator -- they do NOT appear in the abstract contract above.
-// See "Chain-Level Configuration" section below for their definitions.
-```
+The `ActionsChainsMediator` is an `@internal` abstract class. Its primary public-facing method is `executeActionsChain(chain: ActionsChain): Promise<void>`, which `ScreensetsRegistry` delegates to. Handler registration/unregistration methods are internal. The `ActionHandler` interface (`handleAction(actionTypeId, payload): Promise<void>`) is also internal -- used by domain and extension handlers.
 
 ### Action Support Validation
 
@@ -267,59 +225,7 @@ This model ensures:
 
 ### Chain-Level Configuration
 
-The only mediator-level configuration is the total chain execution limit:
-
-```typescript
-// packages/screensets/src/mfe/mediator/config.ts
-
-/**
- * Configuration for ActionsChain execution (mediator-level)
- *
- * NOTE: Individual action timeouts are NOT configured here.
- * Action timeouts are defined explicitly in ExtensionDomain (defaultActionTimeout)
- * and can be overridden per-action via Action.timeout field.
- */
-interface ActionsChainsConfig {
-  /**
-   * Maximum total time for entire chain execution (ms)
-   * This is a safety limit for the entire chain, not individual actions.
-   * Default: 120000 (2 minutes)
-   */
-  chainTimeout?: number;
-}
-
-const DEFAULT_CONFIG: Required<ActionsChainsConfig> = {
-  chainTimeout: 120000,
-};
-
-/**
- * Per-request execution options (chain-level only)
- *
- * NOTE: Action-level timeouts are defined in:
- * - ExtensionDomain.defaultActionTimeout (required)
- * - Action.timeout (optional override)
- *
- * Timeout is treated as a failure - the ActionsChain.fallback handles all failures uniformly.
- */
-interface ChainExecutionOptions {
-  /**
-   * Override chain timeout for this execution (ms)
-   * This limits the total time for the entire chain execution.
-   */
-  chainTimeout?: number;
-}
-
-/**
- * Extended ChainResult with timing information
- */
-interface ChainResult {
-  completed: boolean;
-  path: string[];  // Action type IDs executed
-  error?: string;
-  timedOut?: boolean;
-  executionTime?: number;  // Total execution time in ms
-}
-```
+The only mediator-level configuration is `chainTimeout` (default: 120000ms / 2 minutes) -- a safety limit for total chain execution time. `ChainResult`, `ChainExecutionOptions`, and `ActionsChainsConfig` are internal to `DefaultActionsChainsMediator` and not part of the public API.
 
 ### Usage Example
 

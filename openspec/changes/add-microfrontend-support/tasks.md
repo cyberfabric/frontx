@@ -2,13 +2,15 @@
 
 ## Status
 
-All MFE implementation tasks through Phase 29 are COMPLETE (369 screensets + 16 react tests passing, 4 tests skipped identifying validation gaps).
+All MFE implementation tasks through Phase 30 are COMPLETE (409 tests passing: 364 screensets + 16 react + 45 framework, 4 tests skipped identifying validation gaps).
 
 Phase 27 (React component migration) is COMPLETE. @hai3/screensets has zero React dependencies.
 
 Phase 28 (ScreensetsRegistryConfig cleanup and test-only API removal) is COMPLETE.
 
 Phase 29 (Public API cleanup — remove internal symbols from barrels) is COMPLETE.
+
+Phase 30 (Framework MFE API cleanup) is COMPLETE.
 
 ### Completed Work
 
@@ -17,7 +19,7 @@ Phase 29 (Public API cleanup — remove internal symbols from barrels) is COMPLE
 | Phases 1-26 | Type system, registry, contracts, isolation, mediation, domains, loading, errors, framework plugin, React integration, bridges, shadow DOM, caching, constants, dynamic registration, abstract class layers, cross-runtime routing, lifecycle actions, callback injection, container providers, Flux compliance | COMPLETE |
 | Phase 27 | Move React-dependent components (RefContainerProvider, ExtensionDomainSlot) to @hai3/react; zero React dependencies in @hai3/screensets | COMPLETE |
 | Phase 28 | Clean up ScreensetsRegistryConfig (remove test-only APIs, internal collaborator injection); move error callback to per-domain `registerDomain` | COMPLETE |
-| Phase 29 | Remove ~43 leaked internals from public barrels; simplify `executeActionsChain` to `Promise<void>`; slim interfaces; provide handlers via config only | COMPLETE |
+| Phase 29 | Remove ~43 leaked internals from public barrels; simplify `executeActionsChain` to `Promise<void>`; slim `TypeSystemPlugin` to 7 methods; slim `ChildMfeBridge` (remove `entryTypeId`, `subscribeToAllProperties`); remove `preload()` from `MfeHandler`; provide handlers via config only; update specs and design docs | COMPLETE |
 
 ### Current Construction Patterns
 
@@ -29,124 +31,110 @@ Phase 29 (Public API cleanup — remove internal symbols from barrels) is COMPLE
 
 ---
 
-## Phase 29: Public API Cleanup — Remove Internal Symbols from Barrels
+## Phase 30: Framework MFE API Cleanup
 
-**Goal**: `src/index.ts` exports ~70 MFE symbols; only ~27 are needed by consumers. Remove ~43 leaked internals from the public barrels (`src/index.ts` and `src/mfe/index.ts`). Simplify `executeActionsChain` public signature. Slim abstract classes and interfaces to expose only what consumers and collaborators actually use.
+**Goal**: The `@hai3/framework` MFE public API exports ~30 symbols, most with zero consumer usage. Remove unused components, redundant actions, and trivial wrappers. Add missing `@hai3/screensets` re-exports so `@hai3/react` never imports from screensets directly (layering principle: L3 imports L2, not L1).
 
-### 29.1 Clean `src/mfe/index.ts` — Remove Leaked Internals
+### 30.1 Remove Unused Vanilla DOM Components
 
-- [x] 29.1.1 Remove `RuntimeCoordinator` (abstract class) and `RuntimeConnection` (type) from `./coordination/types` re-export.
-- [x] 29.1.2 Remove `ActionsChainsMediator` (abstract class), `ChainResult`, `ChainExecutionOptions` types, and `ActionHandler` from `./mediator`. `ActionHandler` is internal (used only by the mediator and child domain forwarding handler); it must NOT be re-exported from the `mfe/index.ts` barrel.
-- [x] 29.1.3 Remove `validateContract`, `formatContractErrors` from `./validation/contract`.
-- [x] 29.1.4 Remove `validateExtensionType` from `./validation/extension-type`.
-- [x] 29.1.5 Remove `ContractError`, `ContractErrorType`, `ContractValidationResult` types from `./validation/contract`.
-- [x] 29.1.6 Delete the `MfeErrorHandler` CLASS from `error-handler.ts` (dead code, never called) but keep the file since `RetryHandler` lives in the same file. Remove `MfeErrorHandler` and `ErrorHandlerConfig` exports from the `./errors` barrel. Keep `RetryHandler` in `error-handler.ts` marked `@internal` (used internally by `MfeHandlerMF`); `RetryHandler` must NOT be re-exported from the barrel.
+Delete the following files entirely:
+- `packages/framework/src/plugins/microfrontends/components/MfeErrorBoundary.ts`
+- `packages/framework/src/plugins/microfrontends/components/MfeLoadingIndicator.ts`
+- `packages/framework/src/plugins/microfrontends/components/ShadowDomContainer.ts`
+- `packages/framework/src/plugins/microfrontends/components/index.ts` (entire `components/` directory)
 
-Keep only what `src/index.ts` needs to re-export (the ~27 public symbols).
+Remove associated config types: `MfeErrorBoundaryConfig`, `MfeLoadingIndicatorConfig`, `ShadowDomContainerConfig`.
 
-**Traceability**: Proposal -- public API surface must expose only consumer-facing symbols.
+Remove all re-exports of these symbols from:
+- `packages/framework/src/plugins/microfrontends/index.ts`
+- `packages/framework/src/plugins/index.ts`
+- `packages/framework/src/index.ts`
 
-### 29.2 Clean `src/index.ts` — Remove Internal Exports
+- [x] 30.1.1 Delete the `components/` directory and all 4 files.
+- [x] 30.1.2 Remove component and config type exports from barrel files.
 
-Remove from `src/index.ts`:
+**Traceability**: Proposal -- these are unused placeholder components. `ShadowDomContainer` duplicates `createShadowRoot` + `injectCssVariables` from screensets. The component files themselves note "React-based equivalents should be in @hai3/react".
 
-- [x] 29.2.1 Plugin sub-types: `CompatibilityChange`, `CompatibilityResult`, `AttributeResult`. Keep `ValidationResult`, `ValidationError`, and `JSONSchema` in the public barrel -- they are part of the public `TypeSystemPlugin` interface (`validateInstance()` returns `ValidationResult`/`ValidationError`; `registerSchema()` accepts `JSONSchema`).
-- [x] 29.2.2 Module Federation internals: `MfManifest`, `SharedDependencyConfig`. Note: `MfeEntryMF` is a public GTS type interface (consumers need it to define Module Federation entries) and MUST remain in the public barrel. Only `MfManifest` and `SharedDependencyConfig` are internal implementation details to be removed.
-- [x] 29.2.3 Internal abstract: `MfeBridgeFactory`.
-- [x] 29.2.4 Constant collections: `HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, `HAI3_MF_TYPE_IDS`.
-- [x] 29.2.5 Type ID constants: `HAI3_MFE_ENTRY`, `HAI3_MFE_ENTRY_MF`, `HAI3_MF_MANIFEST`, `HAI3_EXT_DOMAIN`, `HAI3_EXT_EXTENSION`, `HAI3_EXT_ACTION`.
-- [x] 29.2.6 GTS loaders: `loadSchemas`, `loadLifecycleStages`, `loadBaseActions`.
-- [x] 29.2.7 Unused shadow DOM: `injectStylesheet`, `ShadowRootOptions`.
-- [x] 29.2.8 Test-only: `MfeStateContainer`, `MfeStateContainerConfig`.
-- [x] 29.2.9 All 13 error classes: `MfeError`, `MfeLoadError`, `ContractValidationError`, `ExtensionTypeError`, `ChainExecutionError`, `MfeVersionMismatchError`, `MfeTypeConformanceError`, `DomainValidationError`, `ExtensionValidationError`, `UnsupportedDomainActionError`, `UnsupportedLifecycleStageError`, `NoActionsChainHandlerError`, `BridgeDisposedError`.
-**Traceability**: Proposal -- public API surface must expose only consumer-facing symbols.
+### 30.2 Remove Domain Factory Functions
 
-### 29.3 Simplify `executeActionsChain` Public Signature
+Delete `packages/framework/src/plugins/microfrontends/base-domains.ts` entirely. The JSON domain definitions and factory functions (`createSidebarDomain()`, `createPopupDomain()`, `createScreenDomain()`, `createOverlayDomain()`) are trivial wrappers with zero consumer usage. Tests that need domain JSON constants can import from `gts/loader.ts` directly.
 
-- [x] 29.3.1 On abstract `ScreensetsRegistry`: change `executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>` to `executeActionsChain(chain: ActionsChain): Promise<void>`.
-- [x] 29.3.2 On `DefaultScreensetsRegistry`: update override to match `Promise<void>` return type. The concrete implementation may still use `ChainResult` internally.
-- [x] 29.3.3 Update any call sites that use the return value or pass options.
+- [x] 30.2.1 Delete `base-domains.ts` entirely.
+- [x] 30.2.2 Remove `base-domains` exports from barrel files (`packages/framework/src/plugins/microfrontends/index.ts`, `packages/framework/src/plugins/index.ts`, and the top-level `packages/framework/src/index.ts` barrel).
 
-**Traceability**: Proposal -- `ChainExecutionOptions` and `ChainResult` are internal; actions chains are semantically void.
+**Traceability**: Proposal -- unnecessary public API surface; consumers use domain JSON constants directly.
 
-### 29.4 Update Tests
+### 30.3 Remove Redundant Domain Registration Actions
 
-- [x] 29.4.1 Update any tests that import removed symbols from `@hai3/screensets` barrel to import from internal paths instead.
+Remove `registerDomain()` and `unregisterDomain()` action functions from `packages/framework/src/plugins/microfrontends/actions.ts`. Remove their payload types (`RegisterDomainPayload`, `UnregisterDomainPayload`). Remove from barrel exports and from the plugin's `provides.actions`. Remove the corresponding effects in `packages/framework/src/plugins/microfrontends/effects.ts` (domain registration/unregistration event handlers). Remove event augmentation entries for `mfe/registerDomainRequested` and `mfe/unregisterDomainRequested`. Remove `MfeEvents.RegisterDomainRequested` and `MfeEvents.UnregisterDomainRequested` from constants.
 
-**Traceability**: Tests must compile after barrel cleanup.
+Reason: these actions do not update the store slice -- they proxy to `screensetsRegistry.registerDomain()` with error logging. Consumers should call `app.screensetsRegistry.registerDomain()` directly.
 
-### 29.5 Update Framework/React Imports
+- [x] 30.3.1 Remove `registerDomain()` and `unregisterDomain()` from `actions.ts`.
+- [x] 30.3.2 Remove `RegisterDomainPayload` and `UnregisterDomainPayload` types.
+- [x] 30.3.3 Remove domain registration/unregistration effects from `effects.ts`. This includes the `RegisterDomainRequested` and `UnregisterDomainRequested` event subscriptions in `initMfeEffects` AND their corresponding cleanup entries in the returned cleanup function.
+- [x] 30.3.4 Remove `MfeEvents.RegisterDomainRequested` and `MfeEvents.UnregisterDomainRequested` from constants.
+- [x] 30.3.5 Remove event augmentation entries for domain registration events.
+- [x] 30.3.6 Remove from barrel exports and plugin's `provides.actions`.
 
-- [x] 29.5.1 Verify `@hai3/framework` and `@hai3/react` do not import any removed symbols. Fix if they do.
+**Traceability**: Proposal -- domain registration is synchronous; Flux event/effect/slice round-trip adds no value. Direct `screensetsRegistry.registerDomain()` is sufficient.
 
-**Traceability**: Downstream packages must not depend on removed internals.
+### 30.4 Remove `preloadExtension` Action
 
-### 29.6 Update Spec and Design Docs to Reflect Slimmed Interfaces
+Remove `preloadExtension()` from `packages/framework/src/plugins/microfrontends/actions.ts`. Remove from barrel exports and plugin's `provides.actions`.
 
-- [x] 29.6.1 Update `specs/screensets/spec.md`: remove requirements for `entryTypeId` on ChildMfeBridge, remove `subscribeToAllProperties` on ChildMfeBridge, remove `preload` from MfeHandler requirements, remove `registerHandler` from ScreensetsRegistry requirements, update TypeSystemPlugin requirements to match the 7-method interface (`name`, `version`, `registerSchema`, `getSchema`, `register`, `validateInstance`, `isTypeOf`), update `ScreensetsRegistryConfig` from `mfeHandler?` to `mfeHandlers?`, remove error class export requirements (error classes are internal), remove `RuntimeCoordinator` export requirement. Note: the "Type identifier" scenario already says "not by parsing" (no `parseTypeId` reference to remove), and the "Isolation requirement enforcement" scenario already describes isolation via separate plugin instances (no `plugin.query()` reference to remove).
-- [x] 29.6.2 Update `specs/microfrontends/spec.md` if any references to removed members exist.
-- [x] 29.6.3 Update `design/type-system.md`: slim `TypeSystemPlugin` interface to 7 methods, remove `isValidTypeId`, `parseTypeId`, `query`, `getAttribute`, `checkCompatibility` and associated types (`AttributeResult`, `CompatibilityChange`, `CompatibilityResult`), update `ScreensetsRegistryConfig` from `mfeHandler?` to `mfeHandlers?`.
-- [x] 29.6.4 Update `design/registry-runtime.md`: remove action handler methods (`registerExtensionActionHandler`, `unregisterExtensionActionHandler`, `registerDomainActionHandler`, `unregisterDomainActionHandler`, `registerHandler`) from abstract `ScreensetsRegistry`, update export policy to remove `MfeStateContainer`, `MfeStateContainerConfig`, `MfeBridgeFactory`, `RuntimeCoordinator`, `RuntimeConnection`, `ActionsChainsMediator`, and error classes from public exports.
-- [x] 29.6.5 Update `design/mfe-api.md`: remove `entryTypeId` and `subscribeToAllProperties` from `ChildMfeBridge` interface, simplify `executeActionsChain` to `Promise<void>` on both `ScreensetsRegistry` and `ChildMfeBridge`.
-- [x] 29.6.6 Update `design/mfe-loading.md`: remove `preload()` from `MfeHandler` abstract class.
-- [x] 29.6.7 Update `proposal.md`: remove `preload?(entry)` from MfeHandler description.
-- [x] 29.6.8 Update `design/glossary.md`: remove "type ID validation" from the `TypeSystemPlugin` entry (after `isValidTypeId`/`parseTypeId` removal, the plugin no longer provides type ID validation -- it provides schema registration, instance validation, and type hierarchy checking).
+Reason: `preloadExtension()` is identical to `loadExtension()` (both call `HAI3_ACTION_LOAD_EXT`); the only difference is `console.error` vs `console.warn` on failure.
 
-**Traceability**: Proposal -- public API surface must expose only consumer-facing symbols. Design docs and spec files must reflect current truth only.
+- [x] 30.4.1 Remove `preloadExtension()` from `actions.ts`.
+- [x] 30.4.2 Remove from barrel exports and plugin's `provides.actions`.
+- [x] 30.4.3 Update the `onInit` debug log in `packages/framework/src/plugins/microfrontends/index.ts` (line ~124) that prints "MFE actions available: loadExtension, preloadExtension, mountExtension, unmountExtension" -- remove `preloadExtension` from the list.
 
-### 29.7 Remove Internal Action Handler Methods from Abstract ScreensetsRegistry
+**Traceability**: Proposal -- duplicate of `loadExtension()`. Consumers call `loadExtension()` for both explicit load and preload.
 
-- [x] 29.7.1 Remove `registerExtensionActionHandler()` from the abstract `ScreensetsRegistry` class. Keep the implementation as a private method on `DefaultScreensetsRegistry`.
-- [x] 29.7.2 Remove `unregisterExtensionActionHandler()` from the abstract `ScreensetsRegistry` class. Keep the implementation as a private method on `DefaultScreensetsRegistry`.
-- [x] 29.7.3 Remove `registerDomainActionHandler()` from the abstract `ScreensetsRegistry` class. Keep the implementation as a private method on `DefaultScreensetsRegistry`.
-- [x] 29.7.4 Remove `unregisterDomainActionHandler()` from the abstract `ScreensetsRegistry` class. Keep the implementation as a private method on `DefaultScreensetsRegistry`.
-- [x] 29.7.5 Update any tests that call these methods through the abstract type to use `DefaultScreensetsRegistry` directly or test through public API (registerDomain/mount).
+### 30.5 Add Missing Screensets Re-Exports to Framework
 
-**Traceability**: Proposal -- these are internal mediator wiring called by the registry on itself during registration/mount; not consumer-facing.
+**Layering principle**: Framework (L2) must fully cover screensets (L1) so consumers never need a direct `@hai3/screensets` import. Currently `@hai3/react` imports these from screensets directly:
+- `ChildMfeBridge` (type)
+- `ParentMfeBridge` (type)
+- `ScreensetsRegistry` (abstract class)
+- `ContainerProvider` (class)
+- `Extension` (type)
 
-### 29.8 Slim TypeSystemPlugin Interface
+Additionally, ALL public screensets exports must be re-exported from framework. Verify and add re-exports for: `ExtensionDomain`, `MfeHandler`, `ActionsChain`, `Action`, `SharedProperty`, `LifecycleStage`, `LifecycleHook`, `MfeEntryLifecycle`, `MfeEntry`, `MfeEntryMF`, `JSONSchema`, `ValidationError`, `ValidationResult`, `TypeSystemPlugin`, `ScreensetsRegistryConfig`, `screensetsRegistryFactory`, `ScreensetsRegistryFactory`, `LoadExtPayload`, `MountExtPayload`, `UnmountExtPayload`, `createShadowRoot`, `injectCssVariables`, `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`.
 
-- [x] 29.8.1 Remove `isValidTypeId()` from `TypeSystemPlugin` interface and `GtsPlugin` implementation.
-- [x] 29.8.2 Remove `parseTypeId()` from `TypeSystemPlugin` interface and `GtsPlugin` implementation.
-- [x] 29.8.3 Remove `query()` from `TypeSystemPlugin` interface and `GtsPlugin` implementation.
-- [x] 29.8.4 Remove `getAttribute()` from `TypeSystemPlugin` interface and `GtsPlugin` implementation. Remove the `AttributeResult` type.
-- [x] 29.8.5 Remove `checkCompatibility()` from `TypeSystemPlugin` interface and `GtsPlugin` implementation. Remove `CompatibilityChange` and `CompatibilityResult` types.
-- [x] 29.8.6 Update any tests that reference removed methods or types to remove those assertions.
+Then update `packages/react/src/` imports to use `@hai3/framework` instead of `@hai3/screensets`.
 
-Keep: `name`, `version`, `registerSchema()`, `getSchema()`, `register()`, `validateInstance()`, `isTypeOf()`.
+Note: This task covers MFE-related screensets exports only. Non-MFE screensets exports are already re-exported by framework.
 
-**Traceability**: Proposal -- these methods are never called by the registry or collaborators. ISP: remove unused interface surface.
+- [x] 30.5.1 Add re-exports of all public `@hai3/screensets` MFE symbols from `packages/framework/src/index.ts`.
+- [x] 30.5.2 Update all `packages/react/src/` imports to use `@hai3/framework` instead of `@hai3/screensets`.
 
-### 29.9 Slim ChildMfeBridge Interface
+**Traceability**: Proposal -- layering principle: L3 (@hai3/react) imports from L2 (@hai3/framework), never from L1 (@hai3/screensets).
 
-- [x] 29.9.1 Remove `entryTypeId` property from `ChildMfeBridge` interface. Update `ChildMfeBridgeImpl` and `ParentMfeBridgeImpl` to remove the field.
-- [x] 29.9.2 Remove `subscribeToAllProperties()` from `ChildMfeBridge` interface. Update implementations to remove the method.
-- [x] 29.9.3 Simplify `executeActionsChain` on `ChildMfeBridge` interface to `executeActionsChain(chain: ActionsChain): Promise<void>`. Remove `ChainExecutionOptions` parameter and `ChainResult` return type from the bridge interface. Update `ChildMfeBridgeImpl` and `ParentMfeBridgeImpl`. Also remove the `import { ChainResult, ChainExecutionOptions }` from `handler/types.ts` (where `ChildMfeBridge` is defined) since those types are no longer referenced.
-- [x] 29.9.4 Update React hooks (`useHostAction`, `useMfeBridge`) if they reference removed members.
-- [x] 29.9.5 Update tests that reference `entryTypeId`, `subscribeToAllProperties()`, or the old `executeActionsChain` signature on bridges.
+### 30.6 Update Framework Tests
 
-**Traceability**: Proposal -- `entryTypeId` is binding-only metadata not needed by MFE code; `subscribeToAllProperties` is unused; `executeActionsChain` aligns with 29.3 simplification.
+Update tests that reference removed symbols. Delete or update tests for:
+- Removed components (`MfeErrorBoundary`, `MfeLoadingIndicator`, `ShadowDomContainer`)
+- Removed domain factory functions (`createSidebarDomain`, etc.)
+- Removed domain registration actions (`registerDomain`, `unregisterDomain`)
+- Removed `preloadExtension` action
 
-### 29.10 Remove preload() from MfeHandler
+- [x] 30.6.1 Delete or update tests referencing removed components.
+- [x] 30.6.2 Delete or update tests referencing removed domain factories.
+- [x] 30.6.3 Delete or update tests referencing removed domain registration actions/effects.
+- [x] 30.6.4 Delete or update tests referencing `preloadExtension`.
 
-- [x] 29.10.1 Remove the abstract `preload()` method from `MfeHandler`.
-- [x] 29.10.2 Remove the `preload()` implementation from `MfeHandlerMF`.
-- [x] 29.10.3 Update tests that reference `preload()`.
+**Traceability**: Tests must compile and pass after symbol removal.
 
-**Traceability**: Proposal -- speculative method, never implemented. `load` already fetches without mounting.
+### 30.7 Validation
 
-### 29.11 Provide Handlers via Config Only
+- [x] 30.7.1 Run `npm run type-check` -- must pass.
+- [x] 30.7.2 Run `npm run test` -- all tests pass.
+- [x] 30.7.3 Run `npm run build` -- must pass.
+- [x] 30.7.4 Run `npm run lint` -- must pass.
 
-- [x] 29.11.1 Change `ScreensetsRegistryConfig` from `mfeHandler?: MfeHandler` to `mfeHandlers?: MfeHandler[]`.
-- [x] 29.11.2 Remove `registerHandler()` from the abstract `ScreensetsRegistry` class.
-- [x] 29.11.3 Update `DefaultScreensetsRegistry` constructor to iterate `config.mfeHandlers` and register them directly into the internal handler storage (e.g., a private `Map` or array). No abstract method is needed -- the concrete class owns the handler storage, so the constructor populates it directly during construction.
-- [x] 29.11.4 Update all call sites and tests that use `registerHandler()` to provide handlers via config instead.
+### 30.8 Spec and Design Doc Alignment
 
-**Traceability**: Proposal -- handlers should be provided during system initialization via config, not registered ad-hoc at runtime.
+- [x] 30.8.1 Remove references to deleted symbols (`MfeErrorBoundary`, `ShadowDomContainer`, `registerDomain()` action event bus section) from spec and design docs.
 
-### 29.12 Validation
-
-- [x] 29.12.1 Run `npm run type-check` -- must pass.
-- [x] 29.12.2 Run `npm run test` -- all tests pass (369 screensets + 16 react tests, 4 tests skipped identifying validation gaps).
-- [x] 29.12.3 Run `npm run build` -- must pass.
-- [x] 29.12.4 Run `npm run lint` -- must pass.
+**Traceability**: Proposal -- design docs represent target state only; stale references to removed symbols must be cleaned up.

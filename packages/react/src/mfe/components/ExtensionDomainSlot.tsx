@@ -8,11 +8,11 @@
  */
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/screensets';
+import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/framework';
 import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/screensets';
+} from '@hai3/framework';
 
 /**
  * Props for ExtensionDomainSlot component

@@ -12,33 +12,19 @@ export { effects } from './effects';
 export { mock, type MockPluginConfig } from './mock';
 export {
   microfrontends,
-  createSidebarDomain,
-  createPopupDomain,
-  createScreenDomain,
-  createOverlayDomain,
   // MFE actions
   loadExtension,
-  preloadExtension,
   mountExtension,
   unmountExtension,
   // MFE slice and selectors
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
-  // MFE components
-  MfeErrorBoundary,
-  MfeLoadingIndicator,
-  ShadowDomContainer,
   // Types
   type MfeState,
   type ExtensionRegistrationState,
   type RegisterExtensionPayload,
   type UnregisterExtensionPayload,
-  type RegisterDomainPayload,
-  type UnregisterDomainPayload,
-  type MfeErrorBoundaryConfig,
-  type MfeLoadingIndicatorConfig,
-  type ShadowDomContainerConfig,
   // HAI3 layout domain constants
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,

@@ -7,18 +7,16 @@
  * @packageDocumentation
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, afterEach } from 'vitest';
 import { createHAI3 } from '../../src/createHAI3';
 import { screensets } from '../../src/plugins/screensets';
 import {
   microfrontends,
-  createSidebarDomain,
-  createPopupDomain,
-  createScreenDomain,
-  createOverlayDomain,
 } from '../../src/plugins/microfrontends';
-import type { ScreensetsRegistry } from '@hai3/screensets';
-import { ContainerProvider } from '@hai3/screensets';
+import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
+import type { ScreensetsRegistry } from '@hai3/framework';
+import { ContainerProvider } from '@hai3/framework';
+import type { HAI3App } from '../../src/types';
 
 // Mock Container Provider for framework tests
 class TestContainerProvider extends ContainerProvider {
@@ -45,6 +43,15 @@ class TestContainerProvider extends ContainerProvider {
 }
 
 describe('microfrontends plugin - Phase 7.9', () => {
+  // Load layout domains once for all tests
+  const [sidebarDomain, popupDomain, screenDomain, overlayDomain] = loadLayoutDomains();
+  let apps: HAI3App[] = [];
+
+  afterEach(() => {
+    apps.forEach(app => app.destroy());
+    apps = [];
+  });
+
   describe('plugin factory', () => {
     it('should accept no parameters', () => {
       expect(() => {
@@ -87,6 +94,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       expect(app.screensetsRegistry).toBeDefined();
       expect(typeof app.screensetsRegistry).toBe('object');
@@ -97,6 +105,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -113,6 +122,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -122,11 +132,11 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(registry.typeSystem.version).toBe('1.0.0');
 
       // Verify plugin has required methods
-      expect(typeof registry.typeSystem.isValidTypeId).toBe('function');
       expect(typeof registry.typeSystem.registerSchema).toBe('function');
       expect(typeof registry.typeSystem.getSchema).toBe('function');
       expect(typeof registry.typeSystem.register).toBe('function');
       expect(typeof registry.typeSystem.validateInstance).toBe('function');
+      expect(typeof registry.typeSystem.isTypeOf).toBe('function');
     });
 
     it('should have consistent plugin reference across multiple calls', () => {
@@ -134,6 +144,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -152,9 +163,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const sidebarDomain = createSidebarDomain();
 
       expect(() => {
         const testContainerProvider = new TestContainerProvider();
@@ -167,9 +178,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const popupDomain = createPopupDomain();
 
       expect(() => {
         const testContainerProvider = new TestContainerProvider();
@@ -182,9 +193,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const screenDomain = createScreenDomain();
 
       expect(() => {
         const testContainerProvider = new TestContainerProvider();
@@ -197,9 +208,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const overlayDomain = createOverlayDomain();
 
       expect(() => {
         const testContainerProvider = new TestContainerProvider();
@@ -212,15 +223,16 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
       const testProvider = new TestContainerProvider();
 
       expect(() => {
-        registry.registerDomain(createSidebarDomain(), testProvider);
-        registry.registerDomain(createPopupDomain(), testProvider);
-        registry.registerDomain(createScreenDomain(), testProvider);
-        registry.registerDomain(createOverlayDomain(), testProvider);
+        registry.registerDomain(sidebarDomain, testProvider);
+        registry.registerDomain(popupDomain, testProvider);
+        registry.registerDomain(screenDomain, testProvider);
+        registry.registerDomain(overlayDomain, testProvider);
       }).not.toThrow();
     });
   });
@@ -231,6 +243,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -258,6 +271,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -276,6 +290,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
 
@@ -286,11 +301,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
   describe('7.9.5 - JSON instance loading works correctly', () => {
     it('should load base domain instances from JSON', () => {
-      const sidebarDomain = createSidebarDomain();
-      const popupDomain = createPopupDomain();
-      const screenDomain = createScreenDomain();
-      const overlayDomain = createOverlayDomain();
-
       // Verify instances have correct structure
       expect(sidebarDomain.id).toContain('hai3.screensets.layout.sidebar');
       expect(popupDomain.id).toContain('hai3.screensets.layout.popup');
@@ -303,9 +313,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
         .use(screensets())
         .use(microfrontends())
         .build();
+      apps.push(app);
 
       const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const sidebarDomain = createSidebarDomain();
 
       // Register the domain (this triggers validation internally)
       expect(() => {
@@ -315,8 +325,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
 
     it('should load lifecycle stages from JSON', () => {
-      const sidebarDomain = createSidebarDomain();
-
       // Verify lifecycle stages are loaded
       expect(sidebarDomain.lifecycleStages).toBeDefined();
       expect(Array.isArray(sidebarDomain.lifecycleStages)).toBe(true);
@@ -331,12 +339,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
 
     it('should load base actions from JSON', () => {
-      const sidebarDomain = createSidebarDomain();
-
       // Verify actions are loaded
       expect(sidebarDomain.actions).toBeDefined();
       expect(Array.isArray(sidebarDomain.actions)).toBe(true);
-      expect(sidebarDomain.actions.length).toBe(2);
+      expect(sidebarDomain.actions.length).toBe(3);
 
       // Verify action IDs
       expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
@@ -345,8 +351,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
 
     it('should handle screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
-      const screenDomain = createScreenDomain();
-
       // Screen domain should have load_ext and mount_ext, but not unmount_ext (swap semantics)
       expect(screenDomain.actions.length).toBe(2);
       expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
@@ -357,7 +361,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
   describe('base domain factories', () => {
     it('should create sidebar domain with correct structure', () => {
-      const domain = createSidebarDomain();
+      const domain = sidebarDomain;
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
@@ -375,7 +379,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
 
     it('should create popup domain with correct structure', () => {
-      const domain = createPopupDomain();
+      const domain = popupDomain;
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
@@ -393,7 +397,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
 
     it('should create screen domain with only load_ext action', () => {
-      const domain = createScreenDomain();
+      const domain = screenDomain;
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
@@ -405,13 +409,13 @@ describe('microfrontends plugin - Phase 7.9', () => {
         extensionsActions: [],
         defaultActionTimeout: 5000,
       });
-      expect(domain.actions).toHaveLength(1);
+      expect(domain.actions).toHaveLength(2);
       expect(domain.lifecycleStages).toHaveLength(4);
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
     });
 
     it('should create overlay domain with correct structure', () => {
-      const domain = createOverlayDomain();
+      const domain = overlayDomain;
 
       expect(domain).toMatchObject({
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',

@@ -7,7 +7,7 @@
  */
 
 import { useMfeContext } from '../MfeContext';
-import type { ChildMfeBridge } from '@hai3/screensets';
+import type { ChildMfeBridge } from '@hai3/framework';
 
 // ============================================================================
 // Hook Implementation

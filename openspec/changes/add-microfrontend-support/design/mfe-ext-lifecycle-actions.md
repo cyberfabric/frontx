@@ -26,7 +26,7 @@ The MFE system's extension lifecycle operations (load, mount, unmount) are inter
 
 ## Extension Domains vs Configuration Domains
 
-The framework defines 7 layout domains. Only 4 are **extension domains** (where MFE entries render):
+The framework defines 7 layout domains total. Only 4 are **extension domains** (where MFE entries mount and render). The remaining 3 are **configuration domains** (static layout areas, not MFE mount targets):
 
 | Domain | Type | Purpose |
 |--------|------|---------|
@@ -145,7 +145,7 @@ Each extension domain declares which lifecycle actions it supports in its `actio
 
 **Invariant: single mounted extension per domain.** Each extension domain supports at most one mounted extension at any given time. `getMountedExtension(domainId)` returns the single currently mounted extension ID or `undefined`.
 
-The screen domain's `mount_ext` action has **swap semantics**: the action handler internally unmounts the previous screen extension and mounts the new one in a single atomic operation. There is no intermediate "empty screen" state.
+The screen domain's `mount_ext` action has **swap semantics**: the `ExtensionLifecycleActionHandler` internally unmounts the previous screen extension and mounts the new one in a single atomic operation. There is no intermediate "empty screen" state.
 
 ```
 Screen mount_ext Flow:
@@ -224,7 +224,7 @@ const overlayDomain: ExtensionDomain = {
 
 ### Removal of Direct Methods from ScreensetsRegistry
 
-The `ScreensetsRegistry` abstract class does NOT declare `loadExtension()`, `mountExtension()`, `unmountExtension()`, or `preloadExtension()`. Loading and mounting are `MountManager`'s responsibility. The `ExtensionLifecycleActionHandler` accesses these operations via focused callbacks that go through `OperationSerializer` -> `MountManager`.
+The `ScreensetsRegistry` abstract class does NOT declare `loadExtension()`, `mountExtension()`, or `unmountExtension()`. Loading and mounting are `MountManager`'s responsibility. The `ExtensionLifecycleActionHandler` accesses these operations via focused callbacks that go through `OperationSerializer` -> `MountManager`.
 
 The consumer-facing API for extension lifecycle operations is exclusively through actions chains via `registry.executeActionsChain()`.
 
@@ -373,31 +373,9 @@ class ExtensionLifecycleActionHandler implements ActionHandler {
 }
 ```
 
-#### Callback Wiring in DefaultScreensetsRegistry.registerDomain()
+#### Callback Wiring
 
-```typescript
-// In DefaultScreensetsRegistry.registerDomain(domain, containerProvider, onInitError?):
-const lifecycleCallbacks: ExtensionLifecycleCallbacks = {
-  loadExtension: (id) =>
-    this.operationSerializer.serializeOperation(id, () => this.mountManager.loadExtension(id)),
-  mountExtension: (id, container) =>
-    this.operationSerializer.serializeOperation(id, () => this.mountManager.mountExtension(id, container)),
-  unmountExtension: (id) =>
-    this.operationSerializer.serializeOperation(id, () => this.mountManager.unmountExtension(id)),
-  getMountedExtension: (domainId) =>
-    this.extensionManager.getMountedExtension(domainId),
-};
-
-const handler = new ExtensionLifecycleActionHandler(
-  domain.id,
-  lifecycleCallbacks,
-  domainSemantics,
-  containerProvider,
-);
-this.mediator.registerDomainHandler(domain.id, handler);
-```
-
-**Note on `unmountExtension` callback**: This callback goes through `OperationSerializer` because it is called as a top-level lifecycle action. This differs from the `ExtensionManager`'s `unmountExtension` callback for `unregisterExtension`, which bypasses the serializer to avoid deadlocks (the parent `unregisterExtension` operation already holds the lock).
+`DefaultScreensetsRegistry.registerDomain()` creates an `ExtensionLifecycleActionHandler` and wires its callbacks through `OperationSerializer` to `MountManager`. The handler is registered with the `ActionsChainsMediator` as the domain's `ActionHandler`. This follows the same callback injection pattern used by all collaborators.
 
 ---
 
@@ -649,7 +627,7 @@ await registry.executeActionsChain({
 
 ### Framework Actions
 
-Lifecycle actions (load, preload, mount, unmount) call `screensetsRegistry.executeActionsChain()` directly from framework actions (fire-and-forget). Effects are retained only for registration operations.
+Lifecycle actions (load, mount, unmount) call `screensetsRegistry.executeActionsChain()` directly from framework actions (fire-and-forget). Effects are retained only for extension registration operations.
 
 ```typescript
 // packages/framework/src/plugins/microfrontends/actions.ts
@@ -674,11 +652,13 @@ export function mountExtension(extensionId: string): void {
 }
 ```
 
-**What lives in actions**: `loadExtension`, `preloadExtension`, `mountExtension`, `unmountExtension`. These call `executeActionsChain()` directly.
+**What lives in actions**: `loadExtension`, `mountExtension`, `unmountExtension`. These call `executeActionsChain()` directly.
 
-**What lives in effects**: `registerExtension`, `unregisterExtension`, `registerDomain`, `unregisterDomain`. These are legitimate async operations that need store state tracking.
+**What lives in effects**: `registerExtension`, `unregisterExtension`. These are legitimate async operations that need store state tracking.
 
-**Store slice**: Retains only registration state. Load/mount state is tracked internally by the screensets registry via `ExtensionState`.
+**Not actions**: Domain registration (`registerDomain`/`unregisterDomain`) is called directly on `ScreensetsRegistry` -- it is synchronous and does not need store state tracking or Flux event/effect/slice round-trip.
+
+**Store slice**: Retains only extension registration state. Load/mount state is tracked internally by the screensets registry via `ExtensionState`.
 
 **ESLint protection**: Effects files cannot call `executeActionsChain()`. Both `**/effects.ts` and `**/*Effects.ts` patterns are covered in `screenset.ts` (L4) and `framework.ts` (L2) ESLint configs.
 
@@ -724,7 +704,3 @@ This works because `getContainer()` is only called during `mount_ext` handling, 
 5. **Handler owns all ContainerProvider interactions** -- single point of ownership for `getContainer` and `releaseContainer`.
 
 6. **Breaking change** -- `registerDomain(domain)` becomes `registerDomain(domain, containerProvider, onInitError?)`. Acceptable for alpha stage.
-
-### Non-Serializable ContainerProvider in Event Bus
-
-The framework's event-based `registerDomain()` action emits a payload containing the `ContainerProvider` class instance. This is acceptable because the HAI3 event bus is an in-process pub-sub mechanism that carries non-serializable payloads.

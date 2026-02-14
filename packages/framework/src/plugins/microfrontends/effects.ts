@@ -2,7 +2,7 @@
  * MFE Effects
  *
  * Listens for MFE registration events and coordinates with runtime.
- * Handles registerExtension, unregisterExtension, registerDomain, and unregisterDomain events.
+ * Handles registerExtension and unregisterExtension events.
  *
  * Registration effects update slice state and delegate to the ScreensetsRegistry
  * for runtime registration operations.
@@ -77,38 +77,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
     }
   });
   unsubscribers.push(unsubUnregisterExtension);
-
-  // ============================================================================
-  // Register Domain Effect
-  // ============================================================================
-
-  const unsubRegisterDomain = eventBus.on(MfeEvents.RegisterDomainRequested, async (payload) => {
-    const { domain, containerProvider } = payload;
-
-    try {
-      // Call runtime to register domain (synchronous operation)
-      screensetsRegistry.registerDomain(domain, containerProvider);
-    } catch (error) {
-      console.error(`[MFE] Domain registration failed for ${domain.id}:`, error);
-    }
-  });
-  unsubscribers.push(unsubRegisterDomain);
-
-  // ============================================================================
-  // Unregister Domain Effect
-  // ============================================================================
-
-  const unsubUnregisterDomain = eventBus.on(MfeEvents.UnregisterDomainRequested, async (payload) => {
-    const { domainId } = payload;
-
-    try {
-      // Call runtime to unregister domain
-      await screensetsRegistry.unregisterDomain(domainId);
-    } catch (error) {
-      console.error(`[MFE] Domain unregistration failed for ${domainId}:`, error);
-    }
-  });
-  unsubscribers.push(unsubUnregisterDomain);
 
   // ============================================================================
   // Return Cleanup Function

@@ -9,7 +9,7 @@
 
 import { useSyncExternalStore, useCallback, useRef } from 'react';
 import { useHAI3 } from '../../HAI3Context';
-import type { Extension } from '@hai3/screensets';
+import type { Extension } from '@hai3/framework';
 
 // ============================================================================
 // Hook Implementation

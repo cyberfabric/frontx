@@ -97,29 +97,7 @@ ChildMfeBridge A                        ChildMfeBridge B
 
 ### Action Chain Execution
 
-The **public API** for executing actions chains is `registry.executeActionsChain(chain)` -- this is the single entry point for ALL runtimes. Child MFEs access this capability via `childBridge.executeActionsChain()`, which delegates directly to the registry (a convenience pass-through, not routing).
-
-**Child MFE executes a chain:** The child calls `childBridge.executeActionsChain(chain)`, which invokes the registry's `executeActionsChain()` via an injected callback. No "sending" or "routing" -- the bridge simply provides access to the registry's execution capability.
-
-**Hierarchical composition (private internal transport):** For MFEs that define their own domains, bridge-to-bridge transport between mediator instances is supported but is entirely **private** (concrete-only methods on `ParentMfeBridgeImpl` and `ChildMfeBridgeImpl`). This is internal wiring for the mediator, not a public API.
-
-```
-  Public API (child executes chain):
-
-  ChildMfeBridge
-  .executeActionsChain(chain)   <-- delegates to registry
-       |
-       v
-  registry.executeActionsChain(chain)
-```
-
-**Private transport (hierarchical composition):** Bridge-to-bridge transport between mediator instances uses concrete-only methods (`sendActionsChain`, `handleParentActionsChain`). See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for the detailed private transport diagram.
-
-The `ParentMfeBridge` public interface has only `instanceId` and `dispose()`. The parent uses `registry.executeActionsChain()` directly for chain execution.
-
-**Cross-runtime routing/discovery:** When a child MFE registers domains in its own child registry, the parent's mediator has no visibility into those registrations. To enable cross-runtime action routing, a `ChildDomainForwardingHandler` (implementing `ActionHandler`) is registered in the **parent's** mediator for each child domain ID. This forwarding handler wraps `parentBridgeImpl.sendActionsChain()`, which delivers the chain to the child's registry via the bridge transport. The parent's mediator resolves the child domain target like any other domain -- it finds the forwarding handler and invokes it. No new transport mechanism is needed. See [MFE API - Cross-Runtime Action Chain Routing](./mfe-api.md#cross-runtime-action-chain-routing-hierarchical-composition) for the full design.
-
-See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for implementation details and code examples.
+The public API is `registry.executeActionsChain(chain)` -- the single entry point for all runtimes. Child MFEs access this via `childBridge.executeActionsChain()` (pass-through to registry). For hierarchical composition, bridge-to-bridge transport between mediator instances uses private concrete-only methods. See [MFE API - Action Chain Execution Model](./mfe-api.md#action-chain-execution-model) for the complete design including cross-runtime routing via `ChildDomainForwardingHandler`.
 
 ---
 
@@ -232,7 +210,7 @@ Custom handlers (e.g., `MfeHandlerAcme`) can choose to allow internal MFE instan
 
 **Lifecycle stages** allow extensions and domains to declare explicit actions chains that execute at each stage. See [MFE Lifecycle](./mfe-lifecycle.md) for details.
 
-**Extension lifecycle actions** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for triggering load, mount, and unmount operations via `executeActionsChain()`. The `ScreensetsRegistry` abstract class does NOT expose `loadExtension`, `mountExtension`, `unmountExtension`, or `preloadExtension` methods. These operations are internal to `MountManager` and accessed by the `ExtensionLifecycleActionHandler` via focused callbacks through `OperationSerializer`. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete design.
+**Extension lifecycle actions** (`load_ext`, `mount_ext`, `unmount_ext`) are the consumer-facing API for triggering load, mount, and unmount operations via `executeActionsChain()`. See [Extension Lifecycle Actions](./mfe-ext-lifecycle-actions.md) for the complete design.
 
 See [MFE API](./mfe-api.md) for the mount/unmount interface that MFEs must implement.
 

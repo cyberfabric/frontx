@@ -380,7 +380,7 @@ The system SHALL provide an ActionsChainsMediator to deliver action chains betwe
 
 - **WHEN** an MFE entry is mounted
 - **THEN** the entry SHALL register with ActionsChainsMediator
-- **AND** registration SHALL provide action handler callback
+- **AND** registration SHALL provide an `ActionHandler` callback
 - **AND** handler SHALL receive actions for that extension
 
 #### Scenario: Extension unregistration
@@ -460,9 +460,9 @@ The system SHALL provide consistent error handling for MFE operations.
 - **AND** detailed error SHALL be displayed
 - **AND** error SHALL identify specific contract violations
 
-#### Scenario: Action handler throws error
+#### Scenario: `ActionHandler` throws error
 
-- **WHEN** an action handler throws during execution
+- **WHEN** an `ActionHandler` throws during execution
 - **THEN** the action SHALL be considered failed
 - **AND** fallback chain SHALL be executed if defined
 - **AND** error SHALL be logged with action context
@@ -482,7 +482,7 @@ The Type System plugin SHALL propagate from @hai3/screensets through @hai3/frame
 #### Scenario: Base domains registration via runtime
 
 - **WHEN** base domains need to be registered
-- **THEN** they SHALL be registered dynamically via `runtime.registerDomain()` or `mfeActions.registerDomain()` at runtime
+- **THEN** they SHALL be registered dynamically via `runtime.registerDomain()` at runtime
 - **AND** there SHALL be NO static baseDomains configuration in plugin setup
 
 #### Scenario: Plugin consistency across layers

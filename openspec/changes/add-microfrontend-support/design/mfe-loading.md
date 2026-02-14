@@ -23,8 +23,6 @@ The loading process must handle network failures, validation [errors](./mfe-erro
 
 **MfeBridgeFactory**: An abstract factory that creates ChildMfeBridge instances for MFEs. Each handler has an associated bridge factory.
 
-**MfeLoader**: A conceptual reference implementation shown below for documentation purposes. In practice, the loading logic (manifest resolution, container loading, retry, timeout) is **absorbed into `MfeHandlerMF`** rather than existing as a separate class. See [Relationship to MfeHandlerMF](#mfeloader-relationship-to-mfehandlermf) for details.
-
 ---
 
 ## Decisions
@@ -95,47 +93,7 @@ abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends Ch
 
 #### MfeBridgeFactory Abstract Class
 
-```typescript
-// packages/screensets/src/mfe/handler/types.ts
-
-/**
- * Abstract factory for creating MFE bridges.
- * Companies can implement rich factories with shared services.
- */
-abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfeBridge> {
-  /**
-   * Create a bridge for an MFE.
-   * @param domainId - The domain the MFE is mounted in
-   * @param entryTypeId - The entry type ID
-   * @param instanceId - Unique instance ID for this bridge
-   */
-  abstract create(
-    domainId: string,
-    entryTypeId: string,
-    instanceId: string
-  ): TBridge;
-
-  /**
-   * Dispose a bridge and clean up resources.
-   */
-  abstract dispose(bridge: TBridge): void;
-}
-
-/**
- * Default bridge factory - creates minimal ChildMfeBridge instances.
- * ChildMfeBridgeImpl is the internal concrete class implementing ChildMfeBridge
- * (defined in packages/screensets/src/mfe/bridge/ChildMfeBridge.ts).
- */
-class MfeBridgeFactoryDefault extends MfeBridgeFactory<ChildMfeBridge> {
-  create(domainId: string, entryTypeId: string, instanceId: string): ChildMfeBridge {
-    return new ChildMfeBridgeImpl(domainId, entryTypeId, instanceId);
-  }
-
-  dispose(bridge: ChildMfeBridge): void {
-    (bridge as ChildMfeBridgeImpl).cleanup();
-  }
-}
-```
+`MfeBridgeFactory<TBridge>` is an `@internal` abstract factory that each `MfeHandler` associates with for creating bridge instances. It defines `create(domainId, entryTypeId, instanceId): TBridge` and `dispose(bridge): void`. `MfeBridgeFactoryDefault` is the concrete implementation used by `MfeHandlerMF`. Companies can implement custom factories with richer bridges (shared services, routing, etc.).
 
 #### Type ID Matching in Handlers
 
@@ -211,42 +169,7 @@ Company handlers use higher priority to ensure their derived types are handled b
 
 #### Handler Registry
 
-```typescript
-// packages/screensets/src/mfe/handler/registry.ts
-
-class MfeHandlerRegistry {
-  private handlers: MfeHandler[] = [];
-
-  /**
-   * Register a handler. Handlers are sorted by priority (highest first).
-   */
-  register(handler: MfeHandler): void {
-    this.handlers.push(handler);
-    this.handlers.sort((a, b) => b.priority - a.priority);
-  }
-
-  /**
-   * Find the handler for an entry type.
-   * Returns the first handler (highest priority) that can handle the entry.
-   */
-  getHandler(entryTypeId: string): MfeHandler | undefined {
-    return this.handlers.find(h => h.canHandle(entryTypeId));
-  }
-
-  /**
-   * Load an entry using the appropriate handler.
-   */
-  async load(entry: MfeEntry): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
-    // GTS instance IDs embed the schema ID prefix, so isTypeOf() within
-    // canHandle() can match entry.id against the handler's base type hierarchy.
-    const handler = this.getHandler(entry.id);
-    if (!handler) {
-      throw new MfeLoadError(`No handler found for entry type`, entry.id);
-    }
-    return handler.load(entry);
-  }
-}
-```
+The internal `MfeHandlerRegistry` maintains handlers sorted by priority (highest first). When loading an entry, it iterates handlers and calls `canHandle(entryTypeId)` on each until a match is found. The first matching handler loads the entry. If no handler matches, `MfeLoadError` is thrown. Handlers are provided via `ScreensetsRegistryConfig.mfeHandlers` at initialization time.
 
 ### Decision 11: Module Federation 2.0 for Bundle Loading
 
@@ -286,44 +209,9 @@ Module Federation's shared dependencies provide TWO independent benefits:
 | ReactDOM | `false` | Has fiber tree, event system |
 | @hai3/* | `false` | Has TypeSystemPlugin, schema registry |
 
-#### MfeLoader (Internal Implementation Detail)
+#### Loading Algorithm
 
-> **REFERENCE ONLY -- NOT A RUNTIME CLASS**
->
-> The `MfeLoader` class below is a **conceptual reference** for documentation purposes only.
-> It does NOT exist at runtime. All loading logic is absorbed into `MfeHandlerMF`
-> (see [Relationship to MfeHandlerMF](#mfeloader-relationship-to-mfehandlermf) below).
-> Do NOT implement this as a standalone class.
-
-**Loading algorithm (pseudocode):**
-
-```
-load(entry: MfeEntryMF):
-  1. Resolve manifest via typeSystem (cached by manifest type ID)
-  2. Load remote container via Module Federation (cached by remoteName)
-     - On failure: throw MfeLoadError with entryTypeId and cause
-     - Retry up to config.retries (default: 2) with config.timeout (default: 30s)
-  3. Get exposed module factory: container.get(entry.exposedModule)
-  4. Execute factory and validate mount/unmount exist on the returned module
-     - If missing: throw MfeLoadError ("must implement MfeEntryLifecycle")
-  5. Return { lifecycle, entry, manifest, unload }
-
-```
-
-Configuration: `timeout` (default 30000ms), `retries` (default 2).
-
-Internal caches: `Map<string, MfManifest>` for resolved manifests, `Map<string, Container>` for loaded containers. Both keyed by `remoteName`.
-
-<a name="mfeloader-relationship-to-mfehandlermf"></a>
-#### MfeLoader: Relationship to MfeHandlerMF
-
-The `MfeLoader` class shown above is a **conceptual reference** that documents the loading concerns (manifest resolution, container caching, retry/timeout, lifecycle validation). In the actual implementation, these responsibilities are **absorbed into `MfeHandlerMF`** rather than existing as a separate delegated class:
-
-- `MfeHandlerMF.load(entry)` performs manifest resolution, container loading, and module factory extraction directly (shown in the `MfeHandlerMF` code above)
-- `ManifestCache` is an internal helper class **inside** `mf-handler.ts` (see Decision 12 below), not a standalone module
-- Retry and timeout configuration are handled within `MfeHandlerMF`'s private methods
-
-This means there is **no separate `MfeLoader` class at runtime**. The `MfeLoader` code block above serves as documentation of the loading algorithm and concerns. All loading logic lives in `MfeHandlerMF` (file: `packages/screensets/src/mfe/handler/mf-handler.ts`), keeping the handler self-contained and avoiding an unnecessary indirection layer.
+All loading logic is internal to `MfeHandlerMF`. The `MfeHandlerMF.load(entry)` method performs manifest resolution, container loading, and module factory extraction. `ManifestCache` is a private helper class inside `mf-handler.ts` (see Decision 12 below). Configuration: `timeout` (default 30000ms), `retries` (default 2).
 
 <a name="decision-12"></a>
 ### Decision 12: Manifest as Internal Implementation Detail of MfeHandlerMF

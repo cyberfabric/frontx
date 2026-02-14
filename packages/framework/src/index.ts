@@ -36,20 +36,12 @@ export {
 
 // MFE Plugin Exports
 export {
-  createSidebarDomain,
-  createPopupDomain,
-  createScreenDomain,
-  createOverlayDomain,
   loadExtension,
-  preloadExtension,
   mountExtension,
   unmountExtension,
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
-  MfeErrorBoundary,
-  MfeLoadingIndicator,
-  ShadowDomContainer,
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,
   HAI3_SCREEN_DOMAIN,
@@ -63,17 +55,51 @@ export {
   HAI3_ACTION_UNMOUNT_EXT,
 } from '@hai3/screensets';
 
+// MFE Types (re-exported from @hai3/screensets for convenience)
+export type {
+  ChildMfeBridge,
+  ParentMfeBridge,
+  Extension,
+  ExtensionDomain,
+  ActionsChain,
+  Action,
+  SharedProperty,
+  LifecycleStage,
+  LifecycleHook,
+  MfeEntryLifecycle,
+  MfeEntry,
+  MfeEntryMF,
+  JSONSchema,
+  ValidationError,
+  ValidationResult,
+  LoadExtPayload,
+  MountExtPayload,
+  UnmountExtPayload,
+  ScreensetsRegistryConfig,
+  TypeSystemPlugin,
+} from '@hai3/screensets';
+
+// MFE Abstract Classes (re-exported from @hai3/screensets for convenience)
+export {
+  MfeHandler,
+  ScreensetsRegistry,
+  ScreensetsRegistryFactory,
+  screensetsRegistryFactory,
+  ContainerProvider,
+} from '@hai3/screensets';
+
+// MFE Utilities (re-exported from @hai3/screensets for convenience)
+export {
+  createShadowRoot,
+  injectCssVariables,
+} from '@hai3/screensets';
+
 // MFE Plugin Types
 export type {
   MfeState,
   ExtensionRegistrationState,
   RegisterExtensionPayload,
   UnregisterExtensionPayload,
-  RegisterDomainPayload,
-  UnregisterDomainPayload,
-  MfeErrorBoundaryConfig,
-  MfeLoadingIndicatorConfig,
-  ShadowDomContainerConfig,
 } from './plugins';
 
 // ============================================================================

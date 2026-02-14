@@ -8,7 +8,7 @@
  */
 
 import { createContext, useContext } from 'react';
-import type { ChildMfeBridge } from '@hai3/screensets';
+import type { ChildMfeBridge } from '@hai3/framework';
 
 // ============================================================================
 // Context Value Types

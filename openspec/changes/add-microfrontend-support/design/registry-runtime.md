@@ -112,9 +112,7 @@ class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
 }
 ```
 
-**Construction**: `DefaultRuntimeBridgeFactory` is constructed directly by `DefaultScreensetsRegistry` (internal wiring code) and passed to `DefaultMountManager` via constructor injection. `DefaultMountManager` stores the abstract `RuntimeBridgeFactory` type (not the concrete class) and calls `this.bridgeFactory.createBridge(...)` and `this.bridgeFactory.disposeBridge(...)` instead of dynamically importing the standalone functions.
-
-**Why constructor injection instead of dynamic import**: The current code does `const bridgeFactory = await import('./bridge-factory')` inside `mountExtension()` and `unmountExtension()`. This was originally done to "avoid unused code warnings." With a class injected via the constructor, there is no unused code issue -- the class is a proper dependency of `DefaultMountManager`. Constructor injection also makes the dependency explicit and testable (tests can inject a mock `RuntimeBridgeFactory`).
+**Construction**: `DefaultRuntimeBridgeFactory` is constructed directly by `DefaultScreensetsRegistry` and passed to `DefaultMountManager` via constructor injection. `DefaultMountManager` stores the abstract `RuntimeBridgeFactory` type (not the concrete class).
 
 ### No Standalone Factory Functions for Stateful Components
 
@@ -175,20 +173,7 @@ The MFE system defines a hierarchy of error classes for specific failure scenari
 
 ### Decision 16: Shadow DOM Utilities
 
-Shadow DOM utilities are provided by `@hai3/screensets` for style isolation.
-
-```typescript
-// packages/screensets/src/mfe/shadow/index.ts
-
-interface ShadowRootOptions {
-  mode?: 'open' | 'closed';
-  delegatesFocus?: boolean;
-}
-
-function createShadowRoot(element: HTMLElement, options: ShadowRootOptions = {}): ShadowRoot;
-function injectCssVariables(shadowRoot: ShadowRoot, variables: Record<string, string>): void;
-function injectStylesheet(shadowRoot: ShadowRoot, css: string, id?: string): void;
-```
+Shadow DOM utilities are provided by `@hai3/screensets` for style isolation. The public barrel exports `createShadowRoot` and `injectCssVariables`. Other shadow DOM helpers (`injectStylesheet`, `ShadowRootOptions`) are internal.
 
 **Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. Since `MfeEntryLifecycle.mount()` receives `container: Element`, MFE implementations that use shadow DOM must narrow via `container as HTMLElement` when calling `createShadowRoot()`.
 
@@ -209,7 +194,7 @@ The `ScreensetsRegistry` is an abstract class. The dynamic API is defined as abs
 **System Boundary:** Entity fetching is outside MFE system scope. See [System Boundary](./overview.md#system-boundary) for details.
 
 <a name="load-vs-mount"></a>
-**Load vs Mount:** Loading fetches the JavaScript bundle; mounting renders to DOM. An extension can be loaded but not mounted (preloading scenario). The mount operation (triggered via `HAI3_ACTION_MOUNT_EXT` action) auto-loads if not already loaded. The unmount operation (triggered via `HAI3_ACTION_UNMOUNT_EXT` action) does NOT unload the bundle (stays cached for remounting). These operations are NOT exposed as methods on the abstract `ScreensetsRegistry` -- they are internal to `MountManager` and accessed via focused callbacks in `ExtensionLifecycleActionHandler`.
+**Load vs Mount:** Loading fetches the JavaScript bundle; mounting renders to DOM. An extension can be loaded but not mounted (preloading scenario). The mount operation auto-loads if not already loaded. The unmount operation does NOT unload the bundle (stays cached for remounting). See [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for the consumer-facing API via actions chains.
 
 **Manifest Handling:** MfManifest is internal to MfeHandlerMF. See [Manifest as Internal Implementation Detail](./mfe-loading.md#decision-12-manifest-as-internal-implementation-detail-of-mfehandlermf) for details.
 
@@ -294,8 +279,8 @@ MountManager                        -->  DefaultMountManager
 RuntimeCoordinator                  -->  WeakMapRuntimeCoordinator
 ActionsChainsMediator               -->  DefaultActionsChainsMediator
 MfeHandler                          -->  MfeHandlerMF
-MfeBridgeFactory                    -->  MfeBridgeFactoryDefault
-RuntimeBridgeFactory                -->  DefaultRuntimeBridgeFactory
+MfeBridgeFactory (@internal)         -->  MfeBridgeFactoryDefault
+RuntimeBridgeFactory (@internal)     -->  DefaultRuntimeBridgeFactory
 TypeSystemPlugin                    -->  GtsPlugin
 MfeStateContainer<TState>           -->  DefaultMfeStateContainer<TState>
 
@@ -478,128 +463,37 @@ class DefaultScreensetsRegistry extends ScreensetsRegistry {
 
 #### Collaborator File Splits
 
-Collaborators that currently co-locate abstract + concrete in a single file are split into separate files. The abstract file contains the abstract class and related type definitions. The concrete file contains the implementation class.
-
-| Current File | Abstract File | Concrete File | Split? |
-|---|---|---|---|
-| `extension-manager.ts` (643 lines) | `extension-manager.ts` (~185 lines: abstract class + ExtensionDomainState + ExtensionState types) | `default-extension-manager.ts` (~460 lines) | Yes |
-| `lifecycle-manager.ts` (270 lines) | `lifecycle-manager.ts` (~100 lines: abstract class + callback types) | `default-lifecycle-manager.ts` (~170 lines) | Yes |
-| `mount-manager.ts` (414 lines) | `mount-manager.ts` (~97 lines: abstract class + callback types) | `default-mount-manager.ts` (~320 lines) | Yes |
-| `operation-serializer.ts` (70 lines) | -- | -- | No (too small) |
-
-**Import rule after split**: Only the `DefaultScreensetsRegistry` constructor imports concrete collaborator classes. All other code imports only abstract classes.
+Each collaborator is split into an abstract file (pure contract) and a concrete file (implementation). Only `DefaultScreensetsRegistry` imports concrete collaborator classes. `OperationSerializer` is not split (too small).
 
 #### Callback Injection for Mediator's getDomainState Dependency
 
-`DefaultActionsChainsMediator` needs `getDomainState(domainId)` for two purposes:
+`DefaultActionsChainsMediator` needs `getDomainState(domainId)` for action support validation and timeout resolution. Since this is a concrete-only method, the mediator receives it via **callback injection** in its constructor config. This follows the same pattern used by all collaborators and eliminates the mediator's dependency on the `ScreensetsRegistry` type entirely.
 
-1. **Action support validation** (line ~173 in implementation): check that the target domain supports the action type before delivery.
-2. **Timeout resolution** (line ~367 in implementation): resolve `domain.defaultActionTimeout` for actions that do not specify an explicit timeout.
+#### Concrete-Only Internal Methods
 
-Since `getDomainState()` is concrete-only (`@internal` on `DefaultScreensetsRegistry`) and must NOT appear on the abstract `ScreensetsRegistry`, the mediator receives this capability via **callback injection** in its constructor config -- consistent with how `DefaultExtensionManager` receives `triggerLifecycle`, `log`, etc. and how `DefaultMountManager` receives `triggerLifecycle`, `executeActionsChain`, `log`, `errorHandler`, etc.
+Internal-only methods live on concrete classes, not abstract classes. `DefaultScreensetsRegistry` types collaborator fields as concrete types when it needs access to concrete-only methods (e.g., `DefaultExtensionManager` for `getDomainState()`, `DefaultLifecycleManager` for `triggerLifecycleStageInternal()`). All collaborators are constructed internally by `DefaultScreensetsRegistry` in its constructor.
 
-**Before (broken -- calls concrete-only method via abstract type):**
-```typescript
-constructor(typeSystem: TypeSystemPlugin, registry: ScreensetsRegistry) {
-  this.registry = registry;
-}
-// later: this.registry.getDomainState(targetId)  // COMPILE ERROR: not on abstract class
-```
-
-**After (callback injection -- no dependency on ScreensetsRegistry type at all):**
-```typescript
-constructor(config: {
-  typeSystem: TypeSystemPlugin;
-  getDomainState: (domainId: string) => ExtensionDomainState | undefined;
-}) {
-  this.typeSystem = config.typeSystem;
-  this.getDomainState = config.getDomainState;
-}
-// later: this.getDomainState(targetId)  // OK: uses injected callback
-```
-
-The `DefaultScreensetsRegistry` constructor wires this callback when creating the mediator:
-
-```typescript
-this.mediator = new DefaultActionsChainsMediator({
-  typeSystem: this.typeSystem,
-  getDomainState: (domainId: string) => this.extensionManager.getDomainState(domainId),
-});
-```
-
-This eliminates the mediator's dependency on the full `ScreensetsRegistry` type entirely. The mediator only knows about `TypeSystemPlugin` and the narrow callback it actually needs.
-
-#### No Test-Only Accessors on ExtensionManager
-
-`DefaultExtensionManager` does NOT expose `getDomainsMap()` or `getExtensionsMap()` methods. These were test-only accessors that exposed raw internal maps. Tests must verify behavior through the public API (e.g., `registry.getExtension()`, `registry.getDomain()`, `registry.getExtensionsForDomain()`) rather than inspecting internal state directly.
-
-#### Concrete-Only Internal Methods on Collaborator Abstract Classes
-
-Internal-only methods live on concrete classes, not abstract:
-
-| Group | Component | Methods on Concrete Only | Result |
-|---|---|---|---|
-| A | ExtensionManager | 5 methods (`getDomainState`, `getExtensionState`, `getExtensionStatesForDomain`, `resolveEntry`, `clear`) | Abstract keeps only registration + property methods |
-| B | LifecycleManager | 1 method (`triggerLifecycleStageInternal`) | Abstract keeps only public trigger methods |
-| C | Bridge interfaces | 7 methods removed from public `ParentMfeBridge`/`ChildMfeBridge`; `executeActionsChain` added to `ChildMfeBridge` | Public interfaces trimmed to consumer-facing API only |
-
-**Principle**: Internal collaborators (`@internal`, not barrel-exported) can safely type fields as concrete types for concrete-to-concrete wiring. `DefaultScreensetsRegistry` types `extensionManager` as `DefaultExtensionManager` and `lifecycleManager` as `DefaultLifecycleManager` to access concrete-only methods.
-
-##### Summary: DefaultScreensetsRegistry Collaborator Field Types
-
-After all encapsulation fixes, `DefaultScreensetsRegistry` types its internal collaborator fields as follows:
-
-| Field | Type | Reason |
-|---|---|---|
-| `extensionManager` | `DefaultExtensionManager` (concrete) | Needs `getDomainState()`, `getExtensionState()`, `getExtensionStatesForDomain()`, `clear()` |
-| `lifecycleManager` | `DefaultLifecycleManager` (concrete) | Needs `triggerLifecycleStageInternal()` |
-| `mountManager` | `MountManager` (abstract) | No concrete-only methods needed |
-| `bridgeFactory` | `RuntimeBridgeFactory` (abstract) | No concrete-only methods needed; passed to `DefaultMountManager` via constructor injection |
-| `mediator` | `ActionsChainsMediator` (abstract) | No concrete-only methods needed (uses callback injection); always constructed internally |
-| `coordinator` | `RuntimeCoordinator` (abstract) | No concrete-only methods needed; always constructed internally |
-| `serializer` | `OperationSerializer` (concrete, no abstract) | Small utility, no abstract class |
-
-All collaborators are constructed internally by `DefaultScreensetsRegistry` in its constructor. `coordinator` and `mediator` are never injected via `ScreensetsRegistryConfig`. `DefaultScreensetsRegistry` is `@internal` wiring code -- external consumers only see the abstract `ScreensetsRegistry` via `screensetsRegistryFactory.build(config)`.
-
-#### DIP Consumer Reference Updates
-
-All modules that currently reference the concrete `ScreensetsRegistry` class are updated to import the abstract class. Because the abstract class replaces the concrete class at the same file path (`ScreensetsRegistry.ts`), most import statements do not change. The exceptions are noted below.
-
-| File | Note |
-|---|---|
-| `coordination/types.ts` | No import change needed |
-| `mount-manager.ts` | No import change needed; now types against abstract class, which breaks the circular import on the concrete class |
-| `mediator/actions-chains-mediator.ts` | **Import removed**: `DefaultActionsChainsMediator` no longer imports `ScreensetsRegistry` at all. It receives `getDomainState` as a callback in its constructor config instead of holding a full registry reference. |
-| `@hai3/react` `ExtensionDomainSlot.tsx` | No import change needed (lives in `@hai3/react`, not `@hai3/screensets`) |
-| `framework/effects.ts` | No import change needed |
-| `framework/types.ts` | No import change needed; `MfeScreensetsRegistry` alias now maps to abstract class |
-| `runtime/default-runtime-bridge-factory.ts` | Replaces `runtime/bridge-factory.ts`. Imports `ExtensionDomainState` from `./extension-manager` (abstract file). Imports concrete bridge classes (`ChildMfeBridgeImpl`, `ParentMfeBridgeImpl`, `ChildDomainForwardingHandler`) from `../bridge/`. |
-
-#### File Layout After Refactoring
+#### File Layout
 
 ```
 packages/screensets/src/mfe/runtime/
-  ScreensetsRegistry.ts              # ABSTRACT class (~85 lines, pure contract, includes getParentBridge)
-  ScreensetsRegistryFactory.ts       # ABSTRACT factory class (~10 lines, pure contract)
-  DefaultScreensetsRegistry.ts       # CONCRETE class (~650 lines, NOT exported from barrel)
-  DefaultScreensetsRegistryFactory.ts # CONCRETE factory (~20 lines, NOT exported from barrel)
+  ScreensetsRegistry.ts              # ABSTRACT class (pure contract)
+  ScreensetsRegistryFactory.ts       # ABSTRACT factory class (pure contract)
+  DefaultScreensetsRegistry.ts       # CONCRETE class (NOT exported from barrel)
+  DefaultScreensetsRegistryFactory.ts # CONCRETE factory (NOT exported from barrel)
   index.ts                           # Barrel: exports abstract classes + screensetsRegistryFactory singleton
-  config.ts                          # ScreensetsRegistryConfig interface (unchanged)
-  extension-manager.ts               # ABSTRACT class + types (~185 lines)
-  default-extension-manager.ts       # CONCRETE class (~460 lines)
-  lifecycle-manager.ts               # ABSTRACT class + callback types (~100 lines)
-  default-lifecycle-manager.ts       # CONCRETE class (~170 lines)
-  mount-manager.ts                   # ABSTRACT class + callback types (~97 lines)
-  default-mount-manager.ts           # CONCRETE class (~320 lines)
-  container-provider.ts              # ABSTRACT class (~15 lines, pure contract, exported from barrel)
-  runtime-bridge-factory.ts          # ABSTRACT class (~20 lines, pure contract, @internal)
-  default-runtime-bridge-factory.ts  # CONCRETE class (~120 lines, @internal, NOT exported from barrel)
-  operation-serializer.ts            # CONCRETE only (70 lines, too small to split)
+  config.ts                          # ScreensetsRegistryConfig interface
+  extension-manager.ts               # ABSTRACT class + types
+  default-extension-manager.ts       # CONCRETE class
+  lifecycle-manager.ts               # ABSTRACT class + callback types
+  default-lifecycle-manager.ts       # CONCRETE class
+  mount-manager.ts                   # ABSTRACT class + callback types
+  default-mount-manager.ts           # CONCRETE class
+  container-provider.ts              # ABSTRACT class (pure contract, exported from barrel)
+  runtime-bridge-factory.ts          # ABSTRACT class (pure contract, @internal)
+  default-runtime-bridge-factory.ts  # CONCRETE class (@internal, NOT exported from barrel)
+  operation-serializer.ts            # CONCRETE only (too small to split)
 ```
-
-**Note on bridge-factory.ts**: The original `bridge-factory.ts` file (containing standalone `createBridge()` and `disposeBridge()` functions) is deleted and replaced by `runtime-bridge-factory.ts` (abstract) and `default-runtime-bridge-factory.ts` (concrete). See [Runtime Bridge Factory](#runtime-bridge-factory-class-based) design note.
-
-The abstract `ScreensetsRegistry` class has no knowledge of `DefaultScreensetsRegistry`. The abstract `ScreensetsRegistryFactory` class has no knowledge of `DefaultScreensetsRegistryFactory`.
 
 #### Export Policy
 

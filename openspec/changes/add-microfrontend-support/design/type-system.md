@@ -276,39 +276,7 @@ TypeScript interface definitions are distributed across their respective design 
 
 First-class citizen schemas are built into the GTS plugin (see Decision 1 above for the rationale). The GTS plugin constructor registers all first-class schemas internally. `ScreensetsRegistry` does NOT call schema registration for core types. `registerSchema` is for vendor/dynamic schemas only.
 
-```typescript
-// packages/screensets/src/mfe/init.ts
-
-/** GTS Type IDs for HAI3 MFE core types (8 types) - for reference only */
-export const HAI3_CORE_TYPE_IDS = {
-  mfeEntry: 'gts.hai3.mfes.mfe.entry.v1~',
-  extensionDomain: 'gts.hai3.mfes.ext.domain.v1~',
-  extension: 'gts.hai3.mfes.ext.extension.v1~',
-  sharedProperty: 'gts.hai3.mfes.comm.shared_property.v1~',
-  action: 'gts.hai3.mfes.comm.action.v1~',
-  actionsChain: 'gts.hai3.mfes.comm.actions_chain.v1~',
-  lifecycleStage: 'gts.hai3.mfes.lifecycle.stage.v1~',
-  lifecycleHook: 'gts.hai3.mfes.lifecycle.hook.v1~',
-} as const;
-
-/** GTS Type IDs for default lifecycle stages (4 stages) - for reference only */
-export const HAI3_LIFECYCLE_STAGE_IDS = {
-  init: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
-  activated: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
-  deactivated: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
-  destroyed: 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
-} as const;
-
-/** GTS Type IDs for MF-specific types (2 types) - for reference only */
-export const HAI3_MF_TYPE_IDS = {
-  mfManifest: 'gts.hai3.mfes.mfe.mf_manifest.v1~',
-  mfeEntryMf: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
-} as const;
-
-// NOTE: No registerHai3Types() function needed.
-// The GTS plugin registers all first-class schemas during construction.
-// See gtsPlugin singleton in gts/index.ts for implementation.
-```
+`HAI3_CORE_TYPE_IDS`, `HAI3_LIFECYCLE_STAGE_IDS`, and `HAI3_MF_TYPE_IDS` are internal constant collections used by the registry and validation code. They are NOT exported from the public barrel. The GTS plugin registers all first-class schemas during construction -- no separate initialization step is needed. See [Decision 2](#decision-2-gts-type-id-format-and-registration) for the complete type ID tables.
 
 ### Decision 5: Vendor Type Registration
 
@@ -432,114 +400,20 @@ registry.registerExtension(acmeChartExtension);
 
 The ScreensetsRegistry requires a Type System plugin at initialization:
 
-```typescript
-// packages/screensets/src/mfe/runtime/config.ts
-
-/**
- * Configuration for the ScreensetsRegistry.
- *
- * Only consumer-facing options belong here. Internal collaborators
- * (coordinator, mediator) are always constructed internally by
- * DefaultScreensetsRegistry and are never injected via config.
- */
-interface ScreensetsRegistryConfig {
-  /** Required: Type System plugin for type handling */
-  typeSystem: TypeSystemPlugin;
-
-  /**
-   * Optional MFE handler instances.
-   * If provided, these handlers will be registered with the registry.
-   *
-   * Note: The default MfeHandlerMF is NOT automatically registered.
-   * Applications must explicitly provide handlers they want to use.
-   */
-  mfeHandlers?: MfeHandler[];
-}
-
-// Factory-with-cache (see Decision 18 in registry-runtime.md)
-// screensetsRegistryFactory.build(config) is the ONLY way to obtain an instance.
-// There is no standalone createScreensetsRegistry() function, no static create() method,
-// and no pre-built screensetsRegistry singleton constant.
-
-// Usage with GTS (default) -- bind at application wiring time
-import { screensetsRegistryFactory } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-
-// GTS binding happens at application wiring level, not module level
-const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
-```
+`ScreensetsRegistryConfig` requires `typeSystem: TypeSystemPlugin` and optionally accepts `mfeHandlers?: MfeHandler[]`. The registry is obtained via `screensetsRegistryFactory.build(config)`. See [registry-runtime.md - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the complete factory-with-cache pattern.
 
 ### Decision 7: Framework Plugin Model (No Static Configuration)
 
 **Key Principles:**
-- Screensets is CORE to HAI3 - automatically initialized, NOT a plugin
+- Screensets is CORE to HAI3 -- automatically initialized, NOT a plugin
 - The microfrontends plugin enables MFE capabilities with NO static configuration
-- All MFE registrations (manifests, extensions, domains) happen dynamically at runtime
+- All MFE registrations happen dynamically at runtime
 
-The @hai3/framework microfrontends plugin requires NO configuration. It simply enables MFE capabilities and wires the ScreensetsRegistry into the Flux data flow pattern:
+The `microfrontends()` plugin creates the `ScreensetsRegistry` via `screensetsRegistryFactory.build()` and registers MFE actions, effects, and the store slice. Domain registration is called directly on `ScreensetsRegistry` (synchronous, no Flux round-trip). Lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`) call `executeActionsChain()` fire-and-forget. Extension registration (`registerExtension`, `unregisterExtension`) uses effects with store state tracking. See [mfe-ext-lifecycle-actions.md](./mfe-ext-lifecycle-actions.md) for the complete lifecycle actions design.
 
-```typescript
-// packages/framework/src/plugins/microfrontends/index.ts
+#### Framework Re-Export Policy
 
-/**
- * Microfrontends plugin - enables MFE capabilities.
- * NO configuration required or accepted.
- * All MFE registration happens dynamically at runtime.
- */
-function microfrontends(): FrameworkPlugin {
-  return {
-    name: 'microfrontends',
-
-    setup(framework) {
-      // Create ScreensetsRegistry via factory-with-cache at wiring time
-      const runtime = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
-
-      // Register MFE actions and effects
-      framework.registerActions(mfeActions);
-      framework.registerEffects(mfeEffects);
-      framework.registerSlice(mfeSlice);
-
-      // Base domains (sidebar, popup, screen, overlay) are registered
-      // dynamically at runtime, not via static configuration
-    },
-  };
-}
-
-// App initialization example - screensets is CORE, not a plugin
-import { createHAI3, microfrontends } from '@hai3/framework';
-// Note: Domain instance ID constants are exported from @hai3/framework (L2),
-// not @hai3/screensets (L1), because they reference runtime configuration.
-import {
-  HAI3_SIDEBAR_DOMAIN,
-  HAI3_POPUP_DOMAIN,
-  HAI3_SCREEN_DOMAIN,
-  HAI3_OVERLAY_DOMAIN,
-} from '@hai3/framework';
-
-// Screensets is CORE - automatically initialized by createHAI3()
-const app = createHAI3()
-  .use(microfrontends())  // No configuration - just enables MFE capabilities
-  .build();
-
-// All registration happens dynamically at runtime via actions:
-// - mfeActions.registerDomain(domain, containerProvider, onInitError?)
-// - mfeActions.registerExtension({ extension })
-
-// Or via runtime API:
-// - runtime.registerDomain(domain, containerProvider, onInitError?)
-// - runtime.registerExtension(extension)
-// Note: Manifest is internal to MfeHandlerMF - no public registerManifest()
-
-// Example: Register base domains dynamically after app initialization
-// Note: eventBus is the framework (L2) event bus, not the removed screensets EventEmitter.
-// Each domain requires a ContainerProvider (see mfe-ext-lifecycle-actions.md)
-eventBus.on('app/ready', () => {
-  mfeActions.registerDomain(HAI3_SIDEBAR_DOMAIN, sidebarContainerProvider);
-  mfeActions.registerDomain(HAI3_POPUP_DOMAIN, popupContainerProvider);
-  mfeActions.registerDomain(HAI3_SCREEN_DOMAIN, screenContainerProvider);
-  mfeActions.registerDomain(HAI3_OVERLAY_DOMAIN, overlayContainerProvider);
-});
-```
+`@hai3/framework` re-exports ALL public symbols from `@hai3/screensets` so that downstream packages (`@hai3/react`) import from L2, never from L1. See [registry-runtime.md - Export Policy](./registry-runtime.md#export-policy) for the complete list of public exports.
 
 ### Decision 8: Contract Matching Rules
 

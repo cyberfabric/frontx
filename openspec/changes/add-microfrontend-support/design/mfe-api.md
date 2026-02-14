@@ -95,7 +95,7 @@ interface ChildMfeBridge {
 
 The `ParentMfeBridge` is the **public** interface used by the parent to manage child MFE communication. It provides only identification and disposal -- the parent uses `registry.executeActionsChain()` directly for action chain execution, NOT a method on the bridge.
 
-Internal wiring methods (`onChildAction`, `receivePropertyUpdate`, `sendActionsChain`) live on the concrete `ParentMfeBridgeImpl` class only and are NOT part of the public interface. This follows the same Group C encapsulation pattern applied to `getPropertySubscribers` and `registerPropertySubscriber` in [Decision 18](./registry-runtime.md#group-c-parentmfebridge-interface----4-methods-removed-from-public-type).
+Internal wiring methods (`onChildAction`, `receivePropertyUpdate`, `sendActionsChain`) live on the concrete `ParentMfeBridgeImpl` class only and are NOT part of the public interface (see [Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) in registry-runtime.md).
 
 ```typescript
 /**
@@ -302,89 +302,18 @@ class ChildDomainForwardingHandler implements ActionHandler {
 }
 ```
 
-#### Wiring Sequence (Canonical Approach)
+#### Wiring Sequence
 
-The wiring happens in the child MFE's `mount()` function via **callback injection**. The child MFE uses concrete-only methods on `ChildMfeBridgeImpl` that are wired by `DefaultRuntimeBridgeFactory.createBridge()` -- the child MFE never accesses `ParentMfeBridgeImpl`, `parentRegistry`, or `ChildDomainForwardingHandler` directly. This is the ONLY canonical wiring path.
+The child MFE's `mount()` function wires hierarchical composition via concrete-only methods on `ChildMfeBridgeImpl` (not on the public `ChildMfeBridge` interface):
 
-```typescript
-// Child MFE's mount() -- canonical hierarchical composition wiring:
-mount(container, bridge) {
-  const childRegistry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+1. Wire bridge transport: `(bridge as ChildMfeBridgeImpl).onActionsChain(chain => childRegistry.executeActionsChain(chain))`
+2. Register child domains in the child registry with a `ContainerProvider`
+3. Register forwarding in parent: `(bridge as ChildMfeBridgeImpl).registerChildDomain(domainId)` -- this creates a `ChildDomainForwardingHandler` internally
+4. Register extensions in the child registry
 
-  // 1. Wire bridge transport: parent -> child delivery
-  //    The concrete ChildMfeBridgeImpl.onActionsChain() connects the bridge
-  //    to the child registry's executeActionsChain().
-  //    (Internal wiring -- concrete-only method, not on public interface)
-  (bridge as ChildMfeBridgeImpl).onActionsChain(
-    (chain) => childRegistry.executeActionsChain(chain)
-  );
+On `unmount()`, the child calls `unregisterChildDomain()` and disposes the child registry. `ChildMfeBridgeImpl.cleanup()` guarantees all remaining forwarding handlers are removed during bridge disposal.
 
-  // 2. Register child domains in the child registry
-  //    Child MFE provides its own ContainerProvider for each domain
-  childRegistry.registerDomain(myDomain, myContainerProvider);
-
-  // 3. Register forwarding in parent via concrete-only method on ChildMfeBridgeImpl.
-  //    Internally, DefaultRuntimeBridgeFactory.createBridge() wired this to create a ChildDomainForwardingHandler
-  //    and call parentRegistry.registerDomainActionHandler(domainId, handler).
-  //    The child MFE does NOT access parentBridgeImpl or parentRegistry directly.
-  (bridge as ChildMfeBridgeImpl).registerChildDomain(myDomain.id);
-
-  // 4. Register child extensions in the child registry
-  childRegistry.registerExtension(myExtension);
-
-  // Child MFE uses bridge for its own chain execution:
-  bridge.executeActionsChain(someChain);
-}
-
-// Child MFE's unmount():
-unmount(container) {
-  // Unregister forwarding from parent (concrete-only method)
-  (bridge as ChildMfeBridgeImpl).unregisterChildDomain(myDomain.id);
-
-  // Dispose child registry
-  childRegistry.dispose();
-}
-```
-
-**Key Constraints:**
-
-1. The parent does NOT need to know about the child's internal structure. The parent's mediator simply sees a `domainHandler` entry that happens to forward through a bridge.
-2. The `ChildDomainForwardingHandler` uses only the existing concrete-only `parentBridgeImpl.sendActionsChain()` -- no new transport mechanism. The child MFE never instantiates `ChildDomainForwardingHandler` directly; `DefaultRuntimeBridgeFactory.createBridge()` encapsulates this.
-3. The child MFE is responsible for the wiring. This is consistent with the principle that hierarchical composition is opt-in.
-4. When the child MFE unmounts, the parent's forwarding handlers must be unregistered. This is handled by `ChildMfeBridgeImpl.cleanup()` -- see [Cleanup on Unmount](#cleanup-on-unmount) below.
-
-#### Cleanup on Unmount
-
-When a child MFE is unmounted, the forwarding handlers registered in the parent's mediator must be removed. Cleanup is performed exclusively by `ChildMfeBridgeImpl.cleanup()`:
-
-1. `ChildMfeBridgeImpl` tracks registered child domain IDs in a private `childDomainIds: Set<string>` field. Each call to `registerChildDomain(domainId)` adds to this set; each call to `unregisterChildDomain(domainId)` removes from it.
-2. When `cleanup()` is called (during bridge disposal on unmount), it performs the following steps **in this exact order**:
-   - (a) Iterate `childDomainIds` and call `unregisterChildDomain(domainId)` for each entry -- this invokes the callback that removes the forwarding handler from the parent's mediator.
-   - (b) Clear the `childDomainIds` set.
-   - (c) Set `registerChildDomainCallback` and `unregisterChildDomainCallback` to `null`.
-3. This ordering is critical: the callbacks MUST remain wired while `unregisterChildDomain()` is called, otherwise the calls would no-op and forwarding handlers would leak.
-
-The child MFE may also explicitly call `unregisterChildDomain()` in its `unmount()` callback, but `cleanup()` guarantees all remaining registrations are cleaned up regardless. `DefaultMountManager` does NOT independently track or clean up forwarding handlers -- `ChildMfeBridgeImpl.cleanup()` is the single authoritative cleanup path.
-
-#### How DefaultRuntimeBridgeFactory.createBridge() Encapsulates Concrete Types
-
-The `ChildDomainForwardingHandler` requires access to the concrete `ParentMfeBridgeImpl` and the parent's `registerDomainActionHandler`/`unregisterDomainActionHandler` methods. These are NOT exposed on public interfaces. `DefaultRuntimeBridgeFactory.createBridge()` encapsulates all of this via callback injection:
-
-```typescript
-// On ChildMfeBridgeImpl (concrete-only, NOT on public ChildMfeBridge interface):
-// registerChildDomain(domainId: string): void
-// unregisterChildDomain(domainId: string): void
-//
-// These are wired by DefaultRuntimeBridgeFactory.createBridge() to register/unregister
-// forwarding handlers in the parent's mediator. The injected callbacks encapsulate:
-// 1. Creating a ChildDomainForwardingHandler with the parentBridgeImpl
-// 2. Calling registerDomainActionHandler(domainId, handler)
-//
-// Child MFE code NEVER accesses ParentMfeBridgeImpl, parentRegistry,
-// or ChildDomainForwardingHandler directly.
-```
-
-For the canonical child MFE usage pattern, see [Wiring Sequence](#wiring-sequence-canonical-approach) above.
+**Key constraints**: The parent never knows the child's internal structure. The child never accesses `ParentMfeBridgeImpl` or `ChildDomainForwardingHandler` directly. `DefaultRuntimeBridgeFactory.createBridge()` encapsulates all concrete type wiring via callback injection.
 
 #### Domain ID Uniqueness Across Runtimes
 
