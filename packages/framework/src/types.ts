@@ -15,7 +15,6 @@ import type {
   EffectInitializer,
 } from '@hai3/state';
 
-import type { MatchFunction, PathFunction } from 'path-to-regexp';
 import type { Reducer } from '@reduxjs/toolkit';
 
 // From @hai3/api
@@ -48,9 +47,10 @@ export interface HAI3Config {
   /** Enable strict mode (throws on errors) */
   strictMode?: boolean;
   /**
-   * Auto-navigate to first screenset on mount.
-   * When false, stays on "/" until navigateToScreen/navigateToScreenset is called.
+   * Auto-route to the first registered route on mount.
+   * When false, stays on "/" until explicit navigation occurs.
    * @default true
+   * @deprecated Legacy option, will be removed in a future version.
    */
   autoNavigate?: boolean;
   /**
@@ -112,12 +112,6 @@ export interface RegisterableSlice {
  * Design: Interface (not type) enables TypeScript declaration merging.
  */
 export interface HAI3Actions {
-  // ==========================================================================
-  // Navigation actions (from navigation plugin)
-  // ==========================================================================
-  navigateToScreen: (payload: NavigateToScreenPayload) => void;
-  navigateToScreenset: (payload: NavigateToScreensetPayload) => void;
-
   // ==========================================================================
   // Theme actions (from themes plugin)
   // ==========================================================================
@@ -215,15 +209,18 @@ export interface PluginLifecycle {
  *
  * @example
  * ```typescript
- * const screensetsPlugin: HAI3Plugin = {
- *   name: 'screensets',
+ * const microfrontendsPlugin: HAI3Plugin = {
+ *   name: 'microfrontends',
  *   dependencies: [],
  *   provides: {
- *     registries: { screensetRegistry: createScreensetRegistry() },
- *     slices: [screenSlice],
+ *     slices: [mfeSlice],
+ *     actions: {
+ *       mountExtension: (extensionId: string) => { ... },
+ *     },
  *   },
  *   onInit(app) {
- *     discoverScreensets(app.screensetRegistry);
+ *     // Initialize MFE registry
+ *     app.screensetsRegistry = screensetsRegistryFactory.create(...);
  *   },
  * };
  * ```
@@ -366,69 +363,6 @@ export interface ThemeRegistry {
 }
 
 /**
- * Route Registry Interface
- * Registry for managing routes (auto-synced from screensets).
- */
-/**
- * Route match result from matchRoute()
- */
-export interface RouteMatchResult {
-  screensetId: string;
-  screenId: string;
-  params: Record<string, string>;
-}
-
-/**
- * Compiled route with matcher and path generator
- */
-export interface CompiledRoute {
-  pattern: string;
-  screensetId: string;
-  screenId: string;
-  matcher: MatchFunction<Record<string, string>>;
-  toPath: PathFunction<Record<string, string>>;
-}
-
-/**
- * Route params interface for module augmentation
- *
- * Users can extend this interface to provide type-safe route parameters:
- *
- * ```typescript
- * declare module '@hai3/framework' {
- *   interface RouteParams {
- *     'users.detail': { userId: string };
- *     'users.posts.detail': { userId: string; postId: string };
- *   }
- * }
- * ```
- */
-export interface RouteParams {
-  [screenId: string]: Record<string, string> | undefined;
-}
-
-export interface RouteRegistry {
-  /** Check if a screen exists by screenId only (globally unique) */
-  hasScreenById(screenId: string): boolean;
-  /** Check if a screen exists by both screensetId and screenId (explicit lookup when screenset context is known) */
-  hasScreen(screensetId: string, screenId: string): boolean;
-  /** Get screenset ID for a given screen ID (reverse lookup) */
-  getScreensetForScreen(screenId: string): string | undefined;
-  /** Get screen loader by screenId only */
-  getScreenById(screenId: string): (() => Promise<{ default: React.ComponentType }>) | undefined;
-  /** Get screen loader by both screensetId and screenId (explicit lookup when screenset context is known) */
-  getScreen(screensetId: string, screenId: string): (() => Promise<{ default: React.ComponentType }>) | undefined;
-  /** Get all routes */
-  getAll(): Array<{ screensetId: string; screenId: string }>;
-  /** Match a URL path against registered routes, extracting params */
-  matchRoute(path: string): RouteMatchResult | undefined;
-  /** Generate a URL path for a screen with given params */
-  generatePath(screenId: string, params?: Record<string, string>): string;
-  /** Get the route pattern for a screen */
-  getRoutePattern(screenId: string): string | undefined;
-}
-
-/**
  * MFE-enabled ScreensetsRegistry (optional)
  * When the microfrontends plugin is used, this registry is available.
  * It provides MFE capabilities: registerDomain(), registerExtension(), etc.
@@ -443,14 +377,11 @@ export type MfeScreensetsRegistry = import('@hai3/screensets').ScreensetsRegistr
  * ```typescript
  * const app = createHAI3App();
  *
- * // Access registries
- * const screensets = app.screensetRegistry.getAll();
- *
  * // Access store
  * const state = app.store.getState();
  *
  * // Access actions
- * app.actions.navigateToScreen({ screensetId: 'demo', screenId: 'home' });
+ * app.actions.mountExtension(extensionId);
  *
  * // Access MFE registry (if microfrontends plugin is used)
  * if (app.screensetsRegistry) {
@@ -467,9 +398,6 @@ export interface HAI3App {
 
   /** Theme registry */
   themeRegistry: ThemeRegistry;
-
-  /** Route registry */
-  routeRegistry: RouteRegistry;
 
   /** API registry */
   apiRegistry: ApiRegistry;
@@ -561,17 +489,6 @@ export interface Presets {
 // ============================================================================
 
 /**
- * Navigation Plugin Configuration
- * Configuration options for the navigation plugin.
- */
-export interface NavigationConfig {
-  /**
-   * Base path for navigation. Overrides app.config.base if set.
-   */
-  base?: string;
-}
-
-/**
  * Screensets Plugin Configuration
  * Configuration options for the screensets plugin.
  */
@@ -604,24 +521,8 @@ export interface ThemesConfig {
 }
 
 // ============================================================================
-// Navigation Action Payloads
+// Action Payloads
 // ============================================================================
-
-/**
- * Navigate to Screen Payload
- */
-export interface NavigateToScreenPayload {
-  screensetId: string;
-  screenId: string;
-  params?: Record<string, string>;
-}
-
-/**
- * Navigate to Screenset Payload
- */
-export interface NavigateToScreensetPayload {
-  screensetId: string;
-}
 
 /**
  * Show Popup Payload

@@ -10,6 +10,7 @@
     "screenset": "திரைத் தொகுப்பு:",
     "theme": "தீம்:",
     "language": "மொழி:",
-    "mockApi": "போலி API"
+    "mockApi": "போலி API",
+    "gts_package": "GTS Package"
   }
 }

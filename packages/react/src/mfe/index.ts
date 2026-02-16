@@ -11,6 +11,8 @@ export {
   useSharedProperty,
   useHostAction,
   useDomainExtensions,
+  useRegisteredPackages,
+  useActivePackage,
 } from './hooks';
 export { RefContainerProvider } from './components/RefContainerProvider';
 export { ExtensionDomainSlot, type ExtensionDomainSlotProps } from './components/ExtensionDomainSlot';

@@ -10,6 +10,7 @@
     "screenset": "Bộ Màn hình:",
     "theme": "Chủ đề:",
     "language": "Ngôn ngữ:",
-    "mockApi": "API Giả lập"
+    "mockApi": "API Giả lập",
+    "gts_package": "GTS Package"
   }
 }

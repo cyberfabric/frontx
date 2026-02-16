@@ -36,6 +36,7 @@ import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks, type
 import type { ContainerProvider } from './container-provider';
 import { HAI3_ACTION_UNMOUNT_EXT } from '../constants';
 import { EntryTypeNotHandledError } from '../errors';
+import { extractGtsPackage } from '../gts/extract-package';
 
 /**
  * Default concrete implementation of ScreensetsRegistry.
@@ -117,6 +118,14 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * INTERNAL: Set when this registry is mounted as a child MFE.
    */
   private parentBridge: ParentMfeBridge | null = null;
+
+  /**
+   * GTS package to extension ID mappings.
+   * Key: GTS package string (e.g., 'hai3.demo')
+   * Value: Set of extension IDs belonging to that package
+   * INTERNAL: Packages are auto-discovered during extension registration.
+   */
+  private readonly packages = new Map<string, Set<string>>();
 
   constructor(config: ScreensetsRegistryConfig) {
     super();
@@ -421,7 +430,19 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   async registerExtension(extension: Extension): Promise<void> {
     return this.operationSerializer.serializeOperation(extension.id, async () => {
-      return this.extensionManager.registerExtension(extension);
+      // Step 1: Register the extension
+      await this.extensionManager.registerExtension(extension);
+
+      // Step 2: Track GTS package (auto-discovery, graceful — extension may not have a valid GTS ID)
+      try {
+        const packageId = extractGtsPackage(extension.id);
+        if (!this.packages.has(packageId)) {
+          this.packages.set(packageId, new Set<string>());
+        }
+        this.packages.get(packageId)!.add(extension.id);
+      } catch {
+        // Extension ID is not a valid GTS ID — skip package tracking
+      }
     });
   }
 
@@ -435,7 +456,22 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    */
   async unregisterExtension(extensionId: string): Promise<void> {
     return this.operationSerializer.serializeOperation(extensionId, async () => {
-      return this.extensionManager.unregisterExtension(extensionId);
+      // Step 1: Unregister the extension
+      await this.extensionManager.unregisterExtension(extensionId);
+
+      // Step 2: Clean up GTS package tracking (graceful — extension may not have a valid GTS ID)
+      try {
+        const packageId = extractGtsPackage(extensionId);
+        const extensionSet = this.packages.get(packageId);
+        if (extensionSet) {
+          extensionSet.delete(extensionId);
+          if (extensionSet.size === 0) {
+            this.packages.delete(packageId);
+          }
+        }
+      } catch {
+        // Extension ID is not a valid GTS ID — no package tracking to clean up
+      }
     });
   }
 
@@ -540,6 +576,39 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     return this.extensionManager.getDomainState(domainId);
   }
 
+  /**
+   * Get all registered GTS packages.
+   * Returns packages in discovery order (order of first extension registration).
+   *
+   * @returns Array of GTS package strings
+   */
+  getRegisteredPackages(): string[] {
+    return Array.from(this.packages.keys());
+  }
+
+  /**
+   * Get all extensions registered for a specific GTS package.
+   * Returns empty array if the package is not tracked.
+   *
+   * @param packageId - GTS package string (e.g., 'hai3.demo')
+   * @returns Array of extensions in the package
+   */
+  getExtensionsForPackage(packageId: string): Extension[] {
+    const extensionIdSet = this.packages.get(packageId);
+    if (!extensionIdSet) {
+      return [];
+    }
+
+    const extensions: Extension[] = [];
+    for (const extensionId of extensionIdSet) {
+      const extension = this.getExtension(extensionId);
+      if (extension) {
+        extensions.push(extension);
+      }
+    }
+    return extensions;
+  }
+
 
   /**
    * Dispose the registry and clean up resources.
@@ -561,6 +630,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     // Clear collaborator state
     this.extensionManager.clear();
     this.operationSerializer.clear();
+
+    // Clear GTS package tracking
+    this.packages.clear();
 
     // Clear handlers
     this.handlers.length = 0;

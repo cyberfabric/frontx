@@ -10,6 +10,7 @@
     "screenset": "Schermset:",
     "theme": "Thema:",
     "language": "Taal:",
-    "mockApi": "Nep-API"
+    "mockApi": "Nep-API",
+    "gts_package": "GTS Package"
   }
 }

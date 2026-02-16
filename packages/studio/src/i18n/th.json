@@ -10,6 +10,7 @@
     "screenset": "ชุดหน้าจอ:",
     "theme": "ธีม:",
     "language": "ภาษา:",
-    "mockApi": "API จำลอง"
+    "mockApi": "API จำลอง",
+    "gts_package": "GTS Package"
   }
 }

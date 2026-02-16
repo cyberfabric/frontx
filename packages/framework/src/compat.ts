@@ -16,6 +16,3 @@ export const ACCOUNTS_DOMAIN = 'accounts' as const;
 // ============================================================================
 // Singleton Registries (backward compatibility)
 // ============================================================================
-
-// Legacy screensetRegistry has been removed. Use ScreensetsRegistry (MFE architecture) instead.
-// See migration guide in openspec/changes/add-microfrontend-support/

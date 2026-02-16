@@ -460,6 +460,63 @@ All other symbols (concrete classes, internal abstract classes, error classes, v
 
 `@hai3/react` (L3) re-exports ALL public symbols from `@hai3/framework` (L2), including all MFE symbols: plugin factories (`microfrontends`, `mock`), action functions (`loadExtension`, `mountExtension`, `unmountExtension`), selectors (`selectExtensionState`, `selectRegisteredExtensions`, `selectExtensionError`), domain constants (`HAI3_POPUP_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_SCREEN_DOMAIN`, `HAI3_OVERLAY_DOMAIN`), action constants (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`), all MFE types, abstract classes, factory instances, and utilities. This ensures L4 application code imports everything from a single package.
 
+### GTS Package Queries
+
+The `ScreensetsRegistry` provides query methods for discovering registered GTS packages from extensions.
+
+#### getRegisteredPackages()
+
+Returns an array of unique GTS package strings that have been discovered from registered extensions. Packages are NOT explicitly registered -- they are automatically tracked when extensions are registered. The GTS package is extracted from each extension's ID using the `extractGtsPackage()` utility.
+
+The returned array is in discovery order (order of first extension registration for each package).
+
+```typescript
+const packages = registry.getRegisteredPackages();
+// Returns: ['hai3.demo', 'hai3.other', ...]
+```
+
+#### getExtensionsForPackage(packageId)
+
+Returns all registered extensions whose GTS package matches the given `packageId`. The GTS package groups extensions by their shared two-segment prefix (e.g., 'hai3.demo').
+
+```typescript
+const demoExtensions = registry.getExtensionsForPackage('hai3.demo');
+// Returns: [homeExtension, profileExtension, ...]
+```
+
+#### extractGtsPackage(entityId)
+
+Utility function exported from `@hai3/screensets` that extracts the GTS package identifier from a GTS entity ID. The function splits the entity ID on `~` to get the instance portion, then takes the first two dot-segments.
+
+```typescript
+import { extractGtsPackage } from '@hai3/screensets';
+
+const pkg = extractGtsPackage('gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.home.v1');
+// Returns: 'hai3.demo'
+```
+
+**Algorithm:**
+1. Split the entity ID on `~` to get tilde-delimited segments
+2. Take the last segment (the instance-specific portion)
+3. Split that segment on `.` to get dot-segments
+4. Return the first two dot-segments joined by `.`
+
+**Validation:**
+- Entity ID must contain at least one `~` delimiter
+- Entity ID must not be a schema type ID (ending with `~`)
+- Instance portion must have at least 2 dot-segments
+
+**Package Discovery Mechanism:**
+
+Packages are tracked implicitly during `registerExtension()` / `unregisterExtension()` operations:
+
+1. When an extension is registered, `extractGtsPackage()` is called on the extension ID
+2. The package is added to an internal `Map<string, Set<string>>` (package -> extension IDs)
+3. When an extension is unregistered, it is removed from the package's extension set
+4. When a package's extension set becomes empty, the package is removed from the map
+
+No explicit package registration is needed. The system discovers packages automatically from extension IDs.
+
 #### Layer Enforcement via Dependency Cruiser
 
 Layer boundaries are enforced by dependency-cruiser rules:

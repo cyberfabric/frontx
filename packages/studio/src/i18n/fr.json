@@ -10,6 +10,7 @@
     "screenset": "Ensemble d'Écrans:",
     "theme": "Thème:",
     "language": "Langue:",
-    "mockApi": "API Simulée"
+    "mockApi": "API Simulée",
+    "gts_package": "GTS Package"
   }
 }

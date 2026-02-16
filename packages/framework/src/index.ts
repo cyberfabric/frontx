@@ -25,8 +25,6 @@ export {
   screensets,
   themes,
   layout,
-  navigation,
-  routing,
   i18n,
   effects,
   mock,
@@ -117,6 +115,7 @@ export { gtsPlugin } from '@hai3/screensets/plugins/gts';
 export {
   createShadowRoot,
   injectCssVariables,
+  extractGtsPackage,
 } from '@hai3/screensets';
 
 // MFE Plugin Types
@@ -139,7 +138,6 @@ export { presets, full, minimal, headless, type FullPresetConfig } from './prese
 
 export {
   createThemeRegistry,
-  createRouteRegistry,
 } from './registries';
 
 // ============================================================================
@@ -158,17 +156,11 @@ export type {
   ThemeConfig,
   ThemeApplyFn,
   UikitTheme,
-  RouteRegistry,
   RouterMode,
-  RouteMatchResult,
-  CompiledRoute,
-  RouteParams,
   Preset,
   Presets,
   ScreensetsConfig,
   ThemesConfig,
-  NavigateToScreenPayload,
-  NavigateToScreensetPayload,
   ShowPopupPayload,
   ChangeThemePayload,
   SetLanguagePayload,

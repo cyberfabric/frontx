@@ -1,52 +1,154 @@
-# @hai3/layout
+# @hai3/screensets
 
-> Layout domain slices, selectors, and types for HAI3 SDK. Manages header, footer, menu, sidebar, screen, popup, overlay state.
+> Pure TypeScript contracts and MFE (Microfrontend) runtime for HAI3 SDK. Manages extension domains, lifecycle, and coordination.
 
-Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Peer dependency on @reduxjs/toolkit.
+Part of the HAI3 SDK Layer (L1) - ZERO dependencies. Can be used independently without other @hai3 packages.
 
 ## Core API
 
-- [Layout Slices](https://hai3.dev/docs/layout/slices): headerSlice, footerSlice, menuSlice, sidebarSlice, screenSlice, popupSlice, overlaySlice
-- [Layout Selectors](https://hai3.dev/docs/layout/selectors): selectHeader, selectMenu, selectActiveScreen, etc.
-- [Layout Types](https://hai3.dev/docs/layout/types): LayoutState, ScreensetDefinition, MenuItemConfig
+- [ScreensetsRegistry](https://hai3.dev/docs/screensets/registry): MFE-enabled registry for domain and extension management
+- [Extension](https://hai3.dev/docs/screensets/extension): Extension definition (screens, popups, sidebars)
+- [ExtensionDomain](https://hai3.dev/docs/screensets/domain): Domain definition (screen, sidebar, popup, overlay)
+- [MFE Handler](https://hai3.dev/docs/screensets/handler): Abstract class for MFE lifecycle
+- [MFE Bridge](https://hai3.dev/docs/screensets/bridge): Parent-child communication
 
 ## Key Patterns
 
-- Each domain has its own slice (header, footer, menu, sidebar, screen, popup, overlay)
-- Selectors for accessing layout state
-- Screenset definitions with menu items and screens
-- Category-based organization (drafts, mockups, production)
+- ScreensetsRegistry is an abstract class with domain/extension management and lifecycle operations
+- Extensions (screens, popups, sidebars) are registered and mounted into domains
+- MfeHandler loads and executes MFE entry points (abstract class, concrete impl in framework)
+- MfeBridgeFactory creates bridges for parent-child communication
+- Lifecycle stages (register → load → mount → unmount → unregister) with hooks and actions chains
+- Type validation via TypeSystemPlugin (e.g., GTS for JSON Schema)
 
 ## Quick Start
 
 ```typescript
 import {
-  selectActiveScreen,
-  selectMenuCollapsed,
-  ScreensetDefinition,
-  ScreensetCategory
-} from '@hai3/layout';
+  ScreensetsRegistry,
+  ExtensionDomain,
+  Extension,
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_SHARED_PROPERTY_THEME,
+} from '@hai3/screensets';
 
-// Define screenset
-const myScreenset: ScreensetDefinition = {
-  id: 'myScreenset',
-  name: 'My Screenset',
-  category: ScreensetCategory.Drafts,
-  defaultScreen: 'home',
-  menu: [
-    {
-      menuItem: { id: 'home', label: 'Home', icon: 'home' },
-      screen: () => import('./screens/Home')
-    }
-  ]
+// Define domain
+const screenDomain: ExtensionDomain = {
+  id: 'screen',
+  domainType: 'primary',
+  allowedTypes: ['hai3.screen'],
 };
 
-// Use selectors
-const activeScreen = selectActiveScreen(state);
-const isCollapsed = selectMenuCollapsed(state);
+// Define extension
+const homeExtension: Extension = {
+  id: 'home',
+  extensionType: 'hai3.screen',
+  extensionsTypeId: 'hai3.mfes~mfe.ext',
+  title: 'Home',
+  presentation: {
+    route: '/home',
+  },
+};
+
+// Register domain and extension
+registry.registerDomain(screenDomain);
+registry.registerExtension(homeExtension);
+
+// Load and mount extension
+await registry.loadExtension({ extensionId: 'home' });
+await registry.mountExtension({
+  extensionId: 'home',
+  domainId: 'screen',
+  container: document.getElementById('screen-container')!,
+});
+
+// Unmount when done
+await registry.unmountExtension({ extensionId: 'home', domainId: 'screen' });
+```
+
+## MFE Lifecycle Pattern
+
+1. **Register Domain**: Define allowed extension types
+2. **Register Extension**: Add extension definition to registry
+3. **Load Extension**: Fetch and initialize extension code
+4. **Mount Extension**: Render extension into domain container
+5. **Unmount Extension**: Remove extension from domain
+6. **Unregister Extension**: Remove extension definition
+
+Each stage supports lifecycle hooks and actions chains for custom behavior.
+
+## Action Constants
+
+```typescript
+import {
+  HAI3_ACTION_LOAD_EXT,      // 'hai3.action.load_ext'
+  HAI3_ACTION_MOUNT_EXT,     // 'hai3.action.mount_ext'
+  HAI3_ACTION_UNMOUNT_EXT,   // 'hai3.action.unmount_ext'
+} from '@hai3/screensets';
+```
+
+## Shared Property Constants
+
+```typescript
+import {
+  HAI3_SHARED_PROPERTY_THEME,     // 'hai3.shared.theme'
+  HAI3_SHARED_PROPERTY_LANGUAGE,  // 'hai3.shared.language'
+} from '@hai3/screensets';
+```
+
+## GTS Type System
+
+HAI3 uses GTS (Global Type System) for runtime type validation. Import from subpath to avoid dependency bloat:
+
+```typescript
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+
+const registry = screensetsRegistryFactory({
+  typeSystemPlugin: gtsPlugin,
+});
+```
+
+GTS Type IDs:
+- Namespace: `hai3.mfes` (plural)
+- Schema IDs end with `~`, instance IDs do NOT
+- 4 namespaces: `mfe`, `ext`, `comm`, `lifecycle`
+
+Example type IDs:
+- `hai3.mfes~mfe.ext` - Extension schema
+- `hai3.mfes~mfe.domain` - Domain schema
+- `hai3.mfes~lifecycle.stage` - Lifecycle stage schema
+
+## Layout Domains
+
+7 layout domains for extensions:
+
+| Domain | Type | Allowed Extensions |
+|--------|------|-------------------|
+| `screen` | primary | `hai3.screen` |
+| `sidebar` | supplementary | `hai3.sidebar` |
+| `popup` | overlay | `hai3.popup` |
+| `overlay` | overlay | `hai3.overlay` |
+| `header` | structural | (managed by framework) |
+| `footer` | structural | (managed by framework) |
+| `menu` | structural | (managed by framework) |
+
+## LayoutDomain Enum
+
+```typescript
+import { LayoutDomain } from '@hai3/screensets';
+
+LayoutDomain.Header    // 'header'
+LayoutDomain.Footer    // 'footer'
+LayoutDomain.Menu      // 'menu'
+LayoutDomain.Sidebar   // 'sidebar'
+LayoutDomain.Screen    // 'screen'
+LayoutDomain.Popup     // 'popup'
+LayoutDomain.Overlay   // 'overlay'
 ```
 
 ## Optional
 
-- [Migration Guide](https://hai3.dev/docs/layout/migration): Migrating from @hai3/uicore
-- [Custom Layouts](https://hai3.dev/docs/layout/custom): Building custom layout components
+- [MFE Bridge Communication](https://hai3.dev/docs/screensets/bridge): Parent-child action/property patterns
+- [Lifecycle Hooks](https://hai3.dev/docs/screensets/lifecycle): Custom behavior during transitions
+- [Shadow DOM Utilities](https://hai3.dev/docs/screensets/shadow): Isolated rendering contexts

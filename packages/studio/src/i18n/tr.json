@@ -10,6 +10,7 @@
     "screenset": "Ekran Seti:",
     "theme": "Tema:",
     "language": "Dil:",
-    "mockApi": "Sahte API"
+    "mockApi": "Sahte API",
+    "gts_package": "GTS Package"
   }
 }

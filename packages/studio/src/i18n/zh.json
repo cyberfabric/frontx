@@ -10,6 +10,7 @@
     "screenset": "屏幕集:",
     "theme": "主题:",
     "language": "语言:",
-    "mockApi": "模拟 API"
+    "mockApi": "模拟 API",
+    "gts_package": "GTS Package"
   }
 }

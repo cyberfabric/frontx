@@ -8,8 +8,6 @@ import type { HAI3Plugin, Presets, ThemesConfig } from '../types';
 import { screensets } from '../plugins/screensets';
 import { themes } from '../plugins/themes';
 import { layout } from '../plugins/layout';
-import { navigation } from '../plugins/navigation';
-import { routing } from '../plugins/routing';
 import { i18n } from '../plugins/i18n';
 import { effects } from '../plugins/effects';
 import { mock } from '../plugins/mock';
@@ -33,8 +31,6 @@ export interface FullPresetConfig {
  * - screensets (screenset registry, screen slice)
  * - themes (theme registry, changeTheme action)
  * - layout (all layout domain slices and effects)
- * - navigation (navigateToScreen, navigateToScreenset actions)
- * - routing (route registry auto-synced from screensets)
  * - i18n (i18n registry, setLanguage action)
  * - effects (effect coordination)
  * - mock (mock mode control for API services)
@@ -62,8 +58,6 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
     screensets({ autoDiscover: true }),
     themes(config?.themes),
     layout(),
-    routing(),
-    navigation(),
     i18n(),
     mock(),
     microfrontends(config?.microfrontends),

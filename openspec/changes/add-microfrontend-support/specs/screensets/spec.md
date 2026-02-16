@@ -1173,3 +1173,62 @@ The system SHALL provide a `ContainerProvider` abstract class that shifts DOM co
 - **THEN** `RefContainerProvider` (from `@hai3/react`) SHALL wrap the `ExtensionDomainSlot` ref
 - **AND** `RefContainerProvider` and `ExtensionDomainSlot` SHALL live in `@hai3/react`, NOT in `@hai3/screensets`
 - **AND** the `ExtensionDomainSlot` SHALL NOT call `registerDomain()` (domain registration is framework-level code)
+
+### Requirement: GTS Package Query API
+
+The system SHALL provide query methods for discovering registered GTS packages from extensions.
+
+#### Scenario: Empty registry returns empty packages array
+
+- **GIVEN** no extensions are registered
+- **WHEN** `registry.getRegisteredPackages()` is called
+- **THEN** it SHALL return an empty array
+
+#### Scenario: Extensions from two packages returns both in order
+
+- **GIVEN** extensions from two GTS packages are registered
+- **AND** the first extension registered has package 'hai3.demo'
+- **AND** the second extension registered has package 'hai3.other'
+- **WHEN** `registry.getRegisteredPackages()` is called
+- **THEN** it SHALL return `['hai3.demo', 'hai3.other']` in discovery order
+
+#### Scenario: getExtensionsForPackage returns only matching extensions
+
+- **GIVEN** extensions from 'hai3.demo' are registered
+- **AND** extensions from 'hai3.other' are registered
+- **WHEN** `registry.getExtensionsForPackage('hai3.demo')` is called
+- **THEN** it SHALL return only extensions belonging to 'hai3.demo'
+- **AND** it SHALL NOT return extensions from 'hai3.other'
+
+#### Scenario: Last extension unregistered removes package
+
+- **GIVEN** one extension from 'hai3.demo' is registered
+- **AND** `registry.getRegisteredPackages()` returns `['hai3.demo']`
+- **WHEN** the extension is unregistered
+- **AND** `registry.getRegisteredPackages()` is called
+- **THEN** it SHALL return an empty array
+- **AND** the package SHALL be automatically removed
+
+#### Scenario: extractGtsPackage utility extracts package from entity ID
+
+- **GIVEN** an entity ID `'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.home.v1'`
+- **WHEN** `extractGtsPackage(entityId)` is called
+- **THEN** it SHALL return `'hai3.demo'`
+
+#### Scenario: extractGtsPackage throws on invalid entity ID
+
+- **GIVEN** an entity ID with no `~` delimiter
+- **WHEN** `extractGtsPackage(entityId)` is called
+- **THEN** it SHALL throw an error indicating the entity ID is invalid
+
+#### Scenario: extractGtsPackage throws on schema type ID
+
+- **GIVEN** an entity ID ending with `~` (schema type ID)
+- **WHEN** `extractGtsPackage(entityId)` is called
+- **THEN** it SHALL throw an error indicating schema type IDs are not supported
+
+#### Scenario: getExtensionsForPackage returns empty array for unknown package
+
+- **GIVEN** no extensions from 'hai3.unknown' are registered
+- **WHEN** `registry.getExtensionsForPackage('hai3.unknown')` is called
+- **THEN** it SHALL return an empty array

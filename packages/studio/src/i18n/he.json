@@ -10,6 +10,7 @@
     "screenset": "ערכת מסכים:",
     "theme": "ערכת נושא:",
     "language": "שפה:",
-    "mockApi": "API מדומה"
+    "mockApi": "API מדומה",
+    "gts_package": "GTS Package"
   }
 }

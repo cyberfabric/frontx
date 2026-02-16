@@ -163,13 +163,7 @@ export {
 } from './slice';
 
 // Re-export navigation integration
-export {
-  initMfeNavigation,
-  getCurrentScreenExtension,
-  NavigationEvents,
-  type NavigateToScreenPayload as MfeNavigateToScreenPayload,
-  type ScreenChangedPayload as MfeScreenChangedPayload,
-} from './navigation';
+export { initMfeNavigation, getCurrentScreenExtension } from './navigation';
 
 // Re-export HAI3 layout domain constants and MfeEvents
 export {

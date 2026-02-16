@@ -5,8 +5,6 @@
  * Commands:
  *   hai3 create <project-name>              Create a new HAI3 project
  *   hai3 update                             Update CLI and project packages
- *   hai3 screenset create <name>            Create a new screenset
- *   hai3 screenset copy <source> <target>   Copy an existing screenset
  *   hai3 validate components [path]         Validate component structure
  *   hai3 migrate [version]                  Apply codemod migrations
  */
@@ -16,8 +14,6 @@ import { registry, executeCommand } from './core/index.js';
 import {
   createCommand,
   updateCommand,
-  screensetCreateCommand,
-  screensetCopyCommand,
   validateComponentsCommand,
   scaffoldLayoutCommand,
   aiSyncCommand,
@@ -31,8 +27,6 @@ const VERSION = '0.1.0';
 // Register all commands
 registry.register(createCommand);
 registry.register(updateCommand);
-registry.register(screensetCreateCommand);
-registry.register(screensetCopyCommand);
 registry.register(validateComponentsCommand);
 registry.register(scaffoldLayoutCommand);
 registry.register(aiSyncCommand);
@@ -123,69 +117,6 @@ updateCmd
       process.exit(1);
     }
   });
-
-// hai3 screenset subcommand
-const screensetCmd = program
-  .command('screenset')
-  .description('Screenset management commands');
-
-// hai3 screenset create <name>
-screensetCmd
-  .command('create <name>')
-  .description('Create a new screenset with an initial screen')
-  .option(
-    '-c, --category <category>',
-    'Screenset category (drafts, mockups, production)',
-    'drafts'
-  )
-  .action(async (name: string, options: Record<string, unknown>) => {
-    const result = await executeCommand(
-      screensetCreateCommand,
-      {
-        name,
-        category: options.category as 'drafts' | 'mockups' | 'production',
-      },
-      { interactive: true }
-    );
-
-    if (!result.success) {
-      process.exit(1);
-    }
-  });
-
-// hai3 screenset copy <source> <target>
-screensetCmd
-  .command('copy <source> <target>')
-  .description('Copy an existing screenset with transformed IDs')
-  .option(
-    '-c, --category <category>',
-    'Category for new screenset (overrides source)'
-  )
-  .action(
-    async (
-      source: string,
-      target: string,
-      options: Record<string, unknown>
-    ) => {
-      const result = await executeCommand(
-        screensetCopyCommand,
-        {
-          source,
-          target,
-          category: options.category as
-            | 'drafts'
-            | 'mockups'
-            | 'production'
-            | undefined,
-        },
-        { interactive: true }
-      );
-
-      if (!result.success) {
-        process.exit(1);
-      }
-    }
-  );
 
 // hai3 validate subcommand
 const validateCmd = program

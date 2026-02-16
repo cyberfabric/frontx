@@ -10,6 +10,7 @@
     "screenset": "Zestaw ekranów:",
     "theme": "Motyw:",
     "language": "Język:",
-    "mockApi": "Fikcyjne API"
+    "mockApi": "Fikcyjne API",
+    "gts_package": "GTS Package"
   }
 }

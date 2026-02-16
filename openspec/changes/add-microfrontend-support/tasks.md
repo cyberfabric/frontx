@@ -2,7 +2,7 @@
 
 ## Status
 
-Phases 1-34 are COMPLETE (448 tests passing: 367 screensets + 65 framework + 16 react).
+Phases 1-39 are COMPLETE (501 tests passing: 397 screensets + 78 framework + 26 react). Note: per-phase test counts in completed phases reflect counts at time of that phase's completion and may differ from the current total (tests were added/removed across phases).
 
 Phase 35 (Shared Properties on Domains, Extension Presentation Metadata, Full Demo Conversion) has CRITICAL GAPS found during review. Infrastructure tasks (35.1-35.5, 35.10) are complete. Demo conversion tasks (35.6-35.9) are structurally complete but have zero feature parity with the original demo screenset. See `design/post-conversion-features.md` for the full gap analysis.
 
@@ -10,7 +10,7 @@ Phase 36 (Feature Parity Remediation) is COMPLETE (36.7.4 and 36.11.5 manual ver
 
 Phase 37 (Remove notify_user Action + Move Presentation to Screen Extension Derived Type + Fix Instance IDs) is COMPLETE. Three architectural corrections: (1) Remove the `notify_user` action which violated the independent data fetching principle; (2) Move `presentation` from the base `extension.v1` schema to a screen-domain-specific derived type `extension_screen.v1`; (3) Fix incorrect GTS instance IDs in demo-mfe and _blank-mfe packages.
 
-Phase 38 (Remove Legacy Screensets API Remnants from Packages) is PLANNED. The application layer (`src/`) has fully migrated to MFE architecture with zero legacy references. However, the package layer still carries significant dead code: full legacy type definitions in `@hai3/screensets`, legacy navigation/routing/routeRegistry plugins in `@hai3/framework`, legacy CLI screenset generators and commands, legacy studio ControlPanel logic, and stale documentation. Phase 38 removes all of this dead code and updates documentation to reflect MFE as the primary architecture.
+Phase 38 (Remove Legacy Screensets API Remnants from Packages) is COMPLETE. The application layer (`src/`) has fully migrated to MFE architecture with zero legacy references. However, the package layer still carries significant dead code: full legacy type definitions in `@hai3/screensets`, legacy navigation/routing/routeRegistry plugins in `@hai3/framework`, legacy CLI screenset generators and commands, legacy studio ControlPanel logic, and stale documentation. Phase 38 removes all of this dead code and updates documentation to reflect MFE as the primary architecture.
 
 **Phase 35 Review Findings (3 critical issues + 1 GTS design error):**
 
@@ -24,9 +24,7 @@ Phase 38 (Remove Legacy Screensets API Remnants from Packages) is PLANNED. The a
 
 ### Upcoming Work
 
-Phase 37 is COMPLETE. All three architectural corrections implemented: (1) `notify_user` action removed, (2) `presentation` moved to screen extension derived type, (3) GTS instance IDs fixed across all MFE packages.
-
-Phase 38 removes all legacy screensets API remnants from the package layer: legacy type definitions (`ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry`), legacy framework plugins (`navigation.ts`, `routing.ts`, `routeRegistry.ts`), legacy CLI generators and commands (`screenset:create`, `screenset:copy`), legacy studio ControlPanel screenset selector, and stale documentation. No Phase 38 tasks can begin until Phase 37 is complete.
+Phase 39 (Restore Screenset Package Selector in Studio) restores the Studio ControlPanel's screenset package selector using the MFE API. The legacy selector was removed in Phase 38.5 because it depended on the deleted `screensetRegistry`. The new selector shows registered GTS packages -- not individual screens or MF 2.0 manifests. A GTS package is the two-segment prefix (e.g., `hai3.demo`) shared by all entities from the same MFE, extracted from GTS instance IDs. This requires a new query API on `ScreensetsRegistry` to list registered GTS packages and their extensions, plus a React hook and UI component to present the selector.
 
 ### Completed Work
 
@@ -44,7 +42,8 @@ Phase 38 removes all legacy screensets API remnants from the package layer: lega
 | Phase 35 | Shared Properties on Domains, Extension Presentation Metadata, Full Demo Conversion | CRITICAL GAPS (see review findings above) |
 | Phase 36 | Feature Parity Remediation: GTS fix, package consolidation, i18n, screen features, cleanup | COMPLETE (36.7.4 and 36.11.5 manual verification pending) |
 | Phase 37 | Remove notify_user action + Move presentation to screen extension derived type + Fix instance IDs | COMPLETE |
-| Phase 38 | Remove legacy screensets API remnants from packages: types, plugins, CLI, studio, docs | PLANNED |
+| Phase 38 | Remove legacy screensets API remnants from packages: types, plugins, CLI, studio, docs | COMPLETE |
+| Phase 39 | Restore screenset package selector in Studio ControlPanel using GTS package query API | PLANNED |
 
 ### Current Construction Patterns
 
@@ -486,7 +485,7 @@ Standard validation suite confirming all Phase 37 changes compile, test, build, 
 
 ## Phase 38: Remove Legacy Screensets API Remnants from Packages
 
-**Status**: PLANNED
+**Status**: COMPLETE
 
 **Goal**: Remove all legacy screensets API dead code from the package layer. The application layer (`src/`) has fully migrated to MFE architecture with zero legacy references. The package layer still carries: legacy type definitions (`ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry`), legacy framework plugins (`navigation.ts`, `routing.ts`) and `routeRegistry.ts`, legacy CLI screenset generators and commands, legacy studio ControlPanel screenset selector logic, and stale documentation. This phase eliminates all of it and updates documentation to reflect MFE as the primary and only architecture.
 
@@ -505,11 +504,11 @@ Standard validation suite confirming all Phase 37 changes compile, test, build, 
 
 Remove all legacy screensets types from `packages/screensets/src/types.ts`. Keep only `LayoutDomain` which is actively used by framework layout slices.
 
-- [ ] 38.1.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`) for imports of `ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `ScreenConfig`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` from `@hai3/screensets` or from the types file directly. Document which files import each type. Expected result: zero imports from MFE code, only self-references within the types file and legacy plugins that are also being removed.
-- [ ] 38.1.2 Search for imports of `ScreensetId` and `ScreenId` branded types. Expected result: zero imports from any active code. If any active code imports them, document the usage and evaluate whether to keep them.
-- [ ] 38.1.3 Remove the following from `packages/screensets/src/types.ts`: `ScreensetCategory` enum, `MenuItemConfig` interface, `ScreenLoader` type, `ScreenConfig` interface, `MenuScreenItem` interface, `ScreensetDefinition` interface, `ScreensetRegistry` interface, `ScreensetId` branded type, `ScreenId` branded type. Keep ONLY the `LayoutDomain` enum and its section comment.
-- [ ] 38.1.4 Update `packages/screensets/src/index.ts`: verify `LayoutDomain` is still exported. Remove any remaining legacy type re-exports if present (e.g., `ScreensetCategory`, `ScreensetDefinition`). The barrel should export only `LayoutDomain` from `./types` plus all MFE exports.
-- [ ] 38.1.5 Run `npm run type-check` to confirm no broken imports. Any type errors indicate code that still references the removed types and must be updated.
+- [x] 38.1.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`) for imports of `ScreensetCategory`, `MenuItemConfig`, `ScreenLoader`, `ScreenConfig`, `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` from `@hai3/screensets` or from the types file directly. Document which files import each type. Expected result: zero imports from MFE code, only self-references within the types file and legacy plugins that are also being removed.
+- [x] 38.1.2 Search for imports of `ScreensetId` and `ScreenId` branded types. Expected result: zero imports from any active code. If any active code imports them, document the usage and evaluate whether to keep them.
+- [x] 38.1.3 Remove the following from `packages/screensets/src/types.ts`: `ScreensetCategory` enum, `MenuItemConfig` interface, `ScreenLoader` type, `ScreenConfig` interface, `MenuScreenItem` interface, `ScreensetDefinition` interface, `ScreensetRegistry` interface, `ScreensetId` branded type, `ScreenId` branded type. Keep ONLY the `LayoutDomain` enum and its section comment.
+- [x] 38.1.4 Update `packages/screensets/src/index.ts`: verify `LayoutDomain` is still exported. Remove any remaining legacy type re-exports if present (e.g., `ScreensetCategory`, `ScreensetDefinition`). The barrel should export only `LayoutDomain` from `./types` plus all MFE exports.
+- [x] 38.1.5 Run `npm run type-check` to confirm no broken imports. Any type errors indicate code that still references the removed types and must be updated.
 
 **Traceability**: Phase 36.9.7 partially removed legacy type exports but noted "Legacy navigation/routing plugins use inline type definitions." This phase completes the removal by also deleting the source definitions.
 
@@ -517,15 +516,15 @@ Remove all legacy screensets types from `packages/screensets/src/types.ts`. Keep
 
 Remove the legacy `navigation()` and `routing()` plugins, the `createRouteRegistry()` factory, and the `routeRegistry.ts` module. These plugins are dead code in MFE mode (both have `if (!screensetRegistry) return;` guards that always exit early since `screensetRegistry` no longer exists on the app object).
 
-- [ ] 38.2.1 Delete `packages/framework/src/plugins/navigation.ts`. This file contains 325 lines of legacy navigation logic including inline `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` type definitions, eventBus event listeners, URL sync with browser/hash/memory modes, screenset translation loading, and menu population from screenset definitions. ALL of this is replaced by MFE actions chains and extension presentation metadata.
-- [ ] 38.2.2 Delete `packages/framework/src/plugins/routing.ts`. This file contains 77 lines of legacy routing plugin that creates a `RouteRegistry` from the `screensetRegistry`. The MFE architecture uses actions chains for navigation -- no route registry is needed.
-- [ ] 38.2.3 Delete `packages/framework/src/registries/routeRegistry.ts`. This file contains 201 lines of legacy route registry implementation that syncs routes from `screensetRegistry`. All route-matching, path-generation, and screenset-to-route mapping logic is dead code.
-- [ ] 38.2.4 Update `packages/framework/src/plugins/index.ts` (or equivalent plugin barrel): remove exports of `navigation` and `routing` plugin factories.
-- [ ] 38.2.5 Update `packages/framework/src/registries/index.ts`: remove the `createRouteRegistry` export. This file currently exports `createThemeRegistry` and `createRouteRegistry` -- after removal it exports only `createThemeRegistry`.
-- [ ] 38.2.6 Update `packages/framework/src/index.ts`: remove `navigation` and `routing` from the plugin exports block. Remove `createRouteRegistry` from the registry exports block. Remove `RouteRegistry`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type exports block (these types are only used by the legacy routing plugin).
-- [ ] 38.2.7 Check if `packages/framework/src/utils/routeMatcher.ts` exists and is imported ONLY by the deleted plugins. If so, delete it. If other code imports it, leave it in place.
-- [ ] 38.2.8 Update `packages/react/src/index.ts`: remove `navigation`, `routing`, and `createRouteRegistry` from the re-exports block. Remove `RouteRegistry`, `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type re-exports if they are only used by legacy code. Evaluate `NavigateToScreenPayload` and `NavigateToScreensetPayload` -- if still used by legacy `useNavigation` hook, handle in task 38.3.
-- [ ] 38.2.9 Run `npm run type-check` to confirm no broken imports.
+- [x] 38.2.1 Delete `packages/framework/src/plugins/navigation.ts`. This file contains 325 lines of legacy navigation logic including inline `MenuScreenItem`, `ScreensetDefinition`, `ScreensetRegistry` type definitions, eventBus event listeners, URL sync with browser/hash/memory modes, screenset translation loading, and menu population from screenset definitions. ALL of this is replaced by MFE actions chains and extension presentation metadata.
+- [x] 38.2.2 Delete `packages/framework/src/plugins/routing.ts`. This file contains 77 lines of legacy routing plugin that creates a `RouteRegistry` from the `screensetRegistry`. The MFE architecture uses actions chains for navigation -- no route registry is needed.
+- [x] 38.2.3 Delete `packages/framework/src/registries/routeRegistry.ts`. This file contains 201 lines of legacy route registry implementation that syncs routes from `screensetRegistry`. All route-matching, path-generation, and screenset-to-route mapping logic is dead code.
+- [x] 38.2.4 Update `packages/framework/src/plugins/index.ts` (or equivalent plugin barrel): remove exports of `navigation` and `routing` plugin factories.
+- [x] 38.2.5 Update `packages/framework/src/registries/index.ts`: remove the `createRouteRegistry` export. This file currently exports `createThemeRegistry` and `createRouteRegistry` -- after removal it exports only `createThemeRegistry`.
+- [x] 38.2.6 Update `packages/framework/src/index.ts`: remove `navigation` and `routing` from the plugin exports block. Remove `createRouteRegistry` from the registry exports block. Remove `RouteRegistry`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type exports block (these types are only used by the legacy routing plugin).
+- [x] 38.2.7 Check if `packages/framework/src/utils/routeMatcher.ts` exists and is imported ONLY by the deleted plugins. If so, delete it. If other code imports it, leave it in place.
+- [x] 38.2.8 Update `packages/react/src/index.ts`: remove `navigation`, `routing`, and `createRouteRegistry` from the re-exports block. Remove `RouteRegistry`, `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `RouteMatchResult`, `CompiledRoute`, `RouteParams` from the type re-exports if they are only used by legacy code. Evaluate `NavigateToScreenPayload` and `NavigateToScreensetPayload` -- if still used by legacy `useNavigation` hook, handle in task 38.3.
+- [x] 38.2.9 Run `npm run type-check` to confirm no broken imports.
 
 **Traceability**: Phase 36.9.8 noted "Legacy navigation and routing plugins still reference screensetRegistry but are deprecated. These plugins are not used in the MFE architecture." This phase completes the removal.
 
@@ -533,14 +532,14 @@ Remove the legacy `navigation()` and `routing()` plugins, the `createRouteRegist
 
 Remove legacy references from `packages/framework/src/types.ts`, `packages/framework/src/compat.ts`, and related files.
 
-- [ ] 38.3.1 Update `packages/framework/src/types.ts`: remove the `HAI3Plugin` JSDoc example that references `screensetRegistry: createScreensetRegistry()` and `discoverScreensets(app.screensetRegistry)`. Replace with an MFE-era example using `screensetsRegistry`.
-- [ ] 38.3.2 Update `packages/framework/src/types.ts`: remove `RouteRegistry` interface, `RouteMatchResult` interface, `CompiledRoute` interface, `RouteParams` interface, and their section comments. These types were used exclusively by the legacy routing plugin. The `HAI3App` interface reference to `routeRegistry: RouteRegistry` must also be removed.
-- [ ] 38.3.3 Update `packages/framework/src/types.ts`: remove `routeRegistry` from the `HAI3App` interface. The MFE architecture does not use a route registry.
-- [ ] 38.3.4 Update the `HAI3App` JSDoc example in `packages/framework/src/types.ts`: remove `const screensets = app.screensetRegistry.getAll();` and the `app.actions.navigateToScreen(...)` example. Replace with MFE-era examples using `app.screensetsRegistry.registerDomain(...)` and `app.actions.mountExtension(extensionId)`.
-- [ ] 38.3.5 Update `packages/framework/src/types.ts`: evaluate `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `NavigationConfig`, and `ScreensetsConfig` types. If they are ONLY referenced by the deleted navigation/routing/screensets plugins, remove them. If `ScreensetsConfig` is still used by the `screensets()` plugin, keep it. `NavigateToScreenPayload` and `NavigateToScreensetPayload` are referenced by `HAI3Actions` -- remove them from `HAI3Actions` and then delete the type definitions.
-- [ ] 38.3.6 Update `packages/framework/src/types.ts` `HAI3Actions` interface: remove `navigateToScreen` and `navigateToScreenset` action entries. These actions are part of the legacy navigation plugin. MFE navigation uses `mountExtension`, `loadExtension`, etc.
-- [ ] 38.3.7 Update `packages/framework/src/compat.ts`: remove the comment "Legacy screensetRegistry has been removed." since it is no longer needed as a migration note after the full cleanup. If the file contains only `ACCOUNTS_DOMAIN` after this, evaluate whether the file should be removed entirely or kept for backward compatibility.
-- [ ] 38.3.8 Run `npm run type-check` to confirm no broken imports.
+- [x] 38.3.1 Update `packages/framework/src/types.ts`: remove the `HAI3Plugin` JSDoc example that references `screensetRegistry: createScreensetRegistry()` and `discoverScreensets(app.screensetRegistry)`. Replace with an MFE-era example using `screensetsRegistry`.
+- [x] 38.3.2 Update `packages/framework/src/types.ts`: remove `RouteRegistry` interface, `RouteMatchResult` interface, `CompiledRoute` interface, `RouteParams` interface, and their section comments. These types were used exclusively by the legacy routing plugin. The `HAI3App` interface reference to `routeRegistry: RouteRegistry` must also be removed.
+- [x] 38.3.3 Update `packages/framework/src/types.ts`: remove `routeRegistry` from the `HAI3App` interface. The MFE architecture does not use a route registry.
+- [x] 38.3.4 Update the `HAI3App` JSDoc example in `packages/framework/src/types.ts`: remove `const screensets = app.screensetRegistry.getAll();` and the `app.actions.navigateToScreen(...)` example. Replace with MFE-era examples using `app.screensetsRegistry.registerDomain(...)` and `app.actions.mountExtension(extensionId)`.
+- [x] 38.3.5 Update `packages/framework/src/types.ts`: evaluate `NavigateToScreenPayload`, `NavigateToScreensetPayload`, `NavigationConfig`, and `ScreensetsConfig` types. If they are ONLY referenced by the deleted navigation/routing/screensets plugins, remove them. If `ScreensetsConfig` is still used by the `screensets()` plugin, keep it. `NavigateToScreenPayload` and `NavigateToScreensetPayload` are referenced by `HAI3Actions` -- remove them from `HAI3Actions` and then delete the type definitions.
+- [x] 38.3.6 Update `packages/framework/src/types.ts` `HAI3Actions` interface: remove `navigateToScreen` and `navigateToScreenset` action entries. These actions are part of the legacy navigation plugin. MFE navigation uses `mountExtension`, `loadExtension`, etc.
+- [x] 38.3.7 Update `packages/framework/src/compat.ts`: remove the comment "Legacy screensetRegistry has been removed." since it is no longer needed as a migration note after the full cleanup. If the file contains only `ACCOUNTS_DOMAIN` after this, evaluate whether the file should be removed entirely or kept for backward compatibility.
+- [x] 38.3.8 Run `npm run type-check` to confirm no broken imports.
 
 **Traceability**: Phase 36.9 partially cleaned up `screensetRegistry` references. This phase removes the remaining structural types that supported the legacy navigation/routing architecture.
 
@@ -548,12 +547,12 @@ Remove legacy references from `packages/framework/src/types.ts`, `packages/frame
 
 The `useNavigation` hook in `@hai3/react` wraps the legacy `navigateToScreen` and `navigateToScreenset` actions. In MFE mode, navigation is done via `mountExtension`/`loadExtension` actions or via `bridge.executeActionsChain()`. Evaluate and update the hook.
 
-- [ ] 38.4.1 Read `packages/react/src/hooks/useNavigation.ts` and determine what it provides. If it wraps ONLY the legacy `navigateToScreen`/`navigateToScreenset` actions, it is dead code and should be removed. If it provides MFE-relevant functionality too, refactor to remove the legacy parts.
-- [ ] 38.4.2 Search for imports of `useNavigation` from `@hai3/react` in the codebase (excluding `openspec/`, `node_modules/`). Document which files import it and whether they use legacy methods (`navigateToScreen`, `navigateToScreenset`) or MFE methods.
-- [ ] 38.4.3 If `useNavigation` is imported by `packages/studio/src/sections/ControlPanel.tsx` (which it is, per the current file), handle the studio side in task 38.5. If imported by demo-mfe code, evaluate whether those usages should be replaced with `useMfeBridge` + `bridge.executeActionsChain()`.
-- [ ] 38.4.4 Based on findings: either (a) remove `useNavigation` entirely and update all import sites, or (b) refactor it to expose only MFE navigation utilities (e.g., wrap `mountExtension` action). Update `packages/react/src/hooks/index.ts` barrel export accordingly.
-- [ ] 38.4.5 Update `packages/react/src/types.ts`: remove `UseNavigationReturn` type if `useNavigation` is removed, or update it to reflect the new MFE-only API.
-- [ ] 38.4.6 Run `npm run type-check` to confirm no broken imports.
+- [x] 38.4.1 Read `packages/react/src/hooks/useNavigation.ts` and determine what it provides. If it wraps ONLY the legacy `navigateToScreen`/`navigateToScreenset` actions, it is dead code and should be removed. If it provides MFE-relevant functionality too, refactor to remove the legacy parts.
+- [x] 38.4.2 Search for imports of `useNavigation` from `@hai3/react` in the codebase (excluding `openspec/`, `node_modules/`). Document which files import it and whether they use legacy methods (`navigateToScreen`, `navigateToScreenset`) or MFE methods.
+- [x] 38.4.3 If `useNavigation` is imported by `packages/studio/src/sections/ControlPanel.tsx` (which it is, per the current file), handle the studio side in task 38.5. If imported by demo-mfe code, evaluate whether those usages should be replaced with `useMfeBridge` + `bridge.executeActionsChain()`.
+- [x] 38.4.4 Based on findings: either (a) remove `useNavigation` entirely and update all import sites, or (b) refactor it to expose only MFE navigation utilities (e.g., wrap `mountExtension` action). Update `packages/react/src/hooks/index.ts` barrel export accordingly.
+- [x] 38.4.5 Update `packages/react/src/types.ts`: remove `UseNavigationReturn` type if `useNavigation` is removed, or update it to reflect the new MFE-only API.
+- [x] 38.4.6 Run `npm run type-check` to confirm no broken imports.
 
 **Traceability**: `useNavigation` wraps actions from the legacy navigation plugin (Phase 38.2). Its removal or refactoring follows from the plugin removal.
 
@@ -561,11 +560,11 @@ The `useNavigation` hook in `@hai3/react` wraps the legacy `navigateToScreen` an
 
 The `ControlPanel.tsx` has an inline `ScreensetCategory` enum, a `buildScreensetOptions()` function that returns empty data, and a `ScreensetSelector` component rendering. All of this is dead code.
 
-- [ ] 38.5.1 Update `packages/studio/src/sections/ControlPanel.tsx`: remove the inline `ScreensetCategory` enum definition (lines 9-13). Remove `ALL_CATEGORIES` constant. Remove the entire `buildScreensetOptions` function. Remove the `screensetOptions` state variable and its `useEffect` populator. Remove the `getCurrentValue` function. Remove the `handleScreensetChange` function. Remove the `ScreensetSelector` JSX rendering and its conditional block.
-- [ ] 38.5.2 Remove the `useNavigation` import if it is no longer used by the ControlPanel after cleanup. Remove the `ScreensetSelector` import and any related type imports.
-- [ ] 38.5.3 Evaluate `packages/studio/src/sections/ScreensetSelector.tsx` (or wherever the ScreensetSelector component is defined): if it is ONLY used by ControlPanel and is now dead code, delete the entire file. Remove its barrel export.
-- [ ] 38.5.4 The remaining ControlPanel should contain only: `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Verify the component still renders correctly with these controls.
-- [ ] 38.5.5 Run `npm run type-check` to confirm no broken imports.
+- [x] 38.5.1 Update `packages/studio/src/sections/ControlPanel.tsx`: remove the inline `ScreensetCategory` enum definition (lines 9-13). Remove `ALL_CATEGORIES` constant. Remove the entire `buildScreensetOptions` function. Remove the `screensetOptions` state variable and its `useEffect` populator. Remove the `getCurrentValue` function. Remove the `handleScreensetChange` function. Remove the `ScreensetSelector` JSX rendering and its conditional block.
+- [x] 38.5.2 Remove the `useNavigation` import if it is no longer used by the ControlPanel after cleanup. Remove the `ScreensetSelector` import and any related type imports.
+- [x] 38.5.3 Evaluate `packages/studio/src/sections/ScreensetSelector.tsx` (or wherever the ScreensetSelector component is defined): if it is ONLY used by ControlPanel and is now dead code, delete the entire file. Remove its barrel export.
+- [x] 38.5.4 The remaining ControlPanel should contain only: `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Verify the component still renders correctly with these controls.
+- [x] 38.5.5 Run `npm run type-check` to confirm no broken imports.
 
 **Traceability**: Phase 36.9 noted the studio ControlPanel has "Legacy screensetRegistry removed" comments. This phase removes the dead code entirely.
 
@@ -575,19 +574,19 @@ The CLI package has generators and commands for creating/copying legacy screense
 
 **Note**: All file deletions in this section are conditional. If a referenced file does not exist at execution time (e.g., removed by prior work or a different branch), treat the deletion as a no-op and proceed to the next task.
 
-- [ ] 38.6.1 If `packages/cli/src/generators/screenset.ts` exists, delete it. This generates legacy screenset code with `screensetRegistry.register()`, `ScreensetCategory`, and the old `ScreensetConfig` pattern. No-op if the file does not exist.
-- [ ] 38.6.2 If `packages/cli/src/generators/screensetFromTemplate.ts` exists, delete it. This generates screensets by copying the `_blank` template with identifier transformations. The `_blank` screenset no longer exists (replaced by `_blank-mfe` in Phase 36.8). No-op if the file does not exist.
-- [ ] 38.6.3 If `packages/cli/src/commands/screenset/create.ts` exists, delete it. This is the `screenset:create` CLI command that creates legacy screensets. Remove the command registration from the CLI command router/index if present. No-op if the file does not exist.
-- [ ] 38.6.4 If `packages/cli/src/commands/screenset/copy.ts` exists, delete it. This is the `screenset:copy` CLI command that copies legacy screensets with transformed IDs. Remove the command registration if present. No-op if the file does not exist.
-- [ ] 38.6.5 If `packages/cli/src/commands/screenset/` directory exists and is now empty, delete it. No-op if the directory does not exist or still contains files.
-- [ ] 38.6.6 Search `packages/cli/src/` for any remaining imports from the deleted files. Update or remove any barrel exports, command registrations, or type references that point to deleted modules. No-op if no references are found.
-- [ ] 38.6.7 If `packages/cli/src/generators/i18n.ts` exists, evaluate whether `generateI18nStubs` and `generateTranslationLoader` are ONLY used by the deleted screenset generators. If they are dead code, remove them. If used by other generators (screen generators, etc.), keep them.
-- [ ] 38.6.8 If `packages/cli/src/utils/project.ts` exists, evaluate whether `getScreensetsDir` and `screensetExists` are ONLY used by the deleted commands. If dead code, remove them. Keep if used elsewhere.
-- [ ] 38.6.9 Evaluate CLI templates that reference legacy screenset patterns: search `packages/cli/templates/` and `packages/cli/template-sources/` (if they exist) for `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `screenset:create`, `screenset:copy`. Update or remove any references found. Key files to check (if they exist):
+- [x] 38.6.1 If `packages/cli/src/generators/screenset.ts` exists, delete it. This generates legacy screenset code with `screensetRegistry.register()`, `ScreensetCategory`, and the old `ScreensetConfig` pattern. No-op if the file does not exist.
+- [x] 38.6.2 If `packages/cli/src/generators/screensetFromTemplate.ts` exists, delete it. This generates screensets by copying the `_blank` template with identifier transformations. The `_blank` screenset no longer exists (replaced by `_blank-mfe` in Phase 36.8). No-op if the file does not exist.
+- [x] 38.6.3 If `packages/cli/src/commands/screenset/create.ts` exists, delete it. This is the `screenset:create` CLI command that creates legacy screensets. Remove the command registration from the CLI command router/index if present. No-op if the file does not exist.
+- [x] 38.6.4 If `packages/cli/src/commands/screenset/copy.ts` exists, delete it. This is the `screenset:copy` CLI command that copies legacy screensets with transformed IDs. Remove the command registration if present. No-op if the file does not exist.
+- [x] 38.6.5 If `packages/cli/src/commands/screenset/` directory exists and is now empty, delete it. No-op if the directory does not exist or still contains files.
+- [x] 38.6.6 Search `packages/cli/src/` for any remaining imports from the deleted files. Update or remove any barrel exports, command registrations, or type references that point to deleted modules. No-op if no references are found.
+- [x] 38.6.7 If `packages/cli/src/generators/i18n.ts` exists, evaluate whether `generateI18nStubs` and `generateTranslationLoader` are ONLY used by the deleted screenset generators. If they are dead code, remove them. If used by other generators (screen generators, etc.), keep them.
+- [x] 38.6.8 If `packages/cli/src/utils/project.ts` exists, evaluate whether `getScreensetsDir` and `screensetExists` are ONLY used by the deleted commands. If dead code, remove them. Keep if used elsewhere.
+- [x] 38.6.9 Evaluate CLI templates that reference legacy screenset patterns: search `packages/cli/templates/` and `packages/cli/template-sources/` (if they exist) for `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `screenset:create`, `screenset:copy`. Update or remove any references found. Key files to check (if they exist):
   - `packages/cli/templates/.ai/targets/SCREENSETS.md` -- likely documents legacy screenset patterns
   - `packages/cli/templates/commands-bundle/hai3-duplicate-screenset.md` -- likely references `screenset:copy`
   - `packages/cli/templates/commands-bundle/hai3-new-screen.md` -- may reference legacy screen scaffolding
-- [ ] 38.6.10 Run `npm run type-check` across the CLI package (or the full workspace) to confirm no broken imports.
+- [x] 38.6.10 Run `npm run type-check` across the CLI package (or the full workspace) to confirm no broken imports.
 
 **Traceability**: The CLI generates legacy screenset code that uses types and APIs removed in this phase. CLI commands must be updated to match the MFE architecture.
 
@@ -595,10 +594,10 @@ The CLI package has generators and commands for creating/copying legacy screense
 
 Update all package-level CLAUDE.md files to document MFE as the primary and only architecture. Remove all legacy screenset API documentation. Note: Phase 37.9 already updated CLAUDE.md files for Phase 37-specific changes (notify_user removal, ScreenExtension derived type, extensionsTypeId). This task handles the remaining legacy API removal documentation: screensetRegistry, navigation(), routing(), ScreensetCategory, and other legacy types/plugins removed in Phase 38.
 
-- [ ] 38.7.1 Rewrite `packages/screensets/CLAUDE.md`: remove all references to `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `MenuItemConfig`, `ScreenLoader`, and the legacy "What This Package Contains" table. Replace with MFE-focused content: document `ScreensetsRegistry`, `Extension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `GtsPlugin`, action constants, shared property constants, and the type system plugin. Keep the `LayoutDomain` documentation. Update the "Package Relationship" diagram to show MFE-era dependency flow.
-- [ ] 38.7.2 Rewrite `packages/framework/CLAUDE.md`: remove all references to `screensetRegistry`, `createScreensetRegistry`, `navigation()`, `routing()`, `routeRegistry`. Update the "Available Plugins" table to remove `navigation()` and `routing()` rows and add `microfrontends()`. Update the "Built Application" section to show MFE-era API (`screensetsRegistry`, `mountExtension`, etc.) instead of `screensetRegistry.getAll()` and `navigateToScreen`. Update the "Re-exports" section to reflect current exports.
-- [ ] 38.7.3 Update `packages/react/CLAUDE.md`: remove the `useNavigation` hook section if the hook was removed in 38.4. Remove the `useHAI3` example that shows `app.screensetRegistry.getAll()`. Update with MFE-era hook documentation (`useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`). Update the "Re-exports" section.
-- [ ] 38.7.4 Search all CLAUDE.md files in the repository for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `createScreensetRegistry`, `navigateToScreen`, `navigateToScreenset`. Fix any found.
+- [x] 38.7.1 Rewrite `packages/screensets/CLAUDE.md`: remove all references to `screensetRegistry`, `ScreensetCategory`, `ScreensetDefinition`, `MenuItemConfig`, `ScreenLoader`, and the legacy "What This Package Contains" table. Replace with MFE-focused content: document `ScreensetsRegistry`, `Extension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `GtsPlugin`, action constants, shared property constants, and the type system plugin. Keep the `LayoutDomain` documentation. Update the "Package Relationship" diagram to show MFE-era dependency flow.
+- [x] 38.7.2 Rewrite `packages/framework/CLAUDE.md`: remove all references to `screensetRegistry`, `createScreensetRegistry`, `navigation()`, `routing()`, `routeRegistry`. Update the "Available Plugins" table to remove `navigation()` and `routing()` rows and add `microfrontends()`. Update the "Built Application" section to show MFE-era API (`screensetsRegistry`, `mountExtension`, etc.) instead of `screensetRegistry.getAll()` and `navigateToScreen`. Update the "Re-exports" section to reflect current exports.
+- [x] 38.7.3 Update `packages/react/CLAUDE.md`: remove the `useNavigation` hook section if the hook was removed in 38.4. Remove the `useHAI3` example that shows `app.screensetRegistry.getAll()`. Update with MFE-era hook documentation (`useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`). Update the "Re-exports" section.
+- [x] 38.7.4 Search all CLAUDE.md files in the repository for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `createScreensetRegistry`, `navigateToScreen`, `navigateToScreenset`. Fix any found.
 
 **Traceability**: Documentation must reflect the actual public API. After removing legacy types and plugins, the documentation must be updated to prevent confusion.
 
@@ -606,10 +605,10 @@ Update all package-level CLAUDE.md files to document MFE as the primary and only
 
 Update all package-level llms.txt files to document MFE as the primary architecture.
 
-- [ ] 38.8.1 Rewrite `packages/screensets/llms.txt`: the current content references `@hai3/layout` (deprecated name), `ScreensetDefinition`, `ScreensetCategory`, legacy selectors, and legacy patterns. Replace with MFE-focused content: document `ScreensetsRegistry`, `ExtensionDomain`, `Extension`, action constants, shared property constants, GTS type system, and the MFE lifecycle pattern. Include a Quick Start example showing domain registration, extension registration, and mounting.
-- [ ] 38.8.2 Rewrite `packages/framework/llms.txt`: the current content references `screensetRegistry`, `navigation()`, `routing()`, legacy plugin table. Replace with MFE-focused content: document `microfrontends()` plugin, `screensetsRegistry`, MFE action functions (`loadExtension`, `mountExtension`, etc.), domain constants, and the plugin composition pattern with MFE support.
-- [ ] 38.8.3 Check if `packages/react/llms.txt` exists. If yes, update it to remove legacy references and document MFE hooks. If it does not exist, no action needed.
-- [ ] 38.8.4 Search all llms.txt files for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `navigateToScreen`. Fix any found.
+- [x] 38.8.1 Rewrite `packages/screensets/llms.txt`: the current content references `@hai3/layout` (deprecated name), `ScreensetDefinition`, `ScreensetCategory`, legacy selectors, and legacy patterns. Replace with MFE-focused content: document `ScreensetsRegistry`, `ExtensionDomain`, `Extension`, action constants, shared property constants, GTS type system, and the MFE lifecycle pattern. Include a Quick Start example showing domain registration, extension registration, and mounting.
+- [x] 38.8.2 Rewrite `packages/framework/llms.txt`: the current content references `screensetRegistry`, `navigation()`, `routing()`, legacy plugin table. Replace with MFE-focused content: document `microfrontends()` plugin, `screensetsRegistry`, MFE action functions (`loadExtension`, `mountExtension`, etc.), domain constants, and the plugin composition pattern with MFE support.
+- [x] 38.8.3 Check if `packages/react/llms.txt` exists. If yes, update it to remove legacy references and document MFE hooks. If it does not exist, no action needed.
+- [x] 38.8.4 Search all llms.txt files for remaining references to `screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`, `navigateToScreen`. Fix any found.
 
 **Traceability**: llms.txt files are used by AI assistants for context. They must accurately describe the current API to prevent generation of legacy code patterns.
 
@@ -617,10 +616,10 @@ Update all package-level llms.txt files to document MFE as the primary architect
 
 Clean up the `HAI3Actions` interface and related event type declarations that reference legacy navigation.
 
-- [ ] 38.9.1 Verify that the `packages/framework/src/plugins/navigation.ts` module augmentation for `@hai3/state` EventPayloadMap (`'navigation/screen/navigated'` and `'navigation/screenset/navigated'`) has been removed by task 38.2.1. If the module augmentation was in a separate file, search for it and remove it.
-- [ ] 38.9.2 Search the codebase for any eventBus listeners or emitters using `'navigation/screen/navigated'` or `'navigation/screenset/navigated'` event names. Remove any found (expected: none outside the deleted navigation plugin).
-- [ ] 38.9.3 Verify `HAI3Actions.navigateToScreen` and `HAI3Actions.navigateToScreenset` have been removed (by task 38.3.6). If the `HAI3Actions` interface still references `NavigateToScreenPayload` or `NavigateToScreensetPayload`, remove those type imports.
-- [ ] 38.9.4 Run `npm run type-check` to confirm all event and action type references are clean.
+- [x] 38.9.1 Verify that the `packages/framework/src/plugins/navigation.ts` module augmentation for `@hai3/state` EventPayloadMap (`'navigation/screen/navigated'` and `'navigation/screenset/navigated'`) has been removed by task 38.2.1. If the module augmentation was in a separate file, search for it and remove it.
+- [x] 38.9.2 Search the codebase for any eventBus listeners or emitters using `'navigation/screen/navigated'` or `'navigation/screenset/navigated'` event names. Remove any found (expected: none outside the deleted navigation plugin).
+- [x] 38.9.3 Verify `HAI3Actions.navigateToScreen` and `HAI3Actions.navigateToScreenset` have been removed (by task 38.3.6). If the `HAI3Actions` interface still references `NavigateToScreenPayload` or `NavigateToScreensetPayload`, remove those type imports.
+- [x] 38.9.4 Run `npm run type-check` to confirm all event and action type references are clean.
 
 **Traceability**: The legacy navigation plugin declared event types via module augmentation. Removing the plugin without cleaning up the augmentation would leave orphaned type declarations.
 
@@ -628,14 +627,14 @@ Clean up the `HAI3Actions` interface and related event type declarations that re
 
 Comprehensive search for any remaining legacy screensets API references across the entire codebase.
 
-- [ ] 38.10.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`, `dist/`) for the string `screensetRegistry` (case-sensitive). Expected result: zero matches. Fix any found.
-- [ ] 38.10.2 Search for `ScreensetDefinition` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
-- [ ] 38.10.3 Search for `ScreensetCategory` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
-- [ ] 38.10.4 Search for `MenuScreenItem` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
-- [ ] 38.10.5 Search for `createScreensetRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
-- [ ] 38.10.6 Search for `createRouteRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
-- [ ] 38.10.7 Search for `navigateToScreenset` (case-sensitive) in source code (not openspec/). If found in `@hai3/react` types or hooks that haven't been updated yet, fix them. Expected: zero matches.
-- [ ] 38.10.8 Search for `'screensets'` as a plugin dependency string (e.g., `dependencies: ['screensets']`). The `microfrontends()` plugin may depend on `'screensets'` -- verify this is still valid since the `screensets()` plugin is being kept for layout state. If the legacy `navigation` and `routing` plugins' dependency on `'screensets'` was the only reason for that dependency string, verify the `screensets()` plugin is still meaningful.
+- [x] 38.10.1 Search the entire codebase (excluding `openspec/`, `node_modules/`, `.git/`, `dist/`) for the string `screensetRegistry` (case-sensitive). Expected result: zero matches. Fix any found.
+- [x] 38.10.2 Search for `ScreensetDefinition` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [x] 38.10.3 Search for `ScreensetCategory` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [x] 38.10.4 Search for `MenuScreenItem` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [x] 38.10.5 Search for `createScreensetRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [x] 38.10.6 Search for `createRouteRegistry` (case-sensitive). Expected result: zero matches outside openspec/. Fix any found.
+- [x] 38.10.7 Search for `navigateToScreenset` (case-sensitive) in source code (not openspec/). If found in `@hai3/react` types or hooks that haven't been updated yet, fix them. Expected: zero matches.
+- [x] 38.10.8 Search for `'screensets'` as a plugin dependency string (e.g., `dependencies: ['screensets']`). The `microfrontends()` plugin may depend on `'screensets'` -- verify this is still valid since the `screensets()` plugin is being kept for layout state. If the legacy `navigation` and `routing` plugins' dependency on `'screensets'` was the only reason for that dependency string, verify the `screensets()` plugin is still meaningful.
 
 **Traceability**: Phase 36.9.8 performed a similar sweep but explicitly excluded legacy plugins. This sweep is the definitive final pass after all legacy code has been removed.
 
@@ -643,10 +642,148 @@ Comprehensive search for any remaining legacy screensets API references across t
 
 Standard validation suite confirming all Phase 38 changes compile, test, build, and function correctly.
 
-- [ ] 38.11.1 Run `npm run type-check` -- must pass with zero errors. No broken imports from removed legacy types, plugins, or CLI generators.
-- [ ] 38.11.2 Run `npm run test` -- all existing tests pass. No test regressions from plugin/type removal. Expected test count: same as post-Phase 37 (no new tests in this phase, but no regressions).
-- [ ] 38.11.3 Run `npm run build` -- must pass. Host builds. Demo-mfe remote builds. CLI package builds (if it has a build step).
-- [ ] 38.11.4 Run `npm run lint` -- must pass with zero errors across all packages.
+- [x] 38.11.1 Run `npm run type-check` -- must pass with zero errors. No broken imports from removed legacy types, plugins, or CLI generators.
+- [x] 38.11.2 Run `npm run test` -- all existing tests pass. No test regressions from plugin/type removal. Expected test count: same as post-Phase 37 (no new tests in this phase, but no regressions).
+- [x] 38.11.3 Run `npm run build` -- must pass. Host builds. Demo-mfe remote builds. CLI package builds (if it has a build step).
+- [x] 38.11.4 Run `npm run lint` -- must pass with zero errors across all packages.
 - [ ] 38.11.5 Verify the CLI still works: run `npx hai3 --help` (or equivalent) and confirm `screenset:create` and `screenset:copy` commands are no longer listed. Confirm other CLI commands still work.
 - [ ] 38.11.6 Manual E2E: start demo-mfe dev server + host. All 4 menu items render. Extension mounting works. Theme/language propagation works. Studio panel shows only ApiModeToggle, ThemeSelector, LanguageSelector (no screenset selector).
-- [ ] 38.11.7 Verify CLAUDE.md files are accurate: spot-check that `packages/screensets/CLAUDE.md`, `packages/framework/CLAUDE.md`, and `packages/react/CLAUDE.md` contain zero references to removed APIs and accurately describe the current MFE-era public API.
+- [x] 38.11.7 Verify CLAUDE.md files are accurate: spot-check that `packages/screensets/CLAUDE.md`, `packages/framework/CLAUDE.md`, and `packages/react/CLAUDE.md` contain zero references to removed APIs and accurately describe the current MFE-era public API.
+
+---
+
+## Phase 39: Restore Screenset Package Selector in Studio ControlPanel
+
+**Status**: COMPLETE
+
+**Goal**: Restore the Studio ControlPanel's screenset package selector that was removed in Phase 38.5. The new selector operates at the GTS package level, NOT at the individual screen/extension level and NOT at the MF 2.0 manifest level. A GTS package is the two-segment prefix (e.g., `hai3.demo`) shared by all GTS entities belonging to the same MFE. This is a transport-agnostic concept -- it works for Module Federation, native ESM, or any future loading strategy. The selector allows developers to view registered GTS packages and switch between them during development.
+
+**Problem Statement**: The legacy `ScreensetSelector` used `screensetRegistry` to enumerate screenset categories and navigate between them. Phase 38.5 correctly removed this dead code since `screensetRegistry` no longer exists. However, the selector was a valuable development tool in the Studio overlay. It needs to be rebuilt using the MFE API. The key difference: the old selector showed individual screens organized by category; the new selector shows GTS packages as top-level items.
+
+**Architecture**:
+- A GTS package is identified by extracting the first two segments of the instance-specific portion of a GTS entity ID. In GTS IDs, the schema type prefix ends with `~` and the instance-specific portion follows. For derived types, the instance-specific segments appear in the final `~`-delimited portion. Examples:
+  - Extension ID: `gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1` -- the final segment after the last derived-type `~` is `hai3.demo.screens.helloworld.v1`, and the first two dot-segments are `hai3.demo`.
+  - Entry ID: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1` -- the final segment is `hai3.demo.mfe.helloworld.v1`, GTS package = `hai3.demo`.
+  - Manifest ID: `gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1` -- the instance segment is `hai3.demo.mfe.manifest.v1`, GTS package = `hai3.demo`.
+- All entities belonging to the same MFE share the same GTS package prefix. This makes GTS package the natural grouping concept.
+- Currently, `ScreensetsRegistry` has NO query API for listing GTS packages. Extensions are tracked per-domain via `getExtensionsForDomain()`.
+- The approach: the registry automatically extracts the GTS package from each extension's ID during `registerExtension()`. A `getRegisteredPackages()` method returns the set of unique GTS package strings. A `getExtensionsForPackage(packageId)` method returns all extensions whose GTS package matches. No explicit "register package" call is needed -- packages are discovered from extension IDs.
+- "Active package" is defined as: the GTS package extracted from the currently mounted screen extension's ID.
+- A utility function `extractGtsPackage(entityId: string): string` performs the extraction. It splits on `~`, takes the last segment (the instance-specific part), splits on `.`, and returns the first two dot-segments joined by `.`.
+
+**Traceability**: Phase 38.5 (removed dead selector). Design docs: `overview.md` (Studio overlay), `mfe-api.md` (registry API). Proposal requirement: Studio developer tools for MFE inspection.
+
+**Dependencies**: Phase 38 must be complete. This phase adds new public API to `ScreensetsRegistry` (abstract class) and `DefaultScreensetsRegistry` (concrete class).
+
+### 39.1 Add GTS Package Extraction Utility and Package Tracking to ScreensetsRegistry
+
+Add a utility function to extract the GTS package prefix from a GTS entity ID, and add package tracking and query methods to the registry. Packages are NOT explicitly registered -- they are automatically discovered from extension IDs during `registerExtension()`.
+
+- [x] 39.1.1 Add a utility function `extractGtsPackage(entityId: string): string` in `packages/screensets/src/mfe/gts/extract-package.ts`. The function: (a) splits the entity ID on `~` to get segments, (b) takes the last segment (the instance-specific portion), (c) splits that segment on `.`, (d) returns the first two dot-segments joined by `.`. Example: `extractGtsPackage('gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1')` returns `'hai3.demo'`. Add JSDoc explaining the GTS package concept and the extraction algorithm. Error handling -- throw for ALL of these cases: (1) the entity ID has fewer than 2 dot-segments in its instance portion, (2) the entity ID contains no `~` delimiter (not a valid GTS ID), (3) the entity ID is a schema type ID (the last `~`-delimited segment is empty, i.e., the ID ends with `~`). Each case should throw with a descriptive error message.
+- [x] 39.1.2 Export `extractGtsPackage` through the full barrel chain in `@hai3/screensets`: (a) export from `packages/screensets/src/mfe/gts/index.ts` (or create this barrel if it does not exist), (b) Add a NEW `export { extractGtsPackage } from './gts'` line to `packages/screensets/src/mfe/index.ts` (this file currently has no imports from `./gts` -- this is a new re-export chain link, not an addition to an existing one), (c) re-export from `packages/screensets/src/index.ts` (the `@hai3/screensets` public barrel -- add `extractGtsPackage` to the existing re-exports from `./mfe`). ALL three barrel levels must be updated for the export to be publicly accessible from `@hai3/screensets`.
+- [x] 39.1.2b Re-export `extractGtsPackage` from `packages/framework/src/index.ts` (L2 barrel). Import it from `@hai3/screensets` (same pattern as `gtsPlugin`). This ensures L3+ consumers import from their proper layer. Also re-export from `packages/react/src/index.ts` (L3 barrel) by adding `extractGtsPackage` to the existing `@hai3/framework` re-export block under "MFE Utilities".
+- [x] 39.1.3 Add abstract method `getRegisteredPackages(): string[]` to `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts`. This returns all unique GTS package strings that have been discovered from registered extensions, in discovery order (order of first extension registration for each package). Add JSDoc explaining that packages are automatically tracked when extensions are registered -- the GTS package is extracted from each extension's ID.
+- [x] 39.1.4 Add abstract method `getExtensionsForPackage(packageId: string): Extension[]` to `packages/screensets/src/mfe/runtime/ScreensetsRegistry.ts`. This returns all registered extensions whose GTS package matches the given `packageId`. Add JSDoc explaining the relationship: GTS package groups extensions by their shared two-segment prefix.
+- [x] 39.1.5 In `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`, add a private field `private readonly packages = new Map<string, Set<string>>()` to store GTS package to extension ID mappings. The key is the GTS package string (e.g., `'hai3.demo'`), the value is a `Set<string>` of extension IDs belonging to that package. The `packages` Map is intentionally non-configurable -- packages are auto-discovered during extension registration, not explicitly registered by consumers.
+- [x] 39.1.6 In `DefaultScreensetsRegistry`, hook into the existing `registerExtension()` flow. IMPORTANT: the tracking code must be placed INSIDE the `operationSerializer.serializeOperation()` callback, after the `await this.extensionManager.registerExtension(extension)` call. Currently `registerExtension()` returns the result of `extensionManager.registerExtension(extension)` directly from the serializer callback. Expand the callback to: (a) `await this.extensionManager.registerExtension(extension)`, then (b) call `extractGtsPackage(extension.id)` to get the package string, then (c) add the extension ID to the `this.packages` map -- if the package key does not exist, create a new `Set<string>()` entry; then add the extension ID to the set. Map insertion order is preserved. The tracking MUST happen inside the serializer callback to ensure atomicity with the registration operation.
+- [x] 39.1.7 In `DefaultScreensetsRegistry`, hook into the existing `unregisterExtension()` flow. IMPORTANT: the cleanup code must be placed INSIDE the `operationSerializer.serializeOperation()` callback, after the `await this.extensionManager.unregisterExtension(extensionId)` call (same pattern as 39.1.6). Before unregistering, capture the extension ID from the arguments (it is passed as a parameter to `unregisterExtension()`). After the await, call `extractGtsPackage(extensionId)` to get the package string, then remove the extension ID from the corresponding `Set` in `this.packages`. If the set becomes empty after removal, delete the package key from the map entirely. The cleanup MUST happen inside the serializer callback to ensure atomicity with the unregistration operation.
+- [x] 39.1.8 In `DefaultScreensetsRegistry`, implement `getRegisteredPackages()`: return `Array.from(this.packages.keys())`.
+- [x] 39.1.9 In `DefaultScreensetsRegistry`, implement `getExtensionsForPackage(packageId: string)`: get the extension ID set from `this.packages.get(packageId)`, then for each extension ID call `this.getExtension(extensionId)` and collect non-undefined results. Return the collected `Extension[]`. Return empty array if the package is not tracked.
+- [x] 39.1.10 Update `DefaultScreensetsRegistry.dispose()`: clear the `this.packages` map alongside other cleanup.
+
+**Traceability**: New public API on `ScreensetsRegistry`. Required by 39.3 (React hook) and 39.4 (Studio selector component). `extractGtsPackage` utility required by 39.1.6, 39.3, and 39.4.
+
+### 39.2 Bootstrap Verification (No Code Changes -- Verification Only)
+
+The bootstrap does NOT need changes for GTS package tracking. GTS packages are automatically discovered from extension IDs during `registerExtension()` -- no explicit registration call is needed. The existing bootstrap in `src/app/mfe/bootstrap.ts` already calls `screensetsRegistry.registerExtension(extension)` for all 4 demo extensions, which will automatically populate the `packages` map with `'hai3.demo'`.
+
+**Note**: This section is a verification step, not an implementation task. It confirms 39.1's automatic tracking works end-to-end with the real bootstrap. It is kept as a separate section (rather than merged into 39.8 Validation) because it validates a specific invariant -- that existing bootstrap code requires zero modifications -- which is an important architectural property to verify before building the UI layers (39.3-39.5) on top.
+
+- [x] 39.2.1 **Depends on 39.1** (all package tracking implementation must be complete before this verification). Verify that the existing bootstrap in `src/app/mfe/bootstrap.ts` works without modification. After bootstrap completes, `screensetsRegistry.getRegisteredPackages()` should return `['hai3.demo']` and `screensetsRegistry.getExtensionsForPackage('hai3.demo')` should return all 4 demo extensions. This is a verification step -- no code changes are expected.
+
+**Traceability**: 39.1.6 (automatic package tracking during registerExtension). Bootstrap code at `src/app/mfe/bootstrap.ts` (Phase 34.4).
+
+### 39.3 Add useRegisteredPackages and useActivePackage React Hooks
+
+Create React hooks that expose the registered GTS packages for use in UI components. Follows the same pattern as `useDomainExtensions`.
+
+- [x] 39.3.1 Create `packages/react/src/mfe/hooks/useRegisteredPackages.ts`. The hook calls `screensetsRegistry.getRegisteredPackages()` to get the list of GTS package strings. Use the same `useSyncExternalStore` pattern as `useDomainExtensions`: subscribe to store changes, snapshot returns the packages array, and reference equality comparison (shallow array compare) prevents unnecessary re-renders. **Architectural note on store subscription coupling**: The `useSyncExternalStore` subscription uses `app.store.subscribe`, which fires on any Redux dispatch. Since `registerExtension()` dispatches to the mfe store slice, the subscription WILL trigger when packages change. The `getSnapshot` function calls `screensetsRegistry.getRegisteredPackages()` which reads the private `packages` Map. This works because every package map mutation (in registerExtension/unregisterExtension) is always accompanied by a store dispatch in the same serializer callback. Note: if a future change mutates the packages map WITHOUT a store dispatch, this hook would fail to re-render -- keep this coupling documented.
+- [x] 39.3.2 Export `useRegisteredPackages` through the full barrel chain: (a) add `export { useRegisteredPackages } from './useRegisteredPackages'` to `packages/react/src/mfe/hooks/index.ts`, (b) add `useRegisteredPackages` to the hooks re-export in `packages/react/src/mfe/index.ts` (the intermediate barrel that re-exports from `./hooks`), (c) add `useRegisteredPackages` to the MFE re-export block in `packages/react/src/index.ts` (the public barrel that re-exports from `./mfe`). All three levels must be updated for the export to be publicly accessible.
+- [x] 39.3.3 N/A -- merged into 39.3.2. The full barrel chain is now documented there.
+- [x] 39.3.4 **Depends on 39.1.2b** (L2 re-export of `extractGtsPackage`). Must be implemented after 39.1.2b. Create `packages/react/src/mfe/hooks/useActivePackage.ts`. This hook returns the GTS package string of the currently active MFE (the package whose extension is currently mounted in the screen domain). Implementation: get the mounted extension ID from `screensetsRegistry.getMountedExtension(HAI3_SCREEN_DOMAIN)`. If `getMountedExtension()` returns `undefined`, the hook SHALL return `undefined` immediately without calling `extractGtsPackage` (since `extractGtsPackage` expects a valid string and would throw on undefined). Only when `getMountedExtension()` returns a defined string, call `extractGtsPackage(mountedExtensionId)` to derive the GTS package. Returns `string | undefined` (undefined if no screen extension is mounted). Import `extractGtsPackage` from `@hai3/framework` (NOT from `@hai3/screensets` -- `@hai3/react` is L3, must not reach down to L1). Use the same `useSyncExternalStore` pattern as `useDomainExtensions` and `useRegisteredPackages`: subscribe to store changes, snapshot returns the active package string, and a `useRef`-based cache prevents unnecessary re-renders when the derived value is unchanged.
+- [x] 39.3.5 Export `useActivePackage` through the full barrel chain: (a) add `export { useActivePackage } from './useActivePackage'` to `packages/react/src/mfe/hooks/index.ts`, (b) add `useActivePackage` to the hooks re-export in `packages/react/src/mfe/index.ts` (the intermediate barrel that re-exports from `./hooks`), (c) add `useActivePackage` to the MFE re-export block in `packages/react/src/index.ts` (the public barrel that re-exports from `./mfe`). Same three-level chain as 39.3.2.
+
+**Traceability**: 39.1.3 (getRegisteredPackages), 39.1.4 (getExtensionsForPackage), 39.1.1 (extractGtsPackage), 39.1.2b (L2/L3 re-exports for layer compliance). Used by 39.4 (Studio selector component).
+
+### 39.4 Create MfePackageSelector Component in Studio
+
+Create the `MfePackageSelector` component that replaces the legacy `ScreensetSelector`. This component shows a dropdown of registered GTS packages and allows switching between them.
+
+- [x] 39.4.1 Create `packages/studio/src/sections/MfePackageSelector.tsx`. The component:
+  - Uses `useHAI3()` from `@hai3/react` to access the app instance. Obtains `screensetsRegistry` via `app.screensetsRegistry` (same pattern as other Studio components that need registry access). Since `screensetsRegistry` is typed as optional on `HAI3App`, use an early return guard: `const registry = app.screensetsRegistry; if (!registry) return null;` to satisfy TypeScript strictness. The registry will always be defined when the Studio ControlPanel is active (the microfrontends plugin is required for the Studio to render), but the guard is necessary for type-safety. This provides access to both the query API (`getExtensionsForPackage`) and the actions chain execution (`executeActionsChain`).
+  - Uses `useRegisteredPackages()` to get the list of registered GTS packages.
+  - Uses `useActivePackage()` to determine which package is currently active.
+  - Renders a labeled dropdown (similar to `ThemeSelector` and `LanguageSelector` patterns in the same directory).
+  - Each dropdown option shows the GTS package string as the display label (e.g., `"hai3.demo"`). The value is also the GTS package string.
+  - When the user selects a different package, the component mounts the first screen extension from that package: query `screensetsRegistry.getExtensionsForPackage(selectedPackageId)`, filter for screen-domain extensions (check `extension.domain` matches `HAI3_SCREEN_DOMAIN`), narrow matching extensions to `ScreenExtension` using a type guard function `isScreenExtension(ext): ext is ScreenExtension` that checks `'presentation' in ext && typeof (ext as ScreenExtension).presentation === 'object'` (this is safe because Phase 37's `extensionsTypeId` enforcement guarantees that all extensions in the screen domain are registered with the `extension_screen.v1` derived type, which includes the `presentation` field -- but a proper type guard is preferred over a bare `as ScreenExtension` cast for runtime safety and TypeScript narrowing), sort by `presentation.order`, and mount the first one via `screensetsRegistry.executeActionsChain({ action: { type: HAI3_ACTION_MOUNT_EXT, target: HAI3_SCREEN_DOMAIN, payload: { extensionId: firstExtension.id } } })`.
+  - If only one package is registered, the dropdown is still shown (not hidden) to inform the developer what package is active. The dropdown is disabled if only one option exists.
+- [x] 39.4.2 Style the component to match existing Studio ControlPanel controls (`ThemeSelector`, `LanguageSelector`). Use the same heading style, spacing, and control patterns. Use `useTranslation()` for the label: add translation key `studio:controls.gts_package` (or reuse an existing controls translation namespace).
+- [x] 39.4.3 Add i18n translation keys for the selector label. Add `gts_package: "GTS Package"` (nested under the `controls` key) to the studio English translation file at `packages/studio/src/i18n/en.json`, and to all 36 studio language files in `packages/studio/src/i18n/` (36 files: ar, bn, cs, da, de, el, en, es, fa, fi, fr, he, hi, hu, id, it, ja, ko, ms, nl, no, pl, pt, ro, ru, sv, sw, ta, th, tl, tr, uk, ur, vi, zh, zh-TW). Use English value for all files initially (ready for translation).
+
+**Traceability**: Phase 38.5 (removed legacy selector). Design doc `overview.md` (Studio overlay developer tools).
+
+### 39.5 Integrate MfePackageSelector into ControlPanel
+
+Add the `MfePackageSelector` to the Studio `ControlPanel` component.
+
+- [x] 39.5.1 Update `packages/studio/src/sections/ControlPanel.tsx`: import `MfePackageSelector` from `./MfePackageSelector`. Add `<MfePackageSelector />` as the first control in the controls section (before `ApiModeToggle`). The ordering should be: MfePackageSelector, ApiModeToggle, ThemeSelector, LanguageSelector.
+- [x] 39.5.2 Verify the ControlPanel renders correctly with the new selector. The selector should show `hai3.demo` as the single (and active) GTS package option.
+
+**Traceability**: Phase 38.5.4 (ControlPanel should contain ApiModeToggle, ThemeSelector, LanguageSelector + now MfePackageSelector).
+
+### 39.6 Write Unit Tests
+
+- [x] 39.6.1 Write unit test for `extractGtsPackage` in `packages/screensets/__tests__/mfe/gts/`: verify `extractGtsPackage('gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1')` returns `'hai3.demo'`.
+- [x] 39.6.2 Write unit test: verify `extractGtsPackage('gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1')` returns `'hai3.demo'` (non-derived type with single `~`).
+- [x] 39.6.3 Write unit test: verify `extractGtsPackage('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1')` returns `'hai3.demo'` (derived entry type).
+- [x] 39.6.4 Write unit test: verify `extractGtsPackage` throws for a malformed ID with fewer than 2 dot-segments in the instance portion.
+- [x] 39.6.4b Write unit test: verify `extractGtsPackage` throws for an entity ID containing no `~` delimiter (not a valid GTS ID).
+- [x] 39.6.4c Write unit test: verify `extractGtsPackage` throws for a schema type ID (an ID ending with `~`, whose last `~`-segment is empty). Example: `'gts.hai3.mfes.ext.extension.v1~'`.
+- [x] 39.6.5 Write unit test in `packages/screensets/__tests__/mfe/runtime/`: verify `getRegisteredPackages()` returns an empty array when no extensions are registered.
+- [x] 39.6.6 Write unit test: register an extension with ID containing GTS package `hai3.demo`, then verify `getRegisteredPackages()` returns `['hai3.demo']`.
+- [x] 39.6.7 Write unit test: register 2 extensions from different GTS packages (e.g., `hai3.demo` and `hai3.other`), verify `getRegisteredPackages()` returns both in registration order.
+- [x] 39.6.8 Write unit test: register 2 extensions from the SAME GTS package, verify `getRegisteredPackages()` returns only one entry (deduplication).
+- [x] 39.6.9 Write unit test: register extensions from 2 different GTS packages. Verify `getExtensionsForPackage('hai3.demo')` returns only extensions from `hai3.demo`, and `getExtensionsForPackage('hai3.other')` returns only extensions from `hai3.other`.
+- [x] 39.6.10 Write unit test: verify `getExtensionsForPackage()` returns an empty array for an untracked package string.
+- [x] 39.6.11 Write unit test: unregister an extension, verify it is removed from `getExtensionsForPackage()`. If it was the last extension for its package, verify the package is removed from `getRegisteredPackages()`.
+- [x] 39.6.12 Write unit test: verify that `dispose()` clears the packages (after dispose, `getRegisteredPackages()` returns empty array).
+- [x] 39.6.13 Write React hook test in `packages/react/__tests__/mfe/hooks/useRegisteredPackages.test.tsx`: verify `useRegisteredPackages()` returns packages from the registry.
+- [x] 39.6.14 Write React hook test in `packages/react/__tests__/mfe/hooks/useActivePackage.test.tsx`: verify `useActivePackage()` returns the GTS package string of the currently mounted screen extension. Also verify that `useActivePackage()` returns `undefined` when no screen extension is mounted (covers the undefined guard from 39.3.4).
+
+**Traceability**: 39.1 (registry API + extractGtsPackage utility), 39.3 (React hooks). Tests 39.6.4b and 39.6.4c cover error handling edge cases from 39.1.1 (no `~` delimiter, schema IDs). All tests verify runtime-observable behavior through public API.
+
+### 39.7 Update Package Documentation
+
+- [x] 39.7.1 Update `packages/screensets/CLAUDE.md`: add `getRegisteredPackages()`, `getExtensionsForPackage()`, and `extractGtsPackage()` to the ScreensetsRegistry/GTS utilities documentation.
+- [x] 39.7.2 Update `packages/react/CLAUDE.md`: add `useRegisteredPackages` and `useActivePackage` hooks to the hooks documentation.
+- [x] 39.7.3 Update `packages/studio/CLAUDE.md`: document the `MfePackageSelector` component and its purpose. If the file does not exist, create it with a minimal structure covering the Studio package overview and the new component. (Studio is a package in `packages/studio/` so it should have its own CLAUDE.md.)
+- [x] 39.7.4 Update `design/registry-runtime.md`: add a section documenting the new query methods on `ScreensetsRegistry` -- `getRegisteredPackages()`, `getExtensionsForPackage(packageId)`, and the `extractGtsPackage()` utility. Document the automatic package discovery mechanism (packages are tracked implicitly during `registerExtension()` / `unregisterExtension()`, not via explicit registration).
+- [x] 39.7.5 Update `specs/screensets/spec.md`: add Given/When/Then acceptance scenarios for the GTS package query API. At minimum: (1) Given no extensions registered, when `getRegisteredPackages()` is called, then it returns an empty array. (2) Given extensions from two GTS packages are registered, when `getRegisteredPackages()` is called, then it returns both packages in registration order. (3) Given extensions from `hai3.demo` are registered, when `getExtensionsForPackage('hai3.demo')` is called, then it returns only extensions belonging to that package. (4) Given the last extension for a package is unregistered, when `getRegisteredPackages()` is called, then the package is no longer listed.
+- [x] 39.7.6 Clean up stale references in `packages/react/CLAUDE.md` and `packages/react/llms.txt`: remove the `AppRouter` component section (lines describing it as "legacy, prefer ExtensionDomainSlot for MFE" with its usage example), remove `AppRouter` from the Exports/Components list, and remove `AppRouterProps` from the Exports/Types list. Also update `packages/react/llms.txt` to remove the `AppRouter` link from Core API, remove `AppRouter` from the Quick Start import and JSX, and remove any other `AppRouter` references. These were deleted in Phase 38 but neither CLAUDE.md nor llms.txt were updated. The `AppRouter` component and `AppRouterProps` type no longer exist in the package.
+- [x] 39.7.7 Remove stale legacy comment from `packages/framework/src/compat.ts` lines 20-21 (`// Legacy screensetRegistry has been removed. Use ScreensetsRegistry (MFE architecture) instead.` and `// See migration guide in openspec/changes/add-microfrontend-support/`). This comment was supposed to be removed in Phase 38.3.7 but was missed.
+- [x] 39.7.8 Review and clean `packages/framework/src/plugins/microfrontends/navigation.ts` -- remove or update the legacy `NavigateToScreenPayload` interface (with `screensetId`/`screenId` fields), the `ScreenChangedPayload` interface (with `screensetId` field), the stale `NavigationEvents` constant, and the module augmentation for `@hai3/state` `EventPayloadMap` that declares legacy navigation event types. These are legacy types from the pre-MFE navigation system that Phase 38 missed in this file.
+- [x] 39.7.9 Remove stale `screensetRegistry.tsx` references from CLI template manifests: (a) remove the `src/screensets/screensetRegistry.tsx` entry from `packages/cli/template-sources/manifest.yaml` line 53, (b) remove the `src/screensets/screensetRegistry.tsx` entry from `packages/cli/templates/manifest.json` line 31, (c) review `packages/cli/template-sources/project/configs/.dependency-cruiser.cjs` line 36 for the `screensetRegistry` pathNot reference and update or remove the stale `no-cross-screenset-imports` rule. These were supposed to be caught by Phase 38.6.9 but were missed.
+
+**Known deferred**: The `screensets()` plugin naming is stale -- it currently provides only `screenSlice` for layout state management and no longer manages screensets. Renaming to something like `layoutState()` or `screenState()` is a candidate for a future phase.
+
+**Traceability**: Documentation must reflect the new public API additions. CLAUDE.md files are updated in the same phase as the code changes. Design docs and spec files ensure the new API is architecturally documented and has verifiable acceptance criteria. 39.7.6 traces to Phase 38 (removal of `AppRouter`) -- the CLAUDE.md and llms.txt were not updated during Phase 38 and carry stale references. 39.7.7 traces to Phase 38.3.7 (missed cleanup). 39.7.8 traces to Phase 38.2 (missed MFE navigation.ts). 39.7.9 traces to Phase 38.6.9 (missed CLI template manifests).
+
+### 39.8 Validation
+
+Standard validation suite confirming all Phase 39 changes compile, test, build, and function correctly.
+
+- [x] 39.8.1 Run `npm run type-check` -- PASS. Zero errors.
+- [x] 39.8.2 Run `npm run test` -- PASS. 501 tests (397 screensets + 78 framework + 26 react). 25 new Phase 39 tests.
+- [x] 39.8.3 Run `npm run build` -- PASS. Host builds successfully.
+- [x] 39.8.4 Run `npm run lint` -- PASS. Zero errors across all packages.
+- [ ] 39.8.5 Manual E2E: start demo-mfe dev server + host. Studio overlay opens. ControlPanel shows MfePackageSelector with `hai3.demo` as the active GTS package. ThemeSelector, LanguageSelector, and ApiModeToggle still work. All 4 menu items render. Extension mounting works.

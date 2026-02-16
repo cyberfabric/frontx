@@ -220,6 +220,47 @@ export abstract class ScreensetsRegistry {
   abstract getMountedExtension(domainId: string): string | undefined;
 
   /**
+   * Get all registered GTS packages.
+   *
+   * Returns an array of unique GTS package strings that have been discovered
+   * from registered extensions. Packages are NOT explicitly registered -- they
+   * are automatically tracked when extensions are registered. The GTS package
+   * is extracted from each extension's ID.
+   *
+   * The returned array is in discovery order (order of first extension registration
+   * for each package).
+   *
+   * @returns Array of GTS package strings (e.g., ['hai3.demo', 'hai3.other'])
+   *
+   * @example
+   * ```typescript
+   * // After registering extensions with IDs containing 'hai3.demo' package
+   * const packages = registry.getRegisteredPackages();
+   * // Returns: ['hai3.demo']
+   * ```
+   */
+  abstract getRegisteredPackages(): string[];
+
+  /**
+   * Get all extensions registered for a specific GTS package.
+   *
+   * Returns all registered extensions whose GTS package matches the given
+   * packageId. The GTS package groups extensions by their shared two-segment
+   * prefix (e.g., 'hai3.demo').
+   *
+   * @param packageId - GTS package string (e.g., 'hai3.demo')
+   * @returns Array of extensions in the package (empty if package not tracked)
+   *
+   * @example
+   * ```typescript
+   * // Get all extensions from the 'hai3.demo' package
+   * const extensions = registry.getExtensionsForPackage('hai3.demo');
+   * // Returns: [homeExtension, profileExtension, ...]
+   * ```
+   */
+  abstract getExtensionsForPackage(packageId: string): Extension[];
+
+  /**
    * Returns the ParentMfeBridge for the given extension, or null if the extension
    * is not mounted or does not exist. This is a query method (same category as
    * getMountedExtension) -- it reads from ExtensionState.bridge, which is set

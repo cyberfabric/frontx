@@ -1,38 +1,38 @@
 # @hai3/framework
 
-> Plugin-based application framework for HAI3 SDK. Orchestrates SDK packages into cohesive applications.
+> Plugin-based application framework for HAI3 SDK. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
 
-Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n) and @hai3/uicore for layout state management.
+Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n). Owns layout slices.
 
 ## Core API
 
 - [createHAI3](https://hai3.dev/docs/framework/create): App builder with plugin composition
-- [createHAI3App](https://hai3.dev/docs/framework/app): Convenience function (full preset)
+- [createHAI3App](https://hai3.dev/docs/framework/app): Convenience function (full preset with MFE)
 - [presets](https://hai3.dev/docs/framework/presets): Pre-configured plugin combinations (full, minimal, headless)
 
 ## Available Plugins
 
 | Plugin | Provides |
 |--------|----------|
-| `screensets()` | screensetRegistry, screen slice |
+| `screensets()` | screensetsRegistry (MFE-enabled), layout domain slices |
 | `themes()` | themeRegistry, changeTheme action |
-| `layout()` | header, footer, menu, sidebar, popup, overlay slices |
-| `navigation()` | navigateToScreen, navigateToScreenset actions |
-| `routing()` | routeRegistry, URL sync |
+| `layout()` | header, footer, menu, sidebar, popup, overlay state |
+| `microfrontends()` | MFE actions, selectors, domain constants |
 | `i18n()` | i18nRegistry, setLanguage action |
 | `effects()` | Core effect coordination |
+| `mock()` | mockSlice, toggleMockMode action |
 
 ## Quick Start
 
 ```typescript
-import { createHAI3, screensets, themes, layout, navigation, i18n } from '@hai3/framework';
+import { createHAI3, screensets, themes, layout, microfrontends, i18n } from '@hai3/framework';
 
 // Compose plugins
 const app = createHAI3()
   .use(screensets())
   .use(themes())
   .use(layout())
-  .use(navigation())
+  .use(microfrontends())
   .use(i18n())
   .build();
 
@@ -40,13 +40,122 @@ const app = createHAI3()
 import { createHAI3App } from '@hai3/framework';
 const app = createHAI3App();
 
-// Access registries and actions
-app.screensetRegistry.getAll();
-app.actions.navigateToScreen({ screensetId: 'demo', screenId: 'home' });
+// Access MFE-enabled registry
+app.screensetsRegistry.registerDomain(screenDomain);
+app.screensetsRegistry.registerExtension(homeExtension);
+await app.screensetsRegistry.loadExtension({ extensionId: 'home' });
+
+// Access MFE actions
+app.actions.loadExtension({ extensionId: 'home' });
+app.actions.mountExtension({ extensionId: 'home', domainId: 'screen', container });
+app.actions.unmountExtension({ extensionId: 'home', domainId: 'screen' });
+
+// Access theme and i18n actions
 app.actions.changeTheme({ themeId: 'dark' });
+app.actions.setLanguage({ language: 'es' });
+```
+
+## MFE Plugin
+
+The `microfrontends()` plugin provides:
+
+### MFE Actions
+
+```typescript
+import {
+  loadExtension,        // Load extension code
+  mountExtension,       // Mount extension into domain
+  unmountExtension,     // Unmount extension from domain
+  registerExtension,    // Register extension dynamically
+  unregisterExtension,  // Unregister extension
+} from '@hai3/framework';
+```
+
+### MFE Selectors
+
+```typescript
+import {
+  selectExtensionState,       // Get extension state
+  selectRegisteredExtensions, // Get all registered extensions
+  selectExtensionError,       // Get extension error
+} from '@hai3/framework';
+```
+
+### Domain Constants
+
+```typescript
+import {
+  HAI3_SCREEN_DOMAIN,   // 'screen'
+  HAI3_SIDEBAR_DOMAIN,  // 'sidebar'
+  HAI3_POPUP_DOMAIN,    // 'popup'
+  HAI3_OVERLAY_DOMAIN,  // 'overlay'
+  screenDomain,         // ExtensionDomain object
+  sidebarDomain,        // ExtensionDomain object
+  popupDomain,          // ExtensionDomain object
+  overlayDomain,        // ExtensionDomain object
+} from '@hai3/framework';
+```
+
+### Action Constants
+
+```typescript
+import {
+  HAI3_ACTION_LOAD_EXT,     // 'hai3.action.load_ext'
+  HAI3_ACTION_MOUNT_EXT,    // 'hai3.action.mount_ext'
+  HAI3_ACTION_UNMOUNT_EXT,  // 'hai3.action.unmount_ext'
+} from '@hai3/framework';
+```
+
+### Shared Property Constants
+
+```typescript
+import {
+  HAI3_SHARED_PROPERTY_THEME,     // 'hai3.shared.theme'
+  HAI3_SHARED_PROPERTY_LANGUAGE,  // 'hai3.shared.language'
+} from '@hai3/framework';
+```
+
+## Plugin Composition Pattern
+
+```typescript
+import { createHAI3, screensets, microfrontends } from '@hai3/framework';
+
+// MFE-enabled app
+const app = createHAI3()
+  .use(screensets())      // Provides screensetsRegistry (MFE-enabled)
+  .use(microfrontends())  // Provides MFE actions and domain management
+  .build();
+
+// Access MFE features
+app.screensetsRegistry.registerExtension(extension);
+await app.actions.mountExtension({ extensionId, domainId, container });
+```
+
+## MFE Types
+
+```typescript
+import type {
+  Extension,              // Extension definition
+  ScreenExtension,        // Screen-specific extension (derived type)
+  ExtensionDomain,        // Domain definition
+  MfeHandler,             // Abstract handler for MFE lifecycle
+  MfeBridgeFactory,       // Abstract factory for bridges
+  ParentMfeBridge,        // Parent bridge interface
+  ChildMfeBridge,         // Child bridge interface
+  LifecycleStage,         // Lifecycle stage definition
+  ActionsChain,           // Actions chain for lifecycle hooks
+} from '@hai3/framework';
+```
+
+## Concrete MFE Implementations
+
+```typescript
+import { MfeHandlerMF } from '@hai3/framework';  // Module Federation handler
+import { gtsPlugin } from '@hai3/framework';     // GTS type validation plugin
 ```
 
 ## Optional
 
 - [Custom Plugins](https://hai3.dev/docs/framework/plugins): Creating custom plugins
-- [Migration Guide](https://hai3.dev/docs/framework/migration): Migrating from @hai3/uicore
+- [MFE Bridge Communication](https://hai3.dev/docs/framework/mfe-bridge): Parent-child patterns
+- [Migration Guide](https://hai3.dev/docs/framework/migration): Migrating from legacy screensets API

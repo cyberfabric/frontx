@@ -1,13 +1,13 @@
 # @hai3/react
 
-> React bindings, hooks, and components for HAI3 SDK. Provides type-safe integration with React applications.
+> React bindings, hooks, and components for HAI3 SDK. Provides type-safe integration with React applications including MFE (Microfrontend) support.
 
 Part of the HAI3 React Layer (L3) - depends on @hai3/framework. Peer dependency on react and react-dom.
 
 ## Core API
 
 - [HAI3Provider](https://hai3.dev/docs/react/provider): Root context provider
-- [AppRouter](https://hai3.dev/docs/react/router): Screen rendering with lazy loading
+- [MFE Components](https://hai3.dev/docs/react/mfe): ExtensionDomainSlot, MfeProvider, RefContainerProvider
 
 ## Hooks
 
@@ -18,20 +18,28 @@ Part of the HAI3 React Layer (L3) - depends on @hai3/framework. Peer dependency 
 | `useAppSelector()` | Type-safe selector |
 | `useTranslation()` | Translation utilities (t, language, setLanguage, isRTL) |
 | `useScreenTranslations()` | Lazy load screen translations |
-| `useNavigation()` | Navigate between screens |
 | `useTheme()` | Theme utilities (currentTheme, themes, setTheme) |
+
+## MFE Hooks
+
+| Hook | Purpose |
+|------|---------|
+| `useMfeBridge()` | Access MFE bridge (child MFEs) |
+| `useSharedProperty()` | Subscribe to shared property changes |
+| `useHostAction()` | Invoke actions on host application |
+| `useDomainExtensions()` | Subscribe to extensions in a domain |
 
 ## Quick Start
 
 ```tsx
-import { HAI3Provider, AppRouter, useTranslation, useNavigation } from '@hai3/react';
+import { HAI3Provider, ExtensionDomainSlot, useTranslation, useHAI3 } from '@hai3/react';
 
 // Wrap app with provider
 function App() {
   return (
     <HAI3Provider>
       <Layout>
-        <AppRouter fallback={<Loading />} />
+        <ExtensionDomainSlot domainId="screen" fallback={<Loading />} />
       </Layout>
     </HAI3Provider>
   );
@@ -40,15 +48,69 @@ function App() {
 // Use hooks in components
 function MyComponent() {
   const { t, isRTL } = useTranslation();
-  const { navigateToScreen } = useNavigation();
+  const app = useHAI3();
 
   return (
     <div dir={isRTL ? 'rtl' : 'ltr'}>
       <h1>{t('common:title')}</h1>
-      <button onClick={() => navigateToScreen('demo', 'home')}>
-        Go Home
-      </button>
     </div>
+  );
+}
+```
+
+## MFE Patterns
+
+### Using ExtensionDomainSlot
+
+```tsx
+import { ExtensionDomainSlot } from '@hai3/react';
+
+function LayoutScreen() {
+  const screenContainerRef = useRef<HTMLDivElement>(null);
+
+  return (
+    <ExtensionDomainSlot
+      domainId="screen"
+      containerRef={screenContainerRef}
+      fallback={<Loading />}
+    />
+  );
+}
+```
+
+### Using MFE Bridge
+
+```tsx
+import { useMfeBridge, useSharedProperty, HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+
+function MyExtension() {
+  const bridge = useMfeBridge();
+  const theme = useSharedProperty(HAI3_SHARED_PROPERTY_THEME);
+
+  const handleAction = async () => {
+    await bridge.executeActionsChain({
+      action: { type: HAI3_ACTION_LOAD_EXT, target: 'screen', payload: { extensionId: 'other' } }
+    });
+  };
+
+  return <div style={{ backgroundColor: theme?.primaryColor }}>...</div>;
+}
+```
+
+### Subscribing to Domain Extensions
+
+```tsx
+import { useDomainExtensions } from '@hai3/react';
+
+function ScreenList() {
+  const screenExtensions = useDomainExtensions('screen');
+
+  return (
+    <ul>
+      {screenExtensions.map((ext) => (
+        <li key={ext.id}>{ext.title}</li>
+      ))}
+    </ul>
   );
 }
 ```
@@ -57,3 +119,4 @@ function MyComponent() {
 
 - [Screen Translations](https://hai3.dev/docs/react/translations): Per-screen lazy loading
 - [Custom Hooks](https://hai3.dev/docs/react/hooks): Building on HAI3 hooks
+- [MFE Bridge Communication](https://hai3.dev/docs/react/mfe-bridge): Parent-child patterns

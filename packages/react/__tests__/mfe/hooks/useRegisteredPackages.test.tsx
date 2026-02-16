@@ -1,0 +1,253 @@
+/**
+ * Tests for useRegisteredPackages hook - Phase 39.6
+ *
+ * Tests registered packages observation via store subscription.
+ *
+ * @packageDocumentation
+ * @vitest-environment jsdom
+ */
+
+import { describe, it, expect, afterEach, vi } from 'vitest';
+import { renderHook, waitFor, act } from '@testing-library/react';
+import { HAI3Provider } from '../../../src/HAI3Provider';
+import { useRegisteredPackages } from '../../../src/mfe/hooks/useRegisteredPackages';
+import { createHAI3 } from '@hai3/framework';
+import { screensets } from '@hai3/framework';
+import { effects } from '@hai3/framework';
+import { microfrontends } from '@hai3/framework';
+import type { Extension, ExtensionDomain } from '@hai3/framework';
+import { ContainerProvider } from '@hai3/framework';
+import type { HAI3App } from '@hai3/framework';
+
+// Mock Container Provider for React tests
+class TestContainerProvider extends ContainerProvider {
+  private mockContainer: Element;
+
+  constructor() {
+    super();
+    this.mockContainer = document.createElement('div');
+  }
+
+  getContainer(_extensionId: string): Element {
+    return this.mockContainer;
+  }
+
+  releaseContainer(_extensionId: string): void {
+    // no-op
+  }
+}
+
+describe('useRegisteredPackages hook - Phase 39.6', () => {
+  const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.package.hooks.domain.v1';
+
+  // Track app instances for cleanup
+  const apps: HAI3App[] = [];
+  afterEach(() => {
+    apps.forEach(app => app.destroy());
+    apps.length = 0;
+  });
+
+  const mockDomain: ExtensionDomain = {
+    id: testDomainId,
+    sharedProperties: [],
+    actions: [
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+    ],
+    extensionsActions: [],
+    defaultActionTimeout: 5000,
+    lifecycleStages: [],
+    extensionsLifecycleStages: [],
+  };
+
+  const demoExtension1: Extension = {
+    id: 'gts.hai3.mfes.ext.extension.v1~test.package.hooks.domain.v1~hai3.demo.ext1.v1',
+    domain: testDomainId,
+    entry: 'gts.hai3.mfes.mfe.entry.v1~test.package.hooks.entry.v1',
+  };
+
+  const demoExtension2: Extension = {
+    id: 'gts.hai3.mfes.ext.extension.v1~test.package.hooks.domain.v1~hai3.demo.ext2.v1',
+    domain: testDomainId,
+    entry: 'gts.hai3.mfes.mfe.entry.v1~test.package.hooks.entry.v1',
+  };
+
+  const otherExtension: Extension = {
+    id: 'gts.hai3.mfes.ext.extension.v1~test.package.hooks.domain.v1~hai3.other.ext1.v1',
+    domain: testDomainId,
+    entry: 'gts.hai3.mfes.mfe.entry.v1~test.package.hooks.entry.v1',
+  };
+
+  /**
+   * Helper: build app and mock registerExtension/unregisterExtension to bypass
+   * GTS validation while still dispatching store actions and tracking packages.
+   * The hook subscribes to store changes and calls getRegisteredPackages(),
+   * so we mock the registration methods to populate package tracking and dispatch
+   * an action to trigger store subscribers.
+   */
+  function buildApp(): HAI3App {
+    const app = createHAI3()
+      .use(screensets())
+      .use(effects())
+      .use(microfrontends())
+      .build();
+    apps.push(app);
+
+    // Track packages for mock
+    const packageMap = new Map<string, Set<string>>();
+
+    // Mock registerExtension to bypass validation, dispatch action, and track packages
+    const origRegisterDomain = app.screensetsRegistry.registerDomain.bind(app.screensetsRegistry);
+    app.screensetsRegistry.registerDomain = (domain: ExtensionDomain) => {
+      origRegisterDomain(domain);
+    };
+
+    app.screensetsRegistry.registerExtension = vi.fn(async (ext: Extension) => {
+      // Extract package (simplified extraction for test)
+      const instancePortion = ext.id.split('~')[ext.id.split('~').length - 1];
+      const dotSegments = instancePortion.split('.');
+      const packageId = `${dotSegments[0]}.${dotSegments[1]}`;
+
+      if (!packageMap.has(packageId)) {
+        packageMap.set(packageId, new Set());
+      }
+      packageMap.get(packageId)!.add(ext.id);
+
+      // Dispatch any action to trigger store subscribers
+      app.store.dispatch({ type: 'mfe/setExtensionRegistered', payload: { extensionId: ext.id } });
+    });
+
+    app.screensetsRegistry.unregisterExtension = vi.fn(async (extId: string) => {
+      // Remove from packages
+      for (const [packageId, extensions] of packageMap.entries()) {
+        if (extensions.has(extId)) {
+          extensions.delete(extId);
+          if (extensions.size === 0) {
+            packageMap.delete(packageId);
+          }
+          break;
+        }
+      }
+
+      // Dispatch any action to trigger store subscribers
+      app.store.dispatch({ type: 'mfe/setExtensionUnregistered', payload: { extensionId: extId } });
+    });
+
+    // Mock getRegisteredPackages to return from our tracked map
+    app.screensetsRegistry.getRegisteredPackages = vi.fn(() => {
+      return Array.from(packageMap.keys());
+    });
+
+    return app;
+  }
+
+  function buildWrapper(app: HAI3App) {
+    return ({ children }: { children: React.ReactNode }) => (
+      <HAI3Provider app={app}>{children}</HAI3Provider>
+    );
+  }
+
+  describe('Store subscription', () => {
+    it('39.6.13 should return registered packages from the registry', async () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      await app.screensetsRegistry.registerExtension(demoExtension1);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toHaveLength(1);
+      expect(result.current).toContain('hai3.demo');
+    });
+
+    it('should return empty array when no extensions registered', () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toEqual([]);
+    });
+
+    it('should update when extension is registered', async () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toHaveLength(0);
+
+      await act(async () => {
+        await app.screensetsRegistry.registerExtension(demoExtension1);
+      });
+
+      await waitFor(() => {
+        expect(result.current).toHaveLength(1);
+      });
+
+      expect(result.current).toContain('hai3.demo');
+    });
+
+    it('should deduplicate packages from same package', async () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+
+      await app.screensetsRegistry.registerExtension(demoExtension1);
+      await app.screensetsRegistry.registerExtension(demoExtension2);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toHaveLength(1);
+      expect(result.current).toEqual(['hai3.demo']);
+    });
+
+    it('should return multiple packages from different packages', async () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+
+      await app.screensetsRegistry.registerExtension(demoExtension1);
+      await app.screensetsRegistry.registerExtension(otherExtension);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toHaveLength(2);
+      expect(result.current).toContain('hai3.demo');
+      expect(result.current).toContain('hai3.other');
+    });
+
+    it('should update when extension is unregistered', async () => {
+      const app = buildApp();
+      const testContainerProvider = new TestContainerProvider();
+      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+
+      await app.screensetsRegistry.registerExtension(demoExtension1);
+      await app.screensetsRegistry.registerExtension(demoExtension2);
+
+      const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
+
+      expect(result.current).toHaveLength(1);
+
+      await act(async () => {
+        await app.screensetsRegistry.unregisterExtension(demoExtension1.id);
+      });
+
+      // Package still exists (demoExtension2 still registered)
+      await waitFor(() => {
+        expect(result.current).toHaveLength(1);
+      });
+
+      await act(async () => {
+        await app.screensetsRegistry.unregisterExtension(demoExtension2.id);
+      });
+
+      // Package removed (last extension unregistered)
+      await waitFor(() => {
+        expect(result.current).toHaveLength(0);
+      });
+    });
+  });
+});

@@ -4,7 +4,7 @@
  * This package provides:
  * - HAI3Provider context provider
  * - Type-safe hooks for state and actions
- * - AppRouter for screen rendering
+ * - MFE context, hooks, and components
  *
  * Layer: L3 (Depends on @hai3/framework)
  */
@@ -26,11 +26,8 @@ export {
   useTranslation,
   useScreenTranslations,
   useFormatters,
-  useNavigation,
   useTheme,
 } from './hooks';
-
-export { useRouteParams } from './hooks/useRouteParams';
 
 // ============================================================================
 // MFE Context and Hooks
@@ -44,6 +41,8 @@ export {
   useSharedProperty,
   useHostAction,
   useDomainExtensions,
+  useRegisteredPackages,
+  useActivePackage,
   RefContainerProvider,
   ExtensionDomainSlot,
 } from './mfe';
@@ -55,26 +54,11 @@ export type {
 } from './mfe';
 
 // ============================================================================
-// Components
-// ============================================================================
-
-export { AppRouter } from './components';
-
-// ============================================================================
-// Contexts
-// ============================================================================
-
-export { RouteParamsProvider, RouteParamsContext } from './contexts/RouteParamsContext';
-export type { RouteParams, RouteParamsProviderProps } from './contexts/RouteParamsContext';
-
-// ============================================================================
 // Type Exports
 // ============================================================================
 
 export type {
   HAI3ProviderProps,
-  RouterType,
-  RouterConfig,
   UseHAI3Return,
   UseAppSelector,
   UseAppDispatchReturn,
@@ -82,8 +66,6 @@ export type {
   UseScreenTranslationsReturn,
   UseFormattersReturn,
   UseThemeReturn,
-  UseNavigationReturn,
-  AppRouterProps,
 } from './types';
 
 // ============================================================================
@@ -109,14 +91,11 @@ export {
   screensets,
   themes,
   layout,
-  navigation,
-  routing,
   i18n,
   effects,
 
   // Registries
   createThemeRegistry,
-  createRouteRegistry,
 
   // Flux (Event bus + Store)
   // NOTE: eventBus is re-exported separately below with augmented EventPayloadMap type
@@ -251,12 +230,9 @@ export type {
   PluginLifecycle,
   ThemeRegistry,
   ThemeConfig,
-  RouteRegistry,
   Preset,
   Presets,
   ScreensetsConfig,
-  NavigateToScreenPayload,
-  NavigateToScreensetPayload,
   ShowPopupPayload,
   ChangeThemePayload,
   SetLanguagePayload,
@@ -446,6 +422,7 @@ export { MfeHandlerMF, gtsPlugin } from '@hai3/framework';
 export {
   createShadowRoot,
   injectCssVariables,
+  extractGtsPackage,
 } from '@hai3/framework';
 
 // MFE Plugin types

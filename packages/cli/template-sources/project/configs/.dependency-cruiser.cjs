@@ -28,14 +28,14 @@ module.exports = {
 
     // ============ L4 SCREENSET: ISOLATION RULES ============
     {
-      name: 'no-cross-screenset-imports',
+      name: 'no-cross-mfe-imports',
       severity: 'error',
-      from: { path: '^src/screensets/([^/]+)/' },
+      from: { path: '^src/mfe_packages/([^/]+)/' },
       to: {
-        path: '^src/screensets/[^/]+/',
-        pathNot: ['^src/screensets/$1/', '^src/screensets/screensetRegistry\\.tsx$'],
+        path: '^src/mfe_packages/[^/]+/',
+        pathNot: ['^src/mfe_packages/$1/'],
       },
-      comment: 'Screensets must not import from other screensets (vertical slice isolation). Each screenset is self-contained.',
+      comment: 'MFE packages must not import from other MFE packages (vertical slice isolation). Each MFE is self-contained.',
     },
     {
       name: 'no-circular-screenset-deps',

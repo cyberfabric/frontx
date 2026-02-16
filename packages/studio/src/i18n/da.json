@@ -10,6 +10,7 @@
     "screenset": "Skærmsæt:",
     "theme": "Tema:",
     "language": "Sprog:",
-    "mockApi": "Mock-API"
+    "mockApi": "Mock-API",
+    "gts_package": "GTS Package"
   }
 }

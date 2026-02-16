@@ -69,6 +69,9 @@ export {
   injectCssVariables,
 } from './shadow';
 
+// GTS Utilities
+export { extractGtsPackage } from './gts';
+
 // NOTE: Shared Properties Provider and Runtime Coordination
 // are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.
 // These are encapsulated within the registry class per SOLID principles.

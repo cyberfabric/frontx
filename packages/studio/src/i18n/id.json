@@ -10,6 +10,7 @@
     "screenset": "Set Layar:",
     "theme": "Tema:",
     "language": "Bahasa:",
-    "mockApi": "API Tiruan"
+    "mockApi": "API Tiruan",
+    "gts_package": "GTS Package"
   }
 }

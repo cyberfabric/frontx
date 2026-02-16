@@ -50,7 +50,6 @@ root:
     - src/app/App.no-studio.tsx
     - src/app/App.no-uikit.tsx
     - src/app/App.no-uikit.no-studio.tsx
-    - src/screensets/screensetRegistry.tsx
   directories:
     - src/app/themes      # Theme definitions
     - src/app/uikit       # UI kit registry

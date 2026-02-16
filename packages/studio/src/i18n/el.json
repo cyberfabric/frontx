@@ -10,6 +10,7 @@
     "screenset": "Σύνολο Οθονών:",
     "theme": "Θέμα:",
     "language": "Γλώσσα:",
-    "mockApi": "Mock API"
+    "mockApi": "Mock API",
+    "gts_package": "GTS Package"
   }
 }

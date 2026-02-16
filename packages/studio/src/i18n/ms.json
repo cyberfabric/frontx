@@ -10,6 +10,7 @@
     "screenset": "Set Skrin:",
     "theme": "Tema:",
     "language": "Bahasa:",
-    "mockApi": "API Palsu"
+    "mockApi": "API Palsu",
+    "gts_package": "GTS Package"
   }
 }

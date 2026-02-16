@@ -10,6 +10,7 @@
     "screenset": "Näyttösarja:",
     "theme": "Teema:",
     "language": "Kieli:",
-    "mockApi": "Mock-API"
+    "mockApi": "Mock-API",
+    "gts_package": "GTS Package"
   }
 }

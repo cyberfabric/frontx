@@ -31,7 +31,7 @@ import type { HAI3ProviderProps } from './types';
  * </HAI3Provider>
  *
  * // With pre-built app
- * const app = createHAI3().use(screensets()).build();
+ * const app = createHAI3().use(screensets()).use(microfrontends()).build();
  * <HAI3Provider app={app}>
  *   <App />
  * </HAI3Provider>
@@ -46,7 +46,6 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   children,
   config,
   app: providedApp,
-  router,
   mfeBridge,
 }) => {
   // Create or use provided app instance
@@ -55,15 +54,8 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
       return providedApp;
     }
 
-    // Merge router config into HAI3Config
-    const mergedConfig = {
-      ...config,
-      routerMode: router?.type,
-      autoNavigate: router?.autoNavigate ?? config?.autoNavigate,
-    };
-
-    return createHAI3App(mergedConfig);
-  }, [providedApp, config, router]);
+    return createHAI3App(config);
+  }, [providedApp, config]);
 
   // Cleanup on unmount
   useEffect(() => {

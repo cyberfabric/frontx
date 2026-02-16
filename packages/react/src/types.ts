@@ -35,21 +35,6 @@ type TranslationParams = Record<string, string | number | boolean>;
 // ============================================================================
 
 /**
- * Router configuration type
- */
-export type RouterType = 'browser' | 'hash' | 'memory';
-
-/**
- * Router configuration
- */
-export interface RouterConfig {
-  /** Router type - browser (default), hash, or memory */
-  type?: RouterType;
-  /** Auto-navigate to first screen on load (default: true) */
-  autoNavigate?: boolean;
-}
-
-/**
  * HAI3 Provider Props
  * Props for the main HAI3Provider component.
  *
@@ -59,8 +44,9 @@ export interface RouterConfig {
  *   <App />
  * </HAI3Provider>
  *
- * // With router configuration
- * <HAI3Provider router={{ type: 'hash' }}>
+ * // With pre-built app
+ * const app = createHAI3().use(screensets()).use(microfrontends()).build();
+ * <HAI3Provider app={app}>
  *   <App />
  * </HAI3Provider>
  *
@@ -77,8 +63,6 @@ export interface HAI3ProviderProps {
   config?: HAI3Config;
   /** Pre-built HAI3 app instance (optional) */
   app?: HAI3App;
-  /** Router configuration */
-  router?: RouterConfig;
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
 }
@@ -152,33 +136,3 @@ export interface UseThemeReturn {
  * References @hai3/i18n Formatters so signatures stay in sync.
  */
 export type UseFormattersReturn = Formatters;
-
-/**
- * useNavigation Hook Return Type
- * Navigation utilities.
- */
-export interface UseNavigationReturn {
-  /** Navigate to a screen, optionally with route params */
-  navigateToScreen: (screensetId: string, screenId: string, params?: Record<string, string>) => void;
-  /** Navigate to a screenset (uses default screen) */
-  navigateToScreenset: (screensetId: string) => void;
-  /** Current screenset ID */
-  currentScreenset: string | null;
-  /** Current screen ID */
-  currentScreen: string | null;
-}
-
-// ============================================================================
-// App Router Props
-// ============================================================================
-
-/**
- * App Router Props
- * Props for the AppRouter component.
- */
-export interface AppRouterProps {
-  /** Fallback component while loading */
-  fallback?: ReactNode;
-  /** Error boundary fallback */
-  errorFallback?: ReactNode | ((error: Error) => ReactNode);
-}

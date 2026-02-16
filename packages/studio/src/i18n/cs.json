@@ -10,6 +10,7 @@
     "screenset": "Sada obrazovek:",
     "theme": "Motiv:",
     "language": "Jazyk:",
-    "mockApi": "Simulované API"
+    "mockApi": "Simulované API",
+    "gts_package": "GTS Package"
   }
 }

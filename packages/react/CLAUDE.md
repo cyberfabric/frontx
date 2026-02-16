@@ -1,6 +1,6 @@
 # @hai3/react
 
-React bindings and hooks for HAI3 applications. Provides the React integration layer.
+React bindings and hooks for HAI3 applications. Provides the React integration layer with MFE (Microfrontend) support.
 
 ## React Layer
 
@@ -46,7 +46,13 @@ import { useHAI3 } from '@hai3/react';
 
 function MyComponent() {
   const app = useHAI3();
-  const screensets = app.screensetRegistry.getAll();
+
+  // Access MFE-enabled registry
+  const extensions = app.screensetsRegistry.getRegisteredExtensions();
+
+  // Access MFE actions
+  await app.actions.loadExtension({ extensionId: 'home' });
+  await app.actions.mountExtension({ extensionId: 'home', domainId: 'screen', container });
 }
 ```
 
@@ -56,11 +62,10 @@ Type-safe Redux hooks:
 
 ```tsx
 import { useAppDispatch, useAppSelector } from '@hai3/react';
-import { selectActiveScreen } from '@hai3/react';
 
 function MyComponent() {
   const dispatch = useAppDispatch();
-  const activeScreen = useAppSelector(selectActiveScreen);
+  const activeScreen = useAppSelector((state) => state.layout.screen.activeScreen);
 }
 ```
 
@@ -105,24 +110,6 @@ function HomeScreen() {
 }
 ```
 
-#### useNavigation
-
-Navigate between screens:
-
-```tsx
-import { useNavigation } from '@hai3/react';
-
-function MyComponent() {
-  const { navigateToScreen, navigateToScreenset, currentScreen } = useNavigation();
-
-  return (
-    <button onClick={() => navigateToScreen('demo', 'home')}>
-      Go to Home
-    </button>
-  );
-}
-```
-
 #### useTheme
 
 Access theme utilities:
@@ -143,45 +130,193 @@ function ThemeToggle() {
 }
 ```
 
-### Components
+### MFE Hooks
 
-#### AppRouter
+#### useMfeBridge
 
-Renders screens with lazy loading:
+Access the MFE bridge for child MFEs:
 
 ```tsx
-import { AppRouter } from '@hai3/react';
+import { useMfeBridge } from '@hai3/react';
+import { HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
 
-function App() {
+function MyExtension() {
+  const bridge = useMfeBridge();
+
+  // Execute actions chain on parent
+  await bridge.executeActionsChain({
+    action: { type: HAI3_ACTION_LOAD_EXT, target: 'screen', payload: { extensionId: 'other' } }
+  });
+
+  // Get shared property
+  const theme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
+}
+```
+
+#### useSharedProperty
+
+Subscribe to shared property changes:
+
+```tsx
+import { useSharedProperty, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+
+function ThemedComponent() {
+  const theme = useSharedProperty(HAI3_SHARED_PROPERTY_THEME);
+
+  return <div style={{ backgroundColor: theme?.primaryColor }}>...</div>;
+}
+```
+
+#### useHostAction
+
+Invoke actions on the host application:
+
+```tsx
+import { useHostAction, HAI3_ACTION_LOAD_EXT } from '@hai3/react';
+
+function MyExtension() {
+  const loadExtension = useHostAction(HAI3_ACTION_LOAD_EXT);
+
+  const handleClick = () => {
+    loadExtension({ extensionId: 'other' });
+  };
+
+  return <button onClick={handleClick}>Load Extension</button>;
+}
+```
+
+#### useDomainExtensions
+
+Subscribe to extensions in a domain:
+
+```tsx
+import { useDomainExtensions } from '@hai3/react';
+
+function ScreenList() {
+  const screenExtensions = useDomainExtensions('screen');
+
   return (
-    <HAI3Provider>
-      <Layout>
-        <AppRouter
-          fallback={<Loading />}
-          errorFallback={(error) => <Error error={error} />}
-        />
-      </Layout>
-    </HAI3Provider>
+    <ul>
+      {screenExtensions.map((ext) => (
+        <li key={ext.id}>{ext.title}</li>
+      ))}
+    </ul>
   );
 }
 ```
 
+#### useRegisteredPackages
+
+Subscribe to registered GTS packages:
+
+```tsx
+import { useRegisteredPackages } from '@hai3/react';
+
+function PackageList() {
+  const packages = useRegisteredPackages();
+
+  return (
+    <ul>
+      {packages.map((pkg) => (
+        <li key={pkg}>{pkg}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+#### useActivePackage
+
+Subscribe to the active GTS package (the package of the currently mounted screen extension):
+
+```tsx
+import { useActivePackage } from '@hai3/react';
+
+function ActivePackageIndicator() {
+  const activePackage = useActivePackage();
+
+  if (!activePackage) {
+    return <div>No active screen</div>;
+  }
+
+  return <div>Active: {activePackage}</div>;
+}
+```
+
+### MFE Components
+
+#### MfeProvider
+
+Provide MFE context for child extensions:
+
+```tsx
+import { MfeProvider } from '@hai3/react';
+
+function MfeHost() {
+  return (
+    <MfeProvider bridge={parentBridge}>
+      <ExtensionContainer />
+    </MfeProvider>
+  );
+}
+```
+
+#### ExtensionDomainSlot
+
+Render extensions into a domain slot:
+
+```tsx
+import { ExtensionDomainSlot } from '@hai3/react';
+
+function LayoutScreen() {
+  return (
+    <div>
+      <ExtensionDomainSlot
+        domainId="screen"
+        containerRef={screenContainerRef}
+        fallback={<Loading />}
+      />
+    </div>
+  );
+}
+```
+
+#### RefContainerProvider
+
+Provide container references for MFE mounting:
+
+```tsx
+import { RefContainerProvider } from '@hai3/react';
+
+function Layout() {
+  return (
+    <RefContainerProvider>
+      <ScreenContainer />
+      <SidebarContainer />
+    </RefContainerProvider>
+  );
+}
+```
+
+### Components
+
 ## Key Rules
 
 1. **Wrap with HAI3Provider** - Required for all hooks to work
-2. **Use hooks for state access** - Don't import selectors directly from @hai3/layout
+2. **Use hooks for state access** - Don't import selectors directly from @hai3/framework
 3. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
-4. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
+4. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
+5. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
 
 ## Re-exports
 
 For convenience, this package re-exports everything from @hai3/framework:
 
 - All SDK primitives (eventBus, createStore, etc.)
-- All plugins (screensets, themes, layout, etc.)
+- All plugins (screensets, themes, layout, microfrontends, etc.)
 - All registries and factory functions
-- All selectors from @hai3/layout
-- All types
+- All types (including MFE types)
+- All MFE actions, selectors, and domain constants
 
 This allows users to import everything from `@hai3/react` without needing `@hai3/framework` directly.
 
@@ -189,7 +324,9 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 
 ### Components
 - `HAI3Provider` - Main context provider
-- `AppRouter` - Screen router
+- `MfeProvider` - MFE context provider
+- `ExtensionDomainSlot` - Domain slot renderer
+- `RefContainerProvider` - Container reference provider
 
 ### Hooks
 - `useHAI3` - Access app instance
@@ -197,13 +334,88 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `useAppSelector` - Typed selector
 - `useTranslation` - Translation utilities
 - `useScreenTranslations` - Screen translation loading
-- `useNavigation` - Navigation utilities
 - `useTheme` - Theme utilities
+- `useMfeBridge` - Access MFE bridge
+- `useSharedProperty` - Subscribe to shared property
+- `useHostAction` - Invoke host action
+- `useDomainExtensions` - Subscribe to domain extensions
+- `useRegisteredPackages` - Subscribe to registered GTS packages
+- `useActivePackage` - Subscribe to active GTS package
 
 ### Context
 - `HAI3Context` - React context (for advanced use)
+- `MfeContext` - MFE context (for advanced use)
 
 ### Types
-- `HAI3ProviderProps`, `AppRouterProps`
-- `UseTranslationReturn`, `UseNavigationReturn`, `UseThemeReturn`
+- `HAI3ProviderProps`
+- `MfeProviderProps`, `ExtensionDomainSlotProps`
+- `UseTranslationReturn`, `UseThemeReturn`
 - All types from @hai3/framework
+
+## Migration from Legacy API
+
+The `useNavigation` hook has been removed. Use MFE hooks and actions instead:
+
+### Removed Hook
+- `useNavigation()` (replaced by MFE actions and hooks)
+
+### Migration Examples
+
+**OLD**: Navigate using hook
+```tsx
+import { useNavigation } from '@hai3/react';
+
+function MyComponent() {
+  const { navigateToScreen } = useNavigation();
+
+  return (
+    <button onClick={() => navigateToScreen('demo', 'home')}>
+      Go Home
+    </button>
+  );
+}
+```
+
+**NEW**: Mount extension using app actions
+```tsx
+import { useHAI3 } from '@hai3/react';
+
+function MyComponent() {
+  const app = useHAI3();
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const handleNavigate = async () => {
+    if (containerRef.current) {
+      await app.actions.mountExtension({
+        extensionId: 'home',
+        domainId: 'screen',
+        container: containerRef.current,
+      });
+    }
+  };
+
+  return (
+    <>
+      <button onClick={handleNavigate}>Go Home</button>
+      <div ref={containerRef} />
+    </>
+  );
+}
+```
+
+**NEW (Alternative)**: Use ExtensionDomainSlot
+```tsx
+import { ExtensionDomainSlot } from '@hai3/react';
+
+function MyComponent() {
+  return (
+    <ExtensionDomainSlot
+      domainId="screen"
+      containerRef={screenContainerRef}
+      fallback={<Loading />}
+    />
+  );
+}
+```
+
+See the MFE migration guide in the project documentation for detailed migration steps.

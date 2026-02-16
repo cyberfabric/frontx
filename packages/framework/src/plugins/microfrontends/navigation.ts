@@ -7,41 +7,6 @@
  * NOTE: This module provides navigation event handlers for MFE mounting.
  */
 
-import { eventBus } from '@hai3/state';
-import { unmountExtension } from './actions';
-
-// ============================================================================
-// Navigation Event Types
-// ============================================================================
-
-/** Navigation to screen event */
-export const NavigationEvents = {
-  NavigateToScreen: 'navigation/navigateToScreen',
-  ScreenChanged: 'navigation/screenChanged',
-} as const;
-
-/** Payload for navigate to screen event */
-export interface NavigateToScreenPayload {
-  screensetId: string;
-  screenId: string;
-  params?: Record<string, string>;
-}
-
-/** Payload for screen changed event */
-export interface ScreenChangedPayload {
-  screensetId: string;
-  screenId: string;
-  previousScreenId?: string;
-}
-
-// Module augmentation for type-safe navigation events
-declare module '@hai3/state' {
-  interface EventPayloadMap {
-    'navigation/navigateToScreen': NavigateToScreenPayload;
-    'navigation/screenChanged': ScreenChangedPayload;
-  }
-}
-
 // ============================================================================
 // Navigation Manager Class
 // ============================================================================
@@ -113,24 +78,9 @@ class MfeNavigationManager extends NavigationManager {
 
     this.initialized = true;
 
-    // Listen for screen changes
-    const unsubScreenChanged = eventBus.on(NavigationEvents.ScreenChanged, async (payload) => {
-      const { previousScreenId } = payload;
-
-      // Unmount previous screen extension if exists
-      if (previousScreenId && this.currentScreenExtensionId) {
-        try {
-          unmountExtension(this.currentScreenExtensionId);
-          this.currentScreenExtensionId = null;
-        } catch (error) {
-          console.error('[MFE Navigation] Failed to unmount previous screen:', error);
-        }
-      }
-
-      // Screen navigation complete
-      // Applications handle mountExtension explicitly when needed
-    });
-    this.unsubscribers.push(unsubScreenChanged);
+    // Navigation integration is available for future use
+    // Currently no event subscriptions are needed
+    // Applications handle mountExtension/unmountExtension explicitly
 
     // Return cleanup function
     return () => {

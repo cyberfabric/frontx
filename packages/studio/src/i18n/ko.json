@@ -10,6 +10,7 @@
     "screenset": "화면 세트:",
     "theme": "테마:",
     "language": "언어:",
-    "mockApi": "모의 API"
+    "mockApi": "모의 API",
+    "gts_package": "GTS Package"
   }
 }
