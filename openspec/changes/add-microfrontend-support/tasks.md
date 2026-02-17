@@ -47,7 +47,7 @@ None. Phase 43 is COMPLETE.
 | Phase 38 | Remove legacy screensets API remnants from packages: types, plugins, CLI, studio, docs | COMPLETE |
 | Phase 39 | Restore screenset package selector in Studio ControlPanel using GTS package query API | COMPLETE |
 | Phase 40 | Fix contract validation rule 3: exclude infrastructure lifecycle actions from subset check | COMPLETE |
-| Phase 41 | Fix action schema oneOf/x-gts-ref bug, error visibility in executeActionsChain, dev server script | COMPLETE |
+| Phase 41 | Restore action schema oneOf/x-gts-ref (gts-ts 0.2.0 upgrade), error visibility in executeActionsChain, dev server script | COMPLETE |
 | Phase 42 | Shadow DOM mount pipeline fix + store synchronization for MFE React hooks | COMPLETE |
 | Phase 43 | Theme and language propagation with full Shadow DOM isolation: platform-level `all: initial` in `createShadowRoot()`, propagation effects, `applyThemeToShadowRoot()`, lifecycle theme subscription, architecture audit fixes (remove L1 mount callback, fix MFE cross-boundary theme imports) | COMPLETE |
 

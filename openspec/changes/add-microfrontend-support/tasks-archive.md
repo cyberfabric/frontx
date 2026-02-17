@@ -264,7 +264,7 @@ Merge all 4 MFE packages (`hello-world-mfe`, `profile-mfe`, `current-theme-mfe`,
 
 ### 41.1-41.7 All Tasks Complete
 
-- [x] 41.1 Fix action schema -- remove `oneOf` from target property.
+- [x] 41.1 Fix action schema -- upgrade gts-ts to 0.2.0, restore `oneOf` with `x-gts-ref` on target property.
 - [x] 41.2 Fix silent error swallowing in `executeActionsChain` (add `console.error` logging).
 - [x] 41.3 Fix demo MFE dev server script (`vite build && vite preview`).
 - [x] 41.4 Update existing tests referencing `oneOf` behavior.

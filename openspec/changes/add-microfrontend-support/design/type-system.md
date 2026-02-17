@@ -181,8 +181,8 @@ The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. F
 - Schema IDs end with `~`, instance IDs do NOT end with `~`
 - gts-ts extracts the schema ID from the chained instance ID automatically
 
-**Schema Authoring Constraint -- `x-gts-ref` inside `oneOf`/`anyOf`:**
-Since gts-ts delegates to Ajv for JSON Schema validation, and Ajv does not recognize `x-gts-ref` (a GTS extension keyword), subschemas containing ONLY `x-gts-ref` are treated as empty schemas `{}` by Ajv. An empty schema validates anything. If two such subschemas are placed inside `oneOf`, both always match, and `oneOf` (which requires exactly one match) always fails. **Rule: Never use `x-gts-ref` as the sole content of a subschema inside `oneOf` or `anyOf`.** Use `x-gts-ref` at the top level of a property or inside `items`. When a property can reference multiple entity types, use a plain `"type": "string"` constraint and defer type-specific validation to runtime logic. See [schemas.md - Action Schema](./schemas.md#action-schema) for an example of this pattern.
+**`x-gts-ref` inside `oneOf`/`anyOf` (resolved in gts-ts 0.2.0):**
+gts-ts 0.2.0 fixed the Ajv combinator traversal issue (gts-ts issue #10) that previously caused `x-gts-ref`-only subschemas inside `oneOf`/`anyOf` to be treated as empty schemas by Ajv. With gts-ts 0.2.0+, `x-gts-ref` works correctly as the sole content of a subschema inside `oneOf` and `anyOf`. See [schemas.md - Action Schema](./schemas.md#action-schema) for the canonical example: the `target` field uses `oneOf` with two `x-gts-ref` subschemas to validate domain or extension references.
 
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts

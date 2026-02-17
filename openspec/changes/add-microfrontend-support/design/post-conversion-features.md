@@ -1,5 +1,7 @@
 # Post-Conversion Feature Set (Current State)
 
+> **Historical document.** All gaps described below were resolved in Phase 36 (Feature Parity Remediation). This document is preserved as a baseline reference for the remediation work. See `tasks.md` Phase 36 and `tasks-archive.md` Phase 36 for remediation details.
+
 Documents the current state of the MFE conversion after Phase 35, identifying every gap against the pre-conversion baseline (`pre-conversion-features.md`).
 
 ## Architecture Error: 4 MFEs Instead of 1

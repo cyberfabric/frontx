@@ -40,15 +40,13 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** validation SHALL fail if the referenced type is not registered
 - **AND** error message SHALL identify the invalid x-gts-ref reference
 
-#### Scenario: x-gts-ref MUST NOT be used inside oneOf/anyOf (Ajv incompatibility)
+#### Scenario: x-gts-ref works inside oneOf/anyOf with gts-ts 0.2.0+
 
-- **GIVEN** gts-ts delegates to Ajv for JSON Schema validation
-- **AND** Ajv does not recognize the `x-gts-ref` extension keyword
-- **WHEN** a subschema contains only `x-gts-ref` (no standard JSON Schema keywords)
-- **THEN** Ajv treats the subschema as an empty schema `{}` that validates anything
-- **AND** if two such subschemas appear inside `oneOf`, both always match, causing `oneOf` to fail (requires exactly one match)
-- **THEREFORE** schemas MUST NOT use `x-gts-ref` as the sole content of subschemas inside `oneOf` or `anyOf`
-- **AND** when a property can reference multiple entity types (e.g., domain OR extension), the schema MUST use a plain `"type": "string"` constraint and defer type-specific validation to runtime logic (e.g., mediator domain/extension lookup)
+- **GIVEN** gts-ts 0.2.0+ is used (which fixed combinator traversal -- gts-ts issue #10)
+- **WHEN** a subschema contains only `x-gts-ref` inside `oneOf`
+- **THEN** validation SHALL work correctly because gts-ts 0.2.0 resolved the Ajv combinator traversal issue
+- **AND** exactly one `x-gts-ref` subschema SHALL match, satisfying the `oneOf` constraint
+- **AND** the action schema `target` field is the canonical example: it uses `oneOf` with `x-gts-ref` subschemas for domain and extension references
 
 #### Scenario: x-gts-ref self-reference with /$id
 
