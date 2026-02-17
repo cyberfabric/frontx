@@ -6,4 +6,3 @@
 - Add LTR/RTL toggle on ui kit screen
 - Make "inheritColor" to be the default option in the TextLoader
 - Move lucide icons to the screensets ui kit
-- Restore `oneOf` with `x-gts-ref` in `action.v1.json` target field once gts-ts fixes combinator traversal (https://github.com/GlobalTypeSystem/gts-ts/issues/10)

@@ -58,6 +58,6 @@
   "author": "HAI3",
   "license": "Apache-2.0",
   "dependencies": {
-    "@globaltypesystem/gts-ts": "^0.1.1"
+    "@globaltypesystem/gts-ts": "^0.2.0"
   }
 }

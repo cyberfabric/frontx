@@ -254,8 +254,11 @@ A typed message with target and optional payload.
       "$comment": "Self-reference to this action's type ID"
     },
     "target": {
-      "type": "string",
-      "$comment": "Type ID of the target ExtensionDomain or Extension. Target type validation (domain vs extension) is performed at runtime by the mediator's domain/extension lookup, not by the JSON Schema."
+      "oneOf": [
+        { "x-gts-ref": "gts.hai3.mfes.ext.domain.v1~*" },
+        { "x-gts-ref": "gts.hai3.mfes.ext.extension.v1~*" }
+      ],
+      "$comment": "Type ID of the target ExtensionDomain or Extension"
     },
     "payload": {
       "type": "object",

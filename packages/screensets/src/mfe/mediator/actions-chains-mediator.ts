@@ -153,7 +153,10 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
     // Register and validate the action instance
     // Actions use their `type` field as the GTS entity identifier (no synthetic IDs)
     // See design/mfe-actions.md line 88: MUST NOT generate synthetic IDs
-    this.typeSystem.register(action);
+    // Note: createJsonEntity (in gts-ts) uses the `id` field for entity registration.
+    // Runtime actions only have `type`, so we set `id = type` to ensure the runtime
+    // action overwrites the pre-registered base action template.
+    this.typeSystem.register({ ...action, id: action.type });
     const validation = this.typeSystem.validateInstance(action.type);
 
     if (!validation.valid) {

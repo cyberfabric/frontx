@@ -2,7 +2,7 @@
  * Phase 41 Regression Tests
  *
  * Tests for:
- * - Action schema fix (removal of oneOf from target property)
+ * - Action schema target validation (oneOf with x-gts-ref for domain/extension)
  * - executeActionsChain error logging
  */
 
