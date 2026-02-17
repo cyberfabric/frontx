@@ -36,12 +36,29 @@ export function createShadowRoot(
 ): ShadowRoot {
   const { mode = 'open', delegatesFocus = false } = options;
 
-  // Return existing shadow root if already attached
+  // Get or create shadow root
+  let shadowRoot: ShadowRoot;
   if (element.shadowRoot) {
-    return element.shadowRoot;
+    shadowRoot = element.shadowRoot;
+  } else {
+    shadowRoot = element.attachShadow({ mode, delegatesFocus });
   }
 
-  return element.attachShadow({ mode, delegatesFocus });
+  // Inject isolation styles automatically (idempotent)
+  const isolationStyleId = '__hai3-shadow-isolation__';
+  if (!shadowRoot.getElementById(isolationStyleId)) {
+    const styleElement = document.createElement('style');
+    styleElement.id = isolationStyleId;
+    styleElement.textContent = `
+:host {
+  all: initial;
+  display: block;
+}
+    `.trim();
+    shadowRoot.appendChild(styleElement);
+  }
+
+  return shadowRoot;
 }
 
 /**
@@ -80,12 +97,6 @@ export function injectCssVariables(
   styleElement.textContent = `
 :host {
 ${cssRules}
-}
-
-/* Reset styles to isolate from parent */
-:host {
-  all: initial;
-  display: block;
 }
   `.trim();
 }

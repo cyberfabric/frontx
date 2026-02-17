@@ -318,7 +318,14 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @returns Promise resolving when execution is complete
    */
   async executeActionsChain(chain: ActionsChain): Promise<void> {
-    await this.mediator.executeActionsChain(chain);
+    const result = await this.mediator.executeActionsChain(chain);
+    if (!result.completed) {
+      console.error(
+        `[ScreensetsRegistry] Actions chain failed:`,
+        result.error ?? 'unknown error',
+        `| path: [${result.path.join(' -> ')}]`
+      );
+    }
   }
 
   /**

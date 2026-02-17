@@ -8,12 +8,19 @@
  * @packageDocumentation
  */
 
-import { screensetsRegistryFactory, type MfeHandler } from '@hai3/screensets';
+import {
+  screensetsRegistryFactory,
+  type MfeHandler,
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/screensets';
 import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { getStore, eventBus } from '@hai3/state';
 import type { HAI3Plugin } from '../../types';
-import { mfeSlice } from './slice';
+import { mfeSlice, setExtensionMounted, setExtensionUnmounted } from './slice';
 import { initMfeEffects } from './effects';
-import { initMfeNavigation } from './navigation';
 import {
   loadExtension,
   mountExtension,
@@ -22,6 +29,12 @@ import {
   unregisterExtension,
   setMfeRegistry,
 } from './actions';
+import {
+  HAI3_SCREEN_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_POPUP_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
+} from './constants';
 
 /**
  * Configuration for the microfrontends plugin.
@@ -79,9 +92,31 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
     mfeHandlers: config.mfeHandlers,
   });
 
+  // Wrap executeActionsChain to intercept mount/unmount completions for store dispatch
+  const originalExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+  screensetsRegistry.executeActionsChain = async (chain) => {
+    await originalExecuteActionsChain(chain);
+    // After successful execution, dispatch store updates for mount/unmount
+    const actionType = chain.action?.type;
+    if (actionType === HAI3_ACTION_MOUNT_EXT) {
+      const store = getStore();
+      const domainId = chain.action!.target;
+      const extensionId = chain.action!.payload?.extensionId as string;
+      if (domainId && extensionId) {
+        store.dispatch(setExtensionMounted({ domainId, extensionId }));
+      }
+    } else if (actionType === HAI3_ACTION_UNMOUNT_EXT) {
+      const store = getStore();
+      const domainId = chain.action!.target;
+      if (domainId) {
+        store.dispatch(setExtensionUnmounted({ domainId }));
+      }
+    }
+  };
+
   // Store cleanup functions in closure (encapsulated per plugin instance)
   let effectsCleanup: (() => void) | null = null;
-  let navigationCleanup: (() => void) | null = null;
+  let propagationCleanup: (() => void) | null = null;
 
   return {
     name: 'microfrontends',
@@ -113,7 +148,34 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
 
       // Initialize effects and store cleanup references
       effectsCleanup = initMfeEffects(screensetsRegistry);
-      navigationCleanup = initMfeNavigation();
+
+      // Set up theme propagation
+      const themeUnsub = eventBus.on('theme/changed', (payload) => {
+        for (const domainId of [HAI3_SCREEN_DOMAIN, HAI3_SIDEBAR_DOMAIN, HAI3_POPUP_DOMAIN, HAI3_OVERLAY_DOMAIN]) {
+          try {
+            screensetsRegistry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_THEME, payload.themeId);
+          } catch {
+            // Domain may not be registered yet -- skip silently
+          }
+        }
+      });
+
+      // Set up language propagation
+      const langUnsub = eventBus.on('i18n/language/changed', (payload) => {
+        for (const domainId of [HAI3_SCREEN_DOMAIN, HAI3_SIDEBAR_DOMAIN, HAI3_POPUP_DOMAIN, HAI3_OVERLAY_DOMAIN]) {
+          try {
+            screensetsRegistry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_LANGUAGE, payload.language);
+          } catch {
+            // Domain may not be registered yet -- skip silently
+          }
+        }
+      });
+
+      // Compose propagation cleanup
+      propagationCleanup = () => {
+        themeUnsub.unsubscribe();
+        langUnsub.unsubscribe();
+      };
 
       // Plugin is now initialized
       // TypeSystemPlugin: bound to screensetsRegistry
@@ -132,9 +194,9 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
         effectsCleanup();
         effectsCleanup = null;
       }
-      if (navigationCleanup) {
-        navigationCleanup();
-        navigationCleanup = null;
+      if (propagationCleanup) {
+        propagationCleanup();
+        propagationCleanup = null;
       }
     },
   };
@@ -158,12 +220,12 @@ export {
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
+  selectMountedExtension,
+  setExtensionMounted,
+  setExtensionUnmounted,
   type MfeState,
   type ExtensionRegistrationState,
 } from './slice';
-
-// Re-export navigation integration
-export { initMfeNavigation, getCurrentScreenExtension } from './navigation';
 
 // Re-export HAI3 layout domain constants and MfeEvents
 export {

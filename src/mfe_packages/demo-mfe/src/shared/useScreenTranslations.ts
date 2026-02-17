@@ -18,7 +18,7 @@
  * ```
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
 
@@ -46,11 +46,14 @@ export function useScreenTranslations(
 ): UseScreenTranslationsReturn {
   const [translations, setTranslations] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
-  const [currentLanguage, setCurrentLanguage] = useState<string>('en');
+  // Use ref to track current language for comparison without triggering effect re-runs
+  const currentLanguageRef = useRef<string>('en');
 
   // Load translations for the given language
   const loadTranslations = useCallback(
     async (language: string) => {
+      // Keep ref in sync
+      currentLanguageRef.current = language;
       setLoading(true);
       try {
         // Build module key from language (e.g., './i18n/en.json')
@@ -87,21 +90,19 @@ export function useScreenTranslations(
   // Subscribe to language property changes
   useEffect(() => {
     // Get initial language
-    const initialLanguage = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
-    const lang = typeof initialLanguage === 'string' ? initialLanguage : 'en';
-    setCurrentLanguage(lang);
+    const initialProperty = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
+    const lang = initialProperty && typeof initialProperty.value === 'string' ? initialProperty.value : 'en';
     loadTranslations(lang);
 
     // Subscribe to language changes
-    const unsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
-      if (typeof value === 'string' && value !== currentLanguage) {
-        setCurrentLanguage(value);
-        loadTranslations(value);
+    const unsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
+      if (typeof property.value === 'string' && property.value !== currentLanguageRef.current) {
+        loadTranslations(property.value);
       }
     });
 
     return unsubscribe;
-  }, [bridge, loadTranslations, currentLanguage]);
+  }, [bridge, loadTranslations]);
 
   // Translation function
   const t = useCallback(

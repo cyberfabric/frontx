@@ -59,12 +59,14 @@ export function useTranslation(): UseTranslationReturn {
     [i18nRegistry]
   );
 
-  // Set language function
+  // Set language via framework action (emits event bus for MFE propagation)
   const setLanguage = useCallback(
-    async (lang: Language) => {
-      await i18nRegistry.setLanguage(lang);
+    (lang: Language) => {
+      if (app.actions.setLanguage) {
+        app.actions.setLanguage({ language: lang });
+      }
     },
-    [i18nRegistry]
+    [app.actions]
   );
 
   // Check RTL - recomputes when language changes

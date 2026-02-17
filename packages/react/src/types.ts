@@ -101,7 +101,7 @@ export interface UseTranslationReturn {
   /** Current language */
   language: Language | null;
   /** Change language */
-  setLanguage: (language: Language) => Promise<void>;
+  setLanguage: (language: Language) => void;
   /** Check if current language is RTL */
   isRTL: boolean;
 }

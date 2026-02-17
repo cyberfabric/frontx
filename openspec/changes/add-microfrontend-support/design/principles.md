@@ -99,6 +99,8 @@ Optimizations for duplicate API requests happen through **optional private libra
 - Each MFE instance is fully responsible for initializing its own styles (Tailwind CSS, UIKit) inside its shadow root
 - MFEs MUST NOT use inline styles -- they use Tailwind classes and UIKit components
 
+**Platform-Level Isolation Guarantee**: The `createShadowRoot()` utility automatically injects CSS isolation styles (`:host { all: initial; display: block; }`) into every shadow root it creates. This is a platform guarantee -- no CSS (including CSS custom properties) leaks from host to MFE. MFEs start from a completely clean CSS slate with no opt-in required. The isolation styles are injected via a `<style id="__hai3-shadow-isolation__">` element with idempotency checks (existing style element is reused if present). This guarantee applies to both newly created shadow roots and pre-existing shadow roots passed to `createShadowRoot()`.
+
 **Custom handlers**: Other `MfeHandler` implementations (written by companies extending HAI3) may use different isolation strategies -- no Shadow DOM, iframe isolation, CSS Modules, or any other approach. The Shadow DOM enforcement is specific to `MfeHandlerMF`.
 
 ### Shared Dependencies: Tailwind + UIKit
@@ -145,6 +147,22 @@ Host Application
   | 'dark'   |     | 'dark'   |
   +---------+     +---------+
 ```
+
+#### End-to-End Propagation Flow
+
+The full propagation path from host event to MFE rendering:
+
+1. **Host fires event**: The host application dispatches `theme/changed` (with `ChangeThemePayload { themeId: string }`) or `i18n/language/changed` (with `SetLanguagePayload { language: string }`) on the framework event bus.
+
+2. **Microfrontends plugin listener**: The `microfrontends()` plugin (L2) subscribes to these events in its `onInit()`. On receiving the event, the listener calls `registry.updateDomainProperty(domainId, propertyTypeId, value)` for each of the 4 known base domain IDs (screen, sidebar, popup, overlay). Calls to unregistered domains are wrapped in try/catch and silently skipped.
+
+3. **Domain property update**: `ScreensetsRegistry.updateDomainProperty()` updates the property value in the domain's internal state and notifies all subscribed extension bridges.
+
+4. **Bridge property subscription fires**: Each mounted MFE that has called `bridge.subscribeToProperty(propertyTypeId, callback)` receives the new value via its callback. The bridge returns a `SharedProperty` object (`{ id: string; value: unknown }`), so the MFE accesses the string value via `property.value`.
+
+5. **MFE resolves and applies**: The MFE lifecycle code receives the string value (theme ID or language code) and acts on it internally. For theme: the MFE resolves the theme ID to a Theme object and calls `applyThemeToShadowRoot(shadowRoot, theme)` to set CSS variables inside its isolated Shadow DOM. For language: the MFE loads the appropriate translations and updates text direction.
+
+6. **Only strings cross the boundary**: The bridge carries only GTS-contract string values (theme ID strings like `'dark'`, `'light'`; language code strings like `'en'`, `'de'`). No Theme objects, no CSS variable maps, no translation bundles cross the bridge. Resolution of string identifiers to concrete resources is the MFE's internal concern.
 
 ---
 

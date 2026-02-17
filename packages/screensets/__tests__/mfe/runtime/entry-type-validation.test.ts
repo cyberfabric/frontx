@@ -6,7 +6,7 @@
  * and handlers are registered, registration should fail early.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
@@ -22,7 +22,6 @@ import { MockContainerProvider } from '../test-utils';
 describe('Entry Type Validation (Phase 32.3)', () => {
   let gtsPlugin: GtsPlugin;
   let mockContainerProvider: MockContainerProvider;
-  let validateInstanceSpy: ReturnType<typeof vi.spyOn>;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.entryval.reg.domain.v1',
@@ -81,25 +80,11 @@ describe('Entry Type Validation (Phase 32.3)', () => {
   beforeEach(() => {
     gtsPlugin = new GtsPlugin();
 
-    // Bypass GTS x-gts-ref oneOf validation bug on action.target field.
-    const originalValidateInstance = gtsPlugin.validateInstance.bind(gtsPlugin);
-    validateInstanceSpy = vi.spyOn(gtsPlugin, 'validateInstance').mockImplementation((instanceId: string) => {
-      const result = originalValidateInstance(instanceId);
-      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
-        return { valid: true, errors: [] };
-      }
-      return result;
-    });
-
     mockContainerProvider = new MockContainerProvider();
 
     // Register entries in GTS before using them
     gtsPlugin.register(nonMfEntry);
     gtsPlugin.register(mfEntry);
-  });
-
-  afterEach(() => {
-    validateInstanceSpy.mockRestore();
   });
 
   it('32.3.2 - should throw EntryTypeNotHandledError when handler cannot handle entry type', async () => {

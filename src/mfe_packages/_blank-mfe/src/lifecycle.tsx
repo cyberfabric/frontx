@@ -1,37 +1,20 @@
-import { createRoot, type Root } from 'react-dom/client';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '@hai3/react';
+import type { Root } from 'react-dom/client';
+import type { ChildMfeBridge } from '@hai3/react';
+import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
 import { HomeScreen } from './screens/home/HomeScreen';
 
 /**
  * Lifecycle implementation for the Blank MFE template.
- * Implements MfeEntryLifecycle with React rendering.
+ * Extends ThemeAwareReactLifecycle to inherit theme subscription logic.
  *
- * This class manages a React root internally and delegates rendering
- * to HomeScreen. The bridge is passed through as a prop for
+ * This class provides Blank MFE-specific Tailwind utilities and renders
+ * the HomeScreen component. The bridge is passed through as a prop for
  * communication with the host application.
  *
  * The container parameter is a Shadow DOM root (created by DefaultMountManager).
  * This lifecycle initializes Tailwind/UIKit styles inside the shadow root.
  */
-class BlankMfeLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
-  private root: Root | null = null;
-
-  mount(container: Element, bridge: ChildMfeBridge): void {
-    // Initialize styles in Shadow DOM
-    this.initializeStyles(container);
-
-    // Create React root and render
-    this.root = createRoot(container);
-    this.root.render(<HomeScreen bridge={bridge} />);
-  }
-
-  unmount(_container: Element): void {
-    if (this.root) {
-      this.root.unmount();
-      this.root = null;
-    }
-  }
-
+class BlankMfeLifecycle extends ThemeAwareReactLifecycle {
   /**
    * Initialize Tailwind CSS and UIKit styles inside the Shadow DOM.
    * CSS variables and styles do NOT penetrate Shadow DOM, so we must
@@ -40,7 +23,7 @@ class BlankMfeLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
    * This implementation injects Tailwind utility classes and CSS variables
    * that MFE components need. The styles are scoped to the shadow root.
    */
-  private initializeStyles(shadowRoot: Element): void {
+  protected initializeStyles(shadowRoot: Element | ShadowRoot): void {
     const styleElement = document.createElement('style');
 
     // Include Tailwind base, components, and utilities
@@ -61,34 +44,6 @@ class BlankMfeLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
         line-height: 1.5;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
-      }
-
-      /* CSS Custom Properties (theme variables) */
-      /* These match UIKit theme system and will be updated via domain properties */
-      :host {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --radius-sm: 0.125rem;
-        --radius-md: 0.25rem;
-        --radius-lg: 0.5rem;
-        --radius-xl: 1rem;
       }
 
       /* Tailwind utilities - layout */
@@ -136,6 +91,16 @@ class BlankMfeLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
     `;
 
     shadowRoot.appendChild(styleElement);
+  }
+
+  /**
+   * Render the Home screen component.
+   *
+   * @param root - The React root to render into
+   * @param bridge - The child MFE bridge for communication with the host
+   */
+  protected renderContent(root: Root, bridge: ChildMfeBridge): void {
+    root.render(<HomeScreen bridge={bridge} />);
   }
 }
 

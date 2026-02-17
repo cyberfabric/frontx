@@ -189,17 +189,19 @@ import {
   overlayDomain,
 } from '@hai3/framework';
 
-// String constants
-HAI3_SCREEN_DOMAIN   // 'screen'
-HAI3_SIDEBAR_DOMAIN  // 'sidebar'
-HAI3_POPUP_DOMAIN    // 'popup'
-HAI3_OVERLAY_DOMAIN  // 'overlay'
+// String constants (GTS instance IDs)
+HAI3_SCREEN_DOMAIN   // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1'
+HAI3_SIDEBAR_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1'
+HAI3_POPUP_DOMAIN    // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1'
+HAI3_OVERLAY_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1'
 
-// Domain objects (ExtensionDomain)
-screenDomain   // { id: 'screen', domainType: 'primary', allowedTypes: ['hai3.screen'] }
-sidebarDomain  // { id: 'sidebar', domainType: 'supplementary', ... }
-popupDomain    // { id: 'popup', domainType: 'overlay', ... }
-overlayDomain  // { id: 'overlay', domainType: 'overlay', ... }
+// Domain objects (ExtensionDomain interface: id, actions, extensionsActions,
+// sharedProperties, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages,
+// extensionsTypeId, lifecycle)
+screenDomain   // screen: swap semantics (load_ext, mount_ext only, NO unmount_ext)
+sidebarDomain  // sidebar: toggle semantics (load_ext, mount_ext, unmount_ext)
+popupDomain    // popup: toggle semantics (load_ext, mount_ext, unmount_ext)
+overlayDomain  // overlay: toggle semantics (load_ext, mount_ext, unmount_ext)
 ```
 
 ### Action and Property Constants

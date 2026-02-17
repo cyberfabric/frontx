@@ -40,12 +40,15 @@ The system SHALL abstract the Type System as a pluggable dependency. The screens
 - **AND** validation SHALL fail if the referenced type is not registered
 - **AND** error message SHALL identify the invalid x-gts-ref reference
 
-#### Scenario: x-gts-ref with oneOf for multiple target types
+#### Scenario: x-gts-ref MUST NOT be used inside oneOf/anyOf (Ajv incompatibility)
 
-- **WHEN** a schema field uses `oneOf` with multiple `x-gts-ref` options
-- **THEN** the plugin SHALL accept values matching ANY of the referenced types
-- **AND** validation SHALL fail if the value matches NONE of the referenced types
-- **AND** error message SHALL list all valid target type patterns
+- **GIVEN** gts-ts delegates to Ajv for JSON Schema validation
+- **AND** Ajv does not recognize the `x-gts-ref` extension keyword
+- **WHEN** a subschema contains only `x-gts-ref` (no standard JSON Schema keywords)
+- **THEN** Ajv treats the subschema as an empty schema `{}` that validates anything
+- **AND** if two such subschemas appear inside `oneOf`, both always match, causing `oneOf` to fail (requires exactly one match)
+- **THEREFORE** schemas MUST NOT use `x-gts-ref` as the sole content of subschemas inside `oneOf` or `anyOf`
+- **AND** when a property can reference multiple entity types (e.g., domain OR extension), the schema MUST use a plain `"type": "string"` constraint and defer type-specific validation to runtime logic (e.g., mediator domain/extension lookup)
 
 #### Scenario: x-gts-ref self-reference with /$id
 
@@ -296,8 +299,16 @@ The system SHALL validate that MFE entries are compatible with extension domains
 - **WHEN** registering an extension binding
 - **AND** entry.requiredProperties is a subset of domain.sharedProperties
 - **AND** entry.actions is a subset of domain.extensionsActions
-- **AND** domain.actions is a subset of entry.domainActions
+- **AND** domain.actions (excluding infrastructure lifecycle actions) is a subset of entry.domainActions
 - **THEN** registration SHALL succeed
+
+#### Scenario: Valid contract with infrastructure-only domain actions
+
+- **WHEN** registering an extension binding
+- **AND** domain.actions contains only infrastructure lifecycle actions (load_ext, mount_ext, unmount_ext)
+- **AND** entry.domainActions is empty
+- **THEN** registration SHALL succeed
+- **AND** infrastructure lifecycle actions SHALL be excluded from the rule 3 subset check
 
 #### Scenario: Missing required property
 
@@ -313,12 +324,13 @@ The system SHALL validate that MFE entries are compatible with extension domains
 - **THEN** registration SHALL fail with error type `unsupported_action`
 - **AND** error message SHALL identify the unsupported action
 
-#### Scenario: Unhandled domain action
+#### Scenario: Unhandled domain action (custom actions only)
 
 - **WHEN** registering an extension binding
-- **AND** domain emits an action not in entry.domainActions
+- **AND** domain emits a non-infrastructure action not in entry.domainActions
 - **THEN** registration SHALL fail with error type `unhandled_domain_action`
 - **AND** error message SHALL identify the unhandled action
+- **NOTE** infrastructure lifecycle actions (HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT) are excluded from this check
 
 #### Scenario: Optional properties not required
 
@@ -544,8 +556,8 @@ The system SHALL define a framework-agnostic `MfeEntryLifecycle` interface that 
 
 - **WHEN** importing `@hai3/screensets`
 - **THEN** the package SHALL export an `MfeEntryLifecycle` interface
-- **AND** the interface SHALL define `mount(container: Element, bridge: TBridge): void | Promise<void>` where `TBridge` defaults to `ChildMfeBridge`
-- **AND** the interface SHALL define `unmount(container: Element): void | Promise<void>`
+- **AND** the interface SHALL define `mount(container: Element | ShadowRoot, bridge: TBridge): void | Promise<void>` where `TBridge` defaults to `ChildMfeBridge`
+- **AND** the interface SHALL define `unmount(container: Element | ShadowRoot): void | Promise<void>`
 - **AND** all MFE entries SHALL export functions conforming to this interface
 
 #### Scenario: MFE module validation on load
@@ -745,6 +757,16 @@ The system SHALL provide Shadow DOM utilities for style isolation in `@hai3/scre
 - **THEN** the function SHALL create and return a ShadowRoot attached to the element
 - **AND** `mode` SHALL default to 'open'
 - **AND** the function SHALL handle already-attached shadow roots gracefully
+
+#### Scenario: createShadowRoot automatic CSS isolation
+
+- **WHEN** `createShadowRoot()` creates or returns a shadow root
+- **THEN** the function SHALL automatically inject CSS isolation styles (`:host { all: initial; display: block; }`) into the shadow root
+- **AND** the isolation styles SHALL be injected via a `<style>` element with `id="__hai3-shadow-isolation__"`
+- **AND** no CSS (including CSS custom properties) SHALL leak from the host into the shadow root
+- **AND** MFEs SHALL start from a completely clean CSS slate with no opt-in required
+- **AND** the injection SHALL be idempotent: if a style element with that ID already exists, it SHALL be reused
+- **AND** this guarantee SHALL apply to both newly created shadow roots and pre-existing shadow roots
 
 #### Scenario: injectCssVariables utility
 
@@ -1016,6 +1038,20 @@ Action timeouts SHALL be configured explicitly in type definitions, not as impli
 - **AND** the method SHALL return `Promise<void>`
 - **AND** action timeouts SHALL be resolved internally from action and domain type definitions
 - **AND** on timeout or any failure: execute fallback chain if defined
+
+#### Scenario: executeActionsChain error visibility on chain failure
+
+- **GIVEN** a registered domain with extensions
+- **WHEN** `registry.executeActionsChain(chain)` executes a chain that fails (e.g., handler throws, target not found)
+- **THEN** the method SHALL log `console.error` with a message containing `"Actions chain failed"`, the error description, and the execution path
+- **AND** the method SHALL still return a resolved `Promise<void>` (not reject)
+- **AND** the method SHALL NOT throw an error (fire-and-forget callers must not break)
+
+#### Scenario: executeActionsChain no error log on success
+
+- **GIVEN** a registered domain with extensions
+- **WHEN** `registry.executeActionsChain(chain)` executes a chain that succeeds
+- **THEN** the method SHALL NOT log any `console.error` messages
 
 ### Requirement: Dynamic Registration Model
 

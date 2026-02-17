@@ -166,7 +166,7 @@ The **ActionsChainsMediator** delivers action chains to targets and handles succ
 
 ### ActionsChainsMediator
 
-`ActionsChainsMediator` is an `@internal` abstract class. Its primary method is `executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>`, which returns a `ChainResult` containing `completed`, `path`, optional `error`, `timedOut`, and `executionTime` fields. `ScreensetsRegistry`'s public `executeActionsChain(chain): Promise<void>` wraps this -- it delegates to the mediator and discards the `ChainResult`, exposing a simpler fire-and-forget contract to consumers. Handler registration/unregistration methods are internal. The `ActionHandler` interface (`handleAction(actionTypeId, payload): Promise<void>`) is also internal -- used by domain and extension handlers. See [registry-runtime.md - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the abstract/concrete class pattern.
+`ActionsChainsMediator` is an `@internal` abstract class. Its primary method is `executeActionsChain(chain: ActionsChain, options?: ChainExecutionOptions): Promise<ChainResult>`, which returns a `ChainResult` containing `completed`, `path`, optional `error`, `timedOut`, and `executionTime` fields. `ScreensetsRegistry`'s public `executeActionsChain(chain): Promise<void>` wraps this -- it delegates to the mediator and logs `console.error` when `ChainResult.completed === false` (including the error message and execution path), providing failure visibility without changing the public `Promise<void>` contract. The method does NOT throw on chain failure because actions chains use the `fallback` mechanism for error recovery, and throwing would break fire-and-forget callers. Handler registration/unregistration methods are internal. The `ActionHandler` interface (`handleAction(actionTypeId, payload): Promise<void>`) is also internal -- used by domain and extension handlers. See [registry-runtime.md - Decision 18](./registry-runtime.md#decision-18-abstract-class-layers-with-singleton-construction) for the abstract/concrete class pattern.
 
 ### Action Support Validation
 
@@ -239,6 +239,7 @@ const result = await mediator.executeActionsChain(chain);
 // Chain-level timeout can be overridden per-request via ChainExecutionOptions:
 const result2 = await mediator.executeActionsChain(chain, { chainTimeout: 60000 });
 
-// Note: ScreensetsRegistry.executeActionsChain(chain) wraps this as Promise<void>,
-// discarding ChainResult. The mediator's richer return type is internal.
+// Note: ScreensetsRegistry.executeActionsChain(chain) wraps this as Promise<void>.
+// It logs console.error when ChainResult.completed === false (error visibility).
+// The mediator's richer return type is internal.
 ```

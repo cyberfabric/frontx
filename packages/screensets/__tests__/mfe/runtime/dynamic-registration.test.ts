@@ -4,7 +4,7 @@
  * Tests for dynamic registration of extensions and domains at runtime.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
@@ -61,21 +61,7 @@ describe('Dynamic Registration', () => {
     entry: testEntry.id,
   };
 
-  let validateInstanceSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    // Bypass GTS x-gts-ref oneOf validation bug on action.target field.
-    // The oneOf with two x-gts-ref entries in action.v1.json does not resolve correctly
-    // in gts-ts. This test suite tests dynamic registration, not GTS validation.
-    const originalValidateInstance = gtsPlugin.validateInstance.bind(gtsPlugin);
-    validateInstanceSpy = vi.spyOn(gtsPlugin, 'validateInstance').mockImplementation((instanceId: string) => {
-      const result = originalValidateInstance(instanceId);
-      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
-        return { valid: true, errors: [] };
-      }
-      return result;
-    });
-
     registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
@@ -83,10 +69,6 @@ describe('Dynamic Registration', () => {
 
     // Register the entry instance with GTS plugin before using it
     gtsPlugin.register(testEntry);
-  });
-
-  afterEach(() => {
-    validateInstanceSpy.mockRestore();
   });
 
   describe('factory', () => {
@@ -341,8 +323,9 @@ describe('Dynamic Registration', () => {
       // Verify handler.load was called (auto-load during mount)
       expect(mockHandler.load).toHaveBeenCalledTimes(1);
 
-      // Verify mount was called
-      expect(mockLifecycle.mount).toHaveBeenCalledWith(container, expect.anything());
+      // Verify mount was called with shadowRoot (not the raw container)
+      // Phase 42: DefaultMountManager creates shadow DOM boundary
+      expect(mockLifecycle.mount).toHaveBeenCalledWith(container.shadowRoot, expect.anything());
 
       // Verify extension is mounted
       expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);

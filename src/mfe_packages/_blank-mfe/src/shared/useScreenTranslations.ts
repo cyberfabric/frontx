@@ -87,16 +87,16 @@ export function useScreenTranslations(
   // Subscribe to language property changes
   useEffect(() => {
     // Get initial language
-    const initialLanguage = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
-    const lang = typeof initialLanguage === 'string' ? initialLanguage : 'en';
+    const initialProperty = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
+    const lang = initialProperty && typeof initialProperty.value === 'string' ? initialProperty.value : 'en';
     setCurrentLanguage(lang);
     loadTranslations(lang);
 
     // Subscribe to language changes
-    const unsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
-      if (typeof value === 'string' && value !== currentLanguage) {
-        setCurrentLanguage(value);
-        loadTranslations(value);
+    const unsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
+      if (typeof property.value === 'string' && property.value !== currentLanguage) {
+        setCurrentLanguage(property.value);
+        loadTranslations(property.value);
       }
     });
 

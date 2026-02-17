@@ -41,6 +41,38 @@ const app = createHAI3()
 - **AND** the plugin SHALL accept an optional configuration object with `mfeHandlers?: MfeHandler[]`
 - **AND** all domain and extension registration SHALL happen dynamically at runtime
 
+### Requirement: Theme and Language Propagation via Microfrontends Plugin
+
+The microfrontends plugin SHALL propagate host theme and language changes to all base extension domains, ensuring MFEs receive updates through the bridge property subscription mechanism.
+
+#### Scenario: Theme change propagation to all base domains
+
+- **WHEN** the host application dispatches a `theme/changed` event (with `ChangeThemePayload { themeId: string }`)
+- **THEN** the microfrontends plugin SHALL call `registry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_THEME, themeId)` for all 4 base domains (screen, sidebar, popup, overlay)
+- **AND** only the theme ID string SHALL be propagated (no Theme objects cross the boundary)
+- **AND** all mounted MFE instances subscribed to the theme property SHALL receive the update via their bridge
+
+#### Scenario: Language change propagation to all base domains
+
+- **WHEN** the host application dispatches an `i18n/language/changed` event (with `SetLanguagePayload { language: string }`)
+- **THEN** the microfrontends plugin SHALL call `registry.updateDomainProperty(domainId, HAI3_SHARED_PROPERTY_LANGUAGE, language)` for all 4 base domains (screen, sidebar, popup, overlay)
+- **AND** only the language code string SHALL be propagated (no translation bundles cross the boundary)
+- **AND** all mounted MFE instances subscribed to the language property SHALL receive the update via their bridge
+
+#### Scenario: Propagation to unregistered domains is silently skipped
+
+- **WHEN** the microfrontends plugin propagates a theme or language change
+- **AND** one or more base domains are not yet registered
+- **THEN** the propagation to unregistered domains SHALL be silently skipped (try/catch around each call)
+- **AND** propagation to registered domains SHALL proceed normally
+- **AND** no error SHALL be thrown or logged for unregistered domains
+
+#### Scenario: Only GTS-defined contract values are propagated
+
+- **WHEN** the microfrontends plugin propagates domain property updates
+- **THEN** the propagated values SHALL be GTS-defined contract strings only (theme ID strings like `'dark'`, `'light'`; language code strings like `'en'`, `'de'`)
+- **AND** no framework-internal objects (Theme, TranslationBundle, CSS variable maps) SHALL be propagated across the bridge boundary
+
 ### Requirement: Dynamic MFE Registration
 
 The system SHALL support dynamic registration of MFE extensions and domains at runtime. There is NO static configuration - all registration is dynamic.
@@ -116,7 +148,7 @@ eventBus.on('mfe/registerExtensionRequested', async ({ extension }) => {
 
 ### Requirement: MFE Registration State Tracking
 
-The system SHALL track MFE registration states via a store slice using extension IDs. Load and mount state tracking is handled internally by the screensets registry (`ExtensionState`) and is NOT duplicated in the framework store slice.
+The system SHALL track MFE registration states via a store slice using extension IDs. The authoritative load and mount state is tracked internally by the screensets registry (`ExtensionState`). The store slice additionally contains a `mountedExtensions` map that serves as a notification signal for React hook subscriptions -- this is NOT authoritative state but a trigger so that `useExtensionMounted()` and similar hooks can react to mount/unmount transitions.
 
 #### Scenario: Query extension registration state
 
@@ -130,6 +162,17 @@ const registeredExtensions = useAppSelector(selectRegisteredExtensions);
 - **THEN** `selectExtensionState()` SHALL accept an extension GTS type ID
 - **AND** registration states SHALL be: 'unregistered', 'registering', 'registered', 'error'
 - **AND** `selectRegisteredExtensions()` SHALL return list of registered extension IDs
+
+#### Scenario: Store dispatches mount notification signal on mount/unmount
+
+- **WHEN** an extension is successfully mounted via `HAI3_ACTION_MOUNT_EXT`
+- **THEN** the mount action handler SHALL dispatch `setExtensionMounted` to the store slice with the extension ID
+- **AND** the `mountedExtensions` map in the slice SHALL be updated to map the domain ID to the mounted extension ID
+- **AND** React hooks (e.g., `useActivePackage()`, `useRegisteredPackages()`) SHALL re-render in response to this store update
+- **WHEN** an extension is unmounted via `HAI3_ACTION_UNMOUNT_EXT`
+- **THEN** the unmount action handler SHALL dispatch `setExtensionUnmounted` to the store slice with the extension ID
+- **AND** the `mountedExtensions` map entry for that domain ID SHALL be cleared (set to `undefined`)
+- **AND** the `mountedExtensions` map SHALL NOT be treated as authoritative mount state -- it is a notification trigger only
 
 ### Requirement: Extension Domain Rendering
 
@@ -174,14 +217,22 @@ mfeActions.mountExtension(extensionId);
 #### Scenario: Navigate away from MFE
 
 ```typescript
-app.actions.navigateToScreenset({ screensetId: 'local-screenset' });
-// Navigation action triggers mount_ext on screen domain with new screenset
-// Screen domain swap semantics unmount the previous MFE automatically
-// Runtime cleans up bridge subscriptions
+import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN } from '@hai3/react';
+
+// Mount a different extension on the screen domain (swap semantics)
+screensetsRegistry.executeActionsChain({
+  action: {
+    type: HAI3_ACTION_MOUNT_EXT,
+    target: HAI3_SCREEN_DOMAIN,
+    payload: { extensionId: 'new-screen-extension-id' },
+  },
+});
+// Screen domain swap semantics: mounting a new extension automatically unmounts the previous one
+// Runtime cleans up bridge subscriptions for the unmounted MFE
 ```
 
-- **WHEN** navigating away from an MFE screenset
-- **THEN** the navigation action SHALL trigger screen domain swap semantics (mount new replaces old)
+- **WHEN** navigating away from an MFE screen by mounting a different extension on the screen domain
+- **THEN** the `HAI3_ACTION_MOUNT_EXT` action SHALL trigger screen domain swap semantics (mount new replaces old)
 - **AND** the runtime SHALL clean up all bridge subscriptions for the unmounted MFE
 
 ### Requirement: MFE Extension Loading (DRY Principle)

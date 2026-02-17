@@ -10,6 +10,11 @@ import { describe, it, expect } from 'vitest';
 import type { MfeEntry } from '../../../src/mfe/types/mfe-entry';
 import type { ExtensionDomain } from '../../../src/mfe/types/extension-domain';
 import { validateContract, formatContractErrors } from '../../../src/mfe/validation/contract';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../../../src/mfe/constants';
 
 describe('Contract Matching Validation', () => {
   describe('validateContract', () => {
@@ -187,6 +192,104 @@ describe('Contract Matching Validation', () => {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1~',
         sharedProperties: [],
         actions: [],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+        extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+      };
+
+      const result = validateContract(entry, domain);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should pass validation when domain has infrastructure-only actions and entry has empty domainActions', () => {
+      const entry: MfeEntry = {
+        id: 'gts.acme.mfe.widget.v1~',
+        requiredProperties: [],
+        actions: [],
+        domainActions: [],
+      };
+
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
+        sharedProperties: [],
+        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+        extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+      };
+
+      const result = validateContract(entry, domain);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should fail validation when domain has infrastructure + custom actions but entry missing custom action', () => {
+      const entry: MfeEntry = {
+        id: 'gts.acme.mfe.widget.v1~',
+        requiredProperties: [],
+        actions: [],
+        domainActions: [],
+      };
+
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
+        sharedProperties: [],
+        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, 'custom_action_id'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+        extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+      };
+
+      const result = validateContract(entry, domain);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toHaveLength(1);
+      expect(result.errors[0].type).toBe('unhandled_domain_action');
+      expect(result.errors[0].details).toContain('custom_action_id');
+    });
+
+    it('should pass validation when domain has infrastructure + custom actions and entry declares custom action', () => {
+      const entry: MfeEntry = {
+        id: 'gts.acme.mfe.widget.v1~',
+        requiredProperties: [],
+        actions: [],
+        domainActions: ['custom_action_id'],
+      };
+
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
+        sharedProperties: [],
+        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, 'custom_action_id'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+        extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
+      };
+
+      const result = validateContract(entry, domain);
+
+      expect(result.valid).toBe(true);
+      expect(result.errors).toHaveLength(0);
+    });
+
+    it('should exclude all three infrastructure actions (load_ext, mount_ext, unmount_ext) from rule 3', () => {
+      const entry: MfeEntry = {
+        id: 'gts.acme.mfe.widget.v1~',
+        requiredProperties: [],
+        actions: [],
+        domainActions: [],
+      };
+
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
+        sharedProperties: [],
+        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
         extensionsActions: [],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],

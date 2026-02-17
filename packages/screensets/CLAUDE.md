@@ -40,53 +40,40 @@ HAI3 uses a microfrontend architecture where extensions (screens, popups, sideba
 The MFE-enabled registry manages domains and extensions with full lifecycle support:
 
 ```typescript
-import { ScreensetsRegistry, ExtensionDomain, Extension } from '@hai3/screensets';
-
-// Define a domain
-const screenDomain: ExtensionDomain = {
-  id: 'screen',
-  domainType: 'primary',
-  allowedTypes: ['hai3.screen'],
-};
-
-// Define an extension
-const homeExtension: Extension = {
-  id: 'home',
-  extensionType: 'hai3.screen',
-  extensionsTypeId: 'hai3.mfes~mfe.ext',
-  title: 'Home',
-  presentation: {
-    route: '/home',
-  },
-};
+import {
+  ScreensetsRegistry, ExtensionDomain, Extension,
+  HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT,
+} from '@hai3/screensets';
 
 // Register domain (requires containerProvider) and extension
 registry.registerDomain(screenDomain, containerProvider);
 await registry.registerExtension(homeExtension);
 
-// Load and mount extension
-await registry.loadExtension({ extensionId: 'home' });
-await registry.mountExtension({
-  extensionId: 'home',
-  domainId: 'screen',
-  container: document.getElementById('screen-container')!,
+// Load, mount, unmount via executeActionsChain (the public API)
+await registry.executeActionsChain({
+  action: { type: HAI3_ACTION_LOAD_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
 });
-
-// Unmount when done
-await registry.unmountExtension({ extensionId: 'home', domainId: 'screen' });
+await registry.executeActionsChain({
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
+});
+await registry.executeActionsChain({
+  action: { type: HAI3_ACTION_UNMOUNT_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
+});
 ```
+
+**NOTE**: `loadExtension()`, `mountExtension()`, `unmountExtension()` are NOT public methods on `ScreensetsRegistry`. They are internal to `MountManager`. All lifecycle operations go through `executeActionsChain()` with the appropriate `HAI3_ACTION_*` type.
 
 ### Extension Lifecycle
 
-Extensions follow a strict lifecycle managed by the registry:
+Extensions follow a strict lifecycle managed by the registry via actions chains:
 
-1. **Register**: Add extension definition to registry
-2. **Load**: Fetch and initialize extension code
-3. **Mount**: Render extension into a domain container
-4. **Unmount**: Remove extension from domain
-5. **Unregister**: Remove extension definition
+1. **Register**: `registry.registerExtension(extension)` -- add extension definition
+2. **Load**: `executeActionsChain({ action: { type: HAI3_ACTION_LOAD_EXT, ... } })` -- fetch and initialize code
+3. **Mount**: `executeActionsChain({ action: { type: HAI3_ACTION_MOUNT_EXT, ... } })` -- render into Shadow DOM
+4. **Unmount**: `executeActionsChain({ action: { type: HAI3_ACTION_UNMOUNT_EXT, ... } })` -- remove from domain
+5. **Unregister**: `registry.unregisterExtension(extensionId)` -- remove extension definition
 
-Each stage supports lifecycle hooks and actions chains for custom behavior.
+Each stage supports lifecycle hooks and actions chains with success/fallback branching.
 
 ### MFE Handler
 

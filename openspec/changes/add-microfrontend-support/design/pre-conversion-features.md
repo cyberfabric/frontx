@@ -37,7 +37,7 @@ Source of truth for 100% feature parity. Documents the exact capabilities of the
 ### Screen: CurrentTheme
 
 - `useScreenTranslations()` with 36 languages
-- Redux state access: `useAppSelector((state) => state['layout/app']?.theme)` for current theme
+- HAI3 store state access: `useAppSelector((state) => state['layout/app']?.theme)` for current theme
 - Translation keys: title, current_theme_label, description
 
 ### Screen: UIKitElements
@@ -56,7 +56,7 @@ Source of truth for 100% feature parity. Documents the exact capabilities of the
 - 4 items with Lucide icons: `lucide:globe`, `lucide:palette`, `lucide:user`, `lucide:component`
 - Labels are translation keys: `screenset.demo:screens.helloworld.title` etc.
 - Translated via `t(item.label)` at render time
-- Active state tracked via Redux state
+- Active state tracked via store state
 
 **MFE conversion note**: The pre-conversion menu label translation mechanism relies on screenset-level `t()` with host-registered i18n loaders (`I18nRegistry.createLoader()`). MFEs do not have an equivalent host-side i18n namespace registration mechanism yet. For the demo conversion, plain English labels in `mfe.json` presentation metadata are acceptable. Menu label translation is a future enhancement that requires MFE i18n namespace registration with the host.
 

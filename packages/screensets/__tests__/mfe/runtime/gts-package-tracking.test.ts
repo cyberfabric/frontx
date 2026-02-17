@@ -7,7 +7,7 @@
  * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
@@ -21,7 +21,6 @@ import { MockContainerProvider } from '../test-utils';
 describe('GTS Package Tracking - Phase 39.6', () => {
   let registry: DefaultScreensetsRegistry;
   let mockContainerProvider: MockContainerProvider;
-  let validateInstanceSpy: ReturnType<typeof vi.spyOn>;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.package.tracking.domain.v1',
@@ -78,16 +77,6 @@ describe('GTS Package Tracking - Phase 39.6', () => {
   };
 
   beforeEach(() => {
-    // Bypass GTS x-gts-ref oneOf validation bug on action.target field
-    const originalValidateInstance = gtsPlugin.validateInstance.bind(gtsPlugin);
-    validateInstanceSpy = vi.spyOn(gtsPlugin, 'validateInstance').mockImplementation((instanceId: string) => {
-      const result = originalValidateInstance(instanceId);
-      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
-        return { valid: true, errors: [] };
-      }
-      return result;
-    });
-
     registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
@@ -96,10 +85,6 @@ describe('GTS Package Tracking - Phase 39.6', () => {
     // Register the domain and entry instances with GTS plugin before using them
     gtsPlugin.register(testDomain);
     gtsPlugin.register(testEntry);
-  });
-
-  afterEach(() => {
-    validateInstanceSpy.mockRestore();
   });
 
   describe('getRegisteredPackages', () => {

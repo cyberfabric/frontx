@@ -73,19 +73,6 @@ describe('Lifecycle Stage Triggering', () => {
     // Create fresh plugin and registry for each test
     plugin = new GtsPlugin();
 
-    // Bypass GTS x-gts-ref oneOf validation bug on action.target field.
-    // The oneOf with two x-gts-ref entries in action.v1.json does not resolve correctly
-    // in gts-ts. This test suite tests lifecycle triggering, not GTS validation.
-    // GTS validation is covered in dedicated validation tests.
-    const originalValidateInstance = plugin.validateInstance.bind(plugin);
-    vi.spyOn(plugin, 'validateInstance').mockImplementation((instanceId: string) => {
-      const result = originalValidateInstance(instanceId);
-      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
-        return { valid: true, errors: [] };
-      }
-      return result;
-    });
-
     registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
     });

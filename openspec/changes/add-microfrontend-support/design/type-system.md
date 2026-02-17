@@ -181,6 +181,9 @@ The GTS plugin implements `TypeSystemPlugin` using `@globaltypesystem/gts-ts`. F
 - Schema IDs end with `~`, instance IDs do NOT end with `~`
 - gts-ts extracts the schema ID from the chained instance ID automatically
 
+**Schema Authoring Constraint -- `x-gts-ref` inside `oneOf`/`anyOf`:**
+Since gts-ts delegates to Ajv for JSON Schema validation, and Ajv does not recognize `x-gts-ref` (a GTS extension keyword), subschemas containing ONLY `x-gts-ref` are treated as empty schemas `{}` by Ajv. An empty schema validates anything. If two such subschemas are placed inside `oneOf`, both always match, and `oneOf` (which requires exactly one match) always fails. **Rule: Never use `x-gts-ref` as the sole content of a subschema inside `oneOf` or `anyOf`.** Use `x-gts-ref` at the top level of a property or inside `items`. When a property can reference multiple entity types, use a plain `"type": "string"` constraint and defer type-specific validation to runtime logic. See [schemas.md - Action Schema](./schemas.md#action-schema) for an example of this pattern.
+
 ```typescript
 // packages/screensets/src/mfe/plugins/gts/index.ts
 import {
@@ -434,9 +437,21 @@ For an MFE entry to be mountable into an extension domain, the following conditi
 2. entry.actions             SUBSET_OF  domain.extensionsActions
    (domain accepts all action types the MFE may send to it)
 
-3. domain.actions            SUBSET_OF  entry.domainActions
-   (MFE can handle all action types that may target it)
+3. domain.actions \ INFRASTRUCTURE_LIFECYCLE_ACTIONS  SUBSET_OF  entry.domainActions
+   (MFE can handle all CUSTOM action types that may target it;
+    infrastructure lifecycle actions are excluded from this check)
 ```
+
+**Rule 3 -- Infrastructure Lifecycle Action Exclusion:**
+
+`domain.actions` typically includes infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) that are dispatched to the domain via `executeActionsChain`. These actions are handled by the domain's `ExtensionLifecycleActionHandler` -- registered per-domain by the registry during `registerDomain()` -- and are never seen by MFE application code. The MFE entry's `domainActions` field declares only the custom/application-level actions that the MFE must explicitly handle in its own code.
+
+Therefore, rule 3 excludes the three infrastructure lifecycle action type IDs from the subset check. Only non-infrastructure domain actions are validated against `entry.domainActions`. This means a domain with `actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT]` and an entry with `domainActions: []` is a valid contract (no custom actions to handle).
+
+The set of infrastructure lifecycle actions excluded from rule 3:
+- `HAI3_ACTION_LOAD_EXT` (`gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1`)
+- `HAI3_ACTION_MOUNT_EXT` (`gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1`)
+- `HAI3_ACTION_UNMOUNT_EXT` (`gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1`)
 
 The visual representation of contract matching:
 
@@ -448,11 +463,13 @@ The visual representation of contract matching:
 |                   |                      |                   |
 | actions           | --------subset-----> | extensionsActions |
 |                   |                      |                   |
-| domainActions     | <-------subset------ | actions           |
+| domainActions     | <--subset (filtered) | actions           |
+|                   |    (excludes infra   |  (may include     |
+|                   |     lifecycle actions)|  load/mount/unmount)
 +-------------------+                      +-------------------+
 ```
 
-**Validation behavior**: `validateContract(entry, domain)` checks each of the three subset rules above. For each violation it produces a `ContractError` with a discriminated `type` (`'missing_property'`, `'unsupported_action'`, or `'unhandled_domain_action'`) and a human-readable `details` string. Returns `{ valid: boolean, errors: ContractError[] }`.
+**Validation behavior**: `validateContract(entry, domain)` checks each of the three subset rules above. For each violation it produces a `ContractError` with a discriminated `type` (`'missing_property'`, `'unsupported_action'`, or `'unhandled_domain_action'`) and a human-readable `details` string. Returns `{ valid: boolean, errors: ContractError[] }`. Rule 3 filters out infrastructure lifecycle actions before the subset check -- only custom domain actions produce `unhandled_domain_action` errors.
 
 ### Decision 9: Domain-Specific Extension Validation via Derived Types
 

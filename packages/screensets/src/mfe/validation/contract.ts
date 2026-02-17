@@ -8,6 +8,11 @@
 
 import type { MfeEntry } from '../types/mfe-entry';
 import type { ExtensionDomain } from '../types/extension-domain';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../constants';
 
 /**
  * Error types for contract validation failures
@@ -38,6 +43,17 @@ export interface ContractValidationResult {
 }
 
 /**
+ * Infrastructure lifecycle actions handled by ExtensionLifecycleActionHandler.
+ * These actions are NOT handled by MFE application code and should be excluded
+ * from rule 3 (domain.actions ⊆ entry.domainActions) validation.
+ */
+const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+]);
+
+/**
  * Validate that an MFE entry is compatible with an extension domain.
  *
  * Contract matching rules (all must be satisfied):
@@ -45,8 +61,12 @@ export interface ContractValidationResult {
  *    (domain provides all properties required by entry)
  * 2. entry.actions ⊆ domain.extensionsActions
  *    (domain accepts all action types the MFE may send to it)
- * 3. domain.actions ⊆ entry.domainActions
- *    (MFE can handle all action types that may target it)
+ * 3. domain.actions \ INFRASTRUCTURE_LIFECYCLE_ACTIONS ⊆ entry.domainActions
+ *    (MFE can handle all non-infrastructure action types that may target it)
+ *
+ * Note: Infrastructure lifecycle actions (load_ext, mount_ext, unmount_ext) are
+ * handled by ExtensionLifecycleActionHandler, NOT by MFE application code, and
+ * are therefore excluded from rule 3 validation.
  *
  * @param entry - The MFE entry to validate
  * @param domain - The extension domain to validate against
@@ -80,9 +100,14 @@ export function validateContract(
     }
   }
 
-  // Rule 3: Domain actions subset check
-  // domain.actions must be a subset of entry.domainActions
+  // Rule 3: Domain actions subset check (excluding infrastructure actions)
+  // domain.actions \ INFRASTRUCTURE_LIFECYCLE_ACTIONS must be a subset of entry.domainActions
   for (const action of domain.actions) {
+    // Skip infrastructure lifecycle actions - they're handled by the framework
+    if (INFRASTRUCTURE_LIFECYCLE_ACTIONS.has(action)) {
+      continue;
+    }
+
     if (!entry.domainActions.includes(action)) {
       errors.push({
         type: 'unhandled_domain_action',

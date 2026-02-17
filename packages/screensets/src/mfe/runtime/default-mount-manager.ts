@@ -17,6 +17,7 @@ import type { ScreensetsRegistry } from './ScreensetsRegistry';
 import { MountManager } from './mount-manager';
 import type { ActionChainExecutor, LifecycleTrigger } from './mount-manager';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
+import { createShadowRoot } from '../shadow';
 
 /**
  * Default mount manager implementation.
@@ -223,7 +224,14 @@ export class DefaultMountManager extends MountManager {
         });
       }
 
-      // Call lifecycle.mount(container, childBridge)
+      // Create Shadow DOM boundary on container
+      const hostElement = container as HTMLElement;
+      const shadowRoot = createShadowRoot(hostElement);
+
+      // Store shadow root on extension state for unmount
+      extensionState.shadowRoot = shadowRoot;
+
+      // Call lifecycle.mount(shadowRoot, childBridge) - pass shadow root instead of container
       const lifecycle = extensionState.lifecycle;
       if (!lifecycle) {
         throw new Error(
@@ -231,7 +239,7 @@ export class DefaultMountManager extends MountManager {
           `This should not happen - loadExtension should have cached the lifecycle.`
         );
       }
-      await lifecycle.mount(container, childBridge);
+      await lifecycle.mount(shadowRoot, childBridge);
 
       // Update state
       extensionState.bridge = parentBridge;
@@ -282,11 +290,12 @@ export class DefaultMountManager extends MountManager {
     );
 
     try {
-      // Call lifecycle.unmount(container)
+      // Call lifecycle.unmount() with shadow root if available, otherwise container
       const lifecycle = extensionState.lifecycle;
       const container = extensionState.container;
       if (lifecycle && container) {
-        await lifecycle.unmount(container);
+        const unmountTarget = extensionState.shadowRoot ?? container;
+        await lifecycle.unmount(unmountTarget);
       }
 
       // Dispose bridge
@@ -314,6 +323,7 @@ export class DefaultMountManager extends MountManager {
       extensionState.container = null;
       extensionState.mountState = 'unmounted';
       extensionState.error = undefined;
+      extensionState.shadowRoot = undefined;
 
       // Clear mounted extension tracking in domain
       const domainState = this.extensionManager.getDomainState(extensionState.extension.domain);

@@ -27,8 +27,8 @@ These interfaces are framework-agnostic - MFEs can use React, Vue, Angular, Svel
 
 ```typescript
 interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
-  mount(container: Element, bridge: TBridge): void | Promise<void>;
-  unmount(container: Element): void | Promise<void>;
+  mount(container: Element | ShadowRoot, bridge: TBridge): void | Promise<void>;
+  unmount(container: Element | ShadowRoot): void | Promise<void>;
 }
 ```
 

@@ -18,6 +18,8 @@ export type ExtensionRegistrationState = 'unregistered' | 'registering' | 'regis
 export interface MfeState {
   registrationStates: Record<string, ExtensionRegistrationState>;
   errors: Record<string, string>;
+  /** Tracks which extension is mounted in each domain. Used as a notification signal for React hooks. */
+  mountedExtensions: Record<string, string | undefined>;
 }
 
 // ============================================================================
@@ -29,6 +31,7 @@ const SLICE_KEY = 'mfe' as const;
 const initialState: MfeState = {
   registrationStates: {},
   errors: {},
+  mountedExtensions: {},
 };
 
 // ============================================================================
@@ -56,6 +59,15 @@ const { slice, ...actions } = createSlice({
       state.registrationStates[action.payload.extensionId] = 'error';
       state.errors[action.payload.extensionId] = action.payload.error;
     },
+
+    // Mount state reducers
+    setExtensionMounted: (state: MfeState, action: ReducerPayload<{ domainId: string; extensionId: string }>) => {
+      state.mountedExtensions[action.payload.domainId] = action.payload.extensionId;
+    },
+
+    setExtensionUnmounted: (state: MfeState, action: ReducerPayload<{ domainId: string }>) => {
+      state.mountedExtensions[action.payload.domainId] = undefined;
+    },
   },
 });
 
@@ -72,6 +84,8 @@ export const {
   setExtensionRegistered,
   setExtensionUnregistered,
   setExtensionError,
+  setExtensionMounted,
+  setExtensionUnmounted,
 } = actions;
 
 // ============================================================================
@@ -102,6 +116,14 @@ export function selectRegisteredExtensions(state: { mfe: MfeState }): string[] {
  */
 export function selectExtensionError(state: { mfe: MfeState }, extensionId: string): string | undefined {
   return state.mfe.errors[extensionId];
+}
+
+/**
+ * Select mounted extension for a domain.
+ * Returns the extension ID if mounted, undefined otherwise.
+ */
+export function selectMountedExtension(state: { mfe: MfeState }, domainId: string): string | undefined {
+  return state.mfe.mountedExtensions[domainId];
 }
 
 export default slice.reducer;

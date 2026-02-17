@@ -338,7 +338,7 @@ Domains may support non-lifecycle actions in their `actions` array. The `Extensi
 
 **Distinction between actions chains and custom action handlers:**
 - **Actions chains**: Declarative MFE lifecycle coordination (load/mount/unmount) and cross-runtime routing. Validated by the mediator, routed through operation serializer, and executed by MountManager.
-- **Custom action handlers**: Imperative host-side effects for non-lifecycle domain actions (Redux dispatch, external API calls, etc.). NOT part of the MFE lifecycle, but rather domain-specific host behaviors.
+- **Custom action handlers**: Imperative host-side effects for non-lifecycle domain actions (store dispatch, external API calls, etc.). NOT part of the MFE lifecycle, but rather domain-specific host behaviors.
 
 **`CustomActionHandler` type:**
 
@@ -638,7 +638,7 @@ export function mountExtension(extensionId: string): void {
 
 **Not actions**: Domain registration (`registerDomain`/`unregisterDomain`) is called directly on `ScreensetsRegistry` -- it is synchronous and does not need store state tracking or Flux event/effect/slice round-trip.
 
-**Store slice**: Retains only extension registration state. Load/mount state is tracked internally by the screensets registry via `ExtensionState`.
+**Store slice**: Retains extension registration state and mount notification signals. The `mountedExtensions` map is a notification trigger for React hooks, NOT the authoritative mount state (which remains in the screensets registry's internal `ExtensionState`).
 
 **ESLint protection**: Effects files cannot call `executeActionsChain()`. Both `**/effects.ts` and `**/*Effects.ts` patterns are covered in `screenset.ts` (L4) and `framework.ts` (L2) ESLint configs.
 
@@ -684,7 +684,7 @@ This works because `getContainer()` is only called during `mount_ext` handling, 
 
 3. **`releaseContainer` is called by the handler, not by MountManager** -- keeps acquisition and release at the same level.
 
-4. **MountManager still receives `container: Element`** -- the handler resolves the container from the `ContainerProvider` and passes it through.
+4. **MountManager receives `container: Element` from `ContainerProvider`** -- the handler resolves the container from the `ContainerProvider`. MountManager then creates a `ShadowRoot` via `createShadowRoot()` on the container element and passes the `ShadowRoot` to the lifecycle's `mount()` method. The lifecycle never sees the raw container element.
 
 5. **Handler owns all ContainerProvider interactions** -- single point of ownership for `getContainer` and `releaseContainer`.
 

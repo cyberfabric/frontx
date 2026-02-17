@@ -41,6 +41,8 @@ export interface ExtensionState {
   container: Element | null;
   lifecycle: import('../handler/types').MfeEntryLifecycle<import('../handler/types').ChildMfeBridge> | null;
   error?: Error;
+  /** Shadow root created during mount (default handler flow) */
+  shadowRoot?: ShadowRoot;
 }
 
 /**

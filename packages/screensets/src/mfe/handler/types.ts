@@ -74,17 +74,24 @@ export interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
   /**
    * Mount the MFE to a DOM container.
    *
-   * @param container - DOM element to mount into
+   * With the default handler (`MfeHandlerMF`), the `container` parameter will be
+   * a `ShadowRoot` created by `DefaultMountManager`. With custom handlers, it may
+   * be a plain `Element`. React's `createRoot()` accepts both types.
+   *
+   * @param container - DOM element or shadow root to mount into
    * @param bridge - Bridge instance for communication with host
    */
-  mount(container: Element, bridge: TBridge): void | Promise<void>;
+  mount(container: Element | ShadowRoot, bridge: TBridge): void | Promise<void>;
 
   /**
    * Unmount the MFE from its container.
    *
-   * @param container - DOM element to unmount from
+   * With the default handler (`MfeHandlerMF`), the `container` parameter will be
+   * a `ShadowRoot`. With custom handlers, it may be a plain `Element`.
+   *
+   * @param container - DOM element or shadow root to unmount from
    */
-  unmount(container: Element): void | Promise<void>;
+  unmount(container: Element | ShadowRoot): void | Promise<void>;
 }
 
 /**

@@ -138,9 +138,21 @@ The MFE system defines a hierarchy of error classes for specific failure scenari
 
 Shadow DOM utilities are provided by `@hai3/screensets` for style isolation. The public barrel exports `createShadowRoot` and `injectCssVariables`. Other shadow DOM helpers (`injectStylesheet`, `ShadowRootOptions`) are internal.
 
+**Automatic CSS isolation** (Phase 43): `createShadowRoot()` automatically injects a `<style id="__hai3-shadow-isolation__">` element containing `:host { all: initial; display: block; }` into every shadow root it creates. This guarantees full CSS isolation at the platform level -- no CSS (including custom properties) leaks from host to MFE. The behavior is idempotent: if a style element with that ID already exists in the shadow root, it is reused rather than duplicated. This applies to both newly created shadow roots (via `attachShadow()`) and pre-existing shadow roots passed to `createShadowRoot()`.
+
 **Default handler behavior**: With `MfeHandlerMF`, `DefaultMountManager` creates the Shadow DOM boundary automatically during mount. The MFE's `mount(container, bridge)` receives the shadow root, NOT the host element. See [Principles - Shadow DOM Style Isolation](./principles.md#shadow-dom-style-isolation-default-handler) for the complete CSS isolation model (CSS variable behavior, style initialization, custom handler options).
 
-**Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. Since `MfeEntryLifecycle.mount()` receives `container: Element`, MFE implementations that use shadow DOM must narrow via `container as HTMLElement` when calling `createShadowRoot()`. With the default handler, the container IS already the shadow root, so MFEs typically do not need to call `createShadowRoot()` themselves.
+**Mount pipeline implementation** (Phase 42 fix): `DefaultMountManager.mountExtension()` performs the following steps:
+1. Container `Element` obtained from `ContainerProvider`
+2. Narrow to `HTMLElement`: `const hostElement = container as HTMLElement`
+3. Create shadow root: `const shadowRoot = createShadowRoot(hostElement)` (from `../shadow`)
+4. Store shadow root: `extensionState.shadowRoot = shadowRoot`
+5. Pass shadow root to lifecycle: `lifecycle.mount(shadowRoot, childBridge)`
+6. On unmount: `lifecycle.unmount(extensionState.shadowRoot ?? container)`
+
+**`MfeEntryLifecycle` type signature** (Phase 42 fix): The `mount()` and `unmount()` methods accept `Element | ShadowRoot` as the container parameter. `ShadowRoot` extends `DocumentFragment` (not `Element`), but React's `createRoot()` accepts `Element | DocumentFragment`, so MFE lifecycle implementations work without narrowing. With the default handler, `container` is always a `ShadowRoot`; with custom handlers, it may be a plain `Element`.
+
+**Note on `HTMLElement` narrowing**: `createShadowRoot()` requires `HTMLElement` because `attachShadow()` is defined on `HTMLElement`, not the more general `Element`. The narrowing happens inside `DefaultMountManager`, NOT in MFE lifecycle code. MFEs typically do not need to call `createShadowRoot()` themselves.
 
 ### Decision 17: Dynamic Registration Model
 
@@ -411,6 +423,48 @@ Each collaborator is split into an abstract file (pure contract) and a concrete 
 #### Callback Injection for Mediator's getDomainState Dependency
 
 `DefaultActionsChainsMediator` needs `getDomainState(domainId)` for action support validation and timeout resolution. Since this is a concrete-only method, the mediator receives it via **callback injection** in its constructor config. This follows the same pattern used by all collaborators and eliminates the mediator's dependency on the `ScreensetsRegistry` type entirely.
+
+#### L2 `executeActionsChain` Wrapper for Store Dispatch (Phase 43)
+
+`ScreensetsRegistryConfig` contains only `typeSystem` and `mfeHandlers`. L1 (`@hai3/screensets`) has ZERO knowledge of the framework store or React hooks. Store dispatch for mount/unmount state changes is handled entirely at L2 (`@hai3/framework`) by wrapping the registry's public `executeActionsChain` method after construction.
+
+```typescript
+// In ScreensetsRegistryConfig (config.ts) -- no store-related fields
+export interface ScreensetsRegistryConfig {
+  typeSystem: TypeSystemPlugin;
+  mfeHandlers?: MfeHandler[];
+}
+```
+
+**Mechanism**: After `screensetsRegistryFactory.build()` returns the registry instance, the L2 microfrontends plugin wraps `executeActionsChain` to intercept successful mount/unmount completions and dispatch to the store:
+
+```typescript
+// In microfrontends plugin (L2)
+const originalExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+screensetsRegistry.executeActionsChain = async (chain) => {
+  await originalExecuteActionsChain(chain);
+  // After successful execution, dispatch store updates for mount/unmount
+  const actionType = chain.action?.type;
+  if (actionType === HAI3_ACTION_MOUNT_EXT) {
+    const store = getStore();
+    const domainId = chain.action!.target;
+    const extensionId = chain.action!.payload?.extensionId as string;
+    if (domainId && extensionId) {
+      store.dispatch(setExtensionMounted({ domainId, extensionId }));
+    }
+  } else if (actionType === HAI3_ACTION_UNMOUNT_EXT) {
+    const store = getStore();
+    const domainId = chain.action!.target;
+    if (domainId) {
+      store.dispatch(setExtensionUnmounted({ domainId }));
+    }
+  }
+};
+```
+
+**Layer boundary rationale**: The wrapper pattern keeps L1 entirely free of store concerns. The wrapper only dispatches on SUCCESSFUL completion -- if `originalExecuteActionsChain` throws, the `await` naturally propagates the error before the dispatch code runs. The store dispatch is a notification signal -- the authoritative mount state remains in the registry's internal `ExtensionState`. The React hooks read from the registry (`getMountedExtension`, `getRegisteredPackages`) and use the store subscription solely as a "something changed" trigger.
+
+**Swap semantics**: When a domain receives a `mount_ext` action for extension B while extension A is mounted, the L1 `ExtensionLifecycleActionHandler` auto-unmounts A then mounts B within a single `executeActionsChain` call. The wrapper sees only `HAI3_ACTION_MOUNT_EXT`. Dispatching `setExtensionMounted({ domainId, extensionId: B })` overwrites the previous value, which is correct for swap semantics.
 
 #### Concrete-Only Internal Methods
 

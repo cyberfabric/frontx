@@ -33,6 +33,41 @@ describe('Shadow DOM Utilities', () => {
       expect(container.shadowRoot).toBe(shadowRoot);
     });
 
+    it('43.2.1: should inject isolation styles automatically', () => {
+      const shadowRoot = createShadowRoot(container);
+
+      const isolationStyle = shadowRoot.getElementById('__hai3-shadow-isolation__') as HTMLStyleElement;
+      expect(isolationStyle).toBeDefined();
+      expect(isolationStyle.textContent).toContain(':host');
+      expect(isolationStyle.textContent).toContain('all: initial');
+      expect(isolationStyle.textContent).toContain('display: block');
+    });
+
+    it('43.2.2: should be idempotent for isolation styles', () => {
+      const shadowRoot1 = createShadowRoot(container);
+      const shadowRoot2 = createShadowRoot(container);
+
+      expect(shadowRoot1).toBe(shadowRoot2);
+
+      const isolationStyles = shadowRoot1.querySelectorAll('#__hai3-shadow-isolation__');
+      expect(isolationStyles.length).toBe(1);
+    });
+
+    it('43.2.3: should inject isolation styles into pre-existing shadow root', () => {
+      // Manually create shadow root without isolation
+      const manualShadowRoot = container.attachShadow({ mode: 'open' });
+      expect(manualShadowRoot.getElementById('__hai3-shadow-isolation__')).toBeNull();
+
+      // Call createShadowRoot on element with existing shadow root
+      const shadowRoot = createShadowRoot(container);
+
+      expect(shadowRoot).toBe(manualShadowRoot);
+      const isolationStyle = shadowRoot.getElementById('__hai3-shadow-isolation__') as HTMLStyleElement;
+      expect(isolationStyle).toBeDefined();
+      expect(isolationStyle.textContent).toContain('all: initial');
+      expect(isolationStyle.textContent).toContain('display: block');
+    });
+
     it('should create shadow root with open mode', () => {
       const shadowRoot = createShadowRoot(container, { mode: 'open' });
 
@@ -134,14 +169,16 @@ describe('Shadow DOM Utilities', () => {
       expect(styleElement.textContent).not.toContain('--color: red');
     });
 
-    it('should include style reset in :host rule', () => {
+    it('should not include style reset (now in isolation styles)', () => {
       const variables = { '--theme': 'dark' };
 
       injectCssVariables(shadowRoot, variables);
 
       const styleElement = shadowRoot.getElementById('__hai3-css-variables__') as HTMLStyleElement;
-      expect(styleElement.textContent).toContain('all: initial');
-      expect(styleElement.textContent).toContain('display: block');
+      // The isolation styles (all: initial, display: block) are now in __hai3-shadow-isolation__
+      // This test verifies that injectCssVariables() only handles CSS variables
+      expect(styleElement.textContent).toContain('--theme: dark');
+      expect(styleElement.textContent).toContain(':host');
     });
 
     it('should handle empty variables', () => {

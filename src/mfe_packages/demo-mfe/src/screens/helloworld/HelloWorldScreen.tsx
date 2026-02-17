@@ -12,6 +12,12 @@ interface HelloWorldScreenProps {
   bridge: ChildMfeBridge;
 }
 
+// Stable reference for translation modules (hoisted to module level to prevent re-render loops)
+const languageModules = import.meta.glob('./i18n/*.json') as Record<
+  string,
+  () => Promise<{ default: Record<string, string> }>
+>;
+
 /**
  * Hello World Screen for the MFE remote.
  *
@@ -32,28 +38,34 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
   const [language, setLanguage] = useState<string>('en');
 
   // Load translations using the shared hook
-  const languageModules = import.meta.glob('./i18n/*.json') as Record<
-    string,
-    () => Promise<{ default: Record<string, string> }>
-  >;
   const { t, loading } = useScreenTranslations(languageModules, bridge);
 
   useEffect(() => {
+    // Read initial property values
+    const initialTheme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
+    if (initialTheme && typeof initialTheme.value === 'string') {
+      setTheme(initialTheme.value);
+    }
+    const initialLang = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
+    if (initialLang && typeof initialLang.value === 'string') {
+      setLanguage(initialLang.value);
+    }
+
     // Subscribe to theme domain property
-    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (value) => {
-      if (typeof value === 'string') {
-        setTheme(value);
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (property) => {
+      if (typeof property.value === 'string') {
+        setTheme(property.value);
       }
     });
 
     // Subscribe to language domain property
-    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
-      if (typeof value === 'string') {
-        setLanguage(value);
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
+      if (typeof property.value === 'string') {
+        setLanguage(property.value);
         const rootNode = containerRef.current?.getRootNode();
         if (rootNode && 'host' in rootNode) {
           const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
-          const direction = rtlLanguages.includes(value) ? 'rtl' : 'ltr';
+          const direction = rtlLanguages.includes(property.value) ? 'rtl' : 'ltr';
           (rootNode.host as HTMLElement).dir = direction;
         }
       }

@@ -255,11 +255,7 @@ A typed message with target and optional payload.
     },
     "target": {
       "type": "string",
-      "oneOf": [
-        { "x-gts-ref": "gts.hai3.mfes.ext.domain.v1~*" },
-        { "x-gts-ref": "gts.hai3.mfes.ext.extension.v1~*" }
-      ],
-      "$comment": "Type ID of the target ExtensionDomain or Extension"
+      "$comment": "Type ID of the target ExtensionDomain or Extension. Target type validation (domain vs extension) is performed at runtime by the mediator's domain/extension lookup, not by the JSON Schema."
     },
     "payload": {
       "type": "object",
@@ -274,6 +270,8 @@ A typed message with target and optional payload.
   "required": ["type", "target"]
 }
 ```
+
+> **Design constraint -- `x-gts-ref` inside `oneOf`/`anyOf` is incompatible with Ajv**: The `x-gts-ref` keyword is a GTS extension keyword, not a standard JSON Schema keyword. When Ajv (used internally by gts-ts) encounters a subschema containing only `x-gts-ref`, it treats the subschema as `{}` (empty schema = validates anything). If two such subschemas appear inside `oneOf`, both always match, causing `oneOf` to fail (it requires exactly one match). This is why `target` uses a plain `"type": "string"` constraint instead of `oneOf` with `x-gts-ref` subschemas. Target type validation is deferred to runtime: the `ActionsChainsMediator` resolves the target by looking up domain and extension registrations, which inherently validates that the target is a valid domain or extension ID. **Rule: Never use `x-gts-ref` as the sole content of a subschema inside `oneOf` or `anyOf`.** Use `x-gts-ref` only at the top level of a property definition or inside `items`.
 
 ### Actions Chain Schema
 

@@ -51,6 +51,12 @@ interface UIKitElementsScreenProps {
   bridge: ChildMfeBridge;
 }
 
+// Stable reference for translation modules (hoisted to module level to prevent re-render loops)
+const languageModules = import.meta.glob('./i18n/*.json') as Record<
+  string,
+  () => Promise<{ default: Record<string, string> }>
+>;
+
 /**
  * UIKit Elements Screen component.
  *
@@ -66,19 +72,27 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
   const [activeElement, setActiveElement] = useState<string | undefined>();
 
   // Load translations
-  const languageModules = import.meta.glob(
-    './i18n/*.json'
-  ) as Record<string, () => Promise<{ default: Record<string, string> }>>;
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
   // Handle RTL languages
   useEffect(() => {
-    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (value) => {
-      if (typeof value === 'string') {
+    // Read initial language for RTL
+    const initialLang = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
+    if (initialLang && typeof initialLang.value === 'string') {
+      const rootNode = containerRef.current?.getRootNode();
+      if (rootNode && 'host' in rootNode) {
+        const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+        const direction = rtlLanguages.includes(initialLang.value) ? 'rtl' : 'ltr';
+        (rootNode.host as HTMLElement).dir = direction;
+      }
+    }
+
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
+      if (typeof property.value === 'string') {
         const rootNode = containerRef.current?.getRootNode();
         if (rootNode && 'host' in rootNode) {
           const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
-          const direction = rtlLanguages.includes(value) ? 'rtl' : 'ltr';
+          const direction = rtlLanguages.includes(property.value) ? 'rtl' : 'ltr';
           (rootNode.host as HTMLElement).dir = direction;
         }
       }

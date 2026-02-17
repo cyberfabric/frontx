@@ -5,7 +5,7 @@
  * load_ext, mount_ext, unmount_ext.
  */
 
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks } from '../../../src/mfe/runtime/extension-lifecycle-action-handler';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { gtsPlugin } from '../../../src/mfe/plugins/gts';
@@ -93,21 +93,7 @@ describe('Extension Lifecycle Actions', () => {
     entry: testEntry.id,
   };
 
-  let validateInstanceSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
-    // Bypass GTS x-gts-ref oneOf validation bug on action.target field.
-    // The oneOf with two x-gts-ref entries in action.v1.json does not resolve correctly
-    // in gts-ts. This test suite tests lifecycle action handlers, not GTS validation.
-    const originalValidateInstance = gtsPlugin.validateInstance.bind(gtsPlugin);
-    validateInstanceSpy = vi.spyOn(gtsPlugin, 'validateInstance').mockImplementation((instanceId: string) => {
-      const result = originalValidateInstance(instanceId);
-      if (!result.valid && result.errors.some(e => e.message.includes('oneOf'))) {
-        return { valid: true, errors: [] };
-      }
-      return result;
-    });
-
     registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
     });
@@ -115,10 +101,6 @@ describe('Extension Lifecycle Actions', () => {
 
     // Register test entry with GTS
     gtsPlugin.register(testEntry);
-  });
-
-  afterEach(() => {
-    validateInstanceSpy.mockRestore();
   });
 
   describe('ExtensionLifecycleActionHandler', () => {

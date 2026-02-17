@@ -477,7 +477,7 @@ export { ChevronRightIcon } from './icons/ChevronRightIcon';
 export { ChevronUpIcon } from './icons/ChevronUpIcon';
 
 // Theme system (utilities only - theme definitions in app)
-export { applyTheme } from './styles/applyTheme';
+export { applyTheme, applyThemeToShadowRoot } from './styles/applyTheme';
 export type { Theme } from './types';
 
 // UI Kit registry types (replaces @hai3/uikit-contracts)
