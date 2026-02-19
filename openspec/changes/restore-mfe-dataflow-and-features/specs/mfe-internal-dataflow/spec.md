@@ -1,0 +1,226 @@
+## ADDED Requirements
+
+### Requirement: MFE-Internal HAI3 App Bootstrap
+
+Each MFE package SHALL create a minimal HAI3App via `createHAI3().build()` from `@hai3/react` (no plugins) and use `HAI3Provider` to provide store context to its React tree. Direct usage of `react-redux`, `redux`, or `@reduxjs/toolkit` in MFE code is forbidden.
+
+#### Scenario: MFE creates minimal HAI3App at module level
+
+- **WHEN** an MFE package initializes (first lifecycle entry loaded)
+- **THEN** the MFE SHALL call `createHAI3().build()` from `@hai3/react` to create a minimal `HAI3App`
+- **AND** the `createHAI3()` call SHALL NOT use any `.use()` plugins (no themes, layout, microfrontends, i18n, effects, or mock)
+- **AND** the resulting `HAI3App` SHALL contain an isolated store (the MFE's own `storeInstance` singleton from its bundled `@hai3/state`)
+- **AND** the `HAI3App` SHALL be created as a module-level side effect in a shared `init.ts` module
+
+#### Scenario: MFE wraps React tree in HAI3Provider
+
+- **WHEN** an MFE lifecycle renders its React content via `ThemeAwareReactLifecycle.renderContent()`
+- **THEN** the MFE SHALL wrap the React tree in `<HAI3Provider app={mfeApp}>` from `@hai3/react`
+- **AND** `mfeApp` SHALL be the `HAI3App` instance exported from the shared `init.ts` module
+- **AND** `useAppSelector` and `useAppDispatch` hooks inside MFE components SHALL connect to the MFE's isolated store via this Provider
+- **AND** the MFE SHALL NOT import `Provider` from `react-redux` directly
+
+#### Scenario: MFE store isolation via bundling
+
+- **WHEN** the MFE's `createHAI3().build()` is called
+- **THEN** the store created SHALL be the MFE's own isolated singleton (because `@hai3/react` is NOT in Module Federation `shared` config)
+- **AND** the MFE's store SHALL NOT share state with the host's store
+- **AND** `useAppSelector` in MFE components SHALL read from the MFE's store only
+
+#### Scenario: No direct Redux imports in MFE code
+
+- **WHEN** writing MFE package code under `src/mfe_packages/`
+- **THEN** the MFE SHALL NOT import from `react-redux` directly
+- **AND** the MFE SHALL NOT import from `redux` directly
+- **AND** the MFE SHALL NOT import from `@reduxjs/toolkit` directly
+- **AND** all store access SHALL go through `@hai3/react` APIs: `HAI3Provider`, `useAppSelector`, `useAppDispatch`, `createHAI3`, `registerSlice`, `createSlice`
+
+### Requirement: Shared init.ts Module for Idempotent MFE Bootstrap
+
+Each MFE package SHALL have a shared `init.ts` module that performs one-time bootstrap as a module-level side effect. All lifecycle entries import from `init.ts`; JavaScript module semantics guarantee the code executes exactly once.
+
+#### Scenario: Demo MFE init.ts creates app, registers slices and API services
+
+- **WHEN** any lifecycle entry in the demo MFE is loaded for the first time
+- **THEN** the `init.ts` module SHALL execute as a side effect of import
+- **AND** `init.ts` SHALL call `createHAI3().build()` to create the MFE's `HAI3App`
+- **AND** `init.ts` SHALL call `registerSlice(profileSlice, initProfileEffects)` to register the profile slice with effects
+- **AND** `init.ts` SHALL call `apiRegistry.register(AccountsApiService)` to register the API service
+- **AND** `init.ts` SHALL call `apiRegistry.initialize()` to activate the API service
+- **AND** `init.ts` SHALL export the `mfeApp` for use by lifecycle files
+
+#### Scenario: init.ts is idempotent across multiple lifecycle entries
+
+- **WHEN** multiple lifecycle entries (HelloWorld, Profile, Theme, UIKit) import from `init.ts`
+- **THEN** the module-level code in `init.ts` SHALL execute exactly once (JavaScript module semantics)
+- **AND** the same `mfeApp` instance SHALL be returned to all importers
+- **AND** slices and API services SHALL not be double-registered
+
+#### Scenario: Blank MFE init.ts provides scaffolding
+
+- **WHEN** the `_blank-mfe` template initializes
+- **THEN** `init.ts` SHALL call `createHAI3().build()` to create the MFE's `HAI3App`
+- **AND** `init.ts` SHALL call `registerSlice(homeSlice, initHomeEffects)` with a placeholder slice
+- **AND** `init.ts` SHALL call `apiRegistry.register(_BlankApiService)` with a placeholder API service
+- **AND** `init.ts` SHALL export the `mfeApp` for use by lifecycle files
+
+### Requirement: MFE-Internal Flux/Events Dataflow Cycle
+
+Each MFE package SHALL implement the canonical flux/events dataflow cycle internally: Component calls Action, Action emits Event via eventBus, Effect listens for Event and calls API/dispatches to Store, Component reads from Store. The MFE's `eventBus`, `apiRegistry`, and store are all isolated per-bundle singletons.
+
+#### Scenario: MFE action emits event via eventBus
+
+- **WHEN** an MFE component triggers a data operation (e.g., Profile screen mounts)
+- **THEN** the component SHALL call an action function (e.g., `fetchUser()`)
+- **AND** the action function SHALL call `eventBus.emit()` with an MFE-internal event name
+- **AND** the action SHALL NOT call API services directly
+- **AND** the action SHALL NOT dispatch to the store directly
+
+#### Scenario: MFE effect listens for event and fetches data
+
+- **WHEN** an MFE effect initializer is registered via `registerSlice(slice, initEffects)`
+- **THEN** the effect SHALL subscribe to events via `eventBus.on()`
+- **AND** on receiving the event, the effect SHALL call the appropriate API service method via `apiRegistry.getService()`
+- **AND** on success, the effect SHALL emit a success event and dispatch reducer functions to update the store
+- **AND** on failure, the effect SHALL emit a failure event and dispatch error state to the store
+
+#### Scenario: MFE component reads from store via hooks
+
+- **WHEN** an MFE component needs data from the store
+- **THEN** the component SHALL use `useAppSelector(state => state['sliceName'].field)` from `@hai3/react`
+- **AND** the component SHALL NOT use React-local `useState` for data that belongs in the store
+- **AND** the component SHALL re-render when the selected store state changes
+
+#### Scenario: Full Profile screen flux cycle
+
+- **WHEN** the ProfileScreen component mounts
+- **THEN** it SHALL call `fetchUser()` action in `useEffect`
+- **AND** `fetchUser()` SHALL emit `'mfe/profile/user-fetch-requested'` via `eventBus.emit()`
+- **AND** `profileEffects` SHALL listen for `'mfe/profile/user-fetch-requested'`
+- **AND** the effect SHALL call `apiRegistry.getService(AccountsApiService).getCurrentUser()`
+- **AND** on success: emit `'mfe/profile/user-fetched'`, dispatch `setUser(user)` and `setLoading(false)`
+- **AND** on failure: emit `'mfe/profile/user-fetch-failed'`, dispatch `setError(error)` and `setLoading(false)`
+- **AND** ProfileScreen SHALL read state via `useAppSelector(state => state['demo/profile'].user)`, `.loading`, `.error`
+
+### Requirement: MFE-Internal Event Naming Convention
+
+MFE-internal events SHALL follow the naming format `mfe/<domain>/<eventName>` where event names use past tense for outcomes and imperative for requests. Events never cross runtime boundaries.
+
+#### Scenario: MFE event name format
+
+- **WHEN** defining events for an MFE's internal flux cycle
+- **THEN** event names SHALL follow the format `mfe/<domain>/<eventName>`
+- **AND** request events SHALL use imperative form (e.g., `mfe/profile/user-fetch-requested`)
+- **AND** outcome events SHALL use past tense (e.g., `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`)
+- **AND** the `mfe/` prefix SHALL distinguish MFE-internal events from host events (`app/`)
+
+#### Scenario: MFE event type safety via module augmentation
+
+- **WHEN** defining typed events for an MFE package
+- **THEN** the MFE SHALL augment `EventPayloadMap` on its own bundled copy of `@hai3/react`
+- **AND** the augmentation SHALL use `declare module '@hai3/react'` syntax
+- **AND** each event SHALL specify its payload type in the augmentation
+- **AND** `eventBus.emit()` and `eventBus.on()` SHALL enforce payload types at compile time
+
+#### Scenario: MFE events are isolated to MFE runtime
+
+- **WHEN** an MFE emits events via `eventBus.emit()`
+- **THEN** only event listeners within the same MFE runtime SHALL receive the event
+- **AND** the host's `eventBus` SHALL NOT receive MFE-internal events
+- **AND** other MFE runtimes SHALL NOT receive the event
+- **AND** this isolation is a natural property of bundling (each MFE bundles its own `@hai3/state` → own `eventBus` singleton)
+
+### Requirement: MFE-Local AccountsApiService
+
+The demo MFE SHALL define its own `AccountsApiService` class extending `BaseApiService` from `@hai3/api` (via `@hai3/react`). This is intentional duplication per the Independent Data Fetching principle.
+
+#### Scenario: Demo MFE defines its own AccountsApiService
+
+- **WHEN** the demo MFE needs to fetch user data
+- **THEN** the MFE SHALL have its own `AccountsApiService` class in `demo-mfe/src/api/AccountsApiService.ts`
+- **AND** the service SHALL extend `BaseApiService` from `@hai3/react`
+- **AND** the service SHALL use `RestProtocol` from `@hai3/react`
+- **AND** the service SHALL define a `getCurrentUser()` method returning user data
+- **AND** the service SHALL register mock plugins via `this.registerPlugin()` in its constructor
+
+#### Scenario: Demo MFE API service uses own apiRegistry
+
+- **WHEN** the demo MFE registers its `AccountsApiService`
+- **THEN** it SHALL call `apiRegistry.register(AccountsApiService)` where `apiRegistry` is imported from `@hai3/react`
+- **AND** the `apiRegistry` instance SHALL be the MFE's own isolated singleton (bundled copy)
+- **AND** the host's `apiRegistry` SHALL NOT contain the MFE's services and vice versa
+
+#### Scenario: MFE does NOT proxy user data to host
+
+- **WHEN** the MFE's Profile screen fetches user data
+- **THEN** the MFE SHALL NOT call `notifyUserLoaded()` or any equivalent to send data to the host
+- **AND** the host SHALL fetch its own user data independently via its own `bootstrapEffects`
+- **AND** duplicate API requests are an accepted cost mitigated by future `@hai3/api` cache sharing
+
+### Requirement: MFE Profile Slice Definition
+
+The demo MFE SHALL define a Redux slice for Profile screen state using `createSlice` and `registerSlice` from `@hai3/react`.
+
+#### Scenario: Profile slice state shape
+
+- **WHEN** defining the profile slice for the demo MFE
+- **THEN** the slice SHALL use `createSlice` from `@hai3/react` with name `'demo/profile'`
+- **AND** the initial state SHALL include `user` (null or UserData), `loading` (boolean, initially true), and `error` (null or string)
+- **AND** the slice SHALL export reducer functions: `setUser`, `setLoading`, `setError`
+
+#### Scenario: Profile slice type safety via module augmentation
+
+- **WHEN** defining the profile slice
+- **THEN** the MFE SHALL augment `RootState` on its own bundled copy of `@hai3/react`
+- **AND** the augmentation SHALL use `declare module '@hai3/react'` syntax
+- **AND** `RootState['demo/profile']` SHALL be typed as the profile state shape
+- **AND** `useAppSelector(state => state['demo/profile'])` SHALL be type-safe
+
+### Requirement: Blank MFE Template Flux Scaffolding
+
+The `_blank-mfe` template SHALL include the full flux/events directory structure with minimal working stubs. This is the CLI template for creating new screensets — new screensets must start with the correct internal dataflow architecture.
+
+#### Scenario: Blank MFE template directory structure
+
+- **WHEN** a developer creates a new screenset from the `_blank-mfe` template
+- **THEN** the template SHALL include the following flux scaffolding directories and files:
+  - `api/_BlankApiService.ts` — empty service extending `BaseApiService`
+  - `api/types.ts` — response type placeholder
+  - `api/mocks.ts` — mock map placeholder
+  - `actions/homeActions.ts` — placeholder action function (e.g., `fetchData()`)
+  - `events/homeEvents.ts` — `EventPayloadMap` augmentation placeholder
+  - `effects/homeEffects.ts` — effect initializer placeholder
+  - `slices/homeSlice.ts` — `createSlice` with minimal state shape
+  - `init.ts` — `createHAI3().build()` + slice registration + API registration
+
+#### Scenario: Blank MFE template files are compilable stubs
+
+- **WHEN** the `_blank-mfe` template is used without modification
+- **THEN** all template files SHALL compile without TypeScript errors
+- **AND** the flux cycle SHALL be wired (action → event → effect → store) even with placeholder content
+- **AND** the `init.ts` SHALL create a minimal `HAI3App` and register the placeholder slice and API service
+
+#### Scenario: Blank MFE template follows naming conventions
+
+- **WHEN** examining the `_blank-mfe` template files
+- **THEN** all `_Blank` prefixes SHALL indicate replacement points for the developer
+- **AND** the developer SHALL replace `_Blank` with their screenset name (same as existing template convention)
+- **AND** event names SHALL use `mfe/home/` prefix as a placeholder domain
+
+### Requirement: ThemeAwareReactLifecycle HAI3Provider Integration
+
+The `ThemeAwareReactLifecycle` abstract class in both MFE packages SHALL wrap the React tree in `HAI3Provider` from `@hai3/react` with the MFE's `HAI3App` instance.
+
+#### Scenario: renderContent wraps in HAI3Provider
+
+- **WHEN** `ThemeAwareReactLifecycle.renderContent()` renders a screen component
+- **THEN** the method SHALL wrap the component in `<HAI3Provider app={mfeApp}>`
+- **AND** `mfeApp` SHALL be imported from the MFE's `init.ts` module
+- **AND** `HAI3Provider` SHALL be imported from `@hai3/react`
+
+#### Scenario: HAI3Provider wraps all screen entries
+
+- **WHEN** any of the 4 demo MFE entries mount (HelloWorld, Profile, Theme, UIKit)
+- **THEN** each entry's React tree SHALL be wrapped in `HAI3Provider` with the same `mfeApp`
+- **AND** screens that don't use the store (HelloWorld, Theme, UIKit) SHALL still have the Provider (negligible overhead)
+- **AND** screens that use the store (Profile) SHALL have full `useAppSelector`/`useAppDispatch` access
