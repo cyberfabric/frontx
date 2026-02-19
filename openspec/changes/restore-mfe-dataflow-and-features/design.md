@@ -1,0 +1,189 @@
+## Context
+
+The MFE conversion (Phase 35-36) created two MFE packages (`demo-mfe`, `_blank-mfe`) under `src/mfe_packages/`. These packages are Module Federation remotes that run in Shadow DOM isolation. Each MFE bundles its own copy of `@hai3/react` (and transitively `@hai3/framework`, `@hai3/state`, `@hai3/api`) because `@hai3/react` is NOT in the Module Federation `shared` config. Only `react`, `react-dom`, `tailwindcss`, and `@hai3/uikit` are shared.
+
+This means each MFE naturally gets its own isolated instances of all singletons: `eventBus`, `apiRegistry`, `createStore`/`storeInstance`, `registerSlice`. The isolation is a property of the bundling, not something we need to engineer.
+
+Currently, the demo MFE's Profile screen uses `setTimeout` + mock data with React-local `useState`. The `_blank-mfe` template has no flux scaffolding. The AI guidelines (`EVENTS.md`, `SCREENSETS.md`, `GUIDELINES.md`) describe the pre-MFE single-runtime architecture.
+
+## Goals / Non-Goals
+
+**Goals:**
+- Establish the canonical flux/events dataflow pattern inside MFE packages: Action → Event → Effect → Store
+- Demo MFE Profile screen fetches user data via its own `AccountsApiService` instance through the flux cycle
+- Blank MFE template includes flux scaffolding so new screensets start with the correct architecture
+- AI guidelines accurately describe both host-level and MFE-internal flux patterns, including cross-runtime boundary rules
+
+**Non-Goals:**
+- Menu label translation (no design exists yet)
+- `@hai3/api` cache sharing / request deduplication across runtimes (future work)
+- Changes to any `@hai3/*` SDK or framework packages (L1/L2/L3)
+- Converting HelloWorld, CurrentTheme, or UIKit screens to store-backed state (they have no data fetching needs)
+
+## Decisions
+
+### Decision 1: MFE App via `createHAI3().build()` + `registerSlice()`
+
+The MFE creates a minimal HAI3App using `createHAI3().build()` from `@hai3/react` (re-exported from `@hai3/framework`). Calling `createHAI3()` with no `.use()` plugins produces an app with just a store — no themes, no layout, no microfrontends plugin overhead. The MFE then registers its slices using `registerSlice()` from `@hai3/react`, which adds them to the same singleton store.
+
+Because the MFE bundles its own copy of `@hai3/react` (and transitively `@hai3/state`), the module-level `storeInstance` singleton is isolated from the host's store. The `createHAI3().build()` call creates/retrieves this isolated store.
+
+**Why `createHAI3().build()` instead of raw `createStore()`?** Using `createHAI3().build()` produces a `HAI3App` object that can be passed to `HAI3Provider`, which is the only sanctioned way to provide store context to React trees. Direct usage of `createStore()` + raw Redux `Provider` is forbidden — all store access goes through `@hai3/react` APIs (`useAppSelector`, `useAppDispatch`) which depend on `HAI3Provider` context.
+
+**Why not `createHAI3App()` (full preset)?** `createHAI3App()` applies the full preset (screensets, themes, layout, microfrontends, i18n, effects, mock). An MFE doesn't need any of these plugins — it's a self-contained UI module. `createHAI3().build()` with zero plugins is the minimal configuration.
+
+### Decision 2: HAI3Provider in ThemeAwareReactLifecycle
+
+The `ThemeAwareReactLifecycle.renderContent()` method wraps the React tree in `<HAI3Provider>` from `@hai3/react` with the MFE's `HAI3App`. This enables `useAppSelector`/`useAppDispatch` inside screen components. `HAI3Provider` internally wraps the Redux `Provider` — MFE code never imports or references `react-redux` directly.
+
+```
+ThemeAwareReactLifecycle.mount(container, bridge)
+  │
+  ├─ initializeStyles(container)
+  ├─ apply initial theme
+  ├─ subscribe to theme changes
+  ├─ create React root
+  └─ renderContent(root, bridge)
+       └─ root.render(
+            <HAI3Provider app={mfeApp}>
+              <ScreenComponent bridge={bridge} />
+            </HAI3Provider>
+          )
+```
+
+The MFE's bundled `@hai3/react` includes its own `HAI3Provider`, which creates its own React context (separate from the host's). Because `@hai3/react` is NOT shared via Module Federation, the MFE's `HAI3Provider` context is isolated. `useAppSelector`/`useAppDispatch` in MFE components connect to the MFE's Provider, not the host's.
+
+**No `react-redux` in MFE dependencies.** Direct Redux usage is forbidden. All store access goes through `@hai3/react` APIs: `HAI3Provider` for context, `useAppSelector`/`useAppDispatch` for hooks, `createHAI3`/`registerSlice` for setup. The MFE never directly imports `react-redux`, `redux`, or `@reduxjs/toolkit`.
+
+### Decision 3: Shared `init.ts` Module for Idempotent MFE Bootstrap
+
+All 4 entries in the demo MFE share the same Module Federation bundle. A shared `init.ts` module is imported by all lifecycle files. The first import triggers initialization as a module-level side effect:
+
+```typescript
+// src/init.ts — executed once when any entry first loads
+import { createHAI3, registerSlice, apiRegistry } from '@hai3/react';
+import { profileSlice, initProfileEffects } from './slices/profileSlice';
+import { AccountsApiService } from './api/AccountsApiService';
+
+// Create minimal HAI3 app (no plugins — just a store)
+const mfeApp = createHAI3().build();
+
+// Register slices with effects (added to the app's store)
+registerSlice(profileSlice, initProfileEffects);
+
+// Register API services
+apiRegistry.register(AccountsApiService);
+apiRegistry.initialize();
+
+export { mfeApp };
+```
+
+**Why module-level side effects?** This matches the pattern used by the original screensets (`demoScreenset.tsx` registered with `screensetRegistry` as a module-level side effect) and follows the "registries self-register at import" convention. Module-level execution is naturally idempotent — JavaScript modules execute once regardless of how many times they're imported.
+
+### Decision 4: MFE-Local AccountsApiService
+
+The MFE defines its own `AccountsApiService` class inside `demo-mfe/src/api/`. It has the same endpoints and mock map as the host's `src/app/api/AccountsApiService.ts`. This is intentional duplication — per the Independent Data Fetching principle, each runtime independently defines and fetches the data it needs. Future `@hai3/api` cache sharing will deduplicate at the network level without coupling the runtimes.
+
+**Why not share the service definition?** The host's `AccountsApiService` lives at `src/app/api/` (host L4 code). The MFE cannot import from there (cross-boundary violation). A shared `@hai3/api-accounts` package is possible but premature — the service is small (one endpoint) and API service isolation between runtimes is a feature, not a cost.
+
+### Decision 5: MFE-Internal Event Naming Convention
+
+MFE-internal events follow the existing convention adapted for the MFE context:
+
+- **Format**: `mfe/<domain>/<eventName>` (past tense for event names)
+- **Example**: `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`
+- **Module augmentation**: MFE augments `EventPayloadMap` on its own bundled copy of `@hai3/react`
+
+```typescript
+// demo-mfe/src/events/profileEvents.ts
+declare module '@hai3/react' {
+  interface EventPayloadMap {
+    'mfe/profile/user-fetched': { user: UserData };
+    'mfe/profile/user-fetch-failed': { error: string };
+  }
+}
+```
+
+The `mfe/` prefix distinguishes MFE-internal events from host events (`app/`). This is purely a naming convention — the events never cross runtime boundaries because the MFE has its own `eventBus` instance.
+
+### Decision 6: Profile Screen Flux Cycle
+
+The Profile screen converts from React-local state to store-backed state:
+
+```
+ProfileScreen
+  │ useEffect → fetchUser()                    ← ACTION (emits event)
+  │     └─ eventBus.emit('mfe/profile/user-fetch-requested')
+  │
+  │ profileEffects listens                     ← EFFECT
+  │     └─ apiRegistry.getService(AccountsApiService).getCurrentUser()
+  │         ├─ success: eventBus.emit('mfe/profile/user-fetched', { user })
+  │         └─ failure: eventBus.emit('mfe/profile/user-fetch-failed', { error })
+  │
+  │ profileEffects dispatches                  ← STORE UPDATE
+  │     ├─ dispatch(setUser(user))
+  │     ├─ dispatch(setLoading(false))
+  │     └─ dispatch(setError(error))
+  │
+  │ ProfileScreen re-renders                   ← COMPONENT
+  │     ├─ useAppSelector(state => state['demo/profile'].user)
+  │     ├─ useAppSelector(state => state['demo/profile'].loading)
+  │     └─ useAppSelector(state => state['demo/profile'].error)
+```
+
+The `notifyUserLoaded()` call from the original screen is NOT restored. The host header fetches its own user data independently via `bootstrapEffects` (triggered by `Layout.tsx` calling `fetchCurrentUser()` on mount).
+
+### Decision 7: Blank MFE Template Scaffolding
+
+The `_blank-mfe` template gets the same flux directory structure with minimal placeholder files:
+
+```
+_blank-mfe/src/
+  api/
+    _BlankApiService.ts       ← empty service extending BaseApiService
+    types.ts                  ← response type placeholder
+    mocks.ts                  ← mock map placeholder
+  actions/
+    homeActions.ts            ← placeholder action (fetchData)
+  events/
+    homeEvents.ts             ← EventPayloadMap augmentation placeholder
+  effects/
+    homeEffects.ts            ← effect initializer placeholder
+  slices/
+    homeSlice.ts              ← createSlice with minimal state
+  init.ts                     ← store + slice + API registration
+```
+
+These are working stubs, not empty files — they follow the canonical pattern and compile. Developers replace `_Blank` prefixes with their screenset name, same as the existing convention for the blank template.
+
+### Decision 8: AI Guidelines Updates
+
+Three guideline files need updates:
+
+**`.ai/GUIDELINES.md`** — Routing table:
+- Add `src/mfe_packages` → `.ai/targets/SCREENSETS.md` route
+- Keep `src/screensets` route but note it's legacy (no screensets exist there anymore)
+
+**`.ai/targets/EVENTS.md`** — Add MFE isolation section:
+- Existing rules still apply within each runtime (host OR MFE)
+- New section: "MFE Runtime Isolation" — each MFE has own eventBus, events never cross runtime boundaries
+- New section: "Cross-Runtime Communication" — only via shared properties and actions chains, data proxying forbidden
+- Update event naming to include `mfe/` prefix convention for MFE-internal events
+
+**`.ai/targets/SCREENSETS.md`** — Modernize for MFE era:
+- Scope: `src/mfe_packages/**` (primary), `src/screensets/**` (legacy, if still used)
+- State management: same rules apply, but store is MFE-local
+- Localization: bridge-based language property + `import.meta.glob` pattern (not `I18nRegistry.createLoader`)
+- API services: MFE-local in `src/mfe_packages/*/src/api/`, own `apiRegistry` instance
+- Remove references to `screensetRegistry`, `useNavigation`, `navigateToScreen`
+- Add MFE-specific rules: lifecycle files, `ThemeAwareReactLifecycle`, `init.ts` pattern
+
+## Risks / Trade-offs
+
+**[Duplicate AccountsApiService]** → Two copies of the same service definition exist (host and MFE). Accepted as architectural cost of runtime independence. Future `@hai3/api` cache sharing mitigates the network cost. If service definitions diverge, that's a feature (each runtime evolves independently).
+
+**[Store overhead for simple screens]** → HelloWorld, CurrentTheme, UIKit screens get an `HAI3Provider` but don't use the store. The overhead is negligible (one React context, one minimal HAI3App) and the Provider is required because all 4 entries share the same `ThemeAwareReactLifecycle` base class.
+
+**[Module augmentation isolation]** → The MFE augments `EventPayloadMap` and `RootState` on its own bundled copy of `@hai3/react`. TypeScript sees these augmentations at compile time. If the MFE's tsconfig includes both MFE source and host source, augmentations could collide. The MFE's tsconfig must scope to its own source only.
+
+**[Guidelines breaking changes]** → Updating `SCREENSETS.md` scope and `EVENTS.md` rules is a breaking change for AI workflows. Any agent following the old guidelines may produce incorrect patterns. Mitigation: the changes are additive (new MFE sections) rather than destructive (old host patterns still valid for host code).
