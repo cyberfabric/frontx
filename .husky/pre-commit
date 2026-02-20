@@ -1,0 +1,13 @@
+# Check for large files (>500KB), excluding package-lock.json
+git diff --cached --name-only | grep -v 'package-lock\.json' | while read file; do
+  if [ -f "$file" ]; then
+    size=$(wc -c < "$file")
+    if [ "$size" -gt 512000 ]; then
+      echo "ERROR: $file is too large ($(( size / 1024 ))KB > 500KB)"
+      exit 1
+    fi
+  fi
+done || exit 1
+
+npx lint-staged
+npm run arch:check

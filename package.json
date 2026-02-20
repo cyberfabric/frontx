@@ -63,10 +63,10 @@
     "arch:unused:strict": "knip",
     "arch:graph": "npx dependency-cruiser src/ packages/ --config .dependency-cruiser.cjs --output-type dot | dot -T svg -o dependency-graph.svg",
     "arch:dot": "npx dependency-cruiser src/ packages/ --config .dependency-cruiser.cjs --output-type dot > dependency-graph.dot && echo '✅ DOT file saved to dependency-graph.dot (view with any DOT viewer or online tools)'",
-    "prek:install": "npx prek install",
-    "prek:run": "npx prek run --all-files",
-    "postinstall": "npx prek install",
-    "test:prompts": "npx promptfoo eval --config .ai/tests/promptfoo.yaml"
+    "hooks:install": "husky",
+    "hooks:run": "lint-staged --allow-empty",
+    "test:prompts": "npx promptfoo eval --config .ai/tests/promptfoo.yaml",
+    "prepare": "husky"
   },
   "dependencies": {
     "@hai3/api": "*",
@@ -107,7 +107,6 @@
   "devDependencies": {
     "@eslint/js": "9.27.0",
     "@hai3/studio": "*",
-    "@j178/prek": "0.2.25",
     "@originjs/vite-plugin-federation": "^1.4.1",
     "@types/lodash": "4.17.20",
     "@types/react": "19.0.8",
@@ -119,7 +118,9 @@
     "eslint-plugin-react-hooks": "5.0.0",
     "eslint-plugin-unused-imports": "4.1.4",
     "globals": "15.12.0",
+    "husky": "^9.1.7",
     "knip": "5.68.0",
+    "lint-staged": "^16.2.7",
     "postcss": "8.4.35",
     "promptfoo": "^0.120.16",
     "tailwindcss": "3.4.1",
@@ -127,5 +128,17 @@
     "typescript": "5.4.2",
     "typescript-eslint": "8.32.1",
     "vite": "6.4.1"
+  },
+  "lint-staged": {
+    "*": [
+      "node .husky/scripts/lint-staged-checks.mjs trailing-whitespace",
+      "node .husky/scripts/lint-staged-checks.mjs end-of-file"
+    ],
+    "*.{json}": [
+      "node .husky/scripts/lint-staged-checks.mjs check-json"
+    ],
+    "*.{yaml,yml}": [
+      "node .husky/scripts/lint-staged-checks.mjs check-yaml"
+    ]
   }
 }
