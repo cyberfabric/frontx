@@ -63,8 +63,6 @@
     "arch:unused:strict": "knip",
     "arch:graph": "npx dependency-cruiser src/ packages/ --config .dependency-cruiser.cjs --output-type dot | dot -T svg -o dependency-graph.svg",
     "arch:dot": "npx dependency-cruiser src/ packages/ --config .dependency-cruiser.cjs --output-type dot > dependency-graph.dot && echo '✅ DOT file saved to dependency-graph.dot (view with any DOT viewer or online tools)'",
-    "hooks:install": "husky",
-    "hooks:run": "lint-staged --allow-empty",
     "test:prompts": "npx promptfoo eval --config .ai/tests/promptfoo.yaml",
     "prepare": "husky"
   },
@@ -131,14 +129,14 @@
   },
   "lint-staged": {
     "*": [
-      "node .husky/scripts/lint-staged-checks.mjs trailing-whitespace",
-      "node .husky/scripts/lint-staged-checks.mjs end-of-file"
+      "node scripts/lint-staged-checks.mjs trailing-whitespace",
+      "node scripts/lint-staged-checks.mjs end-of-file"
     ],
     "*.{json}": [
-      "node .husky/scripts/lint-staged-checks.mjs check-json"
+      "node scripts/lint-staged-checks.mjs check-json"
     ],
     "*.{yaml,yml}": [
-      "node .husky/scripts/lint-staged-checks.mjs check-yaml"
+      "node scripts/lint-staged-checks.mjs check-yaml"
     ]
   }
 }
