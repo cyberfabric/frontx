@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "Элементы UI Kit",
+  "description": "Демонстрационная страница с доступными элементами UI Kit и аннотациями стилей",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

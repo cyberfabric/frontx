@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "องค์ประกอบชุด UI",
+  "description": "หน้าสาธิตพร้อมองค์ประกอบชุด UI ที่มีอยู่และคำอธิบายสไตล์",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

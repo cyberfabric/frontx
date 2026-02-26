@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "UI কিট উপাদান",
+  "description": "উপলব্ধ UI কিট উপাদান এবং স্টাইল টীকা সহ ডেমো পেজ",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

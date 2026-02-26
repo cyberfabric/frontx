@@ -1,7 +1,7 @@
 {
-  "title": "Current Theme",
-  "current_theme_label": "Active Theme",
-  "description": "This screen demonstrates CSS variable consumption and theme awareness. The theme value is received from the host via bridge property subscription, and CSS custom properties are automatically applied to the Shadow DOM root.",
+  "title": "موجودہ تھیم",
+  "current_theme_label": "موجودہ تھیم",
+  "description": "موجودہ تھیم نیچے دکھایا گیا ہے۔ دستیاب تھیمز کے درمیان سوئچ کرنے کے لیے فوٹر میں تھیم سلیکٹر استعمال کریں۔",
   "theme_information": "Theme Information",
   "theme_color_swatches": "Theme Color Swatches",
   "css_custom_properties": "CSS Custom Properties",

@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "Mga Elemento ng UI Kit",
+  "description": "Demo page na may mga available na UI Kit elements at style notes",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

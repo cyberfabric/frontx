@@ -1,7 +1,7 @@
 {
-  "title": "Current Theme",
-  "current_theme_label": "Active Theme",
-  "description": "This screen demonstrates CSS variable consumption and theme awareness. The theme value is received from the host via bridge property subscription, and CSS custom properties are automatically applied to the Shadow DOM root.",
+  "title": "현재 테마",
+  "current_theme_label": "현재 테마",
+  "description": "현재 테마가 아래에 표시됩니다. 바닥글의 테마 선택기를 사용하여 사용 가능한 테마 사이를 전환하세요.",
   "theme_information": "Theme Information",
   "theme_color_swatches": "Theme Color Swatches",
   "css_custom_properties": "CSS Custom Properties",

@@ -1,7 +1,7 @@
 {
-  "title": "Current Theme",
-  "current_theme_label": "Active Theme",
-  "description": "This screen demonstrates CSS variable consumption and theme awareness. The theme value is received from the host via bridge property subscription, and CSS custom properties are automatically applied to the Shadow DOM root.",
+  "title": "Tema Semasa",
+  "current_theme_label": "Tema semasa",
+  "description": "Tema semasa dipaparkan di bawah. Gunakan pemilih tema di footer untuk bertukar antara tema yang tersedia.",
   "theme_information": "Theme Information",
   "theme_color_swatches": "Theme Color Swatches",
   "css_custom_properties": "CSS Custom Properties",

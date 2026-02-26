@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "רכיבי ערכת ממשק",
+  "description": "דף הדגמה עם רכיבי ערכת ממשק זמינים והערות עיצוב",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "UI 킷 요소",
+  "description": "사용 가능한 UI 킷 요소 및 스타일 주석이 포함된 데모 페이지",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

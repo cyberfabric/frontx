@@ -4,6 +4,12 @@ import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3
 import { Card, CardContent, Skeleton } from '@hai3/uikit';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 
+// Stable reference for translation modules (hoisted to module level to prevent re-render loops)
+const languageModules = import.meta.glob('./i18n/*.json') as Record<
+  string,
+  () => Promise<{ default: Record<string, string> }>
+>;
+
 /**
  * Props for the HomeScreen component.
  */
@@ -35,11 +41,6 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const [theme, setTheme] = useState<string>('default');
   const [language, setLanguage] = useState<string>('en');
 
-  // Load translations using the shared hook
-  const languageModules = import.meta.glob('./i18n/*.json') as Record<
-    string,
-    () => Promise<{ default: Record<string, string> }>
-  >;
   const { t, loading } = useScreenTranslations(languageModules, bridge);
 
   useEffect(() => {

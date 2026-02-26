@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "UI Kit elemek",
+  "description": "Demó oldal az elérhető UI Kit elemekkel és stílusjegyzetekkel",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

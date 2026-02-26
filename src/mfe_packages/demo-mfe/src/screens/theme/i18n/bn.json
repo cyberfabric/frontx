@@ -1,7 +1,7 @@
 {
-  "title": "Current Theme",
-  "current_theme_label": "Active Theme",
-  "description": "This screen demonstrates CSS variable consumption and theme awareness. The theme value is received from the host via bridge property subscription, and CSS custom properties are automatically applied to the Shadow DOM root.",
+  "title": "বর্তমান থিম",
+  "current_theme_label": "বর্তমান থিম",
+  "description": "বর্তমান থিম নিচে প্রদর্শিত হয়েছে। উপলব্ধ থিমগুলির মধ্যে পরিবর্তন করতে ফুটারে থিম নির্বাচক ব্যবহার করুন।",
   "theme_information": "Theme Information",
   "theme_color_swatches": "Theme Color Swatches",
   "css_custom_properties": "CSS Custom Properties",

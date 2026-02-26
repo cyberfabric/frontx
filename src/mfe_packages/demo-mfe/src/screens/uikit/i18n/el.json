@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "Στοιχεία κιτ UI",
+  "description": "Σελίδα επίδειξης με διαθέσιμα στοιχεία του κιτ UI και σημειώσεις στυλ",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

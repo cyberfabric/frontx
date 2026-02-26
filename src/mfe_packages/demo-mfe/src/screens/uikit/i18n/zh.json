@@ -1,6 +1,6 @@
 {
-  "title": "UIKit Elements",
-  "description": "Comprehensive showcase of all UIKit components available in HAI3",
+  "title": "UI组件元素",
+  "description": "包含可用UI组件元素和样式注释的演示页面",
   "category.layout": "Layout",
   "category.navigation": "Navigation",
   "category.forms": "Forms",

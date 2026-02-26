@@ -1,7 +1,7 @@
 {
-  "title": "Current Theme",
-  "current_theme_label": "Active Theme",
-  "description": "This screen demonstrates CSS variable consumption and theme awareness. The theme value is received from the host via bridge property subscription, and CSS custom properties are automatically applied to the Shadow DOM root.",
+  "title": "தற்போதைய தீம்",
+  "current_theme_label": "தற்போதைய தீம்",
+  "description": "தற்போதைய தீம் கீழே காட்டப்பட்டுள்ளது. கிடைக்கக்கூடிய தீம்களுக்கு இடையே மாற ஃபுட்டரில் உள்ள தீம் தேர்வியைப் பயன்படுத்தவும்.",
   "theme_information": "Theme Information",
   "theme_color_swatches": "Theme Color Swatches",
   "css_custom_properties": "CSS Custom Properties",
