@@ -1,4 +1,4 @@
-import type { Root } from 'react-dom/client';
+import React from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
 import { CurrentThemeScreen } from './screens/theme/CurrentThemeScreen';
@@ -79,11 +79,11 @@ class CurrentThemeLifecycle extends ThemeAwareReactLifecycle {
   /**
    * Render the Current Theme screen component.
    *
-   * @param root - The React root to render into
    * @param bridge - The child MFE bridge for communication with the host
+   * @returns The React content to render inside HAI3Provider
    */
-  protected renderContent(root: Root, bridge: ChildMfeBridge): void {
-    root.render(<CurrentThemeScreen bridge={bridge} />);
+  protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
+    return <CurrentThemeScreen bridge={bridge} />;
   }
 }
 

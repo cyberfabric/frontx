@@ -22,15 +22,17 @@ Currently, the demo MFE's Profile screen uses `setTimeout` + mock data with Reac
 
 ## Decisions
 
-### Decision 1: MFE App via `createHAI3().build()` + `registerSlice()`
+### Decision 1: MFE App via `createHAI3().use(effects()).use(mock()).build()` + `registerSlice()`
 
-The MFE creates a minimal HAI3App using `createHAI3().build()` from `@hai3/react` (re-exported from `@hai3/framework`). Calling `createHAI3()` with no `.use()` plugins produces an app with just a store — no themes, no layout, no microfrontends plugin overhead. The MFE then registers its slices using `registerSlice()` from `@hai3/react`, which adds them to the same singleton store.
+The MFE creates a HAI3App using `createHAI3().use(effects()).use(mock()).build()` from `@hai3/react`. The `effects()` plugin provides core effect coordination, and the `mock()` plugin auto-enables mock API mode on localhost — without it, `RestMockPlugin` instances registered via `registerPlugin()` stay inactive (stored but never added to the protocol's active plugin chain). The MFE then registers its slices using `registerSlice()` from `@hai3/react`, which adds them to the same singleton store.
 
-Because the MFE bundles its own copy of `@hai3/react` (and transitively `@hai3/state`), the module-level `storeInstance` singleton is isolated from the host's store. The `createHAI3().build()` call creates/retrieves this isolated store.
+Because the MFE bundles its own copy of `@hai3/react` (and transitively `@hai3/state`), the module-level `storeInstance` singleton is isolated from the host's store. The `.build()` call creates/retrieves this isolated store.
 
 **Why `createHAI3().build()` instead of raw `createStore()`?** Using `createHAI3().build()` produces a `HAI3App` object that can be passed to `HAI3Provider`, which is the only sanctioned way to provide store context to React trees. Direct usage of `createStore()` + raw Redux `Provider` is forbidden — all store access goes through `@hai3/react` APIs (`useAppSelector`, `useAppDispatch`) which depend on `HAI3Provider` context.
 
-**Why not `createHAI3App()` (full preset)?** `createHAI3App()` applies the full preset (screensets, themes, layout, microfrontends, i18n, effects, mock). An MFE doesn't need any of these plugins — it's a self-contained UI module. `createHAI3().build()` with zero plugins is the minimal configuration.
+**Why not `createHAI3App()` (full preset)?** `createHAI3App()` applies the full preset (screensets, themes, layout, microfrontends, i18n, effects, mock). An MFE only needs `effects()` + `mock()` — no themes, layout, or microfrontends plugin overhead. The remaining plugins are host-level concerns.
+
+**Why `effects()` + `mock()` and not zero plugins?** The `mock()` plugin is essential for development workflow. It calls `syncMockPlugins()` during `onInit()`, which iterates `apiRegistry.getAll()` and adds `RestMockPlugin` instances to protocol active chains. Without it, mock API services don't intercept requests. The `effects()` plugin is a dependency of `mock()`.
 
 ### Decision 2: HAI3Provider in ThemeAwareReactLifecycle
 
@@ -61,22 +63,25 @@ All 4 entries in the demo MFE share the same Module Federation bundle. A shared 
 
 ```typescript
 // src/init.ts — executed once when any entry first loads
-import { createHAI3, registerSlice, apiRegistry } from '@hai3/react';
+import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@hai3/react';
 import { profileSlice, initProfileEffects } from './slices/profileSlice';
 import { AccountsApiService } from './api/AccountsApiService';
 
-// Create minimal HAI3 app (no plugins — just a store)
-const mfeApp = createHAI3().build();
-
-// Register slices with effects (added to the app's store)
-registerSlice(profileSlice, initProfileEffects);
-
-// Register API services
+// Register API services BEFORE build — mock plugin syncs during build(),
+// so services must already be present for mock activation to find them
 apiRegistry.register(AccountsApiService);
 apiRegistry.initialize();
 
+// Create HAI3 app with effects + mock plugins (mock auto-enables on localhost)
+const mfeApp = createHAI3().use(effects()).use(mock()).build();
+
+// Register slices with effects (needs store from build())
+registerSlice(profileSlice, initProfileEffects);
+
 export { mfeApp };
 ```
+
+**Critical ordering: API services BEFORE `.build()`**. The `mock()` plugin's `onInit()` calls `syncMockPlugins(true)` which iterates `apiRegistry.getAll()`. If services aren't registered yet, mock plugins won't be activated. Slices must come AFTER `.build()` because `registerSlice()` needs the store.
 
 **Why module-level side effects?** This matches the pattern used by the original screensets (`demoScreenset.tsx` registered with `screensetRegistry` as a module-level side effect) and follows the "registries self-register at import" convention. Module-level execution is naturally idempotent — JavaScript modules execute once regardless of how many times they're imported.
 
@@ -90,8 +95,8 @@ The MFE defines its own `AccountsApiService` class inside `demo-mfe/src/api/`. I
 
 MFE-internal events follow the existing convention adapted for the MFE context:
 
-- **Format**: `mfe/<domain>/<eventName>` (past tense for event names)
-- **Example**: `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`
+- **Format**: `mfe/<domain>/<eventName>` (past tense for all event names, including requests)
+- **Example**: `mfe/profile/user-fetch-requested`, `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`
 - **Module augmentation**: MFE augments `EventPayloadMap` on its own bundled copy of `@hai3/react`
 
 ```typescript

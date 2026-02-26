@@ -1,29 +1,16 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, useAppSelector } from '@hai3/react';
 import { Card, CardContent, CardFooter, Button, Skeleton } from '@hai3/uikit';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
+import { fetchUser } from '../../actions/profileActions';
+import type { ApiUser } from '../../api/types';
 
 /**
  * Props for the ProfileScreen component.
  */
 interface ProfileScreenProps {
   bridge: ChildMfeBridge;
-}
-
-/**
- * User data interface matching the mock API response.
- */
-interface UserData {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
-  role: string;
-  department: string;
-  avatar: string;
-  createdAt: string;
-  updatedAt: string;
 }
 
 // Stable reference for translation modules (hoisted to module level to prevent re-render loops)
@@ -42,8 +29,8 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
  * - Data state (full user profile display)
  *
  * Uses UIKit components and i18n for all text.
- * Demonstrates simulated API fetch pattern (setTimeout with mock data).
- * Manages loading, error, and data states independently.
+ * State is backed by the MFE-local Redux store (via useAppSelector).
+ * Data fetching is triggered via the flux actions/events/effects pattern.
  */
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -53,49 +40,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   // Load translations using the shared hook
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
-  // User data state management
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  /**
-   * Simulated API fetch.
-   *
-   * Since AccountsApiService is not exported from @hai3/react and the MFE
-   * cannot import from the host's src/app/api/ directory, we implement a
-   * simulated fetch using setTimeout with mock data. The important aspect
-   * is demonstrating the STATE MANAGEMENT pattern (loading/error/data states),
-   * not the actual API call mechanism.
-   */
-  const fetchUserData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      // Simulate network delay
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-
-      // Mock user data
-      const mockUser: UserData = {
-        id: 'usr_001',
-        firstName: 'John',
-        lastName: 'Doe',
-        email: 'john.doe@example.com',
-        role: 'Administrator',
-        department: 'Engineering',
-        avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=JohnDoe',
-        createdAt: '2024-01-15T10:30:00Z',
-        updatedAt: '2025-12-01T14:22:00Z',
-      };
-
-      // Simulate success
-      setUserData(mockUser);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Unknown error occurred');
-    } finally {
-      setLoading(false);
-    }
-  }, []); // bridge is stable and doesn't need to be in dependencies
+  // Store-backed state (replaces useState for userData/loading/error)
+  const user = useAppSelector((state) => state['demo/profile'].user);
+  const loading = useAppSelector((state) => state['demo/profile'].loading);
+  const error = useAppSelector((state) => state['demo/profile'].error);
 
   // Subscribe to theme and language domain properties
   useEffect(() => {
@@ -136,10 +84,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     };
   }, [bridge]);
 
-  // Auto-fetch user data on mount (feature parity with pre-conversion Profile)
+  // Fetch user data on mount via flux action
   useEffect(() => {
-    fetchUserData();
-  }, [fetchUserData]);
+    fetchUser();
+  }, []);
 
   // Show skeleton loader while translations are loading
   if (translationsLoading) {
@@ -196,7 +144,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
             </p>
           </CardContent>
           <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUserData}>{t('retry')}</Button>
+            <Button onClick={fetchUser}>{t('retry')}</Button>
           </CardFooter>
         </Card>
       </div>
@@ -204,7 +152,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   }
 
   // NO-DATA STATE: Show message + Load User button
-  if (!userData) {
+  if (!user) {
     return (
       <div ref={containerRef} className="p-8">
         <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
@@ -214,7 +162,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
             <p className="text-gray-600 mb-4">{t('no_user_data')}</p>
           </CardContent>
           <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUserData}>{t('load_user')}</Button>
+            <Button onClick={fetchUser}>{t('load_user')}</Button>
           </CardFooter>
         </Card>
       </div>
@@ -222,6 +170,8 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   }
 
   // DATA STATE: Display full user profile
+  const userData: ApiUser = user;
+
   return (
     <div ref={containerRef} className="p-8">
       <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
@@ -233,11 +183,13 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
           <CardContent className="p-6">
             {/* Avatar */}
             <div className="mb-6">
-              <img
-                src={userData.avatar}
-                alt={`${userData.firstName} ${userData.lastName}`}
-                className="w-20 h-20 rounded-full"
-              />
+              {userData.avatarUrl && (
+                <img
+                  src={userData.avatarUrl}
+                  alt={`${userData.firstName} ${userData.lastName}`}
+                  className="w-20 h-20 rounded-full"
+                />
+              )}
             </div>
 
             {/* User name and email */}
@@ -254,10 +206,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
                 <dt className="text-sm font-medium text-gray-500">{t('role_label')}</dt>
                 <dd className="text-foreground">{userData.role}</dd>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">{t('department_label')}</dt>
-                <dd className="text-foreground">{userData.department}</dd>
-              </div>
+              {userData.extra?.department !== undefined && (
+                <div>
+                  <dt className="text-sm font-medium text-gray-500">{t('department_label')}</dt>
+                  <dd className="text-foreground">{String(userData.extra.department)}</dd>
+                </div>
+              )}
               <div>
                 <dt className="text-sm font-medium text-gray-500">{t('id_label')}</dt>
                 <dd className="text-foreground font-mono text-sm">{userData.id}</dd>
@@ -277,7 +231,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
             </dl>
           </CardContent>
           <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUserData}>{t('refresh')}</Button>
+            <Button onClick={fetchUser}>{t('refresh')}</Button>
           </CardFooter>
         </Card>
 
