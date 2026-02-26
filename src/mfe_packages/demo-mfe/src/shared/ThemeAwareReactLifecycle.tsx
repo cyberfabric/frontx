@@ -1,8 +1,10 @@
+import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { MfeEntryLifecycle, ChildMfeBridge, SharedProperty } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3Provider } from '@hai3/react';
 import { applyThemeToShadowRoot } from '@hai3/uikit';
 import { resolveTheme } from './themes';
+import { mfeApp } from '../init';
 
 /**
  * Abstract base class for React-based MFE lifecycle implementations with theme awareness.
@@ -11,12 +13,12 @@ import { resolveTheme } from './themes';
  * - Shadow root detection
  * - Initial theme application
  * - Theme change subscription
- * - React root creation and rendering
+ * - React root creation and rendering (wrapped in HAI3Provider)
  * - Cleanup on unmount
  *
  * Concrete subclasses must provide:
  * - `initializeStyles(container)` - screen-specific Tailwind utilities
- * - `renderContent(root, bridge)` - screen component rendering
+ * - `renderContent(bridge)` - returns the React content to render (without calling root.render directly)
  *
  * The 7-step mount sequence prevents FOUC (Flash of Unstyled Content) by ensuring
  * theme CSS variables exist before React renders the first time.
@@ -62,8 +64,12 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     // Step 6: Create React root AFTER theme vars exist
     this.root = createRoot(container);
 
-    // Step 7: Render - first render has correct theme variables available
-    this.renderContent(this.root, bridge);
+    // Step 7: Render with HAI3Provider wrapping
+    this.root.render(
+      <HAI3Provider app={mfeApp}>
+        {this.renderContent(bridge)}
+      </HAI3Provider>
+    );
   }
 
   unmount(_container: Element | ShadowRoot): void {
@@ -95,13 +101,14 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
   protected abstract initializeStyles(container: Element | ShadowRoot): void;
 
   /**
-   * Render the screen-specific React component.
+   * Returns the React content to render for this screen.
    *
-   * Each concrete lifecycle renders its own screen component
-   * (e.g., `root.render(<HelloWorldScreen bridge={bridge} />)`).
+   * Each concrete lifecycle returns its own screen component
+   * (e.g., `return <HelloWorldScreen bridge={bridge} />`).
+   * The base class wraps the returned content in HAI3Provider.
    *
-   * @param root - The React root to render into
    * @param bridge - The child MFE bridge for communication with the host
+   * @returns The React node to render inside HAI3Provider
    */
-  protected abstract renderContent(root: Root, bridge: ChildMfeBridge): void;
+  protected abstract renderContent(bridge: ChildMfeBridge): React.ReactNode;
 }

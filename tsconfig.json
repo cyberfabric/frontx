@@ -28,6 +28,6 @@
     }
   },
   "include": ["src", "packages/*/src"],
-  "exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__", "**/__tests__"],
+  "exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__", "**/__tests__", "src/mfe_packages"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

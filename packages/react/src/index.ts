@@ -246,6 +246,7 @@ export type {
   AppDispatch,
   SliceObject,
   HAI3Store,
+  ReducerPayload,
 
   // Layout
   LayoutDomainState,

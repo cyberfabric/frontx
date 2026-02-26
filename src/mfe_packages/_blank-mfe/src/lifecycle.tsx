@@ -1,4 +1,4 @@
-import type { Root } from 'react-dom/client';
+import React from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
 import { HomeScreen } from './screens/home/HomeScreen';
@@ -94,13 +94,12 @@ class BlankMfeLifecycle extends ThemeAwareReactLifecycle {
   }
 
   /**
-   * Render the Home screen component.
+   * Return the Home screen component tree.
    *
-   * @param root - The React root to render into
    * @param bridge - The child MFE bridge for communication with the host
    */
-  protected renderContent(root: Root, bridge: ChildMfeBridge): void {
-    root.render(<HomeScreen bridge={bridge} />);
+  protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
+    return <HomeScreen bridge={bridge} />;
   }
 }
 

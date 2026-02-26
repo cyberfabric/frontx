@@ -7,8 +7,9 @@
 3) STOP if you add manual styling, custom state management, direct slice imports, or hardcode screenset names.
 
 ## SCOPE
-- Applies to all screensets under src/screensets/**.
-- Screensets may define local actions, events, slices, effects, API services, and localization.
+- Applies to MFE screenset packages under src/mfe_packages/** (primary).
+- Legacy: src/screensets/** (no screensets exist here after MFE conversion).
+- MFE packages may define local actions, events, slices, effects, API services, and localization.
 
 ## CRITICAL RULES
 - REQUIRED: Use the configured UI kit components; manual styling only in uikit/base/.
@@ -37,6 +38,18 @@
 - DETECT: grep -rn "chatEffects\\|demoEffects" src/screensets
 - DETECT: grep -rn "Object\\.defineProperty.*reducer" src/screensets
 
+## MFE STATE MANAGEMENT
+- REQUIRED: Create HAI3 app via createHAI3().use(effects()).use(mock()).build() from @hai3/react.
+- REQUIRED: Register API services BEFORE .build() — mock plugin syncs during build, services must exist.
+- REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
+- REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @hai3/react.
+- REQUIRED: registerSlice() and createSlice() from @hai3/react for slice management.
+- REQUIRED: Shared init.ts module for idempotent MFE bootstrap (module-level side effect).
+- REQUIRED: init.ts ordering: apiRegistry.register() → apiRegistry.initialize() → createHAI3().build() → registerSlice().
+- REQUIRED: Module augmentation for RootState on @hai3/react (not @hai3/state).
+- FORBIDDEN: Direct react-redux, redux, or @reduxjs/toolkit imports in MFE code.
+- FORBIDDEN: createHAI3App() or full preset in MFE (heavyweight, not needed).
+
 ## DRAFT ENTITY PATTERN
 - REQUIRED: Create draft entities locally before backend save.
 - REQUIRED: Use isDraft: true and temporary IDs.
@@ -56,6 +69,14 @@
 - FORBIDDEN: Hardcoded strings or partial language sets.
 - DETECT: grep -R "['\"] [A-Za-z].* " src/screensets
 
+## MFE LOCALIZATION RULES
+- REQUIRED: Subscribe to language domain property via bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, callback).
+- REQUIRED: Load translations from MFE-local files using import.meta.glob pattern.
+- REQUIRED: Place translations in local i18n folders (src/mfe_packages/*/src/screens/*/i18n/).
+- FORBIDDEN: I18nRegistry.createLoader (host-level API, not available in MFEs).
+- FORBIDDEN: useScreenTranslations hook from @hai3/react (host-level hook with registry dependency).
+- NOTE: MFEs use the shared useScreenTranslations hook in their own shared/ directory (bridge-based).
+
 ## API SERVICE RULES
 - REQUIRED: Screenset-local API services in src/screensets/*/api/.
 - REQUIRED: Unique domain constant per screenset.
@@ -64,6 +85,16 @@
 - FORBIDDEN: Centralized src/api/ directory.
 - FORBIDDEN: Sharing API services between screensets.
 - DETECT: grep -rn "@/api/services" src/
+
+## MFE API SERVICE RULES
+- REQUIRED: MFE-local API services in src/mfe_packages/*/src/api/.
+- REQUIRED: Services extend BaseApiService from @hai3/react.
+- REQUIRED: Register with MFE's own apiRegistry instance (from @hai3/react).
+- REQUIRED: Mock plugins via this.registerPlugin() in service constructor.
+- REQUIRED: Each MFE fetches its own data independently (Independent Data Fetching).
+- FORBIDDEN: Importing API services from host src/app/api/ (cross-boundary violation).
+- FORBIDDEN: Proxying data from MFE to host or vice versa.
+- NOTE: Duplicate services across host and MFE are intentional architectural choice.
 
 ## ICON RULES
 - REQUIRED: Menu item icons use Iconify string IDs (e.g., "lucide:home", "lucide:globe").
@@ -137,6 +168,17 @@
 - Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
 - GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
 
+## MFE LIFECYCLE ARCHITECTURE
+- REQUIRED: MFE entries are lifecycle files exporting MfeEntryLifecycle (mount/unmount).
+- REQUIRED: ThemeAwareReactLifecycle abstract base class for React-based MFE entries.
+- REQUIRED: Shared init.ts module imported by base class for bootstrap side effect.
+- REQUIRED: Flux directory structure: api/, actions/, events/, effects/, slices/, init.ts.
+- REQUIRED: Event naming: mfe/<domain>/<eventName> (past tense for all events).
+- REQUIRED: Module augmentation for EventPayloadMap on @hai3/react (not @hai3/state).
+- FORBIDDEN: screensetRegistry (removed, replaced by MFE extension registration).
+- FORBIDDEN: useNavigation hook (removed, replaced by MFE actions).
+- FORBIDDEN: navigateToScreen (removed, replaced by mount_ext actions).
+
 ## PRE-DIFF CHECKLIST
 - [ ] Configured UI kit used; local uikit only if missing (inline styles in base/ only).
 - [ ] Slices use registerSlice with RootState augmentation.
@@ -148,3 +190,7 @@
 - [ ] MFE integration uses TypeSystemPlugin abstraction (gtsPlugin default).
 - [ ] Type IDs are opaque - call plugin.parseTypeId() for metadata.
 - [ ] Contract validation via plugin.validateInstance() after plugin.register().
+- [ ] MFE uses createHAI3().use(effects()).use(mock()).build() + HAI3Provider (no direct Redux).
+- [ ] MFE API services are local (not imported from host).
+- [ ] MFE events use mfe/ prefix convention.
+- [ ] MFE init.ts creates app, registers slices, registers API services.
