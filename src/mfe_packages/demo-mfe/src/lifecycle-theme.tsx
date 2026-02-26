@@ -66,6 +66,14 @@ class CurrentThemeLifecycle extends ThemeAwareReactLifecycle {
       .text-primary { color: hsl(var(--primary)); }
       .text-primary-foreground { color: hsl(var(--primary-foreground)); }
       .border-border { border-color: hsl(var(--border)); }
+      .bg-foreground { background-color: hsl(var(--foreground)); }
+      .text-background { color: hsl(var(--background)); }
+      .bg-secondary { background-color: hsl(var(--secondary)); }
+      .text-secondary-foreground { color: hsl(var(--secondary-foreground)); }
+      .bg-accent { background-color: hsl(var(--accent)); }
+      .text-accent-foreground { color: hsl(var(--accent-foreground)); }
+      .bg-destructive { background-color: hsl(var(--destructive)); }
+      .text-destructive-foreground { color: hsl(var(--destructive-foreground)); }
       .shadow-sm { box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05); }
       .overflow-hidden { overflow: hidden; }
       .truncate { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

@@ -2,13 +2,13 @@
 
 ### Requirement: MFE-Internal HAI3 App Bootstrap
 
-Each MFE package SHALL create a minimal HAI3App via `createHAI3().build()` from `@hai3/react` (no plugins) and use `HAI3Provider` to provide store context to its React tree. Direct usage of `react-redux`, `redux`, or `@reduxjs/toolkit` in MFE code is forbidden.
+Each MFE package SHALL create a minimal HAI3App via `createHAI3().use(effects()).use(mock()).build()` from `@hai3/react` and use `HAI3Provider` to provide store context to its React tree. Direct usage of `react-redux`, `redux`, or `@reduxjs/toolkit` in MFE code is forbidden.
 
 #### Scenario: MFE creates minimal HAI3App at module level
 
 - **WHEN** an MFE package initializes (first lifecycle entry loaded)
-- **THEN** the MFE SHALL call `createHAI3().build()` from `@hai3/react` to create a minimal `HAI3App`
-- **AND** the `createHAI3()` call SHALL NOT use any `.use()` plugins (no themes, layout, microfrontends, i18n, effects, or mock)
+- **THEN** the MFE SHALL call `createHAI3().use(effects()).use(mock()).build()` from `@hai3/react` to create a minimal `HAI3App`
+- **AND** the `createHAI3()` call SHALL use only `.use(effects())` and `.use(mock())` plugins (no themes, layout, microfrontends, i18n, or screensets)
 - **AND** the resulting `HAI3App` SHALL contain an isolated store (the MFE's own `storeInstance` singleton from its bundled `@hai3/state`)
 - **AND** the `HAI3App` SHALL be created as a module-level side effect in a shared `init.ts` module
 
@@ -43,7 +43,7 @@ Each MFE package SHALL have a shared `init.ts` module that performs one-time boo
 
 - **WHEN** any lifecycle entry in the demo MFE is loaded for the first time
 - **THEN** the `init.ts` module SHALL execute as a side effect of import
-- **AND** `init.ts` SHALL call `createHAI3().build()` to create the MFE's `HAI3App`
+- **AND** `init.ts` SHALL call `createHAI3().use(effects()).use(mock()).build()` to create the MFE's `HAI3App`
 - **AND** `init.ts` SHALL call `registerSlice(profileSlice, initProfileEffects)` to register the profile slice with effects
 - **AND** `init.ts` SHALL call `apiRegistry.register(AccountsApiService)` to register the API service
 - **AND** `init.ts` SHALL call `apiRegistry.initialize()` to activate the API service
@@ -59,7 +59,7 @@ Each MFE package SHALL have a shared `init.ts` module that performs one-time boo
 #### Scenario: Blank MFE init.ts provides scaffolding
 
 - **WHEN** the `_blank-mfe` template initializes
-- **THEN** `init.ts` SHALL call `createHAI3().build()` to create the MFE's `HAI3App`
+- **THEN** `init.ts` SHALL call `createHAI3().use(effects()).use(mock()).build()` to create the MFE's `HAI3App`
 - **AND** `init.ts` SHALL call `registerSlice(homeSlice, initHomeEffects)` with a placeholder slice
 - **AND** `init.ts` SHALL call `apiRegistry.register(_BlankApiService)` with a placeholder API service
 - **AND** `init.ts` SHALL export the `mfeApp` for use by lifecycle files
@@ -81,8 +81,8 @@ Each MFE package SHALL implement the canonical flux/events dataflow cycle intern
 - **WHEN** an MFE effect initializer is registered via `registerSlice(slice, initEffects)`
 - **THEN** the effect SHALL subscribe to events via `eventBus.on()`
 - **AND** on receiving the event, the effect SHALL call the appropriate API service method via `apiRegistry.getService()`
-- **AND** on success, the effect SHALL emit a success event and dispatch reducer functions to update the store
-- **AND** on failure, the effect SHALL emit a failure event and dispatch error state to the store
+- **AND** on success, the effect SHALL dispatch reducer functions to update the store
+- **AND** on failure, the effect SHALL dispatch error state to the store
 
 #### Scenario: MFE component reads from store via hooks
 
@@ -98,28 +98,29 @@ Each MFE package SHALL implement the canonical flux/events dataflow cycle intern
 - **AND** `fetchUser()` SHALL emit `'mfe/profile/user-fetch-requested'` via `eventBus.emit()`
 - **AND** `profileEffects` SHALL listen for `'mfe/profile/user-fetch-requested'`
 - **AND** the effect SHALL call `apiRegistry.getService(AccountsApiService).getCurrentUser()`
-- **AND** on success: emit `'mfe/profile/user-fetched'`, dispatch `setUser(user)` and `setLoading(false)`
-- **AND** on failure: emit `'mfe/profile/user-fetch-failed'`, dispatch `setError(error)` and `setLoading(false)`
+- **AND** on success: dispatch `setUser(user)` and `setLoading(false)` to update the store
+- **AND** on failure: dispatch `setError(error)` and `setLoading(false)` to update the store
 - **AND** ProfileScreen SHALL read state via `useAppSelector(state => state['demo/profile'].user)`, `.loading`, `.error`
 
 ### Requirement: MFE-Internal Event Naming Convention
 
-MFE-internal events SHALL follow the naming format `mfe/<domain>/<eventName>` where event names use past tense for outcomes and imperative for requests. Events never cross runtime boundaries.
+MFE-internal events SHALL follow the naming format `mfe/<domain>/<eventName>` where event names use past tense for all events, including requests. Events never cross runtime boundaries.
 
 #### Scenario: MFE event name format
 
 - **WHEN** defining events for an MFE's internal flux cycle
 - **THEN** event names SHALL follow the format `mfe/<domain>/<eventName>`
-- **AND** request events SHALL use imperative form (e.g., `mfe/profile/user-fetch-requested`)
-- **AND** outcome events SHALL use past tense (e.g., `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`)
+- **AND** all event names SHALL use past tense (e.g., `mfe/profile/user-fetch-requested`)
 - **AND** the `mfe/` prefix SHALL distinguish MFE-internal events from host events (`app/`)
+- **AND** only events that are actually emitted via `eventBus.emit()` SHALL have `EventPayloadMap` entries (effects dispatch directly to the store and do NOT emit outcome events)
 
 #### Scenario: MFE event type safety via module augmentation
 
 - **WHEN** defining typed events for an MFE package
 - **THEN** the MFE SHALL augment `EventPayloadMap` on its own bundled copy of `@hai3/react`
 - **AND** the augmentation SHALL use `declare module '@hai3/react'` syntax
-- **AND** each event SHALL specify its payload type in the augmentation
+- **AND** each emitted event SHALL specify its payload type (or `undefined` for no payload) in the augmentation
+- **AND** only events that are actually emitted via `eventBus.emit()` SHALL appear in the augmentation (effects dispatch to the store directly and do NOT emit outcome events)
 - **AND** `eventBus.emit()` and `eventBus.on()` SHALL enforce payload types at compile time
 
 #### Scenario: MFE events are isolated to MFE runtime
@@ -165,7 +166,7 @@ The demo MFE SHALL define a Redux slice for Profile screen state using `createSl
 
 - **WHEN** defining the profile slice for the demo MFE
 - **THEN** the slice SHALL use `createSlice` from `@hai3/react` with name `'demo/profile'`
-- **AND** the initial state SHALL include `user` (null or UserData), `loading` (boolean, initially true), and `error` (null or string)
+- **AND** the initial state SHALL include `user` (null or ApiUser), `loading` (boolean, initially true), and `error` (null or string)
 - **AND** the slice SHALL export reducer functions: `setUser`, `setLoading`, `setError`
 
 #### Scenario: Profile slice type safety via module augmentation
@@ -178,26 +179,25 @@ The demo MFE SHALL define a Redux slice for Profile screen state using `createSl
 
 ### Requirement: Blank MFE Template Flux Scaffolding
 
-The `_blank-mfe` template SHALL include the full flux/events directory structure with minimal working stubs. This is the CLI template for creating new screensets — new screensets must start with the correct internal dataflow architecture.
+The `_blank-mfe` template SHALL include the full flux/events directory structure with empty scaffolding files containing no imaginary domain logic. This is the CLI template for creating new screensets — new screensets must start with the correct internal dataflow architecture.
 
 #### Scenario: Blank MFE template directory structure
 
 - **WHEN** a developer creates a new screenset from the `_blank-mfe` template
 - **THEN** the template SHALL include the following flux scaffolding directories and files:
-  - `api/_BlankApiService.ts` — empty service extending `BaseApiService`
-  - `api/types.ts` — response type placeholder
+  - `api/_BlankApiService.ts` — empty service extending `BaseApiService`; API response types are defined in this same file (no separate types file)
   - `api/mocks.ts` — mock map placeholder
-  - `actions/homeActions.ts` — placeholder action function (e.g., `fetchData()`)
+  - `actions/homeActions.ts` — empty actions file (no actions defined; developers add their own action functions here)
   - `events/homeEvents.ts` — `EventPayloadMap` augmentation placeholder
   - `effects/homeEffects.ts` — effect initializer placeholder
   - `slices/homeSlice.ts` — `createSlice` with minimal state shape
-  - `init.ts` — `createHAI3().build()` + slice registration + API registration
+  - `init.ts` — `createHAI3().use(effects()).use(mock()).build()` + slice registration + API registration
 
-#### Scenario: Blank MFE template files are compilable stubs
+#### Scenario: Blank MFE template files are compilable empty scaffolding
 
 - **WHEN** the `_blank-mfe` template is used without modification
 - **THEN** all template files SHALL compile without TypeScript errors
-- **AND** the flux cycle SHALL be wired (action → event → effect → store) even with placeholder content
+- **AND** the files SHALL provide the correct file structure and import patterns but contain no imaginary domain logic
 - **AND** the `init.ts` SHALL create a minimal `HAI3App` and register the placeholder slice and API service
 
 #### Scenario: Blank MFE template follows naming conventions
@@ -224,3 +224,89 @@ The `ThemeAwareReactLifecycle` abstract class in both MFE packages SHALL wrap th
 - **THEN** each entry's React tree SHALL be wrapped in `HAI3Provider` with the same `mfeApp`
 - **AND** screens that don't use the store (HelloWorld, Theme, UIKit) SHALL still have the Provider (negligible overhead)
 - **AND** screens that use the store (Profile) SHALL have full `useAppSelector`/`useAppDispatch` access
+
+### Requirement: Demo MFE Screen Consistency — Bridge Info Section
+
+ALL demo MFE screens SHALL display a "Bridge Info" section showing bridge properties (Domain ID, Instance ID, Current Theme, Current Language) for development visibility. This establishes a consistent screen pattern across all 4 demo MFE entries. The Bridge Info section uses the `bridge` prop that every screen already receives.
+
+#### Scenario: All 4 demo MFE screens render Bridge Info
+
+- **WHEN** any of the 4 demo MFE screens render (HelloWorld, Profile, Theme, UIKit)
+- **THEN** each screen SHALL display a "Bridge Info" section using translated labels
+- **AND** the section SHALL show `bridge.domainId` as "Domain ID"
+- **AND** the section SHALL show `bridge.instanceId` as "Instance ID"
+- **AND** the section SHALL show the current theme value (subscribed via `bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME)`)
+- **AND** the section SHALL show the current language value (subscribed via `bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE)`)
+
+#### Scenario: Bridge Info i18n keys present in all screen language files
+
+- **WHEN** examining the i18n files for any demo MFE screen
+- **THEN** the language files SHALL include the 5 bridge-related keys: `bridge_info`, `domain_id`, `instance_id`, `current_theme`, `current_language`
+- **AND** the English values SHALL be: "Bridge Info", "Domain ID:", "Instance ID:", "Current Theme:", "Current Language:"
+- **AND** all supported language files for that screen SHALL include translated values for these 5 keys
+
+#### Scenario: UIKit Elements screen Bridge Info (pre-existing gap fix)
+
+- **WHEN** the UIKit Elements screen renders
+- **THEN** it SHALL display the Bridge Info section matching the pattern used by HelloWorld, Profile, and CurrentTheme screens
+- **AND** the UIKit Elements screen SHALL subscribe to theme and language properties to display current values
+- **AND** the UIKit screen's i18n files under `src/mfe_packages/demo-mfe/src/screens/uikit/i18n/` SHALL include the 5 bridge-related keys
+
+### Requirement: Blank MFE Screen Consistency — Bridge Info Section
+
+The blank MFE HomeScreen SHALL use i18n keys for all bridge-related labels, matching the same pattern established by the demo MFE screens. Hardcoded English strings in the Bridge Info section are not acceptable because the blank MFE is a registered, running MFE that renders in the sidebar alongside the demo MFE.
+
+#### Scenario: Blank MFE HomeScreen uses i18n keys for Bridge Info labels
+
+- **WHEN** the blank MFE HomeScreen renders the Bridge Info section
+- **THEN** the section heading SHALL use `{t('bridge_info')}` instead of a hardcoded "Bridge Properties" string
+- **AND** the "Domain ID:" label SHALL use `{t('domain_id')}` instead of hardcoded text
+- **AND** the "Instance ID:" label SHALL use `{t('instance_id')}` instead of hardcoded text
+- **AND** the "Current Theme:" label SHALL use `{t('current_theme')}` instead of hardcoded text
+- **AND** the "Current Language:" label SHALL use `{t('current_language')}` instead of hardcoded text
+
+#### Scenario: Blank MFE i18n files include 5 bridge-related keys
+
+- **WHEN** examining the i18n files for the blank MFE HomeScreen under `src/mfe_packages/_blank-mfe/src/screens/home/i18n/`
+- **THEN** ALL 36 language files SHALL include the 5 bridge-related keys: `bridge_info`, `domain_id`, `instance_id`, `current_theme`, `current_language`
+- **AND** the English (`en.json`) values SHALL be: `"bridge_info": "Bridge Info"`, `"domain_id": "Domain ID:"`, `"instance_id": "Instance ID:"`, `"current_theme": "Current Theme:"`, `"current_language": "Current Language:"`
+- **AND** non-English locale files SHALL use English-only placeholder text for bridge keys (matching the existing pattern across demo MFE i18n files — bridge info is a developer debug section, not user-facing content)
+
+### Requirement: Blank MFE Presentation Metadata — Proper Values
+
+The blank MFE `mfe.json` presentation section SHALL use proper display values instead of template placeholders. Since the blank MFE is registered in `bootstrap.ts` and actively runs in the application, template brackets in the label and route cause visible UI issues (literal `[Your Screen Label]` in the sidebar, URL matching failures from bracket characters in `/[your-route]`).
+
+#### Scenario: Blank MFE mfe.json has proper label and route
+
+- **WHEN** examining the blank MFE `mfe.json` file at `src/mfe_packages/_blank-mfe/mfe.json`
+- **THEN** the extension presentation `label` SHALL be `"Blank Home"` (not `"[Your Screen Label]"`)
+- **AND** the extension presentation `route` SHALL be `"/blank-home"` (not `"/[your-route]"`)
+- **AND** the `icon` and `order` fields SHALL remain unchanged (`"lucide:home"` and `100`)
+
+#### Scenario: Blank MFE appears correctly in sidebar navigation
+
+- **WHEN** the application loads with the blank MFE registered
+- **THEN** the sidebar navigation SHALL show "Blank Home" as the menu label (no bracket characters)
+- **AND** navigating to the blank MFE SHALL use the URL path `/blank-home` (no bracket characters)
+- **AND** route matching SHALL work correctly for the `/blank-home` path
+
+### Requirement: CurrentThemeScreen Color Swatches — Correct CSS Classes
+
+The demo MFE CurrentThemeScreen color swatches array SHALL use the correct Tailwind CSS utility classes that match each semantic color name. Each swatch must apply its own semantic background and foreground classes so that the rendered swatches visually demonstrate the actual theme colors.
+
+#### Scenario: Color swatches use correct semantic Tailwind classes
+
+- **WHEN** examining the `colorSwatches` array in `CurrentThemeScreen.tsx` at `src/mfe_packages/demo-mfe/src/screens/theme/CurrentThemeScreen.tsx`
+- **THEN** the Background swatch SHALL use `bg-background text-foreground`
+- **AND** the Foreground swatch SHALL use `bg-foreground text-background`
+- **AND** the Primary swatch SHALL use `bg-primary text-primary-foreground`
+- **AND** the Secondary swatch SHALL use `bg-secondary text-secondary-foreground`
+- **AND** the Muted swatch SHALL use `bg-muted text-muted-foreground`
+- **AND** the Accent swatch SHALL use `bg-accent text-accent-foreground`
+- **AND** the Destructive swatch SHALL use `bg-destructive text-destructive-foreground`
+
+#### Scenario: All 7 swatches render with visually distinct colors
+
+- **WHEN** the CurrentThemeScreen renders and a theme is applied
+- **THEN** the 7 color swatches SHALL each render with their own distinct background and foreground colors as defined by the active theme's CSS custom properties
+- **AND** no two semantically different swatches (e.g., Secondary vs Muted vs Accent) SHALL appear identical due to sharing the same CSS classes

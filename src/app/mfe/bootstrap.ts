@@ -17,6 +17,7 @@ import {
   RefContainerProvider,
 } from '@hai3/react';
 import demoMfeConfig from '@/mfe_packages/demo-mfe/mfe.json';
+import blankMfeConfig from '@/mfe_packages/_blank-mfe/mfe.json';
 
 /**
  * DetachedContainerProvider for domains without a visible host element.
@@ -87,15 +88,31 @@ export async function bootstrapMFE(
     screensetsRegistry.typeSystem.register(entryWithInlineManifest);
   }
 
-  // Step 5: Register all 4 extensions
+  // Step 5: Register all demo MFE extensions
   // Each extension points to its corresponding entry
   for (const extension of demoMfeConfig.extensions) {
     await screensetsRegistry.registerExtension(extension);
   }
 
+  // Step 5b: Register the blank MFE manifest, entries, and extensions
+  screensetsRegistry.typeSystem.register(blankMfeConfig.manifest);
+  for (const entry of blankMfeConfig.entries) {
+    const entryWithInlineManifest = {
+      ...entry,
+      manifest: blankMfeConfig.manifest,
+    };
+    screensetsRegistry.typeSystem.register(entryWithInlineManifest);
+  }
+  for (const extension of blankMfeConfig.extensions) {
+    await screensetsRegistry.registerExtension(extension);
+  }
+
   // Step 6: Mount the extension matching the current URL route, or the default (first)
   const currentPath = window.location.pathname;
-  const screenExtensions = demoMfeConfig.extensions as Array<{
+  const screenExtensions = [
+    ...demoMfeConfig.extensions,
+    ...blankMfeConfig.extensions,
+  ] as Array<{
     id: string;
     presentation: { route: string };
   }>;

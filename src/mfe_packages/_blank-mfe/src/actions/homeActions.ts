@@ -1,15 +1,13 @@
 /**
  * Home Domain - Actions
- * Replace with your domain actions.
+ * Add your domain action functions here.
+ * Actions emit events via eventBus to trigger the flux cycle.
+ *
+ * Example:
+ *   import { eventBus } from '@hai3/react';
+ *   import '../events/homeEvents';
+ *
+ *   export function fetchData(): void {
+ *     eventBus.emit('mfe/home/data-fetch-requested');
+ *   }
  */
-
-import { eventBus } from '@hai3/react';
-import '../events/homeEvents';
-
-/**
- * Fetch data from the API
- * Emits 'mfe/home/data-fetch-requested' event
- */
-export function fetchData(): void {
-  eventBus.emit('mfe/home/data-fetch-requested');
-}

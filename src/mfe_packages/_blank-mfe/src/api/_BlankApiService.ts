@@ -4,12 +4,11 @@
  */
 
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
-import type { GetDataResponse } from './types';
 import { blankMockMap } from './mocks';
 
 /**
  * _Blank API Service
- * Replace with your domain-specific endpoints.
+ * Add your domain-specific endpoint methods here.
  */
 export class _BlankApiService extends BaseApiService {
   constructor() {
@@ -26,12 +25,5 @@ export class _BlankApiService extends BaseApiService {
         delay: 100,
       })
     );
-  }
-
-  /**
-   * Example endpoint — replace with your API calls
-   */
-  async getData(): Promise<GetDataResponse> {
-    return this.protocol(RestProtocol).get<GetDataResponse>('/data');
   }
 }

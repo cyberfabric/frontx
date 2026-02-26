@@ -13,10 +13,10 @@
 
 import React, { lazy, Suspense, useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import { HAI3_SHARED_PROPERTY_LANGUAGE, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { CategoryMenu } from './components/CategoryMenu';
-import { Skeleton, Toaster, TooltipProvider } from '@hai3/uikit';
+import { Card, CardContent, Skeleton, Toaster, TooltipProvider } from '@hai3/uikit';
 
 // Lazy-loaded category components
 const LayoutElements = lazy(() =>
@@ -70,15 +70,22 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
 export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [activeElement, setActiveElement] = useState<string | undefined>();
+  const [theme, setTheme] = useState<string>('default');
+  const [language, setLanguage] = useState<string>('en');
 
   // Load translations
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
-  // Handle RTL languages
+  // Handle theme subscription and RTL language detection
   useEffect(() => {
-    // Read initial language for RTL
+    // Read initial property values
+    const initialTheme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
+    if (initialTheme && typeof initialTheme.value === 'string') {
+      setTheme(initialTheme.value);
+    }
     const initialLang = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
     if (initialLang && typeof initialLang.value === 'string') {
+      setLanguage(initialLang.value);
       const rootNode = containerRef.current?.getRootNode();
       if (rootNode && 'host' in rootNode) {
         const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
@@ -87,8 +94,17 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
       }
     }
 
+    // Subscribe to theme domain property
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (property) => {
+      if (typeof property.value === 'string') {
+        setTheme(property.value);
+      }
+    });
+
+    // Subscribe to language domain property
     const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
       if (typeof property.value === 'string') {
+        setLanguage(property.value);
         const rootNode = containerRef.current?.getRootNode();
         if (rootNode && 'host' in rootNode) {
           const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
@@ -98,7 +114,10 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
       }
     });
 
-    return languageUnsubscribe;
+    return () => {
+      themeUnsubscribe();
+      languageUnsubscribe();
+    };
   }, [bridge]);
 
   // Track active element on scroll (intersection observer)
@@ -254,6 +273,32 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
           >
             <DisclosureElements t={t} />
           </Suspense>
+
+          <Card>
+            <CardContent className="p-6">
+              <h2 className="text-xl font-semibold mb-3">
+                {t('bridge_info')}
+              </h2>
+              <dl className="grid gap-2">
+                <div>
+                  <dt className="font-medium">{t('domain_id')}</dt>
+                  <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">{t('instance_id')}</dt>
+                  <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">{t('current_theme')}</dt>
+                  <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+                </div>
+                <div>
+                  <dt className="font-medium">{t('current_language')}</dt>
+                  <dd className="font-mono text-sm text-gray-600">{language}</dd>
+                </div>
+              </dl>
+            </CardContent>
+          </Card>
         </main>
 
         {/* Toast container (rendered once at screen level) */}

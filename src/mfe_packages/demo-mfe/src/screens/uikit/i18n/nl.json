@@ -10,7 +10,6 @@
   "category.overlays": "Overlays",
   "category.media": "Media",
   "category.disclosure": "Disclosure",
-
   "element.grid.title": "Grid",
   "element.grid.description": "Responsive grid layout system",
   "element.grid.demo.column1": "Column 1",
@@ -19,19 +18,16 @@
   "element.grid.demo.column4": "Column 4",
   "element.grid.demo.column5": "Column 5",
   "element.grid.demo.column6": "Column 6",
-
   "element.separator.title": "Separator",
   "element.separator.description": "Visual divider between content sections",
   "element.separator.demo.content_above": "Content above separator",
   "element.separator.demo.content_below": "Content below separator",
   "element.separator.demo.left_content": "Left content",
   "element.separator.demo.right_content": "Right content",
-
   "element.divider.title": "Divider",
   "element.divider.description": "Horizontal or vertical line divider",
   "element.divider.demo.section1": "Section 1",
   "element.divider.demo.section2": "Section 2",
-
   "element.card.title": "Card",
   "element.card.description": "Container for related content with optional header and footer",
   "element.card.demo.basic_title": "Basic Card",
@@ -41,33 +37,27 @@
   "element.card.demo.footer_description": "Includes header, content, and footer",
   "element.card.demo.footer_content": "Card content goes here.",
   "element.card.demo.footer_text": "Footer information",
-
   "element.sidebar.title": "Sidebar",
   "element.sidebar.description": "Side navigation panel",
   "element.sidebar.demo.note": "The Sidebar component is a composite navigation component used in the host app.",
   "element.sidebar.demo.note_includes": "It includes SidebarContent, SidebarMenu, SidebarMenuItem, and SidebarMenuButton.",
   "element.sidebar.demo.note_example": "See the main application sidebar for a live example.",
-
   "element.footer.title": "Footer",
   "element.footer.description": "Page or section footer content",
   "element.footer.demo.main_content": "Main content area",
   "element.footer.demo.footer_content": "Footer content - typically used for actions or metadata",
-
   "element.header.title": "Header",
   "element.header.description": "Page or section header with title and actions",
   "element.header.demo.content": "Header content and actions",
   "element.header.demo.note": "The Header component is a layout primitive used in the host application. It provides a consistent header bar with flexible content slots.",
-
   "element.scroll_area.title": "ScrollArea",
   "element.scroll_area.description": "Customizable scrolling container",
   "element.scroll_area.demo.item": "Scrollable content item",
-
   "element.breadcrumb.title": "Breadcrumb",
   "element.breadcrumb.description": "Navigation breadcrumb trail",
   "element.breadcrumb.demo.home": "Home",
   "element.breadcrumb.demo.docs": "Documentation",
   "element.breadcrumb.demo.uikit": "UIKit",
-
   "element.nav.title": "Navigation Menu",
   "element.nav.description": "Primary navigation menu component",
   "element.nav.demo.file": "File",
@@ -81,7 +71,6 @@
   "element.nav.demo.view": "View",
   "element.nav.demo.view_zoom_in": "Zoom In",
   "element.nav.demo.view_zoom_out": "Zoom Out",
-
   "element.tab.title": "Tabs",
   "element.tab.description": "Tabbed content interface",
   "element.tab.demo.tab1": "Tab 1",
@@ -90,21 +79,17 @@
   "element.tab.demo.content1": "Content for Tab 1",
   "element.tab.demo.content2": "Content for Tab 2",
   "element.tab.demo.content3": "Content for Tab 3",
-
   "element.pagination.title": "Pagination",
   "element.pagination.description": "Page navigation controls",
   "element.pagination.demo.current_page": "Current page:",
-
   "element.link.title": "Link",
   "element.link.description": "Hyperlink component",
   "element.link.demo.standard": "Standard hyperlink",
   "element.link.demo.hover": "Link with hover underline",
   "element.link.demo.muted": "Muted link",
-
   "element.menu.title": "Menu",
   "element.menu.description": "Context or dropdown menu",
   "element.menu.demo.note": "See the Navigation Menu example above (Nav element) for a Menubar demonstration. UIKit also exports DropdownMenu and ContextMenu - see the Actions category.",
-
   "element.input.title": "Input",
   "element.input.description": "Text input field",
   "element.input.demo.text_label": "Text Input",
@@ -115,14 +100,12 @@
   "element.input.demo.password_placeholder": "Password",
   "element.input.demo.disabled_label": "Disabled Input",
   "element.input.demo.disabled_placeholder": "Disabled",
-
   "element.textarea.title": "TextArea",
   "element.textarea.description": "Multi-line text input",
   "element.textarea.demo.default_label": "Default TextArea",
   "element.textarea.demo.default_placeholder": "Type your message here...",
   "element.textarea.demo.rows_label": "TextArea with custom rows",
   "element.textarea.demo.rows_placeholder": "More space...",
-
   "element.select.title": "Select",
   "element.select.description": "Dropdown selection control",
   "element.select.demo.label": "Select an option",
@@ -131,46 +114,38 @@
   "element.select.demo.option2": "Option 2",
   "element.select.demo.option3": "Option 3",
   "element.select.demo.option4": "Option 4",
-
   "element.checkbox.title": "Checkbox",
   "element.checkbox.description": "Boolean checkbox input",
   "element.checkbox.demo.accept_terms": "Accept terms and conditions",
   "element.checkbox.demo.checked_default": "Checked by default",
   "element.checkbox.demo.disabled": "Disabled checkbox",
-
   "element.radio.title": "Radio",
   "element.radio.description": "Radio button group",
   "element.radio.demo.option1": "Option 1",
   "element.radio.demo.option2": "Option 2",
   "element.radio.demo.option3": "Option 3",
-
   "element.switch.title": "Switch",
   "element.switch.description": "Toggle switch control",
   "element.switch.demo.notifications": "Enable notifications",
   "element.switch.demo.enabled_default": "Enabled by default",
   "element.switch.demo.disabled": "Disabled switch",
-
   "element.date_picker.title": "DatePicker",
   "element.date_picker.description": "Calendar-based date selection",
   "element.date_picker.demo.label": "Select a date",
   "element.date_picker.demo.placeholder": "Pick a date",
   "element.date_picker.demo.selected": "Selected:",
-
   "element.file_upload.title": "FileUpload",
   "element.file_upload.description": "File upload input (placeholder)",
   "element.file_upload.demo.label": "Choose a file",
   "element.file_upload.demo.note": "Note: UIKit uses native file input. Custom file upload components can be built on top.",
-
   "element.slider.title": "Slider",
   "element.slider.description": "Range slider control",
   "element.slider.demo.label": "Default Slider",
   "element.slider.demo.value": "Value:",
-
   "element.rating.title": "Rating",
   "element.rating.description": "Star rating input (placeholder)",
   "element.rating.demo.note1": "Rating component is not exported from UIKit.",
   "element.rating.demo.note2": "Star ratings can be implemented using Button or custom components with star icons.",
-
   "element.button.title": "Button",
   "element.button.description": "Clickable action button",
   "element.button.demo.default": "Default",
@@ -185,14 +160,12 @@
   "element.button.demo.disabled": "Disabled",
   "element.button.demo.disabled_destructive": "Disabled Destructive",
   "element.button.demo.settings_aria": "Settings",
-
   "element.toggle.title": "Toggle",
   "element.toggle.description": "Toggle button with pressed state",
   "element.toggle.demo.bold_aria": "Toggle bold",
   "element.toggle.demo.italic_aria": "Toggle italic",
   "element.toggle.demo.underline_aria": "Toggle underline",
   "element.toggle.demo.strikethrough_aria": "Toggle strikethrough",
-
   "element.dropdown.title": "Dropdown",
   "element.dropdown.description": "Dropdown menu component",
   "element.dropdown.demo.open_menu": "Open Menu",
@@ -203,7 +176,6 @@
   "element.dropdown.demo.action1": "Action 1",
   "element.dropdown.demo.action2": "Action 2",
   "element.dropdown.demo.action3": "Action 3",
-
   "element.chip.title": "Chip",
   "element.chip.description": "Compact label or tag (placeholder)",
   "element.chip.demo.note": "UIKit does not export a dedicated Chip component. Badge component provides similar functionality:",
@@ -211,21 +183,18 @@
   "element.chip.demo.secondary": "Secondary",
   "element.chip.demo.destructive": "Destructive",
   "element.chip.demo.outline": "Outline",
-
   "element.alert.title": "Alert",
   "element.alert.description": "Inline alert messages",
   "element.alert.demo.default_title": "Default Alert",
   "element.alert.demo.default_message": "This is a default alert message.",
   "element.alert.demo.error_title": "Error",
   "element.alert.demo.error_message": "Something went wrong. Please try again.",
-
   "element.notification.title": "Notification",
   "element.notification.description": "Notification badge (placeholder)",
   "element.notification.demo.note1": "UIKit does not export a dedicated Notification component.",
   "element.notification.demo.note2": "Use Badge for notification counts or Toast for transient notifications.",
   "element.notification.demo.messages": "Messages",
   "element.notification.demo.count": "5",
-
   "element.toast.title": "Toast",
   "element.toast.description": "Temporary toast notification",
   "element.toast.demo.success_button": "Show Success Toast",
@@ -235,25 +204,20 @@
   "element.toast.demo.info_button": "Show Info Toast",
   "element.toast.demo.info_message": "This is an informational message.",
   "element.toast.demo.note": "Toast notifications appear at the bottom-right corner and auto-dismiss.",
-
   "element.progress.title": "Progress",
   "element.progress.description": "Progress bar indicator",
   "element.progress.demo.label_25": "25% Complete",
   "element.progress.demo.label_50": "50% Complete",
   "element.progress.demo.label_75": "75% Complete",
   "element.progress.demo.label_100": "100% Complete",
-
   "element.spinner.title": "Spinner",
   "element.spinner.description": "Loading spinner animation",
-
   "element.skeleton.title": "Skeleton",
   "element.skeleton.description": "Loading placeholder skeleton",
-
   "element.loader.title": "Loader",
   "element.loader.description": "Generic loading indicator (placeholder)",
   "element.loader.demo.note1": "UIKit does not export a dedicated Loader component.",
   "element.loader.demo.note2": "Use Spinner for loading indicators.",
-
   "element.status_badge.title": "StatusBadge",
   "element.status_badge.description": "Status indicator badge (placeholder)",
   "element.status_badge.demo.note1": "UIKit does not export a dedicated StatusBadge component.",
@@ -262,13 +226,11 @@
   "element.status_badge.demo.pending": "Pending",
   "element.status_badge.demo.inactive": "Inactive",
   "element.status_badge.demo.draft": "Draft",
-
   "element.empty_state.title": "EmptyState",
   "element.empty_state.description": "Empty state placeholder",
   "element.empty_state.demo.title": "No results found",
   "element.empty_state.demo.description": "We couldn't find any items matching your criteria.",
   "element.empty_state.demo.clear_filters": "Clear Filters",
-
   "element.data_table.title": "DataTable",
   "element.data_table.description": "Feature-rich data table with sorting, filtering, and pagination",
   "element.data_table.demo.column_id": "ID",
@@ -291,7 +253,6 @@
   "element.data_table.demo.payment_email_4": "user4@example.com",
   "element.data_table.demo.payment_amount_4": "$300.00",
   "element.data_table.demo.payment_status_4": "failed",
-
   "element.table.title": "Table",
   "element.table.description": "Basic table component",
   "element.table.demo.header_name": "Name",
@@ -306,7 +267,6 @@
   "element.table.demo.row3_name": "Bob Johnson",
   "element.table.demo.row3_role": "Manager",
   "element.table.demo.row3_status": "Away",
-
   "element.list.title": "List",
   "element.list.description": "Ordered or unordered list (placeholder)",
   "element.list.demo.unordered_title": "Unordered List",
@@ -317,14 +277,12 @@
   "element.list.demo.ordered_item1": "First step",
   "element.list.demo.ordered_item2": "Second step",
   "element.list.demo.ordered_item3": "Third step",
-
   "element.badge.title": "Badge",
   "element.badge.description": "Small badge or label",
   "element.badge.demo.default": "Default",
   "element.badge.demo.secondary": "Secondary",
   "element.badge.demo.destructive": "Destructive",
   "element.badge.demo.outline": "Outline",
-
   "element.tag.title": "Tag",
   "element.tag.description": "Tag or chip label (placeholder)",
   "element.tag.demo.note1": "UIKit does not export a dedicated Tag component.",
@@ -333,7 +291,6 @@
   "element.tag.demo.typescript": "TypeScript",
   "element.tag.demo.tailwindcss": "TailwindCSS",
   "element.tag.demo.vite": "Vite",
-
   "element.typography.title": "Typography",
   "element.typography.description": "Text styling components",
   "element.typography.demo.h1": "Heading 1",
@@ -347,24 +304,20 @@
   "element.typography.demo.small": "Small text for fine print.",
   "element.typography.demo.muted": "Muted text for secondary information.",
   "element.typography.demo.blockquote": "\"This is a blockquote. It can be used for citations or emphasized text.\"",
-
   "element.icon.title": "Icon",
   "element.icon.description": "Icon components (placeholder)",
   "element.icon.demo.note1": "UIKit does not export icon components directly.",
   "element.icon.demo.note2": "Icons are provided via Iconify (lucide: prefix) or custom SVG components.",
   "element.icon.demo.note3": "See IconButton component for icon usage examples.",
-
   "element.image.title": "Image",
   "element.image.description": "Image display component (placeholder)",
   "element.image.demo.note1": "UIKit does not export a dedicated Image component.",
   "element.image.demo.note2": "Use standard HTML <img> or Next.js Image for images.",
   "element.image.demo.placeholder_alt": "Placeholder",
-
   "element.timeline.title": "Timeline",
   "element.timeline.description": "Timeline visualization (placeholder)",
   "element.timeline.demo.note1": "UIKit does not export a Timeline component.",
   "element.timeline.demo.note2": "Timelines can be built using Card, Separator, and custom styling.",
-
   "element.tooltip.title": "Tooltip",
   "element.tooltip.description": "Hover tooltip",
   "element.tooltip.demo.hover_me": "Hover me",
@@ -373,7 +326,6 @@
   "element.tooltip.demo.positioned_right": "Positioned to the right",
   "element.tooltip.demo.warning": "Warning",
   "element.tooltip.demo.cannot_undo": "This action cannot be undone",
-
   "element.dialog.title": "Dialog",
   "element.dialog.description": "Modal dialog component",
   "element.dialog.demo.open_button": "Open Dialog",
@@ -390,13 +342,11 @@
   "element.dialog.demo.alert_description": "This action cannot be undone. This will permanently delete your account and remove your data from our servers.",
   "element.dialog.demo.alert_cancel": "Cancel",
   "element.dialog.demo.alert_delete": "Delete",
-
   "element.modal.title": "Modal",
   "element.modal.description": "Modal overlay (alias for Dialog)",
   "element.modal.demo.note1": "Modal is an alias for Dialog in UIKit.",
   "element.modal.demo.note2": "See the Dialog example above for modal usage.",
   "element.modal.demo.note3": "Both Dialog and AlertDialog provide modal overlays with different use cases.",
-
   "element.drawer.title": "Drawer",
   "element.drawer.description": "Slide-out drawer panel",
   "element.drawer.demo.open_button": "Open Drawer",
@@ -405,7 +355,6 @@
   "element.drawer.demo.content": "Drawer content goes here. It can include forms, lists, or any other components.",
   "element.drawer.demo.submit_button": "Submit",
   "element.drawer.demo.cancel_button": "Cancel",
-
   "element.popover.title": "Popover",
   "element.popover.description": "Popover overlay component",
   "element.popover.demo.open_button": "Open Popover",
@@ -419,7 +368,6 @@
   "element.popover.demo.height_value": "25px",
   "element.popover.demo.side_button": "Side Popover",
   "element.popover.demo.side_content": "This popover opens to the right of the trigger.",
-
   "element.chart.title": "Chart",
   "element.chart.description": "Data visualization charts",
   "element.chart.demo.bar_chart_title": "Bar Chart",
@@ -431,11 +379,9 @@
   "element.chart.demo.month_may": "May",
   "element.chart.demo.month_jun": "Jun",
   "element.chart.demo.value_label": "Value",
-
   "element.calendar.title": "Calendar",
   "element.calendar.description": "Calendar component for date display and selection",
   "element.calendar.demo.selected": "Selected:",
-
   "element.accordion.title": "Accordion",
   "element.accordion.description": "Expandable content sections",
   "element.accordion.demo.question1": "Is it accessible?",
@@ -454,7 +400,6 @@
   "element.accordion.demo.collapsible_title": "Collapsible (alternative)",
   "element.accordion.demo.toggle_details": "Toggle Details",
   "element.accordion.demo.collapsible_content": "This is a Collapsible component. It's similar to Accordion but designed for individual expand/collapse sections rather than groups.",
-
   "element.tree_view.title": "TreeView",
   "element.tree_view.description": "Hierarchical tree navigation (placeholder)",
   "element.tree_view.demo.note1": "UIKit does not export a dedicated TreeView component.",
@@ -464,7 +409,6 @@
   "element.tree_view.demo.project_a": "Project A",
   "element.tree_view.demo.project_b": "Project B",
   "element.tree_view.demo.readme": "README.md",
-
   "common.click_me": "Click me",
   "common.submit": "Submit",
   "common.cancel": "Cancel",
@@ -690,5 +634,10 @@
   "common.critical": "Critical",
   "common.major": "Major",
   "common.minor": "Minor",
-  "common.trivial": "Trivial"
+  "common.trivial": "Trivial",
+  "bridge_info": "Bridge Info",
+  "domain_id": "Domain ID:",
+  "instance_id": "Instance ID:",
+  "current_theme": "Current Theme:",
+  "current_language": "Current Language:"
 }

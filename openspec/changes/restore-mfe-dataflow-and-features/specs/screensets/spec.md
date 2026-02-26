@@ -19,12 +19,12 @@ The `.ai/targets/SCREENSETS.md` guideline SHALL cover MFE packages at `src/mfe_p
 
 ### Requirement: AI Guidelines — MFE State Management Rules
 
-The `.ai/targets/SCREENSETS.md` guideline SHALL describe MFE-local state management using `createHAI3().build()` + `HAI3Provider` from `@hai3/react`, with the same flux/events cycle rules as host-level code.
+The `.ai/targets/SCREENSETS.md` guideline SHALL describe MFE-local state management using `createHAI3().use(effects()).use(mock()).build()` + `HAI3Provider` from `@hai3/react`, with the same flux/events cycle rules as host-level code.
 
 #### Scenario: SCREENSETS.md describes MFE store setup
 
 - **WHEN** an AI agent reads SCREENSETS.md for MFE state management guidance
-- **THEN** the guideline SHALL describe creating a minimal HAI3App via `createHAI3().build()` (no plugins)
+- **THEN** the guideline SHALL describe creating a minimal HAI3App via `createHAI3().use(effects()).use(mock()).build()`
 - **AND** SHALL describe wrapping the React tree in `<HAI3Provider app={mfeApp}>`
 - **AND** SHALL describe using `registerSlice()` and `createSlice()` for slice registration
 - **AND** SHALL explicitly state that direct `react-redux`, `redux`, or `@reduxjs/toolkit` imports are forbidden
@@ -60,7 +60,7 @@ The `.ai/targets/SCREENSETS.md` guideline SHALL describe MFE i18n using bridge-b
 - **THEN** the guideline SHALL describe subscribing to the language domain property via `bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, callback)`
 - **AND** SHALL describe loading translations from MFE-local files using `import.meta.glob` pattern
 - **AND** SHALL NOT reference `I18nRegistry.createLoader` (host-level API, not available in MFEs)
-- **AND** SHALL NOT reference `useScreenTranslations` hook (host-level hook with registry dependency)
+- **AND** SHALL NOT reference the host-level `useScreenTranslations` hook (which depends on `I18nRegistry`). MFE-local re-implementations of `useScreenTranslations` that use `import.meta.glob` and bridge-based language subscription are permitted as local utilities — these are distinct from the host-level hook and do not depend on `I18nRegistry`.
 
 ### Requirement: AI Guidelines — MFE Lifecycle and Architecture Rules
 

@@ -96,15 +96,16 @@ The MFE defines its own `AccountsApiService` class inside `demo-mfe/src/api/`. I
 MFE-internal events follow the existing convention adapted for the MFE context:
 
 - **Format**: `mfe/<domain>/<eventName>` (past tense for all event names, including requests)
-- **Example**: `mfe/profile/user-fetch-requested`, `mfe/profile/user-fetched`, `mfe/profile/user-fetch-failed`
+- **Example**: `mfe/profile/user-fetch-requested`
 - **Module augmentation**: MFE augments `EventPayloadMap` on its own bundled copy of `@hai3/react`
+
+Only events that are actually emitted via `eventBus.emit()` need `EventPayloadMap` entries. In the demo MFE's profile flux cycle, only the request event is emitted (by the action). The effect listens for that event and dispatches directly to the store — it does NOT emit outcome events. Therefore only `mfe/profile/user-fetch-requested` appears in the augmentation:
 
 ```typescript
 // demo-mfe/src/events/profileEvents.ts
 declare module '@hai3/react' {
   interface EventPayloadMap {
-    'mfe/profile/user-fetched': { user: UserData };
-    'mfe/profile/user-fetch-failed': { error: string };
+    'mfe/profile/user-fetch-requested': undefined;
   }
 }
 ```
@@ -120,15 +121,10 @@ ProfileScreen
   │ useEffect → fetchUser()                    ← ACTION (emits event)
   │     └─ eventBus.emit('mfe/profile/user-fetch-requested')
   │
-  │ profileEffects listens                     ← EFFECT
+  │ profileEffects listens                     ← EFFECT (listens + dispatches)
   │     └─ apiRegistry.getService(AccountsApiService).getCurrentUser()
-  │         ├─ success: eventBus.emit('mfe/profile/user-fetched', { user })
-  │         └─ failure: eventBus.emit('mfe/profile/user-fetch-failed', { error })
-  │
-  │ profileEffects dispatches                  ← STORE UPDATE
-  │     ├─ dispatch(setUser(user))
-  │     ├─ dispatch(setLoading(false))
-  │     └─ dispatch(setError(error))
+  │         ├─ success: dispatch(setUser(user)), dispatch(setLoading(false))
+  │         └─ failure: dispatch(setError(error)), dispatch(setLoading(false))
   │
   │ ProfileScreen re-renders                   ← COMPONENT
   │     ├─ useAppSelector(state => state['demo/profile'].user)
@@ -140,26 +136,25 @@ The `notifyUserLoaded()` call from the original screen is NOT restored. The host
 
 ### Decision 7: Blank MFE Template Scaffolding
 
-The `_blank-mfe` template gets the same flux directory structure with minimal placeholder files:
+The `_blank-mfe` template gets the same flux directory structure as the demo MFE, but all scaffolding files are **empty structures** — they contain the minimal boilerplate (imports, class declaration, module augmentation block, function signature) with no imaginary domain logic:
 
 ```
 _blank-mfe/src/
   api/
-    _BlankApiService.ts       ← empty service extending BaseApiService
-    types.ts                  ← response type placeholder
-    mocks.ts                  ← mock map placeholder
+    _BlankApiService.ts       ← empty class extending BaseApiService, no methods; API response types are defined in this same file (no separate types.ts)
+    mocks.ts                  ← empty mock map, no endpoints
   actions/
-    homeActions.ts            ← placeholder action (fetchData)
+    homeActions.ts            ← empty file, no actions defined
   events/
-    homeEvents.ts             ← EventPayloadMap augmentation placeholder
+    homeEvents.ts             ← empty EventPayloadMap augmentation, no events declared
   effects/
-    homeEffects.ts            ← effect initializer placeholder
+    homeEffects.ts            ← empty initHomeEffects(dispatch), no subscriptions
   slices/
-    homeSlice.ts              ← createSlice with minimal state
+    homeSlice.ts              ← minimal createSlice, empty state, no domain reducers
   init.ts                     ← store + slice + API registration
 ```
 
-These are working stubs, not empty files — they follow the canonical pattern and compile. Developers replace `_Blank` prefixes with their screenset name, same as the existing convention for the blank template.
+These files are compilable scaffolding, not working stubs. They contain no fake methods, no fake events, no fake actions, and no fake reducers. The template provides the correct file structure and import patterns so developers know where to add each concern. Developers replace `_Blank` prefixes with their screenset name, same as the existing convention for the blank template.
 
 ### Decision 8: AI Guidelines Updates
 
@@ -182,6 +177,27 @@ Three guideline files need updates:
 - API services: MFE-local in `src/mfe_packages/*/src/api/`, own `apiRegistry` instance
 - Remove references to `screensetRegistry`, `useNavigation`, `navigateToScreen`
 - Add MFE-specific rules: lifecycle files, `ThemeAwareReactLifecycle`, `init.ts` pattern
+
+### Decision 9: Blank MFE Bridge Info i18n Consistency
+
+The blank MFE HomeScreen currently hardcodes "Bridge Properties" and all bridge-related labels (Domain ID, Instance ID, Current Theme, Current Language) as English strings. Since the blank MFE is registered and rendered alongside the demo MFE, it must follow the same i18n pattern: all visible text uses `{t('key')}` with translations loaded from `import.meta.glob` i18n files.
+
+The 5 bridge-related keys (`bridge_info`, `domain_id`, `instance_id`, `current_theme`, `current_language`) must be added to all 36 blank MFE HomeScreen i18n files. Non-English locales use English-only placeholder text for bridge keys — this matches the existing pattern across demo MFE i18n files, where bridge info is a developer debug section, not user-facing content requiring professional translation.
+
+### Decision 10: Blank MFE Presentation Metadata
+
+The blank MFE `mfe.json` has template placeholders (`[Your Screen Label]`, `/[your-route]`) in the presentation section. Since the blank MFE is registered in `bootstrap.ts` and actively runs, these placeholders render literally in the UI: the sidebar shows `[Your Screen Label]` and the router attempts to match `/[your-route]` (brackets in URL paths cause matching failures in most routing libraries).
+
+The fix is straightforward: replace the label with `"Blank Home"` and the route with `"/blank-home"`. These are proper values that display correctly in the sidebar and match cleanly in the router. The icon (`lucide:home`) and order (`100`) remain unchanged.
+
+### Decision 11: CurrentThemeScreen Color Swatch CSS Classes
+
+The `colorSwatches` array in `CurrentThemeScreen.tsx` has 3 incorrect entries:
+- Secondary uses `bg-muted text-foreground` instead of `bg-secondary text-secondary-foreground`
+- Accent uses `bg-muted text-foreground` instead of `bg-accent text-accent-foreground`
+- Destructive uses `bg-primary text-primary-foreground` instead of `bg-destructive text-destructive-foreground`
+
+This causes 3 swatches to render with wrong colors (Secondary and Accent both look like Muted; Destructive looks like Primary). The fix is a direct class string replacement in the `colorSwatches` array. Each swatch must use its own semantic `bg-<name>` and `text-<name>-foreground` classes so the theme demonstration screen actually demonstrates the theme's distinct colors.
 
 ## Risks / Trade-offs
 

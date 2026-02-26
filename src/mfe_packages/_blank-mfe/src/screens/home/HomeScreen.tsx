@@ -116,23 +116,23 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
       <Card className="mb-6">
         <CardContent className="p-6">
           <h2 className="text-xl font-semibold mb-3">
-            Bridge Properties
+            {t('bridge_info')}
           </h2>
           <dl className="grid gap-2">
             <div>
-              <dt className="font-medium">Domain ID:</dt>
+              <dt className="font-medium">{t('domain_id')}</dt>
               <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
             </div>
             <div>
-              <dt className="font-medium">Instance ID:</dt>
+              <dt className="font-medium">{t('instance_id')}</dt>
               <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
             </div>
             <div>
-              <dt className="font-medium">Current Theme:</dt>
+              <dt className="font-medium">{t('current_theme')}</dt>
               <dd className="font-mono text-sm text-gray-600">{theme}</dd>
             </div>
             <div>
-              <dt className="font-medium">Current Language:</dt>
+              <dt className="font-medium">{t('current_language')}</dt>
               <dd className="font-mono text-sm text-gray-600">{language}</dd>
             </div>
           </dl>

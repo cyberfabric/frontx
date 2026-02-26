@@ -29,9 +29,9 @@
       "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
       "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.blank.mfe.home.v1",
       "presentation": {
-        "label": "[Your Screen Label]",
+        "label": "Blank Home",
         "icon": "lucide:home",
-        "route": "/[your-route]",
+        "route": "/blank-home",
         "order": 100
       }
     }
