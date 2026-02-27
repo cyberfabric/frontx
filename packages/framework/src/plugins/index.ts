@@ -25,6 +25,8 @@ export {
   type ExtensionRegistrationState,
   type RegisterExtensionPayload,
   type UnregisterExtensionPayload,
+  type HostSharedDependency,
+  type MicrofrontendsConfig,
   // HAI3 layout domain constants
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,

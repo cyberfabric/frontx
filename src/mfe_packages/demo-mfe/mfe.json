@@ -7,7 +7,15 @@
       { "name": "react", "requiredVersion": "^19.0.0", "singleton": false },
       { "name": "react-dom", "requiredVersion": "^19.0.0", "singleton": false },
       { "name": "tailwindcss", "singleton": false },
-      { "name": "@hai3/uikit", "singleton": false }
+      { "name": "@hai3/uikit", "singleton": false },
+      { "name": "@hai3/react", "singleton": false },
+      { "name": "@hai3/framework", "singleton": false },
+      { "name": "@hai3/state", "singleton": false },
+      { "name": "@hai3/screensets", "singleton": false },
+      { "name": "@hai3/api", "singleton": false },
+      { "name": "@hai3/i18n", "singleton": false },
+      { "name": "@reduxjs/toolkit", "singleton": false },
+      { "name": "react-redux", "singleton": false }
     ]
   },
   "entries": [

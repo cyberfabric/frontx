@@ -30,8 +30,11 @@
 export interface SharedDependencyConfig {
   /** Package name (e.g., 'react', 'lodash', '@hai3/screensets') */
   name: string;
-  /** Semver range (e.g., '^18.0.0', '^4.17.0') */
-  requiredVersion: string;
+  /**
+   * Semver range (e.g., '^18.0.0', '^4.17.0').
+   * When omitted, any available version in the global scope is accepted.
+   */
+  requiredVersion?: string;
   /**
    * Whether to share a single instance across all consumers.
    * Default: false (with MfeHandlerMF, each consumer gets its own isolated instance)

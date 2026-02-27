@@ -17,6 +17,13 @@ import {
 import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
 import { MfeBridgeFactoryDefault } from './mfe-bridge-factory-default';
+import type {
+  FederationSharedEntry,
+  FederationPackageVersions,
+  FederationScope,
+  FederationSharedMap,
+} from './federation-types';
+import { getFederationShared, setFederationShared } from './federation-types';
 
 /**
  * Module Federation container interface.
@@ -26,6 +33,12 @@ interface ModuleFederationContainer {
   get(module: string): Promise<() => unknown>;
   init(shared: unknown): Promise<void>;
 }
+
+/**
+ * A shareScope object passed to container.init().
+ * Format: { [packageName]: { [version]: FederationSharedEntry } }
+ */
+type ShareScope = Record<string, FederationPackageVersions>;
 
 /**
  * Internal cache for Module Federation manifests.
@@ -249,13 +262,208 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       );
     }
 
-    // Initialize the container with shared dependencies
-    await remoteModule.init({});
+    // Build share scope from manifest and global federation scope
+    const shareScope = this.buildShareScope(manifest);
+
+    // Snapshot the share scope keys before init() so we can detect new entries
+    // that the MFE container writes back into it during init().
+    const snapshotBeforeInit = this.snapshotScopeKeys(shareScope);
+
+    // Initialize the container with the share scope.
+    // init() mutates shareScope: the federation runtime writes its own shared
+    // module getters for every package the container provides.
+    await remoteModule.init(shareScope);
+
+    // Register any new entries added by init() into the global scope so that
+    // subsequent MFEs can reuse the bundles loaded by this MFE.
+    this.registerMfeSharedModules(shareScope, snapshotBeforeInit);
 
     // Cache the container
     this.manifestCache.cacheContainer(manifest.remoteName, remoteModule);
 
     return remoteModule;
+  }
+
+  /**
+   * Build a shareScope object from globalThis.__federation_shared__['default']
+   * filtered by the packages declared in manifest.sharedDependencies.
+   *
+   * Version matching rules (no semver library — L1 zero-dependency policy):
+   *  - requiredVersion omitted → any version in the global scope is accepted
+   *  - requiredVersion starts with '^' → caret range: major must match, minor+patch must be >=
+   *  - bare version string (no prefix) → exact match only
+   *
+   * When no compatible version is found for a package, the package is omitted from
+   * the shareScope and the MFE silently falls back to its own bundled copy.
+   */
+  private buildShareScope(manifest: MfManifest): ShareScope {
+    const shareScope: ShareScope = {};
+
+    const deps = manifest.sharedDependencies;
+    if (!deps || deps.length === 0) {
+      return shareScope;
+    }
+
+    const globalShared = getFederationShared();
+    if (!globalShared) {
+      return shareScope;
+    }
+
+    const defaultScope: FederationScope = globalShared['default'] ?? {};
+
+    for (const dep of deps) {
+      const packageVersions = defaultScope[dep.name];
+      if (!packageVersions) {
+        continue;
+      }
+
+      const matchedVersion = this.findCompatibleVersion(
+        packageVersions,
+        dep.requiredVersion
+      );
+
+      if (matchedVersion !== null) {
+        const entry = packageVersions[matchedVersion];
+        shareScope[dep.name] = { [matchedVersion]: entry };
+      }
+    }
+
+    return shareScope;
+  }
+
+  /**
+   * Find a compatible version string in the given version map.
+   *
+   * Returns the matched version key, or null if no match is found.
+   *
+   * @param packageVersions - Map of available versions for a package
+   * @param requiredVersion - Version constraint from manifest (optional)
+   */
+  private findCompatibleVersion(
+    packageVersions: FederationPackageVersions,
+    requiredVersion: string | undefined
+  ): string | null {
+    const availableVersions = Object.keys(packageVersions);
+
+    if (availableVersions.length === 0) {
+      return null;
+    }
+
+    // No requiredVersion → any version matches; return the first available
+    if (requiredVersion === undefined) {
+      return availableVersions[0];
+    }
+
+    // Caret range ('^X.Y.Z'): major must match, minor+patch must be >=
+    if (requiredVersion.startsWith('^')) {
+      const required = requiredVersion.slice(1);
+      for (const available of availableVersions) {
+        if (this.matchesCaretRange(available, required)) {
+          return available;
+        }
+      }
+      return null;
+    }
+
+    // Bare version: exact match only
+    return availableVersions.includes(requiredVersion) ? requiredVersion : null;
+  }
+
+  /**
+   * Inline caret-range version matching.
+   *
+   * Returns true when:
+   *  - The major segments of available and required are equal
+   *  - (available.minor, available.patch) >= (required.minor, required.patch)
+   *
+   * Segments are compared as integers. Non-numeric segments fall back to
+   * string comparison, which handles pre-release labels conservatively.
+   */
+  private matchesCaretRange(available: string, required: string): boolean {
+    const aParts = available.split('.').map((s) => parseInt(s, 10));
+    const rParts = required.split('.').map((s) => parseInt(s, 10));
+
+    const aMajor = aParts[0] ?? 0;
+    const rMajor = rParts[0] ?? 0;
+    const aMinor = aParts[1] ?? 0;
+    const rMinor = rParts[1] ?? 0;
+    const aPatch = aParts[2] ?? 0;
+    const rPatch = rParts[2] ?? 0;
+
+    if (isNaN(aMajor) || isNaN(rMajor)) {
+      return available === required;
+    }
+
+    if (aMajor !== rMajor) {
+      return false;
+    }
+
+    if (aMinor !== rMinor) {
+      return aMinor > rMinor;
+    }
+
+    return aPatch >= rPatch;
+  }
+
+  /**
+   * Record the set of package names currently present in a shareScope.
+   * Used to diff the shareScope before and after init() to detect new entries.
+   */
+  private snapshotScopeKeys(shareScope: ShareScope): Set<string> {
+    return new Set(Object.keys(shareScope));
+  }
+
+  /**
+   * Register new entries added to shareScope by init() into
+   * globalThis.__federation_shared__['default'].
+   *
+   * After init(shareScope) completes, the federation runtime has written its own
+   * shared module getters into the shareScope for every package the container
+   * provides. This method promotes those new entries to the global scope so that
+   * subsequent MFEs can find and reuse them.
+   *
+   * First-loaded-wins: existing entries in the global scope are never overwritten.
+   *
+   * @param shareScope - The mutated shareScope after init() completed
+   * @param snapshotBeforeInit - Package names that were already in the shareScope before init()
+   */
+  private registerMfeSharedModules(
+    shareScope: ShareScope,
+    snapshotBeforeInit: Set<string>
+  ): void {
+    // Ensure the global scope structure exists
+    let globalShared = getFederationShared();
+    if (!globalShared) {
+      globalShared = {} as FederationSharedMap;
+      setFederationShared(globalShared);
+    }
+    if (!globalShared['default']) {
+      globalShared['default'] = {};
+    }
+    const defaultScope = globalShared['default'];
+
+    for (const [packageName, versionMap] of Object.entries(shareScope)) {
+      // Only process packages that were added by init() (not pre-existing)
+      if (snapshotBeforeInit.has(packageName)) {
+        continue;
+      }
+
+      for (const [version, entry] of Object.entries(versionMap)) {
+        const typedEntry = entry as FederationSharedEntry;
+
+        // Ensure the package exists in the global scope
+        if (!defaultScope[packageName]) {
+          defaultScope[packageName] = {};
+        }
+
+        // First-loaded-wins: do not overwrite an existing entry
+        if (defaultScope[packageName][version]) {
+          continue;
+        }
+
+        defaultScope[packageName][version] = typedEntry;
+      }
+    }
   }
 
   /**

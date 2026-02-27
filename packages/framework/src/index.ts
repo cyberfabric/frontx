@@ -124,6 +124,8 @@ export type {
   ExtensionRegistrationState,
   RegisterExtensionPayload,
   UnregisterExtensionPayload,
+  HostSharedDependency,
+  MicrofrontendsConfig,
 } from './plugins';
 
 // ============================================================================

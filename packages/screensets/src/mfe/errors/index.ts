@@ -94,24 +94,6 @@ export class ChainExecutionError extends MfeError {
 }
 
 /**
- * Error thrown when shared dependency version validation fails
- */
-export class MfeVersionMismatchError extends MfeError {
-  constructor(
-    public readonly manifestTypeId: string,
-    public readonly dependency: string,
-    public readonly expected: string,
-    public readonly actual: string
-  ) {
-    super(
-      `Version mismatch for '${dependency}' in MFE '${manifestTypeId}': expected ${expected}, got ${actual}`,
-      'MFE_VERSION_MISMATCH_ERROR'
-    );
-    this.name = 'MfeVersionMismatchError';
-  }
-}
-
-/**
  * Error thrown when type conformance check fails
  */
 export class MfeTypeConformanceError extends MfeError {

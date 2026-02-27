@@ -14,7 +14,6 @@ import {
   ContractValidationError,
   ExtensionTypeError,
   ChainExecutionError,
-  MfeVersionMismatchError,
   MfeTypeConformanceError,
   DomainValidationError,
   ExtensionValidationError,
@@ -141,27 +140,6 @@ describe('MFE Error Classes', () => {
         expect(error.executedPath).toEqual(['action1', 'action2']);
         expect(error.cause).toBeDefined();
         expect(error.message).toContain('Handler threw exception');
-      });
-    });
-
-    describe('MfeVersionMismatchError', () => {
-      it('should instantiate with version details', () => {
-        const error = new MfeVersionMismatchError(
-          'manifest-type-id',
-          'react',
-          '^18.0.0',
-          '17.0.2'
-        );
-
-        expect(error).toBeInstanceOf(MfeError);
-        expect(error.name).toBe('MfeVersionMismatchError');
-        expect(error.code).toBe('MFE_VERSION_MISMATCH_ERROR');
-        expect(error.manifestTypeId).toBe('manifest-type-id');
-        expect(error.dependency).toBe('react');
-        expect(error.expected).toBe('^18.0.0');
-        expect(error.actual).toBe('17.0.2');
-        expect(error.message).toContain('Version mismatch');
-        expect(error.message).toContain('react');
       });
     });
 
@@ -321,21 +299,6 @@ describe('MFE Error Classes', () => {
       expect(error.message).toContain('Actions chain execution failed');
       expect(error.message).toContain('gts.hai3.mfes.comm.action.v1~test.action.v1');
       expect(error.message).toContain('Handler threw TypeError');
-    });
-
-    it('should format MfeVersionMismatchError with version details', () => {
-      const error = new MfeVersionMismatchError(
-        'manifest-id',
-        '@hai3/state',
-        '^2.0.0',
-        '1.5.0'
-      );
-
-      expect(error.message).toContain('Version mismatch');
-      expect(error.message).toContain('@hai3/state');
-      expect(error.message).toContain('manifest-id');
-      expect(error.message).toContain('expected ^2.0.0');
-      expect(error.message).toContain('got 1.5.0');
     });
 
     it('should format DomainValidationError with validation paths', () => {
