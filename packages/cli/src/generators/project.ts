@@ -273,15 +273,27 @@ export async function generateProject(
     files.push(...scriptFiles);
   }
 
-  // 3.4 Copy root files from templates (CLAUDE.md, README.md, configs)
+  // 3.4 Copy root files from templates (configs, tooling, IDE)
+  // NOTE: files already in manifest rootFiles (index.html, .gitignore, etc.) are
+  // handled in section 2 above. This section handles files from template-sources/project/configs/
+  // and other template-only files not in the manifest.
   const rootConfigFiles = [
     'CLAUDE.md',
     'README.md',
     'eslint.config.js',
     'tsconfig.json',
+    'vite.config.ts',
     '.dependency-cruiser.cjs',
     '.pre-commit-config.yaml',
+    '.npmrc',
+    '.nvmrc',
   ];
+
+  // Add UIKit-dependent config files
+  if (uikit === 'hai3') {
+    rootConfigFiles.push('postcss.config.ts');
+  }
+
   for (const file of rootConfigFiles) {
     const filePath = path.join(templatesDir, file);
     if (await fs.pathExists(filePath)) {
@@ -325,6 +337,11 @@ export async function generateProject(
   // Only L3 packages allowed: @hai3/react (required), @hai3/uikit (conditional)
   const dependencies: Record<string, string> = {
     '@hai3/react': 'alpha',
+    '@hai3/framework': 'alpha',
+    '@hai3/api': 'alpha',
+    '@hai3/i18n': 'alpha',
+    '@hai3/screensets': 'alpha',
+    '@hai3/state': 'alpha',
     '@hookform/resolvers': '5.2.2',
     '@iconify/react': '5.0.2',
     '@reduxjs/toolkit': '2.11.2',
@@ -379,10 +396,9 @@ export async function generateProject(
     private: true,
     type: 'module',
     engines: {
-      node: '>=25.1.0',
-      npm: '>=11.7.0',
+      node: '>=24.14.0',
+      npm: '>=11.0.0',
     },
-    packageManager: 'npm@11.7.0',
     workspaces: ['eslint-plugin-local'],
     scripts: {
       dev: uikit === 'hai3' ? 'npm run generate:colors && vite' : 'vite',

@@ -744,6 +744,26 @@ async function copyTemplates() {
   }
 
   // ============================================
+  // STAGE 1b-override: Apply standalone-specific files from template-sources/project/
+  // These override monorepo root files that have diverged (e.g. MFE-specific code)
+  // ============================================
+  console.log('\nStage 1b-override: Standalone Overrides:');
+  const standaloneSrcDir = path.join(presetsDir, 'src');
+  if (await fs.pathExists(standaloneSrcDir)) {
+    await fs.copy(standaloneSrcDir, path.join(TEMPLATES_DIR, 'src'), { overwrite: true });
+    const overrideCount = await countFiles(standaloneSrcDir);
+    console.log(`  ✓ src/ standalone overrides (${overrideCount} files)`);
+  }
+
+  // Override layout templates with standalone versions (MFE-specific code removed)
+  const standaloneLayoutDir = path.join(presetsDir, 'src', 'app', 'layout');
+  if (await fs.pathExists(standaloneLayoutDir)) {
+    await fs.copy(standaloneLayoutDir, path.join(TEMPLATES_DIR, 'layout', 'hai3-uikit'), { overwrite: true });
+    const layoutOverrideCount = await countFiles(standaloneLayoutDir);
+    console.log(`  ✓ layout/ standalone overrides (${layoutOverrideCount} files)`);
+  }
+
+  // ============================================
   // STAGE 1c: Assemble .ai/ from markers (using manifest.ai_overrides)
   // ============================================
   console.log('\nStage 1c: AI Configuration (marker-based):');

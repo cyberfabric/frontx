@@ -34,33 +34,34 @@ layout:
     - index.ts
 
 # Stage 1b: Root project files (from monorepo root, dual-purpose)
+# NOTE: Files that differ between monorepo and standalone have standalone versions
+# in template-sources/project/ and are applied in Stage 1b-override.
 root:
   description: "Files copied from monorepo root that serve both dev and template purposes"
   files:
     - index.html
-    - postcss.config.ts
     - tailwind.config.ts
     - tsconfig.node.json
-    - vite.config.ts
     - .gitignore
     - src/vite-env.d.ts
+    # main.tsx/App.tsx copied from monorepo, then overridden by standalone versions
+    # (Stage 1b-override replaces MFE-specific code with standalone-compatible code)
     - src/app/main.tsx
-    - src/app/main.no-uikit.tsx
     - src/app/App.tsx
-    - src/app/App.no-studio.tsx
-    - src/app/App.no-uikit.tsx
-    - src/app/App.no-uikit.no-studio.tsx
+    # Standalone-only files (in template-sources/project/ instead of monorepo root):
+    # - vite.config.ts -> configs/vite.config.ts (no federation plugin)
+    # - postcss.config.ts -> configs/postcss.config.ts
+    # - src/app/main.no-uikit.tsx -> src/app/ (no MFE imports)
+    # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/
   directories:
     - src/app/themes      # Theme definitions
-    - src/app/uikit       # UI kit registry
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)
     - src/app/components  # Reusable components (TextLoader)
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
-  screensets:
-    - demo            # Default screenset for new projects
+  screensets: []          # Demo screenset moved to separate template (not in monorepo root)
   screensetTemplate: _blank  # Template for hai3 screenset create
 
 # Stage 1c: AI documentation overrides
