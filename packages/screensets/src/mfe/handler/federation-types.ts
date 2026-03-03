@@ -44,21 +44,3 @@ export type FederationScope = Record<string, FederationPackageVersions>;
  * Keys are scope names — HAI3 always uses 'default'.
  */
 export type FederationSharedMap = Record<string, FederationScope>;
-
-/** Key under which the federation runtime stores its shared modules. */
-const FEDERATION_SHARED_KEY = '__federation_shared__';
-
-/**
- * Read the federation shared map from globalThis.
- * Returns undefined when it has not been initialised yet.
- */
-export function getFederationShared(): FederationSharedMap | undefined {
-  return (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_SHARED_KEY];
-}
-
-/**
- * Write a federation shared map into globalThis.
- */
-export function setFederationShared(value: FederationSharedMap): void {
-  (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_SHARED_KEY] = value;
-}

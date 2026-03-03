@@ -21,12 +21,13 @@ MfeHandlerMF SHALL use Blob URLs to achieve per-MFE module isolation for shared 
 - **AND** the handler SHALL call `import(blobUrl)` to trigger a fresh ES module evaluation
 - **AND** the resulting module SHALL be used as the shared dependency for that MFE
 
-#### Scenario: Blob URL revoked after import resolves
+#### Scenario: Blob URLs are NOT revoked after import resolves
 
 - **WHEN** `import(blobUrl)` resolves successfully
-- **THEN** the handler SHALL call `URL.revokeObjectURL(blobUrl)` immediately
-- **AND** the revocation SHALL occur in a `finally` block to ensure cleanup even on error
-- **AND** the module SHALL remain usable after revocation (the ES module registry retains the evaluated module)
+- **THEN** the handler SHALL NOT call `URL.revokeObjectURL(blobUrl)`
+- **AND** blob URLs SHALL remain valid for the lifetime of the page
+- **BECAUSE** `import()` resolves when the module is parsed, not fully evaluated — modules with top-level `await` (e.g., `const react = await importShared('react')`) continue evaluating asynchronously after `import()` returns, and `get()` closures written to `globalThis.__federation_shared__` by `writeShareScope()` create new blob URLs during async evaluation that would be revoked prematurely
+- **AND** blob URLs are cleaned up automatically by the browser on page unload
 
 #### Scenario: Fetch failure throws MfeLoadError
 
@@ -109,12 +110,12 @@ When creating a Blob URL from shared dependency chunk source text, MfeHandlerMF 
 
 ### Requirement: ShareScope get() Wrapper for Blob URL Isolation
 
-When constructing the shareScope for `container.init()`, MfeHandlerMF SHALL wrap the `get()` function for each shared dependency that has a `chunkPath`, replacing the federation runtime's default `get()` (which returns the same module instance) with a blob-URL-based `get()` that returns a fresh module evaluation.
+When constructing the shareScope, MfeHandlerMF SHALL create `get()` closures for each shared dependency that has a `chunkPath`. These closures replace the federation runtime's default `get()` (which returns the same module instance) with a blob-URL-based `get()` that returns a fresh module evaluation.
 
 #### Scenario: get() wrapper produces isolated module per MFE
 
 - **GIVEN** a shared dependency with `chunkPath` is included in the shareScope
-- **WHEN** the federation runtime calls `get()` on that shareScope entry during MFE initialization
+- **WHEN** the federation runtime calls `get()` on that shareScope entry during MFE module evaluation
 - **THEN** the `get()` function SHALL return a promise resolving to a module factory `() => Module`
 - **AND** the module SHALL be a freshly evaluated instance created via Blob URL
 - **AND** the module SHALL NOT be the same object as any module returned by previous `get()` calls for other MFEs
@@ -126,3 +127,35 @@ When constructing the shareScope for `container.init()`, MfeHandlerMF SHALL wrap
 - **AND** if the source text is not cached, it SHALL fetch it from the absolute chunk URL
 - **AND** it SHALL create a new Blob URL from the (cached or freshly fetched) source text
 - **AND** it SHALL import the Blob URL and return the module
+
+### Requirement: Recursive Blob URL Chain Creation (createBlobUrlChain)
+
+MfeHandlerMF SHALL use `createBlobUrlChain` as the core isolation mechanism. It SHALL recursively create blob URLs for a chunk and all its expose-pattern dependencies, building a chain of blob-URL-evaluated modules that form the MFE's isolated dependency tree.
+
+#### Scenario: Recursive blob URL chain for expose chunk with shared dependencies
+
+- **GIVEN** an expose chunk `helloWorld.js` contains `import { importShared } from './__federation_fn_import-RySFLl55.js'`
+- **AND** the expose chunk is loaded via `createBlobUrlChain(loadState, 'helloWorld.js', baseUrl)`
+- **WHEN** `createBlobUrlChain` processes the expose chunk
+- **THEN** it SHALL fetch the source text for `helloWorld.js`
+- **AND** it SHALL parse relative imports from the source text using `parseExposeChunkFilename`
+- **AND** for each relative import that matches an expose-pattern filename (e.g., federation runtime files), it SHALL recursively call `createBlobUrlChain` for that dependency
+- **AND** it SHALL rewrite relative imports in the source text to use blob URLs from `loadState.blobUrlMap` for dependencies that have already been blob-URL'd
+- **AND** remaining relative imports (non-expose-pattern files like `_commonjsHelpers`) SHALL be rewritten to absolute URLs using the base URL
+- **AND** it SHALL create a Blob from the rewritten source text, produce a blob URL, and store it in `loadState.blobUrlMap` keyed by the chunk filename
+
+#### Scenario: Shared blobUrlMap per load ensures consistent blob URL references
+
+- **GIVEN** a single MFE load creates a `LoadBlobState` with an empty `blobUrlMap: Map<string, string>`
+- **WHEN** `createBlobUrlChain` is called for the expose chunk and recursively for its dependencies
+- **THEN** each blob URL created SHALL be stored in `loadState.blobUrlMap` keyed by chunk filename
+- **AND** when a later chunk in the same load references a dependency that was already blob-URL'd, the rewriting step SHALL use the blob URL from `blobUrlMap` instead of creating a duplicate
+- **AND** the `blobUrlMap` SHALL be scoped to a single load — different MFE loads SHALL have independent `blobUrlMap` instances
+
+#### Scenario: parseExposeChunkFilename extracts chunk filename from import specifier
+
+- **GIVEN** a source text line `import { importShared } from './__federation_fn_import-RySFLl55.js'`
+- **WHEN** `parseExposeChunkFilename` processes this import specifier
+- **THEN** it SHALL extract the filename `__federation_fn_import-RySFLl55.js` from the relative path
+- **AND** it SHALL return the filename for use as a key in `blobUrlMap` and for recursive `createBlobUrlChain` calls
+- **AND** for non-relative imports (bare specifiers, absolute URLs), it SHALL return `null` (not a candidate for blob URL chaining)

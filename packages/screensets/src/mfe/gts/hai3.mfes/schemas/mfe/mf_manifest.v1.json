@@ -21,13 +21,9 @@
         "properties": {
           "name": { "type": "string" },
           "requiredVersion": { "type": "string" },
-          "singleton": {
-            "type": "boolean",
-            "default": false,
-            "$comment": "Default false = isolated instances per MFE"
-          }
+          "chunkPath": { "type": "string" }
         },
-        "required": ["name", "requiredVersion"]
+        "required": ["name"]
       }
     },
     "entries": {

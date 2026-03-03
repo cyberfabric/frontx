@@ -1,8 +1,10 @@
 /**
  * Module Federation MFE Handler Implementation
  *
- * Implements MFE loading using Webpack/Rspack Module Federation 2.0.
- * This is HAI3's default handler for loading remote MFE bundles.
+ * Achieves per-runtime isolation by blob-URL'ing the entire module dependency
+ * chain for each load() call. Each screen/extension load gets fresh evaluations
+ * of the federation runtime (fresh moduleCache), code-split chunks, and shared
+ * dependencies — no module instances are shared between runtimes.
  *
  * @packageDocumentation
  */
@@ -18,62 +20,40 @@ import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
 import { MfeBridgeFactoryDefault } from './mfe-bridge-factory-default';
 import type {
-  FederationSharedEntry,
   FederationPackageVersions,
-  FederationScope,
-  FederationSharedMap,
 } from './federation-types';
-import { getFederationShared, setFederationShared } from './federation-types';
 
 /**
- * Module Federation container interface.
- * Represents a loaded remote container from Module Federation.
- */
-interface ModuleFederationContainer {
-  get(module: string): Promise<() => unknown>;
-  init(shared: unknown): Promise<void>;
-}
-
-/**
- * A shareScope object passed to container.init().
- * Format: { [packageName]: { [version]: FederationSharedEntry } }
+ * A shareScope object written to globalThis.__federation_shared__.
+ * Format: { [packageName]: { [version]: { get, loaded?, scope? } } }
  */
 type ShareScope = Record<string, FederationPackageVersions>;
 
 /**
+ * Per-load shared state for blob URL chain creation.
+ *
+ * Shared across all blob URL chains within a single load() call so that
+ * common transitive dependencies (e.g., the bundled React CJS module) are
+ * blob-URL'd once and reused by all modules within the same load.
+ */
+interface LoadBlobState {
+  readonly blobUrlMap: Map<string, string>;
+  readonly visited: Set<string>;
+  readonly baseUrl: string;
+}
+
+/**
  * Internal cache for Module Federation manifests.
- * Used only by MfeHandlerMF - not exposed publicly.
  */
 class ManifestCache {
   private readonly manifests = new Map<string, MfManifest>();
-  private readonly containers = new Map<string, ModuleFederationContainer>();
 
-  /**
-   * Cache a manifest for reuse.
-   */
   cacheManifest(manifest: MfManifest): void {
     this.manifests.set(manifest.id, manifest);
   }
 
-  /**
-   * Get a cached manifest by ID.
-   */
   getManifest(manifestId: string): MfManifest | undefined {
     return this.manifests.get(manifestId);
-  }
-
-  /**
-   * Cache a loaded container.
-   */
-  cacheContainer(remoteName: string, container: ModuleFederationContainer): void {
-    this.containers.set(remoteName, container);
-  }
-
-  /**
-   * Get a cached container.
-   */
-  getContainer(remoteName: string): ModuleFederationContainer | undefined {
-    return this.containers.get(remoteName);
   }
 }
 
@@ -81,27 +61,33 @@ class ManifestCache {
  * Configuration for MFE loading behavior.
  */
 interface MfeLoaderConfig {
-  /** Timeout in milliseconds for loading operations (default: 30000) */
   timeout?: number;
-  /** Number of retry attempts on failure (default: 2) */
   retries?: number;
 }
 
 /**
  * Module Federation handler for loading MFE bundles.
- * Implements HAI3's default loading strategy with Module Federation 2.0.
+ *
+ * For each load() call:
+ *  1. Parses remoteEntry.js (fetched as text) to find the expose chunk
+ *  2. Builds a shareScope with per-load blob URL get() functions
+ *  3. Creates a blob URL chain for the expose chunk and all its static deps
+ *     (fresh __federation_fn_import → fresh moduleCache)
+ *  4. During evaluation, importShared() calls trigger the blob URL get()
+ *     functions which also create blob URL chains for shared dep chunks
+ *  5. All blob URLs share a per-load map so common deps are evaluated once
  */
 class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   readonly bridgeFactory: MfeBridgeFactoryDefault;
   private readonly manifestCache: ManifestCache;
   private readonly config: MfeLoaderConfig;
   private readonly retryHandler: RetryHandler;
+  private readonly sourceTextCache = new Map<string, Promise<string>>();
 
   constructor(
     typeSystem: TypeSystemPlugin,
     config: MfeLoaderConfig = {}
   ) {
-    // Pass the base type ID this handler handles
     super(
       typeSystem,
       'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
@@ -118,9 +104,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   /**
    * Load an MFE bundle using Module Federation.
-   *
-   * @param entry - MfeEntryMF to load
-   * @returns Promise resolving to MFE lifecycle interface with ChildMfeBridge
    */
   async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     return this.retryHandler.retry(
@@ -132,24 +115,20 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   /**
    * Internal load implementation.
+   * Each call creates a fully isolated module evaluation chain via blob URLs.
    */
   private async loadInternal(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
-    // Resolve manifest from entry
     const manifest = await this.resolveManifest(entry.manifest);
-
-    // Cache manifest for reuse by other entries from same remote
     this.manifestCache.cacheManifest(manifest);
 
-    // Load the remote container
-    const container = await this.loadRemoteContainer(manifest);
+    const moduleFactory = await this.loadExposedModuleIsolated(
+      manifest,
+      entry.exposedModule,
+      entry.id
+    );
 
-    // Get the exposed module
-    const moduleFactory = await this.getModuleFactory(container, entry.exposedModule, entry.id);
-
-    // Execute the factory to get the module
     const loadedModule = moduleFactory();
 
-    // Validate the module implements MfeEntryLifecycle using type guard
     if (!this.isValidLifecycleModule(loadedModule)) {
       throw new MfeLoadError(
         `Module '${entry.exposedModule}' must implement MfeEntryLifecycle interface (mount/unmount)`,
@@ -161,8 +140,75 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 
   /**
-   * Type guard to validate MfeEntryLifecycle interface.
+   * Load an exposed module with full per-runtime isolation.
+   *
+   * Creates a per-load blob URL chain:
+   *  - The expose chunk and all its static deps are blob-URL'd (fresh
+   *    __federation_fn_import → fresh moduleCache per load)
+   *  - Shared dep chunks are also blob-URL'd via get() closures that share
+   *    the same per-load blobUrlMap (so React and ReactDOM get the same React)
+   *  - Blob URLs are NOT revoked — modules with top-level await continue
+   *    evaluating after import() resolves, and revoking during async evaluation
+   *    causes ERR_FILE_NOT_FOUND. Blob URLs are cleaned up by the browser on
+   *    page unload.
    */
+  private async loadExposedModuleIsolated(
+    manifest: MfManifest,
+    exposedModule: string,
+    entryId: string
+  ): Promise<() => unknown> {
+    const remoteEntryUrl = manifest.remoteEntry;
+    const baseUrl = remoteEntryUrl.substring(
+      0,
+      remoteEntryUrl.lastIndexOf('/') + 1
+    );
+
+    const loadState: LoadBlobState = {
+      blobUrlMap: new Map(),
+      visited: new Set(),
+      baseUrl,
+    };
+
+    // Build shareScope with per-load isolated get() functions
+    const shareScope = this.buildShareScope(manifest, loadState);
+    this.writeShareScope(shareScope);
+
+    // Parse remoteEntry to find the expose chunk filename
+    const remoteEntrySource = await this.fetchSourceText(remoteEntryUrl);
+    const exposeFilename = this.parseExposeChunkFilename(
+      remoteEntrySource,
+      exposedModule
+    );
+    if (!exposeFilename) {
+      throw new MfeLoadError(
+        `Cannot find expose chunk for '${exposedModule}' in remoteEntry`,
+        entryId
+      );
+    }
+
+    // Build blob URL chain for the expose chunk and all its static deps
+    await this.createBlobUrlChain(loadState, exposeFilename);
+
+    const exposeBlobUrl = loadState.blobUrlMap.get(exposeFilename);
+    if (!exposeBlobUrl) {
+      throw new MfeLoadError(
+        `Failed to create blob URL for expose chunk '${exposeFilename}'`,
+        entryId
+      );
+    }
+
+    const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
+
+    // Extract module factory (replicates container's moduleMap handler)
+    const exportSet = new Set([
+      'Module', '__esModule', 'default', '_export_sfc',
+    ]);
+    const keys = Object.keys(exposeModule as object);
+    return keys.every((k) => exportSet.has(k))
+      ? () => (exposeModule as Record<string, unknown>).default
+      : () => exposeModule;
+  }
+
   private isValidLifecycleModule(
     module: unknown
   ): module is MfeEntryLifecycle<ChildMfeBridge> {
@@ -178,13 +224,9 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
   /**
    * Resolve manifest from reference.
-   * Supports both inline manifest objects and type ID references.
    */
   private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
-    // If manifestRef is an object (inline manifest), validate and use it
     if (typeof manifestRef === 'object' && manifestRef !== null) {
-      // TypeScript knows manifestRef is MfManifest after the type guard above
-      // Validate required fields using typed properties
       if (typeof manifestRef.id !== 'string') {
         throw new MfeLoadError(
           'Inline manifest must have a valid "id" field',
@@ -203,100 +245,40 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
           manifestRef.id
         );
       }
-
-      // After validation, manifestRef is already correctly typed as MfManifest
-      // Cache the inline manifest for reuse
       this.manifestCache.cacheManifest(manifestRef);
       return manifestRef;
     }
 
-    // If manifestRef is a string (type ID), check cache
     if (typeof manifestRef === 'string') {
       const cached = this.manifestCache.getManifest(manifestRef);
       if (cached) {
         return cached;
       }
-
-      // Manifest must be provided inline or already cached from previous entry
       throw new MfeLoadError(
         `Manifest '${manifestRef}' not found. Provide manifest inline in MfeEntryMF or ensure another entry from the same remote was loaded first.`,
         manifestRef
       );
     }
 
-    // Invalid manifest reference type
     throw new MfeLoadError(
       'Manifest reference must be a string (type ID) or MfManifest object',
       'invalid-manifest-ref'
     );
   }
 
-  /**
-   * Load a Module Federation remote container.
-   * Uses ESM dynamic import to load remoteEntry.js.
-   *
-   * @originjs/vite-plugin-federation produces ESM-format remoteEntry.js files
-   * with named exports (get/init), NOT UMD globals. We use ESM dynamic import
-   * instead of script injection + window lookup.
-   */
-  private async loadRemoteContainer(manifest: MfManifest): Promise<ModuleFederationContainer> {
-    // Check if already loaded
-    const cached = this.manifestCache.getContainer(manifest.remoteName);
-    if (cached) {
-      return cached;
-    }
-
-    // Dynamically import the remote entry ESM module
-    // @vite-ignore directive prevents Vite from trying to analyze the dynamic import
-    const remoteModule = await this.loadRemoteModuleESM(
-      manifest.remoteEntry,
-      this.config.timeout ?? 30000
-    );
-
-    // Validate the imported module has required get/init methods
-    if (!this.isModuleFederationContainer(remoteModule)) {
-      throw new MfeLoadError(
-        `Remote module '${manifest.remoteEntry}' does not export required get/init functions. ` +
-        `Ensure the remote is built with Module Federation ESM format.`,
-        manifest.id
-      );
-    }
-
-    // Build share scope from manifest and global federation scope
-    const shareScope = this.buildShareScope(manifest);
-
-    // Snapshot the share scope keys before init() so we can detect new entries
-    // that the MFE container writes back into it during init().
-    const snapshotBeforeInit = this.snapshotScopeKeys(shareScope);
-
-    // Initialize the container with the share scope.
-    // init() mutates shareScope: the federation runtime writes its own shared
-    // module getters for every package the container provides.
-    await remoteModule.init(shareScope);
-
-    // Register any new entries added by init() into the global scope so that
-    // subsequent MFEs can reuse the bundles loaded by this MFE.
-    this.registerMfeSharedModules(shareScope, snapshotBeforeInit);
-
-    // Cache the container
-    this.manifestCache.cacheContainer(manifest.remoteName, remoteModule);
-
-    return remoteModule;
-  }
+  // ---- Share scope construction ----
 
   /**
-   * Build a shareScope object from globalThis.__federation_shared__['default']
-   * filtered by the packages declared in manifest.sharedDependencies.
+   * Build a shareScope for the given manifest.
    *
-   * Version matching rules (no semver library — L1 zero-dependency policy):
-   *  - requiredVersion omitted → any version in the global scope is accepted
-   *  - requiredVersion starts with '^' → caret range: major must match, minor+patch must be >=
-   *  - bare version string (no prefix) → exact match only
-   *
-   * When no compatible version is found for a package, the package is omitted from
-   * the shareScope and the MFE silently falls back to its own bundled copy.
+   * Every dependency with a chunkPath gets a fresh per-load blob URL get().
+   * Dependencies without chunkPath are omitted — the MFE falls back to its
+   * own bundled copy via the federation runtime's getSharedFromLocal().
    */
-  private buildShareScope(manifest: MfManifest): ShareScope {
+  private buildShareScope(
+    manifest: MfManifest,
+    loadState: LoadBlobState
+  ): ShareScope {
     const shareScope: ShareScope = {};
 
     const deps = manifest.sharedDependencies;
@@ -304,27 +286,12 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       return shareScope;
     }
 
-    const globalShared = getFederationShared();
-    if (!globalShared) {
-      return shareScope;
-    }
-
-    const defaultScope: FederationScope = globalShared['default'] ?? {};
-
     for (const dep of deps) {
-      const packageVersions = defaultScope[dep.name];
-      if (!packageVersions) {
-        continue;
-      }
-
-      const matchedVersion = this.findCompatibleVersion(
-        packageVersions,
-        dep.requiredVersion
-      );
-
-      if (matchedVersion !== null) {
-        const entry = packageVersions[matchedVersion];
-        shareScope[dep.name] = { [matchedVersion]: entry };
+      if (dep.chunkPath) {
+        const blobGet = this.createBlobUrlGet(dep.chunkPath, loadState);
+        shareScope[dep.name] = {
+          '*': { get: blobGet },
+        };
       }
     }
 
@@ -332,201 +299,231 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   }
 
   /**
-   * Find a compatible version string in the given version map.
-   *
-   * Returns the matched version key, or null if no match is found.
-   *
-   * @param packageVersions - Map of available versions for a package
-   * @param requiredVersion - Version constraint from manifest (optional)
+   * Write share scope entries to globalThis.__federation_shared__.
+   * Replicates the behavior of container.init(shareScope).
    */
-  private findCompatibleVersion(
-    packageVersions: FederationPackageVersions,
-    requiredVersion: string | undefined
-  ): string | null {
-    const availableVersions = Object.keys(packageVersions);
+  private writeShareScope(shareScope: ShareScope): void {
+    const g = globalThis as Record<string, unknown>;
+    const globalShared = (g.__federation_shared__ ?? {}) as Record<
+      string,
+      Record<string, FederationPackageVersions>
+    >;
+    g.__federation_shared__ = globalShared;
 
-    if (availableVersions.length === 0) {
-      return null;
-    }
-
-    // No requiredVersion → any version matches; return the first available
-    if (requiredVersion === undefined) {
-      return availableVersions[0];
-    }
-
-    // Caret range ('^X.Y.Z'): major must match, minor+patch must be >=
-    if (requiredVersion.startsWith('^')) {
-      const required = requiredVersion.slice(1);
-      for (const available of availableVersions) {
-        if (this.matchesCaretRange(available, required)) {
-          return available;
+    for (const [packageName, versions] of Object.entries(shareScope)) {
+      for (const [versionKey, versionValue] of Object.entries(versions)) {
+        const scope = versionValue.scope || 'default';
+        if (!globalShared[scope]) {
+          globalShared[scope] = {};
         }
-      }
-      return null;
-    }
-
-    // Bare version: exact match only
-    return availableVersions.includes(requiredVersion) ? requiredVersion : null;
-  }
-
-  /**
-   * Inline caret-range version matching.
-   *
-   * Returns true when:
-   *  - The major segments of available and required are equal
-   *  - (available.minor, available.patch) >= (required.minor, required.patch)
-   *
-   * Segments are compared as integers. Non-numeric segments fall back to
-   * string comparison, which handles pre-release labels conservatively.
-   */
-  private matchesCaretRange(available: string, required: string): boolean {
-    const aParts = available.split('.').map((s) => parseInt(s, 10));
-    const rParts = required.split('.').map((s) => parseInt(s, 10));
-
-    const aMajor = aParts[0] ?? 0;
-    const rMajor = rParts[0] ?? 0;
-    const aMinor = aParts[1] ?? 0;
-    const rMinor = rParts[1] ?? 0;
-    const aPatch = aParts[2] ?? 0;
-    const rPatch = rParts[2] ?? 0;
-
-    if (isNaN(aMajor) || isNaN(rMajor)) {
-      return available === required;
-    }
-
-    if (aMajor !== rMajor) {
-      return false;
-    }
-
-    if (aMinor !== rMinor) {
-      return aMinor > rMinor;
-    }
-
-    return aPatch >= rPatch;
-  }
-
-  /**
-   * Record the set of package names currently present in a shareScope.
-   * Used to diff the shareScope before and after init() to detect new entries.
-   */
-  private snapshotScopeKeys(shareScope: ShareScope): Set<string> {
-    return new Set(Object.keys(shareScope));
-  }
-
-  /**
-   * Register new entries added to shareScope by init() into
-   * globalThis.__federation_shared__['default'].
-   *
-   * After init(shareScope) completes, the federation runtime has written its own
-   * shared module getters into the shareScope for every package the container
-   * provides. This method promotes those new entries to the global scope so that
-   * subsequent MFEs can find and reuse them.
-   *
-   * First-loaded-wins: existing entries in the global scope are never overwritten.
-   *
-   * @param shareScope - The mutated shareScope after init() completed
-   * @param snapshotBeforeInit - Package names that were already in the shareScope before init()
-   */
-  private registerMfeSharedModules(
-    shareScope: ShareScope,
-    snapshotBeforeInit: Set<string>
-  ): void {
-    // Ensure the global scope structure exists
-    let globalShared = getFederationShared();
-    if (!globalShared) {
-      globalShared = {} as FederationSharedMap;
-      setFederationShared(globalShared);
-    }
-    if (!globalShared['default']) {
-      globalShared['default'] = {};
-    }
-    const defaultScope = globalShared['default'];
-
-    for (const [packageName, versionMap] of Object.entries(shareScope)) {
-      // Only process packages that were added by init() (not pre-existing)
-      if (snapshotBeforeInit.has(packageName)) {
-        continue;
-      }
-
-      for (const [version, entry] of Object.entries(versionMap)) {
-        const typedEntry = entry as FederationSharedEntry;
-
-        // Ensure the package exists in the global scope
-        if (!defaultScope[packageName]) {
-          defaultScope[packageName] = {};
+        if (!globalShared[scope][packageName]) {
+          globalShared[scope][packageName] = {};
         }
-
-        // First-loaded-wins: do not overwrite an existing entry
-        if (defaultScope[packageName][version]) {
-          continue;
-        }
-
-        defaultScope[packageName][version] = typedEntry;
+        globalShared[scope][packageName][versionKey] = versionValue;
       }
     }
   }
 
-  /**
-   * Load a remote ESM module dynamically.
-   * Uses dynamic import() with timeout protection.
-   */
-  private async loadRemoteModuleESM(url: string, timeout: number): Promise<unknown> {
-    return new Promise((resolve, reject) => {
-      const timer = setTimeout(() => {
-        reject(new MfeLoadError(
-          `Timeout loading remote module: ${url} (${timeout}ms)`,
-          url
-        ));
-      }, timeout);
-
-      // Dynamic import with @vite-ignore to prevent Vite analysis
-      // The imported module IS the container (exports get/init)
-      import(/* @vite-ignore */ url)
-        .then((module) => {
-          clearTimeout(timer);
-          resolve(module);
-        })
-        .catch((error) => {
-          clearTimeout(timer);
-          reject(new MfeLoadError(
-            `Failed to load remote module: ${url}`,
-            url,
-            error instanceof Error ? error : undefined
-          ));
-        });
-    });
-  }
+  // ---- Blob URL chain creation ----
 
   /**
-   * Type guard for Module Federation container.
-   * Validates that value has required get/init methods.
+   * Recursively create blob URLs for a module and all its static dependencies.
+   *
+   * Processes dependencies depth-first so that when a module's imports are
+   * rewritten, all its dependencies already have blob URLs in the shared map.
+   * Common dependencies are processed once per load (shared blobUrlMap).
    */
-  private isModuleFederationContainer(value: unknown): value is ModuleFederationContainer {
-    return (
-      typeof value === 'object' &&
-      value !== null &&
-      typeof (value as Record<string, unknown>).get === 'function' &&
-      typeof (value as Record<string, unknown>).init === 'function'
+  private async createBlobUrlChain(
+    loadState: LoadBlobState,
+    filename: string
+  ): Promise<void> {
+    if (loadState.blobUrlMap.has(filename) || loadState.visited.has(filename)) {
+      return;
+    }
+    loadState.visited.add(filename);
+
+    const source = await this.fetchSourceText(loadState.baseUrl + filename);
+    const deps = this.parseStaticImportFilenames(source, filename);
+
+    for (const dep of deps) {
+      await this.createBlobUrlChain(loadState, dep);
+    }
+
+    const rewritten = this.rewriteModuleImports(
+      source,
+      loadState.baseUrl,
+      loadState.blobUrlMap,
+      filename
     );
+    const blob = new Blob([rewritten], { type: 'text/javascript' });
+    const blobUrl = URL.createObjectURL(blob);
+    loadState.blobUrlMap.set(filename, blobUrl);
   }
 
   /**
-   * Get a module factory from the container.
+   * Create a blob-URL get() for a shared dependency chunk.
+   *
+   * The closure captures the per-load shared state so that common transitive
+   * dependencies are blob-URL'd once. Each call to get() within the same
+   * load reuses existing blob URLs for already-processed modules.
    */
-  private async getModuleFactory(
-    container: ModuleFederationContainer,
-    exposedModule: string,
-    entryId: string
-  ): Promise<() => unknown> {
-    try {
-      return await container.get(exposedModule);
-    } catch (error) {
-      throw new MfeLoadError(
-        `Failed to get module '${exposedModule}' from container: ${error instanceof Error ? error.message : String(error)}`,
-        entryId,
-        error instanceof Error ? error : undefined
-      );
+  private createBlobUrlGet(
+    chunkPath: string,
+    loadState: LoadBlobState
+  ): () => Promise<() => unknown> {
+    return async (): Promise<() => unknown> => {
+      await this.createBlobUrlChain(loadState, chunkPath);
+      const blobUrl = loadState.blobUrlMap.get(chunkPath);
+      if (!blobUrl) {
+        throw new MfeLoadError(
+          `Failed to create blob URL for shared dependency '${chunkPath}'`,
+          chunkPath
+        );
+      }
+      const module = await import(/* @vite-ignore */ blobUrl);
+      return () => module;
+    };
+  }
+
+  // ---- Source text fetching and parsing ----
+
+  /**
+   * Fetch the source text of a chunk. Uses an in-memory cache so each URL
+   * is fetched at most once across all loads.
+   */
+  private fetchSourceText(absoluteChunkUrl: string): Promise<string> {
+    const cached = this.sourceTextCache.get(absoluteChunkUrl);
+    if (cached !== undefined) {
+      return cached;
     }
+
+    const fetchPromise = fetch(absoluteChunkUrl)
+      .then((response) => {
+        if (!response.ok) {
+          throw new MfeLoadError(
+            `HTTP ${response.status} fetching chunk source: ${absoluteChunkUrl}`,
+            absoluteChunkUrl
+          );
+        }
+        return response.text();
+      })
+      .catch((error) => {
+        this.sourceTextCache.delete(absoluteChunkUrl);
+        if (error instanceof MfeLoadError) {
+          throw error;
+        }
+        throw new MfeLoadError(
+          `Network error fetching chunk source: ${absoluteChunkUrl}: ${error instanceof Error ? error.message : String(error)}`,
+          absoluteChunkUrl,
+          error instanceof Error ? error : undefined
+        );
+      });
+
+    this.sourceTextCache.set(absoluteChunkUrl, fetchPromise);
+    return fetchPromise;
+  }
+
+  /**
+   * Parse the remoteEntry source to find the expose chunk filename.
+   *
+   * Matches the moduleMap entry pattern:
+   *   "./lifecycle-helloworld":()=>{
+   *     ...
+   *     return __federation_import('./__federation_expose_Lifecycle-helloworld-CeX0Lwd2.js')...
+   *   }
+   */
+  private parseExposeChunkFilename(
+    remoteEntrySource: string,
+    exposedModule: string
+  ): string | null {
+    const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(
+      `"${escaped}"[^}]*__federation_import\\(['"]\\.\\/([^'"]+)['"]\\)`
+    );
+    const match = regex.exec(remoteEntrySource);
+    return match ? match[1] : null;
+  }
+
+  /**
+   * Extract resolved filenames from static import statements.
+   *
+   * Matches all relative imports (both './' and '../' prefixed) and resolves
+   * them relative to the importing chunk's path. For example, a chunk at
+   * '__federation_shared_@hai3/react.js' importing '../runtime.js' resolves
+   * to 'runtime.js' (relative to baseUrl).
+   */
+  private parseStaticImportFilenames(
+    source: string,
+    chunkFilename: string
+  ): string[] {
+    const filenames: string[] = [];
+    const regex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
+    let match;
+    while ((match = regex.exec(source)) !== null) {
+      filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
+    }
+    return [...new Set(filenames)];
+  }
+
+  /**
+   * Rewrite all relative imports in a module's source text.
+   *
+   * Handles both './' and '../' relative imports. Each relative specifier
+   * is resolved against the chunk's own path to produce a normalized key
+   * for the blobUrlMap lookup. Unmatched imports fall back to absolute URLs.
+   */
+  private rewriteModuleImports(
+    source: string,
+    baseUrl: string,
+    blobUrlMap: Map<string, string>,
+    chunkFilename: string
+  ): string {
+    const resolve = (relPath: string): string => {
+      const resolved = this.resolveRelativePath(chunkFilename, relPath);
+      const blobUrl = blobUrlMap.get(resolved);
+      return blobUrl ?? `${baseUrl}${resolved}`;
+    };
+
+    // Static imports: from './...' or from '../...'
+    let result = source.replace(
+      /from\s+'(\.\.?\/[^']+)'/g,
+      (_match, relPath: string) => `from '${resolve(relPath)}'`
+    );
+    result = result.replace(
+      /from\s+"(\.\.?\/[^"]+)"/g,
+      (_match, relPath: string) => `from "${resolve(relPath)}"`
+    );
+
+    // Dynamic imports: import('./...') or import('../...')
+    result = result.replace(
+      /import\(\s*'(\.\.?\/[^']+)'\s*\)/g,
+      (_match, relPath: string) => `import('${resolve(relPath)}')`
+    );
+    result = result.replace(
+      /import\(\s*"(\.\.?\/[^"]+)"\s*\)/g,
+      (_match, relPath: string) => `import("${resolve(relPath)}")`
+    );
+
+    return result;
+  }
+
+  /**
+   * Resolve a relative import path against the importing chunk's filename.
+   *
+   * Uses URL resolution to correctly handle '../' traversals. For example:
+   *  - resolveRelativePath('__federation_shared_@hai3/react.js', '../runtime.js')
+   *    → 'runtime.js'
+   *  - resolveRelativePath('expose-Widget1.js', './dep.js')
+   *    → 'dep.js'
+   */
+  private resolveRelativePath(
+    fromChunkFilename: string,
+    relativeSpecifier: string
+  ): string {
+    const syntheticBase = 'http://r/';
+    const fromUrl = new URL(fromChunkFilename, syntheticBase);
+    const resolved = new URL(relativeSpecifier, fromUrl);
+    return resolved.pathname.slice(1); // strip leading '/'
   }
 }
 

@@ -19,6 +19,41 @@ import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/type
 import type { ParentMfeBridge, MfeHandler } from '../../../src/mfe/handler/types';
 import { MockContainerProvider } from '../test-utils';
 
+// ---------------------------------------------------------------------------
+// Helpers
+// ---------------------------------------------------------------------------
+
+/**
+ * Create a callbacks object for toggle-semantics tests.
+ * serializeOnDomain is a no-op mock since toggle semantics never calls handleScreenSwap.
+ */
+function makeToggleCallbacks(overrides?: Partial<ExtensionLifecycleCallbacks>): ExtensionLifecycleCallbacks {
+  return {
+    loadExtension: vi.fn().mockResolvedValue(undefined),
+    mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
+    unmountExtension: vi.fn().mockResolvedValue(undefined),
+    getMountedExtension: vi.fn().mockReturnValue(undefined),
+    serializeOnDomain: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
+  };
+}
+
+/**
+ * Create a callbacks object for swap-semantics tests.
+ * serializeOnDomain executes the operation immediately (passthrough) so that
+ * the unmount + mount sequence inside handleScreenSwap runs correctly in tests.
+ */
+function makeSwapCallbacks(overrides?: Partial<ExtensionLifecycleCallbacks>): ExtensionLifecycleCallbacks {
+  return {
+    loadExtension: vi.fn().mockResolvedValue(undefined),
+    mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
+    unmountExtension: vi.fn().mockResolvedValue(undefined),
+    getMountedExtension: vi.fn().mockReturnValue(undefined),
+    serializeOnDomain: vi.fn().mockImplementation((_domainId, operation) => operation()),
+    ...overrides,
+  };
+}
+
 
 describe('Extension Lifecycle Actions', () => {
   let registry: DefaultScreensetsRegistry;
@@ -106,12 +141,7 @@ describe('Extension Lifecycle Actions', () => {
   describe('ExtensionLifecycleActionHandler', () => {
     describe('load_ext action', () => {
       it('should route to callbacks.loadExtension with correct extension ID', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -128,12 +158,7 @@ describe('Extension Lifecycle Actions', () => {
       });
 
       it('should throw error if payload is missing', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -154,12 +179,7 @@ describe('Extension Lifecycle Actions', () => {
 
     describe('mount_ext action - toggle semantics', () => {
       it('should route to callbacks.mountExtension directly', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -176,12 +196,7 @@ describe('Extension Lifecycle Actions', () => {
       });
 
       it('should throw error if payload is missing', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -194,16 +209,31 @@ describe('Extension Lifecycle Actions', () => {
           handler.handleAction(HAI3_ACTION_MOUNT_EXT, undefined)
         ).rejects.toThrow(MfeError);
       });
+
+      it('should NOT call serializeOnDomain for toggle semantics mount', async () => {
+        const callbacks = makeToggleCallbacks();
+
+        const handler = new ExtensionLifecycleActionHandler(
+          toggleDomain.id,
+          callbacks,
+          'toggle',
+          mockContainerProvider
+        );
+
+        await handler.handleAction(HAI3_ACTION_MOUNT_EXT, {
+          extensionId: testExtension1.id,
+        });
+
+        // Toggle domains do not use handleScreenSwap, so serializeOnDomain is not called
+        expect(callbacks.serializeOnDomain).not.toHaveBeenCalled();
+      });
     });
 
     describe('mount_ext action - swap semantics', () => {
       it('should unmount current extension before mounting new one', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
+        const callbacks = makeSwapCallbacks({
           getMountedExtension: vi.fn().mockReturnValue(testExtension2.id),
-        };
+        });
 
         const handler = new ExtensionLifecycleActionHandler(
           swapDomain.id,
@@ -231,12 +261,9 @@ describe('Extension Lifecycle Actions', () => {
       });
 
       it('should not unmount when mounting the same extension', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
+        const callbacks = makeSwapCallbacks({
           getMountedExtension: vi.fn().mockReturnValue(testExtension2.id),
-        };
+        });
 
         const handler = new ExtensionLifecycleActionHandler(
           swapDomain.id,
@@ -255,12 +282,7 @@ describe('Extension Lifecycle Actions', () => {
       });
 
       it('should mount directly when no extension is currently mounted', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeSwapCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           swapDomain.id,
@@ -277,16 +299,83 @@ describe('Extension Lifecycle Actions', () => {
         expect(callbacks.unmountExtension).not.toHaveBeenCalled();
         expect(callbacks.mountExtension).toHaveBeenCalledWith(testExtension2.id, mockContainerProvider.mockContainer);
       });
+
+      it('should call serializeOnDomain with the domain ID when handleScreenSwap executes', async () => {
+        const callbacks = makeSwapCallbacks();
+
+        const handler = new ExtensionLifecycleActionHandler(
+          swapDomain.id,
+          callbacks,
+          'swap',
+          mockContainerProvider
+        );
+
+        await handler.handleAction(HAI3_ACTION_MOUNT_EXT, {
+          extensionId: testExtension2.id,
+        });
+
+        // serializeOnDomain must be called with the domain ID
+        expect(callbacks.serializeOnDomain).toHaveBeenCalledWith(
+          swapDomain.id,
+          expect.any(Function)
+        );
+        // The inner unmount+mount callbacks are called inside the serialized block
+        expect(callbacks.mountExtension).toHaveBeenCalledWith(testExtension2.id, mockContainerProvider.mockContainer);
+      });
+
+      it('should serialize concurrent swaps on the same domain', async () => {
+        // Track execution order across concurrent swaps
+        const executionOrder: string[] = [];
+
+        // Use a real serializer to validate domain-level serialization
+        let resolveFirst!: () => void;
+        const firstOpBlocked = new Promise<void>((resolve) => { resolveFirst = resolve; });
+
+        const callbacks = makeSwapCallbacks({
+          getMountedExtension: vi.fn().mockReturnValue(undefined),
+          mountExtension: vi.fn().mockImplementation(async (extId: string) => {
+            executionOrder.push(`mount:${extId}`);
+            return {} as ParentMfeBridge;
+          }),
+          // Real serializer for the domain queue
+          serializeOnDomain: (() => {
+            let queue: Promise<void> = Promise.resolve();
+            return vi.fn().mockImplementation((_domainId: string, operation: () => Promise<void>) => {
+              queue = queue.then(() => operation(), () => operation());
+              return queue;
+            });
+          })(),
+        });
+
+        const handler = new ExtensionLifecycleActionHandler(
+          swapDomain.id,
+          callbacks,
+          'swap',
+          mockContainerProvider
+        );
+
+        const ext1Id = 'gts.hai3.mfes.ext.extension.v1~test.concurrent.ext1.v1';
+        const ext2Id = 'gts.hai3.mfes.ext.extension.v1~test.concurrent.ext2.v1';
+
+        // Fire two swaps concurrently
+        const swap1 = handler.handleAction(HAI3_ACTION_MOUNT_EXT, { extensionId: ext1Id });
+        const swap2 = handler.handleAction(HAI3_ACTION_MOUNT_EXT, { extensionId: ext2Id });
+
+        await Promise.all([swap1, swap2]);
+
+        // Both swaps ran, in order (swap1 before swap2)
+        expect(executionOrder).toEqual(['mount:' + ext1Id, 'mount:' + ext2Id]);
+        // serializeOnDomain was called twice (once per swap)
+        expect(callbacks.serializeOnDomain).toHaveBeenCalledTimes(2);
+
+        void firstOpBlocked; // suppress unused var lint
+        void resolveFirst;
+      });
     });
 
     describe('unmount_ext action', () => {
       it('should route to callbacks.unmountExtension', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -303,12 +392,7 @@ describe('Extension Lifecycle Actions', () => {
       });
 
       it('should throw error if payload is missing', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -325,12 +409,7 @@ describe('Extension Lifecycle Actions', () => {
 
     describe('non-lifecycle actions', () => {
       it('should pass through as no-op for non-lifecycle action types', async () => {
-        const callbacks: ExtensionLifecycleCallbacks = {
-          loadExtension: vi.fn().mockResolvedValue(undefined),
-          mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-          unmountExtension: vi.fn().mockResolvedValue(undefined),
-          getMountedExtension: vi.fn().mockReturnValue(undefined),
-        };
+        const callbacks = makeToggleCallbacks();
 
         const handler = new ExtensionLifecycleActionHandler(
           toggleDomain.id,
@@ -512,12 +591,7 @@ describe('Extension Lifecycle Actions', () => {
       const getContainerSpy = vi.spyOn(mockContainerProvider, 'getContainer');
       const releaseContainerSpy = vi.spyOn(mockContainerProvider, 'releaseContainer');
 
-      const callbacks: ExtensionLifecycleCallbacks = {
-        loadExtension: vi.fn().mockResolvedValue(undefined),
-        mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-        unmountExtension: vi.fn().mockResolvedValue(undefined),
-        getMountedExtension: vi.fn().mockReturnValue(undefined),
-      };
+      const callbacks = makeToggleCallbacks();
 
       const handler = new ExtensionLifecycleActionHandler(
         toggleDomain.id,
@@ -549,12 +623,7 @@ describe('Extension Lifecycle Actions', () => {
       const getContainerSpy = vi.spyOn(mockContainerProvider, 'getContainer');
       const releaseContainerSpy = vi.spyOn(mockContainerProvider, 'releaseContainer');
 
-      const callbacks: ExtensionLifecycleCallbacks = {
-        loadExtension: vi.fn().mockResolvedValue(undefined),
-        mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-        unmountExtension: vi.fn().mockResolvedValue(undefined),
-        getMountedExtension: vi.fn().mockReturnValue(undefined),
-      };
+      const callbacks = makeSwapCallbacks();
 
       const handler = new ExtensionLifecycleActionHandler(
         swapDomain.id,
@@ -601,12 +670,7 @@ describe('Extension Lifecycle Actions', () => {
         throw new Error('Container creation failed');
       });
 
-      const callbacks: ExtensionLifecycleCallbacks = {
-        loadExtension: vi.fn().mockResolvedValue(undefined),
-        mountExtension: vi.fn().mockResolvedValue({} as ParentMfeBridge),
-        unmountExtension: vi.fn().mockResolvedValue(undefined),
-        getMountedExtension: vi.fn().mockReturnValue(undefined),
-      };
+      const callbacks = makeToggleCallbacks();
 
       const handler = new ExtensionLifecycleActionHandler(
         toggleDomain.id,

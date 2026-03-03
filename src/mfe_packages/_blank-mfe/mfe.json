@@ -4,18 +4,18 @@
     "remoteEntry": "http://localhost:3099/assets/remoteEntry.js",
     "remoteName": "blankMfe",
     "sharedDependencies": [
-      { "name": "react", "requiredVersion": "^19.0.0", "singleton": false },
-      { "name": "react-dom", "requiredVersion": "^19.0.0", "singleton": false },
-      { "name": "tailwindcss", "singleton": false },
-      { "name": "@hai3/uikit", "singleton": false },
-      { "name": "@hai3/react", "singleton": false },
-      { "name": "@hai3/framework", "singleton": false },
-      { "name": "@hai3/state", "singleton": false },
-      { "name": "@hai3/screensets", "singleton": false },
-      { "name": "@hai3/api", "singleton": false },
-      { "name": "@hai3/i18n", "singleton": false },
-      { "name": "@reduxjs/toolkit", "singleton": false },
-      { "name": "react-redux", "singleton": false }
+      { "name": "react", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react.js" },
+      { "name": "react-dom", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react-dom.js" },
+      { "name": "tailwindcss", "chunkPath": "__federation_shared_tailwindcss.js" },
+      { "name": "@hai3/uikit", "chunkPath": "__federation_shared_@hai3/uikit.js" },
+      { "name": "@hai3/react", "chunkPath": "__federation_shared_@hai3/react.js" },
+      { "name": "@hai3/framework", "chunkPath": "__federation_shared_@hai3/framework.js" },
+      { "name": "@hai3/state", "chunkPath": "__federation_shared_@hai3/state.js" },
+      { "name": "@hai3/screensets", "chunkPath": "__federation_shared_@hai3/screensets.js" },
+      { "name": "@hai3/api", "chunkPath": "__federation_shared_@hai3/api.js" },
+      { "name": "@hai3/i18n", "chunkPath": "__federation_shared_@hai3/i18n.js" },
+      { "name": "@reduxjs/toolkit", "chunkPath": "__federation_shared_@reduxjs/toolkit.js" },
+      { "name": "react-redux", "chunkPath": "__federation_shared_react-redux.js" }
     ]
   },
   "entries": [

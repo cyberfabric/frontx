@@ -36,51 +36,6 @@ import {
   HAI3_OVERLAY_DOMAIN,
 } from './constants';
 
-/** Key under which the federation runtime stores its shared modules on globalThis. */
-const FEDERATION_SHARED_KEY = '__federation_shared__';
-
-/**
- * A single entry in the Module Federation share scope.
- * Mirrors the FederationSharedEntry type from @hai3/screensets internals.
- */
-interface FederationEntry {
-  get: () => Promise<() => unknown>;
-  loaded?: 1;
-  scope?: string;
-}
-
-/** Top-level federation map type used by the host bootstrap. */
-type FederationMap = Record<string, Record<string, Record<string, FederationEntry>>>;
-
-/** Read the federation shared map from globalThis in a type-safe way. */
-function readFederationShared(): FederationMap | undefined {
-  return (globalThis as unknown as Record<string, FederationMap | undefined>)[FEDERATION_SHARED_KEY];
-}
-
-/** Write the federation shared map into globalThis in a type-safe way. */
-function writeFederationShared(value: FederationMap): void {
-  (globalThis as unknown as Record<string, FederationMap | undefined>)[FEDERATION_SHARED_KEY] = value;
-}
-
-/**
- * A single shared dependency entry that the host application provides to the
- * global Module Federation share scope at startup.
- *
- * Format mirrors the shareScope entry expected by the federation runtime:
- *   get: () => Promise<() => Module>
- */
-export interface HostSharedDependency {
-  /** Package name (e.g. 'react', '@hai3/uikit'). */
-  name: string;
-  /** Exact version string (e.g. '19.2.4'). */
-  version: string;
-  /**
-   * Factory function returning a promise that resolves to a module factory.
-   * Pattern: () => import('pkg').then(m => () => m)
-   */
-  get: () => Promise<() => unknown>;
-}
-
 /**
  * Configuration for the microfrontends plugin.
  */
@@ -93,62 +48,6 @@ export interface MicrofrontendsConfig {
    * handlers manually via screensetsRegistry API.
    */
   mfeHandlers?: MfeHandler[];
-
-  /**
-   * Optional list of host-provided shared dependencies to pre-populate
-   * globalThis.__federation_shared__ before any MFE is loaded.
-   *
-   * When provided, the plugin writes each entry into the 'default' federation
-   * scope during onInit(), so the first MFE can immediately benefit from
-   * sharing instead of downloading its own copy.
-   *
-   * @example
-   * ```typescript
-   * microfrontends({
-   *   mfeHandlers: [new MfeHandlerMF(gtsPlugin)],
-   *   hostSharedDependencies: [
-   *     { name: 'react', version: '19.2.4', get: () => import('react').then(m => () => m) },
-   *   ],
-   * })
-   * ```
-   */
-  hostSharedDependencies?: HostSharedDependency[];
-}
-
-/**
- * Bootstrap host-provided shared dependencies into the global Module Federation
- * scope (globalThis.__federation_shared__['default']).
- *
- * This is called once in onInit(), before any MFE loading actions are dispatched,
- * so that the first MFE to load can immediately reuse the host's already-loaded
- * bundles instead of downloading its own copies.
- *
- * No-op when deps is undefined or empty.
- */
-function bootstrapHostSharedDependencies(deps: HostSharedDependency[] | undefined): void {
-  if (!deps || deps.length === 0) {
-    return;
-  }
-
-  let globalShared = readFederationShared();
-  if (!globalShared) {
-    globalShared = {};
-    writeFederationShared(globalShared);
-  }
-  if (!globalShared['default']) {
-    globalShared['default'] = {};
-  }
-  const defaultScope = globalShared['default'];
-
-  for (const dep of deps) {
-    if (!defaultScope[dep.name]) {
-      defaultScope[dep.name] = {};
-    }
-    // First-registered-wins: do not overwrite an existing entry for this version
-    if (!defaultScope[dep.name][dep.version]) {
-      defaultScope[dep.name][dep.version] = { get: dep.get, loaded: 1 };
-    }
-  }
 }
 
 /**
@@ -244,10 +143,6 @@ export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
     },
 
     onInit(): void {
-      // Bootstrap host shared dependencies into the global Module Federation
-      // scope before any MFE is loaded, so the first MFE benefits immediately.
-      bootstrapHostSharedDependencies(config.hostSharedDependencies);
-
       // Wire the registry reference into actions module
       setMfeRegistry(screensetsRegistry);
 

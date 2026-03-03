@@ -59,6 +59,16 @@ export interface ExtensionLifecycleCallbacks {
   unmountExtension: (extensionId: string) => Promise<void>;
   /** Query the currently mounted extension in a domain (ExtensionManager) */
   getMountedExtension: (domainId: string) => string | undefined;
+  /**
+   * Serialize an operation on the domain ID queue via OperationSerializer.
+   * Exposes OperationSerializer.serializeOperation under a per-domain key so
+   * that the entire swap (unmount + mount) executes atomically on the domain
+   * queue. No deadlock occurs because the domain queue key (e.g., "screen-domain-id")
+   * is different from the extension entity queue keys (e.g., "extension-id") used
+   * by unmountExtension/mountExtension — OperationSerializer serializes per key,
+   * and different keys use independent queues.
+   */
+  serializeOnDomain: (domainId: string, operation: () => Promise<void>) => Promise<void>;
 }
 
 /**
@@ -161,16 +171,18 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
   }
 
   private async handleScreenSwap(newExtensionId: string): Promise<void> {
-    // Get current mounted extension in this domain (if any)
-    const currentExtId = this.callbacks.getMountedExtension(this.domainId);
-    if (currentExtId && currentExtId !== newExtensionId) {
-      // Unmount current screen internally (no blank state visible)
-      await this.callbacks.unmountExtension(currentExtId);
-      this.containerProvider.releaseContainer(currentExtId);
-    }
+    await this.callbacks.serializeOnDomain(this.domainId, async () => {
+      // Get current mounted extension in this domain (if any)
+      const currentExtId = this.callbacks.getMountedExtension(this.domainId);
+      if (currentExtId && currentExtId !== newExtensionId) {
+        // Unmount current screen internally (no blank state visible)
+        await this.callbacks.unmountExtension(currentExtId);
+        this.containerProvider.releaseContainer(currentExtId);
+      }
 
-    // Mount new screen -- handler obtains container from provider
-    const container = this.containerProvider.getContainer(newExtensionId);
-    await this.callbacks.mountExtension(newExtensionId, container);
+      // Mount new screen -- handler obtains container from provider
+      const container = this.containerProvider.getContainer(newExtensionId);
+      await this.callbacks.mountExtension(newExtensionId, container);
+    });
   }
 }

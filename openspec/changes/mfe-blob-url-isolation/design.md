@@ -57,7 +57,7 @@ The moduleCache is already per-MFE (declared in the federation runtime module sc
 3. For each MFE load, handler creates a Blob from the (possibly cached) source text
 4. `URL.createObjectURL(blob)` produces a unique URL
 5. `import(blobUrl)` triggers a fresh module evaluation
-6. Blob URL is revoked after `import()` resolves (the module is already evaluated; the URL is no longer needed)
+6. Blob URL is NOT revoked after `import()` resolves — modules with top-level `await` continue evaluating asynchronously, and `get()` closures create new blob URLs during async evaluation (see Decision 8 revised)
 
 ### Decision 2: Source Text Import Rewriting
 
@@ -173,21 +173,85 @@ Retaining the field as "advisory" or "documentation of intent" would be misleadi
 - Handler lifetime = application lifetime in HAI3 (created at init, never destroyed until page unload)
 - Adding LRU/TTL complexity is unjustified given the bounded size and deployment-scoped immutability
 
-### Decision 8: Blob URL Revocation Strategy
+### Decision 8: Blob URL Revocation Strategy (REVISED — Bug Fix)
 
-**Choice:** Revoke Blob URLs immediately after `import()` resolves.
+**Original choice:** Revoke Blob URLs immediately after `import()` resolves in a `finally` block.
 
-**Why:** Once `import(blobUrl)` resolves, the browser has finished parsing and evaluating the module. The Blob URL is no longer needed — the module's exports are held in the module registry by the (now-revoked) URL key, but this doesn't affect the module's usability. Revoking immediately prevents unbounded Blob URL accumulation in long-running SPAs.
+**Bug discovered during E2E verification:** The original strategy is incorrect. `import()` resolves when the module is **parsed**, not fully **evaluated**. Modules with top-level `await` (like `const react = await importShared('react')`) continue evaluating asynchronously after `import()` returns. The revoked blob URLs are then accessed by `get()` closures in `__federation_shared__` during async evaluation, causing `net::ERR_FILE_NOT_FOUND`.
 
-```typescript
-const blobUrl = URL.createObjectURL(blob);
-try {
-  const module = await import(blobUrl);
-  return module;
-} finally {
-  URL.revokeObjectURL(blobUrl);
-}
+The failure sequence:
 ```
+[1] writeShareScope()              ← writes get() closures capturing loadState
+[2] createBlobUrlChain()           ← creates blob URLs for expose chain
+[3] await import(exposeBlobUrl)    ← returns when module is PARSED
+[4] finally { revokeObjectURL() }  ← REVOKES all blob URLs (loadState.blobUrls)
+[5] (async module eval continues)  ← top-level await still running
+[6]   importShared('react')        ← calls get() → createBlobUrlChain → new blob URL
+[7]   but step 4 already revoked it (it was added to loadState.blobUrls) → ERR!
+```
+
+Additionally, `writeShareScope()` writes `get()` closures to `globalThis.__federation_shared__`, which is a global mutable object. Concurrent loads overlap: Load 2's `writeShareScope` overwrites Load 1's `get()` closures while Load 1's module is still evaluating. Load 1's `importShared()` then picks up Load 2's closures (referencing Load 2's `loadState`). When Load 2's `finally` runs, it revokes blob URLs that Load 1 is still using.
+
+**Revised choice:** Do NOT revoke blob URLs. Remove the `finally` block entirely.
+
+**Why this is safe:**
+- Blob URLs are lightweight — each is a `blob:<origin>/<uuid>` string pointing to an in-memory Blob object. The Blob itself is small (source text is already cached separately in `sourceTextCache`).
+- The number of blob URLs per load is bounded by the number of shared dependencies + their transitive static deps (typically 20-40 per MFE load).
+- When the page is unloaded, all blob URLs are automatically cleaned up by the browser.
+- The alternative (deferred revocation via a cleanup method) adds complexity without meaningful memory savings — the Blob objects are small and the handler lives for the app's lifetime.
+- Attempting to revoke at the "right time" (after full evaluation including all top-level awaits) is unreliable because there is no browser API to detect when a dynamically imported module has finished all its async evaluation.
+
+**What changes:**
+- Remove the `finally` block in `loadExposedModuleIsolated` that iterates `loadState.blobUrls` and calls `URL.revokeObjectURL()`.
+- Remove the `blobUrls: string[]` field from `LoadBlobState` (no longer needed — blob URLs are tracked only in `blobUrlMap` for rewriting purposes).
+- The `createBlobUrlChain` method no longer pushes to `loadState.blobUrls`.
+
+### Decision 9: Domain-Level Serialization for Screen Swaps (Bug Fix)
+
+**Bug discovered during E2E verification:** `handleScreenSwap` in `ExtensionLifecycleActionHandler` calls `unmountExtension(oldExtId)` followed by `mountExtension(newExtId)`. Each callback routes through `OperationSerializer.serializeOperation(entityId, ...)`, which serializes per **extension entity ID**. A single swap is sequential (the handler `await`s unmount before mount). But concurrent swaps targeting the same domain are NOT serialized against each other because they operate on different entity IDs.
+
+The failure scenario (two rapid `mount_ext` actions targeting the screen domain):
+
+```
+Swap A: mount 'helloWorld' onto screen (currently showing 'profile')
+Swap B: mount 'settings'   onto screen (arrives before swap A completes)
+
+Both enter handleScreenSwap concurrently (mediator does not serialize domain actions):
+
+Swap A:                                    Swap B:
+  getMountedExtension → 'profile'            getMountedExtension → 'profile' (stale!)
+  await unmount('profile')                   await unmount('profile') (queued behind A on profile queue)
+  ... profile unmounted ...                  ... profile unmount is no-op (already unmounted) ...
+  await mount('helloWorld')                  await mount('settings')
+    setMountedExtension(screen, 'helloWorld')  setMountedExtension(screen, 'settings')
+
+If mount('settings') completes after mount('helloWorld'):
+  screen.mountedExtension = 'settings' ← correct for B
+  But 'helloWorld' is still mounted (mountState = 'mounted') — orphaned!
+
+If mount('helloWorld') completes after mount('settings'):
+  screen.mountedExtension = 'helloWorld' ← WRONG, B was the latest intent
+  'settings' is mounted but domain says 'helloWorld' — state corruption!
+```
+
+The core problem: `setMountedExtension(domain, ...)` is a **domain-level** state mutation, but `OperationSerializer` serializes at the **extension entity** level. Multiple swaps on the same domain write to the same domain state from different serializer queues.
+
+**Choice:** Serialize the entire swap as a single domain-level operation in the OperationSerializer using a per-domain queue key.
+
+**How it works:**
+- `handleScreenSwap` wraps the entire unmount-then-mount sequence in a single `serializeOnDomain(domainId, ...)` call, using the **domain ID** as the serialization key.
+- Inside the domain-serialized block, the existing `this.callbacks.unmountExtension` and `this.callbacks.mountExtension` are called as-is. There is NO deadlock because `OperationSerializer` uses the key as the queue identity — the domain queue key (e.g., `"screen-domain-id"`) is different from the extension entity queue keys (e.g., `"extension-id"`), so the inner per-entity serialization does not contend with the outer domain-level lock.
+- This ensures that concurrent swaps on the same domain are queued and execute one at a time, preventing interleaved `setMountedExtension` calls.
+
+**What changes:**
+- `ExtensionLifecycleCallbacks` gains ONE new callback: `serializeOnDomain: (domainId: string, operation: () => Promise<void>) => Promise<void>` — this calls `OperationSerializer.serializeOperation(domainId, operation)`, exposing the existing serializer under a domain key.
+- `handleScreenSwap` wraps its entire body in `this.callbacks.serializeOnDomain(this.domainId, async () => { ... })`.
+- Inside the serialized block, `this.callbacks.unmountExtension` and `this.callbacks.mountExtension` are used unchanged — no bypass, no direct methods.
+- `DefaultScreensetsRegistry.registerDomain()` wires the new callback: `serializeOnDomain: (domainId, op) => this.operationSerializer.serializeOperation(domainId, op)`.
+
+**Why no deadlock:** `OperationSerializer.serializeOperation(key, ...)` serializes per key. The outer call uses the domain ID as the key. The inner `unmountExtension`/`mountExtension` calls use the extension entity ID as their key. Different keys = different queues = no contention.
+
+**Why not serialize at the mediator level:** The mediator dispatches actions to domain handlers. Adding domain-level serialization in the mediator would block ALL domain actions (including toggle-semantic domains like sidebar/popup that correctly support concurrent operations). The serialization must be scoped to swap-semantic operations only, which is why it lives in `handleScreenSwap`.
 
 ## Risks / Trade-offs
 
@@ -203,11 +267,17 @@ try {
 ### [Risk] `chunkPath` must be manually maintained in mfe.json
 **Mitigation:** In the monorepo, chunk paths are deterministic from the build output. A future improvement could auto-populate `chunkPath` via a post-build script or the custom Vite plugin itself. For now, manual maintenance is acceptable because: (a) shared dependencies change rarely, (b) the build output includes the chunk filename in the terminal output, (c) a missing or wrong `chunkPath` causes a clear fetch error.
 
+### [Risk] Blob URLs are never revoked (Decision 8 revision)
+**Mitigation:** Blob URLs are not revoked because there is no reliable way to detect when a dynamically imported ES module has finished all async evaluation (including transitive top-level awaits). The memory impact is negligible: each blob URL is a short string, and the underlying Blob objects are small (source text is already cached separately). The count is bounded (20-40 per MFE load). All blob URLs are cleaned up automatically on page unload. In a long-running SPA with many MFE loads, the cumulative blob URL count grows linearly but remains small (e.g., 10 MFE loads x 30 deps = 300 blob URLs, each referencing a few KB).
+
 ### [Trade-off] Memory usage from source text cache
 Source text strings are held in memory for the handler's lifetime. For 12 shared dependencies averaging ~100KB each, this is ~1.2MB. This is acceptable for a modern web application. The trade-off is memory vs. re-fetching source text for every MFE load.
 
 ### [Trade-off] ~1-5ms per-dependency per-MFE overhead
 Blob URL creation + `import()` evaluation adds a small overhead per shared dependency per MFE load. For 12 dependencies, this is ~12-60ms per MFE — negligible compared to the network time saved by not downloading duplicate bundles.
+
+### [Trade-off] Domain-level serialization blocks concurrent swaps (Decision 9)
+Concurrent `mount_ext` actions targeting the same swap-semantic domain (e.g., screen) are now serialized. This means the second swap waits for the first to complete. This is the correct behavior — screen swaps are inherently sequential (only one extension can be mounted at a time). The serialization does NOT affect toggle-semantic domains (sidebar, popup, overlay) which continue to support concurrent mount/unmount operations.
 
 ### [BREAKING] Removing hostSharedDependencies from MicrofrontendsConfig
 Consumers that pass `hostSharedDependencies` to `microfrontends()` will get a TypeScript error. Migration: remove the property from the config object. Blob URL isolation handles dependency isolation without host bootstrap.

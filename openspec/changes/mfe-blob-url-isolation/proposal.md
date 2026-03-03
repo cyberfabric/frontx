@@ -30,9 +30,33 @@ These are limitations of the federation plugin itself, not of the HAI3 handler c
 - `microfrontends`: Update the "Dynamic MFE isolation principles" scenario to reflect that isolation is achieved via Blob URL evaluation, not `singleton: false` configuration. Remove `hostSharedDependencies` from `MicrofrontendsConfig`. Remove the `singleton` field from `SharedDependencyConfig` entirely — it was based on Module Federation singleton semantics that are non-functional with this plugin, and with blob URL isolation all dependencies with `chunkPath` get isolated instances unconditionally.
 - `mfe-internal-dataflow`: Update the "MFE store isolation via singleton false semantics" scenario to reference blob URL evaluation as the causal mechanism for store isolation. The `singleton` field is removed entirely — store isolation is a structural consequence of blob URL evaluation, not a configuration option.
 
+## E2E Bug Fixes
+
+Two runtime bugs were discovered during E2E browser verification after the original 33 tasks (sections 1-9) were completed and all unit tests passed. These are documented in Design Decisions 8 (revised) and 9.
+
+### Bug Fix 1: Blob URL Revocation Timing (sections 10)
+
+**Root cause:** The `finally` block in `loadExposedModuleIsolated` (mf-handler.ts) revokes all blob URLs immediately after `await import(exposeBlobUrl)` returns. But `import()` resolves when the module is **parsed**, not fully **evaluated**. Modules with top-level `await` (like `const react = await importShared('react')`) continue evaluating asynchronously after `import()` returns. The `get()` closures written to `globalThis.__federation_shared__` by `writeShareScope()` create new blob URLs (via `createBlobUrlChain`) during async evaluation, but these blob URLs were already added to `loadState.blobUrls` and revoked by the `finally` block, causing `net::ERR_FILE_NOT_FOUND`.
+
+Additionally, `writeShareScope()` writes to a global mutable object. Concurrent loads overwrite each other's `get()` closures, causing cross-load blob URL reference corruption.
+
+**Fix:** Remove blob URL revocation entirely. Do not revoke blob URLs in the `finally` block. Remove the `blobUrls` tracking array from `LoadBlobState`. Blob URLs are lightweight and cleaned up by the browser on page unload.
+
+**Locations:** `packages/screensets/src/mfe/handler/mf-handler.ts` (LoadBlobState interface, loadExposedModuleIsolated method, createBlobUrlChain method).
+
+### Bug Fix 2: Domain State Corruption from Independent Serialization Queues (section 11)
+
+**Root cause:** `handleScreenSwap` in `ExtensionLifecycleActionHandler` calls `unmountExtension(oldExtId)` then `mountExtension(newExtId)`. Each callback routes through `OperationSerializer.serializeOperation(entityId, ...)`, which serializes per **extension entity ID**. Concurrent swaps targeting the same domain operate on different entity queues and can interleave `setMountedExtension(domain, ...)` calls, corrupting domain-level state. This is a pre-existing bug exposed by this change (more MFE loads during E2E testing).
+
+**Fix:** Serialize the entire swap as a single domain-level operation. `handleScreenSwap` wraps unmount+mount in `serializeOnDomain(domainId, ...)`. Inside the domain-serialized block, unmount and mount use the EXISTING `this.callbacks.unmountExtension` and `this.callbacks.mountExtension` callbacks as-is — there is NO deadlock because the domain queue key (e.g., `"screen-domain-id"`) is different from the entity queue keys (e.g., `"extension-id"`) in `OperationSerializer`, so inner per-entity serialization does not contend with the outer domain-level lock.
+
+**Locations:** `packages/screensets/src/mfe/runtime/extension-lifecycle-action-handler.ts`, `packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`.
+
 ## Impact
 
-- **@hai3/screensets** (`packages/screensets/src/mfe/handler/mf-handler.ts`): Primary change location. MfeHandlerMF gains blob URL wrapping logic, source text cache, and import rewriting. `registerMfeSharedModules()` and `snapshotScopeKeys()` are removed.
+- **@hai3/screensets** (`packages/screensets/src/mfe/handler/mf-handler.ts`): Primary change location. MfeHandlerMF gains blob URL wrapping logic, source text cache, and import rewriting. `registerMfeSharedModules()` and `snapshotScopeKeys()` are removed. Blob URL revocation is removed (Bug Fix 1).
+- **@hai3/screensets** (`packages/screensets/src/mfe/runtime/extension-lifecycle-action-handler.ts`): `handleScreenSwap` gains domain-level serialization (Bug Fix 2). `ExtensionLifecycleCallbacks` gains a single new callback: `serializeOnDomain`.
+- **@hai3/screensets** (`packages/screensets/src/mfe/runtime/DefaultScreensetsRegistry.ts`): `registerDomain` wires the `serializeOnDomain` callback to `OperationSerializer.serializeOperation` (Bug Fix 2).
 - **@hai3/screensets** (`packages/screensets/src/mfe/types/mf-manifest.ts`): `SharedDependencyConfig` gains optional `chunkPath` field.
 - **@hai3/framework** (`packages/framework/src/plugins/microfrontends/index.ts`): `HostSharedDependency`, `bootstrapHostSharedDependencies()`, and `hostSharedDependencies` config removed. **BREAKING** for any consumer that passes `hostSharedDependencies` (currently only the host app config).
 - **MFE build tooling**: New `hai3-mfe-externalize` Vite plugin added to MFE vite configs. Transforms imports at build time.

@@ -1,90 +1,93 @@
 /**
- * MfeHandlerMF Share Scope Tests
+ * MfeHandlerMF Share Scope Tests (Blob URL Isolation)
  *
- * Tests for share scope construction (buildShareScope) and post-load
- * registration (registerMfeSharedModules) via the public load() API.
+ * Tests for share scope construction via the public load() API.
+ *
+ * The blob URL isolation mechanism:
+ *  - Dependencies WITH chunkPath get per-load blob URL get() functions
+ *  - Dependencies WITHOUT chunkPath are omitted (MFE uses bundled copy)
+ *  - Each load() call writes fresh entries to globalThis.__federation_shared__
+ *  - Source text fetching is cached across loads (deduplication)
  *
  * Per project guidelines, private methods are tested through the public API only.
+ *
+ * @packageDocumentation
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
+import { MfeLoadError } from '../../../src/mfe/errors';
 import type { MfeEntryMF, MfManifest } from '../../../src/mfe/types';
 import type { FederationSharedMap } from '../../../src/mfe/handler/federation-types';
 import {
-  getFederationShared,
-  setFederationShared,
-} from '../../../src/mfe/handler/federation-types';
+  setupBlobUrlLoaderMocks,
+  createRemoteEntrySource,
+  createExposeChunkSource,
+  TEST_BASE_URL,
+} from '../test-utils/mock-blob-url-loader';
 
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
-/** Key used by the federation runtime and the typed accessors. */
 const FEDERATION_KEY = '__federation_shared__';
 
-/** Clear the federation global between tests. */
+function readFederationShared(): FederationSharedMap | undefined {
+  return (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_KEY];
+}
+
+function writeFederationShared(value: FederationSharedMap): void {
+  (globalThis as unknown as Record<string, FederationSharedMap | undefined>)[FEDERATION_KEY] = value;
+}
+
 function clearFederationShared(): void {
   (globalThis as Record<string, undefined>)[FEDERATION_KEY] = undefined;
 }
 
 /**
- * Build a data:-URL remote entry that records the shareScope passed to init()
- * and optionally mutates it to simulate the federation runtime writing back
- * its own shared module entries.
+ * Create a test setup with manifest, source registration, and entry factory.
  */
-function createCapturingRemoteEntry(options: {
-  remoteName: string;
-  /** Packages the "container" will write back into shareScope during init(). */
-  providedModules?: Array<{ name: string; version: string }>;
-} = { remoteName: 'testRemote' }): string {
-  const providedModulesJson = JSON.stringify(options.providedModules ?? []);
+function createTestSetup(
+  remoteName: string,
+  options: {
+    exposedModules?: string[];
+    sharedDeps?: MfManifest['sharedDependencies'];
+  } = {}
+) {
+  const exposedModules = options.exposedModules ?? ['./Widget1'];
+  const remoteEntryUrl = `${TEST_BASE_URL}/${remoteName}/remoteEntry.js`;
+  const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
 
-  const moduleCode = `
-    export async function get(module) {
-      return () => ({
-        mount: () => {},
-        unmount: () => {}
-      });
-    }
-    export async function init(shared) {
-      // Record what the handler passed to init()
-      globalThis.__test_captured_share_scope__ = JSON.parse(JSON.stringify(
-        Object.fromEntries(
-          Object.entries(shared).map(([pkg, versions]) => [
-            pkg,
-            Object.keys(versions)
-          ])
-        )
-      ));
+  const exposeMap: Record<string, string> = {};
+  for (const mod of exposedModules) {
+    const safeName = mod.replace('./', '').replace(/[^a-zA-Z0-9]/g, '-');
+    exposeMap[mod] = `expose-${safeName}.js`;
+  }
 
-      // Simulate federation runtime writing back its own entries for packages
-      // the container provides (the real runtime does this automatically).
-      const provided = ${providedModulesJson};
-      for (const { name, version } of provided) {
-        if (!shared[name]) {
-          shared[name] = {};
-        }
-        if (!shared[name][version]) {
-          shared[name][version] = {
-            get: async () => () => ({ __source: name }),
-            loaded: 1,
-          };
-        }
-      }
-    }
-  `;
+  const manifest: MfManifest = {
+    id: `gts.hai3.mfes.mfe.mf_manifest.v1~test.${remoteName}.manifest.v1`,
+    remoteEntry: remoteEntryUrl,
+    remoteName,
+    sharedDependencies: options.sharedDeps,
+  };
 
-  const base64Code = Buffer.from(moduleCode).toString('base64');
-  return `data:text/javascript;base64,${base64Code}`;
-}
-
-/** Small helper to create a typed global shared map entry. */
-function makeGlobalEntry(_version: string) {
   return {
-    get: async () => () => ({ __host: true }) as unknown,
-    loaded: 1 as const,
+    manifest,
+    baseUrl,
+    registerSources(reg: (url: string, src: string) => void): void {
+      reg(remoteEntryUrl, createRemoteEntrySource(exposeMap));
+      for (const chunk of Object.values(exposeMap)) {
+        reg(`${baseUrl}${chunk}`, createExposeChunkSource());
+      }
+    },
+    createEntry(exposedModule: string, suffix: string): MfeEntryMF {
+      return {
+        id: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.${suffix}.v1`,
+        manifest,
+        exposedModule,
+      };
+    },
   };
 }
 
@@ -92,417 +95,333 @@ function makeGlobalEntry(_version: string) {
 // Tests
 // ---------------------------------------------------------------------------
 
-describe('MfeHandlerMF - share scope construction and registration', () => {
+describe('MfeHandlerMF - share scope construction and blob URL isolation', () => {
   let handler: MfeHandlerMF;
+  let mocks: ReturnType<typeof setupBlobUrlLoaderMocks>;
   let savedGlobal: FederationSharedMap | undefined;
 
   beforeEach(() => {
     const typeSystem = new GtsPlugin();
     handler = new MfeHandlerMF(typeSystem, { timeout: 5000, retries: 0 });
-    // Save and clear the global scope between tests
-    savedGlobal = getFederationShared();
+    mocks = setupBlobUrlLoaderMocks();
+    savedGlobal = readFederationShared();
     clearFederationShared();
-    // Clear captured scope
-    (globalThis as Record<string, unknown>).__test_captured_share_scope__ = undefined;
   });
 
   afterEach(() => {
+    mocks.cleanup();
     if (savedGlobal !== undefined) {
-      setFederationShared(savedGlobal);
+      writeFederationShared(savedGlobal);
     } else {
       clearFederationShared();
     }
-    (globalThis as Record<string, unknown>).__test_captured_share_scope__ = undefined;
+    vi.restoreAllMocks();
   });
 
   // -------------------------------------------------------------------------
-  // Scenario: buildShareScope — entry found (8.1a)
+  // buildShareScope — chunkPath present → blob URL get()
   // -------------------------------------------------------------------------
-  describe('8.1 buildShareScope — matching entry found', () => {
-    it('passes a matching host entry to init() when global scope has a compatible version', async () => {
-      // Pre-populate global scope with react@19.2.4
-      setFederationShared({
+  describe('buildShareScope — chunkPath present', () => {
+    it('writes a blob URL get() to globalThis for deps with chunkPath', async () => {
+      const setup = createTestSetup('reactHost', {
+        sharedDeps: [
+          {
+            name: 'react',
+            requiredVersion: '^19.0.0',
+            chunkPath: '__federation_shared_react.js',
+          },
+        ],
+      });
+      setup.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
+
+      const entry = setup.createEntry('./Widget1', 'react.entry');
+      await handler.load(entry);
+
+      const shared = readFederationShared();
+      expect(shared).toBeDefined();
+      expect(shared!['default']).toBeDefined();
+      expect(shared!['default']['react']).toBeDefined();
+      expect(shared!['default']['react']['*']).toBeDefined();
+      expect(typeof shared!['default']['react']['*'].get).toBe('function');
+    });
+
+    it('creates blob URL get() regardless of existing global scope entries', async () => {
+      // Pre-populate global scope with an existing entry
+      const originalGet = async () => () => ({ __host: true }) as unknown;
+      writeFederationShared({
         default: {
           react: {
-            '19.2.4': makeGlobalEntry('19.2.4'),
+            '19.2.4': { get: originalGet, loaded: 1 },
           },
         },
       });
 
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'reactHost' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.react.manifest.v1',
-        remoteEntry,
-        remoteName: 'reactHost',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
+      const setup = createTestSetup('reactHost2', {
+        sharedDeps: [
+          {
+            name: 'react',
+            requiredVersion: '^19.0.0',
+            chunkPath: '__federation_shared_react.js',
+          },
         ],
-      };
+      });
+      setup.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
 
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.react.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
+      const entry = setup.createEntry('./Widget1', 'react2.entry');
       await handler.load(entry);
 
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      expect(captured).toBeDefined();
-      expect(captured['react']).toContain('19.2.4');
+      // The new entry is written under '*' key (always fresh blob URL get)
+      const shared = readFederationShared();
+      expect(shared!['default']['react']['*']).toBeDefined();
+      expect(shared!['default']['react']['*'].get).not.toBe(originalGet);
+      // The pre-existing 19.2.4 entry is preserved
+      expect(shared!['default']['react']['19.2.4']).toBeDefined();
     });
-  });
 
-  // -------------------------------------------------------------------------
-  // Scenario: buildShareScope — no match (8.1b)
-  // -------------------------------------------------------------------------
-  describe('8.1 buildShareScope — no compatible version (fallback)', () => {
-    it('omits packages where no compatible version exists in the global scope', async () => {
-      // Only have react@16.x in the global scope; manifest requires ^19.0.0
-      setFederationShared({
-        default: {
-          react: {
-            '16.14.0': makeGlobalEntry('16.14.0'),
+    it('handles multiple shared deps with chunkPaths', async () => {
+      const setup = createTestSetup('multiDepsHost', {
+        sharedDeps: [
+          {
+            name: 'react',
+            requiredVersion: '^19.0.0',
+            chunkPath: '__federation_shared_react.js',
           },
-        },
-      });
-
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'noMatchRemote' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.nomatch.manifest.v1',
-        remoteEntry,
-        remoteName: 'noMatchRemote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
-        ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.nomatch.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
-      // Should not throw — MFE falls back to its own bundled copy
-      await expect(handler.load(entry)).resolves.toBeDefined();
-
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      // react was not passed to init() (no compatible version)
-      expect(captured?.['react']).toBeUndefined();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario: buildShareScope — missing requiredVersion = any-version (8.1c)
-  // -------------------------------------------------------------------------
-  describe('8.1 buildShareScope — missing requiredVersion matches any version', () => {
-    it('accepts the first available version when requiredVersion is omitted', async () => {
-      setFederationShared({
-        default: {
-          tailwindcss: {
-            '3.4.1': makeGlobalEntry('3.4.1'),
+          {
+            name: 'react-dom',
+            requiredVersion: '^19.0.0',
+            chunkPath: '__federation_shared_react-dom.js',
           },
-        },
-      });
-
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'anyVersionRemote' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.anyver.manifest.v1',
-        remoteEntry,
-        remoteName: 'anyVersionRemote',
-        sharedDependencies: [
-          // No requiredVersion → any version is acceptable
-          { name: 'tailwindcss', singleton: false },
         ],
-      };
+      });
+      setup.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react-dom.js`,
+        'export default {};'
+      );
 
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.anyver.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
+      const entry = setup.createEntry('./Widget1', 'multideps.entry');
       await handler.load(entry);
 
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      expect(captured['tailwindcss']).toContain('3.4.1');
+      const shared = readFederationShared();
+      expect(shared!['default']['react']).toBeDefined();
+      expect(shared!['default']['react-dom']).toBeDefined();
+      expect(typeof shared!['default']['react']['*'].get).toBe('function');
+      expect(typeof shared!['default']['react-dom']['*'].get).toBe('function');
     });
   });
 
   // -------------------------------------------------------------------------
-  // Scenario: buildShareScope — empty global scope (8.1d)
+  // buildShareScope — no chunkPath → omitted
   // -------------------------------------------------------------------------
-  describe('8.1 buildShareScope — empty global scope results in empty shareScope', () => {
-    it('passes an empty shareScope to init() when global scope is undefined', async () => {
-      // globalThis federation key is already cleared from beforeEach
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'emptyGlobalRemote' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.emptyglobal.manifest.v1',
-        remoteEntry,
-        remoteName: 'emptyGlobalRemote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
+  describe('buildShareScope — no chunkPath', () => {
+    it('omits dependencies without chunkPath from the share scope', async () => {
+      const setup = createTestSetup('noChunkRemote', {
+        sharedDeps: [
+          // No chunkPath → omitted from share scope
+          { name: 'react', requiredVersion: '^19.0.0' },
         ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.emptyglobal.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
-      // Must not throw
-      await expect(handler.load(entry)).resolves.toBeDefined();
-
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      // No packages in the shareScope
-      expect(Object.keys(captured ?? {})).toHaveLength(0);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario: buildShareScope — bare version = exact match (8.1e)
-  // -------------------------------------------------------------------------
-  describe('8.1 buildShareScope — bare version string treated as exact match', () => {
-    it('matches when the available version exactly equals a bare requiredVersion', async () => {
-      setFederationShared({
-        default: {
-          tailwindcss: {
-            '3.4.1': makeGlobalEntry('3.4.1'),
-          },
-        },
       });
+      setup.registerSources(mocks.registerSource);
 
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'exactMatchRemote' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.exact.manifest.v1',
-        remoteEntry,
-        remoteName: 'exactMatchRemote',
-        sharedDependencies: [
-          // Bare version — exact match only
-          { name: 'tailwindcss', requiredVersion: '3.4.1', singleton: false },
-        ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.exact.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
+      const entry = setup.createEntry('./Widget1', 'nochunk.entry');
       await handler.load(entry);
 
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      expect(captured['tailwindcss']).toContain('3.4.1');
+      const shared = readFederationShared();
+      // react should NOT have been written to global scope (no chunkPath)
+      if (shared?.['default']) {
+        expect(shared['default']['react']).toBeUndefined();
+      }
     });
 
-    it('does not match when available version differs from bare requiredVersion', async () => {
-      setFederationShared({
-        default: {
-          tailwindcss: {
-            '3.4.2': makeGlobalEntry('3.4.2'),
-          },
-        },
-      });
-
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'exactNoMatchRemote' });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.exactnomatch.manifest.v1',
-        remoteEntry,
-        remoteName: 'exactNoMatchRemote',
-        sharedDependencies: [
-          { name: 'tailwindcss', requiredVersion: '3.4.1', singleton: false },
-        ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.exactnomatch.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
-      await expect(handler.load(entry)).resolves.toBeDefined();
-
-      const captured = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      expect(captured?.['tailwindcss']).toBeUndefined();
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario: registerMfeSharedModules — registers new entries from init() (8.2a)
-  // -------------------------------------------------------------------------
-  describe('8.2 registerMfeSharedModules — registers new entries from init()', () => {
-    it('writes packages provided by the MFE container back into the global scope', async () => {
-      // Global scope starts empty
-      expect(getFederationShared()).toBeUndefined();
-
-      // The container will write react@19.0.0 and react-dom@19.0.0 during init()
-      const remoteEntry = createCapturingRemoteEntry({
-        remoteName: 'registeringRemote',
-        providedModules: [
-          { name: 'react', version: '19.0.0' },
-          { name: 'react-dom', version: '19.0.0' },
+    it('creates get() only for deps WITH chunkPath in a mixed list', async () => {
+      const setup = createTestSetup('mixedRemote', {
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+          { name: 'lodash' }, // No chunkPath
         ],
       });
+      setup.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
 
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.registering.manifest.v1',
-        remoteEntry,
-        remoteName: 'registeringRemote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
-          { name: 'react-dom', requiredVersion: '^19.0.0', singleton: false },
-        ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.registering.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
+      const entry = setup.createEntry('./Widget1', 'mixed.entry');
       await handler.load(entry);
 
-      // The handler should have promoted the MFE's provided modules to global scope
-      const defaultScope = getFederationShared()?.['default'];
-      expect(defaultScope).toBeDefined();
-      expect(defaultScope?.['react']?.['19.0.0']).toBeDefined();
-      expect(defaultScope?.['react-dom']?.['19.0.0']).toBeDefined();
+      const shared = readFederationShared();
+      // react has chunkPath → present
+      expect(shared!['default']['react']).toBeDefined();
+      // lodash has no chunkPath → absent
+      expect(shared!['default']['lodash']).toBeUndefined();
     });
   });
 
   // -------------------------------------------------------------------------
-  // Scenario: registerMfeSharedModules — first-loaded wins (8.2b)
+  // buildShareScope — no sharedDependencies → empty
   // -------------------------------------------------------------------------
-  describe('8.2 registerMfeSharedModules — does not overwrite existing entries', () => {
-    it('preserves the original entry when a second MFE provides the same package+version', async () => {
-      const originalGet = async () => () => ({ __original: true }) as unknown;
-
-      // Pre-populate global scope with react@19.0.0 from the "host"
-      setFederationShared({
-        default: {
-          react: {
-            '19.0.0': { get: originalGet, loaded: 1 },
-          },
-        },
-      });
-
-      // A second container also provides react@19.0.0
-      const remoteEntry = createCapturingRemoteEntry({
-        remoteName: 'secondRemote',
-        providedModules: [{ name: 'react', version: '19.0.0' }],
-      });
-
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.second.manifest.v1',
-        remoteEntry,
-        remoteName: 'secondRemote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
-        ],
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.second.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
-      await handler.load(entry);
-
-      // The original host entry must be preserved
-      const reactEntry = getFederationShared()?.['default']?.['react']?.['19.0.0'];
-      expect(reactEntry?.get).toBe(originalGet);
-    });
-  });
-
-  // -------------------------------------------------------------------------
-  // Scenario: registerMfeSharedModules — handles empty shareScope (8.2c)
-  // -------------------------------------------------------------------------
-  describe('8.2 registerMfeSharedModules — handles manifests with no sharedDependencies', () => {
+  describe('buildShareScope — no sharedDependencies', () => {
     it('does not throw when manifest has no sharedDependencies', async () => {
-      const remoteEntry = createCapturingRemoteEntry({ remoteName: 'noDepsRemote' });
+      const setup = createTestSetup('noDepsRemote', {});
+      setup.registerSources(mocks.registerSource);
 
-      const manifest: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.nodeps.manifest.v1',
-        remoteEntry,
-        remoteName: 'noDepsRemote',
-        // No sharedDependencies
-      };
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.nodeps.entry.v1',
-        manifest,
-        exposedModule: './Widget1',
-      };
-
+      const entry = setup.createEntry('./Widget1', 'nodeps.entry');
       await expect(handler.load(entry)).resolves.toBeDefined();
+    });
+
+    it('does not write package entries when sharedDependencies is empty', async () => {
+      const setup = createTestSetup('emptyDepsRemote', { sharedDeps: [] });
+      setup.registerSources(mocks.registerSource);
+
+      const entry = setup.createEntry('./Widget1', 'emptydeps.entry');
+      await handler.load(entry);
+
+      const shared = readFederationShared();
+      if (shared?.['default']) {
+        expect(Object.keys(shared['default'])).toHaveLength(0);
+      }
     });
   });
 
   // -------------------------------------------------------------------------
-  // Scenario: Integration — sequential MFE loading; second reuses first (8.4)
+  // Per-load isolation — each load() gets fresh get() functions
   // -------------------------------------------------------------------------
-  describe('8.4 Integration — second MFE reuses modules registered by first MFE', () => {
-    it('second MFE load receives modules registered by first MFE into global scope', async () => {
-      // Both MFEs are independent containers (different remoteNames)
-      const remoteEntry1 = createCapturingRemoteEntry({
-        remoteName: 'mfe1Remote',
-        providedModules: [{ name: 'react', version: '19.0.0' }],
+  describe('per-load isolation', () => {
+    it('each load() produces different get() function references', async () => {
+      const setup = createTestSetup('isolationRemote', {
+        exposedModules: ['./Widget1', './Widget2'],
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+        ],
       });
+      setup.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
 
-      const remoteEntry2 = createCapturingRemoteEntry({ remoteName: 'mfe2Remote' });
-
-      const manifest1: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.mfe1.manifest.v1',
-        remoteEntry: remoteEntry1,
-        remoteName: 'mfe1Remote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
-        ],
-      };
-
-      const manifest2: MfManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.mfe2.manifest.v1',
-        remoteEntry: remoteEntry2,
-        remoteName: 'mfe2Remote',
-        sharedDependencies: [
-          { name: 'react', requiredVersion: '^19.0.0', singleton: false },
-        ],
-      };
-
-      const entry1: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.mfe1.entry.v1',
-        manifest: manifest1,
-        exposedModule: './Widget1',
-      };
-
-      const entry2: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.mfe2.entry.v1',
-        manifest: manifest2,
-        exposedModule: './Widget1',
-      };
-
-      // Load MFE-1: it provides react@19.0.0 which is registered into global scope
+      // Load first entry
+      const entry1 = setup.createEntry('./Widget1', 'iso1.entry');
       await handler.load(entry1);
 
-      // Verify MFE-1 registered react@19.0.0
-      expect(getFederationShared()?.['default']?.['react']?.['19.0.0']).toBeDefined();
+      const shared1 = readFederationShared();
+      const get1 = shared1!['default']['react']['*'].get;
 
-      // Clear the captured scope so we can inspect what MFE-2 receives
-      (globalThis as Record<string, unknown>).__test_captured_share_scope__ = undefined;
-
-      // Load MFE-2: should receive react@19.0.0 (registered by MFE-1) in its shareScope
+      // Load second entry (same manifest, different exposed module)
+      const entry2 = setup.createEntry('./Widget2', 'iso2.entry');
       await handler.load(entry2);
 
-      const capturedForMfe2 = (globalThis as Record<string, unknown>).__test_captured_share_scope__ as Record<string, string[]>;
-      expect(capturedForMfe2?.['react']).toContain('19.0.0');
+      const shared2 = readFederationShared();
+      const get2 = shared2!['default']['react']['*'].get;
+
+      // Each load() creates a NEW get() function (per-load isolation)
+      expect(get1).not.toBe(get2);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Source text cache — deduplicates fetches
+  // -------------------------------------------------------------------------
+  describe('source text cache', () => {
+    it('prevents duplicate network fetches for shared dep chunks', async () => {
+      const setup = createTestSetup('cacheRemote', {
+        exposedModules: ['./Widget1', './Widget2'],
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+        ],
+      });
+      setup.registerSources(mocks.registerSource);
+      const sharedChunkUrl = `${setup.baseUrl}__federation_shared_react.js`;
+      mocks.registerSource(sharedChunkUrl, 'export default {};');
+
+      // Load two entries from the same manifest
+      const entry1 = setup.createEntry('./Widget1', 'cache1.entry');
+      const entry2 = setup.createEntry('./Widget2', 'cache2.entry');
+
+      await handler.load(entry1);
+
+      // Extract get() from first load and invoke it
+      const shared1 = readFederationShared();
+      const get1 = shared1!['default']['react']['*'].get;
+      await get1();
+
+      await handler.load(entry2);
+
+      // Extract get() from second load and invoke it
+      const shared2 = readFederationShared();
+      const get2 = shared2!['default']['react']['*'].get;
+      await get2();
+
+      // Shared chunk URL fetched only once despite two get() invocations
+      const chunkFetches = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === sharedChunkUrl
+      );
+      expect(chunkFetches).toHaveLength(1);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // Error handling
+  // -------------------------------------------------------------------------
+  describe('error handling', () => {
+    it('throws MfeLoadError when shared dep chunk fetch fails (404)', async () => {
+      const setup = createTestSetup('errorRemote', {
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+        ],
+      });
+      setup.registerSources(mocks.registerSource);
+      // NOTE: NOT registering the shared dep chunk → fetch returns 404
+
+      const entry = setup.createEntry('./Widget1', 'error.entry');
+      await handler.load(entry);
+
+      // The get() was stored but not invoked yet
+      const shared = readFederationShared();
+      const blobGet = shared!['default']['react']['*'].get;
+
+      // Invoking get() triggers fetch of the chunk → 404 → MfeLoadError
+      await expect(blobGet()).rejects.toBeInstanceOf(MfeLoadError);
+    });
+
+    it('throws MfeLoadError when expose chunk cannot be found in remoteEntry', async () => {
+      const remoteName = 'missingExposeRemote';
+      const remoteEntryUrl = `${TEST_BASE_URL}/${remoteName}/remoteEntry.js`;
+
+      // Register a remote entry that does NOT contain './NonExistent'
+      mocks.registerSource(
+        remoteEntryUrl,
+        createRemoteEntrySource({ './Widget1': 'expose-Widget1.js' })
+      );
+
+      const manifest: MfManifest = {
+        id: `gts.hai3.mfes.mfe.mf_manifest.v1~test.${remoteName}.manifest.v1`,
+        remoteEntry: remoteEntryUrl,
+        remoteName,
+      };
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.missingexpose.v1',
+        manifest,
+        exposedModule: './NonExistent',
+      };
+
+      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
+      await expect(handler.load(entry)).rejects.toThrow(
+        'Cannot find expose chunk'
+      );
     });
   });
 });

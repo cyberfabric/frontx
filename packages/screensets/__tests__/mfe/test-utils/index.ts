@@ -5,3 +5,10 @@
  */
 
 export { MockContainerProvider } from './mock-container-provider';
+export {
+  setupBlobUrlLoaderMocks,
+  createRemoteEntrySource,
+  createExposeChunkSource,
+  createChunkWithRelativeImport,
+  TEST_BASE_URL,
+} from './mock-blob-url-loader';

@@ -297,6 +297,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
         this.operationSerializer.serializeOperation(id, () => this.mountManager.unmountExtension(id)),
       getMountedExtension: (domainId) =>
         this.extensionManager.getMountedExtension(domainId),
+      serializeOnDomain: (domainId, operation) =>
+        this.operationSerializer.serializeOperation(domainId, operation),
     };
 
     // Step 4: Create and register extension lifecycle action handler for this domain

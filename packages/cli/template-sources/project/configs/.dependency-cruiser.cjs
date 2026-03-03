@@ -33,9 +33,9 @@ module.exports = {
       from: { path: '^src/mfe_packages/([^/]+)/' },
       to: {
         path: '^src/mfe_packages/[^/]+/',
-        pathNot: ['^src/mfe_packages/$1/'],
+        pathNot: ['^src/mfe_packages/$1/', '^src/mfe_packages/shared/'],
       },
-      comment: 'MFE packages must not import from other MFE packages (vertical slice isolation). Each MFE is self-contained.',
+      comment: 'MFE packages must not import from other MFE packages (vertical slice isolation). Each MFE is self-contained. Exception: src/mfe_packages/shared/ contains build-time utilities (e.g., Vite plugins) shared across all MFE packages.',
     },
     {
       name: 'no-circular-screenset-deps',

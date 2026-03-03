@@ -28,22 +28,6 @@ const app = createHAI3App({
   themes: { applyFn: applyTheme as ThemeApplyFn },
   microfrontends: {
     mfeHandlers: [new MfeHandlerMF(gtsPlugin)],
-    // Pre-populate the Module Federation share scope with the host's already-loaded
-    // bundles so that the first MFE benefits from sharing immediately.
-    hostSharedDependencies: [
-      { name: 'react', version: '19.0.0', get: () => import('react').then((m) => () => m) },
-      { name: 'react-dom', version: '19.0.0', get: () => import('react-dom').then((m) => () => m) },
-      { name: 'tailwindcss', version: '3.4.1', get: () => import('tailwindcss').then((m) => () => m) },
-      { name: '@hai3/uikit', version: '0.1.0', get: () => import('@hai3/uikit').then((m) => () => m) },
-      { name: '@hai3/react', version: '0.1.0', get: () => import('@hai3/react').then((m) => () => m) },
-      { name: '@hai3/framework', version: '0.1.0', get: () => import('@hai3/framework').then((m) => () => m) },
-      { name: '@hai3/state', version: '0.1.0', get: () => import('@hai3/state').then((m) => () => m) },
-      { name: '@hai3/screensets', version: '0.1.0', get: () => import('@hai3/screensets').then((m) => () => m) },
-      { name: '@hai3/api', version: '0.1.0', get: () => import('@hai3/api').then((m) => () => m) },
-      { name: '@hai3/i18n', version: '0.1.0', get: () => import('@hai3/i18n').then((m) => () => m) },
-      { name: '@reduxjs/toolkit', version: '2.0.0', get: () => import('@reduxjs/toolkit').then((m) => () => m) },
-      { name: 'react-redux', version: '9.0.0', get: () => import('react-redux').then((m) => () => m) },
-    ],
   },
 });
 
