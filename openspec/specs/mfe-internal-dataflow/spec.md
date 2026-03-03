@@ -20,10 +20,10 @@ Each MFE package SHALL create a minimal HAI3App via `createHAI3().use(effects())
 - **AND** `useAppSelector` and `useAppDispatch` hooks inside MFE components SHALL connect to the MFE's isolated store via this Provider
 - **AND** the MFE SHALL NOT import `Provider` from `react-redux` directly
 
-#### Scenario: MFE store isolation via singleton false semantics
+#### Scenario: MFE store isolation via blob URL evaluation
 
 - **WHEN** the MFE's `createHAI3().build()` is called
-- **THEN** the store created SHALL be the MFE's own isolated singleton (because `singleton: false` ensures each MFE evaluates its own module instance from the shared code, producing an independent `storeInstance`)
+- **THEN** the store created SHALL be the MFE's own isolated singleton (because the handler evaluates shared dependency source text via unique Blob URLs per MFE, producing a fresh module evaluation with an independent `storeInstance`)
 - **AND** the MFE's store SHALL NOT share state with the host's store
 - **AND** `useAppSelector` in MFE components SHALL read from the MFE's store only
 
