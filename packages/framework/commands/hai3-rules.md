@@ -10,8 +10,6 @@ Ask the user which area they want rules for, or detect from context.
 | Data flow / events | .ai/targets/EVENTS.md |
 | API layer | .ai/targets/API.md |
 | packages/uicore | .ai/targets/UICORE.md |
-| packages/uikit | .ai/targets/UIKIT.md |
-| packages/uikit-contracts | .ai/targets/UIKIT_CONTRACTS.md |
 | src/screensets | .ai/targets/SCREENSETS.md |
 | src/themes | .ai/targets/THEMES.md |
 | Styling anywhere | .ai/targets/STYLING.md |

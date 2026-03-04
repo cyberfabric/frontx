@@ -5,26 +5,27 @@
  */
 
 import React, { useState } from 'react';
+import { Separator } from '../../../components/ui/separator';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
+import { Textarea } from '../../../components/ui/textarea';
 import {
-  Separator,
-  Input,
-  Label,
-  Textarea,
   Select,
   SelectTrigger,
   SelectValue,
   SelectContent,
   SelectItem,
-  Checkbox,
-  RadioGroup,
-  RadioGroupItem,
-  Switch,
-  Slider,
+} from '../../../components/ui/select';
+import { Checkbox } from '../../../components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '../../../components/ui/radio-group';
+import { Switch } from '../../../components/ui/switch';
+import { Slider } from '../../../components/ui/slider';
+import {
   DatePicker,
   DatePickerTrigger,
   DatePickerContent,
   DatePickerInput,
-} from '@hai3/uikit';
+} from '../../../components/ui/date-picker';
 
 interface FormElementsProps {
   t: (key: string) => string;

@@ -1,70 +1,40 @@
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { MfeEntryLifecycle, ChildMfeBridge, SharedProperty } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3Provider } from '@hai3/react';
-import { applyThemeToShadowRoot } from '@hai3/uikit';
-import { resolveTheme } from './themes';
+import type { MfeEntryLifecycle, ChildMfeBridge } from '@hai3/react';
+import { HAI3Provider } from '@hai3/react';
 import { mfeApp } from '../init';
 
 /**
- * Abstract base class for React-based MFE lifecycle implementations with theme awareness.
+ * Abstract base class for React-based MFE lifecycle implementations.
  *
- * This class implements the common pattern shared by all theme-aware MFE lifecycles:
- * - Shadow root detection
- * - Initial theme application
- * - Theme change subscription
- * - React root creation and rendering
- * - Cleanup on unmount
+ * Styling strategy:
+ * 1. adoptHostStylesIntoShadowRoot() clones all host <style> and <link> into the
+ *    shadow root, bringing the full compiled Tailwind CSS (including MFE utilities,
+ *    since the host's content paths cover src/mfe_packages/**).
+ * 2. injectBaseResets() adds box-model resets and :host defaults that aren't part
+ *    of Tailwind's compiled output but are needed for consistent rendering.
+ * 3. Subclasses may override initializeStyles() to inject additional CSS that is
+ *    not covered by the host stylesheet (e.g., MFE-specific @font-face rules).
+ *
+ * Theme CSS variables are delivered via CSS inheritance from :root (Shadow DOM)
+ * or via MountManager injection (iframe). MFE lifecycles do NOT need to subscribe
+ * to theme changes or call applyThemeToShadowRoot.
  *
  * Concrete subclasses must provide:
- * - `initializeStyles(container)` - screen-specific Tailwind utilities
  * - `renderContent(bridge)` - screen component rendering
- *
- * The 7-step mount sequence prevents FOUC (Flash of Unstyled Content) by ensuring
- * theme CSS variables exist before React renders the first time.
- *
- * @packageDocumentation
  */
 export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
   private root: Root | null = null;
-  private shadowRoot: ShadowRoot | null = null;
-  private unsubscribeTheme: (() => void) | null = null;
 
   mount(container: Element | ShadowRoot, bridge: ChildMfeBridge): void {
-    // Step 1: Store shadow root reference safely
-    this.shadowRoot = container instanceof ShadowRoot ? container : null;
-
-    // Step 2: Initialize base styles (Tailwind utilities, NO CSS variables)
-    this.initializeStyles(container);
-
-    // Step 3: Read initial theme ID from bridge
-    const initialProperty = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
-
-    // Step 4: Apply initial theme via applyThemeToShadowRoot
-    if (initialProperty && typeof initialProperty.value === 'string' && this.shadowRoot) {
-      const theme = resolveTheme(initialProperty.value);
-      if (theme) {
-        applyThemeToShadowRoot(this.shadowRoot, theme, initialProperty.value);
-      }
+    if (container instanceof ShadowRoot) {
+      this.adoptHostStylesIntoShadowRoot(container);
     }
 
-    // Step 5: Subscribe to future theme changes
-    this.unsubscribeTheme = bridge.subscribeToProperty(
-      HAI3_SHARED_PROPERTY_THEME,
-      (property: SharedProperty) => {
-        if (this.shadowRoot && typeof property.value === 'string') {
-          const theme = resolveTheme(property.value);
-          if (theme) {
-            applyThemeToShadowRoot(this.shadowRoot, theme, property.value);
-          }
-        }
-      }
-    );
+    this.injectBaseResets(container);
+    this.initializeStyles(container);
 
-    // Step 6: Create React root AFTER theme vars exist
     this.root = createRoot(container);
-
-    // Step 7: Render with HAI3Provider wrapping
     this.root.render(
       <HAI3Provider app={mfeApp}>
         {this.renderContent(bridge)}
@@ -73,16 +43,6 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
   }
 
   unmount(_container: Element | ShadowRoot): void {
-    // Unsubscribe from theme changes
-    if (this.unsubscribeTheme) {
-      this.unsubscribeTheme();
-      this.unsubscribeTheme = null;
-    }
-
-    // Clear shadow root reference
-    this.shadowRoot = null;
-
-    // Unmount React root
     if (this.root) {
       this.root.unmount();
       this.root = null;
@@ -90,24 +50,62 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
   }
 
   /**
-   * Initialize screen-specific Tailwind utilities inside the Shadow DOM.
-   *
-   * CSS variables and styles do NOT penetrate Shadow DOM, so we must
-   * initialize them inside the shadow root. Each concrete lifecycle
-   * provides its own set of Tailwind utility classes needed for its screen.
-   *
-   * @param container - The Shadow DOM root or element to append styles to
+   * Copy all inline <style> and <link rel="stylesheet"> from the host document
+   * into the shadow root so that Tailwind and component styles apply inside the MFE.
    */
-  protected abstract initializeStyles(container: Element | ShadowRoot): void;
+  protected adoptHostStylesIntoShadowRoot(shadowRoot: ShadowRoot): void {
+    const styleElements = document.head.querySelectorAll('style');
+    for (const el of styleElements) {
+      const clone = document.createElement('style');
+      clone.textContent = el.textContent ?? '';
+      shadowRoot.appendChild(clone);
+    }
+    const linkElements = document.head.querySelectorAll('link[rel="stylesheet"]');
+    for (const el of linkElements) {
+      const clone = el.cloneNode(true) as HTMLLinkElement;
+      shadowRoot.appendChild(clone);
+    }
+  }
+
+  /**
+   * Box-model resets and :host defaults needed inside every shadow root.
+   * These aren't part of Tailwind's compiled output but are required for
+   * consistent rendering across browsers.
+   */
+  private injectBaseResets(container: Element | ShadowRoot): void {
+    const style = document.createElement('style');
+    style.textContent = `
+      *, *::before, *::after {
+        box-sizing: border-box;
+        border-width: 0;
+        border-style: solid;
+        border-color: currentColor;
+      }
+      * { margin: 0; padding: 0; }
+      :host {
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        line-height: 1.5;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+        color: hsl(var(--foreground));
+        background-color: hsl(var(--background));
+      }
+    `;
+    container.appendChild(style);
+  }
+
+  /**
+   * Hook for subclasses to inject additional CSS not covered by the adopted host
+   * stylesheet (e.g., MFE-specific @font-face rules or custom animations).
+   * No-op by default — Tailwind utilities are already provided by the host CSS.
+   */
+  protected initializeStyles(_container: Element | ShadowRoot): void {
+    // No-op: host styles adopted in adoptHostStylesIntoShadowRoot() already
+    // include all Tailwind utilities compiled from MFE source files.
+  }
 
   /**
    * Return the screen-specific React component tree.
-   *
-   * The returned node is wrapped in a HAI3Provider by the base class before
-   * rendering into the React root. Each concrete lifecycle returns its own
-   * screen component (e.g., `return <HomeScreen bridge={bridge} />`).
-   *
-   * @param bridge - The child MFE bridge for communication with the host
    */
   protected abstract renderContent(bridge: ChildMfeBridge): React.ReactNode;
 }

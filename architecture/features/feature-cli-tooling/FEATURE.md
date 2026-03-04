@@ -84,8 +84,6 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 - DECOMPOSITION: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-cli-tooling`
 - ADR: `cpt-hai3-adr-cli-template-based-code-generation`
 - ADR: `cpt-hai3-adr-two-tier-cli-e2e-verification`
-- OpenSpec spec: `openspec/specs/cli/spec.md`
-- OpenSpec spec: `openspec/specs/cli-openspec-skills-assembly/spec.md`
 - Related constraint: `cpt-hai3-constraint-esm-first-module-format`
 
 ---
@@ -103,7 +101,7 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 3. [x] - `p1` - **IF** target directory already exists **THEN** prompt developer to confirm overwrite; **IF** developer declines **RETURN** with abort message - `inst-check-dir-exists`
 4. [x] - `p1` - **IF** `--layer` flag is not `app` **THEN** skip uikit/studio prompts and proceed to layer package generation - `inst-branch-layer`
 5. [x] - `p1` - **IF** `--studio` flag is absent **THEN** prompt developer: "Include Studio (development overlay)?" - `inst-prompt-studio`
-6. [x] - `p1` - **IF** `--uikit` flag is absent **THEN** prompt developer to select UIKit option from `['hai3', 'none']` - `inst-prompt-uikit`
+6. [x] - `p1` - **IF** `--uikit` flag is absent **THEN** prompt developer to select UIKit option from `['shadcn', 'none']` or enter a third-party package name - `inst-prompt-uikit`
 7. [x] - `p1` - **IF** `--package-manager` flag is absent **THEN** prompt developer to select one of `npm`, `pnpm`, or `yarn` - `inst-prompt-package-manager`
 8. [x] - `p1` - Algorithm: generate project files using `cpt-hai3-algo-cli-tooling-generate-project` - `inst-run-generate-project`
 9. [x] - `p1` - Write all generated files to the target directory on disk - `inst-write-files`
@@ -119,7 +117,7 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 1. [x] - `p1` - Developer invokes `hai3 scaffold layout` from a HAI3 project directory, optionally with `--force` - `inst-invoke-scaffold-layout`
 2. [x] - `p1` - **IF** not inside a HAI3 project root (no `hai3.config.json`) **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-scaffold`
-3. [x] - `p1` - Read UIKit layout templates from the bundled CLI templates directory - `inst-read-layout-templates`
+3. [x] - `p1` - Read layout templates from the bundled CLI templates directory - `inst-read-layout-templates`
 4. [x] - `p1` - **IF** `--force` is false **AND** any target layout file already exists **THEN** skip existing files - `inst-check-force-flag`
 5. [x] - `p1` - Write layout component files to `src/app/layout/` inside the project root - `inst-write-layout-files`
 6. [x] - `p1` - **RETURN** `ScaffoldLayoutResult` with layout path and list of written file paths - `inst-return-scaffold-layout`
@@ -205,7 +203,7 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 1. [x] - `p1` - CI triggers `.github/workflows/cli-pr.yml` on pull request to `main`; job `cli-pr-e2e` starts on `ubuntu-latest` with Node 24.14.x and a matrix over `package-manager in [npm, pnpm, yarn]` - `inst-e2e-pr-trigger`
 2. [x] - `p1` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-pr-build-cli`
 3. [x] - `p1` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `pr` - `inst-e2e-pr-create-harness`
-4. [x] - `p1` - Run `hai3 create smoke-app --no-studio --uikit hai3 --package-manager <matrix package-manager>` in a temporary workspace - `inst-e2e-pr-create-app`
+4. [x] - `p1` - Run `hai3 create smoke-app --no-studio --uikit shadcn --package-manager <matrix package-manager>` in a temporary workspace - `inst-e2e-pr-create-app`
 5. [x] - `p1` - Assert scaffolded files exist: `hai3.config.json`, `package.json`, `.ai/GUIDELINES.md`, `src/app/layout/Layout.tsx`, `scripts/generate-mfe-manifests.ts` - `inst-e2e-pr-assert-files`
 6. [x] - `p1` - Assert generated `package.json` declares `packageManager`, manager-specific `engines`, manager-specific workspace/config files when applicable, and `hai3.config.json.packageManager` equals the selected manager - `inst-e2e-pr-assert-engines`
 7. [x] - `p1` - Run `git init` in generated project, then the manager-appropriate install command (`npm install --no-audit --no-fund`, `pnpm install --no-frozen-lockfile`, or `yarn install --no-immutable`) - `inst-e2e-pr-git-init-install`
@@ -226,11 +224,11 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 1. [x] - `p2` - CI triggers `.github/workflows/cli-nightly.yml` on schedule (daily 03:00 UTC) or manual dispatch - `inst-e2e-nightly-trigger`
 2. [x] - `p2` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-nightly-build-cli`
 3. [x] - `p2` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `nightly` - `inst-e2e-nightly-create-harness`
-4. [x] - `p2` - Run `hai3 create nightly-app --no-studio --uikit hai3 --package-manager npm`, then install, build, and type-check - `inst-e2e-nightly-create-default`
-5. [x] - `p2` - Run `hai3 create nightly-pnpm --no-studio --uikit hai3 --package-manager pnpm` and `hai3 create nightly-yarn --no-studio --uikit hai3 --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands - `inst-e2e-nightly-create-alt-managers`
+4. [x] - `p2` - Run `hai3 create nightly-app --no-studio --uikit shadcn --package-manager npm`, then install, build, and type-check - `inst-e2e-nightly-create-default`
+5. [x] - `p2` - Run `hai3 create nightly-pnpm --no-studio --uikit shadcn --package-manager pnpm` and `hai3 create nightly-yarn --no-studio --uikit shadcn --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands - `inst-e2e-nightly-create-alt-managers`
 6. [x] - `p2` - Run `hai3 migrate --list` and `hai3 migrate --status` on the default app - `inst-e2e-nightly-migrate-commands`
 7. [x] - `p2` - Run `hai3 ai sync --tool all --diff` twice and assert both succeed (idempotency) - `inst-e2e-nightly-ai-sync-idempotent`
-8. [x] - `p2` - Run `hai3 create nightly-custom --no-studio --uikit none`, assert `@hai3/uikit` not in dependencies, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
+8. [x] - `p2` - Run `hai3 create nightly-custom --no-studio --uikit none`, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
 9. [x] - `p2` - **FOR EACH** layer in `[sdk, framework, react]`: run `hai3 create nightly-{layer} --layer {layer}`, assert README install snippet includes the generated package name, then install, build, and type-check - `inst-e2e-nightly-layer-scaffolds`
 10. [x] - `p2` - Run `hai3 create "Invalid Name"` and assert exit code 1 - `inst-e2e-nightly-invalid-name`
 11. [x] - `p2` - Upload step logs and JSON summary as CI artifacts (runs even on failure) - `inst-e2e-nightly-upload-artifacts`
@@ -259,7 +257,7 @@ Constructs the complete set of `GeneratedFile` entries for a new HAI3 project fr
 2. [x] - `p1` - **FOR EACH** file in `manifest.stage1b.rootFiles`: copy from the templates directory to the file list; apply variant selection for `src/app/main.tsx` (uikit variant) and `src/app/App.tsx` (uikit + studio variant) - `inst-copy-root-files`
 3. [x] - `p1` - **IF** `uikit === 'none'` **THEN** exclude `tailwind.config.ts`, `postcss.config.ts`, `src/app/themes/`, `src/app/components/` from the file list - `inst-filter-uikit-none`
 4. [x] - `p1` - **FOR EACH** directory in `manifest.stage1b.directories`: read all files recursively and add to the file list; skip `src/app/themes` and `src/app/components` when `uikit === 'none'` - `inst-copy-template-dirs`
-5. [x] - `p1` - **IF** `uikit === 'hai3'` **THEN** copy layout templates from `templates/layout/hai3-uikit/` into `src/app/layout/` - `inst-copy-layout-templates`
+5. [x] - `p1` - **IF** `uikit === 'shadcn'` **THEN** copy layout templates from the shadcn layout template into `src/app/layout/` - `inst-copy-layout-templates`
 6. [x] - `p1` - Copy `.ai/targets/*.md` files with layer-aware filtering: include only files whose `TARGET_LAYERS` mapping includes the resolved layer - `inst-copy-ai-targets`
 7. [x] - `p1` - Select and copy the GUIDELINES variant for the resolved layer: `GUIDELINES.sdk.md` for sdk, `GUIDELINES.framework.md` for framework, `GUIDELINES.md` for react/app — output always as `.ai/GUIDELINES.md` - `inst-select-guidelines-variant`
 8. [x] - `p1` - Copy `.ai/company/` and `.ai/project/` placeholder directories - `inst-copy-hierarchy-dirs`
@@ -267,9 +265,9 @@ Constructs the complete set of `GeneratedFile` entries for a new HAI3 project fr
 10. [x] - `p1` - **FOR EACH** command group in `templates/commands-bundle/`: select the most specific layer variant using `selectCommandVariant(baseName, layer, availableFiles)` and copy the selected file to `.ai/commands/<baseName>` - `inst-select-command-variants`
 11. [x] - `p1` - Copy user command stubs from `templates/.ai/commands/user/` - `inst-copy-user-commands`
 12. [x] - `p1` - Copy `eslint-plugin-local/` and `scripts/` directories; **IF** `uikit === 'none'` exclude `scripts/generate-colors.ts` - `inst-copy-support-dirs`
-13. [x] - `p1` - Copy root config files: `CLAUDE.md`, `README.md`, `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `.dependency-cruiser.cjs`, `.pre-commit-config.yaml`, `.npmrc`, `.nvmrc`; **IF** `uikit === 'hai3'` also include `postcss.config.ts` - `inst-copy-root-configs`
+13. [x] - `p1` - Copy root config files: `CLAUDE.md`, `README.md`, `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `.dependency-cruiser.cjs`, `.pre-commit-config.yaml`, `.npmrc`, `.nvmrc`; **IF** `uikit === 'shadcn'` also include `postcss.config.js` - `inst-copy-root-configs`
 14. [x] - `p1` - Generate `hai3.config.json` dynamically with `{ hai3: true, layer, uikit, packageManager }`; include `linkerMode: "node-modules"` when the selected manager is `yarn` - `inst-generate-hai3-config`
-15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@hai3/*` packages at `alpha` tag; include `@hai3/uikit` only if `uikit === 'hai3'`; include `@hai3/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]` - `inst-generate-package-json`
+15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@hai3/*` packages at `alpha` tag; include `@hai3/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]` - `inst-generate-package-json`
 16. [x] - `p1` - Generate manager-specific workspace/config files (`pnpm-workspace.yaml` for pnpm, `.yarnrc.yml` for yarn) - `inst-generate-package-manager-workspace-files`
 17. [x] - `p1` - Rewrite npm-centric command snippets in generated text files to manager-specific commands using `cpt-hai3-algo-cli-tooling-package-manager-policy` - `inst-transform-package-manager-text`
 18. [x] - `p1` - **RETURN** complete `GeneratedFile[]` array - `inst-return-generated-files`
@@ -356,11 +354,11 @@ Writes adapter stub files for each discovered command into the target IDE comman
 
 Inspects TypeScript and TSX source files for four categories of architectural violations.
 
-1. [x] - `p1` - **FOR EACH** `.ts` or `.tsx` file in the scan directory (excluding `node_modules/` and `dist/`): read file contents and determine file type (`Screen`, `uikit`, or general) - `inst-iterate-source-files`
+1. [x] - `p1` - **FOR EACH** `.ts` or `.tsx` file in the scan directory (excluding `node_modules/` and `dist/`): read file contents and determine file type (`Screen`, `UI component`, or general) - `inst-iterate-source-files`
 2. [x] - `p1` - **IF** file is a Screen file (ends with `Screen.tsx`): scan for `const <Name>: FC` declarations that are not the file's default export; **FOR EACH** match emit a violation of rule `inline-component` at the matched line - `inst-detect-inline-components`
 3. [x] - `p1` - **IF** file is a Screen file: scan for inline data arrays (variable declarations initialized to array literals containing 3 or more nested object literals); skip variables named `columns`, `options`, `items`, `routes`, `menu`, `tabs`, `steps`, `fields`; **FOR EACH** match emit a violation of rule `inline-data` - `inst-detect-inline-data`
-4. [x] - `p1` - **IF** file is a UIKit file (path contains `/uikit/` but not `/icons/`): scan for non-type imports from `@hai3/react` or `@hai3/framework`; **IF** found emit a violation of rule `uikit-impurity` - `inst-detect-uikit-impurity`
-5. [x] - `p1` - **IF** file is NOT inside a base UIKit folder (`/uikit/src/base/` or `screensets/*/uikit/base/`): scan for `style={{` occurrences and emit a violation of rule `inline-style` for each; scan for hex color literals and emit a violation of rule `inline-style` for each - `inst-detect-inline-styles`
+4. [x] - `p1` - **IF** file is a UI component file (path contains `/components/ui/`): scan for non-type imports from `@hai3/react` or `@hai3/framework`; **IF** found emit a violation of rule `ui-component-impurity` - `inst-detect-ui-component-impurity`
+5. [x] - `p1` - **IF** file is NOT inside `components/ui/`: scan for `style={{` occurrences and emit a violation of rule `inline-style` for each; scan for hex color literals and emit a violation of rule `inline-style` for each - `inst-detect-inline-styles`
 6. [x] - `p1` - **RETURN** all collected `ComponentViolation` objects with file path, line number, rule name, message, severity, and suggestion - `inst-return-violations`
 
 ### Resolve Pending Migrations
@@ -401,9 +399,8 @@ The `copy-templates.ts` script assembles the complete templates directory inside
 4. [x] - `p1` - Copy GUIDELINES variants (`.sdk.md`, `.framework.md`, `.md`) into `templates/.ai/` - `inst-copy-guidelines-variants`
 5. [x] - `p1` - Bundle command files from `.ai/commands/` into `templates/commands-bundle/` with layer suffixes preserved (`.sdk.md`, `.framework.md`, `.react.md`, `.md`) - `inst-bundle-commands`
 6. [x] - `p1` - Copy IDE adapter directories (`.claude/`, `.cursor/`, `.windsurf/`) into templates - `inst-copy-ide-adapters`
-7. [x] - `p1` - Call `copyOpenSpecSkills(TEMPLATES_DIR)`: copy OpenSpec skill directories from `.claude/skills/openspec-*`, `.cursor/skills/openspec-*`, `.windsurf/skills/openspec-*` (10 directories each) to their respective paths in templates; copy Copilot OPSX command files from `.github/copilot-commands/opsx-*.md` (10 files) to `templates/.github/copilot-commands/` - `inst-copy-openspec-skills`
-8. [x] - `p1` - Log skill counts per editor: `  .claude/skills/ (10 OpenSpec skills)`, `  .cursor/skills/ (10 OpenSpec skills)`, `  .windsurf/skills/ (10 OpenSpec skills)`, `  .github/copilot-commands/ (10 OPSX commands)` - `inst-log-skill-counts`
-9. [x] - `p1` - **IF** any source directory is missing, return 0 for that editor's count and continue without error - `inst-handle-missing-source-dirs`
+7. [x] - `p1` - Generate IDE rules files for supported tools (`CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, `.github/copilot-instructions.md`) - `inst-generate-ide-rules`
+8. [x] - `p1` - Log generated adapter and bundled-command counts for traceability during template assembly - `inst-log-build-counts`
 
 ### Execute E2E Harness Step
 
@@ -507,15 +504,15 @@ Tracks which migrations have been applied to a project, persisted in `.hai3/migr
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-templates`
 
-The `copy-templates.ts` build script assembles the full template set into `packages/cli/templates/` at build time. The project generator reads from this bundled directory at runtime — no network access required. Templates cover project scaffolding, AI target docs, IDE configs, command adapters, and OpenSpec skills for all four supported AI tools.
+The `copy-templates.ts` build script assembles the full template set into `packages/cli/templates/` at build time. The project generator reads from this bundled directory at runtime — no network access required. Templates cover project scaffolding, AI target docs, IDE configs, command adapters, and generated IDE rule files for all four supported AI tools.
 
 **Implementation details**:
-- Build script: `packages/cli/scripts/copy-templates.ts` — copies sources, generates `manifest.json`, bundles commands with layer suffixes, calls `copyOpenSpecSkills()`
+- Build script: `packages/cli/scripts/copy-templates.ts` — copies sources, generates `manifest.json`, bundles commands with layer suffixes, and generates IDE rules
 - Generator: `src/generators/project.ts` — `generateProject(input: ProjectGeneratorInput): Promise<GeneratedFile[]>`; reads manifest, applies uikit/studio/layer conditionals, returns file list
 - Layer package generator: `src/generators/layerPackage.ts` — `generateLayerPackage({ packageName, layer })`
 - Package manager policy: `src/core/packageManager.ts` — centralized exact/default PM versions, minimum engine ranges, command builders, workspace-file helpers, and npm-snippet transformation
 - Templates dir: `src/core/templates.ts` — `getTemplatesDir()` resolves to `packages/cli/templates/` from the installed package location
-- OpenSpec skills: 10 skill directories per editor (claude, cursor, windsurf) × 3 editors = 30 `SKILL.md` files; 10 Copilot OPSX command files
+- IDE rule outputs: `CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and `.github/copilot-instructions.md`
 
 **Implements**:
 - `cpt-hai3-algo-cli-tooling-generate-project`
@@ -578,11 +575,11 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-validate`
 
-`validateComponentsCommand` scans `.ts` / `.tsx` files and enforces four architectural rules: no inline FC components in Screen files, no inline data arrays in Screen files, no `@hai3/react` / `@hai3/framework` imports in UIKit files, no `style={{}}` or hex color literals outside base UIKit folders. Violations carry file path, line number, rule name, message, severity, and a suggestion.
+`validateComponentsCommand` scans `.ts` / `.tsx` files and enforces four architectural rules: no inline FC components in Screen files, no inline data arrays in Screen files, no `@hai3/react` / `@hai3/framework` imports in `components/ui/` files, no `style={{}}` or hex color literals outside `components/ui/` folders. Violations carry file path, line number, rule name, message, severity, and a suggestion.
 
 **Implementation details**:
 - Command: `src/commands/validate/components.ts` — `validateComponentsCommand: CommandDefinition<ValidateComponentsArgs, ValidateComponentsResult>`
-- Rules: `inline-component`, `inline-data`, `uikit-impurity`, `inline-style`
+- Rules: `inline-component`, `inline-data`, `ui-component-impurity`, `inline-style`
 - Default scan path: `src/screensets/` (resolved via `getScreensetsDir()`)
 - Exit code: process exits with code 1 when any error-severity violation is found
 
@@ -684,7 +681,7 @@ A non-required nightly/manual GitHub Actions workflow covers broader CLI scenari
 - [x] `hai3 update --alpha` and `hai3 update --stable` cannot be combined; the command exits with `CONFLICTING_OPTIONS` when both flags are present
 - [x] `hai3 update` auto-detects the current release channel from the currently running CLI package version, not from an npm-specific global listing
 - [x] Template-derived docs and scripts emitted by `hai3 create` or `hai3 update --templates-only` contain concrete manager-specific commands for npm, pnpm, and yarn
-- [x] CLI build produces exactly 30 OpenSpec skill `SKILL.md` files (10 per editor × 3 editors) and 10 Copilot OPSX command files in `packages/cli/templates/`
+- [x] CLI build generates IDE rules files (`CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, `.github/copilot-instructions.md`) and command adapters in `packages/cli/templates/`
 - [x] `executeCommand(createCommand, args, { interactive: false, answers })` returns `{ success: true, data }` without prompts — programmatic API is fully functional
 - [x] `selectCommandVariant` returns `null` for any command that has no applicable variant for the given layer, ensuring layer packages do not receive irrelevant commands
 - [x] `.github/workflows/cli-pr.yml` defines required job `cli-pr-e2e` on `ubuntu-latest` with Node 24.14.x; runs a matrix across `npm`, `pnpm`, and `yarn`; exercises create, git init, manager-specific install, build, type-check, validate positive + negative, scaffold layout, and ai sync

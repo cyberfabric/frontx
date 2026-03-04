@@ -28,7 +28,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
    * Extract the package name from a __federation_shared_* bundle key.
    * Handles both:
    *   assets/__federation_shared_react-DMgTugcw.js  → react
-   *   assets/__federation_shared_@hai3/uikit-BYlz3jvo.js → @hai3/uikit
+   *   assets/__federation_shared_@hai3/react-BYlz3jvo.js → @hai3/react
    */
   function extractPackageNameFromFederationKey(bundleKey: string): string | null {
     const match = /__federation_shared_(.+)-[A-Za-z0-9_-]{8}\.js$/.exec(bundleKey);

@@ -5,21 +5,20 @@
  */
 
 import React from 'react';
+import { Separator } from '../../../components/ui/separator';
+import { Button } from '../../../components/ui/button';
+import { ButtonVariant, ButtonSize } from '../../../components/types';
+import { IconButton } from '../../../components/ui/icon-button';
+import { DropdownButton } from '../../../components/ui/dropdown-button';
+import { Toggle } from '../../../components/ui/toggle';
 import {
-  Separator,
-  Button,
-  ButtonVariant,
-  ButtonSize,
-  IconButton,
-  DropdownButton,
-  Toggle,
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  Badge,
-} from '@hai3/uikit';
+} from '../../../components/ui/dropdown-menu';
+import { Badge } from '../../../components/ui/badge';
 
 interface ActionElementsProps {
   t: (key: string) => string;

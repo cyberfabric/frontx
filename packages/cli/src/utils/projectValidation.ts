@@ -1,3 +1,5 @@
+// @cpt-dod:cpt-hai3-dod-cli-tooling-validate:p1
+// @cpt-flow:cpt-hai3-flow-cli-tooling-validate-components:p1
 import { execSync } from 'child_process';
 import type { Logger } from '../core/logger.js';
 import { detectPackageManager, getRunScriptCommand } from '../core/packageManager.js';

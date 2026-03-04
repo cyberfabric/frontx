@@ -24,8 +24,7 @@ The new MFE MUST have in its folder `src/mfe_packages/{name}-mfe/`:
   "dependencies": {
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@hai3/react": "file:../../../packages/react",
-    "@hai3/uikit": "file:../../../packages/uikit"
+    "@hai3/react": "file:../../../packages/react"
   }
 }
 ```

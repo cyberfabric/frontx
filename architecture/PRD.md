@@ -11,7 +11,6 @@
   - [2.1 Human Actors](#21-human-actors)
     - [Application Developer](#application-developer)
     - [Screenset Author](#screenset-author)
-    - [UI Kit Maintainer](#ui-kit-maintainer)
     - [Studio User](#studio-user)
     - [End User](#end-user)
   - [2.2 System Actors](#22-system-actors)
@@ -93,34 +92,26 @@
   - [5.13 i18n Loading](#513-i18n-loading)
     - [Hybrid Namespace Support](#hybrid-namespace-support)
     - [Lazy Screen Translations](#lazy-screen-translations)
-  - [5.14 UIKit Base Components](#514-uikit-base-components)
-    - [React 19 Ref Pattern](#react-19-ref-pattern)
-    - [Layout Components](#layout-components)
-    - [Navigation Components](#navigation-components)
-    - [Form Components](#form-components)
-    - [Chart Components](#chart-components)
-  - [5.15 UIKit Toast](#515-uikit-toast)
-    - [useToast Hook](#usetoast-hook)
-  - [5.16 Studio](#516-studio)
+  - [5.14 Studio](#514-studio)
     - [Floating Panel](#floating-panel)
     - [Studio Controls](#studio-controls)
     - [Settings Persistence](#settings-persistence)
     - [Viewport Positioning](#viewport-positioning)
     - [Package Independence](#package-independence)
-  - [5.17 CLI](#517-cli)
+  - [5.15 CLI](#515-cli)
     - [Package Structure](#package-structure)
     - [Core Commands](#core-commands)
     - [Template System](#template-system)
     - [AI Skills Assembly](#ai-skills-assembly)
     - [E2E Scaffold Verification](#e2e-scaffold-verification)
-  - [5.18 Publishing](#518-publishing)
+  - [5.16 Publishing](#516-publishing)
     - [NPM Metadata](#npm-metadata)
     - [Aligned Versions](#aligned-versions)
     - [ESM-First Module Format](#esm-first-module-format)
     - [Automated CI Publishing](#automated-ci-publishing)
-  - [5.19 Mock Mode](#519-mock-mode)
+  - [5.17 Mock Mode](#517-mock-mode)
     - [Mock Mode Toggle](#mock-mode-toggle)
-  - [5.20 Microfrontend Plugin](#520-microfrontend-plugin)
+  - [5.18 Microfrontend Plugin](#518-microfrontend-plugin)
     - [MFE Lifecycle Plugin](#mfe-lifecycle-plugin)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
@@ -150,7 +141,6 @@
     - [@hai3/i18n](#hai3i18n)
     - [@hai3/framework](#hai3framework)
     - [@hai3/react](#hai3react)
-    - [@hai3/uikit](#hai3uikit)
     - [@hai3/studio](#hai3studio)
     - [@hai3/cli](#hai3cli)
   - [7.2 External Integration Contracts](#72-external-integration-contracts)
@@ -210,7 +200,7 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 | Plugin | Framework-level feature (screensets, themes, i18n, routing, effects, microfrontends, layout) composed via `.use()` on `createHAI3` builder. |
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
 | Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel). Only loaded in `import.meta.env.DEV`. |
-| UI Kit | Default component library (@hai3/uikit). Users can fork or integrate custom component libraries. |
+| UI Kit | Component library: per-project choice at creation (local components, shadcn, or third-party). |
 | Registry | Self-registering singleton (ScreensetsRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
 | GTS | Global Type System — schema-based validation for MFE shared properties and action chains. |
 | CDSL | Cypilot Domain-Specific Language for describing flows, algorithms, and states in FEATURE specs. |
@@ -234,13 +224,6 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 
 **Role**: Creates self-contained vertical slices with screens, translations, API services, and state. Registers translations via localization config and implements custom API services.
 **Needs**: Self-contained packaging, namespace isolation, lazy-loading support, MFE extension points.
-
-#### UI Kit Maintainer
-
-**ID**: `cpt-hai3-actor-uikit-maintainer`
-
-**Role**: Owns @hai3/uikit npm package. Designs and implements base and composite UI components, manages Tailwind + Radix configuration, publishes updates independently.
-**Needs**: Component isolation from screensets, independent versioning, clear API surface.
 
 #### Studio User
 
@@ -326,7 +309,6 @@ packages/           -- Published @hai3/* packages
   i18n/             -- L1 SDK: 36-language i18n, formatters
   framework/        -- L2: Plugin architecture, layout slices
   react/            -- L3: HAI3Provider, hooks, MFE components
-  uikit/            -- UI: shadcn/ui-based component library
   studio/           -- Dev: Floating overlay with controls
   cli/              -- Tool: Scaffolding CLI
   docs/             -- VitePress documentation site
@@ -334,7 +316,7 @@ internal/           -- Non-published internal tooling
 src/                -- Demo host application + MFE packages
 ```
 
-**Build orchestration**: Sequential layer build — SDK (parallel) → framework → react → uikit → studio → cli.
+**Build orchestration**: Sequential layer build — SDK (parallel) → framework → react → studio → cli.
 
 **Development**: `npm run dev` generates MFE manifests and color tokens, then starts Vite dev server.
 
@@ -848,65 +830,7 @@ Screen translations MUST load on-demand when the screen is lazy-loaded, NOT upfr
 **Rationale**: Reduces initial bundle and network cost.
 **Actors**: `cpt-hai3-actor-runtime`
 
-### 5.14 UIKit Base Components
-
-#### React 19 Ref Pattern
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-react19-ref`
-
-All UIKit components MUST use React 19 native ref-as-prop pattern. `forwardRef` MUST NOT be imported.
-
-**Rationale**: Removes deprecated API; aligns with React 19 best practices.
-**Actors**: `cpt-hai3-actor-uikit-maintainer`
-
-#### Layout Components
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-layout`
-
-The system MUST provide layout components: AspectRatio, Drawer, Resizable, ScrollArea, Separator, Card, Dialog, Sheet.
-
-**Rationale**: Core layout building blocks for application screens.
-**Actors**: `cpt-hai3-actor-developer`
-
-#### Navigation Components
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-nav`
-
-The system MUST provide navigation components: Breadcrumb, Pagination, NavigationMenu, Menubar, Tabs.
-
-**Rationale**: Standard navigation patterns for application interfaces.
-**Actors**: `cpt-hai3-actor-developer`
-
-#### Form Components
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-form`
-
-The system MUST provide form components: Input, Textarea, Checkbox, RadioGroup, NativeSelect, Calendar, InputOTP, Label, Field, InputGroup.
-
-**Rationale**: Complete form input coverage for data entry screens.
-**Actors**: `cpt-hai3-actor-developer`
-
-#### Chart Components
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-chart`
-
-The system MUST provide Chart components (ChartContainer, ChartTooltip, ChartLegend) built on Recharts, supporting Line, Bar, Area, and Pie chart types.
-
-**Rationale**: Data visualization requirement for dashboards.
-**Actors**: `cpt-hai3-actor-developer`
-
-### 5.15 UIKit Toast
-
-#### useToast Hook
-
-- [x] `p1` - **ID**: `cpt-hai3-fr-uikit-toast-hook`
-
-The UIKit MUST provide a `useToast` hook wrapping Sonner, returning typed methods: `toast`, `success`, `error`, `warning`, `info`, `loading`, `promise`, `dismiss`. The UIKit MUST NOT export the direct `toast` function from Sonner.
-
-**Rationale**: Unified toast API with consistent behavior.
-**Actors**: `cpt-hai3-actor-developer`
-
-### 5.16 Studio
+### 5.14 Studio
 
 #### Floating Panel
 
@@ -953,7 +877,7 @@ The system MUST clamp Studio button and panel positions to the current viewport 
 **Rationale**: Zero production footprint.
 **Actors**: `cpt-hai3-actor-build-system`
 
-### 5.17 CLI
+### 5.15 CLI
 
 #### Package Structure
 
@@ -986,7 +910,7 @@ The CLI MUST use a template system with `copy-templates.ts` build script, manife
 
 - [x] `p1` - **ID**: `cpt-hai3-fr-cli-skills`
 
-The CLI build MUST copy OpenSpec skill directories to `.claude/skills/`, `.cursor/skills/`, `.windsurf/skills/` (10 skills each) and Copilot commands to `.github/copilot-commands/` (10 commands).
+The CLI build MUST generate IDE guidance files and command adapters for supported tools: `CLAUDE.md`, `.cursor/rules/`, `.windsurf/rules/`, `.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`, and `.github/copilot-commands/`.
 
 **Rationale**: Distributes AI assistant integrations with every scaffolded project.
 **Actors**: `cpt-hai3-actor-cli`
@@ -1000,7 +924,7 @@ The repository MUST run a dedicated required GitHub Actions PR workflow (`cli-pr
 **Rationale**: The generated project is the primary CLI deliverable; a green CLI package build alone does not prove the scaffold path works end-to-end.
 **Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
 
-### 5.18 Publishing
+### 5.16 Publishing
 
 #### NPM Metadata
 
@@ -1038,7 +962,7 @@ When a PR merged to `main` contains version changes, CI MUST automatically publi
 **Rationale**: Automated release pipeline with safety checks.
 **Actors**: `cpt-hai3-actor-ci-cd`
 
-### 5.19 Mock Mode
+### 5.17 Mock Mode
 
 #### Mock Mode Toggle
 
@@ -1049,7 +973,7 @@ The system MUST provide a `toggleMockMode` action via `mock()` plugin that activ
 **Rationale**: Centralized mock mode control enables developers and studio users to switch between real and mock API responses without restarting the application.
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-studio-user`
 
-### 5.20 Microfrontend Plugin
+### 5.18 Microfrontend Plugin
 
 #### MFE Lifecycle Plugin
 
@@ -1219,7 +1143,7 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 
 ### 6.2 NFR Exclusions
 
-- **Accessibility** (UX-PRD-002): Not applicable at framework level — accessibility is the responsibility of `@hai3/uikit` components and application-level code. UIKit uses Radix UI primitives which provide accessibility foundations.
+- **Accessibility** (UX-PRD-002): Not applicable at framework level — accessibility is the responsibility of application/screenset UI components and application-level code. Local UI may use Radix UI primitives for accessibility foundations.
 - **Safety** (SAFE-PRD-001/002): Not applicable — HAI3 is a client-side UI framework with no physical interaction, medical, or vehicle control capabilities.
 - **Regulatory Compliance** (COMPL-PRD-001/002/003): Not applicable — HAI3 does not process PII, financial data, or healthcare data. Applications built with HAI3 may have compliance requirements, but those are application-level concerns.
 - **Internationalization** (UX-PRD-003): Addressed as functional requirement `cpt-hai3-fr-sdk-i18n-package` — HAI3 provides the i18n infrastructure; application-level translation content is out of scope.
@@ -1282,15 +1206,6 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 **Type**: TypeScript ES module (React 19+)
 **Stability**: stable
 **Description**: HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs.
-**Breaking Change Policy**: Major version bump required.
-
-#### @hai3/uikit
-
-- [x] `p1` - **ID**: `cpt-hai3-interface-uikit`
-
-**Type**: TypeScript ES module (React 19+)
-**Stability**: stable
-**Description**: shadcn/ui-based component library with 30+ base components, composite components, variant enums, theme CSS variables, Recharts charts.
 **Breaking Change Policy**: Major version bump required.
 
 #### @hai3/studio
@@ -1384,7 +1299,7 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 
 ## 9. Acceptance Criteria
 
-- [x] All 10 packages build successfully in layer dependency order
+- [x] All published workspace packages build successfully in layer dependency order
 - [x] `npm run arch:check` passes with zero violations (dependency-cruiser)
 - [x] `npm run arch:unused` passes with zero violations (Knip)
 - [x] SDK packages (state, screensets, api, i18n) have zero `@hai3/*` dependencies
@@ -1401,18 +1316,18 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 |------------|-------------|-------------|
 | `@reduxjs/toolkit` >=2.0.0 | Store, slices, Redux internals for @hai3/state | p1 |
 | `axios` >=1.0.0 | HTTP REST client for @hai3/api | p1 |
-| `react` ^19.2.4 | UI rendering for @hai3/react, uikit, studio | p1 |
+| `react` ^19.2.4 | UI rendering for @hai3/react, studio | p1 |
 | `react-dom` ^19.2.4 | DOM rendering | p1 |
 | `react-redux` >=8.0.0 | React-Redux bindings for @hai3/react | p1 |
 | `@globaltypesystem/gts-ts` ^0.3.0 | GTS type validation for @hai3/screensets | p1 |
 | `vite` 6.4.1 | Build tooling and dev server | p1 |
 | `@originjs/vite-plugin-federation` ^1.4.1 | Module Federation for MFEs | p1 |
 | `tsup` ^8.0.0 | Package bundling (ESM/CJS dual output) | p2 |
-| `tailwindcss` ^3.4.1 | Utility CSS for @hai3/uikit | p2 |
+| `tailwindcss` ^3.4.1 | Utility CSS for local UI | p2 |
 | `commander` ^12.1.0 | CLI argument parsing for @hai3/cli | p2 |
-| Radix UI primitives (20+ packages) | Accessible UI components for @hai3/uikit | p2 |
-| `recharts` | Chart visualization for @hai3/uikit | p3 |
-| `sonner` | Toast notifications for @hai3/uikit | p3 |
+| Radix UI primitives (20+ packages) | Accessible UI for local UI | p2 |
+| `recharts` | Chart visualization for local UI | p3 |
+| `sonner` | Toast notifications for local UI | p3 |
 
 ## 11. Assumptions
 

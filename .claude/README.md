@@ -48,7 +48,7 @@ Fix a rule violation following HAI3 correction policy. Identifies, classifies, a
 ### Learning & Reference
 
 #### `/rules`
-Show HAI3 rules for a specific area (events, screensets, uikit, etc.) with examples.
+Show HAI3 rules for a specific area (events, screensets, studio, etc.) with examples.
 
 **Use when:** Need to understand rules for a specific area
 
@@ -94,9 +94,7 @@ The commands are based on HAI3's structured guidelines:
 └── targets/                   # Area-specific rules
     ├── EVENTS.md              # Event-driven architecture
     ├── SCREENSETS.md          # Screenset patterns
-    ├── UICORE.md              # UI Core rules
     ├── UIKIT.md               # UI Kit components
-    ├── UIKIT_CONTRACTS.md     # Contract types
     ├── API.md                 # API services
     ├── STYLING.md             # Styling rules
     ├── THEMES.md              # Theme system

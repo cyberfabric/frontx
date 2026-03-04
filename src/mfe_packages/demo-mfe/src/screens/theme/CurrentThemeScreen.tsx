@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
-import { Card, CardContent, Skeleton } from '@hai3/uikit';
+import { Card, CardContent } from '../../components/ui/card';
+import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 
 /**
@@ -27,7 +28,7 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
  * Receives a ChildMfeBridge for communication with the host application.
  * Demonstrates bridge usage by displaying domainId, instanceId, theme, and language.
  *
- * Uses UIKit components (Card) for consistent styling.
+ * Uses local UI components (Card) for consistent styling.
  * Runs inside Shadow DOM with isolated styles.
  *
  * Subscribes to theme and language domain properties to demonstrate
@@ -114,7 +115,7 @@ export const CurrentThemeScreen: React.FC<CurrentThemeScreenProps> = ({ bridge }
       <h1 className="text-3xl font-bold mb-4">
         {t('title')}
       </h1>
-      <p className="text-gray-600 mb-6">
+      <p className="text-muted-foreground mb-6">
         {t('description')}
       </p>
 
@@ -127,7 +128,7 @@ export const CurrentThemeScreen: React.FC<CurrentThemeScreenProps> = ({ bridge }
             </h2>
             <dl className="grid gap-2">
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('current_theme_label')}:</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('current_theme_label')}:</dt>
                 <dd className="text-foreground font-mono text-lg">{theme}</dd>
               </div>
             </dl>
@@ -186,19 +187,19 @@ export const CurrentThemeScreen: React.FC<CurrentThemeScreenProps> = ({ bridge }
             <dl className="grid gap-2">
               <div>
                 <dt className="font-medium">{t('domain_id')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('instance_id')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('current_theme')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('current_language')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{language}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
               </div>
             </dl>
           </CardContent>

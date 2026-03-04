@@ -1,5 +1,6 @@
 // @cpt-flow:cpt-hai3-flow-cli-tooling-create-project:p1
 // @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create
 import fs from 'fs-extra';
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
@@ -9,6 +10,7 @@ import {
   type LayerType,
   type PackageManager,
 } from '../../core/types.js';
+import { getTemplatesDir } from '../../core/templates.js';
 import {
   DEFAULT_PACKAGE_MANAGER,
   getInstallCommand,
@@ -18,7 +20,13 @@ import {
 import { generateProject } from '../../generators/project.js';
 import { generateLayerPackage } from '../../generators/layerPackage.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
-import { isValidPackageName } from '../../utils/validation.js';
+import {
+  isValidPackageName,
+  isCustomUikit,
+  validateNpmPackage,
+  normalizeUikit,
+} from '../../utils/validation.js';
+import { findMonorepoRoot } from '../../utils/project.js';
 import { aiSyncCommand } from '../ai/sync.js';
 
 /**
@@ -27,9 +35,11 @@ import { aiSyncCommand } from '../ai/sync.js';
 export interface CreateCommandArgs {
   projectName: string;
   studio?: boolean;
-  uikit?: 'hai3' | 'none';
+  uikit?: string;
   packageManager?: PackageManager;
   layer?: LayerType;
+  /** Use local monorepo packages (file:) instead of npm registry */
+  local?: boolean;
 }
 
 /**
@@ -43,7 +53,6 @@ export interface CreateCommandResult {
 /**
  * Create command implementation
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create
 export const createCommand: CommandDefinition<
   CreateCommandArgs,
   CreateCommandResult
@@ -65,9 +74,8 @@ export const createCommand: CommandDefinition<
     },
     {
       name: 'uikit',
-      description: 'UI Kit selection',
+      description: "UI components: 'shadcn' for shadcn/ui, 'none' for no UI, or an npm package name",
       type: 'string',
-      choices: ['hai3', 'none'],
     },
     {
       name: 'layer',
@@ -75,6 +83,11 @@ export const createCommand: CommandDefinition<
       description: 'Create a package for a specific SDK layer (sdk, framework, react)',
       type: 'string',
       choices: ['sdk', 'framework', 'react', 'app'],
+    },
+    {
+      name: 'local',
+      description: 'Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or HAI3_MONOREPO_ROOT',
+      type: 'boolean',
     },
     {
       name: 'package-manager',
@@ -127,10 +140,18 @@ export const createCommand: CommandDefinition<
     return validationOk();
   },
 
+  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2
+  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2
+  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-none:p2
+  // @cpt-dod:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2
   async execute(args, ctx): Promise<CreateCommandResult> {
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
     const { logger, prompt } = ctx;
     const projectPath = path.join(ctx.cwd, args.projectName);
     const layer = args.layer ?? 'app';
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
     let packageManager = args.packageManager ?? DEFAULT_PACKAGE_MANAGER;
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
@@ -228,18 +249,25 @@ export const createCommand: CommandDefinition<
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-studio
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
     if (uikit === undefined) {
       promptQuestions.push({
         name: 'uikit',
         type: 'list' as const,
-        message: 'Select UI kit:',
+        message: 'Select UI components:',
         choices: [
-          { name: 'HAI3 UIKit (@hai3/uikit)', value: 'hai3' },
+          { name: 'shadcn/ui (locally-owned components)', value: 'shadcn' },
+          { name: 'Custom (enter npm package name)', value: 'custom' },
           { name: 'None (implement your own)', value: 'none' },
         ],
-        default: 'hai3',
+        default: 'shadcn',
       });
     }
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
@@ -261,33 +289,82 @@ export const createCommand: CommandDefinition<
     if (promptQuestions.length > 0) {
       const answers = await prompt<{
         studio?: boolean;
-        uikit?: 'hai3' | 'none';
+        uikit?: string;
         packageManager?: PackageManager;
       }>(promptQuestions);
 
       if (studio === undefined) {
         studio = answers.studio;
       }
+      // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
       if (uikit === undefined) {
         uikit = answers.uikit;
       }
       if (args.packageManager === undefined) {
         packageManager = answers.packageManager ?? DEFAULT_PACKAGE_MANAGER;
       }
+      // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
     }
+
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
+    // Follow-up prompt for custom uikit package name
+    if (uikit === 'custom') {
+      const { customPackage } = await prompt<{ customPackage: string }>([
+        {
+          name: 'customPackage',
+          type: 'input' as const,
+          message: 'Enter npm package name:',
+        },
+      ]);
+      uikit = customPackage;
+    }
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
+
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
+    const resolvedUikit = normalizeUikit(uikit || 'shadcn');
+
+    // Validate custom uikit package against npm registry
+    if (isCustomUikit(resolvedUikit)) {
+      logger.info(`Verifying package '${resolvedUikit}'...`);
+      const result = await validateNpmPackage(resolvedUikit);
+      if (!result.exists) {
+        throw new Error(result.error || 'Package validation failed');
+      }
+      if (result.warning) {
+        logger.warn(result.warning);
+      }
+    }
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
 
     logger.newline();
     logger.info(`Creating project '${args.projectName}'...`);
     logger.newline();
+
+    // Resolve local packages when --local or HAI3_USE_LOCAL
+    const useLocal = args.local ?? (process.env.HAI3_USE_LOCAL === '1' || process.env.HAI3_USE_LOCAL === 'true');
+    let monorepoRoot: string | null = null;
+    if (useLocal) {
+      monorepoRoot = await findMonorepoRoot(getTemplatesDir());
+      if (!monorepoRoot) {
+        logger.warn(
+          'Local packages requested but HAI3 monorepo root not found. Set HAI3_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
+        );
+      } else {
+        logger.info('Using local @hai3 packages from monorepo (file:).');
+      }
+    }
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
     // Generate project files (async - reads from templates)
     const files = await generateProject({
       projectName: args.projectName,
       studio: studio!,
-      uikit: uikit || 'hai3',
+      uikit: resolvedUikit,
       packageManager,
       layer,
+      useLocalPackages: Boolean(monorepoRoot),
+      monorepoRoot: monorepoRoot ?? undefined,
+      projectPath,
     });
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
 
@@ -296,6 +373,17 @@ export const createCommand: CommandDefinition<
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-write-files
+
+    // Display message based on uikit selection
+    if (isCustomUikit(resolvedUikit)) {
+      logger.newline();
+      logger.info('Library themes configured. Run `npm run dev` to see the Studio theme selector.');
+      logger.log('Demo screenset excluded — create your own with `hai3 screenset create`.');
+    } else if (resolvedUikit !== 'shadcn') {
+      logger.newline();
+      logger.warn('No UI components included.');
+      logger.log('Create your own screenset with `hai3 screenset create`.');
+    }
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
     // Run ai sync to generate IDE config files
@@ -325,10 +413,16 @@ export const createCommand: CommandDefinition<
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
+    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
     return {
       projectPath,
       files: writtenFiles,
     };
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
+    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
   },
 };

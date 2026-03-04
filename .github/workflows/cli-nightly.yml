@@ -32,13 +32,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CLI package
-        run: npm run build --workspace=@hai3/cli
+      - name: Build all packages (topological order)
+        run: npm run build:packages
 
       - name: Run CLI nightly E2E
         run: npm run test:e2e:nightly --workspace=@hai3/cli
         env:
           CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/nightly
+          HAI3_USE_LOCAL: '1'
+          HAI3_MONOREPO_ROOT: ${{ github.workspace }}
 
       - name: Upload CLI E2E artifacts
         if: always()

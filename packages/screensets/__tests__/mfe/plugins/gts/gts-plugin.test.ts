@@ -161,14 +161,13 @@ describe('GTS Plugin', () => {
       expect(schema?.$id).toBe(`gts://${HAI3_SHARED_PROPERTY_THEME}`);
     });
 
-    it('theme schema constrains value to 5 enum strings', () => {
+    it('theme schema constrains value to non-empty string', () => {
       const schema = gtsPlugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
       expect(schema).toBeDefined();
-      const properties = schema?.properties as Record<string, { type?: string; enum?: string[] }>;
+      const properties = schema?.properties as Record<string, { type?: string; minLength?: number }>;
       expect(properties.value).toBeDefined();
       expect(properties.value.type).toBe('string');
-      expect(properties.value.enum).toHaveLength(5);
-      expect(properties.value.enum).toEqual(['default', 'light', 'dark', 'dracula', 'dracula-large']);
+      expect(properties.value.minLength).toBe(1);
     });
 
     it('theme schema uses allOf derivation from base', () => {
@@ -230,10 +229,9 @@ describe('GTS Plugin', () => {
       expect(result.errors).toEqual([]);
     });
 
-    it('invalid theme value fails validation using named instance pattern', () => {
-      // 'neon' is not in the theme enum
+    it('empty theme value fails validation using named instance pattern', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'neon' });
+      plugin.register({ id: ephemeralId, value: '' });
       const result = plugin.validateInstance(ephemeralId);
       expect(result.valid).toBe(false);
       expect(result.errors.length).toBeGreaterThan(0);
@@ -257,13 +255,11 @@ describe('GTS Plugin', () => {
     });
 
     it('re-registering same ephemeral ID overwrites previous named instance', () => {
-      // First call with invalid value
       const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'neon' });
+      plugin.register({ id: ephemeralId, value: '' });
       const firstResult = plugin.validateInstance(ephemeralId);
       expect(firstResult.valid).toBe(false);
 
-      // Second call overwrites with valid value
       plugin.register({ id: ephemeralId, value: 'light' });
       const secondResult = plugin.validateInstance(ephemeralId);
       expect(secondResult.valid).toBe(true);

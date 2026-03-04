@@ -98,7 +98,7 @@ try {
       'smoke-app',
       '--no-studio',
       '--uikit',
-      'hai3',
+      'shadcn',
       '--package-manager',
       packageManager,
     ],

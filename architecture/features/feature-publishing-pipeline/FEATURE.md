@@ -77,7 +77,7 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 - DECOMPOSITION: [feature #11 — Publishing Pipeline](../../DECOMPOSITION.md#211-publishing-pipeline)
 - DESIGN: [Layer Isolation principle](../../DESIGN.md#layer-isolation), [ESM-First constraint](../../DESIGN.md#esm-first-module-format)
-- OpenSpec: [`openspec/specs/publishing/spec.md`](../../../openspec/specs/publishing/spec.md)
+- PRD: [PRD.md](../../PRD.md) — section 5.16 (Publishing)
 - ADR: `cpt-hai3-adr-automated-layer-ordered-publishing`, `cpt-hai3-adr-esm-first-module-format`
 - Workflow source: [`.github/workflows/publish-packages.yml`](../../../.github/workflows/publish-packages.yml)
 
@@ -98,7 +98,7 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 3. [x] `p1` - CI/CD diffs `HEAD` against `github.event.before` (the pre-push commit SHA) — `inst-diff-head`
 4. [x] `p1` - IF `package.json` of the current directory appears in the diff AND the version value changed THEN the package is added to the candidate list with its `name`, `dir`, and `version` — `inst-detect-version-change`
 5. [x] `p1` - IF no candidates found THEN CI/CD logs "No packages with version changes to publish" and exits with status 0 — `inst-no-changes-exit`
-6. [x] `p1` - CI/CD sorts candidates by layer priority: L1 SDK packages (`state`, `screensets`, `api`, `i18n`, `uikit`) → L2 (`framework`) → L3 (`react`) → Studio → CLI — `inst-sort-by-layer`
+6. [x] `p1` - CI/CD sorts candidates by layer priority: L1 SDK packages (`state`, `screensets`, `api`, `i18n`) → L2 (`framework`) → L3 (`react`) → Studio → CLI — `inst-sort-by-layer`
 7. [x] `p1` - CI/CD runs `npm ci` to install dependencies — `inst-install-deps`
 8. [x] `p1` - CI/CD runs `npm run build:packages` to build all packages in layer order — `inst-build-packages`
 9. [x] `p1` - FOR EACH package in the sorted candidate list, CI/CD runs the publish sub-flow using `cpt-hai3-flow-publishing-pipeline-publish-single-package` — `inst-publish-each`
@@ -217,7 +217,7 @@ publish order. Lower numbers publish first.
 
 | Package `dir` | Sort key |
 |--------------|---------|
-| `state`, `screensets`, `api`, `i18n`, `uikit` | 1 (L1 SDK + standalone) |
+| `state`, `screensets`, `api`, `i18n` | 1 (L1 SDK) |
 | `framework` | 2 (L2) |
 | `react` | 3 (L3) |
 | `studio` | 4 (standalone, after react) |
@@ -402,7 +402,7 @@ publishes. Packages whose version already exists on NPM are silently skipped.
 ### Build Order vs. Publish Order
 
 The `npm run build:packages` root script builds in strict layer order
-(sdk → framework → react → uikit → studio → cli). The publish loop independently
+(sdk → framework → react → studio → cli). The publish loop independently
 re-sorts the detected candidates by the same layer priority. These two orderings are
 intentionally redundant: the build order ensures artifacts are up-to-date, while the publish
 sort order ensures consumers can always install a freshly published lower-layer package before

@@ -177,15 +177,17 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
   // @cpt-begin:cpt-hai3-algo-screenset-registry-domain-semantics:p1:inst-1
   private async handleScreenSwap(newExtensionId: string): Promise<void> {
     await this.callbacks.serializeOnDomain(this.domainId, async () => {
-      // Get current mounted extension in this domain (if any)
       const currentExtId = this.callbacks.getMountedExtension(this.domainId);
-      if (currentExtId && currentExtId !== newExtensionId) {
-        // Unmount current screen internally (no blank state visible)
+
+      if (currentExtId === newExtensionId) {
+        return;
+      }
+
+      if (currentExtId) {
         await this.callbacks.unmountExtension(currentExtId);
         this.containerProvider.releaseContainer(currentExtId);
       }
 
-      // Mount new screen -- handler obtains container from provider
       const container = this.containerProvider.getContainer(newExtensionId);
       await this.callbacks.mountExtension(newExtensionId, container);
     });

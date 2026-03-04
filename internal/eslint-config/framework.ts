@@ -7,7 +7,6 @@
  *
  * Framework package CANNOT import:
  * - @hai3/react (would create circular dependency)
- * - @hai3/uikit (UI layer - framework is headless)
  * - react, react-dom (framework is headless)
  */
 
@@ -28,10 +27,6 @@ export const frameworkConfig: ConfigArray = [
             {
               group: ['@hai3/react'],
               message: 'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
-            },
-            {
-              group: ['@hai3/uikit', '@hai3/uikit/*'],
-              message: 'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit. Framework is headless.',
             },
             {
               group: ['react', 'react-dom', 'react/*'],

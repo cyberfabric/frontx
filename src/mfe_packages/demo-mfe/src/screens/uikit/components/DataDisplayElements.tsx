@@ -5,17 +5,19 @@
  */
 
 import React from 'react';
+import { Separator } from '../../../components/ui/separator';
+import { DataTable } from '../../../components/ui/data-table/data-table';
+import type { ColumnDef } from '@tanstack/react-table';
 import {
-  Separator,
-  DataTable,
-  type ColumnDef,
   Table,
   TableHeader,
   TableBody,
   TableRow,
   TableHead,
   TableCell,
-  Badge,
+} from '../../../components/ui/table';
+import { Badge } from '../../../components/ui/badge';
+import {
   TypographyH1,
   TypographyH2,
   TypographyH3,
@@ -27,13 +29,15 @@ import {
   TypographyLarge,
   TypographySmall,
   TypographyMuted,
+} from '../../../components/ui/typography';
+import {
   Tooltip,
   TooltipProvider,
   TooltipTrigger,
   TooltipContent,
-  Button,
-  ButtonVariant,
-} from '@hai3/uikit';
+} from '../../../components/ui/tooltip';
+import { Button } from '../../../components/ui/button';
+import { ButtonVariant } from '../../../components/types';
 
 interface DataDisplayElementsProps {
   t: (key: string) => string;

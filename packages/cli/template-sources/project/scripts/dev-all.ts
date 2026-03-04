@@ -119,9 +119,10 @@ function buildCommands(mfes: MfeInfo[], packageManager: PackageManager): string[
   // Add main app
   commands.push(getMainAppCommand(packageManager));
 
-  // Add each MFE
+  // MFEs use "build && preview" because @originjs/vite-plugin-federation
+  // only generates remoteEntry.js at build time, not in dev mode.
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && ${runScriptCommand(packageManager, 'dev')}`);
+    commands.push(`cd src/mfe_packages/${mfe.name} && ${runScriptCommand(packageManager, 'build && npm run preview')}`);
   }
 
   return commands;

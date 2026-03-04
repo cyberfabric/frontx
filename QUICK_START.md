@@ -1,9 +1,9 @@
-# HAI3 UI-Core Quick Start Guide
+# HAI3 Quick Start Guide
 
 > **TARGET AUDIENCE:** Humans
 > **PURPOSE:** Quick start guide for developers
 
-This guide will help you get started with HAI3 UI-Core development.
+This guide will help you get started with HAI3 development.
 
 ## Installation
 
@@ -27,25 +27,23 @@ This guide will help you get started with HAI3 UI-Core development.
 
 ## Project Structure Overview
 
-```
+```text
 packages/                           # Workspace packages
-├── events/                         # SDK L1: Event bus and actions
-├── store/                          # SDK L1: Redux store primitives
-├── layout/                         # SDK L1: Layout domain slices
+├── state/                          # SDK L1: Event bus and state primitives
+├── screensets/                     # SDK L1: Screenset and MFE contracts
 ├── api/                            # SDK L1: API services and protocols
 ├── i18n/                           # SDK L1: Internationalization
 ├── framework/                      # L2: Plugin system and registries
 ├── react/                          # L3: React bindings and hooks
-├── uikit/                          # React component library
 ├── studio/                         # Development overlay (dev only)
 └── cli/                            # CLI tool for project scaffolding
 
 src/
-├── screensets/                     # Screensets (vertical slices)
-│   ├── demo/                       # Demo screenset
-│   └── _blank/                     # Blank screenset template
-├── themes/                         # Theme tokens and registries
-└── uikit/                          # App-level UIKit registration
+├── app/                            # Host application shell
+│   ├── components/ui/              # App-owned UI primitives
+│   ├── layout/                     # Layout components
+│   └── themes/                     # Theme tokens and registries
+└── mfe_packages/                   # Demo and blank MFE packages
 ```
 
 ## Creating Your First Screen
@@ -150,8 +148,6 @@ const MyComponent = () => {
 
 HAI3 uses event-driven architecture. Prefer action creators that emit events over direct dispatch.
 
-**Note:** For backward compatibility, `@hai3/uicore` re-exports from `@hai3/react` but is deprecated.
-
 ## Styling with Tailwind
 
 HAI3 uses Tailwind CSS with custom theme tokens:
@@ -172,11 +168,11 @@ HAI3 uses Tailwind CSS with custom theme tokens:
 - `muted` - Muted color
 - `border` - Border color
 
-## Adding a New UIKit Component
+## Adding a New UI Component
 
 1. **Create component file**
    ```bash
-   touch src/uikit/Button.tsx
+   touch src/app/components/ui/button.tsx
    ```
 
 2. **Implement component**
@@ -213,10 +209,9 @@ HAI3 uses Tailwind CSS with custom theme tokens:
    };
    ```
 
-3. **Export from uikit**
+3. **Import it where needed**
    ```typescript
-   // src/uikit/index.ts
-   export { Button, type ButtonProps } from './Button';
+   import { Button } from '@/components/ui/button';
    ```
 
 ## Creating a Screenset
@@ -240,7 +235,7 @@ my-screenset/
 │       ├── HomeScreen.tsx
 │       └── i18n/         # Per-screen translations
 ├── i18n/                 # Screenset-level translations
-├── uikit/                # Icons (optional)
+├── components/ui/        # Local UI primitives (optional)
 └── myScreensetScreenset.tsx  # Self-registering config
 ```
 
@@ -253,9 +248,9 @@ Screensets auto-register via Vite glob pattern - no manual import needed.
    - Explicit function return types
    - Proper generics
 
-2. **Use UIKit components**
+2. **Use local UI components**
    - Don't create custom components inline
-   - Extract reusable logic to UIKit
+   - Extract reusable logic to `components/ui`
 
 3. **Follow Redux patterns**
    - Actions for all state changes
@@ -295,7 +290,7 @@ npm run clean:build      # Clean + build from scratch
 
 - Read [AI Guidelines](./.ai/GUIDELINES.md) for AI coding rules and patterns
 - Review [PRD.md](./architecture/PRD.md) for project philosophy
-- Explore the existing components in `src/uikit/layout/`
+- Explore the existing components in `src/app/components/ui/`
 - Build your first screen in `src/screensets/my-screenset/`
 
 ## Getting Help

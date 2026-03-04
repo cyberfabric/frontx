@@ -2,36 +2,35 @@
 # hai3:new-component - Add New UI Component
 
 ## AI WORKFLOW (REQUIRED)
-1) Check if @hai3/uikit has equivalent component first.
+1) Check for existing equivalent in project (e.g. components/ui/) and configured UI library first.
 2) Gather requirements from user.
-3) Determine type: screenset composite (default) | screenset base (rare).
-4) Implement.
+3) Implement.
 
-## CHECK GLOBAL UIKIT FIRST
-- REQUIRED: Before creating screenset component, verify @hai3/uikit lacks equivalent.
-- REQUIRED: Import from @hai3/uikit if component exists there.
+## CHECK EXISTING COMPONENTS FIRST
+- REQUIRED: Read `hai3.config.json` to find the `uikit` value.
+- If uikit is a third-party package (not `shadcn` or `none`): read its exports from `node_modules/<package>/` to check for existing components.
+- REQUIRED: Before creating a new component, scan the project AND the configured UI library for existing equivalents.
+- REQUIRED: Reuse existing components if equivalent exists.
 
 ## GATHER REQUIREMENTS
 Ask user for:
 - Component name (e.g., "DataTable", "ColorPicker").
-- Component type: screenset composite (default) | screenset base (rare).
 - Component description and props.
-- If screenset base: justification why composite is insufficient.
 
 ## IF SCREENSET COMPONENT
 
 ### STEP 0: Determine Subfolder
-- uikit/composite/: Screenset-specific composites (theme tokens only).
-- uikit/base/: Rare primitives needing inline styles (needs strong justification).
+- components/ui/: Base UI primitives (shadcn components or custom).
+- screens/{screen}/components/: Screen-specific components.
+- components/: Shared composites used across screens.
 
 ### STEP 1: Implementation
 
 #### 1.1 Create Component
-File: src/screensets/{screenset}/uikit/{base|composite}/{ComponentName}.tsx
-- composite/: Use theme tokens only (no inline styles).
-- base/: May use inline styles (rare, needs justification).
-- Must be reusable within the screenset.
-- NO @hai3/uicore imports (except types).
+File: src/components/ui/{ComponentName}.tsx (base primitives)
+  or: src/screens/{screen}/components/{ComponentName}.tsx (screen-specific)
+  or: src/components/{ComponentName}.tsx (shared composites)
+- Must be reusable within the MFE.
 - NO Redux or state management.
 - Accept value/onChange pattern for state.
 
@@ -43,8 +42,7 @@ Run: npm run arch:check && npm run dev
 Test component in UI.
 
 ## RULES
-- REQUIRED: Check @hai3/uikit first; screenset uikit only if missing.
-- REQUIRED: Screenset base components need strong justification.
+- REQUIRED: Check existing project UI components first; create new only if missing.
 - FORBIDDEN: Redux, business logic, side effects in components.
-- FORBIDDEN: Inline styles outside uikit/base/.
+- FORBIDDEN: Inline styles outside components/ui/.
 - REQUIRED: Accept value/onChange pattern for state.

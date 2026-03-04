@@ -310,10 +310,6 @@ export type {
   SseMockConfig,
   SseMockEvent,
 
-  // Theme types
-  ThemeApplyFn,
-  UikitTheme,
-
   // I18n
   I18nConfig,
   TranslationLoader,

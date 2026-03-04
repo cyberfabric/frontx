@@ -1,6 +1,8 @@
+// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-project-utils
 import fs from 'fs-extra';
 import path from 'path';
-import type { Hai3Config } from '../core/types.js';
+import type { Hai3Config, ConfigLoadResult } from '../core/types.js';
+import { isCustomUikit, isValidPackageName, normalizeUikit } from './validation.js';
 
 /**
  * Config file name
@@ -53,19 +55,63 @@ export async function findProjectRoot(
   return null;
 }
 
+// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-2
+// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-7
+async function parseAndValidateConfig(configPath: string): Promise<Hai3Config> {
+  const content = await fs.readFile(configPath, 'utf-8');
+  let config: Hai3Config;
+  try {
+    config = JSON.parse(content) as Hai3Config;
+  } catch (err) {
+    throw new Error(`Invalid JSON in ${CONFIG_FILE}: ${(err as Error).message}`);
+  }
+  if (config.uikit !== undefined && (typeof config.uikit !== 'string' || config.uikit === '')) {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: expected a non-empty string ("shadcn", "none", or an npm package name), got ${JSON.stringify(config.uikit)}.`
+    );
+  }
+  if (typeof config.uikit === 'string') {
+    config.uikit = normalizeUikit(config.uikit);
+  }
+  if (typeof config.uikit === 'string' && isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: "${config.uikit}" is not a valid npm package name.`
+    );
+  }
+  return config;
+}
+// @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-7
+// @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-2
+
 /**
- * Load HAI3 config from project root
- * Returns null if config file doesn't exist
+ * Load HAI3 config from project root.
+ * Returns a discriminated union — callers handle every outcome explicitly.
  */
+// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1
+// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-uikit-resolution-impl:p1
 export async function loadConfig(
   projectRoot: string
-): Promise<Hai3Config | null> {
+): Promise<ConfigLoadResult> {
+  // @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-1
   const configPath = path.join(projectRoot, CONFIG_FILE);
+  // @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-1
   if (!(await fs.pathExists(configPath))) {
-    return null;
+    return {
+      ok: false,
+      error: 'not_found',
+      message: `${CONFIG_FILE} not found in ${projectRoot}. Run this command from a HAI3 project root created with \`hai3 create\`.`,
+    };
   }
-  const content = await fs.readFile(configPath, 'utf-8');
-  return JSON.parse(content) as Hai3Config;
+  try {
+    const config = await parseAndValidateConfig(configPath);
+    return { ok: true, config };
+  } catch (err) {
+    return {
+      ok: false,
+      error: 'invalid',
+      message: (err as Error).message,
+    };
+  }
 }
 
 /**
@@ -103,3 +149,63 @@ export async function screensetExists(
   const screensetPath = path.join(getScreensetsDir(projectRoot), screensetId);
   return fs.pathExists(screensetPath);
 }
+
+/**
+ * Find HAI3 monorepo root by walking up from a given path.
+ * A directory is the monorepo root if it has packages/ and a root package.json
+ * with workspaces that include "packages/*".
+ * Use when the CLI runs from a linked copy (npm link) so generated projects
+ * can reference local packages via file:.
+ */
+export async function findMonorepoRoot(fromPath: string): Promise<string | null> {
+  const envRoot = process.env.HAI3_MONOREPO_ROOT;
+  if (envRoot && (await fs.pathExists(path.join(envRoot, 'packages', 'react', 'package.json')))) {
+    return path.resolve(envRoot);
+  }
+
+  let currentDir = path.resolve(fromPath);
+  const { root } = path.parse(currentDir);
+
+  while (currentDir !== root) {
+    const pkgPath = path.join(currentDir, 'package.json');
+    const reactPkgPath = path.join(currentDir, 'packages', 'react', 'package.json');
+    if ((await fs.pathExists(pkgPath)) && (await fs.pathExists(reactPkgPath))) {
+      try {
+        const pkg = await fs.readJson(pkgPath);
+        const rawWorkspaces = pkg.workspaces;
+        const workspaces = Array.isArray(rawWorkspaces)
+          ? rawWorkspaces.filter((workspace): workspace is string => typeof workspace === 'string')
+          : [];
+        if (workspaces.some((workspace) => workspace.startsWith('packages/'))) {
+          return currentDir;
+        }
+      } catch {
+        // ignore
+      }
+    }
+    currentDir = path.dirname(currentDir);
+  }
+
+  return null;
+}
+
+/**
+ * Resolve a @hai3 package name to a file: URL path relative to projectPath.
+ * e.g. '@hai3/react' with monorepoRoot /repo and projectPath /repo/app
+ * returns 'file:../packages/react'.
+ */
+export function getLocalPackageRef(
+  packageName: string,
+  monorepoRoot: string,
+  projectPath: string
+): string {
+  if (!packageName.startsWith('@hai3/')) {
+    return packageName;
+  }
+  const subPackage = packageName.slice('@hai3/'.length);
+  const packageDir = path.join(monorepoRoot, 'packages', subPackage);
+  const relativePath = path.relative(projectPath, packageDir);
+  const normalized = relativePath.split(path.sep).join('/');
+  return `file:${normalized}`;
+}
+// @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-project-utils

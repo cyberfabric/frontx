@@ -13,7 +13,6 @@ export default defineConfig({
         react: { singleton: false, requiredVersion: '^19.0.0' },
         'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
         tailwindcss: { singleton: false },
-        '@hai3/uikit': { singleton: false },
       },
     }),
   ],
@@ -82,11 +81,6 @@ export default defineConfig({
 
             // All other node_modules go to vendor chunk
             return 'vendor';
-          }
-
-          // Split UI Kit components into separate chunk
-          if (id.includes('@hai3/uikit')) {
-            return 'uikit';
           }
 
           // Split framework and react packages into separate chunk

@@ -20,13 +20,13 @@ REQUIRED: Must pass with zero errors.
 
 ## STEP 3: Check Common Violations
 - Direct slice dispatch (use event-driven actions instead).
-- Inline styles outside base uikit folders (uikit/base/ only).
+- Inline styles outside components/ui/ (base primitives only).
 - Import violations (package internals, circular dependencies).
 - String literal IDs (must use constants or enums).
 - Inline component definitions in *Screen.tsx files.
 - Inline data arrays (must use API services).
-- @hai3/uicore imports in screensets/*/uikit/ folders.
-- Screenset uikit component when global @hai3/uikit has equivalent.
+- New dependency on removed packages (use local UI per MFE).
+- Duplicate component when equivalent exists in project's UI components (components/ui/).
 
 ## STEP 4: Verify Event-Driven Flow
 - Actions emit events (not dispatch slices).
@@ -36,7 +36,7 @@ REQUIRED: Must pass with zero errors.
 ## STEP 5: Test via Chrome DevTools MCP
 STOP: If MCP WebSocket is closed, fix connection first.
 - Exercise all affected flows and screens.
-- Verify UI uses @hai3/uikit and theme tokens.
+- Verify UI uses project's UI components and theme tokens.
 - Verify event-driven behavior (no direct slice dispatch).
 - Check for console errors or missing registrations.
 

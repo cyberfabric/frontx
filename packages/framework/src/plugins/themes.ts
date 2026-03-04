@@ -11,21 +11,20 @@
 
 import { eventBus } from '@hai3/state';
 import { HAI3_SHARED_PROPERTY_THEME } from '@hai3/screensets';
-import type { HAI3Plugin, ChangeThemePayload, ThemesConfig } from '../types';
+import type { HAI3Plugin, ChangeThemePayload, ThemePropagationFailedPayload } from '../types';
 import { createThemeRegistry } from '../registries/themeRegistry';
 
 // Define theme events for module augmentation
 declare module '@hai3/state' {
   interface EventPayloadMap {
     'theme/changed': ChangeThemePayload;
+    'theme/propagation/failed': ThemePropagationFailedPayload;
   }
 }
 
 /**
  * Change theme action.
  * Emits 'theme/changed' event to trigger theme application.
- *
- * @param payload - The theme change payload
  */
 // @cpt-begin:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-1
 function changeTheme(payload: ChangeThemePayload): void {
@@ -36,24 +35,20 @@ function changeTheme(payload: ChangeThemePayload): void {
 /**
  * Themes plugin factory.
  *
- * @param config - Optional themes configuration
  * @returns Themes plugin
  *
  * @example
  * ```typescript
- * import { applyTheme } from '@hai3/uikit';
- *
  * const app = createHAI3()
  *   .use(screensets())
- *   .use(themes({ applyFn: applyTheme }))
+ *   .use(themes())
  *   .build();
  *
  * app.actions.changeTheme({ themeId: 'dark' });
  * ```
  */
-export function themes(config?: ThemesConfig): HAI3Plugin {
-  // Create a new theme registry instance for this plugin
-  const themeRegistry = createThemeRegistry(config);
+export function themes(): HAI3Plugin {
+  const themeRegistry = createThemeRegistry();
 
   return {
     name: 'themes',
@@ -75,9 +70,14 @@ export function themes(config?: ThemesConfig): HAI3Plugin {
       eventBus.on('theme/changed', (payload: ChangeThemePayload) => {
         themeRegistry.apply(payload.themeId);
         try {
+          const themeConfig = themeRegistry.get(payload.themeId);
+          if (themeConfig) {
+            app.screensetsRegistry?.setTheme(themeConfig.variables);
+          }
           app.screensetsRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, payload.themeId);
         } catch (error) {
           console.error('[HAI3] Failed to propagate theme to MFE domains', error);
+          eventBus.emit('theme/propagation/failed', { themeId: payload.themeId, error });
         }
       });
 
@@ -85,6 +85,7 @@ export function themes(config?: ThemesConfig): HAI3Plugin {
       const themes = themeRegistry.getAll();
       if (themes.length > 0) {
         themeRegistry.apply(themes[0].id);
+        app.screensetsRegistry?.setTheme(themes[0].variables);
       }
     },
     // @cpt-end:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-2

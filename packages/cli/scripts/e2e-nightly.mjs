@@ -86,7 +86,7 @@ try {
     name: 'create-hai3-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'hai3', '--package-manager', 'npm'],
+    args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'shadcn', '--package-manager', 'npm'],
   });
   const appPackageJson = harness.readJson(path.join(appRoot, 'package.json'));
   harness.assert(
@@ -110,7 +110,7 @@ try {
     name: 'create-pnpm-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'nightly-pnpm', '--no-studio', '--uikit', 'hai3', '--package-manager', 'pnpm'],
+    args: [CLI_ENTRY, 'create', 'nightly-pnpm', '--no-studio', '--uikit', 'shadcn', '--package-manager', 'pnpm'],
   });
   const pnpmPackageJson = harness.readJson(path.join(pnpmRoot, 'package.json'));
   harness.assert(
@@ -138,7 +138,7 @@ try {
     name: 'create-yarn-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'nightly-yarn', '--no-studio', '--uikit', 'hai3', '--package-manager', 'yarn'],
+    args: [CLI_ENTRY, 'create', 'nightly-yarn', '--no-studio', '--uikit', 'shadcn', '--package-manager', 'yarn'],
   });
   const yarnPackageJson = harness.readJson(path.join(yarnRoot, 'package.json'));
   harness.assert(
@@ -201,11 +201,6 @@ try {
     command: 'node',
     args: [CLI_ENTRY, 'create', 'nightly-custom', '--no-studio', '--uikit', 'none', '--package-manager', 'npm'],
   });
-  const customPackageJson = harness.readJson(path.join(customRoot, 'package.json'));
-  harness.assert(
-    !('@hai3/uikit' in (customPackageJson.dependencies || {})),
-    'Custom app should not depend on @hai3/uikit'
-  );
   maybeInstallAndCheck(customRoot, 'npm', true);
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
 

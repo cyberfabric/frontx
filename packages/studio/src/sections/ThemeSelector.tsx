@@ -3,14 +3,14 @@
 import React from 'react';
 import { upperFirst } from 'lodash';
 import { useTheme, useTranslation } from '@hai3/react';
-import { ButtonVariant } from '@hai3/uikit';
+import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownButton,
-} from '@hai3/uikit';
+} from '../uikit/base/dropdown-menu';
+import { DropdownButton } from '../uikit/composite/DropdownButton';
 import { useStudioContext } from '../StudioProvider';
 
 /**

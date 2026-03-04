@@ -2,13 +2,14 @@
 /**
  * Layout Generator from Template
  *
- * Generates layout components in the user's project from HAI3 UIKit templates.
+ * Generates layout components in the user's project from HAI3 layout templates.
  */
 
 import path from 'path';
 import fs from 'fs-extra';
 import type { GeneratedFile } from '../core/types.js';
 import { getTemplatesDir } from '../core/templates.js';
+import { loadConfig } from '../utils/project.js';
 
 /**
  * Input for layout generation from template
@@ -52,7 +53,7 @@ async function readTemplateFiles(
 
 /**
  * Generate layout files from template
- * Copies the HAI3 UIKit layout templates
+ * Copies the HAI3 layout templates
  */
 // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
 export async function copyLayoutTemplates(
@@ -60,7 +61,11 @@ export async function copyLayoutTemplates(
 ): Promise<GeneratedFile[]> {
   const { projectRoot, force = false } = input;
   const templatesDir = getTemplatesDir();
-  const templatePath = path.join(templatesDir, 'layout', 'hai3-uikit');
+
+  const configResult = await loadConfig(projectRoot);
+  const uikit = configResult.ok ? (configResult.config.uikit ?? 'shadcn') : 'shadcn';
+  const layoutVariant = uikit === 'shadcn' ? 'shadcn' : 'custom-uikit';
+  const templatePath = path.join(templatesDir, 'layout', layoutVariant);
 
   // Check template exists
   if (!(await fs.pathExists(templatePath))) {

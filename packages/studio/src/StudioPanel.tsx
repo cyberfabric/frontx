@@ -2,8 +2,9 @@
 // @cpt-algo:cpt-hai3-algo-studio-devtools-portal-management:p1
 import React from 'react';
 import { useTranslation } from '@hai3/react';
-import { Card } from '@hai3/uikit';
-import { Button, ButtonVariant, ButtonSize } from '@hai3/uikit';
+import { Card } from './uikit/base/card';
+import { Button } from './uikit/base/button';
+import { ButtonVariant, ButtonSize } from './uikit/types';
 import { useDraggable } from './hooks/useDraggable';
 import { useResizable } from './hooks/useResizable';
 import { useStudioContext } from './StudioProvider';

@@ -72,7 +72,7 @@ Chosen option: "Four-layer architecture with strict downward-only dependency dir
 
 ## More Information
 
-- Layer definitions: L1 SDK (state, screensets, api, i18n) — zero `@hai3/*` dependencies; L2 Framework — composes all L1; L3 React — depends only on L2; Standalone — uikit, studio, cli outside the hierarchy
+- Layer definitions: L1 SDK (state, screensets, api, i18n) — zero `@hai3/*` dependencies; L2 Framework — composes all L1; L3 React — depends only on L2; Standalone — studio, cli outside the hierarchy
 - Related: ADR 0005 (ESM-First Module Format) governs output format for all layers
 
 ## Traceability

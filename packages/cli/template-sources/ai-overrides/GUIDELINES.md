@@ -35,6 +35,17 @@
 - No any, no unknown in type definitions, no "as unknown as" casts.
 - REQUIRED: Use lodash for non-trivial object and array operations.
 
+## UI KIT DISCOVERY (REQUIRED)
+- REQUIRED: Read `hai3.config.json` at project root to find `uikit` value.
+- If `uikit` is `"shadcn"`: use local `components/ui/` (shadcn components already scaffolded).
+- If `uikit` is `"none"`: no UI library; create all components locally.
+- If `uikit` is any other value (e.g., `"@company/ui"`, `"@mui/material"`): it is a third-party npm UI library.
+  - REQUIRED: Read the package's exports from `node_modules/<package>/` to discover available components.
+  - REQUIRED: Import and use the library's components directly in screens, composites, and layout.
+  - REQUIRED: Only create local components for what the library does not provide.
+  - REQUIRED: Follow the library's documented patterns and component APIs.
+- REQUIRED: Before creating ANY new UI component, verify the configured UI kit does not already provide it.
+
 ## IMPORT RULES
 - Inside same package: relative paths.
 - Cross-branch in app: @/ alias.

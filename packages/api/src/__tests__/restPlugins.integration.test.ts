@@ -2,7 +2,7 @@
  * Task 70: Integration Test - Protocol-Specific REST Plugin Chain
  *
  * Tests for REST protocol plugin chain execution.
- * Validates AC-1, AC-2, AC-3, AC-5 from the OpenSpec.
+ * Validates API Communication feature acceptance criteria for REST plugins.
  */
 
 import { RestProtocol } from '../protocols/RestProtocol';

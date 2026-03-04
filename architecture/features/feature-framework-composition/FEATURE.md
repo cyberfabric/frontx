@@ -88,9 +88,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — entry 2.6
-- OpenSpec: [app-configuration/spec.md](../../../openspec/specs/app-configuration/spec.md)
-- OpenSpec: [shared-property-broadcast/spec.md](../../../openspec/specs/shared-property-broadcast/spec.md)
-- OpenSpec: [shared-property-validation/spec.md](../../../openspec/specs/shared-property-validation/spec.md)
+- PRD: [PRD.md](../../PRD.md) — sections 5.2 (App Configuration), 5.10 (Shared Property Broadcast), 5.11 (Shared Property Validation), 5.18 (Microfrontend Plugin)
 - Design component: `cpt-hai3-component-framework`
 - Sequences: `cpt-hai3-seq-app-bootstrap`, `cpt-hai3-seq-shared-property-broadcast`
 - ADRs: `cpt-hai3-adr-plugin-based-framework-composition`, `cpt-hai3-adr-four-layer-sdk-architecture`, `cpt-hai3-adr-global-shared-property-broadcast`

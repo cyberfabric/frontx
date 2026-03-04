@@ -80,8 +80,6 @@ Success criteria: A host application can register a domain and extension, execut
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — section 2.2
-- OpenSpec screensets: [openspec/specs/screensets/spec.md](../../../openspec/specs/screensets/spec.md)
-- OpenSpec microfrontends: [openspec/specs/microfrontends/spec.md](../../../openspec/specs/microfrontends/spec.md)
 - Component: `cpt-hai3-component-screensets`
 - Design principle: `cpt-hai3-principle-self-registering-registries`
 - Design constraint: `cpt-hai3-constraint-no-react-below-l3`
@@ -377,7 +375,7 @@ Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-screenset-registry-type-contracts`
 
-All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and OpenSpec:
+All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and architecture artifacts:
 
 - `MfeEntry`: `id`, `requiredProperties`, `actions`, `domainActions`, optional `optionalProperties`
 - `MfeEntryMF` extends `MfeEntry`: adds `manifest` (`string | MfManifest`), `exposedModule`

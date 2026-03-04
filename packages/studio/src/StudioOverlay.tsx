@@ -1,10 +1,11 @@
 // @cpt-flow:cpt-hai3-flow-studio-devtools-conditional-load:p1
 // @cpt-dod:cpt-hai3-dod-studio-devtools-conditional-loading:p1
-import React from 'react';
+import React, { useEffect } from 'react';
 import { StudioProvider, useStudioContext } from './StudioProvider';
 import { StudioPanel } from './StudioPanel';
 import { useKeyboardShortcut } from './hooks/useKeyboardShortcut';
 import { CollapsedButton } from './CollapsedButton';
+import { injectStudioStyles } from './styles/studioStyles';
 
 // @cpt-begin:cpt-hai3-flow-studio-devtools-conditional-load:p1:inst-1
 // @cpt-begin:cpt-hai3-dod-studio-devtools-conditional-loading:p1:inst-1
@@ -23,6 +24,10 @@ const StudioContent: React.FC = () => {
 
 // No props - services register their own mocks
 export const StudioOverlay: React.FC = () => {
+  useEffect(() => {
+    return injectStudioStyles();
+  }, []);
+
   return (
     <StudioProvider>
       <StudioContent />

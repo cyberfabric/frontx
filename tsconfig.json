@@ -19,15 +19,13 @@
       "@hai3/framework/*": ["./packages/framework/src/*"],
       "@hai3/react": ["./packages/react/src/index.ts"],
       "@hai3/react/*": ["./packages/react/src/*"],
-      "@hai3/uikit": ["./packages/uikit/src/index.ts"],
-      "@hai3/uikit/*": ["./packages/uikit/src/*"],
       "@hai3/studio": ["./packages/studio/src/index.ts"],
       "@hai3/studio/*": ["./packages/studio/src/*"],
       "@hai3/cli": ["./packages/cli/src/index.ts"],
       "@hai3/cli/*": ["./packages/cli/src/*"]
     }
   },
-  "include": ["src", "packages/*/src"],
+  "include": ["src", "packages/*/src", "packages/cli/template-sources/layout-custom-uikit"],
   "exclude": ["packages/*/dist", "packages/*/__tests__", "packages/*/src/__tests__", "**/__tests__", "src/mfe_packages"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

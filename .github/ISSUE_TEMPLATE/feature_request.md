@@ -31,7 +31,6 @@ Which HAI3 package(s) would this impact?
 - [ ] @hai3/i18n
 - [ ] @hai3/state
 - [ ] @hai3/studio
-- [ ] @hai3/uikit
 
 ## Alternative Solutions
 Have you considered any alternative approaches or workarounds?

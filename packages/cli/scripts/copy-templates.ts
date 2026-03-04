@@ -16,7 +16,6 @@
  * - Files without markers are monorepo-only (not copied)
  * - hai3dev-* commands are monorepo-only (not copied to standalone projects)
  * - Command adapters are GENERATED for all IDEs
- * - OpenSpec commands are copied from root .claude/commands/openspec/ to all IDE directories
  */
 // @cpt-algo:cpt-hai3-algo-cli-tooling-build-templates:p1
 // @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
@@ -186,133 +185,8 @@ Use \`.ai/${relativePath}\` as the single source of truth.
     windsurfCount++;
   }
 
-  // Copy openspec commands (actual content, not adapters)
-  // Source: .claude/commands/openspec/ (canonical location)
-  // Claude/Cursor: copy to openspec/ subfolder
-  // Windsurf: copy with flattened names (no subfolder support)
-  const openspecSrc = path.join(PROJECT_ROOT, '.claude', 'commands', 'openspec');
-  if (await fs.pathExists(openspecSrc)) {
-    const claudeOpenspecDir = path.join(claudeCommandsDir, 'openspec');
-    const cursorOpenspecDir = path.join(cursorCommandsDir, 'openspec');
-    await fs.ensureDir(claudeOpenspecDir);
-    await fs.ensureDir(cursorOpenspecDir);
-
-    const openspecFiles = await fs.readdir(openspecSrc);
-    for (const file of openspecFiles) {
-      if (!file.endsWith('.md')) continue;
-
-      const srcFilePath = path.join(openspecSrc, file);
-      const name = file.replace('.md', ''); // e.g., "apply"
-
-      // Claude: copy to openspec/apply.md
-      await fs.copy(srcFilePath, path.join(claudeOpenspecDir, file));
-      claudeCount++;
-
-      // Cursor: copy to openspec/apply.md
-      await fs.copy(srcFilePath, path.join(cursorOpenspecDir, file));
-      cursorCount++;
-
-      // Windsurf: copy to openspec-apply.md (flattened)
-      await fs.copy(srcFilePath, path.join(windsurfWorkflowsDir, `openspec-${name}.md`));
-      windsurfCount++;
-    }
-  }
-
   return { claude: claudeCount, cursor: cursorCount, windsurf: windsurfCount };
 }
-
-/**
- * Copy OpenSpec 1.1.1 skills from root project to CLI templates
- * Copies skill directories for Claude, Cursor, and Windsurf
- * Copies OPSX command files for GitHub Copilot
- * Source: .claude/skills/openspec-XX/, .cursor/skills/openspec-XX/, .windsurf/skills/openspec-XX/
- *         .github/copilot-commands/opsx-*.md
- *
- * @param templatesDir - Destination templates directory
- */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-openspec-skills
-async function copyOpenSpecSkills(
-  templatesDir: string
-): Promise<{ claude: number; cursor: number; windsurf: number; copilot: number }> {
-  const claudeSkillsDir = path.join(templatesDir, '.claude', 'skills');
-  const cursorSkillsDir = path.join(templatesDir, '.cursor', 'skills');
-  const windsurfSkillsDir = path.join(templatesDir, '.windsurf', 'skills');
-  const copilotCommandsDir = path.join(templatesDir, '.github', 'copilot-commands');
-
-  await fs.ensureDir(claudeSkillsDir);
-  await fs.ensureDir(cursorSkillsDir);
-  await fs.ensureDir(windsurfSkillsDir);
-  await fs.ensureDir(copilotCommandsDir);
-
-  let claudeCount = 0;
-  let cursorCount = 0;
-  let windsurfCount = 0;
-  let copilotCount = 0;
-
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-handle-missing-source-dirs
-  // Copy Claude skills
-  const claudeSrc = path.join(PROJECT_ROOT, '.claude', 'skills');
-  if (await fs.pathExists(claudeSrc)) {
-    const entries = await fs.readdir(claudeSrc, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
-        const srcPath = path.join(claudeSrc, entry.name);
-        const destPath = path.join(claudeSkillsDir, entry.name);
-        await fs.copy(srcPath, destPath);
-        claudeCount++;
-      }
-    }
-  }
-
-  // Copy Cursor skills
-  const cursorSrc = path.join(PROJECT_ROOT, '.cursor', 'skills');
-  if (await fs.pathExists(cursorSrc)) {
-    const entries = await fs.readdir(cursorSrc, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
-        const srcPath = path.join(cursorSrc, entry.name);
-        const destPath = path.join(cursorSkillsDir, entry.name);
-        await fs.copy(srcPath, destPath);
-        cursorCount++;
-      }
-    }
-  }
-
-  // Copy Windsurf skills
-  const windsurfSrc = path.join(PROJECT_ROOT, '.windsurf', 'skills');
-  if (await fs.pathExists(windsurfSrc)) {
-    const entries = await fs.readdir(windsurfSrc, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory() && entry.name.startsWith('openspec-')) {
-        const srcPath = path.join(windsurfSrc, entry.name);
-        const destPath = path.join(windsurfSkillsDir, entry.name);
-        await fs.copy(srcPath, destPath);
-        windsurfCount++;
-      }
-    }
-  }
-
-  // Copy GitHub Copilot OPSX commands
-  const copilotSrc = path.join(PROJECT_ROOT, '.github', 'copilot-commands');
-  if (await fs.pathExists(copilotSrc)) {
-    const entries = await fs.readdir(copilotSrc, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isFile() && entry.name.startsWith('opsx-') && entry.name.endsWith('.md')) {
-        const srcPath = path.join(copilotSrc, entry.name);
-        const destPath = path.join(copilotCommandsDir, entry.name);
-        await fs.copy(srcPath, destPath);
-        copilotCount++;
-      }
-    }
-  }
-
-  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-handle-missing-source-dirs
-
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-log-skill-counts
-  return { claude: claudeCount, cursor: cursorCount, windsurf: windsurfCount, copilot: copilotCount };
-  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-log-skill-counts
-}
-// @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-openspec-skills
 
 /**
  * Bundle commands from @hai3 packages into CLI templates
@@ -441,11 +315,13 @@ Use \`.ai/commands/${cmdFileName}\` as the single source of truth.
  */
 async function generateIdeRules(templatesDir: string): Promise<void> {
   // CLAUDE.md at project root
+  const guidelinesPointer = `REQUIRED: Read \`.ai/GUIDELINES.md\` before implementing any code changes. Follow its ROUTING section to find the correct target file.
+
+REQUIRED: When creating or modifying UI components, check the configured UI kit (\`hai3.config.json\` → \`uikit\`) and use its components. Read \`.ai/targets/UIKIT.md\` if it exists.`;
+
   const claudeMdContent = `# CLAUDE.md
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
-
-For routing to specific topics, see the ROUTING section in GUIDELINES.md.
+${guidelinesPointer}
 `;
   await fs.writeFile(path.join(templatesDir, 'CLAUDE.md'), claudeMdContent);
 
@@ -458,7 +334,7 @@ globs: ["**/*"]
 alwaysApply: true
 ---
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
+${guidelinesPointer}
 `;
   await fs.writeFile(path.join(cursorRulesDir, 'hai3.mdc'), cursorRuleContent);
 
@@ -469,7 +345,7 @@ Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development gui
 trigger: always_on
 ---
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
+${guidelinesPointer}
 `;
   await fs.writeFile(path.join(windsurfRulesDir, 'hai3.md'), windsurfRuleContent);
 
@@ -496,7 +372,7 @@ For detailed guidance, use these resources:
 2. **REQUIRED**: Event-driven architecture only (dispatch events, handle in actions)
 3. **FORBIDDEN**: Direct slice dispatch from UI components
 4. **FORBIDDEN**: Hardcoded colors or inline styles
-5. **REQUIRED**: Use \`@hai3/uikit\` components for all UI
+5. **REQUIRED**: Use the configured UI kit for all UI (check \`hai3.config.json\` \`uikit\` field)
 6. **REQUIRED**: Run \`npm run arch:check\` before committing
 
 ## Available Commands
@@ -705,13 +581,7 @@ async function copyTemplates() {
     const dest = path.join(TEMPLATES_DIR, dir);
 
     if (await fs.pathExists(src)) {
-      await fs.copy(src, dest, {
-        filter: (srcPath: string) => {
-          // Exclude generated files (they exist in standalone projects, not in templates)
-          if (srcPath.endsWith('tailwindColors.ts')) return false;
-          return true;
-        },
-      });
+      await fs.copy(src, dest);
       const fileCount = await countFiles(dest);
       console.log(`  ✓ ${dir}/ (${fileCount} files)`);
     } else {
@@ -719,15 +589,75 @@ async function copyTemplates() {
     }
   }
 
+  // Copy src/app/mfe/ from monorepo root (MfeScreenContainer, bootstrap, etc.)
+  // This is handled separately from manifest directories because standalone projects
+  // need the bootstrap overridden with standalone-specific versions
+  const mfeSrc = path.join(PROJECT_ROOT, 'src/app/mfe');
+  const mfeDest = path.join(TEMPLATES_DIR, 'src/app/mfe');
+  if (await fs.pathExists(mfeSrc)) {
+    await fs.copy(mfeSrc, mfeDest);
+    const mfeFileCount = await countFiles(mfeDest);
+    console.log(`  ✓ src/app/mfe/ (${mfeFileCount} files from monorepo)`);
+  }
+
+  // Overwrite MFE bootstrap with standalone version (no mfe_packages — new projects have no demo/blank MFEs)
+  const standaloneBootstrapSrc = path.join(CLI_ROOT, 'template-sources', 'standalone-mfe-bootstrap.ts');
+  const mfeBootstrapDest = path.join(TEMPLATES_DIR, 'src/app/mfe/bootstrap.ts');
+  if (await fs.pathExists(standaloneBootstrapSrc)) {
+    await fs.copy(standaloneBootstrapSrc, mfeBootstrapDest);
+    console.log('  ✓ src/app/mfe/bootstrap.ts (standalone template)');
+  }
+
+  // Demo bootstrap variant removed — all projects now use the same bootstrap.ts
+  // that reads from generated-mfe-manifests.ts (regenerated by screenset create
+  // and `npm run generate:mfe-manifests`). This avoids double-registration bugs.
+
+  // Copy MFE template from _blank-mfe (source only, no dist/ or node_modules/)
+  const mfeTemplateSrc = path.join(PROJECT_ROOT, 'src/mfe_packages/_blank-mfe');
+  const mfeTemplateDest = path.join(TEMPLATES_DIR, 'mfe-template');
+  if (await fs.pathExists(mfeTemplateSrc)) {
+    await fs.copy(mfeTemplateSrc, mfeTemplateDest, {
+      filter: (srcPath: string) => {
+        const rel = path.relative(mfeTemplateSrc, srcPath);
+        if (rel.startsWith('dist') || rel.startsWith('node_modules')) return false;
+        return true;
+      },
+    });
+    const fileCount = await countFiles(mfeTemplateDest);
+    console.log(`  ✓ mfe-template/ (${fileCount} files from _blank-mfe)`);
+  } else {
+    console.log('  ⚠ mfe-template/ (src/mfe_packages/_blank-mfe not found, skipping)');
+  }
+
+  // Copy MFE shared utilities
+  const mfeSharedSrc = path.join(PROJECT_ROOT, 'src/mfe_packages/shared');
+  const mfeSharedDest = path.join(TEMPLATES_DIR, 'mfe-shared');
+  if (await fs.pathExists(mfeSharedSrc)) {
+    await fs.copy(mfeSharedSrc, mfeSharedDest);
+    const fileCount = await countFiles(mfeSharedDest);
+    console.log(`  ✓ mfe-shared/ (${fileCount} files from mfe_packages/shared)`);
+  } else {
+    console.log('  ⚠ mfe-shared/ (src/mfe_packages/shared not found, skipping)');
+  }
+
   // Copy layout templates from monorepo source (single source of truth)
   // Source: /src/app/layout/ (monorepo's canonical layout files)
-  // Destination: templates/layout/hai3-uikit/ (CLI template with subdirectory structure)
+  // Destination: templates/layout/shadcn/ (CLI template with subdirectory structure)
   const layoutSrc = path.join(PROJECT_ROOT, 'src/app/layout');
-  const layoutDest = path.join(TEMPLATES_DIR, 'layout', 'hai3-uikit');
+  const layoutDest = path.join(TEMPLATES_DIR, 'layout', 'shadcn');
   if (await fs.pathExists(layoutSrc)) {
     await fs.copy(layoutSrc, layoutDest);
     const fileCount = await countFiles(layoutDest);
     console.log(`  ✓ layout/ templates (${fileCount} files from monorepo source)`);
+  }
+
+  // Copy custom-uikit layout templates from template-sources/layout-custom-uikit/
+  const customUikitLayoutSrc = path.join(CLI_ROOT, 'template-sources', 'layout-custom-uikit');
+  const customUikitLayoutDest = path.join(TEMPLATES_DIR, 'layout', 'custom-uikit');
+  if (await fs.pathExists(customUikitLayoutSrc)) {
+    await fs.copy(customUikitLayoutSrc, customUikitLayoutDest);
+    const fileCount = await countFiles(customUikitLayoutDest);
+    console.log(`  ✓ layout/custom-uikit/ (${fileCount} inline-styled layout files)`);
   }
 
   // ============================================
@@ -738,16 +668,16 @@ async function copyTemplates() {
   const standaloneSrcDir = path.join(presetsDir, 'src');
   if (await fs.pathExists(standaloneSrcDir)) {
     await fs.copy(standaloneSrcDir, path.join(TEMPLATES_DIR, 'src'), { overwrite: true });
-    const overrideCount = await countFiles(standaloneSrcDir);
-    console.log(`  ✓ src/ standalone overrides (${overrideCount} files)`);
+    const standaloneOverrideCount = await countFiles(standaloneSrcDir);
+    console.log(`  ✓ src/ standalone overrides (${standaloneOverrideCount} files)`);
   }
 
   // Override layout templates with standalone versions (MFE-specific code removed)
   const standaloneLayoutDir = path.join(presetsDir, 'src', 'app', 'layout');
   if (await fs.pathExists(standaloneLayoutDir)) {
-    await fs.copy(standaloneLayoutDir, path.join(TEMPLATES_DIR, 'layout', 'hai3-uikit'), { overwrite: true });
+    await fs.copy(standaloneLayoutDir, path.join(TEMPLATES_DIR, 'layout', 'shadcn'), { overwrite: true });
     const layoutOverrideCount = await countFiles(standaloneLayoutDir);
-    console.log(`  ✓ layout/ standalone overrides (${layoutOverrideCount} files)`);
+    console.log(`  ✓ layout/ standalone overrides (${layoutOverrideCount} files → shadcn)`);
   }
 
   // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-project-sources
@@ -854,13 +784,6 @@ async function copyTemplates() {
   // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-bundle-commands
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ide-adapters
-  // Copy OpenSpec 1.1.1 skills for all IDEs
-  const openspecSkillCounts = await copyOpenSpecSkills(TEMPLATES_DIR);
-  console.log(`  ✓ .claude/skills/ (${openspecSkillCounts.claude} OpenSpec skills)`);
-  console.log(`  ✓ .cursor/skills/ (${openspecSkillCounts.cursor} OpenSpec skills)`);
-  console.log(`  ✓ .windsurf/skills/ (${openspecSkillCounts.windsurf} OpenSpec skills)`);
-  console.log(`  ✓ .github/copilot-commands/ (${openspecSkillCounts.copilot} OPSX commands)`);
-
   // Generate IDE rules (CLAUDE.md, .cursor/rules/, .windsurf/rules/, .github/copilot-instructions.md)
   await generateIdeRules(TEMPLATES_DIR);
   console.log('  ✓ CLAUDE.md (pointer to .ai/GUIDELINES.md)');
@@ -915,6 +838,8 @@ async function copyTemplates() {
         app: 'GUIDELINES.md',
       },
     },
+    mfeTemplate: 'mfe-template',
+    mfeShared: 'mfe-shared',
     generatedAt: new Date().toISOString(),
   };
   await fs.writeJson(path.join(TEMPLATES_DIR, 'manifest.json'), outputManifest, {

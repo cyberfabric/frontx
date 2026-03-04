@@ -3,6 +3,7 @@
  * Generated at build time from tailwindcss/colors
  * DO NOT EDIT MANUALLY - run 'npm run generate:colors' to regenerate
  */
+// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
 
 export interface TailwindColors {
   inherit: string;

@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, useAppSelector } from '@hai3/react';
-import { Card, CardContent, CardFooter, Button, Skeleton } from '@hai3/uikit';
+import { Card, CardContent, CardFooter } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { fetchUser } from '../../actions/profileActions';
 import type { ApiUser } from '../../api/types';
@@ -28,7 +30,7 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
  * - No-data state (message + Load User button)
  * - Data state (full user profile display)
  *
- * Uses UIKit components and i18n for all text.
+ * Uses local UI components and i18n for all text.
  * State is backed by the MFE-local Redux store (via useAppSelector).
  * Data fetching is triggered via the flux actions/events/effects pattern.
  */
@@ -112,7 +114,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     return (
       <div ref={containerRef} className="p-8">
         <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
-        <p className="text-gray-600 mb-6">{t('loading')}</p>
+        <p className="text-muted-foreground mb-6">{t('loading')}</p>
         <Card>
           <CardContent className="space-y-4 p-6">
             {/* Avatar skeleton */}
@@ -156,10 +158,10 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     return (
       <div ref={containerRef} className="p-8">
         <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
-        <p className="text-gray-600 mb-6">{t('welcome')}</p>
+        <p className="text-muted-foreground mb-6">{t('welcome')}</p>
         <Card>
           <CardContent className="p-6">
-            <p className="text-gray-600 mb-4">{t('no_user_data')}</p>
+            <p className="text-muted-foreground mb-4">{t('no_user_data')}</p>
           </CardContent>
           <CardFooter className="p-6 pt-0">
             <Button onClick={fetchUser}>{t('load_user')}</Button>
@@ -175,7 +177,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   return (
     <div ref={containerRef} className="p-8">
       <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
-      <p className="text-gray-600 mb-6">{t('welcome')}</p>
+      <p className="text-muted-foreground mb-6">{t('welcome')}</p>
 
       <div className="max-w-2xl space-y-4">
         {/* Profile Card */}
@@ -203,27 +205,27 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
             {/* Labeled fields */}
             <dl className="grid gap-3">
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('role_label')}</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('role_label')}</dt>
                 <dd className="text-foreground">{userData.role}</dd>
               </div>
               {userData.extra?.department !== undefined && (
                 <div>
-                  <dt className="text-sm font-medium text-gray-500">{t('department_label')}</dt>
+                  <dt className="text-sm font-medium text-muted-foreground">{t('department_label')}</dt>
                   <dd className="text-foreground">{String(userData.extra.department)}</dd>
                 </div>
               )}
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('id_label')}</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('id_label')}</dt>
                 <dd className="text-foreground font-mono text-sm">{userData.id}</dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('created_label')}</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('created_label')}</dt>
                 <dd className="text-foreground text-sm">
                   {new Date(userData.createdAt).toLocaleString()}
                 </dd>
               </div>
               <div>
-                <dt className="text-sm font-medium text-gray-500">{t('last_updated_label')}</dt>
+                <dt className="text-sm font-medium text-muted-foreground">{t('last_updated_label')}</dt>
                 <dd className="text-foreground text-sm">
                   {new Date(userData.updatedAt).toLocaleString()}
                 </dd>
@@ -242,19 +244,19 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
             <dl className="grid gap-2">
               <div>
                 <dt className="font-medium">{t('domain_id')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('instance_id')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('current_theme')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
               </div>
               <div>
                 <dt className="font-medium">{t('current_language')}</dt>
-                <dd className="font-mono text-sm text-gray-600">{language}</dd>
+                <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
               </div>
             </dl>
           </CardContent>

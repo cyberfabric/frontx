@@ -1,14 +1,14 @@
 // @cpt-flow:cpt-hai3-flow-studio-devtools-language-change:p1
 // @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
 import { useTranslation, LanguageDisplayMode, TextDirection, SUPPORTED_LANGUAGES, getLanguageMetadata, type Language } from '@hai3/react';
-import { ButtonVariant } from '@hai3/uikit';
+import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  Button,
-} from '@hai3/uikit';
+} from '../uikit/base/dropdown-menu';
+import { Button } from '../uikit/base/button';
 import { useStudioContext } from '../StudioProvider';
 
 /**

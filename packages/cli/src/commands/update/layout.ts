@@ -25,7 +25,7 @@ export interface UpdateLayoutResult {
 /**
  * Update layout command implementation
  *
- * Updates layout components from HAI3 UIKit templates.
+ * Updates layout components from HAI3 layout templates.
  */
 // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout
 export const updateLayoutCommand: CommandDefinition<
@@ -101,7 +101,7 @@ export const updateLayoutCommand: CommandDefinition<
     }
 
     logger.newline();
-    logger.info('Updating layout components from HAI3 UIKit templates...');
+    logger.info('Updating layout components from HAI3 layout templates...');
     logger.newline();
 
     // Generate files from template

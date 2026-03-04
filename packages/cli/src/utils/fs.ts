@@ -1,3 +1,4 @@
+// @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
 import fs from 'fs-extra';
 import path from 'path';
 import type { GeneratedFile } from '../core/types.js';

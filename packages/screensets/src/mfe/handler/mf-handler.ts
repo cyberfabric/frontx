@@ -39,8 +39,10 @@ type ShareScope = Record<string, FederationPackageVersions>;
 // @cpt-state:cpt-hai3-state-mfe-isolation-load-blob-state:p1
 interface LoadBlobState {
   readonly blobUrlMap: Map<string, string>;
-  readonly visited: Set<string>;
+  readonly inFlight: Map<string, Promise<void>>;
   readonly baseUrl: string;
+  /** MFE entry ID for this load; used in error messages. */
+  readonly entryId: string;
 }
 
 /**
@@ -164,8 +166,9 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     const loadState: LoadBlobState = {
       blobUrlMap: new Map(),
-      visited: new Set(),
+      inFlight: new Map(),
       baseUrl,
+      entryId,
     };
 
     // Build shareScope with per-load isolated get() functions
@@ -333,17 +336,35 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Processes dependencies depth-first so that when a module's imports are
    * rewritten, all its dependencies already have blob URLs in the shared map.
    * Common dependencies are processed once per load (shared blobUrlMap).
+   *
+   * Concurrent calls for the same filename are deduplicated via the inFlight
+   * map — callers await the same promise rather than returning early with no
+   * result. This prevents a race where sibling ESM modules with top-level
+   * await trigger overlapping importShared() calls for the same dependency.
    */
   // @cpt-algo:cpt-hai3-algo-mfe-isolation-blob-url-chain:p1
-  private async createBlobUrlChain(
+  private createBlobUrlChain(
     loadState: LoadBlobState,
     filename: string
   ): Promise<void> {
-    if (loadState.blobUrlMap.has(filename) || loadState.visited.has(filename)) {
-      return;
+    if (loadState.blobUrlMap.has(filename)) {
+      return Promise.resolve();
     }
-    loadState.visited.add(filename);
 
+    const existing = loadState.inFlight.get(filename);
+    if (existing) {
+      return existing;
+    }
+
+    const promise = this.createBlobUrlChainInternal(loadState, filename);
+    loadState.inFlight.set(filename, promise);
+    return promise;
+  }
+
+  private async createBlobUrlChainInternal(
+    loadState: LoadBlobState,
+    filename: string
+  ): Promise<void> {
     const source = await this.fetchSourceText(loadState.baseUrl + filename);
     const deps = this.parseStaticImportFilenames(source, filename);
 
@@ -378,9 +399,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       await this.createBlobUrlChain(loadState, chunkPath);
       const blobUrl = loadState.blobUrlMap.get(chunkPath);
       if (!blobUrl) {
+        const attemptedUrl = loadState.baseUrl + chunkPath;
         throw new MfeLoadError(
-          `Failed to create blob URL for shared dependency '${chunkPath}'`,
-          chunkPath
+          `Failed to create blob URL for shared dependency '${chunkPath}' (tried: ${attemptedUrl}). ` +
+            'Ensure the MFE dev server is running and serving shared chunks (e.g. run "npm run dev:all" or start the MFE separately).',
+          loadState.entryId
         );
       }
       const module = await import(/* @vite-ignore */ blobUrl);
@@ -463,11 +486,20 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     chunkFilename: string
   ): string[] {
     const filenames: string[] = [];
-    const regex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
+
+    // Named imports: import { x } from './dep.js'  /  export { x } from './dep.js'
+    const namedRegex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
     let match;
-    while ((match = regex.exec(source)) !== null) {
+    while ((match = namedRegex.exec(source)) !== null) {
       filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
     }
+
+    // Bare side-effect imports: import './dep.js'
+    const bareRegex = /(?:^|;|\n)\s*import\s+['"](\.\.?\/[^'"]+)['"]\s*;/g;
+    while ((match = bareRegex.exec(source)) !== null) {
+      filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
+    }
+
     return [...new Set(filenames)];
   }
 
@@ -509,6 +541,16 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     result = result.replace(
       /import\(\s*"(\.\.?\/[^"]+)"\s*\)/g,
       (_match, relPath: string) => `import("${resolve(relPath)}")`
+    );
+
+    // Bare side-effect imports: import './dep.js'
+    result = result.replace(
+      /import\s+'(\.\.?\/[^']+)'\s*;/g,
+      (_match, relPath: string) => `import '${resolve(relPath)}';`
+    );
+    result = result.replace(
+      /import\s+"(\.\.?\/[^"]+)"\s*;/g,
+      (_match, relPath: string) => `import "${resolve(relPath)}";`
     );
 
     return result;

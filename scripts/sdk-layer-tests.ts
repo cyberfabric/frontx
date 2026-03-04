@@ -8,7 +8,7 @@
  * - SDK packages (L1) have ZERO @hai3 dependencies
  * - Framework package (L2) only imports SDK packages
  * - React package (L3) only imports framework
- * - No package depends on deprecated @hai3/uikit-contracts
+ * - No package depends on deprecated packages (@hai3/uikit-contracts, @hai3/uicore, @hai3/layout)
  * - Layer configs include all parent layer rules
  */
 

@@ -64,10 +64,11 @@ Success criteria: Application initial bundle contains no translation JSON beyond
 
 ### 1.4 References
 
+- PRD: [PRD.md](../../PRD.md) — sections 5.12 (i18n Formatters), 5.13 (i18n Loading)
 - DESIGN: [DESIGN.md](../../DESIGN.md) — `cpt-hai3-component-i18n`, principles `cpt-hai3-principle-self-registering-registries`, constraints `cpt-hai3-constraint-no-react-below-l3`, `cpt-hai3-constraint-zero-cross-deps-at-l1`
 - DECOMPOSITION: [DECOMPOSITION.md](../../DECOMPOSITION.md) — feature `cpt-hai3-feature-i18n-infrastructure` (section 2.5)
 - ADR: `cpt-hai3-adr-hybrid-namespace-localization`
-- OpenSpec: `openspec/specs/i18n-formatters/spec.md`, `openspec/specs/i18n-loading/spec.md`, `openspec/specs/screen-translation/spec.md`
+- Related feature: `cpt-hai3-feature-react-bindings` — screen translation hook and loading flow
 
 ---
 

@@ -239,7 +239,6 @@ HAI3/                               # Repository root
 │   ├── screensets/                 # SDK L1: Screenset types and utilities
 │   ├── framework/                  # L2: Plugin system and registries
 │   ├── react/                      # L3: React bindings and hooks
-│   ├── uikit/                      # React component library
 │   ├── studio/                     # Development overlay (optional)
 │   └── cli/                        # CLI tool for project scaffolding
 ├── src/                            # App source code

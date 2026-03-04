@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
 import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
-import { Card, CardContent, Button, Skeleton } from '@hai3/uikit';
+import { Card, CardContent } from '../../components/ui/card';
+import { Button } from '../../components/ui/button';
+import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { THEME_EXTENSION_ID } from '../../shared/extension-ids';
 
@@ -29,7 +31,7 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
  * - MFE-local i18n with dynamic translation loading
  * - Cross-screen navigation via actions chains
  *
- * Uses UIKit components (Card, Button) for consistent styling.
+ * Uses local UI components (Card, Button) for consistent styling.
  * Runs inside Shadow DOM with isolated styles.
  */
 export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) => {
@@ -113,13 +115,13 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
       <h1 className="text-3xl font-bold mb-4">
         {t('title')}
       </h1>
-      <p className="text-gray-600 mb-6">
+      <p className="text-muted-foreground mb-6">
         {t('welcome')}
       </p>
 
       <Card className="mb-6">
         <CardContent className="p-6">
-          <p className="text-gray-700 leading-relaxed">
+          <p className="text-muted-foreground leading-relaxed">
             {t('description')}
           </p>
         </CardContent>
@@ -133,19 +135,19 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
           <dl className="grid gap-2">
             <div>
               <dt className="font-medium">{t('domain_id')}</dt>
-              <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+              <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
             </div>
             <div>
               <dt className="font-medium">{t('instance_id')}</dt>
-              <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+              <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
             </div>
             <div>
               <dt className="font-medium">{t('current_theme')}</dt>
-              <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+              <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
             </div>
             <div>
               <dt className="font-medium">{t('current_language')}</dt>
-              <dd className="font-mono text-sm text-gray-600">{language}</dd>
+              <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
             </div>
           </dl>
         </CardContent>
@@ -156,7 +158,7 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
           <h2 className="text-xl font-semibold mb-3">
             {t('navigation_title')}
           </h2>
-          <p className="text-gray-600 mb-4">
+          <p className="text-muted-foreground mb-4">
             {t('navigation_description')}
           </p>
           <Button onClick={handleGoToTheme}>

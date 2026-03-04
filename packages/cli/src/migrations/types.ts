@@ -4,6 +4,8 @@
  * Defines interfaces for HAI3's codemod-based migration system.
  * Uses ts-morph for TypeScript-native AST manipulation.
  */
+// @cpt-dod:cpt-hai3-dod-cli-tooling-migrations:p1
+// @cpt-state:cpt-hai3-state-cli-tooling-migration-tracker:p1
 
 import type { SourceFile } from 'ts-morph';
 

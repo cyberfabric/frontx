@@ -54,7 +54,7 @@ Chosen option: "Custom GitHub Actions workflow with explicit layer order", becau
 
 ### Confirmation
 
-`.github/workflows/publish.yml` implements the workflow. The layer order declared in the workflow (SDK → Framework → React → UIKit → Studio → CLI) matches the build order defined in root `package.json` scripts.
+`.github/workflows/publish.yml` implements the workflow. The layer order declared in the workflow (SDK → Framework → React → Studio → CLI) matches the build order defined in root `package.json` scripts.
 
 ## Pros and Cons of the Options
 

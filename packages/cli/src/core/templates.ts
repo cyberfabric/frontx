@@ -41,7 +41,17 @@ const SYNC_EXCLUDE = [
 export function getTemplatesDir(): string {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, '..', 'templates');
+  const resolved = path.resolve(__dirname, '..', 'templates');
+  // When running from source (src/core/), '../templates' lands on src/templates/
+  // which lacks the full template set. Fall back to the package-root templates/.
+  if (!fs.existsSync(path.join(resolved, 'manifest.json'))) {
+    const packageRoot = path.resolve(__dirname, '..', '..');
+    const fallback = path.join(packageRoot, 'templates');
+    if (fs.existsSync(path.join(fallback, 'manifest.json'))) {
+      return fallback;
+    }
+  }
+  return resolved;
 }
 
 /**
@@ -220,7 +230,7 @@ async function syncDirectory(
  * This includes:
  * - presets/standalone/ content (auto-discovered, extensible)
  * - Root project files (index.html, vite.config.ts, etc.)
- * - Source directories (src/themes, src/uikit, src/icons, src/screensets/demo)
+ * - Source directories (src/themes, src/icons, src/screensets/demo)
  * - AI configuration (.ai/, .claude/, .cursor/, .windsurf/, CLAUDE.md)
  *
  * User-created screensets in src/screensets/ are preserved.

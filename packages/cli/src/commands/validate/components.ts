@@ -26,7 +26,7 @@ function getLineNumber(content: string, index: number): number {
 export interface ComponentViolation {
   file: string;
   line?: number;
-  rule: 'inline-component' | 'inline-data' | 'uikit-impurity' | 'inline-style';
+  rule: 'inline-component' | 'inline-data' | 'uikit-impurity' | 'ui-component-impurity' | 'inline-style';
   message: string;
   severity: 'error' | 'warning';
   suggestion?: string;
@@ -58,20 +58,11 @@ const INLINE_STYLE_PATTERN = /style\s*=\s*\{\{/g;
 const HEX_COLOR_PATTERN = /#[0-9a-fA-F]{3,8}(?=['"`])/g;
 
 /**
- * Check if file is in a base uikit folder (allowed to use inline styles)
- * Allowed locations:
- * - packages/uikit/src/base/ (global base primitives)
- * - screensets/{name}/uikit/base/ (screenset base primitives - rare, needs justification)
+ * Check if file is in components/ui/ (allowed to use inline styles)
  */
-function isInBaseUikitFolder(filePath: string): boolean {
-  // Global uikit base folder
-  if (filePath.includes('/uikit/src/base/') || filePath.includes('\\uikit\\src\\base\\')) {
-    return true;
-  }
-
-  // Screenset uikit base folder (pattern: screensets/*/uikit/base/)
-  const screensetBasePattern = /[/\\]screensets[/\\][^/\\]+[/\\]uikit[/\\]base[/\\]/;
-  if (screensetBasePattern.test(filePath)) {
+function isInComponentsUiFolder(filePath: string): boolean {
+  const componentsUiPattern = /[/\\]components[/\\]ui[/\\]/;
+  if (componentsUiPattern.test(filePath)) {
     return true;
   }
 
@@ -91,8 +82,7 @@ async function scanFile(
   const lines = content.split('\n');
 
   const isScreenFile = filePath.endsWith('Screen.tsx');
-  const isUikitFile =
-    filePath.includes('/uikit/') && !filePath.includes('/icons/');
+  const isUiComponentFile = isInComponentsUiFolder(filePath);
   // @cpt-end:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-iterate-source-files
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-inline-components
@@ -120,7 +110,7 @@ async function scanFile(
           rule: 'inline-component',
           message: `Inline component "${componentName}" detected in screen file`,
           severity: 'error',
-          suggestion: `Extract to screens/{screen}/components/${componentName}.tsx or screensets/{name}/uikit/${componentName}.tsx`,
+          suggestion: `Extract to screens/{screen}/components/${componentName}.tsx or components/ui/${componentName}.tsx`,
         });
       }
     }
@@ -162,9 +152,9 @@ async function scanFile(
     // @cpt-end:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-inline-data
   }
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-uikit-impurity
-  // Check for @hai3/react or @hai3/framework imports in uikit files
-  if (isUikitFile) {
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-ui-component-impurity
+  // Check for @hai3/react or @hai3/framework imports in UI component files
+  if (isUiComponentFile) {
     if (BUSINESS_LOGIC_IMPORT_PATTERN.test(content)) {
       // Find line number of the import
       let lineNumber = 1;
@@ -178,19 +168,19 @@ async function scanFile(
       violations.push({
         file: relativePath,
         line: lineNumber,
-        rule: 'uikit-impurity',
-        message: 'UIKit component imports from @hai3/react or @hai3/framework',
+        rule: 'ui-component-impurity',
+        message: 'UI component imports from @hai3/react or @hai3/framework',
         severity: 'error',
         suggestion:
-          'UIKit components must be presentational only. Move to components/ if business logic is needed.',
+          'UI components in components/ui/ must be presentational only. Move to screens/{screen}/components/ if business logic is needed.',
       });
     }
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-uikit-impurity
+  // @cpt-end:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-ui-component-impurity
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-scan-component-violations:p1:inst-detect-inline-styles
-  // Check for inline styles (all files except base uikit folders)
-  if (!isInBaseUikitFolder(filePath)) {
+  // Check for inline styles (all files except components/ui/)
+  if (!isInComponentsUiFolder(filePath)) {
     let match: RegExpExecArray | null;
     const stylePattern = new RegExp(INLINE_STYLE_PATTERN.source, 'g');
 

@@ -653,6 +653,13 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   // @cpt-end:cpt-hai3-flow-screenset-registry-query:p2:inst-1
 
   /**
+   * Delegate theme CSS variable delivery to the mount manager.
+   */
+  setTheme(cssVars: Record<string, string>): void {
+    this.mountManager.setTheme(cssVars);
+  }
+
+  /**
    * Dispose the registry and clean up resources.
    * Cleans up all bridges, runtime connections, and internal state.
    */

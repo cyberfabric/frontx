@@ -21,7 +21,7 @@
     - [Option C: Devil's Advocate lens](#option-c-devils-advocate-lens)
     - [Option D: Hybrid Staff Engineer + ATAM lens](#option-d-hybrid-staff-engineer-atam-lens)
     - [Option E: Platform/DX Engineer lens](#option-e-platformdx-engineer-lens)
-  - [4. Analysis of the current openspec-reviewer](#4-analysis-of-the-current-openspec-reviewer)
+  - [4. Analysis of the current legacy reviewer](#4-analysis-of-the-current-legacy-reviewer)
     - [4.1 What works well](#41-what-works-well)
     - [4.2 What is missing or could be improved](#42-what-is-missing-or-could-be-improved)
     - [4.3 How the new agent should differ](#43-how-the-new-agent-should-differ)
@@ -36,13 +36,13 @@ Date: 2026-03-06
 
 ## Research question
 
-What role, persona, knowledge base, and review lens should a new AI agent have to effectively review the output of the architect agent -- replacing the current `openspec-reviewer` with something better positioned alongside the architect in the Cypilot artifact workflow?
+What role, persona, knowledge base, and review lens should a new AI agent have to effectively review the output of the architect agent -- replacing the current legacy reviewer with something better positioned alongside the architect in the Cypilot artifact workflow?
 
 Sub-questions:
 1. What real-world roles review architecture output, and what distinct perspectives do they bring?
 2. What context/knowledge does a high-quality architecture review need?
 3. What persona/lens would produce reviews that complement (not duplicate) the architect's work?
-4. What should be kept, changed, or dropped from the current `openspec-reviewer`?
+4. What should be kept, changed, or dropped from the current legacy reviewer?
 
 ## Scope
 

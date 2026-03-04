@@ -1,6 +1,7 @@
 // @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
 import React from 'react';
-import { Button, ButtonVariant } from '@hai3/uikit';
+import { Button } from '../base/button';
+import { ButtonVariant } from '../types';
 
 interface GlassmorphicButtonProps {
   icon: React.ReactNode;

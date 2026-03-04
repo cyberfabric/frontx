@@ -79,7 +79,7 @@ Note: .ai/targets/AI.md does NOT get standalone marker - it is meta-documentatio
 | Rule | Description | Severity | Status |
 |------|-------------|----------|--------|
 | local/no-inline-styles | Detect style={{}} and hex colors | error | Working |
-| local/uikit-no-business-logic | Detect @hai3/uicore imports in uikit/ | error | Working |
+| local/uikit-no-business-logic | Detect business logic imports in components/ui/ | error | Working |
 | local/screen-inline-components | Detect React.FC definitions in *Screen.tsx | warning | Working |
 
 ## CLI Command Created

@@ -6,6 +6,7 @@ export default {
   content: [
     './index.html',
     './src/**/*.{js,ts,jsx,tsx}',
+    '!./src/mfe_packages/*/dist/**/*.{js,ts,jsx,tsx}',
     // Monorepo: scan local package sources
     './packages/*/src/**/*.{js,ts,jsx,tsx}',
     './packages/*/dist/**/*.{js,mjs}',

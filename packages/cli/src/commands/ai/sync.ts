@@ -6,6 +6,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import lodash from 'lodash';
 import type { CommandDefinition } from '../../core/command.js';
+import { loadConfig } from '../../utils/project.js';
+import { isCustomUikit } from '../../utils/validation.js';
 import type { PackageManager } from '../../core/types.js';
 import { detectPackageManager, getRunScriptCommand } from '../../core/packageManager.js';
 
@@ -131,6 +133,24 @@ interface GenerateOptions {
 }
 
 /**
+ * Build the UI kit rule text for generated AI guidance from project config.
+ */
+async function resolveUikitRule(projectRoot: string): Promise<string> {
+  const configResult = await loadConfig(projectRoot);
+  const uikit = configResult.ok ? (configResult.config.uikit ?? 'shadcn') : 'shadcn';
+
+  if (uikit === 'none') {
+    return '**REQUIRED**: This project has no UI kit (`uikit: "none"`); use local components and CSS for all UI';
+  }
+
+  if (isCustomUikit(uikit)) {
+    return `**REQUIRED**: Use the configured UI kit package \`${uikit}\` for all standard UI (do not default to shadcn/ui)`;
+  }
+
+  return '**REQUIRED**: Use local shadcn/ui components for all UI';
+}
+
+/**
  * Generate CLAUDE.md file
  */
 // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
@@ -182,6 +202,7 @@ ${userRules}
 async function generateCopilotInstructions(
   projectRoot: string,
   userRules: string | null,
+  uikitRule: string,
   packageManager: PackageManager,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
@@ -206,7 +227,7 @@ For detailed guidance, use these resources:
 2. **REQUIRED**: Event-driven architecture only (dispatch events, handle in actions)
 3. **FORBIDDEN**: Direct slice dispatch from UI components
 4. **FORBIDDEN**: Hardcoded colors or inline styles
-5. **REQUIRED**: Use \`@hai3/uikit\` components for all UI
+5. ${uikitRule}
 6. **REQUIRED**: Run \`${archCheckCommand}\` before committing
 
 ## Available Commands
@@ -607,6 +628,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
     // Read user's custom rules from .ai/rules/app.md (preserved across syncs)
     const userRules = await readUserRules(projectRoot!);
+    const uikitRule = await resolveUikitRule(projectRoot!);
     if (userRules && !showDiff) {
       logger.log('  ✓ Found user rules in .ai/rules/app.md');
     }
@@ -650,6 +672,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
       const result = await generateCopilotInstructions(
         projectRoot!,
         userRules,
+        uikitRule,
         packageManager,
         genOptions
       );

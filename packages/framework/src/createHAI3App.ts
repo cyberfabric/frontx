@@ -33,10 +33,6 @@ export interface HAI3AppConfig extends HAI3Config, FullPresetConfig {}
  * // Default - uses full() preset
  * const app = createHAI3App();
  *
- * // With theme apply function
- * import { applyTheme } from '@hai3/uikit';
- * const app = createHAI3App({ themes: { applyFn: applyTheme } });
- *
  * // With configuration
  * const app = createHAI3App({ devMode: true });
  * ```
@@ -45,7 +41,6 @@ export interface HAI3AppConfig extends HAI3Config, FullPresetConfig {}
 export function createHAI3App(config?: HAI3AppConfig): HAI3App {
   return createHAI3(config)
     .useAll(full({
-      themes: config?.themes,
       microfrontends: config?.microfrontends,
     }))
     .build();

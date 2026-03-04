@@ -87,8 +87,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — section 2.4
-- PRD: [PRD.md](../../PRD.md) — sections 5.1 (API Package), 5.3 (SSE Streaming), 5.19 (Mock Mode), NFR section (API Retry)
-- OpenSpec: [sse-streaming/spec.md](../../../openspec/specs/sse-streaming/spec.md)
+- PRD: [PRD.md](../../PRD.md) — sections 5.1 (API Package), 5.3 (SSE Streaming), 5.17 (Mock Mode), NFR section (API Retry)
 - ADRs: `cpt-hai3-adr-protocol-separated-api-architecture`, `cpt-hai3-adr-symbol-based-mock-plugin-identification`
 
 ---

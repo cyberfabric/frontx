@@ -158,8 +158,6 @@ export type {
   PluginLifecycle,
   ThemeRegistry,
   ThemeConfig,
-  ThemeApplyFn,
-  UikitTheme,
   RouterMode,
   Preset,
   Presets,
@@ -167,7 +165,9 @@ export type {
   ThemesConfig,
   ShowPopupPayload,
   ChangeThemePayload,
+  ThemePropagationFailedPayload,
   SetLanguagePayload,
+  LanguagePropagationFailedPayload,
 } from './types';
 
 // ============================================================================

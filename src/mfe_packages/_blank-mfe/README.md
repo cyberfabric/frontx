@@ -183,13 +183,9 @@ Each screen manages its own translations using `useScreenTranslations`:
 - Language changes trigger automatic translation reload
 - No host-side i18n dependencies
 
-### UIKit Integration
+### UI Components
 
-Use `@hai3/uikit` components for consistent styling:
-- `Card`, `CardContent`, `CardFooter`
-- `Button`, `Input`, `Select`
-- `Skeleton` for loading states
-- All components are Shadow DOM compatible
+Use local components (e.g. `components/ui/`) for styling. Add your own primitives (Card, Button, Input, Select, Skeleton, etc.) or use the project’s chosen UI library. Keep components Shadow DOM compatible.
 
 ## Development
 
@@ -246,7 +242,7 @@ If you see "Shared module not available" errors:
 ### Type Errors
 
 If TypeScript cannot resolve `@hai3/*` imports:
-- Ensure `@hai3/react` and `@hai3/uikit` are in `dependencies`
+- Ensure `@hai3/react` is in `dependencies`
 - Run `npm install` to symlink workspace packages
 
 ### Style Issues

@@ -5,24 +5,22 @@
  */
 
 import React from 'react';
+import { Separator } from '../../../components/ui/separator';
+import { Alert, AlertTitle, AlertDescription } from '../../../components/ui/alert';
+import { Progress } from '../../../components/ui/progress';
+import { Spinner } from '../../../components/ui/spinner';
+import { Skeleton } from '../../../components/ui/skeleton';
 import {
-  Separator,
-  Alert,
-  AlertTitle,
-  AlertDescription,
-  Progress,
-  Spinner,
-  Skeleton,
   Empty,
   EmptyHeader,
   EmptyTitle,
   EmptyDescription,
   EmptyContent,
-  Badge,
-  Button,
-  ButtonVariant,
-  useToast,
-} from '@hai3/uikit';
+} from '../../../components/ui/empty';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { ButtonVariant } from '../../../components/types';
+import { useToast } from '../../../hooks/useToast';
 
 interface FeedbackElementsProps {
   t: (key: string) => string;

@@ -5,18 +5,22 @@
  */
 
 import React, { useState } from 'react';
+import { Separator } from '../../../components/ui/separator';
 import {
-  Separator,
   Breadcrumb,
   BreadcrumbList,
   BreadcrumbItem,
   BreadcrumbLink,
   BreadcrumbSeparator,
   BreadcrumbPage,
+} from '../../../components/ui/breadcrumb';
+import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
+} from '../../../components/ui/tabs';
+import {
   Pagination,
   PaginationContent,
   PaginationItem,
@@ -24,13 +28,15 @@ import {
   PaginationPrevious,
   PaginationNext,
   PaginationEllipsis,
+} from '../../../components/ui/pagination';
+import {
   Menubar,
   MenubarMenu,
   MenubarTrigger,
   MenubarContent,
   MenubarItem,
   MenubarSeparator,
-} from '@hai3/uikit';
+} from '../../../components/ui/menubar';
 
 interface NavigationElementsProps {
   t: (key: string) => string;

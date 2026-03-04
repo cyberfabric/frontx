@@ -392,7 +392,7 @@ Anthropic's [eval guidance](https://www.anthropic.com/engineering/demystifying-e
 3. **Metrics**: Quantitative measurements (latency, token usage, turn count)
 
 The existing HAI3 `chrome-devtools-runtime-tester` produces a structured validation report with:
-- Feature under test and OpenSpec reference
+- Feature under test and artifact reference
 - Test environment details
 - Per-criterion verdict with DevTools actions taken and evidence collected
 - Edge case verification table

@@ -70,22 +70,29 @@ describe('updateSharedProperty - GTS runtime validation', () => {
       }).not.toThrow();
     });
 
-    it('invalid theme value "neon" throws validation error', () => {
+    it('accepts any non-empty string as a valid theme value', () => {
       expect(() => {
-        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'neon');
+        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'acronis-default');
+      }).not.toThrow();
+
+      expect(() => {
+        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'my-custom-theme');
+      }).not.toThrow();
+    });
+
+    it('empty string theme value throws validation error', () => {
+      expect(() => {
+        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, '');
       }).toThrow(/failed validation/);
     });
 
     it('invalid theme value throws and does NOT store the value', () => {
-      // Set a valid value first
       registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark');
 
-      // Attempt to set invalid value
       expect(() => {
-        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'invalid-theme');
+        registry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, '');
       }).toThrow();
 
-      // Previous valid value should still be stored
       expect(registry.getDomainProperty(DOMAIN_ID, HAI3_SHARED_PROPERTY_THEME)).toBe('dark');
     });
   });

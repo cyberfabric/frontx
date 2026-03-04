@@ -1,5 +1,5 @@
 /**
- * @fileoverview Disallow inline styles and hex colors outside base uikit folders
+ * @fileoverview Disallow inline styles and hex colors outside base UI component folders
  * @author HAI3 Team
  */
 
@@ -7,31 +7,17 @@ import type { Rule } from 'eslint';
 import type { JSXAttribute, Literal } from 'estree-jsx';
 
 /**
- * Check if file is in a base uikit folder (allowed to use inline styles)
- * Allowed locations:
- * - packages/uikit/src/base/ (global base primitives)
- * - screensets/{name}/uikit/base/ (screenset base primitives - rare, needs justification)
+ * Check if file is in components/ui/ (allowed to use inline styles)
  */
-function isInBaseUikitFolder(filename: string): boolean {
-  // Global uikit base folder
-  if (filename.includes('/uikit/src/base/') || filename.includes('\\uikit\\src\\base\\')) {
-    return true;
-  }
-
-  // Screenset uikit base folder (pattern: screensets/*/uikit/base/)
-  const screensetBasePattern = /[/\\]screensets[/\\][^/\\]+[/\\]uikit[/\\]base[/\\]/;
-  if (screensetBasePattern.test(filename)) {
-    return true;
-  }
-
-  return false;
+function isInComponentsUiFolder(filename: string): boolean {
+  return /[/\\]components[/\\]ui[/\\]/.test(filename);
 }
 
 const rule: Rule.RuleModule = {
   meta: {
     type: 'problem',
     docs: {
-      description: 'Disallow inline styles and hex colors outside base uikit folders',
+      description: 'Disallow inline styles and hex colors outside base UI component folders',
       category: 'Styling',
       recommended: true,
     },
@@ -47,8 +33,7 @@ const rule: Rule.RuleModule = {
   create(context: Rule.RuleContext): Rule.RuleListener {
     const filename = context.getFilename();
 
-    // Allow in base uikit folders (core primitives need direct styling)
-    if (isInBaseUikitFolder(filename)) {
+    if (isInComponentsUiFolder(filename)) {
       return {};
     }
 

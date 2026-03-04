@@ -81,4 +81,13 @@ export abstract class MountManager {
    * @returns Promise resolving when unmount is complete
    */
   abstract unmountExtension(extensionId: string): Promise<void>;
+
+  /**
+   * Apply theme CSS custom properties to the isolation context.
+   * Called by the framework on initial mount and on every theme change.
+   * Each concrete implementation handles delivery appropriate to its context.
+   *
+   * @param cssVars - CSS custom property name→value map
+   */
+  abstract setTheme(cssVars: Record<string, string>): void;
 }

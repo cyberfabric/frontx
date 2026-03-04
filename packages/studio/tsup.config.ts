@@ -25,7 +25,6 @@ export default defineConfig({
     '@reduxjs/toolkit',
     '@hai3/react',
     '@hai3/framework',
-    '@hai3/uikit',
     'lodash',
   ],
   noExternal: [],

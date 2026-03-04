@@ -84,9 +84,6 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 - Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-hai3-component-studio`
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-studio-devtools` (section 2.9)
-- OpenSpec: `openspec/specs/studio/spec.md`
-- OpenSpec: `openspec/specs/studio-settings-persistence/spec.md`
-- OpenSpec: `openspec/specs/studio-viewport-positioning/spec.md`
 - ADR: `cpt-hai3-adr-standalone-studio-dev-conditional`
 
 ---
@@ -445,7 +442,7 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 - `StudioIcon` located at `packages/studio/src/uikit/icons/StudioIcon.tsx`
 - `GlassmorphicButton` located at `packages/studio/src/uikit/composite/GlassmorphicButton.tsx`
 - Resize handle enforces width `[320, 600]` and height `[400, 800]` via `PANEL_CONSTRAINTS`
-- All UIKit components imported directly from `@hai3/uikit` (no registry lookups)
+- UI components from Studio local `packages/studio/src/uikit/`
 
 **Implements**:
 - `cpt-hai3-flow-studio-devtools-drag-panel`
@@ -472,7 +469,7 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-control-panel`
 
-`ControlPanel` renders four sections vertically: `MfePackageSelector`, `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. All controls use UIKit components imported directly from `@hai3/uikit`. Dropdowns render inside the high-z-index portal container to prevent clipping by the panel's `backdrop-filter` stacking context.
+`ControlPanel` renders four sections vertically: `MfePackageSelector`, `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Controls use Studio local UI (`packages/studio/src/uikit/`) or project-chosen components. Dropdowns render inside the high-z-index portal container to prevent clipping by the panel's `backdrop-filter` stacking context.
 
 **Implementation details**:
 - `ThemeSelector`: reads `useTheme()`, uses `DropdownMenu` / `DropdownButton` with `ButtonVariant.Outline`; formats names with `upperFirst` word-split on `-`
@@ -665,7 +662,7 @@ Following screenset conventions:
 
 ### Dependency Boundary
 
-`@hai3/studio` depends on `@hai3/react` (for hooks, `eventBus`, `HAI3Provider` context) and `@hai3/uikit` (for UI components). These are direct compile-time dependencies, tree-shaken in production because the entire Studio conditional branch is eliminated. Studio does NOT depend on `@hai3/framework` or any L1 package directly.
+`@hai3/studio` depends on `@hai3/react` (for hooks, `eventBus`, `HAI3Provider` context). UI components are supplied from Studio local `packages/studio/src/uikit/`. Dependencies are direct compile-time, tree-shaken in production because the entire Studio conditional branch is eliminated. Studio does NOT depend on `@hai3/framework` or any L1 package directly.
 
 ### i18n Self-Registration
 

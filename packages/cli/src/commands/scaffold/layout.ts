@@ -3,10 +3,6 @@
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError } from '../../core/types.js';
-import {
-  detectPackageManager,
-  getAddPackagesCommand,
-} from '../../core/packageManager.js';
 import { copyLayoutTemplates } from '../../generators/layoutFromTemplate.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
 
@@ -29,7 +25,7 @@ export interface ScaffoldLayoutResult {
  * Scaffold layout command implementation
  *
  * Generates layout components (Layout, Header, Footer, Menu, etc.)
- * in the user's project from HAI3 UIKit templates.
+ * in the user's project from HAI3 layout templates.
  */
 // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout
 export const scaffoldLayoutCommand: CommandDefinition<
@@ -67,7 +63,7 @@ export const scaffoldLayoutCommand: CommandDefinition<
     const { logger, projectRoot } = ctx;
     const force = args.force ?? false;
 
-    logger.info('Scaffolding HAI3 UIKit layout components...');
+    logger.info('Scaffolding layout components...');
     logger.newline();
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
@@ -95,10 +91,7 @@ export const scaffoldLayoutCommand: CommandDefinition<
     }
     logger.newline();
 
-    const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
-
-    logger.info('Note: Make sure @hai3/uikit is installed:');
-    logger.log(`  ${getAddPackagesCommand(packageManager, ['@hai3/uikit'])}`);
+    logger.info('Note: Make sure your UI components are set up in src/app/components/ui/');
     logger.newline();
 
     const layoutPath = path.join(projectRoot!, 'src', 'app', 'layout');

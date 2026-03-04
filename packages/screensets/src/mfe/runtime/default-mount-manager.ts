@@ -349,4 +349,12 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
+
+  /**
+   * Apply theme CSS variables to the isolation context.
+   * Shadow DOM inherits CSS custom properties from :root, so this is a no-op.
+   */
+  setTheme(_cssVars: Record<string, string>): void {
+    // No-op: CSS custom properties inherit across Shadow DOM boundaries
+  }
 }

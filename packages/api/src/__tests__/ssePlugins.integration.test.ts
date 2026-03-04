@@ -2,7 +2,7 @@
  * Task 71: Integration Test - Protocol-Specific SSE Plugin Chain
  *
  * Tests for SSE protocol plugin chain execution.
- * Validates AC-1, AC-2, AC-4, AC-5 from the OpenSpec.
+ * Validates API Communication feature acceptance criteria for SSE plugins.
  */
 
 import { SseProtocol } from '../protocols/SseProtocol';

@@ -16,7 +16,10 @@ import type { ChildMfeBridge } from '@hai3/react';
 import { HAI3_SHARED_PROPERTY_LANGUAGE, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { CategoryMenu } from './components/CategoryMenu';
-import { Card, CardContent, Skeleton, Toaster, TooltipProvider } from '@hai3/uikit';
+import { Card, CardContent } from '../../components/ui/card';
+import { Skeleton } from '../../components/ui/skeleton';
+import { Toaster } from '../../components/ui/sonner';
+import { TooltipProvider } from '../../components/ui/tooltip';
 
 // Lazy-loaded category components
 const LayoutElements = lazy(() =>
@@ -282,19 +285,19 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
               <dl className="grid gap-2">
                 <div>
                   <dt className="font-medium">{t('domain_id')}</dt>
-                  <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+                  <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
                 </div>
                 <div>
                   <dt className="font-medium">{t('instance_id')}</dt>
-                  <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+                  <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
                 </div>
                 <div>
                   <dt className="font-medium">{t('current_theme')}</dt>
-                  <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+                  <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
                 </div>
                 <div>
                   <dt className="font-medium">{t('current_language')}</dt>
-                  <dd className="font-mono text-sm text-gray-600">{language}</dd>
+                  <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
                 </div>
               </dl>
             </CardContent>

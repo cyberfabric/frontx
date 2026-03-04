@@ -5,6 +5,7 @@
 export type { CommandContext, CommandDefinition } from './command.js';
 export type {
   Hai3Config,
+  ConfigLoadResult,
   PackageManager,
   ScreensetCategory,
   ArgDefinition,

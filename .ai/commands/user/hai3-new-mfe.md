@@ -71,9 +71,8 @@ class Lifecycle extends ThemeAwareReactLifecycle {
     const div = document.createElement('div');
     shadowRoot.appendChild(div);
 
-    // Initialize Tailwind/UIKit styles
     const style = document.createElement('style');
-    style.textContent = tailwindStyles; // Import from @hai3/uikit
+    style.textContent = tailwindStyles;
     shadowRoot.appendChild(style);
 
     // Render component
@@ -143,7 +142,7 @@ npm run dev:all
 ✅ **DO:**
 - Use mock data with useState for UI-only MFEs
 - Keep MFE logic isolated and simple
-- Use @hai3/uikit components
+- Own UI components locally in `components/ui/` (no shared UI kit)
 - Test with Chrome DevTools MCP
 
 ❌ **DON'T:**
