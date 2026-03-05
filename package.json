@@ -15,11 +15,11 @@
     "packages/cli/template-sources/project/eslint-plugin-local"
   ],
   "scripts": {
-    "dev": "npm run generate:colors && vite",
-    "dev:mfe:demo": "cd src/mfe_packages/demo-mfe && npm run dev",
-    "dev:all": "concurrently --kill-others \"npm run dev:mfe:demo\" \"npm run dev\"",
+    "generate:mfe-manifests": "npx tsx scripts/generate-mfe-manifests.ts",
+    "dev": "npm run generate:mfe-manifests && npm run generate:colors && vite",
+    "dev:all": "npm run generate:mfe-manifests && npx tsx scripts/dev-all.ts",
     "check:mcp": "npx tsx packages/cli/template-sources/project/scripts/check-mcp.ts",
-    "build": "npm run build:packages && npm run generate:colors && vite build",
+    "build": "npm run generate:mfe-manifests && npm run build:packages && npm run generate:colors && vite build",
     "docs:dev": "npm run docs:dev --workspace=@hai3/docs",
     "docs:build": "npm run docs:build --workspace=@hai3/docs",
     "docs:preview": "npm run docs:preview --workspace=@hai3/docs",
@@ -111,6 +111,7 @@
     "@types/react-dom": "19.0.3",
     "@vitejs/plugin-react": "4.3.4",
     "autoprefixer": "10.4.23",
+    "concurrently": "^9.2.1",
     "dependency-cruiser": "17.3.2",
     "eslint": "9.27.0",
     "eslint-plugin-react-hooks": "5.0.0",

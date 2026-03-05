@@ -38,7 +38,7 @@ const program = new Command();
 
 program
   .name('hai3')
-  .description('HAI3 CLI - Project scaffolding and screenset management')
+  .description('HAI3 CLI - Project scaffolding and package management')
   .version(VERSION);
 
 // Global quiet flag

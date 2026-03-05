@@ -231,13 +231,6 @@ export const createCommand: CommandDefinition<
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
 
-    // Display message if demo screenset was excluded
-    if (uikit === 'none') {
-      logger.newline();
-      logger.warn('Demo screenset excluded (requires @hai3/uikit).');
-      logger.log('Create your own screenset with `hai3 screenset create`.');
-    }
-
     // Run ai sync to generate IDE config files
     logger.newline();
     logger.info('Generating AI assistant configurations...');

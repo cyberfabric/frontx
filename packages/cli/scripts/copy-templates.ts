@@ -58,8 +58,6 @@ interface Manifest {
     description: string;
     files: string[];
     directories: string[];
-    screensets: string[];
-    screensetTemplate: string;
   };
   ai_overrides: {
     source: string;
@@ -709,29 +707,6 @@ async function copyTemplates() {
     }
   }
 
-  // Copy screensets from manifest
-  for (const screenset of manifest.root.screensets) {
-    const src = path.join(PROJECT_ROOT, 'src/screensets', screenset);
-    const dest = path.join(TEMPLATES_DIR, 'src/screensets', screenset);
-
-    if (await fs.pathExists(src)) {
-      await fs.copy(src, dest);
-      const fileCount = await countFiles(dest);
-      console.log(`  ✓ src/screensets/${screenset}/ (${fileCount} files)`);
-    } else {
-      console.log(`  ⚠ src/screensets/${screenset}/ (not found, skipping)`);
-    }
-  }
-
-  // Copy screenset template from manifest
-  const templateSrc = path.join(PROJECT_ROOT, 'src/screensets', manifest.root.screensetTemplate);
-  const templateDest = path.join(TEMPLATES_DIR, 'screenset-template');
-  if (await fs.pathExists(templateSrc)) {
-    await fs.copy(templateSrc, templateDest);
-    const fileCount = await countFiles(templateDest);
-    console.log(`  ✓ screenset-template/ (${fileCount} files)`);
-  }
-
   // Copy layout templates from monorepo source (single source of truth)
   // Source: /src/app/layout/ (monorepo's canonical layout files)
   // Destination: templates/layout/hai3-uikit/ (CLI template with subdirectory structure)
@@ -888,7 +863,6 @@ async function copyTemplates() {
       source: 'project root',
       rootFiles: manifest.root.files,
       directories: manifest.root.directories,
-      screensets: manifest.root.screensets,
     },
     stage1c: {
       source: 'root .ai/ (marker-based)',
@@ -919,7 +893,6 @@ async function copyTemplates() {
         app: 'GUIDELINES.md',
       },
     },
-    screensetTemplate: 'screenset-template',
     generatedAt: new Date().toISOString(),
   };
   await fs.writeJson(path.join(TEMPLATES_DIR, 'manifest.json'), outputManifest, {

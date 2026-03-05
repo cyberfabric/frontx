@@ -72,8 +72,6 @@ export async function generateProject(
   // Extract paths from new 3-stage manifest structure
   const rootFiles = manifest.stage1b?.rootFiles || manifest.rootFiles || [];
   const directories = manifest.stage1b?.directories || manifest.directories || [];
-  const screensets = manifest.stage1b?.screensets || manifest.screensets || [];
-
   // 2. Copy root template files
   for (const file of rootFiles) {
     // Special handling for main.tsx - select template variant based on uikit flag
@@ -302,23 +300,7 @@ export async function generateProject(
     }
   }
 
-  // 4. Copy screensets from templates
-  // Skip demo screenset if uikit === 'none' (demo requires @hai3/uikit)
-  for (const screenset of screensets) {
-    // Skip demo screenset when UIKit is not included
-    if (screenset === 'demo' && uikit === 'none') {
-      continue;
-    }
-
-    const screensetPath = path.join(templatesDir, 'src/screensets', screenset);
-    const screensetFiles = await readDirRecursive(
-      screensetPath,
-      `src/screensets/${screenset}`
-    );
-    files.push(...screensetFiles);
-  }
-
-  // 5. Generate dynamic files (need project-specific values)
+  // 4. Generate dynamic files (need project-specific values)
 
   // 5.1 hai3.config.json (marker file for project detection)
   const config: Hai3Config = {

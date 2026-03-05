@@ -61,8 +61,6 @@ root:
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
-  screensets: []          # Demo screenset moved to separate template (not in monorepo root)
-  screensetTemplate: _blank  # Template for hai3 screenset create
 
 # Stage 1c: AI documentation overrides
 ai_overrides:
