@@ -1,5 +1,20 @@
 <!-- @cpt:root-agents -->
-STOP and READ `AGENTS.md` in project root before ANY tool calls or skill invocation
+## Cypilot AI Agent Navigation
+
+**Remember these variables while working in this project:**
+
+```toml
+cypilot_path = ".cypilot"
+```
+
+## Navigation Rules
+
+ALWAYS open and follow `{cypilot_path}/.gen/AGENTS.md` FIRST
+
+ALWAYS open and follow `{cypilot_path}/config/AGENTS.md` WHEN it exists
+
+ALWAYS invoke `{cypilot_path}/.core/skills/cypilot/SKILL.md` WHEN user asks to do something with Cypilot
+
 <!-- /@cpt:root-agents -->
 
 Use `.ai/GUIDELINES.md` as the single source of truth for HAI3 development guidelines.

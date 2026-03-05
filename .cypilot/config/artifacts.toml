@@ -1,0 +1,33 @@
+# Cypilot artifacts registry
+
+[[systems]]
+name = "HAI3 Dev Kit"
+slug = "hai3"
+kit = "cypilot-sdlc"
+artifacts_dir = "architecture"
+
+[[systems.artifacts]]
+path = "architecture/PRD.md"
+kind = "PRD"
+
+[[systems.artifacts]]
+path = "architecture/DESIGN.md"
+kind = "DESIGN"
+
+[[systems.artifacts]]
+path = "architecture/DECOMPOSITION.md"
+kind = "DECOMPOSITION"
+
+# ADR, FEATURE, and EXPLORATION directories exist but have no content yet.
+# Re-add entries here when first artifacts are created:
+# [[systems.artifacts]]
+# path = "architecture/ADR/"
+# kind = "ADR"
+#
+# [[systems.artifacts]]
+# path = "architecture/features/"
+# kind = "FEATURE"
+#
+# [[systems.artifacts]]
+# path = "architecture/explorations/"
+# kind = "EXPLORATION"

@@ -87,7 +87,7 @@ The HAI3 Dev Kit is built on top of the following key values below allowing it t
 - **V#9** - Internationalization & Localization - global deployment ready
 - **V#10** - Testing and Quality Gates - automated QA pipeline
 
-See [MANIFEST.md](docs/MANIFEST.md) for detailed descriptions of each value.
+See [MANIFEST.md](architecture/PRD.md) for detailed descriptions of each value.
 
 HAI3 is structured around **three main projections**, each addressing a critical dimension of the development lifecycle.
 
@@ -135,7 +135,7 @@ The combination of these layers allows developers to **compose UI experiences** 
 
 HAI3 defines a **three-stage development workflow** that maximizes AI efficiency while maintaining code quality:
 
-![pipeline.drawio.png](docs/pipeline.drawio.png)
+![pipeline.drawio.png](architecture/pipeline.drawio.png)
 
 ### Stage 1: Drafts (AI-Driven)
 
@@ -227,10 +227,10 @@ npm run dev
 ```bash
 HAI3/                               # Repository root
 ├── .ai/                            # AI prompting rules and GUIDELINES for generation
-├── docs/                           # Documentation
-│   ├── MANIFEST.md                 # Core values and principles
-│   ├── MODEL.md                    # High-level model notes
-│   └── ROADMAP.md                  # Planned milestones
+├── architecture/                   # Cypilot architecture artifacts
+│   ├── PRD.md                      # Product requirements (from MANIFEST)
+│   ├── DESIGN.md                   # System design and domain model
+│   └── DECOMPOSITION.md           # Feature roadmap and decomposition
 ├── index.html                      # Vite HTML entry
 ├── packages/                       # Workspaces with reusable libraries
 │   ├── state/                      # SDK L1: Event bus, store, and slices
@@ -315,8 +315,8 @@ TODO
 
 ## Documentation
 
-- **[ROADMAP.md](docs/ROADMAP.md)**: Project roadmap
-- **[MANIFEST.md](docs/MANIFEST.md)**: Core philosophy, principles, and values
+- **[DECOMPOSITION.md](architecture/DECOMPOSITION.md)**: Project roadmap and feature decomposition
+- **[PRD.md](architecture/PRD.md)**: Core philosophy, principles, and values
 - **[GUIDELINES.md](.ai/GUIDELINES.md)**: Development guidelines for AI and humans
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to contribute to the project
 

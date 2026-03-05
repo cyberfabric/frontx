@@ -294,7 +294,7 @@ npm run clean:build      # Clean + build from scratch
 ## Next Steps
 
 - Read [AI Guidelines](./.ai/GUIDELINES.md) for AI coding rules and patterns
-- Review [MANIFEST.md](./docs/MANIFEST.md) for project philosophy
+- Review [PRD.md](./architecture/PRD.md) for project philosophy
 - Explore the existing components in `src/uikit/layout/`
 - Build your first screen in `src/screensets/my-screenset/`
 

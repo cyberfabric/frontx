@@ -1,0 +1,19 @@
+# Cypilot project configuration
+
+version = "1.0"
+project_root = ".."
+
+[system]
+name = "Hai3"
+slug = "hai3"
+kit = "cypilot-sdlc"
+
+[kits]
+[kits.cypilot-sdlc]
+format = "Cypilot"
+path = ".gen/kits/sdlc"
+
+[kits.sdlc]
+format = "Cypilot"
+path = ".gen/kits/sdlc"
+version = "5"
