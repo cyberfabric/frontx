@@ -1,18 +1,18 @@
 # hai3:add-mfe-to-registry - Register New MFE in Centralized Registry
 
-## Когда использовать
+## When to Use
 
-После создания нового MFE пакета (с использованием `hai3-new-mfe.md`), нужно зарегистрировать его в централизованной системе для:
-1. **Автоматической загрузки в приложение** (bootstrap.ts)
-2. **Автоматического запуска в dev:all** (scripts/dev-all.ts)
+After creating a new MFE package (using `hai3-new-mfe.md`), register it in the centralized system for:
+1. **Automatic loading in the app** (bootstrap.ts)
+2. **Automatic startup in dev:all** (scripts/dev-all.ts)
 
-## Шаги регистрации
+## Registration Steps
 
-### 1️⃣ Обязательные требования для нового MFE
+### 1️⃣ Requirements for New MFE
 
-Новый MFE ДОЛЖЕН иметь в своей папке `src/mfe_packages/{name}-mfe/`:
+The new MFE MUST have in its folder `src/mfe_packages/{name}-mfe/`:
 
-✅ **`package.json`** с правильным dev скриптом:
+✅ **`package.json`** with correct dev script:
 ```json
 {
   "name": "@hai3/notifications-mfe",
@@ -30,11 +30,11 @@
 }
 ```
 
-✅ **`vite.config.ts`** - Module Federation конфигурация
+✅ **`vite.config.ts`** - Module Federation configuration
 
-✅ **`src/lifecycle.tsx`** - MFE точка входа (extends ThemeAwareReactLifecycle)
+✅ **`src/lifecycle.tsx`** - MFE entry point (extends ThemeAwareReactLifecycle)
 
-✅ **`mfe.json`** - манифест расширения:
+✅ **`mfe.json`** - extension manifest:
 ```json
 {
   "manifest": {
@@ -62,9 +62,9 @@
 }
 ```
 
-### 2️⃣ Добавить MFE в `src/app/mfe/registry.ts`
+### 2️⃣ Add MFE to `src/app/mfe/registry.ts`
 
-Откройте файл и добавьте новую запись в массив `MFE_REGISTRY`:
+Open the file and add a new entry to the `MFE_REGISTRY` array:
 
 ```typescript
 export const MFE_REGISTRY: MFERegistryEntry[] = [
@@ -74,128 +74,128 @@ export const MFE_REGISTRY: MFERegistryEntry[] = [
     enabled: true,
     description: 'Demo MFE with example screens',
   },
-  // 🆕 ДОБАВИТЬ НОВЫЙ MFE ЗДЕСЬ:
+  // 🆕 ADD NEW MFE HERE:
   {
-    name: 'notifications-mfe',           // ← Должно совпадать с src/mfe_packages/{name}-mfe/
-    port: 3020,                          // ← Уникальный порт для dev сервера
-    enabled: true,                       // ← true = запускается в dev:all и загружается в приложение
+    name: 'notifications-mfe',           // ← Must match src/mfe_packages/{name}-mfe/
+    port: 3020,                          // ← Unique port for dev server
+    enabled: true,                       // ← true = starts in dev:all and loads in app
     description: 'Notifications MFE',
   },
 ];
 ```
 
-### 3️⃣ Готово! 🎉
+### 3️⃣ Done! 🎉
 
-Теперь:
-- **`npm run dev:all`** - автоматически:
-  1. Генерирует `src/app/mfe/generated-mfe-manifests.ts` (для Vite)
-  2. Запускает все enabled MFE на своих портах
-  3. Запускает главное приложение
-- **Приложение** - автоматически загрузит все enabled MFE через bootstrap.ts
-- **Независимая разработка** - запусти `cd src/mfe_packages/{name}-mfe && npm run dev`
+Now:
+- **`npm run dev:all`** - automatically:
+  1. Generates `src/app/mfe/generated-mfe-manifests.ts` (for Vite)
+  2. Starts all enabled MFEs on their ports
+  3. Starts the main application
+- **The app** - will automatically load all enabled MFEs via bootstrap.ts
+- **Independent development** - run `cd src/mfe_packages/{name}-mfe && npm run dev`
 
-**⚠️ НЕ НУЖНО**:
-- ❌ Обновлять root `package.json` (автоматически читается registry.ts)
-- ❌ Добавлять `dev:mfe:*` скрипты (устарело)
-- ❌ Менять `dev:all` команду (динамически генерируется)
-- ❌ Редактировать `src/app/mfe/generated-mfe-manifests.ts` (автогенерируется)
+**⚠️ NOT NEEDED**:
+- ❌ Update root `package.json` (registry.ts is read automatically)
+- ❌ Add `dev:mfe:*` scripts (deprecated)
+- ❌ Modify `dev:all` command (generated dynamically)
+- ❌ Edit `src/app/mfe/generated-mfe-manifests.ts` (auto-generated)
 
-## 🎛️ Управление MFE
+## 🎛️ MFE Management
 
-### Выключить MFE без удаления
+### Disable MFE Without Deleting
 ```typescript
 {
   name: 'notifications-mfe',
   port: 3020,
-  enabled: false,  // ← MFE не запустится в dev:all, не загрузится в приложение
+  enabled: false,  // ← MFE won't start in dev:all, won't load in app
   description: 'Notifications MFE',
 }
 ```
 
-### Запустить только один MFE (независимо)
+### Run a Single MFE (Independently)
 ```bash
 cd src/mfe_packages/notifications-mfe
 npm run dev
-# → только этот MFE на порту 3020, без главного приложения
+# → only this MFE on port 3020, without main app
 ```
 
-## 🚀 Как работает система
+## 🚀 How the System Works
 
-### **bootstrap.ts** - Загрузка расширений в приложение
-1. Читает `MFE_REGISTRY` из `src/app/mfe/registry.ts`
-2. Для каждого MFE с `enabled: true`:
-   - Динамически импортирует `src/mfe_packages/{name}-mfe/mfe.json`
-   - Регистрирует manifest в типовой системе
-   - Регистрирует extensions для URL маршрутизации
+### **bootstrap.ts** - Loading Extensions into the App
+1. Reads `MFE_REGISTRY` from `src/app/mfe/registry.ts`
+2. For each MFE with `enabled: true`:
+   - Dynamically imports `src/mfe_packages/{name}-mfe/mfe.json`
+   - Registers manifest in the type system
+   - Registers extensions for URL routing
 
-### **scripts/dev-all.ts** - Запуск dev серверов
-1. Читает `MFE_REGISTRY` из `src/app/mfe/registry.ts`
-2. Для каждого MFE с `enabled: true`:
-   - Генерирует команду: `cd src/mfe_packages/{name}-mfe && npm run dev`
-3. Запускает все команды одновременно (concurrently):
-   - Все MFE на своих портах
-   - Главное приложение на 5173+
-4. **Никаких изменений package.json не требуется!**
+### **scripts/dev-all.ts** - Starting Dev Servers
+1. Reads `MFE_REGISTRY` from `src/app/mfe/registry.ts`
+2. For each MFE with `enabled: true`:
+   - Generates command: `cd src/mfe_packages/{name}-mfe && npm run dev`
+3. Runs all commands simultaneously (concurrently):
+   - All MFEs on their ports
+   - Main application on 5173+
+4. **No package.json changes required!**
 
-## Структура файлов нового MFE
+## New MFE File Structure
 
 ```
 src/mfe_packages/notifications-mfe/
-├── package.json              # ← обновлено с правильным портом
-├── vite.config.ts            # ← Module Federation конфиг
+├── package.json              # ← updated with correct port
+├── vite.config.ts            # ← Module Federation config
 ├── tsconfig.json
-├── mfe.json                  # ← ✅ ОБЯЗАТЕЛЕН для регистрации!
+├── mfe.json                  # ← ✅ REQUIRED for registration!
 ├── index.html
 └── src/
-    ├── lifecycle.tsx         # ← Точка входа MFE
+    ├── lifecycle.tsx         # ← MFE entry point
     └── screens/
-        ├── index.tsx         # Main screen для notifications
+        ├── index.tsx         # Main screen for notifications
         ├── list/
         └── details/
 ```
 
-## Проверка после регистрации
+## Verification After Registration
 
 ```bash
-# 1. Проверить что нет ошибок импорта
+# 1. Check for import errors
 npm run type-check
 
-# 2. Запустить dev сервер (если добавили dev:mfe:notifications скрипт)
+# 2. Start dev server
 npm run dev:all
 
-# 3. Проверить в браузере http://localhost:5173
-# - Открыть Studio Overlay (Ctrl+`)
-# - Убедиться что новый MFE появился в списке screensets
-# - Клик по MFE - должен загрузиться правильно
+# 3. Check in browser at http://localhost:5173
+# - Open Studio Overlay (Ctrl+`)
+# - Verify new MFE appears in screensets list
+# - Click on MFE - it should load correctly
 ```
 
-## Отладка
+## Debugging
 
-### MFE не загружается
+### MFE not loading
 
-1. Проверить что `mfe.json` существует: `ls -la src/mfe_packages/{name}-mfe/mfe.json`
-2. Проверить что JSON валиден: `npm run type-check`
-3. Проверить console в браузере на ошибки
-4. Убедиться что `enabled: true` в registry.ts
+1. Check `mfe.json` exists: `ls -la src/mfe_packages/{name}-mfe/mfe.json`
+2. Check JSON is valid: `npm run type-check`
+3. Check browser console for errors
+4. Make sure `enabled: true` in registry.ts
 
-### Ошибка "Failed to load {name}/mfe.json"
+### Error "Failed to load {name}/mfe.json"
 
-- Проверить путь в registry.ts совпадает с именем папки
-- Убедиться что `mfe.json` экспортирует объект правильной структуры
+- Check path in registry.ts matches folder name
+- Make sure `mfe.json` exports an object with correct structure
 
-## Пример: Полный workflow создания notifications-mfe
+## Example: Full Workflow for Creating notifications-mfe
 
 ```bash
-# 1. Скопировать template
+# 1. Copy template
 cp -r packages/cli/template-sources/mfe-package/ src/mfe_packages/notifications-mfe/
 
-# 2. Обновить переменные в package.json и vite.config.ts
+# 2. Update variables in package.json and vite.config.ts
 # {{mfeName}} -> notifications
 # {{port}} -> 3020
 
-# 3. Создать мfe.json (см. пример выше)
+# 3. Create mfe.json (see example above)
 
-# 4. Добавить в registry.ts:
+# 4. Add to registry.ts:
 # {
 #   name: 'notifications-mfe',
 #   port: 3020,
@@ -203,16 +203,16 @@ cp -r packages/cli/template-sources/mfe-package/ src/mfe_packages/notifications-
 #   description: 'Notifications MFE',
 # }
 
-# 5. Опционально добавить в package.json:
+# 5. Optionally add to package.json:
 # "dev:mfe:notifications": "cd src/mfe_packages/notifications-mfe && npm run dev"
 
-# 6. Запустить
+# 6. Run
 npm run dev:all
 ```
 
 ---
 
 See also:
-- `hai3-new-mfe.md` - создание нового MFE пакета
-- `hai3-dev-all.md` - dev сервер конфигурация
-- `.ai/GUIDELINES.hai3-mfe-setup.md` - основные guidelines
+- `hai3-new-mfe.md` - creating a new MFE package
+- `hai3-dev-all.md` - dev server configuration
+- `.ai/GUIDELINES.hai3-mfe-setup.md` - main guidelines

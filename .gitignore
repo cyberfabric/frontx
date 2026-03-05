@@ -42,6 +42,7 @@ packages/cli/template-sources/layout/
 
 # Claude Code local settings
 .claude/settings.local.json
+.claude/worktrees/
 
 # HAI3 migration tracker (project-local state)
 .hai3/

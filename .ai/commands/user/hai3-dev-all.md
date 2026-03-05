@@ -2,9 +2,9 @@
 
 ## Overview
 
-`npm run dev:all` автоматически запускает ВСЕ enabled MFE и главное приложение на своих портах.
+`npm run dev:all` automatically starts ALL enabled MFEs and the main application on their ports.
 
-**Важное:** Никаких изменений `package.json` при добавлении новых MFE не требуется! 🎉
+**Important:** No changes to `package.json` required when adding new MFEs! 🎉
 
 ## 🏗️ Architecture
 
@@ -12,14 +12,14 @@
 npm run dev:all
     ↓
 1️⃣  scripts/generate-mfe-manifests.ts
-    └─ Читает src/mfe_packages/*/mfe.json
-    └─ Генерирует src/app/mfe/generated-mfe-manifests.ts (для Vite)
+    └─ Reads src/mfe_packages/*/mfe.json
+    └─ Generates src/app/mfe/generated-mfe-manifests.ts (for Vite)
 
-2️⃣  scripts/dev-all.ts (читает registry)
-    └─ src/app/mfe/registry.ts (MFE_REGISTRY с enabled: true/false)
-    └─ Генерирует команды для всех enabled MFE
+2️⃣  scripts/dev-all.ts (reads registry)
+    └─ src/app/mfe/registry.ts (MFE_REGISTRY with enabled: true/false)
+    └─ Generates commands for all enabled MFEs
 
-3️⃣  concurrently запускает все одновременно
+3️⃣  concurrently starts everything simultaneously
     ├─ Demo MFE (3001)
     ├─ Notifications MFE (3020)
     └─ Main app (5173+)
@@ -27,40 +27,40 @@ npm run dev:all
 
 ## 📋 How It Works
 
-### 1. **registry.ts** - Управление MFE
+### 1. **registry.ts** - MFE Management
 ```typescript
 export const MFE_REGISTRY: MFERegistryEntry[] = [
   {
-    name: 'demo-mfe',           // Имя папки
-    port: 3001,                 // Dev порт
-    enabled: true,              // ← Будет запущен в dev:all
+    name: 'demo-mfe',           // Folder name
+    port: 3001,                 // Dev port
+    enabled: true,              // ← Will start in dev:all
     description: 'Demo MFE',
   },
   {
     name: 'notifications-mfe',
     port: 3020,
-    enabled: true,              // ← Будет запущен в dev:all
+    enabled: true,              // ← Will start in dev:all
     description: 'Notifications',
   },
   {
     name: 'analytics-mfe',
     port: 3030,
-    enabled: false,             // ← НЕ будет запущен
+    enabled: false,             // ← Will NOT start
     description: 'Analytics (coming soon)',
   },
 ];
 ```
 
-### 2. **dev-all.ts** - Динамическая генерация команд
+### 2. **dev-all.ts** - Dynamic Command Generation
 ```typescript
-// Автоматически читает registry и генерирует:
+// Automatically reads registry and generates:
 npm run generate:colors && vite                           // Main app
 cd src/mfe_packages/demo-mfe && npm run dev             // Demo (3001)
 cd src/mfe_packages/notifications-mfe && npm run dev    // Notifications (3020)
-// Пропускает analytics-mfe потому что enabled: false
+// Skips analytics-mfe because enabled: false
 ```
 
-### 3. **Concurrently** - Параллельный запуск
+### 3. **Concurrently** - Parallel Execution
 ```bash
 [0] Demo MFE listening on http://localhost:3001
 [1] Notifications MFE listening on http://localhost:3020
@@ -69,25 +69,25 @@ cd src/mfe_packages/notifications-mfe && npm run dev    // Notifications (3020)
 
 ## 🚀 Usage
 
-### Запустить все dev серверы
+### Start All Dev Servers
 ```bash
 npm run dev:all
-# Запустит:
-# - Все enabled MFE на их портах
-# - Главное приложение на 5173+
+# Will start:
+# - All enabled MFEs on their ports
+# - Main application on 5173+
 ```
 
-### Запустить только один MFE (независимо)
+### Start a Single MFE (Independently)
 ```bash
 cd src/mfe_packages/notifications-mfe
 npm run dev
-# → только notifications-mfe на порту 3020
+# → only notifications-mfe on port 3020
 ```
 
-### Запустить главное приложение без MFE
+### Run Main App Without MFE
 ```bash
 npm run dev
-# → только приложение на 5173+, без MFE серверов
+# → only the app on 5173+, without MFE servers
 ```
 
 ## 🎛️ Port Management
@@ -168,21 +168,21 @@ enabled: true,  // ← Change back to true
 
 ## 🔧 Generate MFE Manifests
 
-`npm run generate:mfe-manifests` генерирует `src/app/mfe/generated-mfe-manifests.ts` из всех `mfe.json` файлов в `src/mfe_packages/*/`.
+`npm run generate:mfe-manifests` generates `src/app/mfe/generated-mfe-manifests.ts` from all `mfe.json` files in `src/mfe_packages/*/`.
 
-**Это нужно для Vite** - так как Vite требует статических импортов, динамические импорты с переменными вызывают warnings.
+**This is needed for Vite** - Vite requires static imports; dynamic imports with variables cause warnings.
 
 ```bash
-# Автоматически запускается в dev:all и build:
-npm run dev:all     # ← Вызывает generate:mfe-manifests первым
+# Automatically runs in dev:all and build:
+npm run dev:all     # ← Calls generate:mfe-manifests first
 
-# Можно запустить отдельно:
+# Can be run separately:
 npm run generate:mfe-manifests
 
-# Исключаемые папки: _blank-mfe, .git, .* (скрытые)
+# Excluded folders: _blank-mfe, .git, .* (hidden)
 ```
 
-**Сгенерированный файл:**
+**Generated file:**
 ```typescript
 // src/app/mfe/generated-mfe-manifests.ts (AUTO-GENERATED)
 import mfe0 from '@/mfe_packages/demo-mfe/mfe.json';
@@ -191,7 +191,7 @@ import mfe1 from '@/mfe_packages/notifications-mfe/mfe.json';
 export const MFE_MANIFESTS = [mfe0, mfe1];
 ```
 
-⚠️ **НЕ редактируй этот файл** - он автоматически генерируется!
+⚠️ **DO NOT edit this file** - it is auto-generated!
 
 ## 🔍 Troubleshooting
 
