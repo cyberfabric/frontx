@@ -68,6 +68,7 @@ jobs:
         for cmd in packages/*/commands/*.md; do
           if [ -f "$cmd" ]; then
             filename=$(basename "$cmd")
+            if [[ "$filename" == "README.md" ]]; then continue; fi
             if [[ ! "$filename" =~ ^hai3-.+\.md$ ]] && [[ ! "$filename" =~ ^hai3dev-.+\.md$ ]]; then
               INVALID="$INVALID $cmd"
             fi
@@ -77,6 +78,7 @@ jobs:
         for cmd in .ai/commands/*.md .ai/commands/user/*.md; do
           if [ -f "$cmd" ]; then
             filename=$(basename "$cmd")
+            if [[ "$filename" == "README.md" ]]; then continue; fi
             if [[ ! "$filename" =~ ^hai3-.+\.md$ ]] && [[ ! "$filename" =~ ^hai3dev-.+\.md$ ]]; then
               INVALID="$INVALID $cmd"
             fi
