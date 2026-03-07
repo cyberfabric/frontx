@@ -36,6 +36,7 @@ Every feature follows this sequence:
 2. **Write/refine a FEATURE spec** in [architecture/features/](../../../architecture/features/). FEATUREs use CDSL to express behavior as flows, algorithms, state machines, edge cases, and definitions of done. The architect may have already started a FEATURE from DECOMPOSITION — refine it with implementation detail
 3. **Implement code** across the relevant packages, adding `@cpt-*` traceability markers that link back to the FEATURE spec
 4. **Write tests** that verify the behavior described in the FEATURE spec
+5. **Self-check before declaring done** — run `npx tsc --noEmit`, `npx eslint`, and the relevant test command. Fix any failures before handing off. Do not leave broken builds for QA to catch
 
 ## Traceability markers
 

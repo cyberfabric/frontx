@@ -98,8 +98,11 @@ Read and scan the implementation for violations that automated tools miss.
 - Index files only when aggregating 3+ exports; Redux slices imported directly (no barrels)
 
 **Architecture compliance**:
+- Standalone exported functions for capabilities that should be classes — flag
 - Module-level state outside class private members — flag
+- Missing abstract class where DESIGN doc specifies one — flag
 - Concrete classes exported publicly where only abstractions should be — flag
+- Dependency on concrete classes instead of abstractions — flag
 
 ### Tier 3: Browser runtime validation (run when changes affect UI or behavior)
 

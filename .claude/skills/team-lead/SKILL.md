@@ -151,7 +151,8 @@ The delegation rule applies either way. For architecture-driven work, point to t
 - **Don't duplicate work.** If researcher is investigating something, don't also search for the same thing yourself.
 - **Monitor, don't intervene.** Teammates run long jobs — don't mistake slow progress for being stuck. Wait for them to finish before sending another message. If you're unsure whether a teammate is still working, ask the user.
 - **Resume over re-spawn.** The decision criterion is shared working area, not task similarity. If the next task touches the same files or directories as a previous agent's work, resume that agent — even if the tasks seem unrelated. Agent context builds from file reads; a resumed agent already has those files loaded and the surrounding structure understood. Spawning fresh means re-reading the same files and re-building the same mental model from scratch. Before spawning any agent, check if an existing one with that role already exists. Only spawn fresh when no matching agent exists or the previous one is unrecoverable.
-- **Architect review after implementation.** Once implementation is complete, have an architect review the work. This is required. They check for coupling issues, leaky abstractions, and alignment with overall architecture. Route findings back to the developer for fixes before closing out.
+- **QA after implementation.** Once implementation is complete, invoke the `qa` agent to validate the work. This is required — no implementation is accepted without QA verification. QA runs CLI checks, code inspection, and browser validation as needed. Route blockers back to the developer for fixes.
+- **Architect review after QA.** Once QA passes, have an architect review the work. This is required. They check for coupling issues, leaky abstractions, and alignment with overall architecture. Route findings back to the developer for fixes before closing out.
 
 ## Error Recovery
 

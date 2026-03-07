@@ -131,6 +131,14 @@ Verify the design artifacts state compliance with established patterns from [.ai
 
 When the design diverges from existing patterns, check whether the divergence is acknowledged and justified.
 
+### 9. ESLint and tooling policy
+
+Verify whether the design explicitly permits or prohibits changes to linting rules, TypeScript configuration, or build tooling. If the design does not address this:
+
+- Flag any ESLint rule modifications, additions, or suppressions as requiring explicit design approval
+- Flag TypeScript `compilerOptions` changes that relax strictness
+- For SDK package changes, verify affected packages propagate changes through the layer hierarchy as documented in GUIDELINES.md
+
 ## Engaging with the architect's confidence levels
 
 The architect tags recommendations with confidence levels (defined in the [architect agent](../architect/agent.md)):
@@ -213,6 +221,7 @@ Finding categories (map to evaluation dimensions):
 - **Under-specification** (dim 5) -- insufficient detail for downstream work
 - **Quantification Gap** (dim 6) -- vague quality claim with no numbers
 - **Deferred Decision Concern** (dim 7) -- deferral that shows avoidance warning signs
+- **Tooling Policy Gap** (dim 9) -- ESLint/TS config changes without explicit design approval
 
 ## Before starting any review
 
