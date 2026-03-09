@@ -8,9 +8,11 @@ Before this change, the generated project had no `src/app/mfe/` directory, no de
 
 ### Dynamic bootstrap vs. static hardcoded
 
-**Decision**: Dynamic bootstrap reads from `registry.ts` and `generated-mfe-manifests.ts` at runtime instead of hardcoding MFE imports.
+**Decision**: Dynamic bootstrap reads from `generated-mfe-manifests.ts` at runtime instead of hardcoding MFE imports.
 
-**Rationale**: Allows adding MFEs by editing only `registry.ts` + running `generate:mfe-manifests`. Bootstrap stays unchanged as the project grows.
+**Rationale**: `generate:mfe-manifests` scans `src/mfe_packages/*/mfe.json` and generates typed static imports. Bootstrap stays unchanged as MFEs are added. No registry file needed — `generate:mfe-manifests` is the single source of truth.
+
+**Note (PR review C1)**: An intermediate `registry.ts` approach (enabled/disabled flags) was dropped. Registry was architecturally redundant — never consumed at runtime and required manual maintenance. `dev-all.ts` now reads port directly from each package's `package.json` `preview` script.
 
 ### MFE opt-in (no federation deps in scaffold)
 
@@ -36,15 +38,14 @@ packages/cli/
     project/
       src/app/
         mfe/
-          registry.ts                      # MFE registry (enabled/disabled, port)
-          bootstrap.ts                     # Dynamic multi-MFE bootstrap
+          bootstrap.ts                     # Dynamic multi-MFE bootstrap (reads generated-mfe-manifests)
           generated-mfe-manifests.ts       # Auto-generated stub (empty on fresh scaffold)
         App.tsx                            # Updated: "hai3 add-mfe" text
         App.no-studio.tsx
         App.no-uikit.tsx
         App.no-uikit.no-studio.tsx
       scripts/
-        dev-all.ts                         # Reads registry, starts MFEs via concurrently
+        dev-all.ts                         # Scans src/mfe_packages/*/package.json for port, starts via concurrently
         generate-mfe-manifests.ts          # Codegen: scans mfe.json files
   src/
     generators/project.ts                  # Added MFE scripts, removed screensets loop
@@ -52,13 +53,12 @@ packages/cli/
     index.ts                               # CLI commands registration
 
 scripts/
-  dev-all.ts                               # Monorepo version (same logic)
+  dev-all.ts                               # Monorepo version (scans package.json)
   generate-mfe-manifests.ts                # Monorepo version (same logic)
 
 src/app/mfe/
-  registry.ts                              # Monorepo registry (demo-mfe enabled)
-  generated-mfe-manifests.ts               # Monorepo generated file
-  bootstrap.ts                             # Updated to dynamic pattern
+  generated-mfe-manifests.ts               # Monorepo generated file (gitignored)
+  bootstrap.ts                             # Dynamic pattern (reads MFE_MANIFESTS from generated-mfe-manifests)
 
 .ai/
   GUIDELINES.hai3-mfe-setup.md
@@ -74,8 +74,8 @@ main.tsx
   └── bootstrapMFE(app, ref)
         ├── Register domains (screen, sidebar, popup, overlay)
         ├── Set shared properties (theme, language)
-        ├── [GUARD] if MFE_REGISTRY empty → warn + return early
-        ├── For each enabled MFE in MFE_MANIFESTS:
+        ├── [GUARD] if MFE_MANIFESTS empty → warn + return early
+        ├── For each MFE config in MFE_MANIFESTS:
         │     ├── typeSystem.register(manifest)
         │     ├── typeSystem.register(entries)
         │     └── registerExtension(extensions)

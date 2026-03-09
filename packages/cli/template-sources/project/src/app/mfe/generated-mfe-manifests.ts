@@ -3,10 +3,9 @@
 // Do not edit manually!
 // Regenerate: npm run generate:mfe-manifests
 
-import mfe0 from '@/mfe_packages/demo-mfe/mfe.json';
 
 export const MFE_MANIFESTS = [
-  mfe0,
+
 ];
 
 // Get all MFE manifests

@@ -61,6 +61,7 @@ root:
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
+    - src/app/mfe         # MFE bootstrap + generated manifests stub
 
 # Stage 1c: AI documentation overrides
 ai_overrides:

@@ -43,7 +43,7 @@
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).
 - Registries follow Open/Closed; adding items must not modify registry root files.
-- App-level deps limited to: @hai3/react, the configured UI kit, react, react-dom.
+- App-level deps: @hai3/react, the configured UI kit, react, react-dom. Standalone projects must also declare peer deps explicitly: @hai3/framework, @hai3/api, @hai3/i18n, @hai3/screensets, @hai3/state.
 - Cross-domain communication only via events.
 - No string literal identifiers; use constants or enums.
 - No any, no unknown in type definitions, no "as unknown as" casts.

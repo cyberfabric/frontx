@@ -383,12 +383,20 @@ export async function generateProject(
     },
     workspaces: ['eslint-plugin-local'],
     scripts: {
-      dev: uikit === 'hai3' ? 'npm run generate:colors && vite' : 'vite',
+      'generate:mfe-manifests': 'npx tsx scripts/generate-mfe-manifests.ts',
+      dev: uikit === 'hai3'
+        ? 'npm run generate:mfe-manifests && npm run generate:colors && vite'
+        : 'npm run generate:mfe-manifests && vite',
+      'dev:all': 'npm run generate:mfe-manifests && npx tsx scripts/dev-all.ts',
       'check:mcp': 'npx tsx scripts/check-mcp.ts',
-      build: uikit === 'hai3' ? 'npm run generate:colors && vite build' : 'vite build',
+      build: uikit === 'hai3'
+        ? 'npm run generate:mfe-manifests && npm run generate:colors && vite build'
+        : 'npm run generate:mfe-manifests && vite build',
       preview: 'vite preview',
       lint: 'npm run build --workspace=eslint-plugin-local && eslint . --max-warnings 0',
-      'type-check': uikit === 'hai3' ? 'npm run generate:colors && tsc --noEmit' : 'tsc --noEmit',
+      'type-check': uikit === 'hai3'
+        ? 'npm run generate:mfe-manifests && npm run generate:colors && tsc --noEmit'
+        : 'npm run generate:mfe-manifests && tsc --noEmit',
       ...(uikit === 'hai3' && { 'generate:colors': 'npx tsx scripts/generate-colors.ts' }),
       'arch:check': 'npx tsx scripts/test-architecture.ts',
       'arch:deps':
