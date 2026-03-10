@@ -69,6 +69,23 @@ The architecture is event-driven throughout. Components communicate exclusively 
 
 Requirements that significantly influence architecture decisions.
 
+**ADRs**:
+`cpt-hai3-adr-four-layer-sdk-architecture`,
+`cpt-hai3-adr-event-driven-flux-dataflow`,
+`cpt-hai3-adr-plugin-based-framework-composition`,
+`cpt-hai3-adr-blob-url-mfe-isolation`,
+`cpt-hai3-adr-esm-first-module-format`,
+`cpt-hai3-adr-screenset-vertical-slice-isolation`,
+`cpt-hai3-adr-mandatory-screen-lazy-loading`,
+`cpt-hai3-adr-hybrid-namespace-localization`,
+`cpt-hai3-adr-standalone-studio-dev-conditional`,
+`cpt-hai3-adr-protocol-separated-api-architecture`,
+`cpt-hai3-adr-react-19-ref-as-prop`,
+`cpt-hai3-adr-automated-layer-ordered-publishing`,
+`cpt-hai3-adr-symbol-based-mock-plugin-identification`,
+`cpt-hai3-adr-global-shared-property-broadcast`,
+`cpt-hai3-adr-cli-template-based-code-generation`
+
 #### Functional Drivers
 
 | Requirement | Design Response |
@@ -153,6 +170,8 @@ Requirements that significantly influence architecture decisions.
 
 - [ ] `p1` - **ID**: `cpt-hai3-principle-event-driven-architecture`
 
+**ADRs**: `cpt-hai3-adr-event-driven-flux-dataflow`
+
 All cross-domain communication flows through a typed event bus (`eventBus` in `@hai3/state`). No component may directly call methods on or import internal state from another domain. This ensures loose coupling, enables replay/debugging of all system interactions, and allows MFE extensions to participate in host events without tight integration.
 
 The event bus uses a publish/subscribe model with typed event names and payloads. Framework plugins subscribe to events during initialization. Effects listen for specific events and dispatch state changes through reducers.
@@ -161,6 +180,8 @@ The event bus uses a publish/subscribe model with typed event names and payloads
 
 - [ ] `p1` - **ID**: `cpt-hai3-principle-layer-isolation`
 
+**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
+
 Dependencies flow strictly downward: L3 → L2 → L1. No upward or lateral dependencies are permitted within the layer hierarchy. L1 packages have zero `@hai3/*` dependencies. L2 depends only on L1 packages. L3 depends only on L2 (which re-exports L1 surface). This enables each layer to be tested, built, and versioned independently.
 
 Standalone packages (UIKit, Studio, CLI) exist outside the layer hierarchy and do not depend on framework or SDK packages, ensuring they can evolve independently.
@@ -168,6 +189,8 @@ Standalone packages (UIKit, Studio, CLI) exist outside the layer hierarchy and d
 #### Plugin-First Composition
 
 - [ ] `p1` - **ID**: `cpt-hai3-principle-plugin-first-composition`
+
+**ADRs**: `cpt-hai3-adr-plugin-based-framework-composition`
 
 All framework capabilities are delivered through plugins. The framework core (`createHAI3()`) is a minimal builder that assembles a plugin chain. Each plugin implements the `HAI3Plugin` interface with an `init(context: HAI3PluginContext)` method. Plugins register slices, effects, event listeners, and UI extensions through the context object.
 
@@ -185,6 +208,8 @@ This eliminates merge conflicts on registry files and enables tree-shaking of un
 
 - [ ] `p1` - **ID**: `cpt-hai3-principle-action-event-effect-reducer-flux`
 
+**ADRs**: `cpt-hai3-adr-event-driven-flux-dataflow`
+
 All state mutations follow a fixed sequence: (1) Component calls `createAction()`, (2) action dispatches an event via `eventBus`, (3) registered effects handle the event (API calls, validation, side effects), (4) effects dispatch Redux actions, (5) reducers produce new state. Components never dispatch Redux actions directly. This ensures every state change is traceable and debuggable.
 
 The terminology follows Redux Toolkit conventions: slices, reducers, selectors, thunks — but wrapped in HAI3's action/event abstraction to enforce the data flow pattern.
@@ -192,6 +217,8 @@ The terminology follows Redux Toolkit conventions: slices, reducers, selectors, 
 #### MFE Isolation
 
 - [ ] `p1` - **ID**: `cpt-hai3-principle-mfe-isolation`
+
+**ADRs**: `cpt-hai3-adr-blob-url-mfe-isolation`
 
 Microfrontend extensions execute in an isolated context. JavaScript isolation is achieved through blob URL evaluation: each MFE bundle is fetched, its import specifiers are rewritten to point to blob URLs of shared dependencies, and the rewritten bundle is evaluated in a new module scope. CSS isolation uses Shadow DOM containers. MFEs have no access to the host Redux store; they communicate with the host exclusively through shared properties and the event bus.
 
@@ -201,6 +228,8 @@ Microfrontend extensions execute in an isolated context. JavaScript isolation is
 
 - [ ] `p1` - **ID**: `cpt-hai3-constraint-no-react-below-l3`
 
+**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
+
 L1 SDK and L2 Framework packages SHALL NOT import React or any React-specific APIs. This ensures the SDK and framework are usable in non-React environments (Node.js scripts, web workers, alternative renderers). React appears only in L3 (`@hai3/react`) and standalone UI packages (`@hai3/uikit`, `@hai3/studio`).
 
 **Enforcement**: `dependency-cruiser` rules flag any `react` import in `packages/state/`, `packages/screensets/`, `packages/api/`, `packages/i18n/`, or `packages/framework/`.
@@ -208,6 +237,8 @@ L1 SDK and L2 Framework packages SHALL NOT import React or any React-specific AP
 #### Zero Cross-Dependencies at L1
 
 - [ ] `p1` - **ID**: `cpt-hai3-constraint-zero-cross-deps-at-l1`
+
+**ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
 
 No L1 SDK package may depend on another L1 SDK package. `@hai3/state` SHALL NOT import from `@hai3/api`, `@hai3/i18n`, or `@hai3/screensets`, and vice versa. This keeps each SDK package independently deployable and prevents coupling between orthogonal concerns.
 
@@ -238,6 +269,8 @@ All packages compile with `"strict": true` in `tsconfig.json`. Use of `any`, `as
 #### ESM-First Module Format
 
 - [ ] `p1` - **ID**: `cpt-hai3-constraint-esm-first-module-format`
+
+**ADRs**: `cpt-hai3-adr-esm-first-module-format`
 
 All packages output ESM as the primary module format. `package.json` files include `"type": "module"` and `"exports"` field with ESM entry points. CJS is not supported. This ensures compatibility with modern bundlers, enables tree-shaking, and aligns with the platform direction of Node.js and browsers.
 
