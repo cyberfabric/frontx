@@ -1,0 +1,49 @@
+name: CLI Nightly E2E
+
+on:
+  schedule:
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-nightly
+  cancel-in-progress: true
+
+jobs:
+  cli-nightly-e2e:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 24.14.x
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24.14.x
+          cache: npm
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build CLI package
+        run: npm run build --workspace=@hai3/cli
+
+      - name: Run CLI nightly E2E
+        run: npm run test:e2e:nightly --workspace=@hai3/cli
+        env:
+          CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/nightly
+
+      - name: Upload CLI E2E artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cli-nightly-e2e-logs
+          path: .artifacts/cli-e2e/nightly
+          retention-days: 14

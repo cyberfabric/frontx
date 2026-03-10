@@ -9,7 +9,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { HAI3App } from '@hai3/react';
+import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
 import {
   screenDomain,
   sidebarDomain,
@@ -21,6 +21,17 @@ import {
   RefContainerProvider,
 } from '@hai3/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
+
+interface MfeManifestConfig {
+  manifest: JSONSchema;
+  entries: MfeEntry[];
+  extensions: Extension[];
+}
+
+function isScreenExtension(extension: Extension): extension is ScreenExtension {
+  const candidate = extension as { presentation?: { route?: string } };
+  return typeof candidate.presentation?.route === 'string';
+}
 
 /**
  * DetachedContainerProvider for domains without a visible host element.
@@ -80,9 +91,10 @@ export async function bootstrapMFE(
   }
 
   // Step 4: Register all MFE manifests, entries, and extensions dynamically
-  const screenExtensions: Array<{ id: string; presentation: { route: string } }> = [];
+  const manifests = MFE_MANIFESTS as MfeManifestConfig[];
+  const screenExtensions: ScreenExtension[] = [];
 
-  for (const config of MFE_MANIFESTS) {
+  for (const config of manifests) {
     // Register manifest type
     screensetsRegistry.typeSystem.register(config.manifest);
 
@@ -101,7 +113,7 @@ export async function bootstrapMFE(
     }
 
     screenExtensions.push(
-      ...(config.extensions as Array<{ id: string; presentation: { route: string } }>)
+      ...config.extensions.filter(isScreenExtension)
     );
   }
 

@@ -10,6 +10,16 @@ import { join } from 'path';
 const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
 const OUTPUT_FILE = join(process.cwd(), 'src/app/mfe/generated-mfe-manifests.ts');
 
+function typePreamble(): string {
+  return `import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';
+
+export interface MfeManifestConfig {
+  manifest: JSONSchema;
+  entries: MfeEntry[];
+  extensions: Extension[];
+}`;
+}
+
 function generateManifestRegistry(): void {
   try {
     // Packages to exclude (templates, blanks, etc.)
@@ -44,7 +54,7 @@ function generateManifestRegistry(): void {
       .join('\n');
 
     // Generate registry
-    const registry = `export const MFE_MANIFESTS = [
+    const registry = `export const MFE_MANIFESTS: MfeManifestConfig[] = [
 ${mfePackages
   .map((_, idx) => `  mfe${idx},`)
   .join('\n')}
@@ -57,6 +67,8 @@ ${mfePackages
 // Regenerate: npm run generate:mfe-manifests
 
 ${imports}
+
+${typePreamble()}
 
 ${registry}
 

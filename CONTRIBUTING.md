@@ -40,7 +40,19 @@ Follow the coding standards and patterns described below.
 
 ### 3. Run Quality Checks
 
-TODO
+Minimum checks before opening a PR:
+
+```bash
+npm ci
+npm run arch:check
+```
+
+If your change touches `packages/cli`, `packages/cli/template-sources`, or CLI-related workflows, also run:
+
+```bash
+npm run build --workspace=@hai3/cli
+npm run test:e2e:pr --workspace=@hai3/cli
+```
 
 ### 4. Commit Changes
 
@@ -111,6 +123,15 @@ Then create a Pull Request on GitHub with:
 - Reference to related issues
 - Test coverage information
 - Breaking changes (if any)
+
+### Required Status Checks on `main`
+
+Configure branch protection for `main` to require these checks before merge:
+
+- `validate`
+- `cli-pr-e2e`
+
+Path-scoped workflows such as AI guideline validation can stay non-required, because they do not run for every PR.
 
 ## Publishing Packages
 

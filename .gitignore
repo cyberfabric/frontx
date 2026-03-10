@@ -49,3 +49,6 @@ packages/cli/template-sources/layout/
 
 # HAI3 migration tracker (project-local state)
 .hai3/
+
+# Local CLI e2e artifacts
+.artifacts/
