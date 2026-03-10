@@ -1,6 +1,6 @@
 {
   "name": "@hai3/studio",
-  "version": "0.3.0-alpha.2",
+  "version": "0.4.0-alpha.0",
   "description": "HAI3 Studio - Development studio overlay for HAI3 applications",
   "type": "module",
   "main": "./dist/index.cjs",
