@@ -7,11 +7,11 @@
  * SDK Layer: L1 (Only peer dependency on axios)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-base-service:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-service-registration:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-service-cleanup:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-plugin-exclusion:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-plugin-ordering:p1
+// @cpt-dod:cpt-hai3-dod-api-communication-base-service:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-service-registration:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-service-cleanup:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-plugin-exclusion:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
 
 import type {
   ApiServiceConfig,

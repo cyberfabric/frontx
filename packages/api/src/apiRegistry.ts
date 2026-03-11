@@ -7,10 +7,10 @@
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-registry:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-service-registration:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-global-plugin:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-mock-activation:p2
+// @cpt-dod:cpt-hai3-dod-api-communication-registry:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-service-registration:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-global-plugin:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-mock-activation:p2
 
 import type {
   ApiRegistry as IApiRegistry,

@@ -6,9 +6,9 @@
  * SDK Layer: L1 (Zero dependencies)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-sse-mock-plugin:p2
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-mock-event-source:p2
-// @cpt-FEATURE:cpt-hai3-state-api-communication-mock-event-source:p2
+// @cpt-dod:cpt-hai3-dod-api-communication-sse-mock-plugin:p2
+// @cpt-algo:cpt-hai3-algo-api-communication-mock-event-source:p2
+// @cpt-state:cpt-hai3-state-api-communication-mock-event-source:p2
 
 import type { EventSourceLike } from '../types';
 

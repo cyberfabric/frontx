@@ -4,10 +4,10 @@
  * Removed: mobile support, keyboard shortcuts, cookie persistence
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-navigation:p1
-// @cpt-FEATURE:cpt-hai3-state-uikit-components-sidebar-collapsed:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-consume-composite:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-navigation:p1
+// @cpt-state:cpt-hai3-state-uikit-components-sidebar-collapsed:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
 
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"

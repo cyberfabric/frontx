@@ -1,4 +1,4 @@
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-panel-overlay:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
 import React from 'react';
 import { Button, ButtonVariant } from '@hai3/uikit';
 

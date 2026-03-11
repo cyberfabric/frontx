@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-state-cli-tooling-command-lifecycle:p1
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-command-infra:p1
+// @cpt-state:cpt-hai3-state-cli-tooling-command-lifecycle:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-command-infra:p1
 import type { CommandDefinition, CommandContext } from './command.js';
 import type { CommandResult, ExecutionMode } from './types.js';
 import { Logger } from './logger.js';
@@ -36,38 +36,47 @@ async function buildContext(mode: ExecutionMode): Promise<CommandContext> {
  * @param mode - Execution mode (interactive or programmatic)
  * @returns Command result with success/failure and data
  */
-// @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-1
 export async function executeCommand<TArgs, TResult>(
   command: CommandDefinition<TArgs, TResult>,
   args: TArgs,
   mode: ExecutionMode = { interactive: true }
 ): Promise<CommandResult<TResult>> {
+  // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-context-built
   const ctx = await buildContext(mode);
+  // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-context-built
 
+  // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-validated
   // Validate arguments
   const validation = command.validate(args, ctx);
   if (!validation.ok) {
+    // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-validated-failed
     for (const error of validation.errors) {
       ctx.logger.error(error.message);
     }
     return { success: false, errors: validation.errors };
+    // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-validated-failed
   }
+  // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-validated
 
+  // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-executing
   // Execute command
   try {
     const result = await command.execute(args, ctx);
+    // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-succeeded
     return { success: true, data: result };
+    // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-succeeded
   } catch (error) {
+    // @cpt-begin:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-failed
     const message = error instanceof Error ? error.message : String(error);
     ctx.logger.error(message);
     return {
       success: false,
       errors: [{ code: 'EXECUTION_ERROR', message }],
     };
+    // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-failed
   }
+  // @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-to-executing
 }
-
-// @cpt-end:cpt-hai3-state-cli-tooling-command-lifecycle:p1:inst-1
 
 /**
  * Build context for testing or external use

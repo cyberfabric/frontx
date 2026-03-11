@@ -5,11 +5,11 @@
  * Maps to shadcn CSS variable naming convention
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-theme:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-apply-theme-document:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-apply-theme-shadow:p1
-// @cpt-FEATURE:cpt-hai3-algo-uikit-components-apply-theme-document:p1
-// @cpt-FEATURE:cpt-hai3-algo-uikit-components-apply-theme-shadow:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-theme:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-apply-theme-document:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-apply-theme-shadow:p1
+// @cpt-algo:cpt-hai3-algo-uikit-components-apply-theme-document:p1
+// @cpt-algo:cpt-hai3-algo-uikit-components-apply-theme-shadow:p1
 
 import type { Theme } from '../types';
 

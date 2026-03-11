@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-language-change:p1
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-language-change:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
 import { useTranslation, LanguageDisplayMode, TextDirection, SUPPORTED_LANGUAGES, getLanguageMetadata, type Language } from '@hai3/react';
 import { ButtonVariant } from '@hai3/uikit';
 import {

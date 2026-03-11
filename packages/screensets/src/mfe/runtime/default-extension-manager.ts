@@ -7,11 +7,11 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-domain-validation:p1
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-extension-validation:p1
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-shared-property-broadcast:p1
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-gts-validation:p1
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-shared-property-broadcast:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-domain-validation:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-extension-validation:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-shared-property-broadcast:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-gts-validation:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-shared-property-broadcast:p1
 
 import type {
   ExtensionDomain,

@@ -22,7 +22,7 @@
  * ];
  * ```
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-layer-constraints:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-layer-constraints:p1
 
 // ============================================================================
 // Layout Domain Enum

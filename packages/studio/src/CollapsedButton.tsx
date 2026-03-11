@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-drag-button:p1
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-panel-overlay:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-button:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
 import React, { useRef } from 'react';
 import { useTranslation } from '@hai3/react';
 import { useDraggable } from './hooks/useDraggable';

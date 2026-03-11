@@ -4,7 +4,7 @@
  * Based on major platforms (Google, Facebook, Microsoft, Apple).
  * Includes native names, English names, and text direction.
  */
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-language-support:p1
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-language-support:p1
 
 import { Language, TextDirection } from './types';
 import type { LanguageMetadata } from './types';

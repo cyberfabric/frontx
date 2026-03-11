@@ -6,8 +6,8 @@
  * Framework Layer: L2
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-full-preset:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-builder:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-builder:p1
 
 import { createHAI3 } from './createHAI3';
 import { full, type FullPresetConfig } from './presets';

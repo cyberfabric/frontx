@@ -1,15 +1,17 @@
-# @cpt-FEATURE:cpt-hai3-dod-publishing-pipeline-ci-workflow:p1
-# @cpt-FEATURE:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1
-# @cpt-FEATURE:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1
-# @cpt-FEATURE:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1
-# @cpt-FEATURE:cpt-hai3-algo-publishing-pipeline-layer-sort:p1
-# @cpt-FEATURE:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1
-# @cpt-FEATURE:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1
-# @cpt-FEATURE:cpt-hai3-state-publishing-pipeline-workflow-run:p1
-# @cpt-FEATURE:cpt-hai3-state-publishing-pipeline-package-publish:p1
-# @cpt-FEATURE:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1
-# @cpt-FEATURE:cpt-hai3-dod-publishing-pipeline-version-alignment:p1
-# @cpt-FEATURE:cpt-hai3-dod-publishing-pipeline-metadata-contract:p1
+# @cpt-dod:cpt-hai3-dod-publishing-pipeline-ci-workflow:p1
+# @cpt-flow:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1
+# @cpt-flow:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1
+# @cpt-flow:cpt-hai3-flow-publishing-pipeline-developer-version-bump:p2
+# @cpt-algo:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1
+# @cpt-algo:cpt-hai3-algo-publishing-pipeline-layer-sort:p1
+# @cpt-algo:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1
+# @cpt-algo:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1
+# @cpt-algo:cpt-hai3-algo-publishing-pipeline-validate-metadata:p2
+# @cpt-state:cpt-hai3-state-publishing-pipeline-workflow-run:p1
+# @cpt-state:cpt-hai3-state-publishing-pipeline-package-publish:p1
+# @cpt-dod:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1
+# @cpt-dod:cpt-hai3-dod-publishing-pipeline-version-alignment:p1
+# @cpt-dod:cpt-hai3-dod-publishing-pipeline-metadata-contract:p1
 name: Publish Packages
 
 on:
@@ -94,6 +96,7 @@ jobs:
           # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-no-changes-exit
   # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-1
   # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-1
+  # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-1
 
   # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-2
   # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-1

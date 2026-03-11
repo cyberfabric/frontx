@@ -7,8 +7,8 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-FEATURE:cpt-hai3-state-screenset-registry-extension-load:p1
-// @cpt-FEATURE:cpt-hai3-state-screenset-registry-extension-mount:p1
+// @cpt-state:cpt-hai3-state-screenset-registry-extension-load:p1
+// @cpt-state:cpt-hai3-state-screenset-registry-extension-mount:p1
 
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';

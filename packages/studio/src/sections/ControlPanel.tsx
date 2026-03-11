@@ -1,4 +1,4 @@
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
 import React from 'react';
 import { useTranslation } from '@hai3/react';
 import { MfePackageSelector } from './MfePackageSelector';

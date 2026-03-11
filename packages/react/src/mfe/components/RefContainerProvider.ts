@@ -7,7 +7,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-react-bindings-ref-container-provider:p1
+// @cpt-dod:cpt-hai3-dod-react-bindings-ref-container-provider:p1
 
 import type { RefObject } from 'react';
 import { ContainerProvider } from '@hai3/framework';

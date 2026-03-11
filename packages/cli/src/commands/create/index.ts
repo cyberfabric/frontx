@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-flow-cli-tooling-create-project:p1
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-flow:cpt-hai3-flow-cli-tooling-create-project:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
 import fs from 'fs-extra';
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
@@ -31,7 +31,7 @@ export interface CreateCommandResult {
 /**
  * Create command implementation
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create
 export const createCommand: CommandDefinition<
   CreateCommandArgs,
   CreateCommandResult
@@ -66,9 +66,9 @@ export const createCommand: CommandDefinition<
     },
   ],
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-2
   validate(args, ctx) {
-    // Validate project name
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-name-validation
+    // @cpt-ref:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
     if (!args.projectName) {
       return validationError('MISSING_NAME', 'Project name is required');
     }
@@ -80,7 +80,7 @@ export const createCommand: CommandDefinition<
       );
     }
 
-    // Validate layer parameter
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
     if (args.layer) {
       const validLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
       if (!validLayers.includes(args.layer)) {
@@ -90,6 +90,8 @@ export const createCommand: CommandDefinition<
         );
       }
     }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-name-validation
 
     // Check if directory exists
     const projectPath = path.join(ctx.cwd, args.projectName);
@@ -99,13 +101,13 @@ export const createCommand: CommandDefinition<
 
     return validationOk();
   },
-  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-2
 
   async execute(args, ctx): Promise<CreateCommandResult> {
     const { logger, prompt } = ctx;
     const projectPath = path.join(ctx.cwd, args.projectName);
     const layer = args.layer ?? 'app';
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
     // Check for existing directory
     if (await fs.pathExists(projectPath)) {
       const { overwrite } = await prompt<{ overwrite: boolean }>([
@@ -123,7 +125,9 @@ export const createCommand: CommandDefinition<
 
       await fs.remove(projectPath);
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
     // For layer packages (sdk, framework, react), skip uikit/studio prompts
     if (layer !== 'app') {
       logger.newline();
@@ -170,6 +174,7 @@ export const createCommand: CommandDefinition<
         files: writtenFiles,
       };
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
     // App project - get configuration via prompts if not provided
     let studio = args.studio;
@@ -184,6 +189,7 @@ export const createCommand: CommandDefinition<
       choices?: Array<{ name: string; value: unknown }>;
     }> = [];
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-studio
     if (studio === undefined) {
       promptQuestions.push({
         name: 'studio',
@@ -192,7 +198,9 @@ export const createCommand: CommandDefinition<
         default: true,
       });
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-studio
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
     if (uikit === undefined) {
       promptQuestions.push({
         name: 'uikit',
@@ -205,6 +213,7 @@ export const createCommand: CommandDefinition<
         default: 'hai3',
       });
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
 
     if (promptQuestions.length > 0) {
       const answers = await prompt<{
@@ -224,6 +233,7 @@ export const createCommand: CommandDefinition<
     logger.info(`Creating project '${args.projectName}'...`);
     logger.newline();
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
     // Generate project files (async - reads from templates)
     const files = await generateProject({
       projectName: args.projectName,
@@ -231,11 +241,15 @@ export const createCommand: CommandDefinition<
       uikit: uikit || 'hai3',
       layer,
     });
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-write-files
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-write-files
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
     // Run ai sync to generate IDE config files
     logger.newline();
     logger.info('Generating AI assistant configurations...');
@@ -247,7 +261,9 @@ export const createCommand: CommandDefinition<
     } catch {
       // Ignore errors - ai sync is optional
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
     // Done
     logger.newline();
     logger.success(`Project '${args.projectName}' created successfully!`);
@@ -258,11 +274,14 @@ export const createCommand: CommandDefinition<
     logger.log('  npm install');
     logger.log('  npm run dev');
     logger.newline();
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
     return {
       projectPath,
       files: writtenFiles,
     };
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
   },
 };
-// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-1
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create

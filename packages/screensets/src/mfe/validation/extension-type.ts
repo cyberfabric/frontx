@@ -17,7 +17,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-extension-type-validation:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-extension-type-validation:p1
 
 import type { TypeSystemPlugin, ValidationResult } from '../plugins/types';
 import type { Extension } from '../types/extension';

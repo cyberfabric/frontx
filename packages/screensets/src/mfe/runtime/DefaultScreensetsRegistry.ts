@@ -10,18 +10,18 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-register-domain:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-register-extension:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-unregister-extension:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-unregister-domain:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-execute-chain:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-update-shared-property:p1
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-query:p2
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-handler-resolution:p1
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-schema-verification:p1
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-domain-semantics:p1
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-handler-injection:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-register-domain:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-register-extension:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-unregister-extension:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-unregister-domain:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-update-shared-property:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-query:p2
+// @cpt-algo:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-schema-verification:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-domain-semantics:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-handler-injection:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ScreensetsRegistryConfig } from './config';

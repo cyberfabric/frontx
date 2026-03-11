@@ -6,9 +6,9 @@
  * Registration actions emit events that MFE effects handle.
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-mfe-registration:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-registration:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
 
 import { eventBus } from '@hai3/state';
 import { MfeEvents } from './constants';

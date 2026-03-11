@@ -5,9 +5,9 @@
  * Tracks registration state (unregistered, registering, registered, error) and error messages per extension.
  */
 
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-mfe-registration:p1
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-mfe-mount:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-state:cpt-hai3-state-framework-composition-mfe-registration:p1
+// @cpt-state:cpt-hai3-state-framework-composition-mfe-mount:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
 
 import { createSlice, type ReducerPayload } from '@hai3/state';
 

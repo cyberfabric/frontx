@@ -1,8 +1,8 @@
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-toast:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-display-toast:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-promise-toast:p1
-// @cpt-FEATURE:cpt-hai3-algo-uikit-components-toast-merge-defaults:p1
-// @cpt-FEATURE:cpt-hai3-state-uikit-components-toast-lifecycle:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-toast:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-display-toast:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-promise-toast:p1
+// @cpt-algo:cpt-hai3-algo-uikit-components-toast-merge-defaults:p1
+// @cpt-state:cpt-hai3-state-uikit-components-toast-lifecycle:p1
 
 import { useMemo } from 'react';
 import { toast, type ExternalToast } from 'sonner';

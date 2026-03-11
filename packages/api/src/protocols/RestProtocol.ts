@@ -7,12 +7,12 @@
  * SDK Layer: L1 (Only peer dependency on axios)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-rest-protocol:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-rest-request:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-plugin-ordering:p1
-// @cpt-FEATURE:cpt-hai3-state-api-communication-rest-connection:p1
+// @cpt-dod:cpt-hai3-dod-api-communication-rest-protocol:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-rest-request:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
+// @cpt-state:cpt-hai3-state-api-communication-rest-connection:p1
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import {

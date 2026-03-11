@@ -41,8 +41,8 @@ import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
  * });
  * ```
  */
-// @cpt-FEATURE:cpt-hai3-dod-state-management-flux-terminology:p2
-// @cpt-FEATURE:cpt-hai3-flow-state-management-flux-dataflow:p1
+// @cpt-dod:cpt-hai3-dod-state-management-flux-terminology:p2
+// @cpt-flow:cpt-hai3-flow-state-management-flux-dataflow:p1
 export type ReducerPayload<T> = PayloadAction<T>;
 
 // ============================================================================
@@ -68,7 +68,7 @@ export type ReducerPayload<T> = PayloadAction<T>;
  *
  * Design: Interface (not type) enables TypeScript declaration merging.
  */
-// @cpt-FEATURE:cpt-hai3-dod-state-management-module-augmentation:p2
+// @cpt-dod:cpt-hai3-dod-state-management-module-augmentation:p2
 export interface EventPayloadMap {
   // Base interface - extended via module augmentation
   // Intentionally empty - filled by consumers
@@ -250,7 +250,6 @@ export type VoidPayload = void;
  *
  * Design: Interface (not type) enables TypeScript declaration merging.
  */
-// @cpt-FEATURE:cpt-hai3-dod-state-management-module-augmentation:p2
 export interface RootState {
   // Base interface - extended via module augmentation
   // Intentionally empty - filled by consumers

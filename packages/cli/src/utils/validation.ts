@@ -1,7 +1,7 @@
 /**
  * Validation utilities for CLI commands
  */
-// @cpt-FEATURE:cpt-hai3-algo-cli-tooling-validate-project-name:p1
+// @cpt-algo:cpt-hai3-algo-cli-tooling-validate-project-name:p1
 
 import lodash from 'lodash';
 const { toLower } = lodash;
@@ -10,9 +10,12 @@ const { toLower } = lodash;
  * Validate npm package name
  * Based on npm package name rules
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-1
+// @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
 export function isValidPackageName(name: string): boolean {
   if (!name || name.length === 0) return false;
+  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
+
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
   if (name.length > 214) return false;
   if (name.startsWith('.') || name.startsWith('_')) return false;
   if (name !== toLower(name)) return false;
@@ -28,9 +31,12 @@ export function isValidPackageName(name: string): boolean {
       return false;
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
+
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
   return true;
+  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-1
 
 /**
  * Validate camelCase string

@@ -1,10 +1,9 @@
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-command-infra:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-command-infra:p1
 import type { CommandDefinition } from './command.js';
 
 /**
  * Registry for dynamic command loading and lookup
  */
-// @cpt-begin:cpt-hai3-dod-cli-tooling-command-infra:p1:inst-1
 export class CommandRegistry {
   private commands = new Map<string, CommandDefinition<unknown, unknown>>();
 
@@ -43,8 +42,6 @@ export class CommandRegistry {
     return this.commands.has(name);
   }
 }
-
-// @cpt-end:cpt-hai3-dod-cli-tooling-command-infra:p1:inst-1
 
 /**
  * Global command registry instance

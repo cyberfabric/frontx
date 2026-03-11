@@ -7,10 +7,10 @@
  * SDK Layer: L1 (Zero dependencies)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-rest-mock-plugin:p2
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-mock-activation:p2
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-mock-factory-match:p2
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-is-mock-plugin:p2
+// @cpt-dod:cpt-hai3-dod-api-communication-rest-mock-plugin:p2
+// @cpt-flow:cpt-hai3-flow-api-communication-mock-activation:p2
+// @cpt-algo:cpt-hai3-algo-api-communication-mock-factory-match:p2
+// @cpt-algo:cpt-hai3-algo-api-communication-is-mock-plugin:p2
 
 import {
   RestPluginWithConfig,

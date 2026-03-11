@@ -1,4 +1,4 @@
-// @cpt-FEATURE:cpt-hai3-algo-studio-devtools-localStorage-guard:p1
+// @cpt-algo:cpt-hai3-algo-studio-devtools-localStorage-guard:p1
 /**
  * Utility functions for persisting Studio state to localStorage
  */

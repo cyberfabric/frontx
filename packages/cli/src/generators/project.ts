@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-algo-cli-tooling-generate-project:p1
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-templates:p1
+// @cpt-algo:cpt-hai3-algo-cli-tooling-generate-project:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
 import path from 'path';
 import fs from 'fs-extra';
 import type { GeneratedFile, Hai3Config, LayerType } from '../core/types.js';
@@ -54,7 +54,6 @@ async function readDirRecursive(
  * Generate all files for a new HAI3 project
  * Combines template files with dynamically generated config files
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-1
 export async function generateProject(
   input: ProjectGeneratorInput
 ): Promise<GeneratedFile[]> {
@@ -62,6 +61,7 @@ export async function generateProject(
   const templatesDir = getTemplatesDir();
   const files: GeneratedFile[] = [];
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-load-manifest
   // 1. Load manifest to know what to copy
   const manifestPath = path.join(templatesDir, 'manifest.json');
   if (!(await fs.pathExists(manifestPath))) {
@@ -75,6 +75,9 @@ export async function generateProject(
   // Extract paths from new 3-stage manifest structure
   const rootFiles = manifest.stage1b?.rootFiles || manifest.rootFiles || [];
   const directories = manifest.stage1b?.directories || manifest.directories || [];
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-load-manifest
+
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-root-files
   // 2. Copy root template files
   for (const file of rootFiles) {
     // Special handling for main.tsx - select template variant based on uikit flag
@@ -111,6 +114,7 @@ export async function generateProject(
       continue;
     }
 
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-filter-uikit-none
     // Skip UIKit-dependent config files when uikit === 'none'
     // These files have CSS variable references that only work with @hai3/uikit
     if (uikit === 'none') {
@@ -122,6 +126,7 @@ export async function generateProject(
         continue;
       }
     }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-filter-uikit-none
 
     const filePath = path.join(templatesDir, file);
     if (await fs.pathExists(filePath)) {
@@ -129,7 +134,9 @@ export async function generateProject(
       files.push({ path: file, content });
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-root-files
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-template-dirs
   // 3. Copy template directories (src/themes, src/uikit, src/icons)
   for (const dir of directories) {
     // Skip themes directory when uikit === 'none' (themes depend on @hai3/uikit)
@@ -147,7 +154,9 @@ export async function generateProject(
     const dirFiles = await readDirRecursive(dirPath, dir);
     files.push(...dirFiles);
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-template-dirs
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-layout-templates
   // 3.0 Copy layout templates (HAI3 UIKit layout) - only if uikit === 'hai3'
   if (uikit === 'hai3') {
     const layoutDir = path.join(templatesDir, 'layout', 'hai3-uikit');
@@ -156,7 +165,9 @@ export async function generateProject(
       files.push(...layoutFiles);
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-layout-templates
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-ai-targets
   // 3.1 Copy AI configuration with layer-aware filtering
   // 3.1.1 Copy .ai/targets/ with layer filtering
   const aiTargetsDir = path.join(templatesDir, '.ai/targets');
@@ -171,7 +182,9 @@ export async function generateProject(
       }
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-ai-targets
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-select-guidelines-variant
   // 3.1.2 Select and copy appropriate GUIDELINES variant
   const guidelinesVariants: Record<LayerType, string> = {
     sdk: 'GUIDELINES.sdk.md',
@@ -193,7 +206,9 @@ export async function generateProject(
       files.push({ path: '.ai/GUIDELINES.md', content });
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-select-guidelines-variant
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-hierarchy-dirs
   // 3.1.2a Copy company/ and project/ hierarchy directories (placeholder templates)
   const hierarchyDirs = ['company', 'project'];
   for (const dirName of hierarchyDirs) {
@@ -203,7 +218,9 @@ export async function generateProject(
       files.push(...hierarchyFiles);
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-hierarchy-dirs
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-ide-dirs
   // 3.1.3 Copy IDE command adapters (.claude, .cursor, .windsurf)
   const ideDirs = ['.claude', '.cursor', '.windsurf'];
   for (const dir of ideDirs) {
@@ -213,7 +230,9 @@ export async function generateProject(
       files.push(...dirFiles);
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-ide-dirs
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-select-command-variants
   // 3.1.4 Select and copy package commands from commands-bundle based on layer
   const commandsBundleDir = path.join(templatesDir, 'commands-bundle');
   if (await fs.pathExists(commandsBundleDir)) {
@@ -248,14 +267,18 @@ export async function generateProject(
       }
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-select-command-variants
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-user-commands
   // 3.1.5 Copy user commands from .ai/commands/user/ (standalone commands not in packages)
   const userCommandsDir = path.join(templatesDir, '.ai/commands/user');
   if (await fs.pathExists(userCommandsDir)) {
     const userCommandFiles = await readDirRecursive(userCommandsDir, '.ai/commands/user');
     files.push(...userCommandFiles);
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-user-commands
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-support-dirs
   // 3.2 Copy eslint-plugin-local
   const eslintPluginDir = path.join(templatesDir, 'eslint-plugin-local');
   if (await fs.pathExists(eslintPluginDir)) {
@@ -273,7 +296,9 @@ export async function generateProject(
     }
     files.push(...scriptFiles);
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-support-dirs
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-root-configs
   // 3.4 Copy root files from templates (configs, tooling, IDE)
   // NOTE: files already in manifest rootFiles (index.html, .gitignore, etc.) are
   // handled in section 2 above. This section handles files from template-sources/project/configs/
@@ -302,9 +327,11 @@ export async function generateProject(
       files.push({ path: file, content });
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-copy-root-configs
 
   // 4. Generate dynamic files (need project-specific values)
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-generate-hai3-config
   // 5.1 hai3.config.json (marker file for project detection)
   const config: Hai3Config = {
     hai3: true,
@@ -315,7 +342,9 @@ export async function generateProject(
     path: 'hai3.config.json',
     content: JSON.stringify(config, null, 2) + '\n',
   });
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-generate-hai3-config
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-generate-package-json
   // 5.2 package.json
   // Use 'alpha' tag for @hai3 packages during alpha phase
   // This resolves to the latest alpha version from npm
@@ -417,7 +446,9 @@ export async function generateProject(
     path: 'package.json',
     content: JSON.stringify(packageJson, null, 2) + '\n',
   });
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-generate-package-json
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-return-generated-files
   return files;
+  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-return-generated-files
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-1

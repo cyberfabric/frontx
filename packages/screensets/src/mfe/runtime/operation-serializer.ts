@@ -8,7 +8,7 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-operation-serialization:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-operation-serialization:p1
 
 /**
  * Operation serializer for per-entity concurrency control.

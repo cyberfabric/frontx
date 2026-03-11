@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-mfe-isolation-blob-core:p1
+// @cpt-dod:cpt-hai3-dod-mfe-isolation-blob-core:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntryMF, MfManifest } from '../types';
@@ -37,7 +37,7 @@ type ShareScope = Record<string, FederationPackageVersions>;
  * common transitive dependencies (e.g., the bundled React CJS module) are
  * blob-URL'd once and reused by all modules within the same load.
  */
-// @cpt-FEATURE:cpt-hai3-state-mfe-isolation-load-blob-state:p1
+// @cpt-state:cpt-hai3-state-mfe-isolation-load-blob-state:p1
 interface LoadBlobState {
   readonly blobUrlMap: Map<string, string>;
   readonly visited: Set<string>;
@@ -84,7 +84,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly manifestCache: ManifestCache;
   private readonly config: MfeLoaderConfig;
   private readonly retryHandler: RetryHandler;
-  // @cpt-FEATURE:cpt-hai3-state-mfe-isolation-source-cache:p1
+  // @cpt-state:cpt-hai3-state-mfe-isolation-source-cache:p1
   private readonly sourceTextCache = new Map<string, Promise<string>>();
 
   constructor(
@@ -108,7 +108,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Load an MFE bundle using Module Federation.
    */
-  // @cpt-FEATURE:cpt-hai3-flow-mfe-isolation-load:p1
+  // @cpt-flow:cpt-hai3-flow-mfe-isolation-load:p1
   async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     return this.retryHandler.retry(
       () => this.loadInternal(entry),
@@ -121,7 +121,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Internal load implementation.
    * Each call creates a fully isolated module evaluation chain via blob URLs.
    */
-  // @cpt-FEATURE:cpt-hai3-flow-mfe-isolation-load:p1
   private async loadInternal(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     const manifest = await this.resolveManifest(entry.manifest);
     this.manifestCache.cacheManifest(manifest);
@@ -157,8 +156,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *    causes ERR_FILE_NOT_FOUND. Blob URLs are cleaned up by the browser on
    *    page unload.
    */
-  // @cpt-FEATURE:cpt-hai3-flow-mfe-isolation-load:p1
-  // @cpt-FEATURE:cpt-hai3-state-mfe-isolation-load-blob-state:p1
   private async loadExposedModuleIsolated(
     manifest: MfManifest,
     exposedModule: string,
@@ -282,7 +279,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Dependencies without chunkPath are omitted — the MFE falls back to its
    * own bundled copy via the federation runtime's getSharedFromLocal().
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-build-share-scope:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-build-share-scope:p1
   private buildShareScope(
     manifest: MfManifest,
     loadState: LoadBlobState
@@ -310,7 +307,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Write share scope entries to globalThis.__federation_shared__.
    * Replicates the behavior of container.init(shareScope).
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-write-share-scope:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-write-share-scope:p1
   private writeShareScope(shareScope: ShareScope): void {
     const g = globalThis as Record<string, unknown>;
     const globalShared = (g.__federation_shared__ ?? {}) as Record<
@@ -342,7 +339,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * rewritten, all its dependencies already have blob URLs in the shared map.
    * Common dependencies are processed once per load (shared blobUrlMap).
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-blob-url-chain:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-blob-url-chain:p1
   private async createBlobUrlChain(
     loadState: LoadBlobState,
     filename: string
@@ -377,7 +374,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * dependencies are blob-URL'd once. Each call to get() within the same
    * load reuses existing blob URLs for already-processed modules.
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-blob-url-get:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-blob-url-get:p1
   private createBlobUrlGet(
     chunkPath: string,
     loadState: LoadBlobState
@@ -402,7 +399,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Fetch the source text of a chunk. Uses an in-memory cache so each URL
    * is fetched at most once across all loads.
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-fetch-source:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-fetch-source:p1
   private fetchSourceText(absoluteChunkUrl: string): Promise<string> {
     const cached = this.sourceTextCache.get(absoluteChunkUrl);
     if (cached !== undefined) {
@@ -444,7 +441,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *     return __federation_import('./__federation_expose_Lifecycle-helloworld-CeX0Lwd2.js')...
    *   }
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-parse-expose-chunk:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-parse-expose-chunk:p1
   private parseExposeChunkFilename(
     remoteEntrySource: string,
     exposedModule: string
@@ -465,7 +462,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * '__federation_shared_@hai3/react.js' importing '../runtime.js' resolves
    * to 'runtime.js' (relative to baseUrl).
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-parse-imports:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-parse-imports:p1
   private parseStaticImportFilenames(
     source: string,
     chunkFilename: string
@@ -486,7 +483,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * is resolved against the chunk's own path to produce a normalized key
    * for the blobUrlMap lookup. Unmatched imports fall back to absolute URLs.
    */
-  // @cpt-FEATURE:cpt-hai3-algo-mfe-isolation-rewrite-module-imports:p1
+  // @cpt-algo:cpt-hai3-algo-mfe-isolation-rewrite-module-imports:p1
   private rewriteModuleImports(
     source: string,
     baseUrl: string,

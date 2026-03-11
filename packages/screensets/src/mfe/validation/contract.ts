@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-contract-matching:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-contract-matching:p1
 
 import type { MfeEntry } from '../types/mfe-entry';
 import type { ExtensionDomain } from '../types/extension-domain';

@@ -5,7 +5,7 @@
  * Event-driven architecture: UI emits events, effects handle plugin activation/deactivation.
  */
 
-// @cpt-FEATURE:cpt-hai3-algo-framework-composition-mock-toggle:p2
+// @cpt-algo:cpt-hai3-algo-framework-composition-mock-toggle:p2
 
 import { eventBus, getStore } from '@hai3/state';
 import { apiRegistry, isMockPlugin, type ApiProtocol, type ApiPluginBase } from '@hai3/api';

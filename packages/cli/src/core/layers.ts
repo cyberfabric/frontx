@@ -6,8 +6,8 @@
  * - Command variants
  * - GUIDELINES.md variants
  */
-// @cpt-FEATURE:cpt-hai3-algo-cli-tooling-select-command-variant:p1
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-layer-variants:p1
+// @cpt-algo:cpt-hai3-algo-cli-tooling-select-command-variant:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-layer-variants:p1
 
 /**
  * Layer types for SDK architecture
@@ -75,28 +75,36 @@ export function isTargetApplicableToLayer(targetFileName: string, layer: LayerTy
  * @param availableFiles - List of available command files
  * @returns Selected variant filename or null if command should be excluded
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-1
 export function selectCommandVariant(
   baseName: string,
   layer: LayerType,
   availableFiles: string[]
 ): string | null {
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-build-priority-chain
   const priorities: Record<LayerType, string[]> = {
     sdk: ['.sdk.md', '.md'],
     framework: ['.framework.md', '.sdk.md', '.md'],
     react: ['.react.md', '.framework.md', '.sdk.md', '.md'],
     app: ['.react.md', '.framework.md', '.sdk.md', '.md'],
   };
+  // @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-build-priority-chain
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-strip-ext
   const baseWithoutExt = baseName.replace('.md', '');
+  // @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-strip-ext
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-iterate-suffixes
   for (const suffix of priorities[layer]) {
     const candidate = baseWithoutExt + suffix;
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-return-matched-variant
     if (availableFiles.includes(candidate)) {
       return candidate;
     }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-return-matched-variant
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-iterate-suffixes
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-return-excluded
   return null; // Command excluded for this layer
+  // @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-return-excluded
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-select-command-variant:p1:inst-1

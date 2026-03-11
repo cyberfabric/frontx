@@ -8,9 +8,9 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-FEATURE:cpt-hai3-flow-screenset-registry-factory-build:p1
-// @cpt-FEATURE:cpt-hai3-state-screenset-registry-factory-cache:p1
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-factory-cache:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-factory-build:p1
+// @cpt-state:cpt-hai3-state-screenset-registry-factory-cache:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-factory-cache:p1
 
 import { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 import { DefaultScreensetsRegistry } from './DefaultScreensetsRegistry';

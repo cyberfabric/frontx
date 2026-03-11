@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-resize-panel:p1
-// @cpt-FEATURE:cpt-hai3-state-studio-devtools-resize:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-resize-panel:p1
+// @cpt-state:cpt-hai3-state-studio-devtools-resize:p1
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { clamp } from 'lodash';
 import { eventBus } from '@hai3/react';

@@ -5,9 +5,9 @@
  * This replaces @hai3/uikit-contracts for type imports.
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-registry-types:p2
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-standalone:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-registry-lookup:p2
+// @cpt-dod:cpt-hai3-dod-uikit-components-registry-types:p2
+// @cpt-dod:cpt-hai3-dod-uikit-components-standalone:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-registry-lookup:p2
 
 import type { ComponentType, ReactNode, ButtonHTMLAttributes } from 'react';
 

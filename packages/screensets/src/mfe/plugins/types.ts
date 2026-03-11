@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-type-system-plugin:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-type-system-plugin:p1
 
 /**
  * JSON Schema type (simplified for type system plugin interface)

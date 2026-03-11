@@ -8,7 +8,7 @@
  *   hai3 validate components [path]         Validate component structure
  *   hai3 migrate [version]                  Apply codemod migrations
  */
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
 
 import { Command } from 'commander';
 import { registry, executeCommand } from './core/index.js';

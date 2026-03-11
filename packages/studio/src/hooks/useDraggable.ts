@@ -1,11 +1,11 @@
-// @cpt-FEATURE:cpt-hai3-algo-studio-devtools-clamp-to-viewport:p1
-// @cpt-FEATURE:cpt-hai3-algo-studio-devtools-default-position:p1
-// @cpt-FEATURE:cpt-hai3-algo-studio-devtools-event-routing:p1
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-drag-panel:p1
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-drag-button:p1
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-viewport-clamp:p1
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-viewport-clamping:p1
-// @cpt-FEATURE:cpt-hai3-state-studio-devtools-drag:p1
+// @cpt-algo:cpt-hai3-algo-studio-devtools-clamp-to-viewport:p1
+// @cpt-algo:cpt-hai3-algo-studio-devtools-default-position:p1
+// @cpt-algo:cpt-hai3-algo-studio-devtools-event-routing:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-panel:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-button:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-viewport-clamp:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-viewport-clamping:p1
+// @cpt-state:cpt-hai3-state-studio-devtools-drag:p1
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { clamp } from 'lodash';
 import { eventBus } from '@hai3/react';

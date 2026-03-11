@@ -4,8 +4,8 @@
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
  * Invalid date inputs return ''.
  */
-// @cpt-FEATURE:cpt-hai3-flow-i18n-infrastructure-formatter-usage:p1
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-formatter-usage:p1
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
 
 import { getLocale } from './utils';
 

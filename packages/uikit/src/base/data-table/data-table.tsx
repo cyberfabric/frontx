@@ -1,6 +1,6 @@
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-data-display:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-consume-composite:p1
-// @cpt-FEATURE:cpt-hai3-state-uikit-components-data-table:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-data-display:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+// @cpt-state:cpt-hai3-state-uikit-components-data-table:p1
 
 "use client"
 

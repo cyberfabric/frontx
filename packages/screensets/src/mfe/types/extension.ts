@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-type-contracts:p1
 
 import type { LifecycleHook } from './lifecycle';
 

@@ -5,9 +5,9 @@
  *
  * React Layer: L3
  */
-// @cpt-FEATURE:cpt-hai3-flow-react-bindings-use-shared-property:p1
-// @cpt-FEATURE:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
-// @cpt-FEATURE:cpt-hai3-dod-react-bindings-mfe-hooks:p1
+// @cpt-flow:cpt-hai3-flow-react-bindings-use-shared-property:p1
+// @cpt-algo:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
+// @cpt-dod:cpt-hai3-dod-react-bindings-mfe-hooks:p1
 
 import { useSyncExternalStore, useCallback } from 'react';
 import { useMfeContext } from '../MfeContext';
@@ -37,13 +37,18 @@ import { useMfeContext } from '../MfeContext';
  * }
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-1
-// @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-4
-// @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-4
+// @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-call-shared-property
+// @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-call-shared-property
 export function useSharedProperty<T = unknown>(propertyTypeId: string): T | undefined {
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-read-bridge
+  // @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
   // Enforce MfeProvider context requirement
   const { bridge } = useMfeContext(); // Throws if not in MfeProvider
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-read-bridge
+  // @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
 
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-subscribe-property
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-rerender-on-property-change
   // Subscribe to property updates via bridge
   const subscribe = useCallback((callback: () => void) => {
     return bridge.subscribeToProperty(propertyTypeId, () => {
@@ -51,7 +56,10 @@ export function useSharedProperty<T = unknown>(propertyTypeId: string): T | unde
       callback();
     });
   }, [bridge, propertyTypeId]);
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-subscribe-property
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-rerender-on-property-change
 
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-return-property-value
   const getSnapshot = useCallback(() => {
     const property = bridge.getProperty(propertyTypeId);
     // Type narrowing: caller specifies expected type T (standard React hook pattern)
@@ -62,7 +70,7 @@ export function useSharedProperty<T = unknown>(propertyTypeId: string): T | unde
   const value = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 
   return value;
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-return-property-value
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-1
-// @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-4
-// @cpt-end:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-4
+// @cpt-end:cpt-hai3-flow-react-bindings-use-shared-property:p1:inst-call-shared-property
+// @cpt-end:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-call-shared-property

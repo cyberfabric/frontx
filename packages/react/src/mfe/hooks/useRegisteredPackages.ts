@@ -6,10 +6,10 @@
  *
  * React Layer: L3
  */
-// @cpt-FEATURE:cpt-hai3-flow-react-bindings-use-registered-packages:p1
-// @cpt-FEATURE:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
-// @cpt-FEATURE:cpt-hai3-algo-react-bindings-stable-snapshots:p1
-// @cpt-FEATURE:cpt-hai3-dod-react-bindings-observation-hooks:p1
+// @cpt-flow:cpt-hai3-flow-react-bindings-use-registered-packages:p1
+// @cpt-algo:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
+// @cpt-algo:cpt-hai3-algo-react-bindings-stable-snapshots:p1
+// @cpt-dod:cpt-hai3-dod-react-bindings-observation-hooks:p1
 
 import { useSyncExternalStore, useCallback, useRef } from 'react';
 import { useHAI3 } from '../../HAI3Context';
@@ -54,21 +54,24 @@ import { useHAI3 } from '../../HAI3Context';
  * }
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-1
-// @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-7
-// @cpt-begin:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-2
-// @cpt-begin:cpt-hai3-dod-react-bindings-observation-hooks:p1:inst-2
+// @cpt-begin:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-call-registered-packages
+// @cpt-begin:cpt-hai3-dod-react-bindings-observation-hooks:p1:inst-call-registered-packages
 export function useRegisteredPackages(): string[] {
   const app = useHAI3();
   const registry = app.screensetsRegistry;
 
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-guard-registry-packages
+  // @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-registry
   if (!registry) {
     throw new Error(
       'useRegisteredPackages requires the microfrontends plugin. ' +
       'Add microfrontends() to your HAI3 app configuration.'
     );
   }
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-guard-registry-packages
+  // @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-registry
 
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-subscribe-store-packages
   // Subscribe to store changes.
   // Any dispatch (including registration state updates) triggers a snapshot check.
   // The snapshot comparison ensures only actual package list changes cause re-renders.
@@ -78,23 +81,32 @@ export function useRegisteredPackages(): string[] {
     },
     [app.store]
   );
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-subscribe-store-packages
 
+  // @cpt-begin:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-cache-ref
   // Cache the snapshot to maintain referential stability for useSyncExternalStore.
   // Only update when the package list actually changes.
   const cacheRef = useRef<{ packages: string; list: string[] }>({ packages: '', list: [] });
+  // @cpt-end:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-cache-ref
 
+  // @cpt-begin:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-diff-packages
   const getSnapshot = useCallback(() => {
     const list = registry.getRegisteredPackages();
+    // @cpt-begin:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-compute-cache-key
     const packages = list.join(',');
+    // @cpt-end:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-compute-cache-key
+    // @cpt-begin:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-return-cached
+    // @cpt-begin:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-update-cache
     if (packages !== cacheRef.current.packages) {
       cacheRef.current = { packages, list };
     }
     return cacheRef.current.list;
+    // @cpt-end:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-return-cached
+    // @cpt-end:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-update-cache
   }, [registry]);
+  // @cpt-end:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-diff-packages
 
   return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-1
-// @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-7
-// @cpt-end:cpt-hai3-algo-react-bindings-stable-snapshots:p1:inst-2
-// @cpt-end:cpt-hai3-dod-react-bindings-observation-hooks:p1:inst-2
+// @cpt-end:cpt-hai3-flow-react-bindings-use-registered-packages:p1:inst-call-registered-packages
+// @cpt-end:cpt-hai3-dod-react-bindings-observation-hooks:p1:inst-call-registered-packages

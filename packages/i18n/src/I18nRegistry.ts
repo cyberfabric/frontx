@@ -8,19 +8,19 @@
  *
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
-// @cpt-FEATURE:cpt-hai3-flow-i18n-infrastructure-language-activation:p1
-// @cpt-FEATURE:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1
-// @cpt-FEATURE:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1
-// @cpt-FEATURE:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-language-file-map:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-create-loader:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-lazy-exclusion:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-html-attrs:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-path-traversal:p1
-// @cpt-FEATURE:cpt-hai3-state-i18n-infrastructure-registry:p1
-// @cpt-FEATURE:cpt-hai3-state-i18n-infrastructure-namespace-cache:p1
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-hybrid-namespace:p1
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-lazy-chunks:p1
+// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-language-activation:p1
+// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1
+// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1
+// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-language-file-map:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-create-loader:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-lazy-exclusion:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-html-attrs:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-path-traversal:p1
+// @cpt-state:cpt-hai3-state-i18n-infrastructure-registry:p1
+// @cpt-state:cpt-hai3-state-i18n-infrastructure-namespace-cache:p1
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-hybrid-namespace:p1
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-lazy-chunks:p1
 
 import type {
   I18nRegistry as II18nRegistry,

@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-registry-contract:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ParentMfeBridge } from '../handler/types';

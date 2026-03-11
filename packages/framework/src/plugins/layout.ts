@@ -6,8 +6,8 @@
  * NOTE: Layout slices are owned by @hai3/framework (not @hai3/uicore which is deprecated)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-layout:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-app-config:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-layout:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
 
 import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
 import { eventBus } from '@hai3/state';

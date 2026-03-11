@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-mfe-isolation-chunk-path-type:p1
+// @cpt-dod:cpt-hai3-dod-mfe-isolation-chunk-path-type:p1
 
 /**
  * Configuration for a shared dependency in Module Federation.

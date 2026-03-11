@@ -4,8 +4,8 @@
  * Framework Layer: L2
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-full-preset:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-presets:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-presets:p1
 
 import type { HAI3Plugin, Presets, ThemesConfig } from '../types';
 import { screensets } from '../plugins/screensets';

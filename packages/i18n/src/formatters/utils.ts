@@ -1,9 +1,9 @@
 /**
  * Shared formatter utilities - locale and value coercion used by formatters.
  */
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-locale-resolution:p1
-// @cpt-FEATURE:cpt-hai3-algo-i18n-infrastructure-formatter-input-guard:p2
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-locale-resolution:p1
+// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-formatter-input-guard:p2
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
 
 import { i18nRegistry } from '../I18nRegistry';
 import { Language } from '../types';

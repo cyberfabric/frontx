@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-algo-framework-composition-base-path:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-app-config:p1
+// @cpt-algo:cpt-hai3-algo-framework-composition-base-path:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-app-config:p1
 
 /**
  * Normalizes a base path to ensure consistent format.

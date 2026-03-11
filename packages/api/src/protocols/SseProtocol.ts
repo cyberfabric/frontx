@@ -5,12 +5,12 @@
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-api-communication-sse-protocol:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-sse-connection:p1
-// @cpt-FEATURE:cpt-hai3-flow-api-communication-sse-disconnect:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-sse-plugin-chain:p1
-// @cpt-FEATURE:cpt-hai3-algo-api-communication-plugin-ordering:p1
-// @cpt-FEATURE:cpt-hai3-state-api-communication-sse-connection:p1
+// @cpt-dod:cpt-hai3-dod-api-communication-sse-protocol:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-sse-connection:p1
+// @cpt-flow:cpt-hai3-flow-api-communication-sse-disconnect:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-sse-plugin-chain:p1
+// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
+// @cpt-state:cpt-hai3-state-api-communication-sse-connection:p1
 
 import assign from 'lodash/assign.js';
 import {

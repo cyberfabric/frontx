@@ -6,8 +6,8 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-handler-injection:p1
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-type-contracts:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';

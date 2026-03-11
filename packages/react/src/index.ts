@@ -467,6 +467,8 @@ export type {
 import type { EventPayloadMap as FrameworkEventPayloadMap, EventBus } from '@hai3/framework';
 import { eventBus as frameworkEventBus } from '@hai3/framework';
 
+// @cpt-dod:cpt-hai3-dod-react-bindings-event-payload-map:p2
+// @cpt-begin:cpt-hai3-dod-react-bindings-event-payload-map:p2:inst-event-payload-map
 export interface EventPayloadMap extends FrameworkEventPayloadMap { }
 
 /**
@@ -475,3 +477,4 @@ export interface EventPayloadMap extends FrameworkEventPayloadMap { }
  * type-safe access to both framework events and app-layer augmented events.
  */
 export const eventBus: EventBus<EventPayloadMap> = frameworkEventBus as EventBus<EventPayloadMap>;
+// @cpt-end:cpt-hai3-dod-react-bindings-event-payload-map:p2:inst-event-payload-map

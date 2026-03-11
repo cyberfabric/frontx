@@ -1,5 +1,13 @@
 # Cypilot artifacts registry
 
+[[ignore]]
+reason = "Build artifacts and dependencies"
+patterns = [
+  "*/dist/*",
+  "*/node_modules/*",
+  "*/templates/*",
+]
+
 [[systems]]
 name = "HAI3 Dev Kit"
 slug = "hai3"
@@ -166,9 +174,12 @@ traceability = "FULL"
 
 [[systems.codebase]]
 path = "packages/"
+extensions = [".ts", ".tsx", ".mjs"]
 
 [[systems.codebase]]
 path = "src/"
+extensions = [".ts"]
 
 [[systems.codebase]]
 path = ".github/"
+extensions = [".yml"]

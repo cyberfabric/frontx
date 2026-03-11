@@ -3,7 +3,7 @@
  *
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
  */
-// @cpt-FEATURE:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
 
 import { getLocale } from './utils';
 

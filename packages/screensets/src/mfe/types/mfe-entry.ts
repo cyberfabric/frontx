@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-hai3-dod-screenset-registry-type-contracts:p1
 
 /**
  * Defines an entry point with its communication contract (PURE CONTRACT - Abstract Base)

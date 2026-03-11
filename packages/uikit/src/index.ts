@@ -3,17 +3,17 @@
  * Exports all UI Kit components for easy importing
  */
 
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-layout:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-navigation:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-form:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-data-display:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-toast:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-theme:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-registry-types:p2
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-standalone:p1
-// @cpt-FEATURE:cpt-hai3-dod-uikit-components-ref-pattern:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-consume-base:p1
-// @cpt-FEATURE:cpt-hai3-flow-uikit-components-consume-composite:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-layout:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-navigation:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-form:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-data-display:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-toast:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-theme:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-registry-types:p2
+// @cpt-dod:cpt-hai3-dod-uikit-components-standalone:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
 
 // Base UI Components (shadcn + HAI3 custom)
 export { Alert, AlertTitle, AlertDescription, alertVariants } from './base/alert';

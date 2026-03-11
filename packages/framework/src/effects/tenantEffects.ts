@@ -5,9 +5,9 @@
  * Event-driven architecture: consuming apps emit events, effects handle state updates.
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-app-config:p1
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-tenant:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-app-config:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
+// @cpt-state:cpt-hai3-state-framework-composition-tenant:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-app-config:p1
 
 import { eventBus, getStore } from '@hai3/state';
 import { setTenant, clearTenant } from '../slices/tenantSlice';

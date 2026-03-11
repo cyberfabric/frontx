@@ -8,12 +8,12 @@
  * @packageDocumentation
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
-// @cpt-FEATURE:cpt-hai3-algo-framework-composition-gts-validation:p1
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-mfe-mount:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-mfe-plugin:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-shared-property:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
+// @cpt-algo:cpt-hai3-algo-framework-composition-gts-validation:p1
+// @cpt-state:cpt-hai3-state-framework-composition-mfe-mount:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
 
 import {
   screensetsRegistryFactory,

@@ -8,10 +8,10 @@
  * for runtime registration operations.
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-mfe-registration:p1
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-mfe-registration:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-teardown:p2
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-registration:p1
+// @cpt-state:cpt-hai3-state-framework-composition-mfe-registration:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-teardown:p2
+// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
 
 import { eventBus, getStore } from '@hai3/state';
 import { MfeEvents } from './constants';

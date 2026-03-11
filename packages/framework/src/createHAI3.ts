@@ -7,13 +7,13 @@
  * Framework Layer: L2 (Depends on SDK packages)
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-app-bootstrap:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-plugin-dependency:p1
-// @cpt-FEATURE:cpt-hai3-algo-framework-composition-dep-resolution:p1
-// @cpt-FEATURE:cpt-hai3-algo-framework-composition-provides-aggregation:p1
-// @cpt-FEATURE:cpt-hai3-state-framework-composition-builder:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-teardown:p2
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-builder:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-plugin-dependency:p1
+// @cpt-algo:cpt-hai3-algo-framework-composition-dep-resolution:p1
+// @cpt-algo:cpt-hai3-algo-framework-composition-provides-aggregation:p1
+// @cpt-state:cpt-hai3-state-framework-composition-builder:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-teardown:p2
+// @cpt-dod:cpt-hai3-dod-framework-composition-builder:p1
 
 import { getStore, registerSlice } from '@hai3/state';
 import type { EffectInitializer } from '@hai3/state';

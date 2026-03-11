@@ -1,6 +1,6 @@
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-restore-settings:p1
-// @cpt-FEATURE:cpt-hai3-algo-studio-devtools-restore-gts-validation:p1
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-persistence:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-restore-settings:p1
+// @cpt-algo:cpt-hai3-algo-studio-devtools-restore-gts-validation:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-persistence:p1
 import { useEffect, useRef } from 'react';
 import {
   eventBus,

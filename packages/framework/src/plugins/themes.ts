@@ -4,10 +4,10 @@
  * Framework Layer: L2
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-theme-propagation:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-propagation:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-shared-property:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-theme-propagation:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-propagation:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
 
 import { eventBus } from '@hai3/state';
 import { HAI3_SHARED_PROPERTY_THEME } from '@hai3/screensets';

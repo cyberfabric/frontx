@@ -18,8 +18,8 @@
  * - Command adapters are GENERATED for all IDEs
  * - OpenSpec commands are copied from root .claude/commands/openspec/ to all IDE directories
  */
-// @cpt-FEATURE:cpt-hai3-algo-cli-tooling-build-templates:p1
-// @cpt-FEATURE:cpt-hai3-dod-cli-tooling-templates:p1
+// @cpt-algo:cpt-hai3-algo-cli-tooling-build-templates:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
 import fs from 'fs-extra';
 import lodash from 'lodash';
 import path from 'path';
@@ -230,7 +230,7 @@ Use \`.ai/${relativePath}\` as the single source of truth.
  *
  * @param templatesDir - Destination templates directory
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-1
+// @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-openspec-skills
 async function copyOpenSpecSkills(
   templatesDir: string
 ): Promise<{ claude: number; cursor: number; windsurf: number; copilot: number }> {
@@ -249,6 +249,7 @@ async function copyOpenSpecSkills(
   let windsurfCount = 0;
   let copilotCount = 0;
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-handle-missing-source-dirs
   // Copy Claude skills
   const claudeSrc = path.join(PROJECT_ROOT, '.claude', 'skills');
   if (await fs.pathExists(claudeSrc)) {
@@ -305,9 +306,13 @@ async function copyOpenSpecSkills(
     }
   }
 
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-handle-missing-source-dirs
+
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-log-skill-counts
   return { claude: claudeCount, cursor: cursorCount, windsurf: windsurfCount, copilot: copilotCount };
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-log-skill-counts
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-1
+// @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-openspec-skills
 
 /**
  * Bundle commands from @hai3 packages into CLI templates
@@ -598,18 +603,20 @@ async function countFiles(dir: string): Promise<number> {
   return count;
 }
 
-// @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-2
 async function copyTemplates() {
   console.log('📦 Copying templates from main project...\n');
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-generate-manifest
   // Load manifest - single source of truth
   const manifest = await loadManifest();
   console.log(`📄 Loaded manifest v${manifest.version}\n`);
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-generate-manifest
 
   // Clean templates directory
   await fs.remove(TEMPLATES_DIR);
   await fs.ensureDir(TEMPLATES_DIR);
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-project-sources
   // ============================================
   // STAGE 1a: Copy static presets (from manifest.project)
   // ============================================
@@ -743,6 +750,9 @@ async function copyTemplates() {
     console.log(`  ✓ layout/ standalone overrides (${layoutOverrideCount} files)`);
   }
 
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-project-sources
+
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ai-targets-build
   // ============================================
   // STAGE 1c: Assemble .ai/ from markers (using manifest.ai_overrides)
   // ============================================
@@ -782,7 +792,9 @@ async function copyTemplates() {
       }
     }
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ai-targets-build
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-guidelines-variants
   // Copy all GUIDELINES layer variants from ai-overrides/
   // These will be selected at project creation time based on layer
   const guidelinesVariants = ['GUIDELINES.sdk.md', 'GUIDELINES.framework.md'];
@@ -810,7 +822,9 @@ async function copyTemplates() {
   }
 
   console.log(`  ✓ .ai/ (${standaloneCount} standalone, ${overrideCount} overrides)`);
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-guidelines-variants
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-bundle-commands
   // ============================================
   // STAGE 2: Generate IDE rules and adapters
   // ============================================
@@ -837,7 +851,9 @@ async function copyTemplates() {
   console.log(`  ✓ .cursor/commands/ (${totalCursor} adapters: ${adapterCounts.cursor} from .ai/commands/, ${bundledAdapterCounts.cursor} from packages)`);
   console.log(`  ✓ .windsurf/workflows/ (${totalWindsurf} adapters: ${adapterCounts.windsurf} from .ai/commands/, ${bundledAdapterCounts.windsurf} from packages)`);
   console.log(`  ✓ commands-bundle/ (${packageCounts.bundledVariants} command variants from packages)`);
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-bundle-commands
 
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ide-adapters
   // Copy OpenSpec 1.1.1 skills for all IDEs
   const openspecSkillCounts = await copyOpenSpecSkills(TEMPLATES_DIR);
   console.log(`  ✓ .claude/skills/ (${openspecSkillCounts.claude} OpenSpec skills)`);
@@ -851,6 +867,7 @@ async function copyTemplates() {
   console.log('  ✓ .cursor/rules/hai3.mdc (pointer)');
   console.log('  ✓ .windsurf/rules/hai3.md (pointer)');
   console.log('  ✓ .github/copilot-instructions.md (GitHub Copilot)');
+  // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ide-adapters
 
   // ============================================
   // Write output manifest.json (runtime manifest for CLI)
@@ -907,7 +924,6 @@ async function copyTemplates() {
   console.log('\n✅ Templates copied successfully!');
   console.log(`   Location: ${TEMPLATES_DIR}`);
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-2
 
 copyTemplates().catch((err) => {
   console.error('❌ Failed to copy templates:', err);

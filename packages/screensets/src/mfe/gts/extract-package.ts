@@ -15,7 +15,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-FEATURE:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1
 
 /**
  * Extract the GTS package identifier from a GTS entity ID.

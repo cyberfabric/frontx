@@ -1,5 +1,5 @@
-// @cpt-FEATURE:cpt-hai3-flow-studio-devtools-conditional-load:p1
-// @cpt-FEATURE:cpt-hai3-dod-studio-devtools-conditional-loading:p1
+// @cpt-flow:cpt-hai3-flow-studio-devtools-conditional-load:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-conditional-loading:p1
 import React from 'react';
 import { StudioProvider, useStudioContext } from './StudioProvider';
 import { StudioPanel } from './StudioPanel';

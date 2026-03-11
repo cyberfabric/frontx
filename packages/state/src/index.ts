@@ -13,6 +13,7 @@
  * - "Reducer" = pure function in slice that updates state
  * - Redux internals are completely hidden
  */
+// @cpt-featstatus:cpt-hai3-featstatus-state-management:p1
 
 // ============================================================================
 // Type Exports (minimal public API)

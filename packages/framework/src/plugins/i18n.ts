@@ -4,10 +4,10 @@
  * Framework Layer: L2
  */
 
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-i18n-propagation:p1
-// @cpt-FEATURE:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-propagation:p1
-// @cpt-FEATURE:cpt-hai3-dod-framework-composition-shared-property:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-i18n-propagation:p1
+// @cpt-flow:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-propagation:p1
+// @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
 
 import { eventBus } from '@hai3/state';
 import { i18nRegistry as singletonI18nRegistry, Language } from '@hai3/i18n';
