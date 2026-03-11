@@ -611,6 +611,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Dual-mode execution (interactive + programmatic)
   - AI skill definitions for Claude Code integration
   - Layer-aware command variants with cascade fallback
+  - E2E scaffold verification: required PR gate and nightly coverage via scripted harness
 
 - **Out of scope**:
   - Runtime framework functionality (CLI generates code that imports it)
@@ -622,6 +623,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-hai3-fr-cli-commands`
   - [x] `p1` - `cpt-hai3-fr-cli-templates`
   - [x] `p1` - `cpt-hai3-fr-cli-skills`
+  - [x] `p1` - `cpt-hai3-fr-cli-e2e-verification`
 
 - **Design Principles Covered**:
   - (CLI is tooling; doesn't uniquely own architecture principles)

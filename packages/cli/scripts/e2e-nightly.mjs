@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-cli-tooling-e2e-nightly:p2
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';

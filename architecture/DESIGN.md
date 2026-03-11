@@ -120,7 +120,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-automated-layer-ordered-publishing`,
 `cpt-hai3-adr-symbol-based-mock-plugin-identification`,
 `cpt-hai3-adr-global-shared-property-broadcast`,
-`cpt-hai3-adr-cli-template-based-code-generation`
+`cpt-hai3-adr-cli-template-based-code-generation`,
+`cpt-hai3-adr-two-tier-cli-e2e-verification`
 
 #### Functional Drivers
 
@@ -193,6 +194,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate |
 | `cpt-hai3-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned |
 | `cpt-hai3-fr-cli-skills` | CLI build copies OpenSpec skills to `.claude/skills/`, `.cursor/skills/`, `.windsurf/skills/`, `.github/copilot-commands/` |
+| `cpt-hai3-fr-cli-e2e-verification` | Two-tier CI verification: required PR workflow (`cli-pr-e2e`) validates critical scaffold path; nightly workflow covers broader scenarios; shared scripted harness with artifact upload |
 | `cpt-hai3-fr-pub-metadata` | All `@hai3/*` packages include complete NPM metadata: author, license, repository, engines, exports |
 | `cpt-hai3-fr-pub-versions` | All `@hai3/*` packages use aligned (same) version numbers |
 | `cpt-hai3-fr-pub-esm` | ESM-first module format: `"type": "module"`, dual exports (ESM + CJS), TypeScript declarations |

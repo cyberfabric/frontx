@@ -100,6 +100,11 @@ path = "architecture/ADR/0015-cli-template-based-code-generation.md"
 kind = "ADR"
 traceability = "FULL"
 
+[[systems.artifacts]]
+path = "architecture/ADR/0016-two-tier-cli-e2e-verification.md"
+kind = "ADR"
+traceability = "FULL"
+
 # --- FEATURE specs ---
 
 [[systems.artifacts]]

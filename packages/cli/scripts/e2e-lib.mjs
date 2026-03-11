@@ -5,6 +5,7 @@ import path from 'path';
 import process from 'node:process';
 import { fileURLToPath } from 'url';
 
+// @cpt-algo:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, '..');
 export const REPO_ROOT = path.resolve(PACKAGE_ROOT, '..', '..');

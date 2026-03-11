@@ -112,6 +112,7 @@
     - [Core Commands](#core-commands)
     - [Template System](#template-system)
     - [AI Skills Assembly](#ai-skills-assembly)
+    - [E2E Scaffold Verification](#e2e-scaffold-verification)
   - [5.18 Publishing](#518-publishing)
     - [NPM Metadata](#npm-metadata)
     - [Aligned Versions](#aligned-versions)
@@ -989,6 +990,15 @@ The CLI build MUST copy OpenSpec skill directories to `.claude/skills/`, `.curso
 
 **Rationale**: Distributes AI assistant integrations with every scaffolded project.
 **Actors**: `cpt-hai3-actor-cli`
+
+#### E2E Scaffold Verification
+
+- [x] `p1` - **ID**: `cpt-hai3-fr-cli-e2e-verification`
+
+The repository MUST run a dedicated required GitHub Actions PR workflow (`cli-pr-e2e`) that verifies the freshly scaffolded default app is installable, buildable, and type-check clean on Node 24.14.x. A separate non-required nightly workflow MUST cover broader CLI scenarios (custom UIKit, layer scaffolds, migrate commands, invalid-name rejection, ai sync idempotency). Both workflows MUST persist step-level logs as CI artifacts.
+
+**Rationale**: The generated project is the primary CLI deliverable; a green CLI package build alone does not prove the scaffold path works end-to-end.
+**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
 
 ### 5.18 Publishing
 

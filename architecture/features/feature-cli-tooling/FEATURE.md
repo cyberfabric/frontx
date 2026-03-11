@@ -17,6 +17,8 @@
   - [Sync AI Configurations](#sync-ai-configurations)
   - [Validate Components](#validate-components)
   - [Apply Code Migrations](#apply-code-migrations)
+  - [Run PR E2E Scenario](#run-pr-e2e-scenario)
+  - [Run Nightly E2E Scenario](#run-nightly-e2e-scenario)
 - [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
   - [Validate Project Name](#validate-project-name)
   - [Generate Project Files](#generate-project-files)
@@ -29,6 +31,7 @@
   - [Resolve Pending Migrations](#resolve-pending-migrations)
   - [Apply Migration](#apply-migration)
   - [Build CLI Templates at Build Time](#build-cli-templates-at-build-time)
+  - [Execute E2E Harness Step](#execute-e2e-harness-step)
 - [4. States (CDSL)](#4-states-cdsl)
   - [Command Execution Lifecycle](#command-execution-lifecycle)
   - [Migration Tracker State](#migration-tracker-state)
@@ -40,6 +43,8 @@
   - [AI Configuration Sync](#ai-configuration-sync)
   - [Component Structure Validation](#component-structure-validation)
   - [Codemod Migration System](#codemod-migration-system)
+  - [CLI PR E2E Workflow](#cli-pr-e2e-workflow)
+  - [CLI Nightly E2E Workflow](#cli-nightly-e2e-workflow)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 
 <!-- /toc -->
@@ -70,12 +75,14 @@ Success criteria: A developer runs `hai3 create my-app`, changes into the direct
 
 - `cpt-hai3-actor-developer`
 - `cpt-hai3-actor-cli`
+- `cpt-hai3-actor-build-system`
 
 ### 1.4 References
 
 - Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-hai3-component-cli`
 - DECOMPOSITION: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-cli-tooling`
 - ADR: `cpt-hai3-adr-cli-template-based-code-generation`
+- ADR: `cpt-hai3-adr-two-tier-cli-e2e-verification`
 - OpenSpec spec: `openspec/specs/cli/spec.md`
 - OpenSpec spec: `openspec/specs/cli-openspec-skills-assembly/spec.md`
 - Related constraint: `cpt-hai3-constraint-esm-first-module-format`
@@ -186,6 +193,45 @@ Success criteria: A developer runs `hai3 create my-app`, changes into the direct
 5. [x] - `p2` - **IF** `--dry-run` is set **THEN** preview each pending migration via `previewMigration()` and print report without writing files - `inst-dry-run-preview`
 6. [x] - `p2` - **IF** not dry-run **THEN** apply each pending migration in version order using `cpt-hai3-algo-cli-tooling-apply-migration`; stop on first failure - `inst-apply-migrations`
 7. [x] - `p2` - **RETURN** array of `MigrationResult` objects - `inst-return-migrate`
+
+### Run PR E2E Scenario
+
+- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-e2e-pr`
+
+**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
+
+1. [x] - `p1` - CI triggers `.github/workflows/cli-pr.yml` on pull request to `main`; job `cli-pr-e2e` starts on `ubuntu-latest` with Node 24.14.x - `inst-e2e-pr-trigger`
+2. [x] - `p1` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-pr-build-cli`
+3. [x] - `p1` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `pr` - `inst-e2e-pr-create-harness`
+4. [x] - `p1` - Run `hai3 create smoke-app --no-studio --uikit hai3` in a temporary workspace - `inst-e2e-pr-create-app`
+5. [x] - `p1` - Assert scaffolded files exist: `hai3.config.json`, `package.json`, `.ai/GUIDELINES.md`, `src/app/layout/Layout.tsx`, `scripts/generate-mfe-manifests.ts` - `inst-e2e-pr-assert-files`
+6. [x] - `p1` - Assert generated `package.json` declares `engines.node >=24.14.0` - `inst-e2e-pr-assert-engines`
+7. [x] - `p1` - Run `git init` in generated project, then `npm install --no-audit --no-fund` - `inst-e2e-pr-git-init-install`
+8. [x] - `p1` - Run `npm run build` and `npm run type-check` on generated project - `inst-e2e-pr-build-typecheck`
+9. [x] - `p1` - Run `hai3 validate components` on clean scaffold and assert exit code 0 - `inst-e2e-pr-validate-clean`
+10. [x] - `p1` - Inject invalid screen file with inline style and hex color, run `hai3 validate components` and assert exit code 1 - `inst-e2e-pr-validate-bad`
+11. [x] - `p1` - Run `hai3 scaffold layout -f` and assert success - `inst-e2e-pr-scaffold-layout`
+12. [x] - `p1` - Run `hai3 ai sync --tool all --diff` and assert success - `inst-e2e-pr-ai-sync`
+13. [x] - `p1` - Upload step logs and JSON summary as CI artifacts (runs even on failure) - `inst-e2e-pr-upload-artifacts`
+14. [x] - `p1` - **RETURN** harness completion status `passed` or `failed` - `inst-e2e-pr-return`
+
+### Run Nightly E2E Scenario
+
+- [x] `p2` - **ID**: `cpt-hai3-flow-cli-tooling-e2e-nightly`
+
+**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
+
+1. [x] - `p2` - CI triggers `.github/workflows/cli-nightly.yml` on schedule (daily 03:00 UTC) or manual dispatch - `inst-e2e-nightly-trigger`
+2. [x] - `p2` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-nightly-build-cli`
+3. [x] - `p2` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `nightly` - `inst-e2e-nightly-create-harness`
+4. [x] - `p2` - Run `hai3 create nightly-app --no-studio --uikit hai3`, then install, build, and type-check - `inst-e2e-nightly-create-default`
+5. [x] - `p2` - Run `hai3 migrate --list` and `hai3 migrate --status` on the default app - `inst-e2e-nightly-migrate-commands`
+6. [x] - `p2` - Run `hai3 ai sync --tool all --diff` twice and assert both succeed (idempotency) - `inst-e2e-nightly-ai-sync-idempotent`
+7. [x] - `p2` - Run `hai3 create nightly-custom --no-studio --uikit none`, assert `@hai3/uikit` not in dependencies, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
+8. [x] - `p2` - **FOR EACH** layer in `[sdk, framework, react]`: run `hai3 create nightly-{layer} --layer {layer}`, then install, build, and type-check - `inst-e2e-nightly-layer-scaffolds`
+9. [x] - `p2` - Run `hai3 create "Invalid Name"` and assert exit code 1 - `inst-e2e-nightly-invalid-name`
+10. [x] - `p2` - Upload step logs and JSON summary as CI artifacts (runs even on failure) - `inst-e2e-nightly-upload-artifacts`
+11. [x] - `p2` - **RETURN** harness completion status `passed` or `failed` - `inst-e2e-nightly-return`
 
 ---
 
@@ -336,6 +382,23 @@ The `copy-templates.ts` script assembles the complete templates directory inside
 7. [x] - `p1` - Call `copyOpenSpecSkills(TEMPLATES_DIR)`: copy OpenSpec skill directories from `.claude/skills/openspec-*`, `.cursor/skills/openspec-*`, `.windsurf/skills/openspec-*` (10 directories each) to their respective paths in templates; copy Copilot OPSX command files from `.github/copilot-commands/opsx-*.md` (10 files) to `templates/.github/copilot-commands/` - `inst-copy-openspec-skills`
 8. [x] - `p1` - Log skill counts per editor: `  .claude/skills/ (10 OpenSpec skills)`, `  .cursor/skills/ (10 OpenSpec skills)`, `  .windsurf/skills/ (10 OpenSpec skills)`, `  .github/copilot-commands/ (10 OPSX commands)` - `inst-log-skill-counts`
 9. [x] - `p1` - **IF** any source directory is missing, return 0 for that editor's count and continue without error - `inst-handle-missing-source-dirs`
+
+### Execute E2E Harness Step
+
+- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+
+Shared e2e harness (`packages/cli/scripts/e2e-lib.mjs`) that provides isolated step execution with logging, assertions, and structured summaries for both PR and nightly scenarios.
+
+**Input**: Suite name (string), optional artifact directory override via `CLI_E2E_ARTIFACT_DIR`
+
+**Output**: Harness object with step runner, assertion helpers, and completion handler
+
+1. [x] - `p1` - Create a temporary directory under `os.tmpdir()` as the workspace root - `inst-e2e-harness-create-tmpdir`
+2. [x] - `p1` - Resolve artifact output directory: use `CLI_E2E_ARTIFACT_DIR` if set, otherwise default to `.artifacts/cli-e2e/{suiteName}` - `inst-e2e-harness-resolve-artifact-dir`
+3. [x] - `p1` - **FOR EACH** step invoked via `runStep({ name, cwd, command, args, expectExit })`: spawn the command synchronously, capture stdout/stderr, measure duration, write a per-step `.log` file to the artifact directory, and append an entry to the in-memory summary - `inst-e2e-harness-run-step`
+4. [x] - `p1` - **IF** the step exit code does not match `expectExit` **THEN** write `summary.json` with status `failed` and throw an error referencing the log path - `inst-e2e-harness-check-exit`
+5. [x] - `p1` - Provide assertion helpers: `assert(condition, message)`, `assertPathExists(path)`, `readJson(path)`, `writeFile(path, content)` - `inst-e2e-harness-assertions`
+6. [x] - `p1` - On `complete(status)`: write `summary.json` to the artifact directory with suite name, status, timestamp, tmp root, and per-step details (name, command, exit code, duration, log path) - `inst-e2e-harness-write-summary`
 
 ---
 
@@ -535,6 +598,52 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 **Covers (DESIGN)**:
 - `cpt-hai3-component-cli`
 
+### CLI PR E2E Workflow
+
+- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-e2e-pr`
+
+A required GitHub Actions workflow (`cli-pr-e2e`) verifies the critical CLI scaffold path on every pull request to `main`. The workflow runs on `ubuntu-latest` with Node 24.14.x, builds the CLI, then exercises the default scaffold through create, install, build, type-check, validate (positive + negative), scaffold layout, and ai sync. Step-level logs and a JSON summary are uploaded as CI artifacts unconditionally.
+
+**Implementation details**:
+- Workflow: `.github/workflows/cli-pr.yml` — job `cli-pr-e2e`, trigger `pull_request` on `main`
+- Script: `packages/cli/scripts/e2e-pr-smoke.mjs` — imports harness from `e2e-lib.mjs`
+- Package script: `npm run test:e2e:pr` in `packages/cli/package.json`
+- Artifact upload: `actions/upload-artifact@v4` with `if: always()`, retention 14 days
+
+**Implements**:
+- `cpt-hai3-flow-cli-tooling-e2e-pr`
+- `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-cli-e2e-verification`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-cli`
+- `cpt-hai3-adr-two-tier-cli-e2e-verification`
+
+### CLI Nightly E2E Workflow
+
+- [x] `p2` - **ID**: `cpt-hai3-dod-cli-tooling-e2e-nightly`
+
+A non-required nightly/manual GitHub Actions workflow covers broader CLI scenarios beyond the PR gate: custom UIKit (`--uikit none`), layer scaffolds (`sdk`, `framework`, `react`), migrate commands (`--list`, `--status`), invalid-name rejection, and ai sync idempotency. Runs on the same harness infrastructure as the PR workflow.
+
+**Implementation details**:
+- Workflow: `.github/workflows/cli-nightly.yml` — job `cli-nightly-e2e`, triggers `schedule` (03:00 UTC) and `workflow_dispatch`
+- Script: `packages/cli/scripts/e2e-nightly.mjs` — imports harness from `e2e-lib.mjs`
+- Package script: `npm run test:e2e:nightly` in `packages/cli/package.json`
+- Artifact upload: `actions/upload-artifact@v4` with `if: always()`, retention 14 days
+
+**Implements**:
+- `cpt-hai3-flow-cli-tooling-e2e-nightly`
+- `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-cli-e2e-verification`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-cli`
+- `cpt-hai3-adr-two-tier-cli-e2e-verification`
+
 ---
 
 ## 6. Acceptance Criteria
@@ -551,3 +660,7 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - [x] CLI build produces exactly 30 OpenSpec skill `SKILL.md` files (10 per editor × 3 editors) and 10 Copilot OPSX command files in `packages/cli/templates/`
 - [x] `executeCommand(createCommand, args, { interactive: false, answers })` returns `{ success: true, data }` without prompts — programmatic API is fully functional
 - [x] `selectCommandVariant` returns `null` for any command that has no applicable variant for the given layer, ensuring layer packages do not receive irrelevant commands
+- [x] `.github/workflows/cli-pr.yml` defines required job `cli-pr-e2e` on `ubuntu-latest` with Node 24.14.x; exercises the full default scaffold path (create, git init, install, build, type-check, validate positive + negative, scaffold layout, ai sync)
+- [x] `.github/workflows/cli-nightly.yml` runs on schedule and manual dispatch; covers `--uikit none`, layer scaffolds (`sdk`, `framework`, `react`), migrate commands, invalid-name rejection, and ai sync idempotency
+- [x] Both e2e workflows upload step-level logs and JSON summary as CI artifacts even when the scenario fails
+- [x] `npm run test:e2e:pr` and `npm run test:e2e:nightly` in `packages/cli` enable local execution of the same scenarios run in CI
