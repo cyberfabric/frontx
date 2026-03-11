@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
 import path from 'path';
 import fs from 'fs-extra';
 import type { GeneratedFile, LayerType } from '../core/types.js';
@@ -297,6 +298,7 @@ function getTsConfig(layer: LayerType): string {
 /**
  * Generate files for a layer package
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 export async function generateLayerPackage(input: LayerPackageInput): Promise<GeneratedFile[]> {
   const { packageName, layer } = input;
   const files: GeneratedFile[] = [];
@@ -528,3 +530,4 @@ Apache-2.0
 
   return files;
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files

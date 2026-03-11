@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 import React from 'react';
 import { Button, type ButtonProps } from '../../base/button';
 import { cn } from '../../lib/utils';
@@ -14,6 +18,8 @@ export interface IconButtonProps extends Omit<ButtonProps, 'size' | 'asChild'> {
   'aria-label': string; // Required for accessibility
 }
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 export const IconButton = (
   {
     ref,
@@ -44,6 +50,8 @@ export const IconButton = (
 };
 
 IconButton.displayName = 'IconButton';
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 
 // Re-export ButtonVariant for convenience
 export { ButtonVariant };

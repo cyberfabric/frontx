@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
 /**
  * Layout Generator from Template
  *
@@ -53,6 +54,7 @@ async function readTemplateFiles(
  * Generate layout files from template
  * Copies the HAI3 UIKit layout templates
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
 export async function copyLayoutTemplates(
   input: LayoutFromTemplateInput
 ): Promise<GeneratedFile[]> {
@@ -97,3 +99,4 @@ export async function copyLayoutTemplates(
 
   return outputFiles;
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates

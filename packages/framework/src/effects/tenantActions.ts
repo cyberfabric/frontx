@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
+
 /**
  * Tenant Actions
  *
@@ -20,6 +22,7 @@ import type { Tenant } from '../layoutTypes';
  * changeTenant({ id: 'tenant-123' });
  * ```
  */
+// @cpt-begin:cpt-hai3-flow-framework-composition-app-config:p1:inst-1
 export function changeTenant(tenant: Tenant): void {
   eventBus.emit(TenantEvents.Changed, { tenant });
 }
@@ -37,3 +40,4 @@ export function clearTenantAction(): void {
 export function setTenantLoadingState(loading: boolean): void {
   getStore().dispatch(setTenantLoading(loading));
 }
+// @cpt-end:cpt-hai3-flow-framework-composition-app-config:p1:inst-1

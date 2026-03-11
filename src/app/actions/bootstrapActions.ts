@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
+
 /**
  * Bootstrap Actions
  *
@@ -12,6 +14,7 @@ import type { ApiUser } from '@/app/api';
  * Fetch current user
  * Emits 'app/user/fetch' event
  */
+// @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
 export function fetchCurrentUser(): void {
   eventBus.emit('app/user/fetch');
 }
@@ -24,3 +27,4 @@ export function fetchCurrentUser(): void {
 export function notifyUserLoaded(user: ApiUser): void {
   eventBus.emit('app/user/loaded', { user });
 }
+// @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1

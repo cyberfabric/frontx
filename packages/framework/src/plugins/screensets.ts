@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
+
 /**
  * Screensets Plugin - Provides screenset registry and screen slice
  *
@@ -27,6 +29,7 @@ import type { HAI3Plugin, ScreensetsConfig } from '../types';
  *   .build();
  * ```
  */
+// @cpt-begin:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
 export function screensets(_config?: ScreensetsConfig): HAI3Plugin<ScreensetsConfig> {
   return {
     name: 'screensets',
@@ -50,3 +53,4 @@ export function screensets(_config?: ScreensetsConfig): HAI3Plugin<ScreensetsCon
     },
   };
 }
+// @cpt-end:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1

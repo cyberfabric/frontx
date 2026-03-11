@@ -1,3 +1,8 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-layout:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -13,6 +18,8 @@ const SheetClose = SheetPrimitive.Close
 
 const SheetPortal = SheetPrimitive.Portal
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 const SheetOverlay = (
   {
     ref,
@@ -137,6 +144,8 @@ const SheetDescription = (
   {...props}
 />)
 SheetDescription.displayName = SheetPrimitive.Description.displayName
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export {
   Sheet,

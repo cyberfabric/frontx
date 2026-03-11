@@ -1,3 +1,5 @@
+// @cpt-algo:cpt-hai3-algo-framework-composition-mock-toggle:p2
+
 /**
  * Mock Plugin - Centralized mock mode control
  *
@@ -61,6 +63,7 @@ export interface MockPluginConfig {
  * app.actions.toggleMockMode(true);
  * ```
  */
+// @cpt-begin:cpt-hai3-algo-framework-composition-mock-toggle:p2:inst-1
 export function mock(config?: MockPluginConfig): HAI3Plugin {
   return {
     name: 'mock',
@@ -97,3 +100,4 @@ export function mock(config?: MockPluginConfig): HAI3Plugin {
     },
   };
 }
+// @cpt-end:cpt-hai3-algo-framework-composition-mock-toggle:p2:inst-1

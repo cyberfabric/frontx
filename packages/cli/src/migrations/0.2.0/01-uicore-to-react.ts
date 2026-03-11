@@ -1,3 +1,4 @@
+// @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
 /**
  * Transform: uicore-to-react
  *
@@ -13,6 +14,7 @@ import type { Transform, TransformChange, TransformResult } from '../types.js';
 const SOURCE_MODULE = '@hai3/uicore';
 const TARGET_MODULE = '@hai3/react';
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const uicoreToReactTransform: Transform = {
   id: 'uicore-to-react',
   name: 'Update @hai3/uicore to @hai3/react',
@@ -102,3 +104,4 @@ export const uicoreToReactTransform: Transform = {
     }
   },
 };
+// @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms

@@ -1,3 +1,6 @@
+// @cpt-dod:cpt-hai3-dod-uikit-components-data-display:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 "use client"
 
 import { type Table } from "@tanstack/react-table"
@@ -24,6 +27,7 @@ export interface DataTablePaginationProps<TData> {
   pageSizeOptions?: number[]
 }
 
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = [10, 20, 30, 40, 50],
@@ -105,3 +109,4 @@ export function DataTablePagination<TData>({
     </div>
   )
 }
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1

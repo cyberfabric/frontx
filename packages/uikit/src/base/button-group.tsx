@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -22,6 +26,8 @@ const buttonGroupVariants = cva(
   }
 )
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 function ButtonGroup({
   className,
   orientation,
@@ -75,6 +81,8 @@ function ButtonGroupSeparator({
     />
   )
 }
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export {
   ButtonGroup,

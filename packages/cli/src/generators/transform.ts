@@ -1,3 +1,4 @@
+// @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
 import fs from 'fs-extra';
 import { toPascalCase, toScreamingSnake, toCamelCase, escapeRegExp } from './utils.js';
 
@@ -106,6 +107,7 @@ export function generateTransformationMap(
  * IMPORTANT: To avoid double-replacement when target contains source (e.g., chat -> chatCopy),
  * we use a two-pass approach with placeholders for certain transformations.
  */
+// @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export function transformContent(
   content: string,
   sourceScreensetId: string,
@@ -216,6 +218,7 @@ export function transformContent(
 
   return result;
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 
 /**
  * Rename file or directory based on screenset ID transformation

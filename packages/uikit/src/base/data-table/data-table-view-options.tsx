@@ -1,3 +1,6 @@
+// @cpt-dod:cpt-hai3-dod-uikit-components-data-display:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 "use client"
 
 import { type Table } from "@tanstack/react-table"
@@ -22,6 +25,7 @@ export interface DataTableViewOptionsProps<TData> {
   buttonText?: string
 }
 
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 export function DataTableViewOptions<TData>({
   table,
   label = "Toggle columns",
@@ -64,3 +68,4 @@ export function DataTableViewOptions<TData>({
     </DropdownMenu>
   )
 }
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1

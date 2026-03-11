@@ -1,3 +1,8 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-form:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 "use client"
 
 import * as React from "react"
@@ -6,6 +11,8 @@ import { OTPInput, OTPInputContext } from "input-otp"
 import { cn } from "../lib/utils"
 import { MinusIcon } from "../icons/MinusIcon"
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 function InputOTP({
   className,
   containerClassName,
@@ -73,5 +80,7 @@ function InputOTPSeparator({ ...props }: React.ComponentProps<"div">) {
     </div>
   )
 }
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export { InputOTP, InputOTPGroup, InputOTPSlot, InputOTPSeparator }

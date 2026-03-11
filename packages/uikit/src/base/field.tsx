@@ -1,3 +1,8 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-form:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 "use client"
 
 import { useMemo } from "react"
@@ -7,6 +12,8 @@ import { cn } from "../lib/utils"
 import { Label } from "./label"
 import { Separator } from "./separator"
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 function FieldSet({ className, ...props }: React.ComponentProps<"fieldset">) {
   return (
     <fieldset
@@ -233,6 +240,8 @@ function FieldError({
     </div>
   )
 }
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export {
   Field,

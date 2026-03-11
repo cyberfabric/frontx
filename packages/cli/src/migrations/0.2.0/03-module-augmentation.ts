@@ -1,3 +1,4 @@
+// @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
 /**
  * Transform: module-augmentation
  *
@@ -14,6 +15,7 @@ import type { Transform, TransformChange, TransformResult } from '../types.js';
 const SOURCE_MODULE = '@hai3/uicore';
 const TARGET_MODULE = '@hai3/react';
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const moduleAugmentationTransform: Transform = {
   id: 'module-augmentation',
   name: 'Update module augmentation targets',
@@ -91,3 +93,4 @@ export const moduleAugmentationTransform: Transform = {
     }
   },
 };
+// @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms

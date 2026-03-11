@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
+
 /**
  * Effects Plugin - Core effect coordination infrastructure
  *
@@ -22,6 +24,7 @@ import type { HAI3Plugin } from '../types';
  *   .build();
  * ```
  */
+// @cpt-begin:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
 export function effects(): HAI3Plugin {
   return {
     name: 'effects',
@@ -34,3 +37,4 @@ export function effects(): HAI3Plugin {
     },
   };
 }
+// @cpt-end:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1

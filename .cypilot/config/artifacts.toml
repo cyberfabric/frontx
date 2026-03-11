@@ -8,6 +8,36 @@ patterns = [
   "*/templates/*",
 ]
 
+[[ignore]]
+reason = "Test files use scenario IDs, not CDSL begin/end markers"
+patterns = [
+  "*.test.*",
+  "*.spec.*",
+  "*/__tests__/*",
+]
+
+[[ignore]]
+reason = "CLI template sources are code-gen templates, not implementable source"
+patterns = [
+  "*/template-sources/*",
+]
+
+[[ignore]]
+reason = "Build/bundler configuration files have no CDSL backing"
+patterns = [
+  "*/tsup.config.*",
+  "*/vite.config.*",
+  "*/vitest.config.*",
+  "*/postcss.config.*",
+  "*/tailwind.config.*",
+]
+
+[[ignore]]
+reason = "Documentation site infrastructure has no CDSL backing"
+patterns = [
+  "packages/docs/*",
+]
+
 [[systems]]
 name = "HAI3 Dev Kit"
 slug = "hai3"
@@ -181,5 +211,5 @@ path = "src/"
 extensions = [".ts"]
 
 [[systems.codebase]]
-path = ".github/"
+path = ".github/workflows/publish-packages.yml"
 extensions = [".yml"]

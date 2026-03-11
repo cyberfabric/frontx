@@ -1,3 +1,6 @@
+// @cpt-dod:cpt-hai3-dod-uikit-components-data-display:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 "use client"
 
 import { type Column } from "@tanstack/react-table"
@@ -20,6 +23,7 @@ export interface DataTableColumnHeaderProps<TData, TValue>
   title: string
 }
 
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 export function DataTableColumnHeader<TData, TValue>({
   column,
   title,
@@ -67,3 +71,4 @@ export function DataTableColumnHeader<TData, TValue>({
     </div>
   )
 }
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1

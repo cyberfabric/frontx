@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 import React from 'react';
 import { trim, toUpper } from 'lodash';
 import { cn } from '../../lib/utils';
@@ -21,6 +25,8 @@ export interface UserInfoProps {
  * Composite component combining shadcn Avatar + text
  * Displays user avatar with fallback initials and name/email
  */
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
 export const UserInfo = (
   {
     ref,
@@ -72,3 +78,5 @@ export const UserInfo = (
 };
 
 UserInfo.displayName = 'UserInfo';
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1

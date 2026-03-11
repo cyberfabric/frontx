@@ -1,3 +1,4 @@
+// @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
 /**
  * Transform: uikit-contracts-to-uikit
  *
@@ -13,6 +14,7 @@ import type { Transform, TransformChange, TransformResult } from '../types.js';
 const SOURCE_MODULE = '@hai3/uikit-contracts';
 const TARGET_MODULE = '@hai3/uikit';
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const uikitContractsToUikitTransform: Transform = {
   id: 'uikit-contracts-to-uikit',
   name: 'Update @hai3/uikit-contracts to @hai3/uikit',
@@ -102,3 +104,4 @@ export const uikitContractsToUikitTransform: Transform = {
     }
   },
 };
+// @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms

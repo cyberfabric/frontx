@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 import * as React from "react"
 import { cva, type VariantProps } from "class-variance-authority"
 
@@ -19,6 +23,8 @@ const alertVariants = cva(
   }
 )
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 function Alert({
   className,
   variant,
@@ -62,5 +68,7 @@ function AlertDescription({
     />
   )
 }
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export { Alert, AlertTitle, AlertDescription, alertVariants }

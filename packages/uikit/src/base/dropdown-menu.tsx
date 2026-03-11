@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 import * as React from "react"
 import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import type { TextDirection } from "../types"
@@ -7,6 +11,8 @@ import { CheckIcon } from "../icons/CheckIcon"
 import { ChevronRightIcon } from "../icons/ChevronRightIcon"
 import { CircleIcon } from "../icons/CircleIcon"
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 const DropdownMenu = ({
   dir,
   ...props
@@ -228,6 +234,8 @@ const DropdownMenuShortcut = ({
   )
 }
 DropdownMenuShortcut.displayName = "DropdownMenuShortcut"
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export {
   DropdownMenu,

@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-mfe-isolation-load:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
 /**
  * Parent MFE Bridge Implementation
  *
@@ -59,12 +61,14 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * @returns Promise resolving when execution is complete
    * @throws {BridgeDisposedError} If bridge has been disposed
    */
+  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
   async sendActionsChain(chain: ActionsChain): Promise<void> {
     if (this.disposed) {
       throw new BridgeDisposedError(this.instanceId);
     }
     return this.childBridge.handleParentActionsChain(chain);
   }
+  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
 
   /**
    * Register a handler for actions sent from the child MFE to the host.

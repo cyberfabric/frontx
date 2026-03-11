@@ -1,3 +1,7 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-base:p1
+
 import * as React from "react"
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog"
 
@@ -5,6 +9,8 @@ import { cn } from "../lib/utils"
 import { buttonVariants } from "./button"
 import { ButtonVariant } from "../types"
 
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 const AlertDialog = ({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Root>) => (
@@ -162,6 +168,8 @@ const AlertDialogCancel = (
   {...props}
 />)
 AlertDialogCancel.displayName = AlertDialogPrimitive.Cancel.displayName
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-base:p1:inst-1
 
 export {
   AlertDialog,

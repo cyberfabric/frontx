@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
+
 /**
  * Bootstrap Effects
  *
@@ -12,6 +14,7 @@ import { AccountsApiService, type ApiUser } from '@/app/api';
 /**
  * Convert API user to header user info
  */
+// @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
 function toHeaderUser(user: ApiUser): HeaderUser {
   const displayName = trim(`${user.firstName || ''} ${user.lastName || ''}`);
   return {
@@ -56,3 +59,4 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
     dispatch(setUser(toHeaderUser(user)));
   });
 }
+// @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1

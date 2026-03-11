@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
+// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
 /**
  * Default Actions Chains Mediator Implementation
  *
@@ -93,6 +95,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param options - Optional per-request execution options
    * @returns Promise resolving to chain result
    */
+  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
   async executeActionsChain(
     chain: ActionsChain,
     options?: ChainExecutionOptions
@@ -127,6 +130,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       };
     }
   }
+  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
 
   /**
    * Execute a chain recursively with success/failure branching.
@@ -310,6 +314,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param targetId - The target type ID (domain or extension)
    * @returns The action handler, or undefined if not found
    */
+  // @cpt-begin:cpt-hai3-algo-screenset-registry-handler-resolution:p1:inst-1
   private resolveHandler(targetId: string): ActionHandler | undefined {
     // Check if target is a domain
     const domainHandler = this.domainHandlers.get(targetId);
@@ -325,6 +330,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
     return undefined;
   }
+  // @cpt-end:cpt-hai3-algo-screenset-registry-handler-resolution:p1:inst-1
 
   /**
    * Resolve the timeout for an action.

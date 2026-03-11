@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-mfe-isolation-load:p1
+// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
 /**
  * Child MFE Bridge Implementation
  *
@@ -255,12 +257,14 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    * @returns Promise resolving when execution is complete
    * @throws {NoActionsChainHandlerError} If no handler is registered
    */
+  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
   handleParentActionsChain(chain: ActionsChain): Promise<void> {
     if (this.actionsChainHandler === null) {
       throw new NoActionsChainHandlerError(this.instanceId);
     }
     return this.actionsChainHandler(chain);
   }
+  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
 
   /**
    * INTERNAL: Cleanup method called by bridge factory.

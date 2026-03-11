@@ -1,3 +1,5 @@
+// @cpt-dod:cpt-hai3-dod-framework-composition-layout:p1
+
 /**
  * Layout Slices
  *
@@ -100,6 +102,7 @@ export interface LayoutDomainReducersType {
   overlay: Reducer<OverlayState>;
 }
 
+// @cpt-begin:cpt-hai3-dod-framework-composition-layout:p1:inst-1
 export const layoutDomainReducers: LayoutDomainReducersType = {
   header: headerReducer,
   footer: footerReducer,
@@ -111,6 +114,7 @@ export const layoutDomainReducers: LayoutDomainReducersType = {
 };
 
 export const layoutReducer = combineReducers(layoutDomainReducers);
+// @cpt-end:cpt-hai3-dod-framework-composition-layout:p1:inst-1
 
 // ============================================================================
 // Slice Exports
