@@ -1,7 +1,0 @@
-## REMOVED Requirements
-
-### Requirement: Host Share Scope Bootstrap via Microfrontends Plugin
-
-**Reason**: The host bootstrap pre-populates `globalThis.__federation_shared__` with `get()` functions that resolve to the host's already-loaded module instances (e.g., `() => import('react').then(m => () => m)`). With blob URL isolation, the handler wraps `get()` functions to fetch source text and create Blob URLs for fresh evaluation. However, host-provided `get()` functions do not point to fetchable chunk URLs — they return the host's in-memory module. The handler cannot blob-URL the host's modules without knowing their chunk file paths, making host bootstrap incompatible with the blob URL isolation architecture. Each MFE's manifest declares its own `chunkPath` for each shared dependency, and the handler fetches and caches source text directly from the MFE's assets — no host pre-population is needed.
-
-**Migration**: Remove `hostSharedDependencies` from the `microfrontends()` configuration call in the host app. Remove `HostSharedDependency` interface, `bootstrapHostSharedDependencies()` function, and the `hostSharedDependencies` property from `MicrofrontendsConfig` in `packages/framework/src/plugins/microfrontends/index.ts`. Remove all associated private types and helper functions (`FederationEntry`, `FederationMap`, `readFederationShared`, `writeFederationShared`, `FEDERATION_SHARED_KEY`). Blob URL isolation handles dependency isolation without host involvement.

@@ -5,8 +5,7 @@
 1) Read .ai/targets/EVENTS.md before starting.
 2) Summarize 3-6 key rules.
 3) Gather requirements from user.
-4) Create OpenSpec proposal for approval.
-5) After approval, apply implementation.
+4) Implement.
 
 ## GATHER REQUIREMENTS
 Ask user for:
@@ -14,44 +13,9 @@ Ask user for:
 - Which screenset and domain (e.g., "chat/threads", "demo/navigation").
 - Event payload data.
 
-## STEP 1: Create OpenSpec Proposal
-Create `openspec/changes/add-{screenset}-{action}/` with:
+## STEP 1: Implementation
 
-### proposal.md
-```markdown
-# Proposal: Add {ActionName} Action
-
-## Summary
-Add new action "{actionName}" to {screenset}/{domain} domain.
-
-## Details
-- Screenset: {screenset}
-- Domain: {domain}
-- Action: {actionName}
-- Event: {eventName}
-- Payload: {payloadFields}
-
-## Implementation
-Follow HAI3 event-driven flux pattern: Action -> Event -> Effect -> Slice.
-```
-
-### tasks.md
-```markdown
-# Tasks: Add {ActionName} Action
-
-- [ ] Define event in events/{domain}Events.ts
-- [ ] Create action in actions/{domain}Actions.ts
-- [ ] Create effect in effects/{domain}Effects.ts
-- [ ] Validate: `npm run arch:check`
-```
-
-## STEP 2: Wait for Approval
-Tell user: "I've created an OpenSpec proposal at `openspec/changes/add-{screenset}-{action}/`. Please review and run `/openspec:apply add-{screenset}-{action}` to implement."
-
-## STEP 3: Apply Implementation (after approval)
-When user runs `/openspec:apply`, execute:
-
-### 3.1 Define Event
+### 1.1 Define Event
 In src/screensets/{screenset}/events/{domain}Events.ts:
 ```typescript
 import { SCREENSET_ID } from '../ids';
@@ -73,7 +37,7 @@ declare module '@hai3/state' {
 }
 ```
 
-### 3.2 Create Action
+### 1.2 Create Action
 In src/screensets/{screenset}/actions/{domain}Actions.ts:
 ```typescript
 import { eventBus } from '@hai3/state';
@@ -88,7 +52,7 @@ export const {actionName} = (params: ParamsType) => {
 };
 ```
 
-### 3.3 Create Effect
+### 1.3 Create Effect
 In src/screensets/{screenset}/effects/{domain}Effects.ts:
 ```typescript
 import { eventBus, getStore } from '@hai3/state';
@@ -102,13 +66,10 @@ export function init{Domain}Effects(): void {
 }
 ```
 
-### 3.4 Validate
+### 1.4 Validate
 ```bash
 npm run arch:check
 ```
-
-### 3.5 Mark Tasks Complete
-Update tasks.md to mark all completed tasks.
 
 ## RULES
 - Actions use imperative names (selectScreen, changeTheme).

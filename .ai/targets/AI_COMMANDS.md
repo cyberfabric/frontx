@@ -9,19 +9,11 @@
 ## COMMAND CATEGORIES
 hai3-*: Standalone project commands (shipped to all HAI3 projects).
 hai3dev-*: Monorepo-only commands (framework development only).
-openspec:*: OpenSpec workflow commands (managed by openspec update).
-
-## OPENSPEC WORKFLOW COMMANDS
-- hai3-new-screenset, hai3-new-screen, hai3-new-component, hai3-new-action, hai3-new-api-service.
-- REQUIRED: These commands create OpenSpec proposals first, then implement after approval.
-- REQUIRED: hai3-new-screenset must use CLI (hai3 screenset create) during apply step.
-- Pattern: Gather requirements -> Create proposal -> Wait for approval -> Apply implementation.
 
 ## NAMING CONVENTIONS
 - REQUIRED: Standalone commands use hai3- filename prefix (e.g., hai3-validate.md).
 - REQUIRED: Monorepo-only commands use hai3dev- prefix (e.g., hai3dev-update-guidelines.md).
-- FORBIDDEN: Unprefixed command files (except openspec: commands).
-- FORBIDDEN: Changing openspec: prefix (managed by openspec update).
+- FORBIDDEN: Unprefixed command files.
 
 ## LAYER VARIANTS
 Commands can have layer-specific variants for SDK architecture tiers:
@@ -63,13 +55,12 @@ REQUIRED: Adapters must NOT contain command logic.
 
 ## UPDATE MECHANISM
 - hai3: commands -> Updated by hai3 update.
-- openspec: commands -> Updated by openspec update.
 - hai3dev: commands -> Manual updates (not shipped to standalone).
 
 ## ADDING A NEW COMMAND
 1) Create canonical file in .ai/commands/hai3-name.md with <!-- @standalone --> marker.
 2) Follow AI.md format rules.
-3) For hai3-new-* commands: MUST use OpenSpec workflow pattern.
+3) For hai3-new-* commands: MUST include implementation steps and validation.
 4) IDE adapters are generated automatically by copy-templates.ts.
 5) Verify with npm run build:packages && npm run lint.
 

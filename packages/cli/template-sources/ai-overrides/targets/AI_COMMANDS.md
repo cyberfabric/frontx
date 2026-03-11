@@ -17,18 +17,10 @@ Most specific level wins. This allows overriding HAI3 commands with custom versi
 
 ## COMMAND CATEGORIES
 hai3-*: User project commands (shipped to all HAI3 projects).
-openspec:*: OpenSpec workflow commands (managed by openspec update).
-
-## OPENSPEC WORKFLOW COMMANDS
-- hai3-new-screenset, hai3-new-screen, hai3-new-component, hai3-new-action, hai3-new-api-service.
-- REQUIRED: These commands create OpenSpec proposals first, then implement after approval.
-- REQUIRED: hai3-new-screenset must use CLI (hai3 screenset create) during apply step.
-- Pattern: Gather requirements -> Create proposal -> Wait for approval -> Apply implementation.
 
 ## NAMING CONVENTIONS
 - REQUIRED: User commands use hai3- filename prefix (e.g., hai3-validate.md).
-- FORBIDDEN: Unprefixed command files (except openspec: commands).
-- FORBIDDEN: Changing openspec: prefix (managed by openspec update).
+- FORBIDDEN: Unprefixed command files.
 
 ## LAYER VARIANTS
 Commands can have layer-specific variants for SDK architecture tiers:
@@ -92,7 +84,6 @@ REQUIRED: Adapters must NOT contain command logic.
 
 ## UPDATE MECHANISM
 - hai3: commands -> Updated by hai3 update.
-- openspec: commands -> Updated by openspec update.
 
 ## USING COMMANDS
 1) Select command from .ai/commands/ directory.

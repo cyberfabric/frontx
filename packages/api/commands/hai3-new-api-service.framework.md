@@ -4,8 +4,8 @@
 ## AI WORKFLOW (REQUIRED)
 1) Read .ai/targets/API.md and .ai/targets/EVENTS.md before starting.
 2) Gather requirements from user.
-3) Create OpenSpec proposal for approval.
-4) After approval, apply implementation.
+3) Implement.
+4) Validate.
 
 ## GATHER REQUIREMENTS
 - Which screenset will use the service.
@@ -13,15 +13,7 @@
 - Endpoints/methods needed.
 - Base URL.
 
-## STEP 1: Create OpenSpec Proposal
-- REQUIRED: Create openspec/changes/add-{screenset}-{service}/ directory.
-- REQUIRED: proposal.md with screenset, domain, endpoints.
-- REQUIRED: tasks.md with full implementation checklist.
-
-## STEP 2: Wait for Approval
-- Tell user: "Review proposal and run /openspec:apply add-{screenset}-{service} to implement."
-
-## STEP 3: Apply Implementation
+## STEP 1: Implementation
 - REQUIRED: Create src/screensets/{screenset}/api/{Name}ApiService.ts.
 - REQUIRED: Create src/screensets/{screenset}/events/{domain}Events.ts.
 - REQUIRED: Create src/screensets/{screenset}/actions/{domain}Actions.ts.

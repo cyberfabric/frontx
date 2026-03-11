@@ -7,8 +7,7 @@
 3. Run: `npm run dev`
 4. Open http://localhost:5173 in your browser
 5. Run: `npm install -g @hai3/cli@alpha` (enables screenset scaffolding commands)
-6. Run: `npm install -g @fission-ai/openspec@latest` (enables AI to manage proposals)
-7. Ask the AI: "Set up Chrome DevTools MCP server so you can see my browser"
+6. Ask the AI: "Set up Chrome DevTools MCP server so you can see my browser"
 
 ## Creating Your First Screenset
 
@@ -32,21 +31,7 @@ The AI will ask you:
 - **Category**: Choose `Drafts` (you can promote it later)
 - **Initial screens**: Start with just one, like `home`
 
-### Step 3: Review and Approve
-
-The AI will create a proposal showing what it plans to build.
-
-**Happy with it?** Apply the proposal:
-```
-/openspec:apply add-{your-screenset-name}
-```
-
-**Want changes?** Tell the AI what to adjust before applying:
-- "I want fewer screens"
-- "Use a different name"
-- "Add a settings screen too"
-
-### Step 4: See Your Work
+### Step 3: See Your Work
 
 Your new screenset appears in the HAI3 Studio screensets selector. Click to open it.
 

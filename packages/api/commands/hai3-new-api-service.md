@@ -4,8 +4,8 @@
 ## AI WORKFLOW (REQUIRED)
 1) Read .ai/targets/API.md before starting.
 2) Gather requirements from user.
-3) Create OpenSpec proposal for approval.
-4) After approval, apply implementation.
+3) Implement.
+4) Validate.
 
 ## GATHER REQUIREMENTS
 - Service name and domain.
@@ -13,15 +13,7 @@
 - Base URL.
 - Protocol type (REST, SSE).
 
-## STEP 1: Create OpenSpec Proposal
-- REQUIRED: Create openspec/changes/add-{domain}-api-service/ directory.
-- REQUIRED: proposal.md with domain, baseUrl, endpoints, protocol.
-- REQUIRED: tasks.md with implementation checklist.
-
-## STEP 2: Wait for Approval
-- Tell user: "Review proposal and run /openspec:apply add-{domain}-api-service to implement."
-
-## STEP 3: Apply Implementation
+## STEP 1: Implementation
 - REQUIRED: Create packages/api/src/{domain}/{Name}ApiService.ts.
 - REQUIRED: Extend BaseApiService with protocol instance.
 - REQUIRED: Define TypeScript interfaces for requests/responses.

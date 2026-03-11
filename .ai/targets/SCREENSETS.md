@@ -163,7 +163,6 @@
 - FORBIDDEN: Exposing coordination internals to MFE code.
 
 ### Documentation Resources
-- Design docs: `openspec/changes/add-microfrontend-support/design/`
 - Vendor guide: `packages/screensets/docs/mfe/vendor-guide.md`
 - Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
 - GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
