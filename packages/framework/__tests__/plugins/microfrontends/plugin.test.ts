@@ -20,6 +20,7 @@ import {
   selectExtensionError,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@hai3/state';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { Extension } from '@hai3/screensets';
 import type { HAI3App } from '../../../src/types';
 
@@ -33,7 +34,7 @@ describe('microfrontends plugin - Phase 13', () => {
   });
   describe('13.8.1 - plugin registration', () => {
     it('should register plugin with Flux wiring', () => {
-      const plugin = microfrontends();
+      const plugin = microfrontends({ typeSystem: gtsPlugin });
 
       expect(plugin.name).toBe('microfrontends');
       expect(plugin.dependencies).toContain('screensets');
@@ -48,7 +49,7 @@ describe('microfrontends plugin - Phase 13', () => {
     });
 
     it('should provide MFE actions', () => {
-      const plugin = microfrontends();
+      const plugin = microfrontends({ typeSystem: gtsPlugin });
 
       expect(plugin.provides?.actions).toHaveProperty('loadExtension');
       expect(plugin.provides?.actions).toHaveProperty('mountExtension');
@@ -60,7 +61,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -76,7 +77,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -128,7 +129,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -142,7 +143,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -163,7 +164,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -176,7 +177,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 

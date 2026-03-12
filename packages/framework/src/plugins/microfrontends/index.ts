@@ -18,10 +18,10 @@
 import {
   screensetsRegistryFactory,
   type MfeHandler,
+  type TypeSystemPlugin,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import { getStore } from '@hai3/state';
 import type { HAI3Plugin } from '../../types';
 import { mfeSlice, setExtensionMounted, setExtensionUnmounted } from './slice';
@@ -39,6 +39,12 @@ import {
  * Configuration for the microfrontends plugin.
  */
 export interface MicrofrontendsConfig {
+  /**
+   * Type system plugin for entity validation.
+   * The registry uses this for domain, extension, and handler type validation.
+   */
+  typeSystem: TypeSystemPlugin;
+
   /**
    * Optional MFE handlers to register with the screensets registry.
    * Handlers enable loading of specific MFE entry types (e.g., MfeEntryMF).
@@ -58,7 +64,7 @@ export interface MicrofrontendsConfig {
  * **Key Principles:**
  * - Optional mfeHandlers config for handler registration
  * - NO static domain registration - domains are registered at runtime
- * - Builds screensetsRegistry with GTS plugin at plugin initialization
+ * - Builds screensetsRegistry with provided TypeSystemPlugin at plugin initialization
  * - Same TypeSystemPlugin instance is propagated throughout
  * - Integrates MFE lifecycle with Flux data flow (actions, effects, slice)
  *
@@ -67,11 +73,14 @@ export interface MicrofrontendsConfig {
  * @example
  * ```typescript
  * import { createHAI3, microfrontends } from '@hai3/framework';
- * import { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
+ * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
  * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
  *
  * const app = createHAI3()
- *   .use(microfrontends({ mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }))
+ *   .use(microfrontends({
+ *     typeSystem: gtsPlugin,
+ *     mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
+ *   }))
  *   .build();
  *
  * // Register domains dynamically at runtime:
@@ -85,12 +94,12 @@ export interface MicrofrontendsConfig {
 // @cpt-begin:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1:inst-1
 // @cpt-begin:cpt-hai3-state-framework-composition-mfe-mount:p1:inst-1
 // @cpt-begin:cpt-hai3-dod-framework-composition-mfe-plugin:p1:inst-1
-export function microfrontends(config: MicrofrontendsConfig = {}): HAI3Plugin {
-  // Build the ScreensetsRegistry instance with GTS plugin and optional handlers
+export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
+  // Build the ScreensetsRegistry instance with provided TypeSystemPlugin and optional handlers
   // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
   // TypeSystemPlugin binding happens here at application wiring level.
   const screensetsRegistry = screensetsRegistryFactory.build({
-    typeSystem: gtsPlugin,
+    typeSystem: config.typeSystem,
     mfeHandlers: config.mfeHandlers,
   });
 

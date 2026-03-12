@@ -178,7 +178,6 @@ describe('Dynamic Registration', () => {
       };
       const mockHandler = {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        canHandle: vi.fn().mockReturnValue(true),
         load: vi.fn().mockResolvedValue(mockLifecycle),
         priority: 100,
       };
@@ -234,7 +233,6 @@ describe('Dynamic Registration', () => {
       };
       const mockHandler = {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        canHandle: vi.fn().mockReturnValue(true),
         load: vi.fn().mockResolvedValue(mockLifecycle),
         priority: 100,
       };
@@ -273,7 +271,6 @@ describe('Dynamic Registration', () => {
     let mockHandler: {
       bridgeFactory: unknown;
       handledBaseTypeId: string;
-      canHandle: ReturnType<typeof vi.fn>;
       load: ReturnType<typeof vi.fn>;
       preload: ReturnType<typeof vi.fn>;
       priority: number;
@@ -288,7 +285,6 @@ describe('Dynamic Registration', () => {
       mockHandler = {
         bridgeFactory: {} as unknown,
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        canHandle: vi.fn().mockReturnValue(true),
         load: vi.fn().mockResolvedValue(mockLifecycle),
         preload: vi.fn().mockResolvedValue(undefined),
         priority: 0,
@@ -407,7 +403,6 @@ describe('Dynamic Registration', () => {
     let mockHandler: {
       bridgeFactory: unknown;
       handledBaseTypeId: string;
-      canHandle: ReturnType<typeof vi.fn>;
       load: ReturnType<typeof vi.fn>;
       preload: ReturnType<typeof vi.fn>;
       priority: number;
@@ -422,7 +417,6 @@ describe('Dynamic Registration', () => {
       mockHandler = {
         bridgeFactory: {} as unknown,
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        canHandle: vi.fn().mockReturnValue(true),
         load: vi.fn().mockResolvedValue(mockLifecycle),
         preload: vi.fn().mockResolvedValue(undefined),
         priority: 0,

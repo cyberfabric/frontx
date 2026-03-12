@@ -191,7 +191,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     // Initialize mount manager (needs all collaborators)
     this.mountManager = new DefaultMountManager({
       extensionManager: this.extensionManager,
-      handlers: this.handlers,
+      resolveHandler: (entryTypeId) => this.resolveHandler(entryTypeId),
       coordinator: this.coordinator,
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
       executeActionsChain: (chain) => this.executeActionsChain(chain),
@@ -266,7 +266,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       return;
     }
 
-    const canHandle = this.handlers.some(handler => handler.canHandle(entryTypeId));
+    const canHandle = this.handlers.some(handler =>
+      this.typeSystem.isTypeOf(entryTypeId, handler.handledBaseTypeId)
+    );
     if (!canHandle) {
       throw new EntryTypeNotHandledError(
         entryTypeId,
@@ -275,6 +277,20 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     }
   }
   // @cpt-end:cpt-hai3-algo-screenset-registry-handler-resolution:p1:inst-1
+
+  /**
+   * Resolve the appropriate handler for a given entry type ID.
+   * Handlers are sorted by priority (highest first). The first handler whose
+   * handledBaseTypeId matches via typeSystem.isTypeOf() is returned.
+   *
+   * @param entryTypeId - Type ID of the entry to resolve a handler for
+   * @returns The matching handler, or undefined if none match
+   */
+  private resolveHandler(entryTypeId: string): MfeHandler | undefined {
+    return this.handlers.find(handler =>
+      this.typeSystem.isTypeOf(entryTypeId, handler.handledBaseTypeId)
+    );
+  }
 
   /**
    * Register an extension domain.

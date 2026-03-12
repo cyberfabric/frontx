@@ -71,6 +71,7 @@ export { MfeHandler, MfeBridgeFactory } from './mfe';
 // HAI3 Action Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
+  HAI3_MFE_ENTRY_MF,
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,

@@ -18,6 +18,7 @@ export type {
 // HAI3 Type Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
+  HAI3_MFE_ENTRY_MF,
 } from './constants';
 
 // HAI3 Action Constants

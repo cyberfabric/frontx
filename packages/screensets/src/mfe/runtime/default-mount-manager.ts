@@ -22,6 +22,13 @@ import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 import { createShadowRoot } from '../shadow';
 
 /**
+ * Callback type for resolving the appropriate handler for an entry type.
+ * The registry provides this callback, encapsulating typeSystem.isTypeOf() logic.
+ */
+// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
+export type HandlerResolver = (entryTypeId: string) => MfeHandler | undefined;
+
+/**
  * Default mount manager implementation.
  *
  * Handles MFE loading, mounting, and unmounting with full lifecycle support.
@@ -35,9 +42,9 @@ export class DefaultMountManager extends MountManager {
   private readonly extensionManager: DefaultExtensionManager;
 
   /**
-   * Registered MFE handlers.
+   * Resolves the appropriate handler for a given entry type ID.
    */
-  private readonly handlers: MfeHandler[];
+  private readonly resolveHandler: HandlerResolver;
 
   /**
    * Runtime coordinator for managing runtime connections.
@@ -76,7 +83,7 @@ export class DefaultMountManager extends MountManager {
 
   constructor(config: {
     extensionManager: DefaultExtensionManager;
-    handlers: MfeHandler[];
+    resolveHandler: HandlerResolver;
     coordinator: RuntimeCoordinator;
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
@@ -87,7 +94,7 @@ export class DefaultMountManager extends MountManager {
   }) {
     super();
     this.extensionManager = config.extensionManager;
-    this.handlers = config.handlers;
+    this.resolveHandler = config.resolveHandler;
     this.coordinator = config.coordinator;
     this.triggerLifecycle = config.triggerLifecycle;
     this.executeActionsChain = config.executeActionsChain;
@@ -129,7 +136,7 @@ export class DefaultMountManager extends MountManager {
     try {
       // Resolve entry and find handler
       const entry = extensionState.entry;
-      const handler = this.handlers.find(h => h.canHandle(entry.id));
+      const handler = this.resolveHandler(entry.id);
       if (!handler) {
         throw new Error(
           `No MFE handler registered that can handle entry type '${entry.id}'. ` +

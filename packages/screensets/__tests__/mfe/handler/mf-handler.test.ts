@@ -7,7 +7,6 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
-import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { MfeEntryMF, MfManifest } from '../../../src/mfe/types';
 import { MfeLoadError } from '../../../src/mfe/errors';
 import {
@@ -69,8 +68,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
   let mocks: ReturnType<typeof setupBlobUrlLoaderMocks>;
 
   beforeEach(() => {
-    const typeSystem = new GtsPlugin();
-    handler = new MfeHandlerMF(typeSystem, { timeout: 5000, retries: 0 });
+    handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { timeout: 5000, retries: 0 });
     mocks = setupBlobUrlLoaderMocks();
   });
 

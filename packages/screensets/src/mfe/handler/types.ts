@@ -9,7 +9,6 @@
 // @cpt-dod:cpt-hai3-dod-screenset-registry-handler-injection:p1
 // @cpt-dod:cpt-hai3-dod-screenset-registry-type-contracts:p1
 
-import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';
 
 /**
@@ -127,9 +126,11 @@ export abstract class MfeBridgeFactory<TBridge extends ChildMfeBridge = ChildMfe
  * Abstract MFE handler class.
  *
  * Handlers are responsible for:
- * - Determining if they can handle a specific entry type
  * - Loading MFE bundles
  * - Creating bridge instances
+ *
+ * Handler resolution (type hierarchy matching) is performed by the registry
+ * using its own TypeSystemPlugin, not by the handler itself.
  */
 export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge extends ChildMfeBridge = ChildMfeBridge> {
   /**
@@ -139,7 +140,7 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge ext
 
   /**
    * Base type ID that this handler can handle.
-   * Handlers match entries using type hierarchy (isTypeOf).
+   * The registry matches entries using typeSystem.isTypeOf(entryTypeId, handledBaseTypeId).
    */
   readonly handledBaseTypeId: string;
 
@@ -150,30 +151,12 @@ export abstract class MfeHandler<TEntry extends MfeEntry = MfeEntry, TBridge ext
    */
   readonly priority: number;
 
-  /**
-   * Type system plugin instance.
-   * Injected at construction for type hierarchy checks.
-   */
-  protected readonly typeSystem: TypeSystemPlugin;
-
   constructor(
-    typeSystem: TypeSystemPlugin,
     handledBaseTypeId: string,
     priority: number = 0
   ) {
-    this.typeSystem = typeSystem;
     this.handledBaseTypeId = handledBaseTypeId;
     this.priority = priority;
-  }
-
-  /**
-   * Check if this handler can handle a specific entry type.
-   *
-   * @param entryTypeId - Type ID of the entry to check
-   * @returns true if this handler can handle the entry type
-   */
-  canHandle(entryTypeId: string): boolean {
-    return this.typeSystem.isTypeOf(entryTypeId, this.handledBaseTypeId);
   }
 
   /**

@@ -5,7 +5,7 @@
  * action handler errors, and retry functionality.
  */
 
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import {
   MfeLoadError,
   ContractValidationError,
@@ -15,27 +15,13 @@ import {
   RetryHandler,
 } from '../../../src/mfe/errors/error-handler';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
-import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { MfeEntryMF, Action, ActionsChain } from '../../../src/mfe/types';
 
 describe('Error Handling', () => {
-  let mockTypeSystem: TypeSystemPlugin;
-
-  beforeEach(() => {
-    mockTypeSystem = {
-      name: 'MockPlugin',
-      version: '1.0.0',
-      registerSchema: vi.fn(),
-      getSchema: vi.fn().mockReturnValue(undefined),
-      register: vi.fn(),
-      validateInstance: vi.fn().mockReturnValue({ valid: true, errors: [] }),
-      isTypeOf: vi.fn().mockReturnValue(true),
-    } as TypeSystemPlugin;
-  });
 
   describe('11.3.1 Bundle load failure scenario', () => {
     it('should throw MfeLoadError when manifest is not found', async () => {
-      const handler = new MfeHandlerMF(mockTypeSystem, { retries: 0 });
+      const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { retries: 0 });
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',
@@ -51,7 +37,7 @@ describe('Error Handling', () => {
     });
 
     it('should throw MfeLoadError when module does not implement lifecycle interface', async () => {
-      const handler = new MfeHandlerMF(mockTypeSystem, { retries: 0 });
+      const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { retries: 0 });
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',
@@ -175,7 +161,7 @@ describe('Error Handling', () => {
     });
 
     it('should integrate retry with MfeHandlerMF', async () => {
-      const handler = new MfeHandlerMF(mockTypeSystem, { retries: 2 });
+      const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { retries: 2 });
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',

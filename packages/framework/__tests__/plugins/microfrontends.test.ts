@@ -14,6 +14,7 @@ import {
   microfrontends,
 } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { ScreensetsRegistry } from '@hai3/framework';
 import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '../../src/types';
@@ -53,20 +54,20 @@ describe('microfrontends plugin - Phase 7.9', () => {
   });
 
   describe('plugin factory', () => {
-    it('should accept no parameters', () => {
+    it('should accept required typeSystem parameter', () => {
       expect(() => {
-        microfrontends();
+        microfrontends({ typeSystem: gtsPlugin });
       }).not.toThrow();
     });
 
     it('should accept optional MicrofrontendsConfig with mfeHandlers', () => {
       expect(() => {
-        microfrontends({ mfeHandlers: [] });
+        microfrontends({ typeSystem: gtsPlugin, mfeHandlers: [] });
       }).not.toThrow();
     });
 
     it('should return a valid plugin object', () => {
-      const plugin = microfrontends();
+      const plugin = microfrontends({ typeSystem: gtsPlugin });
 
       expect(plugin).toHaveProperty('name', 'microfrontends');
       expect(plugin).toHaveProperty('dependencies');
@@ -79,7 +80,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
   describe('7.9.1 - plugin obtains screensetsRegistry from framework', () => {
     it('should provide screensetsRegistry via provides.registries', () => {
-      const plugin = microfrontends();
+      const plugin = microfrontends({ typeSystem: gtsPlugin });
 
       expect(plugin.provides).toBeDefined();
       expect(plugin.provides?.registries).toBeDefined();
@@ -89,7 +90,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should make screensetsRegistry available on app object', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -100,7 +101,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should expose screensetsRegistry with MFE methods', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -117,7 +118,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should use same TypeSystemPlugin instance throughout', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -139,7 +140,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should have consistent plugin reference across multiple calls', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -158,7 +159,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should register sidebar domain successfully', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -173,7 +174,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should register popup domain successfully', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -188,7 +189,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should register screen domain successfully', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -203,7 +204,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should register overlay domain successfully', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -218,7 +219,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should register all base domains without conflicts', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -238,7 +239,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should load first-class citizen schemas during plugin construction', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -266,7 +267,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should validate schema availability via getSchema', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -285,7 +286,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should return undefined for non-existent schemas', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -308,7 +309,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
     it('should validate loaded domain instances', () => {
       const app = createHAI3()
         .use(screensets())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 

@@ -109,12 +109,12 @@ describe('Shadow DOM Mount Pipeline', () => {
     // Create mount manager with mock dependencies
     mountManager = new DefaultMountManager({
       extensionManager,
-      handlers: [
-        {
-          canHandle: () => true,
-          load: vi.fn().mockResolvedValue(mockLifecycle),
-        },
-      ],
+      resolveHandler: (_entryTypeId: string) => ({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+        priority: 0,
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+        bridgeFactory: undefined,
+      }),
       coordinator,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       executeActionsChain: vi.fn().mockResolvedValue(undefined),

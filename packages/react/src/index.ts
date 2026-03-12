@@ -365,6 +365,7 @@ export {
 // MFE Type constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
+  HAI3_MFE_ENTRY_MF,
 } from '@hai3/framework';
 
 // MFE Action constants

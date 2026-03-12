@@ -20,6 +20,7 @@ import {
   selectRegisteredExtensions,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@hai3/state';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { Extension, ExtensionDomain } from '@hai3/framework';
 import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '../../../src/types';
@@ -103,7 +104,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.2 - registerExtension effect calls runtime', () => {
     it('should dispatch setExtensionRegistering and setExtensionRegistered on success', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       // Mock runtime method
@@ -129,7 +130,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should dispatch setExtensionError on failure', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       // Mock runtime method to fail
@@ -172,7 +173,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should call runtime.unregisterExtension', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       // Mock runtime method
@@ -196,7 +197,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.6 - slice state transitions', () => {
     it('should transition through registration states', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       // Mock runtime method with delay
@@ -229,7 +230,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.7 - selectExtensionState selector', () => {
     it('should return unregistered for unknown extension', () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
       const state = app.store.getState();
 
@@ -237,7 +238,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should return correct state for known extension', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
@@ -254,7 +255,7 @@ describe('dynamic registration - Phase 20', () => {
 
   describe('20.5.8 - selectRegisteredExtensions selector', () => {
     it('should return empty array when no extensions registered', () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
       const state = app.store.getState();
 
@@ -262,7 +263,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should return array of registered extension IDs', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
@@ -285,7 +286,7 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should not include unregistered or error state extensions', async () => {
-      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends()).build();
+      const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
       apps.push(app);
 
       const testContainerProvider = new TestContainerProvider();

@@ -89,7 +89,7 @@ describe('Entry Type Validation (Phase 32.3)', () => {
 
   it('32.3.2 - should throw EntryTypeNotHandledError when handler cannot handle entry type', async () => {
     // Create registry with MfeHandlerMF registered
-    const handler = new MfeHandlerMF(gtsPlugin, { timeout: 5000, retries: 0 });
+    const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { timeout: 5000, retries: 0 });
     const registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
       mfeHandlers: [handler],
@@ -113,7 +113,7 @@ describe('Entry Type Validation (Phase 32.3)', () => {
 
   it('32.3.3 - should succeed when handler can handle the entry type', async () => {
     // Create registry with MfeHandlerMF registered
-    const handler = new MfeHandlerMF(gtsPlugin, { timeout: 5000, retries: 0 });
+    const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { timeout: 5000, retries: 0 });
     const registry = new DefaultScreensetsRegistry({
       typeSystem: gtsPlugin,
       mfeHandlers: [handler],

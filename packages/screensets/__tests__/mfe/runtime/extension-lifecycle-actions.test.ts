@@ -434,7 +434,6 @@ describe('Extension Lifecycle Actions', () => {
       const mockHandler = {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        canHandle: () => true,
         load: vi.fn().mockResolvedValue({
           mount: vi.fn().mockResolvedValue(undefined),
           unmount: vi.fn().mockResolvedValue(undefined),
@@ -481,7 +480,6 @@ describe('Extension Lifecycle Actions', () => {
       const mockHandler = {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        canHandle: () => true,
         load: vi.fn().mockResolvedValue({
           mount: vi.fn().mockResolvedValue(undefined),
           unmount: vi.fn().mockResolvedValue(undefined),

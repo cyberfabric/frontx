@@ -10,7 +10,6 @@
  */
 // @cpt-dod:cpt-hai3-dod-mfe-isolation-blob-core:p1
 
-import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeEntryMF, MfManifest } from '../types';
 import {
   MfeHandler,
@@ -88,14 +87,10 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly sourceTextCache = new Map<string, Promise<string>>();
 
   constructor(
-    typeSystem: TypeSystemPlugin,
+    handledBaseTypeId: string,
     config: MfeLoaderConfig = {}
   ) {
-    super(
-      typeSystem,
-      'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
-      0
-    );
+    super(handledBaseTypeId, 0);
     this.bridgeFactory = new MfeBridgeFactoryDefault();
     this.manifestCache = new ManifestCache();
     this.retryHandler = new RetryHandler();

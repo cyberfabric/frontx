@@ -44,13 +44,13 @@ export interface FullPresetConfig {
  * @example
  * ```typescript
  * import { applyTheme } from '@hai3/uikit';
- * import { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
+ * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
  * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
  *
  * const app = createHAI3()
  *   .use(full({
  *     themes: { applyFn: applyTheme },
- *     microfrontends: { mfeHandlers: [new MfeHandlerMF(gtsPlugin)] }
+ *     microfrontends: { typeSystem: gtsPlugin, mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)] }
  *   }))
  *   .build();
  * ```
@@ -58,15 +58,18 @@ export interface FullPresetConfig {
 // @cpt-begin:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
 // @cpt-begin:cpt-hai3-dod-framework-composition-presets:p1:inst-1
 export function full(config?: FullPresetConfig): HAI3Plugin[] {
-  return [
+  const plugins: HAI3Plugin[] = [
     effects(),
     screensets({ autoDiscover: true }),
     themes(config?.themes),
     layout(),
     i18n(),
     mock(),
-    microfrontends(config?.microfrontends),
   ];
+  if (config?.microfrontends) {
+    plugins.push(microfrontends(config.microfrontends));
+  }
+  return plugins;
 }
 // @cpt-end:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
 

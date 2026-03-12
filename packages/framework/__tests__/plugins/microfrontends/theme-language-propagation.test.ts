@@ -18,6 +18,7 @@ import { i18n } from '../../../src/plugins/i18n';
 import { microfrontends } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@hai3/state';
 import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/screensets';
+import { gtsPlugin } from '@hai3/screensets/plugins/gts';
 import type { HAI3App } from '../../../src/types';
 
 describe('Theme and Language Propagation - decouple-domain-contracts', () => {
@@ -43,7 +44,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .use(screensets())
         .use(effects())
         .use(themes())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -59,7 +60,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .use(screensets())
         .use(effects())
         .use(themes())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -77,7 +78,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .use(screensets())
         .use(effects())
         .use(themes())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -105,7 +106,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .use(screensets())
         .use(effects())
         .use(i18n())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -129,7 +130,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .use(screensets())
         .use(effects())
         .use(i18n())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -199,7 +200,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 
@@ -216,7 +217,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
-        .use(microfrontends())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
       apps.push(app);
 

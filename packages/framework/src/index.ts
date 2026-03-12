@@ -58,6 +58,7 @@ export {
 // MFE Type Constants (re-exported from @hai3/screensets for convenience)
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
+  HAI3_MFE_ENTRY_MF,
 } from '@hai3/screensets';
 
 // MFE Action Constants (re-exported from @hai3/screensets for convenience)

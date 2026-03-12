@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn, MfeHandlerMF, gtsPlugin } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
 import { Toaster, applyTheme } from '@hai3/uikit';
 import { AccountsApiService } from '@/app/api';
 import '@hai3/uikit/styles'; // UI Kit styles
@@ -27,7 +27,8 @@ apiRegistry.initialize({});
 const app = createHAI3App({
   themes: { applyFn: applyTheme as ThemeApplyFn },
   microfrontends: {
-    mfeHandlers: [new MfeHandlerMF(gtsPlugin)],
+    typeSystem: gtsPlugin,
+    mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
   },
 });
 

@@ -150,7 +150,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
       const mockHandler = {
         bridgeFactory: {} as unknown,
         handledBaseTypeId: 'gts.hai3.screensets.mfe.entry.v1~',
-        canHandle: () => true,
         load: async () => ({ lifecycle: {} as unknown, entry: {} as unknown, unload: () => {} }),
       };
       const registryConfig: ScreensetsRegistryConfig = {
@@ -211,7 +210,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
         bridgeFactory: {} as unknown,
         handledBaseTypeId: 'gts.hai3.screensets.mfe.entry.v1~',
         priority: 10,
-        canHandle: () => true,
         load: async () => ({ lifecycle: {} as unknown, entry: {} as unknown, unload: () => {} }),
       };
 

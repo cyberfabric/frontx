@@ -16,6 +16,7 @@ import { screensets } from '@hai3/framework';
 import { effects } from '@hai3/framework';
 import { microfrontends } from '@hai3/framework';
 import type { Extension, ExtensionDomain } from '@hai3/framework';
+import { gtsPlugin } from '@hai3/framework';
 import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '@hai3/framework';
 
@@ -103,7 +104,7 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     const app = createHAI3()
       .use(screensets())
       .use(effects())
-      .use(microfrontends())
+      .use(microfrontends({ typeSystem: gtsPlugin }))
       .build();
     apps.push(app);
 

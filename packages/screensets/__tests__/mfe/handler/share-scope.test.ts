@@ -16,7 +16,6 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
-import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import { MfeLoadError } from '../../../src/mfe/errors';
 import type { MfeEntryMF, MfManifest } from '../../../src/mfe/types';
 import type { FederationSharedMap } from '../../../src/mfe/handler/federation-types';
@@ -101,8 +100,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
   let savedGlobal: FederationSharedMap | undefined;
 
   beforeEach(() => {
-    const typeSystem = new GtsPlugin();
-    handler = new MfeHandlerMF(typeSystem, { timeout: 5000, retries: 0 });
+    handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { timeout: 5000, retries: 0 });
     mocks = setupBlobUrlLoaderMocks();
     savedGlobal = readFederationShared();
     clearFederationShared();
