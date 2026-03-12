@@ -44,161 +44,34 @@ slug = "hai3"
 kit = "cypilot-sdlc"
 artifacts_dir = "architecture"
 
-# --- Core artifacts ---
+# --- Autodetect rules ---
 
-[[systems.artifacts]]
-path = "architecture/PRD.md"
-kind = "PRD"
+[[systems.autodetect]]
+kit = "cypilot-sdlc"
+system_root = "{project_root}"
+artifacts_root = "architecture"
+
+[systems.autodetect.artifacts.PRD]
+pattern = "PRD.md"
 traceability = "FULL"
 
-[[systems.artifacts]]
-path = "architecture/DESIGN.md"
-kind = "DESIGN"
+[systems.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
 traceability = "FULL"
 
-[[systems.artifacts]]
-path = "architecture/DECOMPOSITION.md"
-kind = "DECOMPOSITION"
+[systems.autodetect.artifacts.DECOMPOSITION]
+pattern = "DECOMPOSITION.md"
 traceability = "FULL"
 
-# --- ADRs ---
-
-[[systems.artifacts]]
-path = "architecture/ADR/0001-four-layer-sdk-architecture.md"
-kind = "ADR"
+[systems.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
 traceability = "FULL"
+required = false
 
-[[systems.artifacts]]
-path = "architecture/ADR/0002-event-driven-flux-dataflow.md"
-kind = "ADR"
+[systems.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
 traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0003-plugin-based-framework-composition.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0004-blob-url-mfe-isolation.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0005-esm-first-module-format.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0006-screenset-vertical-slice-isolation.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0007-mandatory-screen-lazy-loading.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0008-hybrid-namespace-localization.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0009-standalone-studio-dev-conditional.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0010-protocol-separated-api-architecture.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0011-react-19-ref-as-prop.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0012-automated-layer-ordered-publishing.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0013-symbol-based-mock-plugin-identification.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0014-global-shared-property-broadcast.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0015-cli-template-based-code-generation.md"
-kind = "ADR"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/ADR/0016-two-tier-cli-e2e-verification.md"
-kind = "ADR"
-traceability = "FULL"
-
-# --- FEATURE specs ---
-
-[[systems.artifacts]]
-path = "architecture/features/feature-state-management/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-screenset-registry/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-mfe-isolation/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-api-communication/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-i18n-infrastructure/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-framework-composition/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-react-bindings/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-uikit-components/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-studio-devtools/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-cli-tooling/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
-
-[[systems.artifacts]]
-path = "architecture/features/feature-publishing-pipeline/FEATURE.md"
-kind = "FEATURE"
-traceability = "FULL"
+required = false
 
 # --- Codebase entries for marker scanning ---
 
