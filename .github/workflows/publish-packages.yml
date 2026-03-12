@@ -1,17 +1,3 @@
-# @cpt-dod:cpt-hai3-dod-publishing-pipeline-ci-workflow:p1
-# @cpt-flow:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1
-# @cpt-flow:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1
-# @cpt-flow:cpt-hai3-flow-publishing-pipeline-developer-version-bump:p2
-# @cpt-algo:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1
-# @cpt-algo:cpt-hai3-algo-publishing-pipeline-layer-sort:p1
-# @cpt-algo:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1
-# @cpt-algo:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1
-# @cpt-algo:cpt-hai3-algo-publishing-pipeline-validate-metadata:p2
-# @cpt-state:cpt-hai3-state-publishing-pipeline-workflow-run:p1
-# @cpt-state:cpt-hai3-state-publishing-pipeline-package-publish:p1
-# @cpt-dod:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1
-# @cpt-dod:cpt-hai3-dod-publishing-pipeline-version-alignment:p1
-# @cpt-dod:cpt-hai3-dod-publishing-pipeline-metadata-contract:p1
 name: Publish Packages
 
 on:
@@ -22,9 +8,6 @@ permissions:
   contents: read
 
 jobs:
-  # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-1
-  # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-1
-  # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-1
   detect-changes:
     runs-on: ubuntu-latest
     outputs:
@@ -32,55 +15,38 @@ jobs:
       has_changes: ${{ steps.detect.outputs.has_changes }}
 
     steps:
-      # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-checkout
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0  # Full history needed for github.event.before comparison
-      # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-checkout
 
       - name: Detect version changes
         id: detect
         run: |
           PACKAGES=()
 
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-base-commit
           # Compare HEAD with the state before push (works for all merge strategies)
           BASE_COMMIT="${{ github.event.before }}"
           echo "Comparing HEAD against pre-push state: $BASE_COMMIT"
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-base-commit
 
-          # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-iter-packages
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-diff-check
           # Check each package for version changes
           for pkg_dir in packages/*/; do
             pkg_name=$(basename "$pkg_dir")
             pkg_json="${pkg_dir}package.json"
 
             if git diff "$BASE_COMMIT" --name-only | grep -q "$pkg_json"; then
-              # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-read-versions
               # Get old and new versions
               OLD_VERSION=$(git show "$BASE_COMMIT":"$pkg_json" 2>/dev/null | jq -r '.version' || echo "")
               NEW_VERSION=$(jq -r '.version' "$pkg_json")
               NPM_NAME=$(jq -r '.name' "$pkg_json")
-              # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-read-versions
 
-              # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-detect-version-change
-              # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-add-candidate
               if [ "$OLD_VERSION" != "$NEW_VERSION" ] && [ -n "$NEW_VERSION" ]; then
                 echo "Version change detected: $NPM_NAME $OLD_VERSION -> $NEW_VERSION"
                 PACKAGES+=("{\"name\":\"$NPM_NAME\",\"dir\":\"$pkg_name\",\"version\":\"$NEW_VERSION\"}")
               fi
-              # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-add-candidate
-              # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-detect-version-change
             fi
           done
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-diff-check
-          # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-iter-packages
 
-          # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-no-changes-exit
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-return-candidates
-          # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-no-changes
           if [ ${#PACKAGES[@]} -eq 0 ]; then
             echo "No packages with version changes"
             echo "packages=[]" >> $GITHUB_OUTPUT
@@ -91,21 +57,7 @@ jobs:
             echo "packages=$JSON_ARRAY" >> $GITHUB_OUTPUT
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
-          # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-no-changes
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-return-candidates
-          # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-no-changes-exit
-  # @cpt-end:cpt-hai3-algo-publishing-pipeline-detect-version-changes:p1:inst-1
-  # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-1
-  # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-1
 
-  # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-2
-  # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-1
-  # @cpt-begin:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1:inst-1
-  # @cpt-begin:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-1
-  # @cpt-begin:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-1
-  # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-2
-  # @cpt-begin:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-1
-  # @cpt-begin:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1:inst-1
   publish:
     needs: detect-changes
     if: needs.detect-changes.outputs.has_changes == 'true'
@@ -128,17 +80,11 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
-      # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-install-deps
       - name: Install dependencies
         run: npm ci
-      # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-install-deps
 
-      # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-build-packages
-      # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-build-done
       - name: Build all packages
         run: npm run build:packages
-      # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-build-done
-      # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-build-packages
 
       - name: Publish packages in order
         id: publish
@@ -149,7 +95,6 @@ jobs:
           PUBLISHED_PACKAGES=()
           SKIPPED_PACKAGES=()
 
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1:inst-alpha-tag
           # Determine npm tag based on version (prerelease versions need explicit tag)
           get_npm_tag() {
             local version="$1"
@@ -163,9 +108,7 @@ jobs:
               echo "latest"
             fi
           }
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1:inst-alpha-tag
 
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-init-retry
           # Retry function with exponential backoff
           publish_with_retry() {
             local tag="$1"
@@ -175,31 +118,22 @@ jobs:
 
             while [ $attempt -le $max_attempts ]; do
               echo "Publish attempt $attempt of $max_attempts..."
-              # @cpt-begin:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-run-publish
               if npm publish --access public --tag "$tag"; then
                 return 0
               fi
-              # @cpt-end:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-run-publish
 
-              # @cpt-begin:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-retry-backoff
               if [ $attempt -lt $max_attempts ]; then
                 echo "Attempt $attempt failed. Retrying in ${delay}s..."
                 sleep $delay
                 delay=$((delay * 2))  # Exponential backoff: 5s, 10s, 20s
               fi
               attempt=$((attempt + 1))
-              # @cpt-end:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-retry-backoff
             done
 
-            # @cpt-begin:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-exhausted
             echo "All $max_attempts attempts failed"
             return 1
-            # @cpt-end:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-exhausted
           }
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-init-retry
 
-          # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-sort-by-layer
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-assign-key
           # Sort packages by layer (L1=SDK, L2=Framework, L3=React, L4=Studio, L5=CLI)
           SORTED=$(echo "$PACKAGES" | jq -c 'sort_by(.dir |
             if . == "state" or . == "screensets" or . == "api" or . == "i18n" or . == "uikit" then 1
@@ -207,15 +141,10 @@ jobs:
             elif . == "react" then 3
             elif . == "studio" then 4
             else 5 end)')
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-assign-key
 
-          # @cpt-begin:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-sort-asc
           echo "Publishing order:"
           echo "$SORTED" | jq -r '.[] | "  - \(.name)@\(.version)"'
-          # @cpt-end:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-sort-asc
-          # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-sort-by-layer
 
-          # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-publish-each
           # Publish each package
           for row in $(echo "$SORTED" | jq -r '.[] | @base64'); do
             _jq() {
@@ -231,54 +160,27 @@ jobs:
             echo "Processing: $NAME@$VERSION"
             echo "=========================================="
 
-            # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-npm-view
-            # @cpt-begin:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1:inst-skip-check
-            # @cpt-begin:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-checking
             # Check if version already exists on NPM
             if npm view "$NAME@$VERSION" version 2>/dev/null; then
-              # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-skip-existing
-              # @cpt-begin:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-skip
               echo "SKIPPING: $NAME@$VERSION already exists on NPM"
               SKIPPED_PACKAGES+=("{\"name\":\"$NAME\",\"version\":\"$VERSION\",\"reason\":\"already exists on NPM\"}")
               continue
-              # @cpt-end:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-skip
-              # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-skip-existing
             fi
-            # @cpt-end:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-checking
-            # @cpt-end:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1:inst-skip-check
-            # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-npm-view
 
-            # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-resolve-tag
             NPM_TAG=$(get_npm_tag "$VERSION")
             echo "Publishing $NAME@$VERSION with tag '$NPM_TAG'..."
-            # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-resolve-tag
 
-            # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-cd-pkg
             cd "packages/$DIR"
-            # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-cd-pkg
 
-            # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-call-retry-algo
-            # @cpt-begin:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-publish
             if ! publish_with_retry "$NPM_TAG"; then
-              # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-fail-fast
-              # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-publish-failed
               echo "FAILED: $NAME@$VERSION publish failed after retries"
               exit 1
-              # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-publish-failed
-              # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-fail-fast
             fi
-            # @cpt-end:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-publish
-            # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-call-retry-algo
 
-            # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-record-success
-            # @cpt-begin:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-published
             echo "SUCCESS: Published $NAME@$VERSION"
             PUBLISHED_PACKAGES+=("{\"name\":\"$NAME\",\"version\":\"$VERSION\"}")
             cd ../..
-            # @cpt-end:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-pkg-published
-            # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-record-success
           done
-          # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-publish-each
 
           echo ""
           echo "=========================================="
@@ -299,17 +201,7 @@ jobs:
             SKIPPED_JSON=$(printf '%s\n' "${SKIPPED_PACKAGES[@]}" | jq -sc '.')
             echo "skipped=$SKIPPED_JSON" >> $GITHUB_OUTPUT
           fi
-  # @cpt-end:cpt-hai3-dod-publishing-pipeline-idempotent-check:p1:inst-1
-  # @cpt-end:cpt-hai3-state-publishing-pipeline-package-publish:p1:inst-1
-  # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-2
-  # @cpt-end:cpt-hai3-algo-publishing-pipeline-layer-sort:p1:inst-1
-  # @cpt-end:cpt-hai3-algo-publishing-pipeline-publish-with-retry:p1:inst-1
-  # @cpt-end:cpt-hai3-algo-publishing-pipeline-resolve-dist-tag:p1:inst-1
-  # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-single-package:p1:inst-1
-  # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-2
 
-  # @cpt-begin:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-summary
-  # @cpt-begin:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-all-done
   summary:
     needs: [detect-changes, publish]
     if: always()
@@ -345,5 +237,3 @@ jobs:
           else
             echo "❌ Publish failed. Check workflow logs for details." >> $GITHUB_STEP_SUMMARY
           fi
-  # @cpt-end:cpt-hai3-state-publishing-pipeline-workflow-run:p1:inst-all-done
-  # @cpt-end:cpt-hai3-flow-publishing-pipeline-publish-on-merge:p1:inst-summary

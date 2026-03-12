@@ -73,6 +73,14 @@ pattern = "features/*/FEATURE.md"
 traceability = "FULL"
 required = false
 
+# --- Explicit artifact overrides ---
+
+[[systems.artifacts]]
+name = "Publishing Pipeline Feature"
+path = "architecture/features/feature-publishing-pipeline/FEATURE.md"
+kind = "FEATURE"
+traceability = "DOCS-ONLY"
+
 # --- Codebase entries for marker scanning ---
 
 [[systems.codebase]]
@@ -82,7 +90,3 @@ extensions = [".ts", ".tsx", ".mjs"]
 [[systems.codebase]]
 path = "src/"
 extensions = [".ts"]
-
-[[systems.codebase]]
-path = ".github/workflows/publish-packages.yml"
-extensions = [".yml"]

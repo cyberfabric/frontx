@@ -77,10 +77,11 @@ jobs:
 
       - name: Check spec coverage thresholds
         # TODO: Raise thresholds as coverage improves — see architecture/workflows/spec-coverage-improvement.md
+        # Threshold lowered from 52 → 51 after removing CI/CD YAML from codebase scan (publishing-pipeline markers removed)
         run: >-
           python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py
           spec-coverage
-          --min-coverage 52
+          --min-coverage 51
           --min-granularity 0.25
 
   dependency-graph:
