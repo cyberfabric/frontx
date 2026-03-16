@@ -190,6 +190,7 @@ export default [
       'local/no-inline-styles': 'error',
       'local/uikit-no-business-logic': 'off',
       'local/screen-inline-components': 'off',
+      'local/no-hardcoded-strings': 'off',
 
       // Type safety: Discourage loose types
       'no-restricted-syntax': [
@@ -289,6 +290,15 @@ export default [
     files: ['src/screensets/**/screens/**/*Screen.tsx'],
     rules: {
       'local/screen-inline-components': 'error',
+    },
+  },
+
+  // Components + Screens: Enforce i18n — no hardcoded user-visible strings
+  {
+    files: ['src/screensets/**/*.tsx', 'src/components/**/*.tsx', 'src/app/**/*.tsx'],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'local/no-hardcoded-strings': 'warn',
     },
   },
 
