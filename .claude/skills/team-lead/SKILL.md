@@ -1,6 +1,6 @@
 ---
 name: team-lead
-description: Use this skill whenever delegating work to subagents — whether a single Task call or a full team via TeamCreate. Guides delegation, task decomposition, agent selection, and coordination. Covers when to spawn architect (design decisions, trade-offs), researcher (explorations, technical investigation), developer (FEATURE specs and code), and tech-writer (documentation). Trigger on any subagent spawn, team creation, multi-agent coordination, or parallel work request.
+description: Use this skill whenever delegating work to subagents — whether a single Task call or a full team via TeamCreate. Guides delegation, task decomposition, agent selection, and coordination. Covers when to spawn architect (design decisions, trade-offs), researcher (explorations, technical investigation), developer (FEATURE specs and code), tech-writer (documentation), qa (post-implementation validation), and architecture-critic (stress-testing architect output). Trigger on any subagent spawn, team creation, multi-agent coordination, or parallel work request.
 ---
 
 # Team Lead
@@ -19,6 +19,8 @@ Each agent owns distinct files — never assign overlapping areas:
 | Architect | `architecture/` artifacts (PRD, ADR, DESIGN, DECOMPOSITION, nested designs), `architecture/features/` (FEATURE — shared with developer) |
 | Researcher | EXPLORATION artifacts (`architecture/explorations/`) |
 | Tech-writer | `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, content fixes in `architecture/` |
+| Architecture-critic | No files owned — read-only reviewer of `architecture/` artifacts |
+| QA | No files owned — runs checks and reports verdicts only |
 
 ### Subagent vs teammate
 
@@ -48,6 +50,10 @@ Default to solo subagents. Use a team when agents need to coordinate, hand off w
 
 **Tech-writer** — Spawn when: the change introduces new concepts, modifies documented behavior, touches skill/agent definitions, or produces decisions to record. Skip when: pure code fix, config correction, lint cleanup — anything with zero doc surface. Owns `CLAUDE.md`, `AGENTS.md`, `.claude/agents/`, `.claude/skills/`, and content fixes in `architecture/`.
 
+**Architecture-critic** — Spawn when: the architect has produced artifacts (PRD, ADR, DESIGN, DECOMPOSITION, or FEATURE) and you want them stress-tested before or after implementation. Skip when: no architecture artifacts exist, or the change is a small fix with no architectural surface. Does NOT re-run the architect's analysis — challenges hidden assumptions, missing scenarios, and traceability gaps. Output feeds back to the architect for a revision pass.
+
+**QA** — Spawn when: developer implementation is complete and needs validation before closing out. Skip when: the change is documentation-only, config correction, or has zero behavior change. Runs CLI checks (build, lint, type-check, tests), code inspection, and browser validation. Produces PASS/BLOCK verdicts — blockers route back to the developer, not to you.
+
 ### Spawn order
 
 Spawn agents as their phase begins, not all upfront:
@@ -56,6 +62,8 @@ Spawn agents as their phase begins, not all upfront:
 2. **Architect** — when design needs shaping (after research, or immediately if domain is understood)
 3. **Developer(s)** — when a design or clear objective exists
 4. **Tech-writer** — when there's something to document (after or parallel with implementation)
+5. **QA** — after developer(s) complete, validates implementation before closing out
+6. **Architecture-critic** — after QA passes, stress-tests architecture artifacts for missed assumptions and gaps
 
 Not every task needs every phase. A bug fix starts at step 3. A research question stops at step 1.
 
@@ -65,11 +73,12 @@ Not every task needs every phase. A bug fix starts at step 3. A research questio
 |---|---|---|
 | Bug fix or small change | developer | Solo subagent |
 | Quick codebase question | Explore | Solo subagent |
-| Feature (code + docs) | developer + tech-writer | Team if coordination needed, else parallel subagents |
-| Feature with design uncertainty | architect -> developer + tech-writer | Team |
-| Research-driven feature | researcher -> architect -> developer + tech-writer | Team |
-| Large cross-cutting feature | architect + 2-3 developers + tech-writer | Team |
+| Feature (code + docs) | developer + tech-writer -> qa | Team if coordination needed, else parallel subagents |
+| Feature with design uncertainty | architect -> developer + tech-writer -> qa -> architecture-critic | Team |
+| Research-driven feature | researcher -> architect -> developer + tech-writer -> qa -> architecture-critic | Team |
+| Large cross-cutting feature | architect + 2-3 developers + tech-writer -> qa -> architecture-critic | Team |
 | Docs-only change | tech-writer | Solo subagent |
+| Architecture review only | architecture-critic | Solo subagent |
 
 `->` = sequential (next spawns after previous produces output). `+` = parallel.
 
