@@ -1,0 +1,24 @@
+{
+  "name": "@hai3/depcruise-config",
+  "version": "0.1.0-alpha.0",
+  "description": "Layered dependency-cruiser configuration for HAI3 SDK architecture",
+  "private": true,
+  "type": "commonjs",
+  "main": "index.cjs",
+  "exports": {
+    ".": "./index.cjs",
+    "./base": "./base.cjs",
+    "./sdk": "./sdk.cjs",
+    "./framework": "./framework.cjs",
+    "./react": "./react.cjs",
+    "./screenset": "./screenset.cjs"
+  },
+  "files": [
+    "*.cjs"
+  ],
+  "keywords": [
+    "dependency-cruiser",
+    "depcruise",
+    "hai3"
+  ]
+}

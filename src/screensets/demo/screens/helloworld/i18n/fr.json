@@ -1,8 +1,0 @@
-{
-  "title": "Bonjour le Monde",
-  "welcome": "Bienvenue dans l'Ensemble d'Écrans Demo HAI3",
-  "description": "Ceci est un écran demo simple montrant le framework HAI3 en action. Naviguez dans le menu pour explorer différentes fonctionnalités.",
-  "navigation_title": "Exemple de Navigation",
-  "navigation_description": "Cliquez sur le bouton ci-dessous pour naviguer vers l'écran Thème par programmation.",
-  "go_to_theme": "Aller à l'Écran Thème"
-}

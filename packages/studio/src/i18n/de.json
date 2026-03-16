@@ -1,0 +1,16 @@
+{
+  "title": "HAI3 Entwicklerwerkzeuge",
+  "aria": {
+    "openButton": "Entwicklerwerkzeuge öffnen (Shift+`) oder ziehen zum Verschieben",
+    "collapseButton": "Entwicklerwerkzeuge-Panel einklappen",
+    "resizeHandle": "Größe des Werkzeug-Panels ändern"
+  },
+  "controls": {
+    "heading": "Entwicklungssteuerung",
+    "screenset": "Bildschirmset:",
+    "theme": "Design:",
+    "language": "Sprache:",
+    "mockApi": "Mock-API",
+    "gts_package": "GTS Package"
+  }
+}

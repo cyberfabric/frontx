@@ -1,0 +1,278 @@
+// @cpt-flow:cpt-hai3-flow-cli-tooling-update-project:p1
+// @cpt-algo:cpt-hai3-algo-cli-tooling-detect-release-channel:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+import { execSync } from 'child_process';
+import fs from 'fs-extra';
+import path from 'path';
+import type { CommandDefinition } from '../../core/command.js';
+import { validationOk, validationError } from '../../core/types.js';
+import { syncTemplates } from '../../core/templates.js';
+import { aiSyncCommand } from '../ai/sync.js';
+
+/**
+ * Arguments for update command
+ */
+export interface UpdateCommandArgs {
+  alpha?: boolean;
+  stable?: boolean;
+  templatesOnly?: boolean;
+  skipAiSync?: boolean;
+}
+
+/**
+ * Result of update command
+ */
+export interface UpdateCommandResult {
+  cliUpdated: boolean;
+  projectUpdated: boolean;
+  updatedPackages: string[];
+  templatesUpdated: boolean;
+  syncedTemplates: string[];
+  channel: 'alpha' | 'stable';
+  aiSyncRun: boolean;
+  aiSyncFiles: string[];
+}
+
+/**
+ * Detect the current release channel based on installed CLI version
+ * @returns 'alpha' if version contains prerelease identifier, 'stable' otherwise
+ */
+function detectCurrentChannel(): 'alpha' | 'stable' {
+  try {
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-run-npm-list
+    const output = execSync('npm list -g @hai3/cli --json', { stdio: 'pipe' }).toString();
+    const data = JSON.parse(output);
+    const version = data.dependencies?.['@hai3/cli']?.version || '';
+    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-run-npm-list
+
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-check-prerelease-tag
+    // Check for prerelease identifiers (alpha, beta, rc, etc.)
+    if (version.includes('-alpha') || version.includes('-beta') || version.includes('-rc')) {
+      return 'alpha';
+    }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-check-prerelease-tag
+
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-return-stable
+    return 'stable';
+    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-return-stable
+  } catch {
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-catch-detect-error
+    // If detection fails, default to stable (safer)
+    return 'stable';
+    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-catch-detect-error
+  }
+}
+
+/**
+ * Update command implementation
+ */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-invoke-update
+export const updateCommand: CommandDefinition<
+  UpdateCommandArgs,
+  UpdateCommandResult
+> = {
+  name: 'update',
+  description: 'Update HAI3 CLI and project packages',
+  args: [],
+  options: [
+    {
+      name: 'alpha',
+      shortName: 'a',
+      description: 'Update to latest alpha/prerelease version',
+      type: 'boolean',
+      defaultValue: false,
+    },
+    {
+      name: 'stable',
+      shortName: 's',
+      description: 'Update to latest stable version',
+      type: 'boolean',
+      defaultValue: false,
+    },
+    {
+      name: 'templates-only',
+      description: 'Only sync templates (skip CLI and package updates)',
+      type: 'boolean',
+      defaultValue: false,
+    },
+    {
+      name: 'skip-ai-sync',
+      description: 'Skip running AI sync after update',
+      type: 'boolean',
+      defaultValue: false,
+    },
+  ],
+
+  // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-check-conflicting-update-flags
+  validate(args) {
+    // Cannot specify both --alpha and --stable
+    if (args.alpha && args.stable) {
+      return validationError('CONFLICTING_OPTIONS', 'Cannot specify both --alpha and --stable');
+    }
+    return validationOk();
+  },
+  // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-check-conflicting-update-flags
+
+  async execute(args, ctx): Promise<UpdateCommandResult> {
+    const { logger, projectRoot } = ctx;
+
+    let cliUpdated = false;
+    let projectUpdated = false;
+    let templatesUpdated = false;
+    let aiSyncRun = false;
+    const updatedPackages: string[] = [];
+    const syncedTemplates: string[] = [];
+    const aiSyncFiles: string[] = [];
+
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-detect-channel
+    // Determine which channel to use
+    let channel: 'alpha' | 'stable';
+    if (args.alpha) {
+      channel = 'alpha';
+    } else if (args.stable) {
+      channel = 'stable';
+    } else {
+      // Auto-detect based on current installation
+      channel = detectCurrentChannel();
+    }
+
+    const tag = channel === 'alpha' ? '@alpha' : '@latest';
+    // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-detect-channel
+
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-cli-global
+    // Skip CLI and package updates if --templates-only
+    if (!args.templatesOnly) {
+      logger.info(`Update channel: ${channel}`);
+      logger.newline();
+
+      // Update CLI
+      logger.info('Checking for CLI updates...');
+      try {
+        execSync(`npm install -g @hai3/cli${tag}`, { stdio: 'pipe' });
+        cliUpdated = true;
+        logger.success(`@hai3/cli updated (${channel})`);
+      } catch {
+        logger.info('@hai3/cli is already up to date');
+      }
+      // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-cli-global
+
+      // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-project-packages
+      // If inside a project, update project packages
+      if (projectRoot) {
+        logger.newline();
+        logger.info('Updating project HAI3 packages...');
+
+        const packageJsonPath = path.join(projectRoot, 'package.json');
+        const packageJson = await fs.readJson(packageJsonPath);
+
+        const hai3Packages: string[] = [];
+
+        // Find all @hai3/* packages
+        for (const dep of Object.keys(packageJson.dependencies || {})) {
+          if (dep.startsWith('@hai3/')) {
+            hai3Packages.push(dep);
+          }
+        }
+        for (const dep of Object.keys(packageJson.devDependencies || {})) {
+          if (dep.startsWith('@hai3/')) {
+            hai3Packages.push(dep);
+          }
+        }
+
+        if (hai3Packages.length > 0) {
+          const packagesToUpdate = [...new Set(hai3Packages)];
+          logger.info(`Found ${packagesToUpdate.length} HAI3 packages to update`);
+
+          try {
+            // Install each package with the appropriate tag
+            const packagesWithTag = packagesToUpdate.map(pkg => `${pkg}${tag}`);
+            const updateCmd = `npm install ${packagesWithTag.join(' ')}`;
+            execSync(updateCmd, { cwd: projectRoot, stdio: 'inherit' });
+            projectUpdated = true;
+            updatedPackages.push(...packagesToUpdate);
+            logger.success(`Project packages updated (${channel})`);
+          } catch {
+            logger.warn('Failed to update some packages');
+          }
+        } else {
+          logger.info('No HAI3 packages found in project');
+        }
+      } else {
+        logger.newline();
+        logger.info('Not inside a HAI3 project. Only CLI was updated.');
+        logger.info('Run `hai3 update` from a project directory to update project packages.');
+      }
+      // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-project-packages
+    }
+
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-sync-templates
+    // Sync project templates if inside a project
+    if (projectRoot) {
+      logger.newline();
+      logger.info('Syncing project templates...');
+
+      // Read layer from config, default to 'app' if not found
+      const layer = ctx.config?.layer ?? 'app';
+      if (!ctx.config || !ctx.config.layer) {
+        logger.info(`Info: No layer found in config, assuming 'app' layer`);
+      }
+
+      const synced = await syncTemplates(projectRoot, logger, layer);
+      if (synced.length > 0) {
+        templatesUpdated = true;
+        syncedTemplates.push(...synced);
+        logger.success(`Templates updated: ${synced.length} directories`);
+        for (const file of synced) {
+          logger.info(`  - ${file}`);
+        }
+      } else {
+        logger.info('Templates are already up to date');
+      }
+      // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-sync-templates
+
+      // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-ai-sync-after-update
+      // Run AI sync unless skipped
+      if (!args.skipAiSync) {
+        logger.newline();
+        logger.info('Syncing AI assistant configurations...');
+
+        try {
+          const aiSyncResult = await aiSyncCommand.execute(
+            { tool: 'all', detectPackages: true },
+            ctx
+          );
+          aiSyncRun = true;
+          aiSyncFiles.push(...aiSyncResult.filesGenerated);
+          if (aiSyncResult.filesGenerated.length > 0) {
+            logger.success(`AI configs updated: ${aiSyncResult.filesGenerated.length} files`);
+            for (const file of aiSyncResult.filesGenerated) {
+              logger.info(`  - ${file}`);
+            }
+          } else {
+            logger.info('AI configs are already up to date');
+          }
+        } catch (_error) {
+          logger.warn('AI sync skipped (no .ai directory found)');
+        }
+      }
+      // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-run-ai-sync-after-update
+    }
+
+    logger.newline();
+    logger.success('Update complete!');
+
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-project:p1:inst-return-update
+    return {
+      cliUpdated,
+      projectUpdated,
+      updatedPackages,
+      templatesUpdated,
+      syncedTemplates,
+      channel,
+      aiSyncRun,
+      aiSyncFiles,
+    };
+    // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-return-update
+  },
+};
+// @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-invoke-update

@@ -1,0 +1,68 @@
+{
+  "name": "@hai3/studio",
+  "version": "0.4.0-alpha.0",
+  "description": "HAI3 Studio - Development studio overlay for HAI3 applications",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "sideEffects": [
+    "./src/i18n/index.ts",
+    "./dist/i18n/index.js",
+    "./dist/i18n/index.cjs"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch"
+  },
+  "keywords": [
+    "hai3",
+    "studio",
+    "development",
+    "react"
+  ],
+  "author": "HAI3org",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HAI3org/HAI3.git",
+    "directory": "packages/studio"
+  },
+  "bugs": {
+    "url": "https://github.com/HAI3org/HAI3/issues"
+  },
+  "homepage": "https://github.com/HAI3org/HAI3#readme",
+  "engines": {
+    "node": ">=18"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "lodash": "^4.17.21"
+  },
+  "peerDependencies": {
+    "@hai3/react": "*",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
+  },
+  "devDependencies": {
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.9.1",
+    "@types/react": "^19.0.8",
+    "@types/react-dom": "^19.0.3",
+    "tsup": "^8.5.0",
+    "typescript": "^5.4.2"
+  }
+}

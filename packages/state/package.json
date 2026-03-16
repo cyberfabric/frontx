@@ -1,0 +1,50 @@
+{
+  "name": "@hai3/state",
+  "version": "0.4.0-alpha.0",
+  "description": "State management for HAI3 SDK - event bus, store, and effects",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "CLAUDE.md",
+    "llms.txt"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@reduxjs/toolkit": "^2.2.1",
+    "tsup": "^8.0.0",
+    "typescript": "^5.4.2"
+  },
+  "peerDependencies": {
+    "@reduxjs/toolkit": ">=2.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "keywords": [
+    "hai3",
+    "state",
+    "state-management",
+    "events",
+    "store",
+    "redux",
+    "event-bus",
+    "pub-sub",
+    "typescript"
+  ],
+  "author": "HAI3",
+  "license": "Apache-2.0"
+}

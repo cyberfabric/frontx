@@ -1,18 +1,24 @@
-<!-- OPENSPEC:START -->
-# OpenSpec Instructions
+<!-- @cpt:root-agents -->
+## Cypilot AI Agent Navigation
 
-These instructions are for AI assistants working in this project.
+**Remember these variables while working in this project:**
 
-Always open `@/openspec/AGENTS.md` when the request:
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
+```toml
+cypilot_path = ".cypilot"
+```
 
-Use `@/openspec/AGENTS.md` to learn:
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
+## Navigation Rules
 
-Keep this managed block so 'openspec update' can refresh the instructions.
+ALWAYS open and follow `{cypilot_path}/.gen/AGENTS.md` FIRST
 
-<!-- OPENSPEC:END -->
+ALWAYS open and follow `{cypilot_path}/config/AGENTS.md` WHEN it exists
+
+ALWAYS invoke `{cypilot_path}/.core/skills/cypilot/SKILL.md` WHEN user asks to do something with Cypilot
+
+<!-- /@cpt:root-agents -->
+
+Use `.ai/GUIDELINES.md` as the single source of truth for HAI3 development guidelines.
+
+For routing to specific topics, see the ROUTING section in GUIDELINES.md.
+
+ALL user requests MUST be handled by the Orchestrator agent.

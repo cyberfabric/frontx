@@ -1,0 +1,72 @@
+{
+  "name": "@hai3/cli",
+  "version": "0.4.0-alpha.0",
+  "description": "HAI3 CLI - Project scaffolding and screenset management tools",
+  "type": "module",
+  "bin": {
+    "hai3": "./dist/index.js"
+  },
+  "main": "./dist/api.cjs",
+  "module": "./dist/api.js",
+  "types": "./dist/api.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/api.d.ts",
+      "import": "./dist/api.js",
+      "require": "./dist/api.cjs"
+    }
+  },
+  "files": [
+    "dist",
+    "templates",
+    "README.md"
+  ],
+  "scripts": {
+    "copy-templates": "npx tsx scripts/copy-templates.ts",
+    "build": "npm run copy-templates && tsup",
+    "dev": "tsup --watch",
+    "test:e2e:pr": "node scripts/e2e-pr-smoke.mjs",
+    "test:e2e:nightly": "node scripts/e2e-nightly.mjs"
+  },
+  "keywords": [
+    "hai3",
+    "cli",
+    "scaffolding",
+    "screenset",
+    "saas"
+  ],
+  "author": "HAI3org",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HAI3org/HAI3.git",
+    "directory": "packages/cli"
+  },
+  "bugs": {
+    "url": "https://github.com/HAI3org/HAI3/issues"
+  },
+  "homepage": "https://github.com/HAI3org/HAI3#readme",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "chalk": "^5.4.1",
+    "commander": "^12.1.0",
+    "fs-extra": "^11.2.0",
+    "inquirer": "^12.3.0",
+    "js-yaml": "^4.1.1",
+    "lodash": "^4.17.21",
+    "ts-morph": "^27.0.2"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.4",
+    "@types/js-yaml": "^4.0.9",
+    "@types/lodash": "^4.17.20",
+    "@types/node": "^24.9.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.4.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

@@ -1,9 +1,0 @@
-# Workflow: Validate Changes
-
-This workflow references the canonical process in `.ai/workflows/VALIDATE_CHANGES.md`.
-
-## Purpose
-Validate AI-generated or human edits before commit/merge.
-
-## Usage
-Open and follow `.ai/workflows/VALIDATE_CHANGES.md`.

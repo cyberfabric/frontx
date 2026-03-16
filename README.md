@@ -2,6 +2,10 @@
 
 # HAI3 - AI-Optimized UI Development Kit for Modern SaaS Applications
 
+![Badge](./.github/badgeHN.svg)
+
+
+
 **HAI3** is a **UI development kit** for modern SaaS applications - heavily optimized for **AI-driven UI generation** with minimal human assistance.
 
 It provides a structured, multi-layered framework that enables **AI systems and humans to collaborate** on building, evolving, and refining complex user interfaces - from drafts and mockups to production-ready screens.
@@ -83,7 +87,7 @@ The HAI3 Dev Kit is built on top of the following key values below allowing it t
 - **V#9** - Internationalization & Localization - global deployment ready
 - **V#10** - Testing and Quality Gates - automated QA pipeline
 
-See [MANIFEST.md](docs/MANIFEST.md) for detailed descriptions of each value.
+See [MANIFEST.md](architecture/PRD.md) for detailed descriptions of each value.
 
 HAI3 is structured around **three main projections**, each addressing a critical dimension of the development lifecycle.
 
@@ -131,7 +135,7 @@ The combination of these layers allows developers to **compose UI experiences** 
 
 HAI3 defines a **three-stage development workflow** that maximizes AI efficiency while maintaining code quality:
 
-![pipeline.drawio.png](docs/pipeline.drawio.png)
+![pipeline.drawio.png](architecture/pipeline.drawio.png)
 
 ### Stage 1: Drafts (AI-Driven)
 
@@ -166,7 +170,42 @@ HAI3 defines a **three-stage development workflow** that maximizes AI efficiency
 
 ### Quick Start
 
-> NOTE: At this stage, HAI3 can only be explored within this repository. Future releases will include distributable `HAI3` npm packages.
+#### Option 1: Create a new project with CLI (Recommended)
+
+```bash
+# Install HAI3 CLI globally
+npm install -g @hai3/cli
+
+# Create a new project (full app with UI)
+hai3 create my-app
+
+# Navigate to project and start development
+cd my-app
+npm run dev
+```
+
+#### Creating Layer-Specific Packages
+
+For building SDK packages that integrate with the HAI3 ecosystem:
+
+```bash
+# Create an SDK-layer package (no HAI3 dependencies, no React)
+hai3 create my-sdk-package --layer sdk
+
+# Create a framework-layer package (depends on SDK packages only)
+hai3 create my-framework-package --layer framework
+
+# Create a React-layer package (depends on @hai3/framework)
+hai3 create my-react-package --layer react
+```
+
+Each layer package includes:
+- Layer-appropriate `.ai/GUIDELINES.md` with filtered routing rules
+- Layer-filtered `.ai/targets/` (only targets applicable to that layer)
+- Layer-specific AI commands (with variant selection fallback chain)
+- Pre-configured ESLint with layer restrictions (e.g., no React imports in SDK layer)
+
+#### Option 2: Clone this repository
 
 ```bash
 # Clone the repository
@@ -176,8 +215,8 @@ cd HAI3
 # Install dependencies
 npm ci
 
-# Build UI Core and UI Kit
-npm run build
+# Build packages
+npm run build:packages
 
 # Run the development server
 npm run dev
@@ -188,43 +227,87 @@ npm run dev
 ```bash
 HAI3/                               # Repository root
 ├── .ai/                            # AI prompting rules and GUIDELINES for generation
-├── docs/                           # Documentation
-│   ├── MANIFEST.md                 # Core values and principles
-│   ├── MODEL.md                    # High-level model notes
-│   └── ROADMAP.md                  # Planned milestones
+├── architecture/                   # Cypilot architecture artifacts
+│   ├── PRD.md                      # Product requirements (from MANIFEST)
+│   ├── DESIGN.md                   # System design and domain model
+│   └── DECOMPOSITION.md           # Feature roadmap and decomposition
 ├── index.html                      # Vite HTML entry
 ├── packages/                       # Workspaces with reusable libraries
-│   ├── uicore/                     # UI core (layout engine, primitives)
-│   └── uikit/                      # UI kit (components built on core)
+│   ├── state/                      # SDK L1: Event bus, store, and slices
+│   ├── api/                        # SDK L1: API services and protocols
+│   ├── i18n/                       # SDK L1: Internationalization
+│   ├── screensets/                 # SDK L1: Screenset types and utilities
+│   ├── framework/                  # L2: Plugin system and registries
+│   ├── react/                      # L3: React bindings and hooks
+│   ├── uikit/                      # React component library
+│   ├── studio/                     # Development overlay (optional)
+│   └── cli/                        # CLI tool for project scaffolding
 ├── src/                            # App source code
 │   ├── App.tsx                     # Root React component
 │   ├── main.tsx                    # App entry; mounts React and providers
 │   ├── screensets/                 # Screensets (category in config)
-│   │   ├── demo/                   # Demo screenset (Drafts)
-│   │   ├── chat/                   # Chat screenset (Mockups)
+│   │   ├── demo/                   # Demo screenset
+│   │   ├── _blank/                 # Blank screenset template
 │   │   └── screensetRegistry.tsx   # Registry to switch screen-sets
 │   └── themes/                     # Theme tokens and registries
-│       ├── dark.ts                 # Dark theme
-│       ├── dracula-large.ts        # Dracula theme (large spacing/typography)
-│       ├── dracula.ts              # Dracula theme
-│       ├── light.ts                # Light theme
-│       └── themeRegistry.ts        # Theme registry and utilities
 ├── tailwind.config.ts              # TailwindCSS configuration
 ├── tsconfig.json                   # TypeScript config (root)
 ├── tsconfig.node.json              # TS config for tooling/node
 └── vite.config.ts                  # Vite build/dev configuration
 ```
 
+### SDK Architecture (4-Layer)
+
+HAI3 follows a layered architecture for maximum flexibility:
+
+```
+L1 (SDK)        @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
+                Zero cross-dependencies, no React, use anywhere
+                    ↓
+L2 (Framework)  @hai3/framework
+                Plugin system, registries, composed from SDK
+                    ↓
+L3 (React)      @hai3/react
+                React bindings, hooks, providers
+                    ↓
+L4 (App)        User application code
+                Screensets, themes, custom components
+```
+
+**Use Cases:**
+- **Full HAI3**: Import `@hai3/react` for complete platform with UI
+- **Headless/External**: Import `@hai3/framework` for screensets-only (no UI)
+- **Custom Integration**: Import SDK packages directly for maximum control
+
 ### Creating a New Screen-Set
 
-> NOTE: At this stage, HAI3 can only be explored within this repository. Future releases will include distributable `HAI3` npm packages.
+Use the HAI3 CLI to create screensets:
 
-1. Create a new folder in `src/screensets/<screenset-name>`
-2. Add new screens by using your favorite AI agent / IDE just typing what you want to achieve in the prompt and asking it to put the code in your new `<screenset-name>` screenset folder
-3. AI will register the screen-set in `src/screensets/screensetRegistry.tsx` for you
-4. Run the app (`npm run build && npm run dev`) and switch to the new screen-set via the UI selector
+```bash
+# Create a new screenset
+hai3 screenset create my-screenset
 
-See [GUIDELINES.md](docs/GUIDELINES.md) for detailed development guidelines.
+# Copy an existing screenset with transformed IDs
+hai3 screenset copy demo myDemo
+```
+
+After creation:
+1. Add new screens using your favorite AI agent or IDE
+2. The screenset auto-registers via Vite glob pattern
+3. Run `npm run dev` and switch to the new screenset via the UI selector
+
+### Updating AI Configuration
+
+When HAI3 updates are released, use the update command to sync your project:
+
+```bash
+# Update AI configuration and templates
+hai3 update
+```
+
+For layer packages, the update respects your project's layer (stored in `hai3.config.json`) and only syncs layer-appropriate targets and commands.
+
+See [GUIDELINES.md](.ai/GUIDELINES.md) for detailed development guidelines.
 
 ### Building a Plugin/Integration
 
@@ -232,8 +315,8 @@ TODO
 
 ## Documentation
 
-- **[ROADMAP.md](docs/ROADMAP.md)**: Project roadmap
-- **[MANIFEST.md](docs/MANIFEST.md)**: Core philosophy, principles, and values
+- **[DECOMPOSITION.md](architecture/DECOMPOSITION.md)**: Project roadmap and feature decomposition
+- **[PRD.md](architecture/PRD.md)**: Core philosophy, principles, and values
 - **[GUIDELINES.md](.ai/GUIDELINES.md)**: Development guidelines for AI and humans
 - **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to contribute to the project
 

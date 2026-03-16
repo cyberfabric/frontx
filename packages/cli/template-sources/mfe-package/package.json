@@ -1,0 +1,27 @@
+{
+  "name": "@hai3/{{mfeName}}-mfe",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port {{port}}",
+    "build": "vite build",
+    "preview": "vite preview --port {{port}}"
+  },
+  "dependencies": {
+    "react": "19.2.4",
+    "react-dom": "19.2.4",
+    "@hai3/react": "file:../../../packages/react",
+    "@hai3/state": "file:../../../packages/state",
+    "tailwindcss": "^3.4.17",
+    "@hai3/uikit": "file:../../../packages/uikit"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "4.3.4",
+    "@originjs/vite-plugin-federation": "^1.3.6",
+    "@types/react": "19.0.8",
+    "@types/react-dom": "19.0.3",
+    "vite": "6.4.1",
+    "typescript": "5.4.2"
+  }
+}

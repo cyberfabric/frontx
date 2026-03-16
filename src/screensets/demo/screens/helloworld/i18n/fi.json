@@ -1,8 +1,0 @@
-{
-  "title": "Hei maailma",
-  "welcome": "Tervetuloa HAI3-demon näyttöjoukkoon",
-  "description": "Tämä on yksinkertainen demonäyttö, joka näyttää HAI3-kehyksen toiminnassa. Selaa valikon kautta tutkiaksesi eri ominaisuuksia.",
-  "navigation_title": "Navigointiesimerkki",
-  "navigation_description": "Napsauta alla olevaa painiketta siirtyäksesi ohjelmallisesti Teema-näkymään.",
-  "go_to_theme": "Siirry Teema-näkymään"
-}

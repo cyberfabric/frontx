@@ -1,0 +1,27 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cpt validate:*)",
+      "Bash(cpt validate-toc:*)",
+      "Bash(cpt info:*)",
+      "Bash(cpt list-ids:*)",
+      "Bash(cpt toc:*)",
+      "Skill(cypilot-generate)",
+      "Skill(cypilot-analyze)",
+      "Skill(cypilot)"
+    ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR\"/.claude/hooks/validate-architecture.sh"
+          }
+        ]
+      }
+    ]
+  }
+}

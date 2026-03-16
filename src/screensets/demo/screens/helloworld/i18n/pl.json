@@ -1,8 +1,0 @@
-{
-  "title": "Witaj świecie",
-  "welcome": "Witamy w zestawie ekranów demo HAI3",
-  "description": "To prosty ekran demonstracyjny pokazujący framework HAI3 w działaniu. Nawiguj przez menu, aby poznać różne funkcje.",
-  "navigation_title": "Przykład nawigacji",
-  "navigation_description": "Kliknij przycisk poniżej, aby programowo przejść do ekranu motywu.",
-  "go_to_theme": "Przejdź do ekranu motywu"
-}

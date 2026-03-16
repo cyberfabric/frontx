@@ -1,82 +1,195 @@
+<!-- @standalone -->
 # Screensets Guidelines
 
 ## AI WORKFLOW (REQUIRED)
 1) Summarize 3-5 rules from this file before proposing changes.
-2) STOP if you add manual styling, custom state management, import slices directly, or hardcode screenset names.
+2) REQUIRED: When user provides Figma link, run `npm run check:mcp` first to verify MCP availability.
+3) STOP if you add manual styling, custom state management, direct slice imports, or hardcode screenset names.
 
 ## SCOPE
-- Applies to all screensets under src/screensets/**.
-- Each screenset may define its own actions, events, slices, effects, and localization.
+- Applies to MFE screenset packages under src/mfe_packages/** (primary).
+- Legacy: src/screensets/** (no screensets exist here after MFE conversion).
+- MFE packages may define local actions, events, slices, effects, API services, and localization.
 
 ## CRITICAL RULES
-- Manual styling is FORBIDDEN. Use @hai3/uikit components only.
-- Data flow must follow the event-driven pattern in EVENTS.md.
-- State management MUST follow the @hai3/uicore store pattern (Redux + Flux: actions -> events -> effects -> slices).
-- Screensets are isolated. Do not hardcode screenset names in shared code.
-- Registry imports only the screenset root file, never individual screens.
-- No direct slice imports. Use actions from @hai3/uicore or screenset-local actions.
+- REQUIRED: Use the configured UI kit components; manual styling only in uikit/base/.
+- Data flow must follow EVENTS.md.
+- State management must follow @hai3/state Redux+Flux pattern.
+- Screensets are isolated; no hardcoded screenset names in shared code.
+- Registry imports only the screenset root file.
+- No direct slice imports; use @hai3/react hooks or local actions.
 
 ## STATE MANAGEMENT RULES
-- REQUIRED: Register slices dynamically via registerSlice() from @hai3/uicore.
-- REQUIRED: Folder structure includes slices/, actions/, events/, effects/.
-- REQUIRED: Add module augmentation for RootState in screenset store files.
-- FORBIDDEN: Custom store classes, Zustand-like patterns, or manual subscribe/notify logic.
+- REQUIRED: Export slice object (not just reducer) as default from slice files.
+- REQUIRED: registerSlice(sliceObject, initEffects) passes slice object directly.
+- REQUIRED: Split screenset into domains (threads, messages, settings, etc).
+- REQUIRED: Domain-specific folders: slices/, actions/, events/, effects/.
+- REQUIRED: Events split into domain files with local DOMAIN_ID.
+- REQUIRED: Effects split into domain files; each slice registers its own effects.
+- FORBIDDEN: Object.defineProperty on reducers.
+- FORBIDDEN: Exporting only reducer from slice files.
+- FORBIDDEN: Coordinator effects files.
+- FORBIDDEN: Monolithic slice/events/effects files.
+- FORBIDDEN: Barrel exports in events/ or effects/.
+- REQUIRED: RootState augmentation in screenset store files.
+- FORBIDDEN: Zustand-style stores, custom stores, manual subscribe/notify.
 - DETECT: grep -rn "class.*Store\\|subscribe.*listener" src/screensets/*/
-- DETECT: grep -rn "use.*Store.*useState\\|Set<.*>" src/screensets/*/hooks/
+- DETECT: grep -rn "events/index\\|effects/index" src/screensets
+- DETECT: grep -rn "chatEffects\\|demoEffects" src/screensets
+- DETECT: grep -rn "Object\\.defineProperty.*reducer" src/screensets
+
+## MFE STATE MANAGEMENT
+- REQUIRED: Create HAI3 app via createHAI3().use(effects()).use(mock()).build() from @hai3/react.
+- REQUIRED: Register API services BEFORE .build() — mock plugin syncs during build, services must exist.
+- REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
+- REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @hai3/react.
+- REQUIRED: registerSlice() and createSlice() from @hai3/react for slice management.
+- REQUIRED: Shared init.ts module for idempotent MFE bootstrap (module-level side effect).
+- REQUIRED: init.ts ordering: apiRegistry.register() → apiRegistry.initialize() → createHAI3().build() → registerSlice().
+- REQUIRED: Module augmentation for RootState on @hai3/react (not @hai3/state).
+- FORBIDDEN: Direct react-redux, redux, or @reduxjs/toolkit imports in MFE code.
+- FORBIDDEN: createHAI3App() or full preset in MFE (heavyweight, not needed).
 
 ## DRAFT ENTITY PATTERN
-- REQUIRED: Create entities locally (draft) before saving to backend on first meaningful user action.
-- REQUIRED: Mark draft entities with isDraft: true and temporary IDs (for example "draft-${Date.now()}").
-- REQUIRED: Replace draft with real entity when backend returns persisted version (remove draft from state).
-- REQUIRED: Generate smart, content-based values instead of hardcoded i18n strings in entity data.
-- FORBIDDEN: Hardcoded i18n values like "New Chat" in entity data (causes language-switching bugs).
+- REQUIRED: Create draft entities locally before backend save.
+- REQUIRED: Use isDraft: true and temporary IDs.
+- REQUIRED: Replace draft with persisted entity from backend.
+- REQUIRED: Entity data must not contain i18n strings; UI handles translation.
+- FORBIDDEN: Hardcoded i18n values in entity data.
 - DETECT: grep -rn "t(.*new_.*)" src/screensets/*/
 
 ## LOCALIZATION RULES
 - REQUIRED: Two-tier system: screenset-level and screen-level translations.
-- REQUIRED: Screenset-level translations registered via localization: TranslationLoader in ScreensetConfig.
-- REQUIRED: Screen-level translations registered by screen components using useScreenTranslations(screensetId, screenId, loader).
-- REQUIRED: Use I18nRegistry.createLoader() to create translation loaders with all 36 languages.
-- REQUIRED: Screenset namespace: "screenset.<screenset-id>:key".
-- REQUIRED: Screen namespace: "screen.<screenset-id>.<screen-id>:key".
-- REQUIRED: Translation files colocated with code:
-  - Screensets: src/screensets/*/i18n/
-  - Screens: src/screensets/*/screens/*/i18n/
-- REQUIRED: All 36 languages provided via explicit imports in createLoader maps.
-- REQUIRED: Wrap translated text with <TextLoader> component for loading states during lazy translation loading.
-- FORBIDDEN: Hardcoded strings, path-based loaders, or missing languages.
+- REQUIRED: Screenset-level: localization: TranslationLoader in config.
+- REQUIRED: Screen-level: useScreenTranslations(screensetId, screenId, loader).
+- REQUIRED: Use I18nRegistry.createLoader with full language map.
+- REQUIRED: Namespaces: "screenset.id:key" (screenset), "screen.screenset.screen:key" (screen).
+- REQUIRED: Place translations in local i18n folders for screenset and screen.
+- REQUIRED: Wrap translated text with <TextLoader>.
+- FORBIDDEN: Hardcoded strings or partial language sets.
 - DETECT: grep -R "['\"] [A-Za-z].* " src/screensets
 
+## MFE LOCALIZATION RULES
+- REQUIRED: Subscribe to language domain property via bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, callback).
+- REQUIRED: Load translations from MFE-local files using import.meta.glob pattern.
+- REQUIRED: Place translations in local i18n folders (src/mfe_packages/*/src/screens/*/i18n/).
+- FORBIDDEN: I18nRegistry.createLoader (host-level API, not available in MFEs).
+- FORBIDDEN: useScreenTranslations hook from @hai3/react (host-level hook with registry dependency).
+- NOTE: MFEs use the shared useScreenTranslations hook in their own shared/ directory (bridge-based).
+
+## API SERVICE RULES
+- REQUIRED: Screenset-local API services in src/screensets/*/api/.
+- REQUIRED: Unique domain constant per screenset.
+- REQUIRED: Import API service in screenset root for registration.
+- REQUIRED: Actions import from local api folder.
+- FORBIDDEN: Centralized src/api/ directory.
+- FORBIDDEN: Sharing API services between screensets.
+- DETECT: grep -rn "@/api/services" src/
+
+## MFE API SERVICE RULES
+- REQUIRED: MFE-local API services in src/mfe_packages/*/src/api/.
+- REQUIRED: Services extend BaseApiService from @hai3/react.
+- REQUIRED: Register with MFE's own apiRegistry instance (from @hai3/react).
+- REQUIRED: Mock plugins via this.registerPlugin() in service constructor.
+- REQUIRED: Each MFE fetches its own data independently (Independent Data Fetching).
+- FORBIDDEN: Importing API services from host src/app/api/ (cross-boundary violation).
+- FORBIDDEN: Proxying data from MFE to host or vice versa.
+- NOTE: Duplicate services across host and MFE are intentional architectural choice.
+
 ## ICON RULES
-- Define and register icons inside the screenset file.
-- Export icon IDs as constants.
-- Do not add screenset icons to the UiKitIcon enum.
+- REQUIRED: Menu item icons use Iconify string IDs (e.g., "lucide:home", "lucide:globe").
+- REQUIRED: Icon strings in menu config (e.g., menuItem: { icon: "lucide:palette" }).
+- FORBIDDEN: registerIcons() calls or React.ComponentType in MenuItem.icon field.
+- FORBIDDEN: Storing React components as icons (causes Redux serialization warnings).
 
 ## SCREENSET UI KIT RULES
-- Screenset-local UI Kit components must follow the same rules as components in UIKIT.md.
+- REQUIRED: Prioritize the configured UI kit components; create local only if missing.
+- REQUIRED: Screenset uikit/ structure: base/, composite/, icons/ (mirrors global).
+- REQUIRED: uikit/base/ for rare primitives; needs strong justification.
+- REQUIRED: uikit/composite/ for screenset-specific composites (value/onChange).
+- FORBIDDEN: @hai3/state or @hai3/framework imports in screensets/*/uikit/ (UI only).
+- REQUIRED: Inline styles allowed ONLY in uikit/base/; composite uses theme tokens.
 
-## UI KIT DECISION TREE
-1) Use existing @hai3/uikit component.
-2) If missing, generate via "npx shadcn add".
-3) If composite needed, add to @hai3/uikit/composite.
-4) Only screenset-specific composites may live locally in src/screensets/*/uikit/.
-5) Screenset UI Kit components are package-ready and must not depend on UI Core.
-6) Manual styling is never allowed.
+## COMPONENT PLACEMENT RULES
+- REQUIRED: Decompose screens into components BEFORE writing screen file.
+- REQUIRED: Screen files orchestrate components only.
+- FORBIDDEN: Inline component definitions in *Screen.tsx files.
+- FORBIDDEN: Inline data arrays; use API services per EVENTS.md.
+- REQUIRED: Presentational components (value/onChange only) in screensets/{name}/uikit/.
+- REQUIRED: Shared screenset components in screensets/{name}/components/.
+- REQUIRED: Screen-local components in screens/{screen}/components/.
+- DETECT: eslint local/screen-inline-components
+
+## MFE ARCHITECTURE (Phase 12 Integration)
+
+### Type System Plugin Abstraction
+- REQUIRED: TypeSystemPlugin injected at ScreensetsRegistry initialization.
+- REQUIRED: GTS plugin (`gtsPlugin`) is the default Type System implementation.
+- REQUIRED: Type IDs are opaque strings - call plugin methods for metadata.
+- REQUIRED: All first-class schemas built into GTS plugin (no registration needed).
+- FORBIDDEN: Generating type IDs at runtime - all type IDs are string constants.
+- FORBIDDEN: Direct Ajv dependency - gts-ts uses Ajv internally.
+
+### MFE Registry and Runtime
+- REQUIRED: ScreensetsRegistry is the single entry point for MFE operations.
+- REQUIRED: Extensions and domains registered dynamically at runtime (not at init).
+- REQUIRED: Contract validation uses plugin.validateInstance() after plugin.register().
+- REQUIRED: Extension type validation via plugin.isTypeOf() for type hierarchy.
+- REQUIRED: ActionsChainsMediator handles all action chain execution.
+- FORBIDDEN: Direct access to internal coordinators or mediators.
+
+### MFE Handler and Loading
+- REQUIRED: MfeHandler abstract class for polymorphic entry type handling.
+- REQUIRED: Handlers use plugin.isTypeOf() for canHandle() type matching.
+- REQUIRED: MfeBridgeFactory creates ChildMfeBridge instances.
+- REQUIRED: MfeHandlerMF handles Module Federation entry types (MfeEntryMF).
+- REQUIRED: Manifest resolution internal to MfeHandlerMF (not public API).
+- FORBIDDEN: Exposing MfManifest registration publicly.
+
+### Actions Chain Execution
+- REQUIRED: ActionsChain contains Action instances (not type ID references).
+- REQUIRED: Action uses `type` field as GTS entity ID (not synthetic IDs).
+- REQUIRED: Timeout resolution: action.timeout ?? domain.defaultActionTimeout.
+- REQUIRED: Timeout triggers fallback chain (same as any other failure).
+- REQUIRED: ChainExecutionOptions only accepts chainTimeout (chain-level).
+- FORBIDDEN: Action-level execution options in executeActionsChain().
+
+### Lifecycle and Coordination
+- REQUIRED: Lifecycle stages defined in domain (lifecycleStages, extensionsLifecycleStages).
+- REQUIRED: LifecycleHook binds stage to actions_chain for execution.
+- REQUIRED: RuntimeCoordinator abstract class for coordination (DI pattern).
+- REQUIRED: WeakMapRuntimeCoordinator concrete implementation (not exported).
+- REQUIRED: Coordination is internal - MFEs never see coordinator directly.
+- FORBIDDEN: Exposing coordination internals to MFE code.
+
+### Documentation Resources
+- Vendor guide: `packages/screensets/docs/mfe/vendor-guide.md`
+- Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
+- GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
+
+## MFE LIFECYCLE ARCHITECTURE
+- REQUIRED: MFE entries are lifecycle files exporting MfeEntryLifecycle (mount/unmount).
+- REQUIRED: ThemeAwareReactLifecycle abstract base class for React-based MFE entries.
+- REQUIRED: Shared init.ts module imported by base class for bootstrap side effect.
+- REQUIRED: Flux directory structure: api/, actions/, events/, effects/, slices/, init.ts.
+- REQUIRED: Event naming: mfe/<domain>/<eventName> (past tense for all events).
+- REQUIRED: Module augmentation for EventPayloadMap on @hai3/react (not @hai3/state).
+- FORBIDDEN: screensetRegistry (removed, replaced by MFE extension registration).
+- FORBIDDEN: useNavigation hook (removed, replaced by MFE actions).
+- FORBIDDEN: navigateToScreen (removed, replaced by mount_ext actions).
 
 ## PRE-DIFF CHECKLIST
-- [ ] No manual Tailwind or className styling.
-- [ ] No custom state management.
-- [ ] Slice registered via registerSlice().
-- [ ] Module augmentation present in store files.
-- [ ] No direct slice imports.
-- [ ] Registry imports the screenset root only.
-- [ ] Icons exported and registered.
-- [ ] Screenset config has localization: TranslationLoader.
-- [ ] Screenset loader created with I18nRegistry.createLoader() with all 36 languages.
-- [ ] Screen components use useScreenTranslations(screensetId, screenId, loader).
-- [ ] Screen loaders created with I18nRegistry.createLoader() with all 36 languages.
-- [ ] Screenset namespace "screenset.<id>:key", screen namespace "screen.<screenset>.<screen>:key".
-- [ ] Translated text wrapped with <TextLoader>.
-- [ ] All user-facing strings use t().
-- [ ] Screenset UI Kit components have no @hai3/uicore imports or hooks.
-- [ ] Data flow rules from EVENTS.md are followed.
+- [ ] Configured UI kit used; local uikit only if missing (inline styles in base/ only).
+- [ ] Slices use registerSlice with RootState augmentation.
+- [ ] No direct slice imports; no barrel exports in events/ or effects/.
+- [ ] Icons exported; API service isolated; events/effects split by domain.
+- [ ] All text uses t(); loaders use I18nRegistry.createLoader.
+- [ ] useScreenTranslations for screen-level; namespaces: screenset.id, screen.screenset.screen.
+- [ ] No inline components or data arrays in *Screen.tsx.
+- [ ] MFE integration uses TypeSystemPlugin abstraction (gtsPlugin default).
+- [ ] Type IDs are opaque - call plugin.parseTypeId() for metadata.
+- [ ] Contract validation via plugin.validateInstance() after plugin.register().
+- [ ] MFE uses createHAI3().use(effects()).use(mock()).build() + HAI3Provider (no direct Redux).
+- [ ] MFE API services are local (not imported from host).
+- [ ] MFE events use mfe/ prefix convention.
+- [ ] MFE init.ts creates app, registers slices, registers API services.

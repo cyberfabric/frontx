@@ -1,0 +1,45 @@
+---
+name: Feature Request
+about: Suggest an idea for HAI3
+title: "[FEATURE] "
+labels: enhancement
+assignees: ''
+
+---
+
+## Description
+A clear and concise description of the feature you want to propose.
+
+## Problem Statement
+What problem does this feature solve? Is it related to an existing limitation or workflow?
+
+## Proposed Solution
+A clear and concise description of how you would like this feature to work.
+
+## Use Case / Example
+Provide concrete examples of how this feature would be used:
+- Use case 1
+- Use case 2
+- Use case 3
+
+## Affected Package(s)
+Which HAI3 package(s) would this impact?
+- [ ] @hai3/framework
+- [ ] @hai3/react
+- [ ] @hai3/screensets
+- [ ] @hai3/cli
+- [ ] @hai3/i18n
+- [ ] @hai3/state
+- [ ] @hai3/studio
+- [ ] @hai3/uikit
+
+## Alternative Solutions
+Have you considered any alternative approaches or workarounds?
+
+## Additional Context
+Add any other context, mockups, or references that might help understand the feature request.
+
+## Priority
+- [ ] Low - Nice to have
+- [ ] Medium - Improves workflow
+- [ ] High - Blocking or critical for use case

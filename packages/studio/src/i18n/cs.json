@@ -1,0 +1,16 @@
+{
+  "title": "Vývojářské nástroje HAI3",
+  "aria": {
+    "openButton": "Otevřít vývojářské nástroje (Shift+`) nebo přetáhnout pro přesun",
+    "collapseButton": "Sbalit panel vývojářských nástrojů",
+    "resizeHandle": "Změnit velikost panelu nástrojů"
+  },
+  "controls": {
+    "heading": "Vývojářské ovládací prvky",
+    "screenset": "Sada obrazovek:",
+    "theme": "Motiv:",
+    "language": "Jazyk:",
+    "mockApi": "Simulované API",
+    "gts_package": "GTS Package"
+  }
+}

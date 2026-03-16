@@ -6,7 +6,7 @@
 import { trim } from 'lodash';
 import { Send, Paperclip } from 'lucide-react';
 import { Button } from '../../base/button';
-import { ButtonVariant, ButtonSize } from '@hai3/uikit-contracts';
+import { ButtonVariant, ButtonSize } from '../../types';
 
 export interface ChatInputProps {
   value: string;

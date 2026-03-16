@@ -1,0 +1,90 @@
+# HAI3 CLI Template Assembly Manifest
+# This file drives the template assembly process in copy-templates.ts
+# Version: 1.0.0
+
+version: "1.0.0"
+description: "HAI3 project scaffold templates"
+
+# Stage 1a: Project scaffold files (static templates within CLI package)
+project:
+  source: ./project/
+  description: "Project configuration files for standalone HAI3 projects"
+  contents:
+    - configs/             # ESLint, depcruise, pre-commit configs (flattened to root)
+    - eslint-plugin-local/ # Local ESLint plugin with HAI3 rules
+    - scripts/             # Utility scripts (generate-colors, test-architecture)
+    - .npmrc               # NPM configuration
+    - .nvmrc               # Node version
+    - README.md            # Project README template
+
+# Stage 1a: Layout scaffold templates (HAI3 UIKit)
+layout:
+  source: ../../src/app/layout/
+  description: "Layout component templates using @hai3/uikit (from monorepo source)"
+  destination: src/app/layout/
+  files:
+    - Layout.tsx
+    - Header.tsx
+    - Footer.tsx
+    - Menu.tsx
+    - Sidebar.tsx
+    - Screen.tsx
+    - Popup.tsx
+    - Overlay.tsx
+    - index.ts
+
+# Stage 1b: Root project files (from monorepo root, dual-purpose)
+# NOTE: Files that differ between monorepo and standalone have standalone versions
+# in template-sources/project/ and are applied in Stage 1b-override.
+root:
+  description: "Files copied from monorepo root that serve both dev and template purposes"
+  files:
+    - index.html
+    - tailwind.config.ts
+    - tsconfig.node.json
+    - .gitignore
+    - src/vite-env.d.ts
+    # main.tsx/App.tsx copied from monorepo, then overridden by standalone versions
+    # (Stage 1b-override replaces MFE-specific code with standalone-compatible code)
+    - src/app/main.tsx
+    - src/app/App.tsx
+    # Standalone-only files (in template-sources/project/ instead of monorepo root):
+    # - vite.config.ts -> configs/vite.config.ts (no federation plugin)
+    # - postcss.config.ts -> configs/postcss.config.ts
+    # - src/app/main.no-uikit.tsx -> src/app/ (no MFE imports)
+    # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/
+  directories:
+    - src/app/themes      # Theme definitions
+    - src/app/icons       # Icon definitions
+    - src/app/api         # API services (AccountsApiService)
+    - src/app/components  # Reusable components (TextLoader)
+    - src/app/actions     # Bootstrap actions
+    - src/app/effects     # Bootstrap effects
+    - src/app/events      # Bootstrap events
+    - src/app/mfe         # MFE bootstrap + generated manifests stub
+
+# Stage 1c: AI documentation overrides
+ai_overrides:
+  source: ./ai-overrides/
+  description: "Simplified versions of AI docs for standalone projects"
+  usage: "Files marked with @standalone:override in root .ai/ use these versions"
+  contents:
+    - GUIDELINES.md
+    - targets/API.md
+    - targets/THEMES.md
+
+# Stage 2: Generated content (created by copy-templates.ts)
+generated:
+  description: "IDE configuration files generated during template assembly"
+  files:
+    - CLAUDE.md                 # Pointer to .ai/GUIDELINES.md
+    - .claude/commands/*.md     # Command adapters
+    - .cursor/rules/hai3.mdc    # Cursor rule pointer
+    - .cursor/commands/*.md     # Command adapters
+    - .windsurf/rules/hai3.md   # Windsurf rule pointer
+    - .windsurf/workflows/*.md  # Workflow adapters
+
+# Build output
+output:
+  directory: ../templates/
+  description: "Generated templates directory (gitignored)"

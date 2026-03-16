@@ -1,8 +1,0 @@
-{
-  "title": "Ciao Mondo",
-  "welcome": "Benvenuto nel Set di Schermate Demo di HAI3",
-  "description": "Questa è una semplice schermata demo che mostra il framework HAI3 in azione. Naviga attraverso il menu per esplorare diverse funzionalità.",
-  "navigation_title": "Esempio di Navigazione",
-  "navigation_description": "Fai clic sul pulsante qui sotto per navigare alla schermata del Tema in modo programmatico.",
-  "go_to_theme": "Vai alla Schermata del Tema"
-}

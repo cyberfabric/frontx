@@ -1,8 +1,0 @@
-{
-  "title": "Olá Mundo",
-  "welcome": "Bem-vindo ao Conjunto de Telas Demo HAI3",
-  "description": "Esta é uma tela demo simples mostrando o framework HAI3 em ação. Navegue pelo menu para explorar diferentes recursos.",
-  "navigation_title": "Exemplo de Navegação",
-  "navigation_description": "Clique no botão abaixo para navegar para a tela de Tema programaticamente.",
-  "go_to_theme": "Ir para a Tela de Tema"
-}

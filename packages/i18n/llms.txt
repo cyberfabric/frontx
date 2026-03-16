@@ -1,0 +1,49 @@
+# @hai3/i18n
+
+> Internationalization with 36 languages, namespace support, lazy loading, and RTL detection for HAI3 SDK.
+
+Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Zero dependencies.
+
+## Core API
+
+- [i18nRegistry](https://hai3.dev/docs/i18n/registry): Singleton for translations
+- [Language](https://hai3.dev/docs/i18n/languages): Enum of 36 language codes
+- [createI18nRegistry](https://hai3.dev/docs/i18n/create): Factory for isolated testing
+
+## Key Patterns
+
+- Namespace keys: `namespace:key.subkey` (e.g., `screen.demo.home:title`)
+- Lazy loading via `registerLoader()` with dynamic imports
+- RTL detection for Arabic, Hebrew, Persian, Urdu
+- Parameter interpolation: `{param}` syntax
+
+## Quick Start
+
+```typescript
+import { i18nRegistry, Language, I18nRegistryImpl } from '@hai3/i18n';
+
+// Register translations directly
+i18nRegistry.register('common', Language.English, {
+  'app.title': 'My App',
+  'app.welcome': 'Welcome, {name}!'
+});
+
+// Or lazy load per screen
+const screenTranslations = I18nRegistryImpl.createLoader({
+  [Language.English]: () => import('./i18n/en.json'),
+  [Language.Spanish]: () => import('./i18n/es.json'),
+});
+
+// Use translations
+const title = i18nRegistry.t('common:app.title');
+const welcome = i18nRegistry.t('common:app.welcome', { name: 'John' });
+
+// Language management
+await i18nRegistry.setLanguage(Language.Spanish);
+const isRTL = i18nRegistry.isRTL();
+```
+
+## Optional
+
+- [Migration Guide](https://hai3.dev/docs/i18n/migration): Migrating from @hai3/uicore
+- [RTL Support](https://hai3.dev/docs/i18n/rtl): Right-to-left language handling

@@ -1,9 +1,0 @@
-# Workflow: Fix Rule Violation
-
-This workflow references the canonical process in `.ai/workflows/FIX_RULE_VIOLATION.md`.
-
-## Purpose
-Resolve violations of `.ai/targets/*.md` or `.ai/GUIDELINES.md`.
-
-## Usage
-Open and follow `.ai/workflows/FIX_RULE_VIOLATION.md`.

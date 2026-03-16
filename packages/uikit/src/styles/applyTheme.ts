@@ -5,7 +5,13 @@
  * Maps to shadcn CSS variable naming convention
  */
 
-import type { Theme } from './themeTypes';
+// @cpt-dod:cpt-hai3-dod-uikit-components-theme:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-apply-theme-document:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-apply-theme-shadow:p1
+// @cpt-algo:cpt-hai3-algo-uikit-components-apply-theme-document:p1
+// @cpt-algo:cpt-hai3-algo-uikit-components-apply-theme-shadow:p1
+
+import type { Theme } from '../types';
 
 /**
  * Normalize color value for CSS variable
@@ -33,6 +39,8 @@ const hslToVar = (color: string): string => {
  * @param theme - Theme object to apply
  * @param themeName - Optional theme name for data attribute
  */
+// @cpt-begin:cpt-hai3-algo-uikit-components-apply-theme-document:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-apply-theme-document:p1:inst-1
 export const applyTheme = (theme: Theme, themeName?: string): void => {
   const root = document.documentElement;
 
@@ -68,6 +76,13 @@ export const applyTheme = (theme: Theme, themeName?: string): void => {
   root.style.setProperty('--success', hslToVar(theme.colors.success));
   root.style.setProperty('--info', hslToVar(theme.colors.info));
 
+  // Apply chart colors (OKLCH format - pass as-is)
+  root.style.setProperty('--chart-1', theme.colors.chart[1]);
+  root.style.setProperty('--chart-2', theme.colors.chart[2]);
+  root.style.setProperty('--chart-3', theme.colors.chart[3]);
+  root.style.setProperty('--chart-4', theme.colors.chart[4]);
+  root.style.setProperty('--chart-5', theme.colors.chart[5]);
+
   // Apply left menu colors
   root.style.setProperty('--left-menu', hslToVar(theme.colors.mainMenu.DEFAULT));
   root.style.setProperty('--left-menu-foreground', hslToVar(theme.colors.mainMenu.foreground));
@@ -102,3 +117,111 @@ export const applyTheme = (theme: Theme, themeName?: string): void => {
     root.style.fontSize = '';
   }
 };
+// @cpt-end:cpt-hai3-algo-uikit-components-apply-theme-document:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-apply-theme-document:p1:inst-1
+
+/**
+ * Apply theme to a shadow root by injecting CSS variables
+ * Uses :host selector instead of document.documentElement
+ * Idempotent - reuses existing style element with id __hai3-theme-vars__
+ *
+ * @param shadowRoot - The shadow root to inject theme variables into
+ * @param theme - Theme object to apply
+ * @param themeName - Optional theme name for data attribute
+ */
+// @cpt-begin:cpt-hai3-algo-uikit-components-apply-theme-shadow:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-apply-theme-shadow:p1:inst-1
+export const applyThemeToShadowRoot = (
+  shadowRoot: ShadowRoot,
+  theme: Theme,
+  themeName?: string
+): void => {
+  // Get or create style element
+  let styleElement = shadowRoot.getElementById('__hai3-theme-vars__') as HTMLStyleElement | null;
+  if (!styleElement) {
+    styleElement = document.createElement('style');
+    styleElement.id = '__hai3-theme-vars__';
+    shadowRoot.appendChild(styleElement);
+  }
+
+  // Set data-theme attribute for debugging
+  if (themeName) {
+    styleElement.setAttribute('data-theme', themeName);
+  }
+
+  // Generate CSS variable declarations
+  const cssVars: string[] = [];
+
+  // Shadcn color variables
+  cssVars.push(`--background: ${hslToVar(theme.colors.background)};`);
+  cssVars.push(`--foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--card: ${hslToVar(theme.colors.background)};`);
+  cssVars.push(`--card-foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--popover: ${hslToVar(theme.colors.background)};`);
+  cssVars.push(`--popover-foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--primary: ${hslToVar(theme.colors.primary)};`);
+  cssVars.push(`--primary-foreground: ${hslToVar(theme.colors.background)};`);
+  cssVars.push(`--secondary: ${hslToVar(theme.colors.secondary)};`);
+  cssVars.push(`--secondary-foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--muted: ${hslToVar(theme.colors.muted)};`);
+  cssVars.push(`--muted-foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--accent: ${hslToVar(theme.colors.accent)};`);
+  cssVars.push(`--accent-foreground: ${hslToVar(theme.colors.background)};`);
+  cssVars.push(`--destructive: ${hslToVar(theme.colors.error)};`);
+  cssVars.push(`--destructive-foreground: ${hslToVar(theme.colors.foreground)};`);
+  cssVars.push(`--border: ${hslToVar(theme.colors.border)};`);
+  cssVars.push(`--input: ${hslToVar(theme.colors.border)};`);
+  cssVars.push(`--ring: ${hslToVar(theme.colors.primary)};`);
+
+  // State colors
+  cssVars.push(`--error: ${hslToVar(theme.colors.error)};`);
+  cssVars.push(`--warning: ${hslToVar(theme.colors.warning)};`);
+  cssVars.push(`--success: ${hslToVar(theme.colors.success)};`);
+  cssVars.push(`--info: ${hslToVar(theme.colors.info)};`);
+
+  // Chart colors (OKLCH format - pass as-is)
+  cssVars.push(`--chart-1: ${theme.colors.chart[1]};`);
+  cssVars.push(`--chart-2: ${theme.colors.chart[2]};`);
+  cssVars.push(`--chart-3: ${theme.colors.chart[3]};`);
+  cssVars.push(`--chart-4: ${theme.colors.chart[4]};`);
+  cssVars.push(`--chart-5: ${theme.colors.chart[5]};`);
+
+  // Left menu colors
+  cssVars.push(`--left-menu: ${hslToVar(theme.colors.mainMenu.DEFAULT)};`);
+  cssVars.push(`--left-menu-foreground: ${hslToVar(theme.colors.mainMenu.foreground)};`);
+  cssVars.push(`--left-menu-hover: ${hslToVar(theme.colors.mainMenu.hover)};`);
+  cssVars.push(`--left-menu-selected: ${hslToVar(theme.colors.mainMenu.selected)};`);
+  cssVars.push(`--left-menu-border: ${hslToVar(theme.colors.mainMenu.border)};`);
+
+  // Spacing
+  Object.entries(theme.spacing).forEach(([key, value]) => {
+    cssVars.push(`--spacing-${key}: ${value};`);
+  });
+
+  // Border radius
+  Object.entries(theme.borderRadius).forEach(([key, value]) => {
+    cssVars.push(`--radius-${key}: ${value};`);
+  });
+
+  // Shadows
+  Object.entries(theme.shadows).forEach(([key, value]) => {
+    cssVars.push(`--shadow-${key}: ${value};`);
+  });
+
+  // Transitions
+  Object.entries(theme.transitions).forEach(([key, value]) => {
+    cssVars.push(`--transition-${key}: ${value};`);
+  });
+
+  // Build CSS content
+  let cssContent = `:host {\n  ${cssVars.join('\n  ')}\n}`;
+
+  // For -large themes: add font-size rule
+  if (themeName?.endsWith('-large')) {
+    cssContent += '\n\n:host {\n  font-size: 125%;\n}';
+  }
+
+  styleElement.textContent = cssContent;
+};
+// @cpt-end:cpt-hai3-algo-uikit-components-apply-theme-shadow:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-apply-theme-shadow:p1:inst-1

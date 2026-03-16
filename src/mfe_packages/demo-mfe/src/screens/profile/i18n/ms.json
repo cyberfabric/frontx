@@ -1,0 +1,20 @@
+{
+  "title": "Profil Pengguna",
+  "welcome": "Selamat datang kembali",
+  "loading": "Memuatkan data pengguna...",
+  "error_prefix": "Ralat:",
+  "retry": "Cuba lagi",
+  "no_user_data": "Tiada data pengguna",
+  "load_user": "Muatkan pengguna",
+  "role_label": "Peranan",
+  "department_label": "Jabatan",
+  "id_label": "ID",
+  "created_label": "Dicipta",
+  "last_updated_label": "Kemaskini terakhir",
+  "refresh": "Segar semula",
+  "bridge_info": "Bridge Info",
+  "domain_id": "Domain ID:",
+  "instance_id": "Instance ID:",
+  "current_theme": "Current Theme:",
+  "current_language": "Current Language:"
+}

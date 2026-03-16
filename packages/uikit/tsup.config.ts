@@ -3,8 +3,17 @@ import path from 'path';
 
 export default defineConfig({
   entry: ['src/index.ts'],
-  format: ['cjs', 'esm'],
-  dts: true,
+  format: ['esm', 'cjs'],
+  outExtension({ format }) {
+    return {
+      js: format === 'cjs' ? '.cjs' : '.js',
+    };
+  },
+  dts: {
+    compilerOptions: {
+      moduleResolution: 'node',
+    },
+  },
   clean: true,
   sourcemap: true,
   external: [
@@ -20,6 +29,9 @@ export default defineConfig({
     'class-variance-authority',
     'clsx',
     'lucide-react',
+    'react-hook-form',
+    '@hookform/resolvers',
+    'recharts',
     'tailwind-merge',
   ],
   treeshake: true,

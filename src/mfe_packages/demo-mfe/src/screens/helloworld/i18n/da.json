@@ -1,0 +1,13 @@
+{
+  "title": "Hej verden",
+  "welcome": "Velkommen til HAI3 demo-skærmsæt",
+  "description": "Dette er en simpel demoskærm, der viser HAI3-frameworket i aktion. Navigér gennem menuen for at udforske forskellige funktioner.",
+  "navigation_title": "Navigationseksempel",
+  "navigation_description": "Klik på knappen nedenfor for programmatisk at navigere til temasiden.",
+  "go_to_theme": "Gå til temasiden",
+  "bridge_info": "Bridge Info",
+  "domain_id": "Domain ID:",
+  "instance_id": "Instance ID:",
+  "current_theme": "Current Theme:",
+  "current_language": "Current Language:"
+}

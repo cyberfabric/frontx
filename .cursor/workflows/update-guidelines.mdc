@@ -1,9 +1,0 @@
-# Workflow: Update AI Guidelines
-
-This workflow references the canonical process in `.ai/workflows/UPDATE_GUIDELINES.md`.
-
-## Purpose
-Execute updates to `.ai/**/*.md` per the canonical workflow.
-
-## Usage
-Open and follow `.ai/workflows/UPDATE_GUIDELINES.md`.

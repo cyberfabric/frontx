@@ -9,48 +9,105 @@ on:
 jobs:
   validate:
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        node-version: [18.x, 20.x]
-    
+        node-version: [25.x]
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js ${{ matrix.node-version }}
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
-        
+
+    - name: Enable Corepack
+      run: corepack enable
+
     - name: Install dependencies
       run: npm ci
-      
+
     - name: Run architecture validation
       run: npm run arch:check
+
+  cypilot-validate:
+    name: Cypilot Validate Artifacts
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate artifacts and traceability
+        run: python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py validate
+
+  cypilot-validate-kits:
+    name: Cypilot Validate Kits
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Validate installed kits
+        run: python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py validate-kits
+
+  cypilot-spec-coverage:
+    name: Cypilot Spec Coverage
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Check spec coverage thresholds
+        # TODO: Raise thresholds as coverage improves — see architecture/workflows/spec-coverage-improvement.md
+        # Threshold lowered from 52 → 51 after removing CI/CD YAML from codebase scan (publishing-pipeline markers removed)
+        run: >-
+          python3 .cypilot/.core/skills/cypilot/scripts/cypilot.py
+          spec-coverage
+          --min-coverage 51
+          --min-granularity 0.25
 
   dependency-graph:
     runs-on: ubuntu-latest
     needs: validate
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
-        node-version: '20.x'
+        node-version: '25.x'
         cache: 'npm'
-        
+
+    - name: Enable Corepack
+      run: corepack enable
+
     - name: Install dependencies
       run: npm ci
-      
+
     - name: Generate dependency graph
       run: |
         npm run arch:dot || echo "Failed to generate DOT file"
-      
+
     - name: Upload dependency graph
       uses: actions/upload-artifact@v4
       with:

@@ -1,9 +1,10 @@
+<!-- @standalone -->
 # Chrome MCP Troubleshooting
 
 ## CRITICAL RULES
 
 ### Connection Management
-- FORBIDDEN: pkill -f chrome-devtools-mcp during active session
+- FORBIDDEN: pkill -f chrome-studio-mcp during active session
 - FORBIDDEN: pkill -f chrome-mcp during active session
 - FORBIDDEN: Restarting MCP processes manually
 - REQUIRED: Ask user to restart MCP via Claude Code interface
@@ -39,8 +40,8 @@
 - REQUIRED: Ask user: continue without testing or start new session
 
 ### Active MCP Server
-- Server name: chrome-devtools-mcp
-- DETECT: ps aux | grep chrome-devtools-mcp | grep -v grep
+- Server name: chrome-studio-mcp
+- DETECT: ps aux | grep chrome-studio-mcp | grep -v grep
 
 ### Error States
 - "WebSocket is not open: readyState 3 (CLOSED)" -> Connection dropped
@@ -56,7 +57,7 @@
 - REQUIRED: Only then make next change
 
 ### When Connection Lost
-- BAD: pkill -f chrome-devtools-mcp -> breaks permanently
+- BAD: pkill -f chrome-studio-mcp -> breaks permanently
 - GOOD: Ask user to restart MCP or start new conversation
 - BAD: Continue without testing
 - GOOD: Document completion status and ask user preference
@@ -66,6 +67,19 @@
 - MCP tools communicate via stdin/stdout with Claude Code
 - MCP tools cannot reload mid-session
 - Killing processes removes tools from session permanently
+
+## Screenshot Safety
+
+### Rules
+- REQUIRED: Use take_snapshot for page inspection (text-based, always safe)
+- REQUIRED: Use take_screenshot with filePath parameter to save to disk
+- REQUIRED: Use Read tool to view saved screenshot files
+- FORBIDDEN: Inline take_screenshot without filePath (causes 400 MIME error)
+
+### Error Recovery
+- DETECT: 400 error after take_screenshot (MIME type mismatch)
+- STOP: Session corrupted beyond recovery
+- REQUIRED: Start new conversation immediately
 
 ## STOP CONDITIONS
 Stop and ask user before:

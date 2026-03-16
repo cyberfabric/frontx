@@ -1,0 +1,13 @@
+{
+  "title": "مرحبا بالعالم",
+  "welcome": "مرحباً بك في مجموعة العرض التوضيحي HAI3",
+  "description": "هذه شاشة عرض توضيحية بسيطة تُظهر إطار عمل HAI3. تصفح القائمة لاستكشاف الميزات المختلفة.",
+  "navigation_title": "مثال على التنقل",
+  "navigation_description": "انقر فوق الزر أدناه للانتقال إلى شاشة السمة برمجياً.",
+  "go_to_theme": "الذهاب إلى شاشة السمة",
+  "bridge_info": "Bridge Info",
+  "domain_id": "Domain ID:",
+  "instance_id": "Instance ID:",
+  "current_theme": "Current Theme:",
+  "current_language": "Current Language:"
+}

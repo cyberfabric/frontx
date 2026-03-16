@@ -1,3 +1,4 @@
+
 # UI Kit Guidelines
 
 ## AI WORKFLOW (REQUIRED)
@@ -7,20 +8,20 @@
 ## SCOPE
 - All code under packages/uikit/**.
 - UI Kit is presentational only; no state management, no business logic.
-- Must implement the contracts from @hai3/uikit-contracts.
+- All types and contracts are defined within the configured UI kit.
 
 ## CRITICAL RULES
-- Base components come from shadcn; composites are built from base components.
-- No custom base components; if missing, generate via "npx shadcn add <component>".
+- Base components come from the configured UI kit; composites are built from base components.
+- No custom base components; if missing, add via the UI kit's component system.
 - All component types, props, and IDs must follow UiKitComponent enum and contract types.
-- Icons live in icons/ and are exported (tree-shakeable); no self-registration, no hardcoded string IDs.
+- Icons live in icons/ and are exported as React components (tree-shakeable); direct imports only.
+- FORBIDDEN: Registry patterns, runtime registration, or icon lookups.
 - Loading states must use Skeleton from base; no custom animated div skeletons.
 
 ## STOP CONDITIONS
 - Adding Redux, effects, slice logic, or app-level state.
 - Implementing a component that does not match the contract type.
 - Writing manual skeletons instead of Skeleton.
-- Creating reusable visual components in screensets instead of UI Kit.
 
 ## FILE STRUCTURE RULES
 - Base components: packages/uikit/src/base/**.
@@ -34,7 +35,7 @@
 
 ## PRE-DIFF CHECKLIST
 - [ ] Base or composite placement is correct.
-- [ ] Component props and types match @hai3/uikit-contracts.
+- [ ] Component props and types match the configured UI kit contracts.
 - [ ] No Redux, effects, or business logic added.
 - [ ] Icons exported from icons/, no string literal IDs.
 - [ ] Skeleton used for loading states where needed.

@@ -1,27 +1,42 @@
 {
   "$schema": "https://unpkg.com/knip@5/schema.json",
-  "entry": [
-    "src/main.tsx",
-    "src/App.tsx",
-    "packages/*/src/index.ts",
-    "packages/*/src/index.tsx"
-  ],
-  "project": [
-    "src/**/*.{ts,tsx}",
-    "packages/*/src/**/*.{ts,tsx}"
-  ],
+  "workspaces": {
+    ".": {
+      "entry": [
+        "src/app/main.tsx",
+        "src/screensets/*/*[Ss]creenset.tsx"
+      ],
+      "project": ["src/**/*.{ts,tsx}"],
+      "ignore": ["src/screensets/_blank/**"]
+    },
+    "packages/cli": {
+      "ignore": ["templates/**", "template-sources/**"]
+    },
+    "packages/uikit": {
+      "ignoreDependencies": ["@hookform/resolvers"]
+    }
+  },
   "ignore": [
     "**/*.test.{ts,tsx}",
     "**/*.spec.{ts,tsx}",
     "**/dist/**",
     "**/node_modules/**",
-    "scripts/**",
+    "**/templates/**",
+    "**/template-sources/**",
+    "eslint-plugin-local/**",
     "**/*.config.{ts,js,cjs,mjs}",
     "vite.config.ts",
     ".eslintrc.cjs"
   ],
   "ignoreDependencies": [
-    "@types/*"
+    "@types/*",
+    "@hai3/depcruise-config/*"
   ],
-  "ignoreExportsUsedInFile": true
+  "ignoreBinaries": [
+    "dot"
+  ],
+  "ignoreExportsUsedInFile": true,
+  "ignoreIssues": {
+    "**/*Screen.tsx": ["duplicates"]
+  }
 }

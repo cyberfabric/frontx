@@ -1,8 +1,0 @@
-{
-  "title": "Helló világ",
-  "welcome": "Üdvözöljük a HAI3 demó képernyőkészletben",
-  "description": "Ez egy egyszerű demó képernyő, amely bemutatja a HAI3 keretrendszert működés közben. A menüben navigálva fedezze fel a különböző funkciókat.",
-  "navigation_title": "Navigációs példa",
-  "navigation_description": "Kattintson az alábbi gombra a Téma képernyőre történő programozott navigáláshoz.",
-  "go_to_theme": "Ugrás a Téma képernyőre"
-}

@@ -5,7 +5,7 @@
 
 import { Plus, Search } from 'lucide-react';
 import { Button } from '../../base/button';
-import { ButtonVariant, ButtonSize } from '@hai3/uikit-contracts';
+import { ButtonVariant, ButtonSize } from '../../types';
 import { Skeleton } from '../../base/skeleton';
 
 export interface ChatThread {

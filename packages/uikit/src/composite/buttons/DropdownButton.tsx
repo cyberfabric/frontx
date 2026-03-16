@@ -1,7 +1,11 @@
+// @cpt-algo:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+
 import React from 'react';
-import { ChevronDown } from 'lucide-react';
 import { Button } from '../../base/button';
-import { ButtonVariant } from '@hai3/uikit-contracts';
+import { ChevronDownIcon } from '../../icons/ChevronDownIcon';
+import { ButtonVariant } from '../../types';
 import { cn } from '../../lib/utils';
 
 /**
@@ -16,10 +20,19 @@ export interface DropdownButtonProps extends React.ButtonHTMLAttributes<HTMLButt
   className?: string;
 }
 
-export const DropdownButton = React.forwardRef<
-  HTMLButtonElement,
-  DropdownButtonProps
->(({ children, variant = ButtonVariant.Outline, className, ...props }, ref) => {
+// @cpt-begin:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-begin:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1
+export const DropdownButton = (
+  {
+    ref,
+    children,
+    variant = ButtonVariant.Outline,
+    className,
+    ...props
+  }: DropdownButtonProps & {
+    ref?: React.Ref<HTMLButtonElement>;
+  }
+) => {
   return (
     <Button
       ref={ref}
@@ -28,9 +41,11 @@ export const DropdownButton = React.forwardRef<
       {...props}
     >
       <span>{children}</span>
-      <ChevronDown className="h-4 w-4" />
+      <ChevronDownIcon className="h-4 w-4" />
     </Button>
   );
-});
+};
 
 DropdownButton.displayName = 'DropdownButton';
+// @cpt-end:cpt-hai3-algo-uikit-components-validate-ref-pattern:p1:inst-1
+// @cpt-end:cpt-hai3-flow-uikit-components-consume-composite:p1:inst-1

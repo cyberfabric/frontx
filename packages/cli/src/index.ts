@@ -1,0 +1,230 @@
+#!/usr/bin/env node
+/**
+ * HAI3 CLI Entry Point
+ *
+ * Commands:
+ *   hai3 create <project-name>              Create a new HAI3 project
+ *   hai3 update                             Update CLI and project packages
+ *   hai3 validate components [path]         Validate component structure
+ *   hai3 migrate [version]                  Apply codemod migrations
+ */
+// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+
+import { Command } from 'commander';
+import { registry, executeCommand } from './core/index.js';
+import {
+  createCommand,
+  updateCommand,
+  validateComponentsCommand,
+  scaffoldLayoutCommand,
+  aiSyncCommand,
+  updateLayoutCommand,
+  migrateCommand,
+} from './commands/index.js';
+
+// CLI version
+const VERSION = '0.1.0';
+
+// Register all commands
+registry.register(createCommand);
+registry.register(updateCommand);
+registry.register(validateComponentsCommand);
+registry.register(scaffoldLayoutCommand);
+registry.register(aiSyncCommand);
+registry.register(updateLayoutCommand);
+registry.register(migrateCommand);
+
+// Create Commander program
+const program = new Command();
+
+program
+  .name('hai3')
+  .description('HAI3 CLI - Project scaffolding and package management')
+  .version(VERSION);
+
+// Global quiet flag
+program.option('-q, --quiet', 'Suppress non-essential output');
+
+// hai3 create <project-name>
+program
+  .command('create <project-name>')
+  .description('Create a new HAI3 project or layer package')
+  .option('--studio', 'Include Studio package')
+  .option('--no-studio', 'Exclude Studio package')
+  .option('--uikit <type>', "UI kit to use ('hai3' for @hai3/uikit, 'none' for no UI kit)")
+  .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
+  .action(async (projectName: string, options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      createCommand,
+      {
+        projectName,
+        studio: options.studio as boolean | undefined,
+        uikit: options.uikit as 'hai3' | 'none' | undefined,
+        layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 update subcommand
+const updateCmd = program
+  .command('update')
+  .description('Update commands for HAI3 projects');
+
+// hai3 update (default - updates CLI and packages)
+updateCmd
+  .command('packages', { isDefault: true })
+  .description('Update HAI3 CLI and project packages')
+  .option('-a, --alpha', 'Update to latest alpha/prerelease version')
+  .option('-s, --stable', 'Update to latest stable version')
+  .option('--templates-only', 'Only sync templates (skip CLI and package updates)')
+  .option('--skip-ai-sync', 'Skip running AI sync after update')
+  .action(async (options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      updateCommand,
+      {
+        alpha: options.alpha as boolean | undefined,
+        stable: options.stable as boolean | undefined,
+        templatesOnly: options.templatesOnly as boolean | undefined,
+        skipAiSync: options.skipAiSync as boolean | undefined,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 update layout
+updateCmd
+  .command('layout')
+  .description('Update layout components from templates')
+  .option('-f, --force', 'Force update without prompting')
+  .action(async (options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      updateLayoutCommand,
+      {
+        force: options.force as boolean,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 validate subcommand
+const validateCmd = program
+  .command('validate')
+  .description('Validation commands');
+
+// hai3 validate components [path]
+validateCmd
+  .command('components [path]')
+  .description('Validate component structure and placement')
+  .action(async (targetPath: string | undefined) => {
+    const result = await executeCommand(
+      validateComponentsCommand,
+      { path: targetPath },
+      { interactive: true }
+    );
+
+    if (!result.success || !result.data?.passed) {
+      process.exit(1);
+    }
+  });
+
+// hai3 scaffold subcommand
+const scaffoldCmd = program
+  .command('scaffold')
+  .description('Generate project components from templates');
+
+// hai3 scaffold layout
+scaffoldCmd
+  .command('layout')
+  .description('Generate HAI3 UIKit layout components in your project')
+  .option('-f, --force', 'Overwrite existing layout files')
+  .action(async (options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      scaffoldLayoutCommand,
+      {
+        force: options.force as boolean,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 ai subcommand
+const aiCmd = program
+  .command('ai')
+  .description('AI assistant configuration commands');
+
+// hai3 ai sync
+aiCmd
+  .command('sync')
+  .description('Sync AI assistant configuration files')
+  .option(
+    '-t, --tool <tool>',
+    'Specific tool to sync (claude, copilot, cursor, windsurf, all)',
+    'all'
+  )
+  .option('-d, --detect-packages', 'Detect installed @hai3 packages')
+  .option('--diff', 'Show diff of changes without writing files')
+  .action(async (options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      aiSyncCommand,
+      {
+        tool: options.tool as 'claude' | 'copilot' | 'cursor' | 'windsurf' | 'all',
+        detectPackages: options.detectPackages as boolean,
+        diff: options.diff as boolean,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 migrate [version]
+program
+  .command('migrate [targetVersion]')
+  .description('Apply codemod migrations to update HAI3 projects')
+  .option('-d, --dry-run', 'Preview changes without applying')
+  .option('-l, --list', 'List available migrations')
+  .option('-s, --status', 'Show migration status')
+  .option('-p, --path <path>', 'Target directory to migrate')
+  .option('--include <patterns>', 'Include glob patterns (comma-separated)')
+  .option('--exclude <patterns>', 'Exclude glob patterns (comma-separated)')
+  .action(async (targetVersion: string | undefined, options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      migrateCommand,
+      {
+        targetVersion,
+        dryRun: options.dryRun as boolean,
+        list: options.list as boolean,
+        status: options.status as boolean,
+        targetPath: options.path as string | undefined,
+        include: options.include as string | undefined,
+        exclude: options.exclude as string | undefined,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// Parse and execute
+program.parse();

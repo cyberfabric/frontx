@@ -1,0 +1,20 @@
+{
+  "title": "Profilo Utente",
+  "welcome": "Bentornato",
+  "loading": "Caricamento dei dati utente...",
+  "error_prefix": "Errore:",
+  "retry": "Riprova",
+  "no_user_data": "Nessun dato utente",
+  "load_user": "Carica Utente",
+  "role_label": "Ruolo",
+  "department_label": "Dipartimento",
+  "id_label": "ID",
+  "created_label": "Creato",
+  "last_updated_label": "Ultimo Aggiornamento",
+  "refresh": "Aggiorna",
+  "bridge_info": "Bridge Info",
+  "domain_id": "Domain ID:",
+  "instance_id": "Instance ID:",
+  "current_theme": "Current Theme:",
+  "current_language": "Current Language:"
+}

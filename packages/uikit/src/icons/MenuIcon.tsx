@@ -1,5 +1,3 @@
-import React from 'react';
-
 /**
  * Menu Icon ID
  * Well-known constant defined where it belongs
@@ -11,7 +9,7 @@ export const MENU_ICON_ID = 'menu' as const;
  * Core icon for header menu toggle
  * Tree-shakeable - imported and registered by app
  */
-export const MenuIcon: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const MenuIcon = ({ className = '' }: { className?: string }) => {
   return (
     <svg
       className={className}

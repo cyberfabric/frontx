@@ -1,8 +1,0 @@
-{
-  "title": "Hallo Wereld",
-  "welcome": "Welkom bij de HAI3 Demo Schermset",
-  "description": "Dit is een eenvoudig demo-scherm dat het HAI3-framework in actie toont. Navigeer door het menu om verschillende functies te verkennen.",
-  "navigation_title": "Navigatievoorbeeld",
-  "navigation_description": "Klik op de knop hieronder om programmatisch naar het Thema-scherm te navigeren.",
-  "go_to_theme": "Ga naar Thema-scherm"
-}

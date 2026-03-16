@@ -1,0 +1,53 @@
+# @hai3/api
+
+> API communication protocols and service registry for HAI3 SDK. Supports REST, SSE, and mock protocols.
+
+Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Peer dependency on axios.
+
+## Core API
+
+- [BaseApiService](https://hai3.dev/docs/api/service): Abstract base class for domain services
+- [apiRegistry](https://hai3.dev/docs/api/registry): Central registry for service instances
+- [RestProtocol](https://hai3.dev/docs/api/rest): HTTP REST communication
+- [MockPlugin](https://hai3.dev/docs/api/mock): Mock data for development/testing
+
+## Key Patterns
+
+- One service per domain (accounts, billing, etc.)
+- Services extend BaseApiService
+- Mock data registered separately from service
+- Plugin system for request/response modification
+- Type safety via module augmentation
+
+## Quick Start
+
+```typescript
+import { BaseApiService, RestProtocol, apiRegistry, MockMap } from '@hai3/api';
+
+// Define service
+class AccountsApiService extends BaseApiService {
+  constructor() {
+    super({ baseURL: '/api/accounts' }, new RestProtocol());
+  }
+  async getCurrentUser() {
+    return this.protocol(RestProtocol).get('/user/current');
+  }
+}
+
+// Module augmentation
+declare module '@hai3/api' {
+  interface ApiServicesMap {
+    accounts: AccountsApiService;
+  }
+}
+
+// Register and use
+apiRegistry.register('accounts', AccountsApiService);
+apiRegistry.initialize({ useMockApi: true });
+const accounts = apiRegistry.getService('accounts');
+```
+
+## Optional
+
+- [SSE Protocol](https://hai3.dev/docs/api/sse): Server-Sent Events support
+- [Custom Plugins](https://hai3.dev/docs/api/plugins): Auth, logging, retry plugins

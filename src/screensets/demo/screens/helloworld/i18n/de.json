@@ -1,8 +1,0 @@
-{
-  "title": "Hallo Welt",
-  "welcome": "Willkommen beim HAI3 Demo-Bildschirmsatz",
-  "description": "Dies ist ein einfacher Demo-Bildschirm, der das HAI3-Framework in Aktion zeigt. Navigieren Sie durch das Menü, um verschiedene Funktionen zu erkunden.",
-  "navigation_title": "Navigationsbeispiel",
-  "navigation_description": "Klicken Sie auf die Schaltfläche unten, um programmgesteuert zum Themen-Bildschirm zu navigieren.",
-  "go_to_theme": "Zum Themen-Bildschirm"
-}

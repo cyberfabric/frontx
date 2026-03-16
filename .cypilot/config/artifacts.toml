@@ -1,0 +1,92 @@
+# Cypilot artifacts registry
+
+[[ignore]]
+reason = "Build artifacts and dependencies"
+patterns = [
+  "*/dist/*",
+  "*/node_modules/*",
+  "*/templates/*",
+]
+
+[[ignore]]
+reason = "Test files use scenario IDs, not CDSL begin/end markers"
+patterns = [
+  "*.test.*",
+  "*.spec.*",
+  "*/__tests__/*",
+]
+
+[[ignore]]
+reason = "CLI template sources are code-gen templates, not implementable source"
+patterns = [
+  "*/template-sources/*",
+]
+
+[[ignore]]
+reason = "Build/bundler configuration files have no CDSL backing"
+patterns = [
+  "*/tsup.config.*",
+  "*/vite.config.*",
+  "*/vitest.config.*",
+  "*/postcss.config.*",
+  "*/tailwind.config.*",
+]
+
+[[ignore]]
+reason = "Documentation site infrastructure has no CDSL backing"
+patterns = [
+  "packages/docs/*",
+]
+
+[[systems]]
+name = "HAI3 Dev Kit"
+slug = "hai3"
+kit = "cypilot-sdlc"
+artifacts_dir = "architecture"
+
+# --- Autodetect rules ---
+
+[[systems.autodetect]]
+kit = "cypilot-sdlc"
+system_root = "{project_root}"
+artifacts_root = "architecture"
+
+[systems.autodetect.artifacts.PRD]
+pattern = "PRD.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.DESIGN]
+pattern = "DESIGN.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.DECOMPOSITION]
+pattern = "DECOMPOSITION.md"
+traceability = "FULL"
+
+[systems.autodetect.artifacts.ADR]
+pattern = "ADR/**/*.md"
+traceability = "FULL"
+required = false
+
+[systems.autodetect.artifacts.FEATURE]
+pattern = "features/*/FEATURE.md"
+traceability = "FULL"
+required = false
+
+# --- Explicit artifact overrides ---
+
+[[systems.artifacts]]
+name = "Publishing Pipeline Feature"
+path = "architecture/features/feature-publishing-pipeline/FEATURE.md"
+kind = "FEATURE"
+traceability = "DOCS-ONLY"
+
+# --- Codebase entries for marker scanning ---
+
+[[systems.codebase]]
+path = "packages/"
+extensions = [".ts", ".tsx", ".mjs"]
+
+[[systems.codebase]]
+path = "src/"
+extensions = [".ts"]

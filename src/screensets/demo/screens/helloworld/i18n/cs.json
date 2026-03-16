@@ -1,8 +1,0 @@
-{
-  "title": "Ahoj světe",
-  "welcome": "Vítejte v demo sadě obrazovek HAI3",
-  "description": "Toto je jednoduchá demo obrazovka ukazující framework HAI3 v akci. Procházejte menu a prozkoumejte různé funkce.",
-  "navigation_title": "Příklad navigace",
-  "navigation_description": "Klikněte na tlačítko níže pro programový přechod na obrazovku motivu.",
-  "go_to_theme": "Přejít na obrazovku motivu"
-}

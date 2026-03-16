@@ -6,7 +6,7 @@
  * Theme CSS variables are now generated dynamically from theme objects
  * See: src/styles/themes/applyTheme.ts
  * Single source of truth: src/styles/themes/*.ts files
- * 
+ *
  * Only default values needed for SSR/initial load below
  */
 
@@ -47,7 +47,49 @@
   * {
     @apply border-border;
   }
-  body {
-    @apply bg-background text-foreground;
+  html {
+    @apply overflow-hidden;
   }
+  body {
+    @apply bg-background text-foreground overflow-hidden;
+  }
+  #root {
+    @apply h-screen w-screen;
+  }
+}
+
+/* Sonner toast styles */
+[data-sonner-toaster] [data-sonner-toast] {
+  --normal-bg: hsl(var(--popover));
+  --normal-text: hsl(var(--popover-foreground));
+  --normal-border: hsl(var(--border));
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-button] {
+  background-color: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  font-weight: 500;
+  font-size: 0.875rem;
+  height: 2rem;
+  padding-left: 0.75rem;
+  padding-right: 0.75rem;
+  border-radius: calc(var(--radius-lg) - 2px);
+  transition: background-color 0.2s;
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-button]:hover {
+  background-color: hsl(var(--primary) / 0.9);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-cancel] {
+  background-color: hsl(var(--muted));
+  color: hsl(var(--muted-foreground));
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-cancel]:hover {
+  background-color: hsl(var(--muted) / 0.8);
+}
+
+[data-sonner-toaster] [data-sonner-toast] [data-description] {
+  color: hsl(var(--muted-foreground));
 }

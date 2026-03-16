@@ -1,0 +1,16 @@
+/**
+ * @hai3/i18n ESLint Configuration
+ * Extends SDK layer config - enforces zero @hai3 dependencies and no React
+ */
+
+import { sdkConfig } from '@hai3/eslint-config/sdk.js';
+
+/** @type {import('eslint').Linter.Config[]} */
+export default [
+  ...sdkConfig,
+
+  // Package-specific ignores
+  {
+    ignores: ['dist/**', 'node_modules/**'],
+  },
+];

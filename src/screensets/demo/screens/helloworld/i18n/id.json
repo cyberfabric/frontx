@@ -1,8 +1,0 @@
-{
-  "title": "Halo Dunia",
-  "welcome": "Selamat datang di Set Layar Demo HAI3",
-  "description": "Ini adalah layar demo sederhana yang menunjukkan kerangka kerja HAI3 dalam aksi. Navigasi melalui menu untuk menjelajahi berbagai fitur.",
-  "navigation_title": "Contoh Navigasi",
-  "navigation_description": "Klik tombol di bawah untuk menavigasi ke layar Tema secara terprogram.",
-  "go_to_theme": "Pergi ke Layar Tema"
-}

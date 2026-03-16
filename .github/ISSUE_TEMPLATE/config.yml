@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussion Forum
+    url: https://github.com/HAI3org/HAI3/discussions
+    about: Ask questions and share ideas in our discussion forum
+  - name: Check Existing Issues
+    url: https://github.com/HAI3org/HAI3/issues
+    about: Search for similar issues before creating a new one

@@ -1,150 +1,68 @@
 /**
- * Dependency Cruiser Configuration
- * JavaScript configuration for dependency analysis
+ * HAI3 Dependency Cruiser Configuration (Monorepo Root)
+ *
+ * This file contains the complete dependency rules for the HAI3 monorepo:
+ * - Standalone rules from packages/cli/template-sources/project/configs/.dependency-cruiser.cjs
+ * - Monorepo-specific package boundary rules
+ *
+ * For standalone projects, use packages/cli/template-sources/project/configs/.dependency-cruiser.cjs
  */
+
+const standaloneConfig = require('./packages/cli/template-sources/project/configs/.dependency-cruiser.cjs');
 
 module.exports = {
   forbidden: [
-    // ============ PACKAGE ISOLATION RULES ============
+    ...standaloneConfig.forbidden,
+
+    // ============ MONOREPO PACKAGE RULES ============
     {
-      name: 'no-uikit-in-uicore',
+      name: 'no-internal-package-imports',
       severity: 'error',
-      from: { path: '^packages/uicore' },
-      to: { path: '^packages/uikit[^-]' },
-      comment: 'UI Core must not import UI Kit directly. Use uikitRegistry.'
+      from: { path: '^src/' },
+      to: { path: '^packages/[^/]+/src/' },
+      comment: 'MONOREPO VIOLATION: App cannot import package internals. Use package root exports.'
     },
     {
-      name: 'no-uicore-in-uikit', 
+      name: 'uikit-standalone',
       severity: 'error',
-      from: { path: '^packages/uikit' },
-      to: { path: '^packages/uicore' },
-      comment: 'UI Kit must remain pure presentational components.'
+      from: { path: '^packages/uikit/' },
+      to: { path: '^packages/(framework|react|state|screensets|api|i18n)/' },
+      comment: 'PACKAGE VIOLATION: uikit is standalone and cannot depend on @hai3 framework packages.'
     },
     {
-      name: 'no-uicore-in-contracts',
+      name: 'sdk-no-framework-import',
       severity: 'error',
-      from: { path: '^packages/uikit-contracts' },
-      to: { path: '^packages/uicore' },
-      comment: 'Contracts must remain pure types only.'
+      from: { path: '^packages/(state|screensets|api|i18n)/' },
+      to: { path: '^packages/(framework|react)/' },
+      comment: 'SDK VIOLATION: SDK packages (L1) cannot import from Framework (L2) or React (L3) layers.'
     },
     {
-      name: 'no-uikit-in-contracts',
-      severity: 'error', 
-      from: { path: '^packages/uikit-contracts' },
-      to: { path: '^packages/uikit[^-]' },
-      comment: 'Contracts must remain pure types only.'
+      name: 'framework-no-react',
+      severity: 'error',
+      from: { path: '^packages/framework/' },
+      to: { path: '^packages/react/' },
+      comment: 'LAYER VIOLATION: Framework (L2) cannot import React (L3).'
     },
     {
-      name: 'no-app-in-contracts',
+      name: 'react-no-sdk',
       severity: 'error',
-      from: { path: '^packages/uikit-contracts' },
-      to: { path: '^src' },
-      comment: 'Contracts cannot depend on app code.'
+      from: { path: '^packages/react/' },
+      to: { path: '^packages/(state|screensets|api|i18n)/' },
+      comment: 'LAYER VIOLATION: React (L3) cannot import SDK (L1) directly. Use @hai3/framework re-exports.'
     },
     {
-      name: 'no-app-in-uicore',
+      name: 'packages-no-src-import',
       severity: 'error',
-      from: { path: '^packages/uicore' },
-      to: { path: '^src' },
-      comment: 'UI Core is a shared package, cannot depend on app.'
+      from: { path: '^packages/' },
+      to: { path: '^src/' },
+      comment: 'PACKAGE VIOLATION: Packages cannot import from app src/. Packages must be self-contained.'
     },
-    {
-      name: 'no-app-in-uikit',
-      severity: 'error',
-      from: { path: '^packages/uikit' },
-      to: { path: '^src' },
-      comment: 'UI Kit is a shared package, cannot depend on app.'
-    },
-    {
-      name: 'no-package-internals-in-app',
-      severity: 'error',
-      from: { path: '^src' },
-      to: { path: ['^packages/uikit/src', '^packages/uicore/src', '^packages/uikit-contracts/src', '^packages/devtools/src'] },
-      comment: 'App must use published package APIs (@hai3/*), not internals.'
-    },
-    {
-      name: 'no-app-in-devtools',
-      severity: 'error',
-      from: { path: '^packages/devtools' },
-      to: { path: '^src' },
-      comment: 'DevTools cannot depend on app code. DevTools is a development-only package.'
-    },
-    {
-      name: 'no-devtools-in-contracts',
-      severity: 'error',
-      from: { path: '^packages/uikit-contracts' },
-      to: { path: '^packages/devtools' },
-      comment: 'Contracts cannot depend on DevTools.'
-    },
-    {
-      name: 'no-devtools-in-uikit',
-      severity: 'error',
-      from: { path: '^packages/uikit' },
-      to: { path: '^packages/devtools' },
-      comment: 'UI Kit cannot depend on DevTools. UI Kit must remain pure.'
-    },
-    
-    // ============ FLUX ARCHITECTURE RULES ============
-    // Note: ESLint handles precise Flux violations (actions/components importing slices).
-    // Dependency-cruiser focuses on architectural boundaries (folders, circular deps).
-    {
-      name: 'flux-no-actions-in-effects-folder',
-      severity: 'error',
-      from: { path: '/effects/' },
-      to: { path: '/actions/' },
-      comment: 'FLUX VIOLATION: Effects folder cannot import from actions folder (circular flow risk). See EVENTS.md.'
-    },
-    {
-      name: 'flux-no-effects-in-actions-folder',
-      severity: 'error',
-      from: { path: '/actions/' },
-      to: { path: '/effects/' },
-      comment: 'FLUX VIOLATION: Actions folder cannot import from effects folder. Use event bus. See EVENTS.md.'
-    },
-    
-    // ============ GENERAL RULES ============
-    {
-      name: 'no-circular',
-      severity: 'error',
-      from: { path: '^(?!.*node_modules)' },
-      to: { circular: true },
-      comment: 'Circular dependencies create tight coupling and make code harder to reason about.'
-    }
   ],
   options: {
-    /**
-     * Exclude node_modules from analysis (industry standard - only validate project code)
-     * Using regex pattern to explicitly exclude node_modules directory
-     *
-     * Allow specific circular dependencies that are safe:
-     * devtools ↔ uicore: DevTools is an optional peer dependency loaded via dynamic import with .catch()
-     * This breaks the compile-time cycle and ensures graceful degradation if not installed
-     */
-    doNotFollow: '^node_modules',
+    ...standaloneConfig.options,
     exclude: {
-      dynamic: true  // Exclude dynamic imports from circular dependency checks
+      ...standaloneConfig.options.exclude,
+      path: 'packages/.*/dist|node_modules'
     }
-  },
-  allowed: [
-    {
-      from: { path: '^packages/uicore/dist' },
-      to: { path: '^packages/devtools/dist' },
-      comment: 'Optional peer dependency with dynamic import + error handling (safe)'
-    },
-    {
-      from: { path: '^packages/devtools/dist' },
-      to: { path: '^packages/uicore/dist' },
-      comment: 'DevTools depends on uicore for hooks and utilities'
-    },
-    {
-      from: { path: '^packages/.*/dist' },
-      to: { path: '^packages/.*/dist' },
-      comment: 'Built packages can depend on other built packages (forbidden rules enforce architecture)'
-    },
-    {
-      from: { path: '^packages/.*/dist' },
-      to: { path: '^node_modules' },
-      comment: 'Built packages can import from node_modules (normal dependency resolution)'
-    }
-  ]
+  }
 };

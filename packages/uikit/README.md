@@ -1,8 +1,36 @@
 # @hai3/uikit
 
-> **WARNING - Pre-release (0.x.x)**: This package is in early development. APIs may change without notice. Not recommended for production use.
+Production-ready React component library for the HAI3 framework.
 
-HAI3 UI Kit provides reusable React components built on shadcn/ui with Tailwind CSS.
+## Overview
+
+`@hai3/uikit` provides a comprehensive set of accessible, themeable React components built on shadcn/ui and Radix UI primitives. The library serves as the reference implementation of HAI3's component contracts and offers a complete design system for building modern SaaS applications.
+
+## Purpose
+
+This package delivers enterprise-grade UI components with consistent APIs, full TypeScript support, and accessibility built-in. Components follow a hierarchical architecture where base primitives wrap shadcn/ui elements, and composite components combine these primitives into higher-level patterns.
+
+## Component Architecture
+
+### Base Components
+
+Foundation-level components that wrap shadcn/ui primitives with HAI3-specific APIs and conventions. These include buttons, inputs, layout elements, and other atomic UI building blocks. All base components accept standardized prop interfaces defined in the contracts package.
+
+### Composite Components
+
+Higher-level components built by combining base components into common patterns. Examples include icon buttons, theme selectors, and navigation elements. Composites demonstrate best practices for component composition and serve as templates for custom implementations.
+
+### Theme Integration
+
+All components support theming through Tailwind CSS custom properties. Themes define design tokens that components consume automatically, enabling dynamic theme switching without component changes.
+
+## Key Features
+
+- **Type Safety**: Complete TypeScript definitions with strict typing
+- **Accessibility**: Built on Radix UI primitives following WAI-ARIA standards
+- **Themeable**: Full design system integration via Tailwind CSS
+- **Tree-Shakeable**: ES modules with side-effect-free exports
+- **Consistent APIs**: Standardized prop interfaces across all components
 
 ## Installation
 
@@ -10,64 +38,64 @@ HAI3 UI Kit provides reusable React components built on shadcn/ui with Tailwind 
 npm install @hai3/uikit
 ```
 
-### Peer Dependencies
+### Required Peer Dependencies
+
+The package requires React 19 and several UI primitive libraries:
 
 ```bash
 npm install react react-dom @radix-ui/react-select @radix-ui/react-slot \
   class-variance-authority clsx lucide-react tailwind-merge tailwindcss-animate
 ```
 
-## Features
+## Integration
 
-- **Base Components**: Wrappers around shadcn/ui with consistent API
-- **Composite Components**: Higher-level components built from base
-- **Theme Support**: Full theming via Tailwind CSS
-- **TypeScript**: Complete type definitions
-- **Accessible**: Built on Radix UI primitives
+### With HAI3 Applications
 
-## Quick Start
+HAI3 applications integrate UI Kit through the component registry system. Register components at application startup, and the framework makes them available to all screens and layouts.
 
-```tsx
-import { Button, ButtonVariant } from '@hai3/uikit';
+### As Standalone Library
 
-function MyComponent() {
-  return (
-    <Button variant={ButtonVariant.Primary}>
-      Click me
-    </Button>
-  );
-}
-```
+The package can be used independently of the HAI3 framework. Import components directly and use them as standard React components with full TypeScript support.
 
-## Component Hierarchy
+## Component Categories
 
-```
-shadcn/ui (base primitives)
-  ↓
-Base Components (HAI3 wrappers)
-  ↓
-Composite Components (combinations)
-```
+- **Form Controls**: Buttons, inputs, switches, sliders, and selects
+- **Layout**: Headers, footers, menus, sidebars, and containers
+- **Overlays**: Dialogs, popups, tooltips, and modals
+- **Navigation**: Menu items, breadcrumbs, and tabs
+- **Data Display**: Cards, lists, avatars, and badges
+- **Feedback**: Progress indicators, loaders, and alerts
 
-## Available Components
+## Customization
 
-### Base
-- Button
-- Header, Footer, Menu, Sidebar
-- Popup, Overlay
+### Styling Approach
 
-### Composite
-- IconButton
-- ThemeSelector
+Components use Tailwind CSS with class-variance-authority for variant management. Override default styles through className props or customize the Tailwind configuration.
 
-## API Status
+### Component Extension
 
-**WARNING - Unstable**: Breaking changes may occur in any 0.x release.
+Build custom components by composing base components or extending existing ones. The type system ensures custom components maintain compatibility with the framework.
 
-## Documentation
+## Browser Support
 
-Full documentation: [HAI3 Documentation](https://github.com/beyond-event-horizon/HAI3)
+- Chrome/Edge (latest 2 versions)
+- Firefox (latest 2 versions)
+- Safari (latest 2 versions)
+
+## Version
+
+**Alpha Release** (`0.1.0-alpha.0`) - APIs may change before stable release.
 
 ## License
 
-MIT
+Apache-2.0
+
+## Documentation
+
+Full framework documentation: [HAI3 Documentation](https://github.com/HAI3org/HAI3)
+
+## Related Packages
+
+- [`@hai3/uikit-contracts`](../uikit-contracts) - Type definitions and contracts
+- [`@hai3/uicore`](../uicore) - Core framework and layout system
+- [`@hai3/studio`](../studio) - Development tools overlay

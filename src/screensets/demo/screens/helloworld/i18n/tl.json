@@ -1,8 +1,0 @@
-{
-  "title": "Kamusta Mundo",
-  "welcome": "Maligayang pagdating sa Set ng Screen na Demo ng HAI3",
-  "description": "Ito ay isang simpleng demo screen na nagpapakita ng HAI3 framework sa aksyon. Mag-navigate sa menu para galugarin ang iba't ibang features.",
-  "navigation_title": "Halimbawa ng Navigasyon",
-  "navigation_description": "I-click ang button sa ibaba para mag-navigate sa Theme screen programmatically.",
-  "go_to_theme": "Pumunta sa Theme screen"
-}

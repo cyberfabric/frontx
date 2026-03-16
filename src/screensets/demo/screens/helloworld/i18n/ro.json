@@ -1,8 +1,0 @@
-{
-  "title": "Bună lume",
-  "welcome": "Bun venit la setul de ecrane demo HAI3",
-  "description": "Acesta este un ecran demo simplu care arată cadrul HAI3 în acțiune. Navighează prin meniu pentru a explora diferite funcții.",
-  "navigation_title": "Exemplu de navigare",
-  "navigation_description": "Faceți clic pe butonul de mai jos pentru a naviga programatic la ecranul Temă.",
-  "go_to_theme": "Mergi la ecranul Temă"
-}

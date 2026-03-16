@@ -1,0 +1,86 @@
+# HAI3 Prompt Testing Configuration
+# Validates AI commands follow architecture patterns
+
+description: HAI3 AI Command Quality Tests
+
+# Define prompts with raw option to avoid template parsing
+prompts:
+  - id: hai3-new-screenset
+    raw: file://../commands/user/hai3-new-screenset.md
+  - id: hai3-new-screen
+    raw: file://../commands/user/hai3-new-screen.md
+  - id: hai3-validate
+    raw: file://../commands/user/hai3-validate.md
+  - id: hai3-fix-violation
+    raw: file://../commands/user/hai3-fix-violation.md
+
+providers:
+  - id: echo
+    config:
+      passthrough: true
+
+tests:
+  # Test: hai3-new-screenset structure
+  - description: hai3-new-screenset delegates to CLI
+    vars:
+      prompt: hai3-new-screenset
+    assert:
+      - type: contains
+        value: "hai3 screenset create"
+      - type: contains
+        value: "AI WORKFLOW"
+      - type: contains
+        value: "SCREENSETS.md"
+      - type: javascript
+        value: |
+          output.includes('REQUIRED') ||
+          output.includes('FORBIDDEN') ||
+          output.includes('STOP')
+
+  # Test: hai3-new-screen structure
+  - description: hai3-new-screen has workflow
+    vars:
+      prompt: hai3-new-screen
+    assert:
+      - type: contains
+        value: "AI WORKFLOW"
+      - type: contains
+        value: "SCREENSETS.md"
+
+  # Test: hai3-validate structure
+  - description: hai3-validate references guidelines
+    vars:
+      prompt: hai3-validate
+    assert:
+      - type: contains
+        value: "GUIDELINES.md"
+      - type: contains
+        value: "AI WORKFLOW"
+
+  # Test: hai3-fix-violation structure
+  - description: hai3-fix-violation has workflow
+    vars:
+      prompt: hai3-fix-violation
+    assert:
+      - type: contains
+        value: "AI WORKFLOW"
+      - type: contains
+        value: "GUIDELINES.md"
+
+  # Test: Commands dont implement file operations
+  - description: Commands dont use direct fs operations
+    vars: {}
+    assert:
+      - type: not-contains
+        value: "import fs from"
+      - type: not-contains
+        value: "writeFileSync"
+      - type: not-contains
+        value: "fs.mkdir"
+
+# Output configuration
+outputPath: .ai/tests/results.json
+
+# Evaluation settings
+evaluateOptions:
+  maxConcurrency: 1

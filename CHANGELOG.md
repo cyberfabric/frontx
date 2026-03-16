@@ -1,6 +1,6 @@
 # Changelog
 
-> **TARGET AUDIENCE:** Humans  
+> **TARGET AUDIENCE:** Humans
 > **PURPOSE:** History of changes and version tracking
 
 All notable changes to HAI3 UI-Core will be documented in this file.

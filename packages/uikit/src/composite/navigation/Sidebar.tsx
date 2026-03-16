@@ -4,18 +4,31 @@
  * Removed: mobile support, keyboard shortcuts, cookie persistence
  */
 
+// @cpt-dod:cpt-hai3-dod-uikit-components-navigation:p1
+// @cpt-state:cpt-hai3-state-uikit-components-sidebar-collapsed:p1
+// @cpt-flow:cpt-hai3-flow-uikit-components-consume-composite:p1
+// @cpt-dod:cpt-hai3-dod-uikit-components-ref-pattern:p1
+
 import * as React from "react"
 import { Slot } from "@radix-ui/react-slot"
-import { cva, type VariantProps } from "class-variance-authority"
+import { cva } from "class-variance-authority"
 
 import { cn } from "../../lib/utils"
 
-const Sidebar = React.forwardRef<
-  HTMLElement,
-  React.ComponentProps<"aside"> & {
-    collapsed?: boolean
+// @cpt-begin:cpt-hai3-state-uikit-components-sidebar-collapsed:p1:inst-1
+// @cpt-begin:cpt-hai3-dod-uikit-components-ref-pattern:p1:inst-1
+const Sidebar = (
+  {
+    ref,
+    collapsed = false,
+    className,
+    children,
+    ...props
+  }: React.HTMLAttributes<HTMLElement> & {
+    collapsed?: boolean;
+    ref?: React.Ref<HTMLElement>;
   }
->(({ collapsed = false, className, children, ...props }, ref) => {
+) => {
   return (
     <aside
       ref={ref}
@@ -32,51 +45,62 @@ const Sidebar = React.forwardRef<
       {children}
     </aside>
   )
-})
+}
+// @cpt-end:cpt-hai3-state-uikit-components-sidebar-collapsed:p1:inst-1
+// @cpt-end:cpt-hai3-dod-uikit-components-ref-pattern:p1:inst-1
 Sidebar.displayName = "Sidebar"
 
-const SidebarContent = React.forwardRef<
-  HTMLDivElement,
-  React.ComponentProps<"div">
->(({ className, ...props }, ref) => (
-  <div
-    ref={ref}
-    data-sidebar="content"
-    className={cn(
-      // HAI3 customization: gap and padding use rem-based spacing for theme scaling
-      "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2",
-      className
-    )}
-    {...props}
-  />
-))
+const SidebarContent = (
+  {
+    ref,
+    className,
+    ...props
+  }: React.ComponentProps<"div"> & {
+    ref?: React.Ref<HTMLDivElement>;
+  }
+) => (<div
+  ref={ref}
+  data-sidebar="content"
+  className={cn(
+    // HAI3 customization: gap and padding use rem-based spacing for theme scaling
+    "flex min-h-0 flex-1 flex-col gap-2 overflow-auto group-data-[collapsible=icon]:overflow-hidden p-2",
+    className
+  )}
+  {...props}
+/>)
 SidebarContent.displayName = "SidebarContent"
 
-const SidebarMenu = React.forwardRef<
-  HTMLUListElement,
-  React.ComponentProps<"ul">
->(({ className, ...props }, ref) => (
-  <ul
-    ref={ref}
-    data-sidebar="menu"
-    // HAI3 customization: gap-1 (0.25rem) scales with theme root font size
-    className={cn("flex w-full min-w-0 flex-col gap-1", className)}
-    {...props}
-  />
-))
+const SidebarMenu = (
+  {
+    ref,
+    className,
+    ...props
+  }: React.ComponentProps<"ul"> & {
+    ref?: React.Ref<HTMLUListElement>;
+  }
+) => (<ul
+  ref={ref}
+  data-sidebar="menu"
+  // HAI3 customization: gap-1 (0.25rem) scales with theme root font size
+  className={cn("flex w-full min-w-0 flex-col gap-1", className)}
+  {...props}
+/>)
 SidebarMenu.displayName = "SidebarMenu"
 
-const SidebarMenuItem = React.forwardRef<
-  HTMLLIElement,
-  React.ComponentProps<"li">
->(({ className, ...props }, ref) => (
-  <li
-    ref={ref}
-    data-sidebar="menu-item"
-    className={cn("group/menu-item relative", className)}
-    {...props}
-  />
-))
+const SidebarMenuItem = (
+  {
+    ref,
+    className,
+    ...props
+  }: React.ComponentProps<"li"> & {
+    ref?: React.Ref<HTMLLIElement>;
+  }
+) => (<li
+  ref={ref}
+  data-sidebar="menu-item"
+  className={cn("group/menu-item relative", className)}
+  {...props}
+/>)
 SidebarMenuItem.displayName = "SidebarMenuItem"
 
 const sidebarMenuButtonVariants = cva(
@@ -103,67 +127,71 @@ const sidebarMenuButtonVariants = cva(
   }
 )
 
-const SidebarMenuButton = React.forwardRef<
-  HTMLButtonElement,
-  React.ComponentProps<"button"> & {
-    asChild?: boolean
-    isActive?: boolean
-    tooltip?: string
-  } & VariantProps<typeof sidebarMenuButtonVariants>
->(
-  (
-    {
-      asChild = false,
-      isActive = false,
-      variant = "default",
-      size = "default",
-      tooltip,
-      className,
-      ...props
-    },
-    ref
-  ) => {
-    const Comp = asChild ? Slot : "button"
-
-    return (
-      <Comp
-        ref={ref}
-        data-sidebar="menu-button"
-        data-size={size}
-        data-active={isActive}
-        title={tooltip}
-        className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
-        {...props}
-      />
-    )
+const SidebarMenuButton = (
+  {
+    ref,
+    asChild = false,
+    isActive = false,
+    variant = "default",
+    size = "default",
+    tooltip,
+    className,
+    ...props
+  }: React.ComponentPropsWithoutRef<"button"> & {
+    asChild?: boolean;
+    isActive?: boolean;
+    variant?: "default" | "outline";
+    size?: "default" | "sm" | "lg";
+    tooltip?: string;
+    ref?: React.Ref<HTMLButtonElement>;
   }
-)
+) => {
+  const Comp = asChild ? Slot : "button"
+
+  return (
+    <Comp
+      ref={ref}
+      data-sidebar="menu-button"
+      data-size={size}
+      data-active={isActive}
+      title={tooltip}
+      className={cn(sidebarMenuButtonVariants({ variant, size }), className)}
+      {...props}
+    />
+  )
+}
 SidebarMenuButton.displayName = "SidebarMenuButton"
 
-const SidebarMenuIcon = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentProps<"span">
->(({ className, ...props }, ref) => (
-  <span
-    ref={ref}
-    // HAI3 customization: size-5 (1.25rem) scales with theme root font size
-    // Force SVG children to fill container and inherit the rem-based size
-    className={cn("size-5 min-w-[1.5rem] flex-shrink-0 [&>svg]:w-full [&>svg]:h-full", className)}
-    {...props}
-  />
-))
+const SidebarMenuIcon = (
+  {
+    ref,
+    className,
+    ...props
+  }: React.ComponentProps<"span"> & {
+    ref?: React.Ref<HTMLSpanElement>;
+  }
+) => (<span
+  ref={ref}
+  // HAI3 customization: size-5 (1.25rem) scales with theme root font size
+  // Force SVG children to fill container and inherit the rem-based size
+  className={cn("size-5 min-w-[1.5rem] flex-shrink-0 [&>svg]:w-full [&>svg]:h-full", className)}
+  {...props}
+/>)
 SidebarMenuIcon.displayName = "SidebarMenuIcon"
 
-const SidebarMenuLabel = React.forwardRef<
-  HTMLSpanElement,
-  React.ComponentProps<"span">
->(({ className, ...props }, ref) => (
-  <span
-    ref={ref}
-    className={cn(className)}
-    {...props}
-  />
-))
+const SidebarMenuLabel = (
+  {
+    ref,
+    className,
+    ...props
+  }: React.ComponentProps<"span"> & {
+    ref?: React.Ref<HTMLSpanElement>;
+  }
+) => (<span
+  ref={ref}
+  className={cn(className)}
+  {...props}
+/>)
 SidebarMenuLabel.displayName = "SidebarMenuLabel"
 
 export {

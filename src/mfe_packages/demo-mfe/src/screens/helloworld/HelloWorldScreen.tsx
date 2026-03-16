@@ -1,0 +1,171 @@
+import React, { useEffect, useRef, useState, useCallback } from 'react';
+import type { ChildMfeBridge } from '@hai3/react';
+import { HAI3_ACTION_MOUNT_EXT, HAI3_SCREEN_DOMAIN, HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import { Card, CardContent, Button, Skeleton } from '@hai3/uikit';
+import { useScreenTranslations } from '../../shared/useScreenTranslations';
+import { THEME_EXTENSION_ID } from '../../shared/extension-ids';
+
+/**
+ * Props for the HelloWorldScreen component.
+ */
+interface HelloWorldScreenProps {
+  bridge: ChildMfeBridge;
+}
+
+// Stable reference for translation modules (hoisted to module level to prevent re-render loops)
+const languageModules = import.meta.glob('./i18n/*.json') as Record<
+  string,
+  () => Promise<{ default: Record<string, string> }>
+>;
+
+/**
+ * Hello World Screen for the MFE remote.
+ *
+ * Demonstrates MFE capabilities including:
+ * - Shadow DOM isolation
+ * - Bridge communication
+ * - Theme property subscription
+ * - Language property subscription
+ * - MFE-local i18n with dynamic translation loading
+ * - Cross-screen navigation via actions chains
+ *
+ * Uses UIKit components (Card, Button) for consistent styling.
+ * Runs inside Shadow DOM with isolated styles.
+ */
+export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) => {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [theme, setTheme] = useState<string>('default');
+  const [language, setLanguage] = useState<string>('en');
+
+  // Load translations using the shared hook
+  const { t, loading } = useScreenTranslations(languageModules, bridge);
+
+  useEffect(() => {
+    // Read initial property values
+    const initialTheme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
+    if (initialTheme && typeof initialTheme.value === 'string') {
+      setTheme(initialTheme.value);
+    }
+    const initialLang = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
+    if (initialLang && typeof initialLang.value === 'string') {
+      setLanguage(initialLang.value);
+    }
+
+    // Subscribe to theme domain property
+    const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (property) => {
+      if (typeof property.value === 'string') {
+        setTheme(property.value);
+      }
+    });
+
+    // Subscribe to language domain property
+    const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
+      if (typeof property.value === 'string') {
+        setLanguage(property.value);
+        const rootNode = containerRef.current?.getRootNode();
+        if (rootNode && 'host' in rootNode) {
+          const rtlLanguages = ['ar', 'he', 'fa', 'ur'];
+          const direction = rtlLanguages.includes(property.value) ? 'rtl' : 'ltr';
+          (rootNode.host as HTMLElement).dir = direction;
+        }
+      }
+    });
+
+    return () => {
+      themeUnsubscribe();
+      languageUnsubscribe();
+    };
+  }, [bridge]);
+
+  // Navigate to Theme Screen
+  const handleGoToTheme = useCallback(async () => {
+    await bridge.executeActionsChain({
+      action: {
+        type: HAI3_ACTION_MOUNT_EXT,
+        target: HAI3_SCREEN_DOMAIN,
+        payload: { extensionId: THEME_EXTENSION_ID },
+      },
+    });
+  }, [bridge]);
+
+  // Show skeleton while translations are loading
+  if (loading) {
+    return (
+      <div ref={containerRef} className="p-8">
+        <Skeleton className="h-8 w-64 mb-4" />
+        <Skeleton className="h-4 w-96 mb-6" />
+        <Card>
+          <CardContent className="p-6">
+            <Skeleton className="h-6 w-48 mb-4" />
+            <div className="space-y-3">
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-full" />
+              <Skeleton className="h-4 w-3/4" />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div ref={containerRef} className="p-8">
+      <h1 className="text-3xl font-bold mb-4">
+        {t('title')}
+      </h1>
+      <p className="text-gray-600 mb-6">
+        {t('welcome')}
+      </p>
+
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <p className="text-gray-700 leading-relaxed">
+            {t('description')}
+          </p>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold mb-3">
+            {t('bridge_info')}
+          </h2>
+          <dl className="grid gap-2">
+            <div>
+              <dt className="font-medium">{t('domain_id')}</dt>
+              <dd className="font-mono text-sm text-gray-600">{bridge.domainId}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">{t('instance_id')}</dt>
+              <dd className="font-mono text-sm text-gray-600">{bridge.instanceId}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">{t('current_theme')}</dt>
+              <dd className="font-mono text-sm text-gray-600">{theme}</dd>
+            </div>
+            <div>
+              <dt className="font-medium">{t('current_language')}</dt>
+              <dd className="font-mono text-sm text-gray-600">{language}</dd>
+            </div>
+          </dl>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent className="p-6">
+          <h2 className="text-xl font-semibold mb-3">
+            {t('navigation_title')}
+          </h2>
+          <p className="text-gray-600 mb-4">
+            {t('navigation_description')}
+          </p>
+          <Button onClick={handleGoToTheme}>
+            {t('go_to_theme')}
+          </Button>
+        </CardContent>
+      </Card>
+    </div>
+  );
+};
+
+HelloWorldScreen.displayName = 'HelloWorldScreen';

@@ -1,3 +1,4 @@
+<!-- @standalone:override -->
 # HAI3 AI Guidelines (Canonical)
 
 ## AI WORKFLOW (REQUIRED)
@@ -12,21 +13,37 @@
 - REQUIRED: When user says "follow X.md rules", read X.md before any change.
 
 ## ROUTING
-- Data flow / events -> .ai/targets/EVENTS.md
-- API layer -> .ai/targets/API.md
-- packages/uicore -> .ai/targets/UICORE.md
+
+### SDK Layer (L1) - Zero @hai3 dependencies
+- packages/state -> .ai/targets/STORE.md
+- packages/screensets -> .ai/targets/LAYOUT.md
+- packages/api -> .ai/targets/API.md
+- packages/i18n -> .ai/targets/I18N.md
+
+### Framework Layer (L2) - Depends on SDK packages
+- packages/framework -> .ai/targets/FRAMEWORK.md
+
+### React Layer (L3) - Depends on Framework
+- packages/react -> .ai/targets/REACT.md
+
+### UI and Dev Packages
 - packages/uikit -> .ai/targets/UIKIT.md
-- packages/uikit-contracts -> .ai/targets/UIKIT_CONTRACTS.md
-- packages/devtools -> .ai/targets/DEVTOOLS.md
-- src/screensets -> .ai/targets/SCREENSETS.md
+- packages/studio -> .ai/targets/STUDIO.md
+
+### Other
+- packages/cli -> .ai/targets/CLI.md
+- presets/standalone, presets/monorepo -> .ai/targets/CLI.md
+- src/mfe_packages -> .ai/targets/SCREENSETS.md
+- src/screensets -> .ai/targets/SCREENSETS.md (legacy — no screensets exist here after MFE conversion)
 - src/themes -> .ai/targets/THEMES.md
 - Styling anywhere -> .ai/targets/STYLING.md
 - .ai documentation -> .ai/targets/AI.md
+- .ai/commands, .claude/commands -> .ai/targets/AI_COMMANDS.md
 
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).
 - Registries follow Open/Closed; adding items must not modify registry root files.
-- App-level deps limited to: @hai3/uicore, @hai3/uikit, react, react-dom.
+- App-level deps: @hai3/react, the configured UI kit, react, react-dom. Standalone projects must also declare peer deps explicitly: @hai3/framework, @hai3/api, @hai3/i18n, @hai3/screensets, @hai3/state.
 - Cross-domain communication only via events.
 - No string literal identifiers; use constants or enums.
 - No any, no unknown in type definitions, no "as unknown as" casts.
@@ -35,7 +52,7 @@
 ## IMPORT RULES
 - Inside same package: relative paths.
 - Cross-branch in app: @/ alias.
-- Cross-package: @hai3/uicore, @hai3/uikit.
+- Cross-package: @hai3/framework, @hai3/react, the configured UI kit.
 - Index files: only when aggregating 3 or more exports.
 - Redux slices: import directly (no barrels).
 
@@ -48,7 +65,6 @@
 ## STOP CONDITIONS
 - Editing /core/runtime or /sdk.
 - Modifying registry root files.
-- Changing contracts in @hai3/uikit-contracts.
 - Adding new top-level dependencies.
 - Bypassing rules in EVENTS.md.
 - Killing MCP server processes (see MCP_TROUBLESHOOTING.md).
@@ -62,7 +78,7 @@
 - npm run arch:check passes.
 - Dev server test via Google Chrome MCP Tools:
   - Affected flows and screens exercised.
-  - UI uses @hai3/uikit and theme tokens.
+  - UI uses the configured UI kit and theme tokens.
   - Event-driven behavior (no direct slice dispatch).
   - No console errors or missing registrations.
 

@@ -1,8 +1,0 @@
-{
-  "title": "Hello World",
-  "welcome": "Welcome to HAI3 Demo Screenset",
-  "description": "This is a simple demo screen showing the HAI3 framework in action. Navigate through the menu to explore different features.",
-  "navigation_title": "Navigation Example",
-  "navigation_description": "Click the button below to navigate to the Theme screen programmatically.",
-  "go_to_theme": "Go to Theme Screen"
-}
