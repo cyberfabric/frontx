@@ -2,237 +2,81 @@
 
 ## Overview
 
-`npm run dev:all` automatically starts ALL enabled MFEs and the main application on their ports.
+`npm run dev:all` automatically starts all MFE packages and the main application in parallel.
+MFEs are **auto-discovered** by scanning `src/mfe_packages/` — no manual registration needed.
 
-**Important:** No changes to `package.json` required when adding new MFEs! 🎉
-
-## 🏗️ Architecture
+## How It Works
 
 ```
 npm run dev:all
     ↓
 1️⃣  scripts/generate-mfe-manifests.ts
-    └─ Reads src/mfe_packages/*/mfe.json
-    └─ Generates src/app/mfe/generated-mfe-manifests.ts (for Vite)
+    └─ Scans src/mfe_packages/*/mfe.json
+    └─ Generates src/app/mfe/generated-mfe-manifests.ts (static imports for Vite)
 
-2️⃣  scripts/dev-all.ts (reads registry)
-    └─ src/app/mfe/registry.ts (MFE_REGISTRY with enabled: true/false)
-    └─ Generates commands for all enabled MFEs
+2️⃣  scripts/dev-all.ts
+    └─ Scans src/mfe_packages/*/package.json for --port in dev/preview scripts
+    └─ Builds concurrently command for all discovered MFEs + main app
 
 3️⃣  concurrently starts everything simultaneously
-    ├─ Demo MFE (3001)
-    ├─ Notifications MFE (3020)
-    └─ Main app (5173+)
+    ├─ Each MFE on its declared port
+    └─ Main app (vite)
 ```
 
-## 📋 How It Works
+## Adding a New MFE
 
-### 1. **registry.ts** - MFE Management
-```typescript
-export const MFE_REGISTRY: MFERegistryEntry[] = [
-  {
-    name: 'demo-mfe',           // Folder name
-    port: 3001,                 // Dev port
-    enabled: true,              // ← Will start in dev:all
-    description: 'Demo MFE',
-  },
-  {
-    name: 'notifications-mfe',
-    port: 3020,
-    enabled: true,              // ← Will start in dev:all
-    description: 'Notifications',
-  },
-  {
-    name: 'analytics-mfe',
-    port: 3030,
-    enabled: false,             // ← Will NOT start
-    description: 'Analytics (coming soon)',
-  },
-];
-```
+1. Create the package under `src/mfe_packages/my-new-mfe/`
+2. Add a `dev` script (or `preview` if no `dev`) with a unique `--port NNNN` in its `package.json`:
+   ```json
+   {
+     "scripts": {
+       "dev": "vite --port 3040",
+       "preview": "vite preview --port 3040"
+     }
+   }
+   ```
+3. Run `npm run dev:all` — the new MFE is picked up automatically
 
-### 2. **dev-all.ts** - Dynamic Command Generation
-```typescript
-// Automatically reads registry and generates:
-npm run generate:colors && vite                           // Main app
-cd src/mfe_packages/demo-mfe && npm run dev             // Demo (3001)
-cd src/mfe_packages/notifications-mfe && npm run dev    // Notifications (3020)
-// Skips analytics-mfe because enabled: false
-```
+**No changes to any registry or config file required.**
 
-### 3. **Concurrently** - Parallel Execution
+## Excluding a Package
+
+Folders starting with `_` (e.g. `_blank-mfe`), named `shared`, or starting with `.` are automatically excluded.
+To skip a specific MFE temporarily, rename it to start with `_` or remove its `--port` script.
+
+## Usage
+
 ```bash
-[0] Demo MFE listening on http://localhost:3001
-[1] Notifications MFE listening on http://localhost:3020
-[2] Main app listening on http://localhost:5173
-```
-
-## 🚀 Usage
-
-### Start All Dev Servers
-```bash
+# Start everything
 npm run dev:all
-# Will start:
-# - All enabled MFEs on their ports
-# - Main application on 5173+
-```
 
-### Start a Single MFE (Independently)
-```bash
-cd src/mfe_packages/notifications-mfe
+# Start only the main app (no MFEs)
 npm run dev
-# → only notifications-mfe on port 3020
-```
 
-### Run Main App Without MFE
-```bash
+# Start a single MFE independently
+cd src/mfe_packages/my-mfe
 npm run dev
-# → only the app on 5173+, without MFE servers
 ```
 
-## 🎛️ Port Management
+## Troubleshooting
 
-| MFE | Port | Status |
-|-----|------|--------|
-| demo-mfe | 3001 | ✅ Enabled |
-| notifications-mfe | 3020 | ✅ Enabled |
-| analytics-mfe | 3030 | ❌ Disabled |
-| (next) | 3040+ | Reserved |
-| Main app | 5173+ | Dynamic |
-
-## 📝 Adding a New MFE
-
-### 1. Create the MFE package
-```bash
-cp -r packages/cli/template-sources/mfe-package/ \
-  src/mfe_packages/my-new-mfe/
-```
-
-### 2. Update variables
-```json
-// src/mfe_packages/my-new-mfe/package.json
-{
-  "name": "@hai3/my-new-mfe",
-  "scripts": {
-    "dev": "vite --port 3040",    // ← unique port
-  }
-}
-```
-
-### 3. Create mfe.json and lifecycle.tsx
-(See `hai3-add-mfe-to-registry.md`)
-
-### 4. Register in registry.ts
-```typescript
-export const MFE_REGISTRY: MFERegistryEntry[] = [
-  // ... existing MFEs
-  {
-    name: 'my-new-mfe',
-    port: 3040,
-    enabled: true,
-    description: 'My new feature',
-  },
-];
-```
-
-### 5. Run dev:all
-```bash
-npm run dev:all
-# → Automatically picks up your new MFE!
-```
-
-**That's it!** No need to edit `package.json` 🎉
-
-## 🎛️ Enable/Disable MFE
-
-### Disable temporarily (without deleting)
-```typescript
-// src/app/mfe/registry.ts
-{
-  name: 'notifications-mfe',
-  port: 3020,
-  enabled: false,  // ← Change to false
-  description: 'Notifications',
-}
-```
-
-```bash
-npm run dev:all
-# → notifications-mfe WON'T start (but folder still exists)
-```
-
-### Re-enable
-```typescript
-enabled: true,  // ← Change back to true
-```
-
-## 🔧 Generate MFE Manifests
-
-`npm run generate:mfe-manifests` generates `src/app/mfe/generated-mfe-manifests.ts` from all `mfe.json` files in `src/mfe_packages/*/`.
-
-**This is needed for Vite** - Vite requires static imports; dynamic imports with variables cause warnings.
-
-```bash
-# Automatically runs in dev:all and build:
-npm run dev:all     # ← Calls generate:mfe-manifests first
-
-# Can be run separately:
-npm run generate:mfe-manifests
-
-# Excluded folders: _blank-mfe, .git, .* (hidden)
-```
-
-**Generated file:**
-```typescript
-// src/app/mfe/generated-mfe-manifests.ts (AUTO-GENERATED)
-import mfe0 from '@/mfe_packages/demo-mfe/mfe.json';
-import mfe1 from '@/mfe_packages/notifications-mfe/mfe.json';
-
-export const MFE_MANIFESTS = [mfe0, mfe1];
-```
-
-⚠️ **DO NOT edit this file** - it is auto-generated!
-
-## 🔍 Troubleshooting
-
-### Port already in use
-```bash
-# Vite automatically tries next available port
-# Check logs to see which port it's using
-npm run dev:all
-# [0] Port 3001 is in use, trying another one...
-# [0] Local: http://localhost:3002
-```
-
-### MFE not starting
-1. Check if enabled in registry.ts
-2. Check that `npm run dev` works in MFE folder
-3. Check that `package.json` has correct dev script
-4. Look at error logs in console
+### MFE not picked up by dev:all
+- Check that its `package.json` has a `dev` or `preview` script with `--port NNNN`
+- Check the folder name isn't in the excluded list (`_blank-mfe`, `shared`)
 
 ### dev:all command not working
 ```bash
-# Make sure concurrently is installed
+# Verify concurrently is installed
 npm ls concurrently
 
-# Make sure tsx is installed
+# Verify tsx is installed
 npm ls tsx
 
-# Check that scripts/dev-all.ts exists and is readable
+# Verify the script exists
 ls -la scripts/dev-all.ts
 ```
 
-## 📚 Related Commands
+## Related Commands
 
-- `hai3-new-mfe.md` - Create new MFE package
-- `hai3-add-mfe-to-registry.md` - Register MFE in system
-- `.ai/GUIDELINES.hai3-mfe-setup.md` - MFE architecture guidelines
-
-## 🎯 Key Benefits
-
-✅ **No manual changes to package.json** - add MFE, register in registry, done
-✅ **Auto-discovery** - new MFEs detected automatically
-✅ **Easy enable/disable** - just change `enabled` flag
-✅ **Scalable** - works with 2 MFEs or 20+
-✅ **Independent development** - run single MFE without main app
-✅ **Parallel execution** - all servers run simultaneously with HMR
+- `hai3-new-mfe.md` — create a new MFE package
+- `hai3-add-mfe-to-registry.md` — MFE registration overview

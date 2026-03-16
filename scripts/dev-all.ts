@@ -22,6 +22,7 @@ const EXCLUDED_PACKAGES = new Set(['shared']);
 interface MfeInfo {
   name: string;
   port: number;
+  script: string;
 }
 
 // Scan src/mfe_packages/ and extract port from each package's scripts
@@ -36,6 +37,7 @@ function getMFEPackages(): MfeInfo[] {
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     if (EXCLUDED_PACKAGES.has(entry.name)) continue;
+    if (entry.name.startsWith('_')) continue;
     if (entry.name.startsWith('.')) continue;
 
     const pkgJsonPath = join(MFE_PACKAGES_DIR, entry.name, 'package.json');
@@ -47,17 +49,18 @@ function getMFEPackages(): MfeInfo[] {
       };
       const scripts = pkgJson.scripts ?? {};
 
-      // Try preview first (stable port source), fall back to dev
-      const portSource = scripts['preview'] ?? scripts['dev'] ?? '';
-      const portMatch = portSource.match(/--port\s+(\d+)/);
+      // Try dev first, fall back to preview
+      const scriptName = scripts['dev'] ? 'dev' : scripts['preview'] ? 'preview' : null;
+      const portSource = scriptName ? scripts[scriptName] : '';
+      const portMatch = portSource?.match(/--port\s+(\d+)/);
 
-      if (!portMatch) {
+      if (!scriptName || !portMatch) {
         console.warn(`⚠️  Could not find --port in scripts for ${entry.name}, skipping`);
         continue;
       }
 
       const port = parseInt(portMatch[1], 10);
-      mfes.push({ name: entry.name, port });
+      mfes.push({ name: entry.name, port, script: scriptName });
     } catch (e) {
       console.warn(`⚠️  Failed to read package.json for ${entry.name}:`, e);
     }
@@ -91,7 +94,7 @@ function buildCommands(mfes: MfeInfo[]): string[] {
 
   // Add each MFE
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && npm run dev`);
+    commands.push(`cd src/mfe_packages/${mfe.name} && npm run ${mfe.script}`);
   }
 
   return commands;
