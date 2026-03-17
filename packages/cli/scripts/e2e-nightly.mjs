@@ -17,9 +17,26 @@ const harness = createHarness('nightly');
 // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
 const skipInstall = shouldSkipInstall();
 
-function maybeInstallAndCheck(projectRoot, includeTypeCheck = true) {
+function runScriptArgs(packageManager, scriptName) {
+  if (packageManager === 'yarn') {
+    return [scriptName];
+  }
+  return ['run', scriptName];
+}
+
+function installArgs(packageManager) {
+  if (packageManager === 'npm') {
+    return ['install', '--no-audit', '--no-fund'];
+  }
+  if (packageManager === 'pnpm') {
+    return ['install', '--no-frozen-lockfile'];
+  }
+  return ['install', '--no-immutable'];
+}
+
+function maybeInstallAndCheck(projectRoot, packageManager = 'npm', includeTypeCheck = true) {
   if (skipInstall) {
-    harness.log(`Skipping npm install/build for ${projectRoot}`);
+    harness.log(`Skipping ${packageManager} install/build for ${projectRoot}`);
     return;
   }
 
@@ -31,25 +48,25 @@ function maybeInstallAndCheck(projectRoot, includeTypeCheck = true) {
   });
 
   harness.runStep({
-    name: `npm-install-${path.basename(projectRoot)}`,
+    name: `${packageManager}-install-${path.basename(projectRoot)}`,
     cwd: projectRoot,
-    command: 'npm',
-    args: ['install', '--no-audit', '--no-fund'],
+    command: packageManager,
+    args: installArgs(packageManager),
   });
 
   harness.runStep({
     name: `build-${path.basename(projectRoot)}`,
     cwd: projectRoot,
-    command: 'npm',
-    args: ['run', 'build'],
+    command: packageManager,
+    args: runScriptArgs(packageManager, 'build'),
   });
 
   if (includeTypeCheck) {
     harness.runStep({
       name: `type-check-${path.basename(projectRoot)}`,
       cwd: projectRoot,
-      command: 'npm',
-      args: ['run', 'type-check'],
+      command: packageManager,
+      args: runScriptArgs(packageManager, 'type-check'),
     });
   }
 }
@@ -65,7 +82,7 @@ try {
     command: 'node',
     args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'hai3', '--package-manager', 'npm'],
   });
-  maybeInstallAndCheck(appRoot, true);
+  maybeInstallAndCheck(appRoot, 'npm', true);
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
 
   const pnpmRoot = path.join(workspace, 'nightly-pnpm');
@@ -81,6 +98,7 @@ try {
     'pnpm app should set packageManager to pnpm'
   );
   harness.assertPathExists(path.join(pnpmRoot, 'pnpm-workspace.yaml'));
+  maybeInstallAndCheck(pnpmRoot, 'pnpm', true);
 
   const yarnRoot = path.join(workspace, 'nightly-yarn');
   harness.runStep({
@@ -95,6 +113,7 @@ try {
     'yarn app should set packageManager to yarn'
   );
   harness.assertPathExists(path.join(yarnRoot, '.yarnrc.yml'));
+  maybeInstallAndCheck(yarnRoot, 'yarn', true);
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
   harness.runStep({
@@ -141,7 +160,7 @@ try {
     !('@hai3/uikit' in (customPackageJson.dependencies || {})),
     'Custom app should not depend on @hai3/uikit'
   );
-  maybeInstallAndCheck(customRoot, true);
+  maybeInstallAndCheck(customRoot, 'npm', true);
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
@@ -154,7 +173,7 @@ try {
       command: 'node',
       args: [CLI_ENTRY, 'create', projectName, '--layer', layer],
     });
-    maybeInstallAndCheck(projectRoot, true);
+    maybeInstallAndCheck(projectRoot, 'npm', true);
   }
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
 
