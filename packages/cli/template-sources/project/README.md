@@ -3,8 +3,8 @@
 ## First Time Setup
 
 1. Open terminal in your project folder
-2. Install dependencies with your selected package manager (for example: `<package-manager> install`)
-3. Start the development server with your selected package manager (for example: `<package-manager> run dev`)
+2. Install dependencies: `npm install`
+3. Start the development server: `npm run dev`
 4. Open http://localhost:5173 in your browser
 5. Install HAI3 CLI globally (recommended with npm): `npm install -g @hai3/cli@alpha`
 6. Ask the AI: "Set up Chrome DevTools MCP server so you can see my browser"

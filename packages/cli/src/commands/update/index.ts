@@ -4,6 +4,7 @@
 import { execSync } from 'child_process';
 import fs from 'fs-extra';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError } from '../../core/types.js';
 import { syncTemplates } from '../../core/templates.js';
@@ -45,11 +46,21 @@ export interface UpdateCommandResult {
  */
 function detectCurrentChannel(): 'alpha' | 'stable' {
   try {
-    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-run-npm-list
-    const output = execSync('npm list -g @hai3/cli --json', { stdio: 'pipe' }).toString();
-    const data = JSON.parse(output);
-    const version = data.dependencies?.['@hai3/cli']?.version || '';
-    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-run-npm-list
+    const currentFile = fileURLToPath(import.meta.url);
+    let searchDir = path.dirname(currentFile);
+    let version = '';
+
+    while (searchDir !== path.dirname(searchDir)) {
+      const packageJsonPath = path.join(searchDir, 'package.json');
+      if (fs.pathExistsSync(packageJsonPath)) {
+        const packageJson = fs.readJsonSync(packageJsonPath);
+        if (packageJson.name === '@hai3/cli' && typeof packageJson.version === 'string') {
+          version = packageJson.version;
+          break;
+        }
+      }
+      searchDir = path.dirname(searchDir);
+    }
 
     // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-check-prerelease-tag
     // Check for prerelease identifiers (alpha, beta, rc, etc.)

@@ -1,5 +1,6 @@
 // @cpt-flow:cpt-hai3-flow-cli-tooling-e2e-nightly:p2
 // @cpt-dod:cpt-hai3-dod-cli-tooling-e2e-nightly:p1
+import fs from 'fs';
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
@@ -206,6 +207,11 @@ try {
       command: 'node',
       args: [CLI_ENTRY, 'create', projectName, '--layer', layer],
     });
+    const layerReadme = fs.readFileSync(path.join(projectRoot, 'README.md'), 'utf8');
+    harness.assert(
+      layerReadme.includes(`npm install ${projectName}`),
+      `Layer README must include install command with package name for ${projectName}`
+    );
     maybeInstallAndCheck(projectRoot, 'npm', true);
   }
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds

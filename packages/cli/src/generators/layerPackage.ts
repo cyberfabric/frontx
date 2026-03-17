@@ -4,7 +4,7 @@ import fs from 'fs-extra';
 import type { GeneratedFile, LayerType, PackageManager } from '../core/types.js';
 import {
   DEFAULT_PACKAGE_MANAGER,
-  getInstallCommand,
+  getAddPackagesCommand,
   getRunScriptCommand,
   packageManagerFieldValue,
   transformPackageManagerText,
@@ -407,7 +407,7 @@ A HAI3 ${layer}-layer package.
 ## Installation
 
 \`\`\`bash
-${getInstallCommand(packageManager)}
+${getAddPackagesCommand(packageManager, [packageName])}
 \`\`\`
 
 ## Usage

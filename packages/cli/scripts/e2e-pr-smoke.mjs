@@ -1,5 +1,6 @@
 // @cpt-flow:cpt-hai3-flow-cli-tooling-e2e-pr:p1
 // @cpt-dod:cpt-hai3-dod-cli-tooling-e2e-pr:p1
+import fs from 'fs';
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
@@ -136,6 +137,12 @@ try {
   harness.assert(
     !('packageManagerVersion' in hai3Config),
     'Generated hai3.config.json must not include packageManagerVersion'
+  );
+  const readmeContent = fs.readFileSync(path.join(projectRoot, 'README.md'), 'utf8');
+  harness.assert(
+    readmeContent.includes(`${packageManager} install`) ||
+      (packageManager === 'yarn' && readmeContent.includes('yarn dev')),
+    'Generated README must include concrete package-manager setup commands'
   );
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
 
