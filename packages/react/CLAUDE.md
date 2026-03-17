@@ -33,7 +33,15 @@ const app = createHAI3().use(screensets()).build();
 <HAI3Provider app={app}>
   <YourApp />
 </HAI3Provider>
+
+// With injected QueryClient for separate MFE roots
+<HAI3Provider app={app} queryClient={sharedQueryClient}>
+  <YourApp />
+</HAI3Provider>
 ```
+
+When MFEs render in separate React roots, pass the same host-owned `queryClient`
+to each `HAI3Provider` so they share one TanStack Query cache.
 
 ### Available Hooks
 
@@ -254,7 +262,7 @@ import { MfeProvider } from '@hai3/react';
 
 function MfeHost() {
   return (
-    <MfeProvider bridge={parentBridge}>
+    <MfeProvider value={{ bridge: parentBridge, extensionId: 'home', domainId: 'screen' }}>
       <ExtensionContainer />
     </MfeProvider>
   );
@@ -270,13 +278,12 @@ import { ExtensionDomainSlot } from '@hai3/react';
 
 function LayoutScreen() {
   return (
-    <div>
-      <ExtensionDomainSlot
-        domainId="screen"
-        containerRef={screenContainerRef}
-        fallback={<Loading />}
-      />
-    </div>
+    <ExtensionDomainSlot
+      registry={registry}
+      domainId="screen"
+      extensionId="home"
+      loadingComponent={<Loading />}
+    />
   );
 }
 ```
@@ -410,9 +417,10 @@ import { ExtensionDomainSlot } from '@hai3/react';
 function MyComponent() {
   return (
     <ExtensionDomainSlot
+      registry={app.screensetsRegistry}
       domainId="screen"
-      containerRef={screenContainerRef}
-      fallback={<Loading />}
+      extensionId="home"
+      loadingComponent={<Loading />}
     />
   );
 }

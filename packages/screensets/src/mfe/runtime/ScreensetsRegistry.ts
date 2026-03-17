@@ -11,7 +11,7 @@
 // @cpt-dod:cpt-hai3-dod-screenset-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
-import type { ParentMfeBridge } from '../handler/types';
+import type { MfeMountContext, ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
@@ -134,6 +134,28 @@ export abstract class ScreensetsRegistry {
    * @returns Property value, or undefined if not set
    */
   abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
+
+  // --- Mount Context ---
+
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-contract
+  /**
+   * Register host-provided runtime context for an extension's next mount.
+   *
+   * @param extensionId - ID of the extension that is about to mount
+   * @param mountContext - Runtime context for the upcoming mount
+   */
+  abstract setExtensionMountContext(
+    extensionId: string,
+    mountContext: MfeMountContext
+  ): void;
+
+  /**
+   * Clear any previously registered mount context for an extension.
+   *
+   * @param extensionId - ID of the extension
+   */
+  abstract clearExtensionMountContext(extensionId: string): void;
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-contract
 
   // --- Action Chains ---
 

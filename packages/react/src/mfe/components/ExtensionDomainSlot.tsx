@@ -11,6 +11,7 @@
 // @cpt-dod:cpt-hai3-dod-react-bindings-extension-slot:p1
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/framework';
 import {
   HAI3_ACTION_MOUNT_EXT,
@@ -101,6 +102,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
   } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
+  const queryClient = useQueryClient();
   // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
   const [isLoading, setIsLoading] = useState(true);
   // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
@@ -124,19 +126,29 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         setError(null);
         // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p2:inst-retry-mount
 
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
-        // Mount the extension via actions chain (auto-loads if not already loaded)
-        // Container is provided by the domain's ContainerProvider (registered at domain registration time)
-        await registry.executeActionsChain({
-          action: {
-            type: HAI3_ACTION_MOUNT_EXT,
-            target: domainId,
-            payload: {
-              extensionId,
-            },
-          },
+        registry.setExtensionMountContext(extensionId, {
+          queryClient,
+          extensionId,
+          domainId,
         });
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
+
+        try {
+          // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
+          // Mount the extension via actions chain (auto-loads if not already loaded)
+          // Container is provided by the domain's ContainerProvider (registered at domain registration time)
+          await registry.executeActionsChain({
+            action: {
+              type: HAI3_ACTION_MOUNT_EXT,
+              target: domainId,
+              payload: {
+                extensionId,
+              },
+            },
+          });
+          // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
+        } finally {
+          registry.clearExtensionMountContext(extensionId);
+        }
 
         // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
         // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-race-unmount
@@ -223,7 +235,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
     };
     // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
     // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-unmount
-  }, [registry, domainId, extensionId, onMounted, onUnmounted, onError]);
+  }, [registry, domainId, extensionId, onMounted, onUnmounted, onError, queryClient]);
 
   // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
   // Render loading state

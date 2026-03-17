@@ -1,8 +1,52 @@
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '@hai3/react';
+import type { QueryClient } from '@tanstack/react-query';
+import type { MfeEntryLifecycle, ChildMfeBridge, MfeMountContext } from '@hai3/react';
 import { HAI3Provider } from '@hai3/react';
 import { mfeApp } from '../init';
+
+interface ProviderMountOptions {
+  queryClient?: QueryClient;
+  mfeBridge?: {
+    bridge: ChildMfeBridge;
+    extensionId: string;
+    domainId: string;
+  };
+}
+
+type QueryClientShape = Pick<QueryClient, 'getQueryCache' | 'getMutationCache' | 'defaultQueryOptions'>;
+
+function isQueryClientLike(value: MfeMountContext['queryClient']): value is QueryClient {
+  const candidate = value as QueryClientShape | undefined;
+
+  return (
+    candidate !== undefined &&
+    typeof candidate.getQueryCache === 'function' &&
+    typeof candidate.getMutationCache === 'function' &&
+    typeof candidate.defaultQueryOptions === 'function'
+  );
+}
+
+function resolveProviderMountOptions(
+  bridge: ChildMfeBridge,
+  mountContext?: MfeMountContext
+): ProviderMountOptions {
+  const queryClient = mountContext?.queryClient;
+  const extensionId = mountContext?.extensionId;
+  const domainId = mountContext?.domainId;
+
+  return {
+    // Host and child MFEs may each bundle TanStack Query, so instanceof is not
+    // reliable across runtime boundaries. Accept any QueryClient-shaped object.
+    queryClient: isQueryClientLike(queryClient) ? queryClient : undefined,
+    mfeBridge:
+      typeof extensionId === 'string' && typeof domainId === 'string'
+        ? { bridge, extensionId, domainId }
+        : undefined,
+  };
+}
 
 /**
  * Abstract base class for React-based MFE lifecycle implementations.
@@ -26,7 +70,7 @@ import { mfeApp } from '../init';
 export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
   private root: Root | null = null;
 
-  mount(container: Element | ShadowRoot, bridge: ChildMfeBridge): void {
+  mount(container: Element | ShadowRoot, bridge: ChildMfeBridge, mountContext?: MfeMountContext): void {
     if (container instanceof ShadowRoot) {
       this.adoptHostStylesIntoShadowRoot(container);
     }
@@ -35,8 +79,13 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     this.initializeStyles(container);
 
     this.root = createRoot(container);
+    const providerMountOptions = resolveProviderMountOptions(bridge, mountContext);
     this.root.render(
-      <HAI3Provider app={mfeApp}>
+      <HAI3Provider
+        app={mfeApp}
+        queryClient={providerMountOptions.queryClient}
+        mfeBridge={providerMountOptions.mfeBridge}
+      >
         {this.renderContent(bridge)}
       </HAI3Provider>
     );

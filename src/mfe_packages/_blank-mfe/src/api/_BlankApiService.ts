@@ -4,6 +4,7 @@
  */
 
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
+import type { GetBlankStatusResponse } from './types';
 import { blankMockMap } from './mocks';
 
 /**
@@ -25,5 +26,13 @@ export class _BlankApiService extends BaseApiService {
         delay: 100,
       })
     );
+  }
+
+  /**
+   * Example query endpoint for the blank template.
+   * Accepts an AbortSignal so useApiQuery can cancel in-flight requests.
+   */
+  async getStatus(options?: { signal?: AbortSignal }): Promise<GetBlankStatusResponse> {
+    return this.protocol(RestProtocol).get<GetBlankStatusResponse>('/status', options);
   }
 }

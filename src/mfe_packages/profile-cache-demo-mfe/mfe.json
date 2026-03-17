@@ -1,0 +1,47 @@
+{
+  "manifest": {
+    "id": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.profilecachedemo.mfe.manifest.v1",
+    "remoteEntry": "http://localhost:3012/assets/remoteEntry.js?v=profile-cache-demo",
+    "remoteName": "profileCacheDemoMfe",
+    "sharedDependencies": [
+      { "name": "react", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react.js" },
+      { "name": "react-dom", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react-dom.js" },
+      { "name": "tailwindcss", "chunkPath": "__federation_shared_tailwindcss.js" },
+      { "name": "@hai3/react", "chunkPath": "__federation_shared_@hai3/react.js" },
+      { "name": "@hai3/framework", "chunkPath": "__federation_shared_@hai3/framework.js" },
+      { "name": "@hai3/state", "chunkPath": "__federation_shared_@hai3/state.js" },
+      { "name": "@hai3/screensets", "chunkPath": "__federation_shared_@hai3/screensets.js" },
+      { "name": "@hai3/api", "chunkPath": "__federation_shared_@hai3/api.js" },
+      { "name": "@hai3/i18n", "chunkPath": "__federation_shared_@hai3/i18n.js" },
+      { "name": "@tanstack/react-query", "chunkPath": "__federation_shared_@tanstack/react-query.js" },
+      { "name": "@reduxjs/toolkit", "chunkPath": "__federation_shared_@reduxjs/toolkit.js" },
+      { "name": "react-redux", "chunkPath": "__federation_shared_react-redux.js" }
+    ]
+  },
+  "entries": [
+    {
+      "id": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.profilecachedemo.mfe.home.v1",
+      "requiredProperties": [
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~",
+        "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
+      ],
+      "actions": [],
+      "domainActions": [],
+      "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.profilecachedemo.mfe.manifest.v1",
+      "exposedModule": "./lifecycle"
+    }
+  ],
+  "extensions": [
+    {
+      "id": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.profilecachedemo.screens.home.v1",
+      "domain": "gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1",
+      "entry": "gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.profilecachedemo.mfe.home.v1",
+      "presentation": {
+        "label": "Profile Cache Demo",
+        "icon": "lucide:user",
+        "route": "/profile-cache-demo",
+        "order": 100
+      }
+    }
+  ]
+}

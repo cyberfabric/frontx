@@ -7,7 +7,7 @@
  */
 
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
-import type { GetCurrentUserResponse } from './types';
+import type { GetCurrentUserResponse, UpdateProfileRequest } from './types';
 import { accountsMockMap } from './mocks';
 
 /**
@@ -34,9 +34,18 @@ export class AccountsApiService extends BaseApiService {
   }
 
   /**
-   * Get current authenticated user
+   * Get current authenticated user.
+   * Accepts an optional AbortSignal so TanStack Query can cancel the in-flight
+   * request when the consuming component unmounts or the query key changes.
    */
-  async getCurrentUser(): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current');
+  async getCurrentUser(options?: { signal?: AbortSignal }): Promise<GetCurrentUserResponse> {
+    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current', options);
+  }
+
+  /**
+   * Update the current user's profile fields.
+   */
+  async updateProfile(data: UpdateProfileRequest): Promise<GetCurrentUserResponse> {
+    return this.protocol(RestProtocol).patch<GetCurrentUserResponse>('/user/profile', data);
   }
 }

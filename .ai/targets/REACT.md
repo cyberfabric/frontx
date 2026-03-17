@@ -13,6 +13,7 @@
 ## CRITICAL RULES
 - All apps wrapped with `<HAI3Provider>`.
 - Use provided hooks for state access (not raw react-redux).
+- Use `QueryCache` access via `useQueryCache()` or `useApiMutation()` callback context; do not expose raw `QueryClient` to app or MFE code.
 - Screen translations via `useScreenTranslations()` hook.
 - Wrap translated content with `<TextLoader>` to prevent FOUC.
 - NO layout components here (use the configured UI kit or app code).
@@ -32,10 +33,19 @@ function App() {
 
 // OPTIONAL: With configuration
 <HAI3Provider config={{ devMode: true }}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
 
 // OPTIONAL: With pre-built app
 const app = createHAI3().use(screensets()).build();
 <HAI3Provider app={app}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
+
+// OPTIONAL: Reuse a host-owned QueryClient across separate React roots
+<HAI3Provider app={app} queryClient={sharedQueryClient}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
 ```
 
 ## AVAILABLE HOOKS
@@ -47,8 +57,8 @@ const app = createHAI3().use(screensets()).build();
 | `useAppSelector()` | Typed selector | Selected state |
 | `useTranslation()` | Translation utilities | `{ t, language, setLanguage, isRTL }` |
 | `useScreenTranslations()` | Load screen translations | `{ isLoaded, error }` |
-| `useNavigation()` | Navigation utilities | `{ navigateToScreen, currentScreen }` |
 | `useTheme()` | Theme utilities | `{ currentTheme, themes, setTheme }` |
+| `useQueryCache()` | Restricted query cache access | `QueryCache` |
 
 ## SCREEN TRANSLATIONS
 ```tsx
@@ -78,12 +88,14 @@ export default HomeScreen;
 ## STOP CONDITIONS
 - Using hooks outside HAI3Provider.
 - Using raw react-redux instead of provided hooks.
+- Exposing TanStack `useQueryClient()` directly to app or MFE code.
 - Adding layout components to this package.
 - Forgetting TextLoader wrapper for translations.
 
 ## PRE-DIFF CHECKLIST
 - [ ] App wrapped with HAI3Provider.
 - [ ] Using provided hooks (not raw react-redux).
+- [ ] Query cache access uses `useQueryCache()` or `useApiMutation()` callback context, not raw `useQueryClient()`.
 - [ ] Screen translations lazy loaded.
 - [ ] TextLoader wraps translated content.
 - [ ] Screen component has default export.

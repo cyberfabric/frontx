@@ -15,6 +15,7 @@ import type {
   Language,
   Formatters,
 } from '@hai3/framework';
+import type { QueryClient, QueryClientConfig } from '@tanstack/react-query';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
@@ -54,6 +55,11 @@ type TranslationParams = Record<string, string | number | boolean>;
  * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId }}>
  *   <MyMfeApp />
  * </HAI3Provider>
+ *
+ * // With injected QueryClient shared across roots
+ * <HAI3Provider app={app} queryClient={sharedQueryClient}>
+ *   <MyMfeApp />
+ * </HAI3Provider>
  * ```
  */
 export interface HAI3ProviderProps {
@@ -65,6 +71,19 @@ export interface HAI3ProviderProps {
   app?: HAI3App;
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
+  /**
+   * Optional externally managed QueryClient.
+   * Use this when multiple React roots (for example host + MFEs) must share
+   * the same TanStack Query cache instance.
+   */
+  queryClient?: QueryClient;
+  /**
+   * Optional overrides for the QueryClient defaults.
+   * HAI3 sets staleTime=30s, gcTime=5m, retry=0, refetchOnWindowFocus=true.
+   * Pass this to tune per-app. Retry should remain 0 unless the HAI3 plugin
+   * retry chain is disabled — enabling both causes double retries.
+   */
+  queryClientConfig?: QueryClientConfig;
 }
 
 // ============================================================================

@@ -224,6 +224,8 @@ export interface ApiRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -420,7 +422,25 @@ export interface RestRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
 }
+
+// @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-abort-signal:p1
+// @cpt-begin:cpt-hai3-algo-request-lifecycle-request-options:p1:inst-define-options
+/**
+ * REST Request Options
+ * Per-request options for REST protocol HTTP methods.
+ * Enables request cancellation via AbortSignal and query parameter passing
+ * without mixing concerns into the method signature directly.
+ */
+export interface RestRequestOptions {
+  /** AbortSignal for request cancellation */
+  signal?: AbortSignal;
+  /** Query parameters */
+  params?: Record<string, string>;
+}
+// @cpt-end:cpt-hai3-algo-request-lifecycle-request-options:p1:inst-define-options
 
 /**
  * SSE Connect Context

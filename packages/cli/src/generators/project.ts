@@ -768,6 +768,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     '@iconify/react': '5.0.2',
     '@radix-ui/react-avatar': '1.1.10',
     '@radix-ui/react-slot': '1.2.3',
+    '@tanstack/react-query': '5.90.21',
     '@reduxjs/toolkit': '2.11.2',
     'class-variance-authority': '0.7.1',
     clsx: '2.1.1',

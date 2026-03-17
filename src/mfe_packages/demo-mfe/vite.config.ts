@@ -12,6 +12,7 @@ const sharedDeps = [
   '@hai3/screensets',
   '@hai3/api',
   '@hai3/i18n',
+  '@tanstack/react-query',
   '@reduxjs/toolkit',
   'react-redux',
 ];

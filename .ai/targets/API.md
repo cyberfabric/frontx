@@ -34,7 +34,8 @@
 - REQUIRED: Create services in src/screensets/*/api/. See SCREENSETS.md.
 
 ## USAGE RULES
-- REQUIRED: Access only via apiRegistry.getService(ServiceClass).methodName().
+- REQUIRED: Access service methods through a typed service instance.
+- REQUIRED: Resolve services lazily via a typed getter or inject the service into query and mutation factories.
 - REQUIRED: Type inference from class constructor reference (no module augmentation).
 - FORBIDDEN: Direct axios or fetch usage outside BaseApiService.
 

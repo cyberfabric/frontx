@@ -78,6 +78,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
+  MfeMountContext,
   Extension,
   ScreenExtension,
   ExtensionPresentation,

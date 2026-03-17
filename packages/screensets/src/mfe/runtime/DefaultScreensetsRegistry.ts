@@ -24,7 +24,7 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ScreensetsRegistryConfig } from './config';
-import type { MfeHandler, ParentMfeBridge } from '../handler/types';
+import type { MfeHandler, MfeMountContext, ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
@@ -198,6 +198,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
       unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
       bridgeFactory: this.bridgeFactory,
+      resolveMountContext: (extensionId) => this.extensionManager.getMountContext(extensionId),
     });
 
     // Register custom handlers if provided
@@ -363,6 +364,19 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     this.extensionManager.updateSharedProperty(propertyId, value);
   }
   // @cpt-end:cpt-hai3-flow-screenset-registry-update-shared-property:p1:inst-1
+
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-delegate
+  setExtensionMountContext(
+    extensionId: string,
+    mountContext: MfeMountContext
+  ): void {
+    this.extensionManager.setMountContext(extensionId, mountContext);
+  }
+
+  clearExtensionMountContext(extensionId: string): void {
+    this.extensionManager.clearMountContext(extensionId);
+  }
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-delegate
 
   /**
    * Get a domain property value.

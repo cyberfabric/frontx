@@ -6,6 +6,7 @@
  */
 
 import { useRef, useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useHAI3 } from '@hai3/react';
 import { bootstrapMFE } from './bootstrap';
 
@@ -16,6 +17,7 @@ import { bootstrapMFE } from './bootstrap';
 export function MfeScreenContainer() {
   const containerRef = useRef<HTMLDivElement>(null);
   const app = useHAI3();
+  const queryClient = useQueryClient();
   const bootstrappedRef = useRef(false);
 
   useEffect(() => {
@@ -23,11 +25,11 @@ export function MfeScreenContainer() {
     if (!bootstrappedRef.current && containerRef.current) {
       bootstrappedRef.current = true;
       // Cast ref to non-null since we know it's assigned
-      bootstrapMFE(app, containerRef as React.RefObject<HTMLDivElement>).catch((error) => {
+      bootstrapMFE(app, containerRef as React.RefObject<HTMLDivElement>, queryClient).catch((error) => {
         console.error('[MFE Bootstrap] Failed to bootstrap MFE:', error);
       });
     }
-  }, [app]);
+  }, [app, queryClient]);
 
   return (
     <div

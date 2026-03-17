@@ -15,6 +15,7 @@
   - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
+  - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle-query-integration-high)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -31,7 +32,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 **Overall implementation status:**
 
-- [x] `p1` - **ID**: `cpt-hai3-status-overall`
+- [ ] `p1` - **ID**: `cpt-hai3-status-overall`
 
 ### 2.1 [State Management](feature-state-management/) ⏳ HIGH
 
@@ -710,6 +711,71 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
+### 2.12 [Request Lifecycle & Query Integration](feature-request-lifecycle/) ⏳ HIGH
+
+- [ ] `p2` - **ID**: `cpt-hai3-feature-request-lifecycle`
+
+- **Purpose**: Adds `AbortSignal`-based request cancellation to `RestProtocol` at L1, and integrates `@tanstack/react-query` at L3 as the default mechanism for declarative data fetching and mutations with automatic caching, deduplication, optimistic updates, and cache invalidation.
+
+- **Depends On**: `cpt-hai3-feature-api-communication`, `cpt-hai3-feature-react-bindings`
+
+- **Scope**:
+  - `AbortSignal` threading through `RestProtocol` and plugin chain
+  - `RestRequestOptions` pattern for HTTP method extensibility
+  - `CanceledError` detection and plugin chain bypass
+  - `QueryClientProvider` in `HAI3Provider`, with a host-owned `QueryClient` injected into separately mounted MFE roots via opaque mount context
+  - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) exposed via `useQueryCache()` and injected into mutation callbacks — `queryClient` not exposed to MFEs
+  - `useApiQuery` hook for declarative reads with caching and deduplication
+  - `useApiMutation` hook for declarative writes with optimistic updates and cache invalidation via `QueryCache`
+  - Query key factories at L3 (`packages/react/src/queries/`) with `@domain` prefix convention
+  - Event-based cache invalidation for L2 Flux effects (`cache/invalidate` event, synchronous listener in `HAI3Provider`)
+  - Flux escape hatch for cross-feature orchestration
+
+- **Out of scope**:
+  - SSE-to-cache integration (known gap — event-based `cache/update` pattern deferred)
+  - SSE cancellation (already handled by `SseProtocol.disconnect()`)
+  - Custom cache storage backends (TanStack Query uses in-memory cache)
+  - Server-side rendering / hydration support
+
+- **Requirements Covered**:
+
+  - `cpt-hai3-fr-sdk-api-package`
+  - `cpt-hai3-fr-sdk-react-layer`
+
+- **Design Principles Covered**:
+
+  - `cpt-hai3-principle-layer-isolation` (AbortSignal at L1, TanStack at L3)
+
+- **Design Constraints Covered**:
+
+  - `cpt-hai3-constraint-no-react-below-l3`
+  - `cpt-hai3-constraint-zero-cross-deps-at-l1`
+
+- **Domain Model Entities**:
+  - (No new domain entities — extends existing API and React layers)
+
+- **Design Components**:
+
+  - `cpt-hai3-component-api`
+  - `cpt-hai3-component-react`
+
+- **API**:
+  - `RestProtocol.get(url, { signal })` / `.post()` / `.put()` / `.patch()` / `.delete()`
+  - `useApiQuery({ queryKey, queryFn })` — thin wrapper, no cache access
+  - `useApiMutation({ mutationFn, onMutate, onSuccess, onError, onSettled })` — callbacks receive `{ queryCache }`; `useQueryCache()` exposes the same restricted `QueryCache` interface for imperative cache work
+  - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove`
+  - Query key factories: `accountsKeys.currentUser()` → `['@accounts', 'current-user']`
+
+- **Sequences**:
+  - None
+
+- **Data**:
+  - N/A (client-side library)
+
+- **ADRs**:
+
+  - `cpt-hai3-adr-tanstack-query-data-management`
+
 ---
 
 ## 3. Feature Dependencies
@@ -732,7 +798,10 @@ cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
     │                 api-communication, i18n-infrastructure
     │
     └─→ cpt-hai3-feature-react-bindings
-            requires: framework-composition
+    │       requires: framework-composition
+    │
+    └─→ cpt-hai3-feature-request-lifecycle
+            requires: api-communication, react-bindings
 ```
 
 **Dependency Rationale**:
@@ -740,5 +809,6 @@ cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
 - `cpt-hai3-feature-mfe-isolation` requires `cpt-hai3-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
 - `cpt-hai3-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
 - `cpt-hai3-feature-react-bindings` requires `cpt-hai3-feature-framework-composition`: React layer consumes the built framework output
+- `cpt-hai3-feature-request-lifecycle` requires `cpt-hai3-feature-api-communication` (AbortSignal at L1) and `cpt-hai3-feature-react-bindings` (TanStack Query hooks at L3)
 - `cpt-hai3-feature-ui-libraries-choice` requires `cpt-hai3-feature-cli-tooling`: CLI commands (`hai3 create`, `hai3 screenset`) implement the UI kit scaffolding
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

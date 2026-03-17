@@ -9,6 +9,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
+import type { QueryClient } from '@tanstack/react-query';
 import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
 import {
   screenDomain,
@@ -54,7 +55,8 @@ class DetachedContainerProvider extends RefContainerProvider {
  */
 export async function bootstrapMFE(
   app: HAI3App,
-  screenContainerRef: React.RefObject<HTMLDivElement>
+  screenContainerRef: React.RefObject<HTMLDivElement>,
+  queryClient: QueryClient
 ): Promise<void> {
   const { screensetsRegistry } = app;
 
@@ -126,8 +128,58 @@ export async function bootstrapMFE(
   const currentPath = window.location.pathname;
   const matchingExt = screenExtensions.find((ext) => ext.presentation.route === currentPath);
   const targetExtId = matchingExt?.id ?? screenExtensions[0].id;
+  const screenRouteMap = new Map(
+    screenExtensions.map((ext) => [ext.id, ext.presentation.route])
+  );
 
-  await screensetsRegistry.executeActionsChain({
+  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+  const getMountedExtensionId = (
+    chain: Parameters<typeof origExecuteActionsChain>[0]
+  ): string | undefined => {
+    const extensionId = chain.action.payload?.extensionId;
+    return chain.action.type === HAI3_ACTION_MOUNT_EXT && typeof extensionId === 'string'
+      ? extensionId
+      : undefined;
+  };
+
+  const withSharedQueryClient = async (
+    chain: Parameters<typeof origExecuteActionsChain>[0]
+  ): Promise<void> => {
+    const extensionId = getMountedExtensionId(chain);
+    if (!extensionId) {
+      await origExecuteActionsChain(chain);
+      return;
+    }
+
+    screensetsRegistry.setExtensionMountContext(extensionId, {
+      queryClient,
+      extensionId,
+      domainId: chain.action.target,
+    });
+
+    try {
+      await origExecuteActionsChain(chain);
+    } finally {
+      screensetsRegistry.clearExtensionMountContext(extensionId);
+    }
+  };
+
+  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+    const extensionId = getMountedExtensionId(chain);
+    await withSharedQueryClient(chain);
+
+    if (
+      chain.action.target === screenDomain.id &&
+      extensionId
+    ) {
+      const route = screenRouteMap.get(extensionId);
+      if (route && window.location.pathname !== route) {
+        window.history.pushState(null, '', route);
+      }
+    }
+  }) as typeof screensetsRegistry.executeActionsChain;
+
+  await withSharedQueryClient({
     action: {
       type: HAI3_ACTION_MOUNT_EXT,
       target: screenDomain.id,
@@ -141,27 +193,9 @@ export async function bootstrapMFE(
     window.history.replaceState(null, '', defaultRoute);
   }
 
-  // Step 6: Centralized URL routing for all screen mounts
-  // Wraps executeActionsChain so ANY screen mount automatically syncs the browser URL.
-  const screenRouteMap = new Map(
-    screenExtensions.map((ext) => [ext.id, ext.presentation.route])
-  );
-
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    await origExecuteActionsChain(chain);
-    if (
-      chain.action.type === HAI3_ACTION_MOUNT_EXT &&
-      chain.action.target === screenDomain.id
-    ) {
-      const extensionId = chain.action.payload?.extensionId as string | undefined;
-      const route = screenRouteMap.get(extensionId ?? '');
-      if (route && window.location.pathname !== route) {
-        window.history.pushState(null, '', route);
-      }
-    }
-  }) as typeof screensetsRegistry.executeActionsChain;
-
+  // Step 6: Browser navigation -> screen mount
+  // The wrapped executeActionsChain above already syncs URL + shared QueryClient
+  // mount context for all screen mounts. Here we only react to back/forward navigation.
   // Handle browser back/forward navigation
   window.addEventListener('popstate', () => {
     const path = window.location.pathname;

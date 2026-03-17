@@ -1,9 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
+  useApiQuery,
+} from '@hai3/react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
+import { blankQueries } from '../../data/blank';
 
 // Stable reference for translation modules (hoisted to module level to prevent re-render loops)
 const languageModules = import.meta.glob('./i18n/*.json') as Record<
@@ -43,6 +48,12 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const [language, setLanguage] = useState<string>('en');
 
   const { t, loading } = useScreenTranslations(languageModules, bridge);
+  const {
+    data: statusData,
+    isLoading: isStatusLoading,
+    isError: isStatusError,
+    error: statusError,
+  } = useApiQuery(blankQueries.status());
 
   useEffect(() => {
     // Read initial property values
@@ -115,31 +126,51 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
         {t('description')}
       </p>
 
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <h2 className="text-xl font-semibold mb-3">
-            {t('bridge_info')}
-          </h2>
-          <dl className="grid gap-2">
-            <div>
-              <dt className="font-medium">{t('domain_id')}</dt>
-              <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">{t('instance_id')}</dt>
-              <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">{t('current_theme')}</dt>
-              <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
-            </div>
-            <div>
-              <dt className="font-medium">{t('current_language')}</dt>
-              <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
-            </div>
-          </dl>
-        </CardContent>
-      </Card>
+      <div className="space-y-6">
+        <Card>
+          <CardContent className="p-6">
+            <h2 className="text-xl font-semibold mb-3">
+              {t('bridge_info')}
+            </h2>
+            <dl className="grid gap-2">
+              <div>
+                <dt className="font-medium">{t('domain_id')}</dt>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.domainId}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">{t('instance_id')}</dt>
+                <dd className="font-mono text-sm text-muted-foreground">{bridge.instanceId}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">{t('current_theme')}</dt>
+                <dd className="font-mono text-sm text-muted-foreground">{theme}</dd>
+              </div>
+              <div>
+                <dt className="font-medium">{t('current_language')}</dt>
+                <dd className="font-mono text-sm text-muted-foreground">{language}</dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            {isStatusLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+                <Skeleton className="h-20 w-full" />
+              </div>
+            ) : isStatusError ? (
+              <p className="text-sm text-destructive">{statusError?.message}</p>
+            ) : (
+              <pre className="overflow-x-auto rounded-md bg-muted p-4 text-xs text-muted-foreground">
+                {JSON.stringify(statusData, null, 2)}
+              </pre>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };

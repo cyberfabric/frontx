@@ -53,7 +53,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-symbol-based-mock-plugin-identification`,
 `cpt-hai3-adr-global-shared-property-broadcast`,
 `cpt-hai3-adr-cli-template-based-code-generation`,
-`cpt-hai3-adr-two-tier-cli-e2e-verification`
+`cpt-hai3-adr-two-tier-cli-e2e-verification`,
+`cpt-hai3-adr-tanstack-query-data-management`
 
 #### Functional Drivers
 
@@ -515,9 +516,11 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 
 ##### Responsibility scope
 
-- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, and framework context
+- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, framework context, and a `QueryClientProvider` (TanStack Query). It can either create its own `QueryClient` or reuse an injected host-owned client so separately mounted MFE roots share one cache. Subscribes synchronously to `cache/invalidate` events from EventBus for L2 Flux effect integration.
 - **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
-- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation
+- **Query hooks**: `useApiQuery()` for declarative reads with caching/deduplication, `useApiMutation()` for writes with optimistic updates via `QueryCache`, and `useQueryCache()` as the sanctioned imperative cache API. `QueryCache` exposes `get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, and `remove`. `queryClient` is internal — app and MFE code use `QueryCache`, not raw TanStack APIs. `useQueryClient` is NOT exported from `@hai3/react`.
+- **Query key factories**: Per-domain factories in `packages/react/src/queries/` with `@domain` prefix convention (e.g., `['@accounts', 'current-user']`). Use `queryOptions()` with an explicit typed service dependency resolved once per module or injected into the factory.
+- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation. MFEs render in separate React roots, so they do not inherit host React context. Shared caching is achieved by passing the same host-owned `QueryClient` into each MFE root via mount context — no per-MFE `QueryClient`.
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
 - **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
 
@@ -526,6 +529,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - Does NOT define the store, event bus, or action system — uses `cpt-hai3-component-framework`
 - Does NOT define UI component implementations — uses application/screenset local UI
 - Does NOT manage MFE loading or blob URL creation — uses `cpt-hai3-component-screensets` via framework
+- Does NOT place query/caching metadata on `BaseApiService` — services at L1 stay focused on transport. Caching configuration is a consumer concern at L3.
 
 ##### Related components (by ID)
 

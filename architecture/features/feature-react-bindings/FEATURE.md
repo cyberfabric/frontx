@@ -100,7 +100,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 **Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
 
-1. [x] - `p1` - Host application renders `<HAI3Provider>` with optional `config`, `app`, or `mfeBridge` props - `inst-render-provider`
+1. [x] - `p1` - Host application renders `<HAI3Provider>` with optional `config`, `app`, `queryClient`, or `mfeBridge` props - `inst-render-provider`
 2. [x] - `p1` - Algorithm: resolve HAI3App instance using `cpt-hai3-algo-react-bindings-resolve-app` - `inst-resolve-app`
 3. [x] - `p1` - `HAI3App` instance placed into `HAI3Context` via React context provider - `inst-set-hai3-context`
 4. [x] - `p1` - Redux store from `app.store` wrapped in `react-redux` `<Provider>` - `inst-set-redux-provider`
@@ -406,7 +406,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-provider`
 
-`HAI3Provider` accepts `children`, optional `config`, optional pre-built `app`, and optional `mfeBridge`. When `app` is not provided, it creates one via `createHAI3App(config)`. The instance is memoized; it is destroyed on unmount only if it was created internally. The full context tree (`HAI3Context` → `ReduxProvider` → optional `MfeProvider`) is assembled before children render.
+`HAI3Provider` accepts `children`, optional `config`, optional pre-built `app`, optional injected `queryClient`, and optional `mfeBridge`. When `app` is not provided, it creates one via `createHAI3App(config)`. When `queryClient` is not provided, it creates one locally; when it is provided, separate React roots can share the same TanStack cache instance. The instance is memoized; internally created resources are cleaned up on unmount. The full context tree (`HAI3Context` → `ReduxProvider` → `QueryClientProvider` → optional `MfeProvider`) is assembled before children render.
 
 **Implements**:
 - `cpt-hai3-algo-react-bindings-resolve-app`

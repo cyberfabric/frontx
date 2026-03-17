@@ -18,6 +18,7 @@ import type {
   Extension,
   MfeEntry,
 } from '../types';
+import type { MfeMountContext } from '../handler/types';
 import type { TypeSystemPlugin } from '../plugins/types';
 import {
   ExtensionManager,
@@ -271,6 +272,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       container: null,
       lifecycle: null,
       error: undefined,
+      mountContext: undefined,
     };
     this.extensions.set(extension.id, extensionState);
 
@@ -512,4 +514,28 @@ export class DefaultExtensionManager extends ExtensionManager {
     }
     domainState.mountedExtension = extensionId;
   }
+
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-mount-context-impl
+  setMountContext(extensionId: string, mountContext: MfeMountContext): void {
+    const extensionState = this.extensions.get(extensionId);
+    if (!extensionState) {
+      throw new Error(`Extension '${extensionId}' not registered`);
+    }
+
+    extensionState.mountContext = Object.freeze({ ...mountContext });
+  }
+
+  getMountContext(extensionId: string): MfeMountContext | undefined {
+    return this.extensions.get(extensionId)?.mountContext;
+  }
+
+  clearMountContext(extensionId: string): void {
+    const extensionState = this.extensions.get(extensionId);
+    if (!extensionState) {
+      return;
+    }
+
+    extensionState.mountContext = undefined;
+  }
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-mount-context-impl
 }

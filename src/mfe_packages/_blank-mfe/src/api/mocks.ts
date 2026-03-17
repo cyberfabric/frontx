@@ -4,11 +4,20 @@
  */
 
 import type { MockMap } from '@hai3/react';
+import type { GetBlankStatusResponse } from './types';
 
 /**
  * Mock map for _Blank API service
  * Keys are full URL patterns (including baseURL path)
  */
 export const blankMockMap: MockMap = {
-  // 'GET /api/blank/data': (): GetDataResponse => ({ data: null }),
+  'GET /api/blank/status': (): GetBlankStatusResponse => ({
+    message: 'Blank MFE query example is active.',
+    generatedAt: new Date('2026-03-23T12:00:00Z').toISOString(),
+    capabilities: [
+      'query-key-factory',
+      'abort-signal-forwarding',
+      'mfe-local-api-service',
+    ],
+  }),
 };

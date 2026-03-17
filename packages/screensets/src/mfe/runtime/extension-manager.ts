@@ -13,7 +13,7 @@ import type {
   Extension,
   MfeEntry,
 } from '../types';
-import type { ParentMfeBridge } from '../handler/types';
+import type { ParentMfeBridge, MfeMountContext } from '../handler/types';
 
 /**
  * State for a registered extension domain.
@@ -42,6 +42,8 @@ export interface ExtensionState {
   error?: Error;
   /** Shadow root created during mount (default handler flow) */
   shadowRoot?: ShadowRoot;
+  /** Opaque runtime values supplied by the host for the next mount */
+  mountContext?: MfeMountContext;
 }
 
 /**
@@ -147,4 +149,29 @@ export abstract class ExtensionManager {
    * @param extensionId - ID of the mounted extension, or undefined to clear
    */
   abstract setMountedExtension(domainId: string, extensionId: string | undefined): void;
+
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-mount-context-contract
+  /**
+   * Store opaque mount context for an extension before the next mount.
+   *
+   * @param extensionId - ID of the extension
+   * @param mountContext - Host-provided runtime context for the upcoming mount
+   */
+  abstract setMountContext(extensionId: string, mountContext: MfeMountContext): void;
+
+  /**
+   * Get the stored mount context for an extension.
+   *
+   * @param extensionId - ID of the extension
+   * @returns Stored mount context, or undefined if none is registered
+   */
+  abstract getMountContext(extensionId: string): MfeMountContext | undefined;
+
+  /**
+   * Clear the stored mount context for an extension.
+   *
+   * @param extensionId - ID of the extension
+   */
+  abstract clearMountContext(extensionId: string): void;
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-mount-context-contract
 }

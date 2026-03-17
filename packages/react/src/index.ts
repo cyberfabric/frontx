@@ -27,7 +27,20 @@ export {
   useScreenTranslations,
   useFormatters,
   useTheme,
+  useApiQuery,
+  queryOptions,
+  useApiMutation,
+  useQueryCache,
 } from './hooks';
+
+export type { UseApiQueryOptions } from './hooks/useApiQuery';
+export type { UseApiMutationOptions } from './hooks/useApiMutation';
+export type {
+  QueryCache,
+  QueryCacheInvalidateFilters,
+  QueryCacheState,
+  MutationCallbackContext,
+} from './hooks/QueryCache';
 
 // ============================================================================
 // MFE Context and Hooks
@@ -381,6 +394,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
+  MfeMountContext,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
