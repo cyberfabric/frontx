@@ -16,6 +16,11 @@ import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
 const harness = createHarness('nightly');
 // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
 const skipInstall = shouldSkipInstall();
+const expectedManagerEngines = {
+  npm: '>=10.0.0',
+  pnpm: '>=10.0.0',
+  yarn: '>=4.0.0',
+};
 
 function runScriptArgs(packageManager, scriptName) {
   if (packageManager === 'yarn') {
@@ -82,6 +87,16 @@ try {
     command: 'node',
     args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'hai3', '--package-manager', 'npm'],
   });
+  const appPackageJson = harness.readJson(path.join(appRoot, 'package.json'));
+  harness.assert(
+    appPackageJson.engines?.npm === expectedManagerEngines.npm,
+    `npm app should require npm ${expectedManagerEngines.npm}`
+  );
+  const appConfig = harness.readJson(path.join(appRoot, 'hai3.config.json'));
+  harness.assert(
+    !('packageManagerVersion' in appConfig),
+    'npm app hai3.config.json must not include packageManagerVersion'
+  );
   maybeInstallAndCheck(appRoot, 'npm', true);
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
 
@@ -97,7 +112,16 @@ try {
     pnpmPackageJson.packageManager?.startsWith('pnpm@'),
     'pnpm app should set packageManager to pnpm'
   );
+  harness.assert(
+    pnpmPackageJson.engines?.pnpm === expectedManagerEngines.pnpm,
+    `pnpm app should require pnpm ${expectedManagerEngines.pnpm}`
+  );
   harness.assertPathExists(path.join(pnpmRoot, 'pnpm-workspace.yaml'));
+  const pnpmConfig = harness.readJson(path.join(pnpmRoot, 'hai3.config.json'));
+  harness.assert(
+    !('packageManagerVersion' in pnpmConfig),
+    'pnpm app hai3.config.json must not include packageManagerVersion'
+  );
   maybeInstallAndCheck(pnpmRoot, 'pnpm', true);
 
   const yarnRoot = path.join(workspace, 'nightly-yarn');
@@ -112,7 +136,16 @@ try {
     yarnPackageJson.packageManager?.startsWith('yarn@'),
     'yarn app should set packageManager to yarn'
   );
+  harness.assert(
+    yarnPackageJson.engines?.yarn === expectedManagerEngines.yarn,
+    `yarn app should require yarn ${expectedManagerEngines.yarn}`
+  );
   harness.assertPathExists(path.join(yarnRoot, '.yarnrc.yml'));
+  const yarnConfig = harness.readJson(path.join(yarnRoot, 'hai3.config.json'));
+  harness.assert(
+    !('packageManagerVersion' in yarnConfig),
+    'yarn app hai3.config.json must not include packageManagerVersion'
+  );
   maybeInstallAndCheck(yarnRoot, 'yarn', true);
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands

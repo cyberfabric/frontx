@@ -21,7 +21,10 @@ export interface Hai3Config {
   uikit?: string;
   /** Selected package manager for this project */
   packageManager?: PackageManager;
-  /** Optional package manager version recorded at project creation */
+  /**
+   * Optional legacy package manager version.
+   * Kept for backwards compatibility with older generated configs.
+   */
   packageManagerVersion?: string;
   /** Optional linker mode (used by yarn) */
   linkerMode?: 'node-modules' | 'pnp';

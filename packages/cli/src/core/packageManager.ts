@@ -5,10 +5,30 @@ import type { Hai3Config, PackageManager } from './types.js';
 export const SUPPORTED_PACKAGE_MANAGERS: PackageManager[] = ['npm', 'pnpm', 'yarn'];
 export const DEFAULT_PACKAGE_MANAGER: PackageManager = 'npm';
 
-const DEFAULT_VERSIONS: Record<PackageManager, string> = {
-  npm: '11.0.0',
-  pnpm: '9.0.0',
-  yarn: '4.0.0',
+interface PackageManagerPolicy {
+  /**
+   * Default exact PM version written to package.json.packageManager.
+   */
+  defaultVersion: string;
+  /**
+   * Minimum supported PM range written to package.json.engines.
+   */
+  minEngine: string;
+}
+
+export const PACKAGE_MANAGER_POLICY: Record<PackageManager, PackageManagerPolicy> = {
+  npm: {
+    defaultVersion: '11.0.0',
+    minEngine: '>=10.0.0',
+  },
+  pnpm: {
+    defaultVersion: '10.0.0',
+    minEngine: '>=10.0.0',
+  },
+  yarn: {
+    defaultVersion: '4.0.0',
+    minEngine: '>=4.0.0',
+  },
 };
 
 export interface PackageManagerContext {
@@ -39,34 +59,55 @@ export function parsePackageManagerField(value: string | undefined): PackageMana
 
 export function packageManagerFieldValue(
   manager: PackageManager,
-  version: string = DEFAULT_VERSIONS[manager]
+  version: string = PACKAGE_MANAGER_POLICY[manager].defaultVersion
 ): string {
   return `${manager}@${version}`;
+}
+
+export function getPackageManagerEngineRange(manager: PackageManager): string {
+  return PACKAGE_MANAGER_POLICY[manager].minEngine;
+}
+
+export function getPackageManagerEngines(
+  manager: PackageManager,
+  nodeRange: string
+): Record<string, string> {
+  return {
+    node: nodeRange,
+    [manager]: getPackageManagerEngineRange(manager),
+  };
 }
 
 export async function detectPackageManager(
   projectRoot: string,
   config?: Hai3Config | null
 ): Promise<PackageManagerContext> {
+  const packageJsonPath = path.join(projectRoot, 'package.json');
+  let packageJsonContext: PackageManagerContext | null = null;
+
+  if (await fs.pathExists(packageJsonPath)) {
+    try {
+      const packageJson = await fs.readJson(packageJsonPath);
+      packageJsonContext = parsePackageManagerField(packageJson.packageManager);
+    } catch {
+      // Fall through to other sources.
+    }
+  }
+
   if (config?.packageManager && isSupportedPackageManager(config.packageManager)) {
     return {
       manager: config.packageManager,
-      version: config.packageManagerVersion,
+      version:
+        config.packageManagerVersion ??
+        (packageJsonContext?.manager === config.packageManager
+          ? packageJsonContext.version
+          : undefined),
       linkerMode: config.linkerMode,
     };
   }
 
-  const packageJsonPath = path.join(projectRoot, 'package.json');
-  if (await fs.pathExists(packageJsonPath)) {
-    try {
-      const packageJson = await fs.readJson(packageJsonPath);
-      const fromField = parsePackageManagerField(packageJson.packageManager);
-      if (fromField) {
-        return fromField;
-      }
-    } catch {
-      // Fall through to default.
-    }
+  if (packageJsonContext) {
+    return packageJsonContext;
   }
 
   return { manager: DEFAULT_PACKAGE_MANAGER };

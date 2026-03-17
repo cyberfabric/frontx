@@ -10,6 +10,7 @@ import type {
 } from '../core/types.js';
 import {
   DEFAULT_PACKAGE_MANAGER,
+  getPackageManagerEngines,
   getManagerWorkspaceFiles,
   getWorkspaceRunScriptCommand,
   packageManagerFieldValue,
@@ -374,7 +375,6 @@ export async function generateProject(
     layer,
     uikit,
     packageManager,
-    packageManagerVersion: packageManagerFieldValue(packageManager).split('@')[1],
     ...(packageManager === 'yarn' ? { linkerMode: 'node-modules' as const } : {}),
   };
   files.push({
@@ -455,12 +455,7 @@ export async function generateProject(
     private: true,
     type: 'module',
     packageManager: packageManagerFieldValue(packageManager),
-    engines: {
-      node: '>=24.14.0',
-      ...(packageManager === 'npm' ? { npm: '>=11.0.0' } : {}),
-      ...(packageManager === 'pnpm' ? { pnpm: '>=9.0.0' } : {}),
-      ...(packageManager === 'yarn' ? { yarn: '>=4.0.0' } : {}),
-    },
+    engines: getPackageManagerEngines(packageManager, '>=24.14.0'),
     workspaces: ['eslint-plugin-local'],
     scripts: {
       'generate:mfe-manifests': 'tsx scripts/generate-mfe-manifests.ts',

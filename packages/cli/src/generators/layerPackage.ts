@@ -459,7 +459,6 @@ Apache-2.0
         hai3: true,
         layer,
         packageManager,
-        packageManagerVersion: packageManagerFieldValue(packageManager).split('@')[1],
       },
       null,
       2

@@ -19,9 +19,12 @@ export { validationOk, validationError } from './types.js';
 export {
   SUPPORTED_PACKAGE_MANAGERS,
   DEFAULT_PACKAGE_MANAGER,
+  PACKAGE_MANAGER_POLICY,
   isSupportedPackageManager,
   parsePackageManagerField,
   packageManagerFieldValue,
+  getPackageManagerEngineRange,
+  getPackageManagerEngines,
   detectPackageManager,
   getInstallCommand,
   getRunScriptCommand,

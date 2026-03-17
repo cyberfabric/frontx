@@ -17,6 +17,11 @@ const harness = createHarness('pr');
 // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-harness
 const skipInstall = shouldSkipInstall();
 const packageManager = process.env.CLI_E2E_PM || 'npm';
+const expectedManagerEngines = {
+  npm: '>=10.0.0',
+  pnpm: '>=10.0.0',
+  yarn: '>=4.0.0',
+};
 
 function runScriptArgs(scriptName) {
   if (packageManager === 'yarn') {
@@ -117,12 +122,21 @@ try {
     packageJson.packageManager?.startsWith(`${packageManager}@`),
     `Generated project must set packageManager to ${packageManager}`
   );
+  harness.assert(
+    packageJson.engines?.[packageManager] === expectedManagerEngines[packageManager],
+    `Generated project engines must require ${packageManager} ${expectedManagerEngines[packageManager]}`
+  );
   if (packageManager === 'pnpm') {
     harness.assertPathExists(path.join(projectRoot, 'pnpm-workspace.yaml'));
   }
   if (packageManager === 'yarn') {
     harness.assertPathExists(path.join(projectRoot, '.yarnrc.yml'));
   }
+  const hai3Config = harness.readJson(path.join(projectRoot, 'hai3.config.json'));
+  harness.assert(
+    !('packageManagerVersion' in hai3Config),
+    'Generated hai3.config.json must not include packageManagerVersion'
+  );
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-git-init-install
