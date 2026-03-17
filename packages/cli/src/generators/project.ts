@@ -2,7 +2,19 @@
 // @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
 import path from 'path';
 import fs from 'fs-extra';
-import type { GeneratedFile, Hai3Config, LayerType } from '../core/types.js';
+import type {
+  GeneratedFile,
+  Hai3Config,
+  LayerType,
+  PackageManager,
+} from '../core/types.js';
+import {
+  DEFAULT_PACKAGE_MANAGER,
+  getManagerWorkspaceFiles,
+  getWorkspaceRunScriptCommand,
+  packageManagerFieldValue,
+  transformPackageManagerText,
+} from '../core/packageManager.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
 
@@ -16,6 +28,8 @@ export interface ProjectGeneratorInput {
   studio: boolean;
   /** UIKit option: 'hai3' (default) or 'none' */
   uikit?: 'hai3' | 'none';
+  /** Package manager to configure generated project for */
+  packageManager?: PackageManager;
   /** Project layer (SDK architecture tier) */
   layer?: LayerType;
 }
@@ -50,6 +64,22 @@ async function readDirRecursive(
   return files;
 }
 
+function shouldTransformForPackageManager(filePath: string): boolean {
+  const textExtensions = new Set([
+    '.md',
+    '.mdc',
+    '.ts',
+    '.tsx',
+    '.js',
+    '.cjs',
+    '.mjs',
+    '.yaml',
+    '.yml',
+  ]);
+  const ext = path.extname(filePath);
+  return textExtensions.has(ext);
+}
+
 /**
  * Generate all files for a new HAI3 project
  * Combines template files with dynamically generated config files
@@ -57,7 +87,13 @@ async function readDirRecursive(
 export async function generateProject(
   input: ProjectGeneratorInput
 ): Promise<GeneratedFile[]> {
-  const { projectName, studio, uikit = 'hai3', layer = 'app' } = input;
+  const {
+    projectName,
+    studio,
+    uikit = 'hai3',
+    packageManager = DEFAULT_PACKAGE_MANAGER,
+    layer = 'app',
+  } = input;
   const templatesDir = getTemplatesDir();
   const files: GeneratedFile[] = [];
 
@@ -337,6 +373,9 @@ export async function generateProject(
     hai3: true,
     layer,
     uikit,
+    packageManager,
+    packageManagerVersion: packageManagerFieldValue(packageManager).split('@')[1],
+    ...(packageManager === 'yarn' ? { linkerMode: 'node-modules' as const } : {}),
   };
   files.push({
     path: 'hai3.config.json',
@@ -404,39 +443,47 @@ export async function generateProject(
     dependencies['@hai3/uikit'] = 'alpha';
   }
 
+  const workspaceBuildCommand = getWorkspaceRunScriptCommand(
+    packageManager,
+    'eslint-plugin-local',
+    'build'
+  );
+
   const packageJson = {
     name: projectName,
     version: '0.1.0',
     private: true,
     type: 'module',
+    packageManager: packageManagerFieldValue(packageManager),
     engines: {
       node: '>=24.14.0',
-      npm: '>=11.0.0',
+      ...(packageManager === 'npm' ? { npm: '>=11.0.0' } : {}),
+      ...(packageManager === 'pnpm' ? { pnpm: '>=9.0.0' } : {}),
+      ...(packageManager === 'yarn' ? { yarn: '>=4.0.0' } : {}),
     },
     workspaces: ['eslint-plugin-local'],
     scripts: {
-      'generate:mfe-manifests': 'npx tsx scripts/generate-mfe-manifests.ts',
+      'generate:mfe-manifests': 'tsx scripts/generate-mfe-manifests.ts',
       dev: uikit === 'hai3'
-        ? 'npm run generate:mfe-manifests && npm run generate:colors && vite'
-        : 'npm run generate:mfe-manifests && vite',
-      'dev:all': 'npm run generate:mfe-manifests && npx tsx scripts/dev-all.ts',
-      'check:mcp': 'npx tsx scripts/check-mcp.ts',
+        ? 'tsx scripts/generate-mfe-manifests.ts && tsx scripts/generate-colors.ts && vite'
+        : 'tsx scripts/generate-mfe-manifests.ts && vite',
+      'dev:all': 'tsx scripts/generate-mfe-manifests.ts && tsx scripts/dev-all.ts',
+      'check:mcp': 'tsx scripts/check-mcp.ts',
       build: uikit === 'hai3'
-        ? 'npm run generate:mfe-manifests && npm run generate:colors && vite build'
-        : 'npm run generate:mfe-manifests && vite build',
+        ? 'tsx scripts/generate-mfe-manifests.ts && tsx scripts/generate-colors.ts && vite build'
+        : 'tsx scripts/generate-mfe-manifests.ts && vite build',
       preview: 'vite preview',
-      lint: 'npm run build --workspace=eslint-plugin-local && eslint . --max-warnings 0',
+      lint: `${workspaceBuildCommand} && eslint . --max-warnings 0`,
       'type-check': uikit === 'hai3'
-        ? 'npm run generate:mfe-manifests && npm run generate:colors && tsc --noEmit'
-        : 'npm run generate:mfe-manifests && tsc --noEmit',
-      ...(uikit === 'hai3' && { 'generate:colors': 'npx tsx scripts/generate-colors.ts' }),
-      'arch:check': 'npx tsx scripts/test-architecture.ts',
-      'arch:deps':
-        'npx dependency-cruiser src/ --config .dependency-cruiser.cjs --output-type err-long',
-      'ai:sync': 'npx hai3 ai sync',
-      'prek:install': 'npx prek install',
-      'prek:run': 'npx prek run --all-files',
-      postinstall: 'npx prek install',
+        ? 'tsx scripts/generate-mfe-manifests.ts && tsx scripts/generate-colors.ts && tsc --noEmit'
+        : 'tsx scripts/generate-mfe-manifests.ts && tsc --noEmit',
+      ...(uikit === 'hai3' && { 'generate:colors': 'tsx scripts/generate-colors.ts' }),
+      'arch:check': 'tsx scripts/test-architecture.ts',
+      'arch:deps': 'dependency-cruiser src/ --config .dependency-cruiser.cjs --output-type err-long',
+      'ai:sync': 'hai3 ai sync',
+      'prek:install': 'prek install',
+      'prek:run': 'prek run --all-files',
+      postinstall: 'prek install',
     },
     dependencies,
     devDependencies,
@@ -446,7 +493,18 @@ export async function generateProject(
     path: 'package.json',
     content: JSON.stringify(packageJson, null, 2) + '\n',
   });
+
+  const workspaceFiles = getManagerWorkspaceFiles(packageManager);
+  files.push(...workspaceFiles);
   // @cpt-end:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-generate-package-json
+
+  // Rewrite npm-centric snippets in template-derived text files.
+  for (const file of files) {
+    if (!shouldTransformForPackageManager(file.path)) {
+      continue;
+    }
+    file.content = transformPackageManagerText(file.content, packageManager);
+  }
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-project:p1:inst-return-generated-files
   return files;

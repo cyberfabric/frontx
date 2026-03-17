@@ -6,6 +6,8 @@ import path from 'path';
 import fs from 'fs-extra';
 import lodash from 'lodash';
 import type { CommandDefinition } from '../../core/command.js';
+import type { PackageManager } from '../../core/types.js';
+import { detectPackageManager, getRunScriptCommand } from '../../core/packageManager.js';
 
 const { trim } = lodash;
 import { validationOk, validationError } from '../../core/types.js';
@@ -180,8 +182,10 @@ ${userRules}
 async function generateCopilotInstructions(
   projectRoot: string,
   userRules: string | null,
+  packageManager: PackageManager,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
+  const archCheckCommand = getRunScriptCommand(packageManager, 'arch:check');
   let content = `# HAI3 Development Guidelines for GitHub Copilot
 
 Always read \`.ai/GUIDELINES.md\` before making changes.
@@ -203,7 +207,7 @@ For detailed guidance, use these resources:
 3. **FORBIDDEN**: Direct slice dispatch from UI components
 4. **FORBIDDEN**: Hardcoded colors or inline styles
 5. **REQUIRED**: Use \`@hai3/uikit\` components for all UI
-6. **REQUIRED**: Run \`npm run arch:check\` before committing
+6. **REQUIRED**: Run \`${archCheckCommand}\` before committing
 
 ## Available Commands
 
@@ -566,6 +570,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     const tool = (args.tool ?? 'all') as AiTool;
     const detectPackages = args.detectPackages ?? false;
     const showDiff = args.diff ?? false;
+    const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
 
     if (showDiff) {
       logger.info('Showing diff of AI assistant configuration changes...');
@@ -640,7 +645,12 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     }
 
     if (tool === 'all' || tool === 'copilot') {
-      const result = await generateCopilotInstructions(projectRoot!, userRules, genOptions);
+      const result = await generateCopilotInstructions(
+        projectRoot!,
+        userRules,
+        packageManager,
+        genOptions
+      );
       if (result.changed) filesGenerated.push(result.file);
       if (!showDiff) {
         const copilotCount = await generateCopilotCommands(

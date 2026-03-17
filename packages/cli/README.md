@@ -56,14 +56,12 @@ Creates a new HAI3 project or SDK layer package with the specified name.
 - `--layer`, `-l` - Create a package for a specific SDK layer (`sdk`, `framework`, `react`)
 - `--uikit` - UI Kit to use (`hai3` or `custom`)
 - `--studio` / `--no-studio` - Include or exclude Studio package
-- `--no-git` - Skip git initialization
-- `--no-install` - Skip npm install
+- `--package-manager` - Package manager to use (`npm`, `pnpm`, `yarn`)
 
 **Interactive Options (when `--layer` not specified):**
 - UI Kit selection (HAI3 reference implementation or custom)
 - Development overlay inclusion (Studio package)
-- Git repository initialization
-- Automatic dependency installation
+- Package manager selection (`npm` default, `pnpm`, `yarn`)
 
 **Output (App Project - default):**
 - Fully configured Vite + React + TypeScript project

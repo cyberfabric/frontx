@@ -10,6 +10,8 @@
  */
 
 import { execSync } from 'child_process';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 
 interface Colors {
   red: string;
@@ -68,16 +70,43 @@ interface ArchCheck {
   description: string;
 }
 
+type PackageManager = 'npm' | 'pnpm' | 'yarn';
+
+function detectPackageManager(): PackageManager {
+  try {
+    const packageJson = JSON.parse(
+      readFileSync(join(process.cwd(), 'package.json'), 'utf-8')
+    ) as { packageManager?: string };
+    const managerId = packageJson.packageManager?.split('@')[0];
+    if (managerId === 'pnpm' || managerId === 'yarn') {
+      return managerId;
+    }
+  } catch {
+    // ignore and use default
+  }
+  return 'npm';
+}
+
+function runScriptCommand(packageManager: PackageManager, scriptName: string): string {
+  if (packageManager === 'yarn') {
+    return `yarn ${scriptName}`;
+  }
+  return `${packageManager} run ${scriptName}`;
+}
+
 /**
  * Standalone architecture checks
  * These run in all HAI3 projects (standalone and monorepo)
  */
-function getStandaloneChecks(): ArchCheck[] {
+function getStandaloneChecks(packageManager: PackageManager = detectPackageManager()): ArchCheck[] {
   return [
-    { command: 'npm run generate:colors', description: 'Generate theme colors' },
-    { command: 'npm run lint -- --max-warnings 0', description: 'ESLint rules' },
-    { command: 'npm run type-check', description: 'TypeScript type check' },
-    { command: 'npm run arch:deps', description: 'Dependency rules' },
+    { command: runScriptCommand(packageManager, 'generate:colors'), description: 'Generate theme colors' },
+    {
+      command: runScriptCommand(packageManager, 'lint'),
+      description: 'ESLint rules'
+    },
+    { command: runScriptCommand(packageManager, 'type-check'), description: 'TypeScript type check' },
+    { command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' },
   ];
 }
 
@@ -105,7 +134,11 @@ function runValidation(checks: ArchCheck[], title: string): ValidationResult {
  * Run standalone architecture validation
  */
 function validateArchitecture(): ValidationResult {
-  return runValidation(getStandaloneChecks(), 'HAI3 Architecture Validation');
+  const packageManager = detectPackageManager();
+  return runValidation(
+    getStandaloneChecks(packageManager),
+    `HAI3 Architecture Validation (${packageManager})`
+  );
 }
 
 function displayResults({ passed, total, success }: ValidationResult): void {

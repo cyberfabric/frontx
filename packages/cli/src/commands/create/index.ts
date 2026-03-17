@@ -3,7 +3,18 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
-import { validationOk, validationError, type LayerType } from '../../core/types.js';
+import {
+  validationOk,
+  validationError,
+  type LayerType,
+  type PackageManager,
+} from '../../core/types.js';
+import {
+  DEFAULT_PACKAGE_MANAGER,
+  getInstallCommand,
+  getRunScriptCommand,
+  isSupportedPackageManager,
+} from '../../core/packageManager.js';
 import { generateProject } from '../../generators/project.js';
 import { generateLayerPackage } from '../../generators/layerPackage.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
@@ -17,6 +28,7 @@ export interface CreateCommandArgs {
   projectName: string;
   studio?: boolean;
   uikit?: 'hai3' | 'none';
+  packageManager?: PackageManager;
   layer?: LayerType;
 }
 
@@ -64,6 +76,12 @@ export const createCommand: CommandDefinition<
       type: 'string',
       choices: ['sdk', 'framework', 'react', 'app'],
     },
+    {
+      name: 'package-manager',
+      description: 'Package manager to use',
+      type: 'string',
+      choices: ['npm', 'pnpm', 'yarn'],
+    },
   ],
 
   validate(args, ctx) {
@@ -91,6 +109,13 @@ export const createCommand: CommandDefinition<
       }
     }
     // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
+
+    if (args.packageManager && !isSupportedPackageManager(args.packageManager)) {
+      return validationError(
+        'INVALID_PACKAGE_MANAGER',
+        "Invalid package manager. Valid options: npm, pnpm, yarn"
+      );
+    }
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-name-validation
 
     // Check if directory exists
@@ -106,6 +131,7 @@ export const createCommand: CommandDefinition<
     const { logger, prompt } = ctx;
     const projectPath = path.join(ctx.cwd, args.projectName);
     const layer = args.layer ?? 'app';
+    let packageManager = args.packageManager ?? DEFAULT_PACKAGE_MANAGER;
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
     // Check for existing directory
@@ -138,6 +164,7 @@ export const createCommand: CommandDefinition<
       const files = await generateLayerPackage({
         packageName: args.projectName,
         layer,
+        packageManager,
       });
 
       // Write files
@@ -162,8 +189,8 @@ export const createCommand: CommandDefinition<
       logger.newline();
       logger.log('Next steps:');
       logger.log(`  cd ${args.projectName}`);
-      logger.log('  npm install');
-      logger.log('  npm run build');
+      logger.log(`  ${getInstallCommand(packageManager)}`);
+      logger.log(`  ${getRunScriptCommand(packageManager, 'build')}`);
       logger.newline();
       logger.log(`This is a ${layer}-layer package.`);
       logger.log('See .ai/GUIDELINES.md for layer-specific rules.');
@@ -215,10 +242,25 @@ export const createCommand: CommandDefinition<
     }
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
 
+    if (args.packageManager === undefined) {
+      promptQuestions.push({
+        name: 'packageManager',
+        type: 'list' as const,
+        message: 'Select package manager:',
+        choices: [
+          { name: 'npm (default)', value: 'npm' },
+          { name: 'pnpm', value: 'pnpm' },
+          { name: 'yarn', value: 'yarn' },
+        ],
+        default: DEFAULT_PACKAGE_MANAGER,
+      });
+    }
+
     if (promptQuestions.length > 0) {
       const answers = await prompt<{
         studio?: boolean;
         uikit?: 'hai3' | 'none';
+        packageManager?: PackageManager;
       }>(promptQuestions);
 
       if (studio === undefined) {
@@ -226,6 +268,9 @@ export const createCommand: CommandDefinition<
       }
       if (uikit === undefined) {
         uikit = answers.uikit;
+      }
+      if (args.packageManager === undefined) {
+        packageManager = answers.packageManager ?? DEFAULT_PACKAGE_MANAGER;
       }
     }
 
@@ -239,6 +284,7 @@ export const createCommand: CommandDefinition<
       projectName: args.projectName,
       studio: studio!,
       uikit: uikit || 'hai3',
+      packageManager,
       layer,
     });
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
@@ -271,8 +317,8 @@ export const createCommand: CommandDefinition<
     logger.log('Next steps:');
     logger.log(`  cd ${args.projectName}`);
     logger.log('  git init');
-    logger.log('  npm install');
-    logger.log('  npm run dev');
+    logger.log(`  ${getInstallCommand(packageManager)}`);
+    logger.log(`  ${getRunScriptCommand(packageManager, 'dev')}`);
     logger.newline();
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
 

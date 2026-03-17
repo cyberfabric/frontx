@@ -6,6 +6,7 @@
  * Layer types for SDK architecture
  */
 export type LayerType = 'sdk' | 'framework' | 'react' | 'app';
+export type PackageManager = 'npm' | 'pnpm' | 'yarn';
 
 /**
  * HAI3 project configuration stored in hai3.config.json
@@ -18,6 +19,12 @@ export interface Hai3Config {
   layer?: LayerType;
   /** UI Kit selection: 'none' means no UIKit, any other string is the UIKit identifier */
   uikit?: string;
+  /** Selected package manager for this project */
+  packageManager?: PackageManager;
+  /** Optional package manager version recorded at project creation */
+  packageManagerVersion?: string;
+  /** Optional linker mode (used by yarn) */
+  linkerMode?: 'node-modules' | 'pnp';
 }
 
 /**

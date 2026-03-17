@@ -7,6 +7,12 @@ import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError } from '../../core/types.js';
 import { syncTemplates } from '../../core/templates.js';
+import {
+  DEFAULT_PACKAGE_MANAGER,
+  detectPackageManager,
+  getAddPackagesCommand,
+  getGlobalInstallCommand,
+} from '../../core/packageManager.js';
 import { aiSyncCommand } from '../ai/sync.js';
 
 /**
@@ -115,6 +121,9 @@ export const updateCommand: CommandDefinition<
 
   async execute(args, ctx): Promise<UpdateCommandResult> {
     const { logger, projectRoot } = ctx;
+    const packageManagerCtx = projectRoot
+      ? await detectPackageManager(projectRoot, ctx.config)
+      : { manager: DEFAULT_PACKAGE_MANAGER };
 
     let cliUpdated = false;
     let projectUpdated = false;
@@ -148,9 +157,21 @@ export const updateCommand: CommandDefinition<
       // Update CLI
       logger.info('Checking for CLI updates...');
       try {
-        execSync(`npm install -g @hai3/cli${tag}`, { stdio: 'pipe' });
-        cliUpdated = true;
-        logger.success(`@hai3/cli updated (${channel})`);
+        const cliUpdateTarget = `@hai3/cli${tag}`;
+        const globalInstallCmd = getGlobalInstallCommand(
+          packageManagerCtx.manager,
+          cliUpdateTarget
+        );
+
+        if (!globalInstallCmd) {
+          logger.warn(
+            `Global CLI update is not supported for ${packageManagerCtx.manager}. Skipping global update.`
+          );
+        } else {
+          execSync(globalInstallCmd, { stdio: 'pipe' });
+          cliUpdated = true;
+          logger.success(`@hai3/cli updated (${channel})`);
+        }
       } catch {
         logger.info('@hai3/cli is already up to date');
       }
@@ -186,7 +207,10 @@ export const updateCommand: CommandDefinition<
           try {
             // Install each package with the appropriate tag
             const packagesWithTag = packagesToUpdate.map(pkg => `${pkg}${tag}`);
-            const updateCmd = `npm install ${packagesWithTag.join(' ')}`;
+            const updateCmd = getAddPackagesCommand(
+              packageManagerCtx.manager,
+              packagesWithTag
+            );
             execSync(updateCmd, { cwd: projectRoot, stdio: 'inherit' });
             projectUpdated = true;
             updatedPackages.push(...packagesToUpdate);
@@ -225,6 +249,9 @@ export const updateCommand: CommandDefinition<
         for (const file of synced) {
           logger.info(`  - ${file}`);
         }
+        logger.info(
+          `Tip: run \`${packageManagerCtx.manager} install\` to refresh workspace dependencies after template sync.`
+        );
       } else {
         logger.info('Templates are already up to date');
       }

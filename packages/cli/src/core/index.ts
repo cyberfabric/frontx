@@ -5,6 +5,7 @@
 export type { CommandContext, CommandDefinition } from './command.js';
 export type {
   Hai3Config,
+  PackageManager,
   ScreensetCategory,
   ArgDefinition,
   OptionDefinition,
@@ -15,6 +16,22 @@ export type {
   GeneratedFile,
 } from './types.js';
 export { validationOk, validationError } from './types.js';
+export {
+  SUPPORTED_PACKAGE_MANAGERS,
+  DEFAULT_PACKAGE_MANAGER,
+  isSupportedPackageManager,
+  parsePackageManagerField,
+  packageManagerFieldValue,
+  detectPackageManager,
+  getInstallCommand,
+  getRunScriptCommand,
+  getWorkspaceRunScriptCommand,
+  getExecCommand,
+  getAddPackagesCommand,
+  getGlobalInstallCommand,
+  getManagerWorkspaceFiles,
+  transformPackageManagerText,
+} from './packageManager.js';
 export { Logger } from './logger.js';
 export type { PromptFn, PromptQuestion } from './prompt.js';
 export { createInteractivePrompt, createProgrammaticPrompt } from './prompt.js';

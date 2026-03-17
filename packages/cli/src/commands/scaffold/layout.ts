@@ -3,6 +3,10 @@
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError } from '../../core/types.js';
+import {
+  detectPackageManager,
+  getAddPackagesCommand,
+} from '../../core/packageManager.js';
 import { copyLayoutTemplates } from '../../generators/layoutFromTemplate.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
 
@@ -91,8 +95,10 @@ export const scaffoldLayoutCommand: CommandDefinition<
     }
     logger.newline();
 
+    const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
+
     logger.info('Note: Make sure @hai3/uikit is installed:');
-    logger.log('  npm install @hai3/uikit');
+    logger.log(`  ${getAddPackagesCommand(packageManager, ['@hai3/uikit'])}`);
     logger.newline();
 
     const layoutPath = path.join(projectRoot!, 'src', 'app', 'layout');

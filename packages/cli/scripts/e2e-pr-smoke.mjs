@@ -16,6 +16,24 @@ import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
 const harness = createHarness('pr');
 // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-harness
 const skipInstall = shouldSkipInstall();
+const packageManager = process.env.CLI_E2E_PM || 'npm';
+
+function runScriptArgs(scriptName) {
+  if (packageManager === 'yarn') {
+    return [scriptName];
+  }
+  return ['run', scriptName];
+}
+
+function installArgs() {
+  if (packageManager === 'npm') {
+    return ['install', '--no-audit', '--no-fund'];
+  }
+  if (packageManager === 'pnpm') {
+    return ['install', '--no-frozen-lockfile'];
+  }
+  return ['install'];
+}
 
 function runProjectValidation(projectRoot) {
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-validate-clean
@@ -68,7 +86,16 @@ try {
     name: 'create-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'smoke-app', '--no-studio', '--uikit', 'hai3'],
+    args: [
+      CLI_ENTRY,
+      'create',
+      'smoke-app',
+      '--no-studio',
+      '--uikit',
+      'hai3',
+      '--package-manager',
+      packageManager,
+    ],
   });
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-app
 
@@ -86,6 +113,16 @@ try {
     packageJson.engines?.node === '>=24.14.0',
     'Generated project must pin node >=24.14.0'
   );
+  harness.assert(
+    packageJson.packageManager?.startsWith(`${packageManager}@`),
+    `Generated project must set packageManager to ${packageManager}`
+  );
+  if (packageManager === 'pnpm') {
+    harness.assertPathExists(path.join(projectRoot, 'pnpm-workspace.yaml'));
+  }
+  if (packageManager === 'yarn') {
+    harness.assertPathExists(path.join(projectRoot, '.yarnrc.yml'));
+  }
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-git-init-install
@@ -98,10 +135,10 @@ try {
     });
 
     harness.runStep({
-      name: 'npm-install',
+      name: `${packageManager}-install`,
       cwd: projectRoot,
-      command: 'npm',
-      args: ['install', '--no-audit', '--no-fund'],
+      command: packageManager,
+      args: installArgs(),
     });
     // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-git-init-install
 
@@ -109,19 +146,19 @@ try {
     harness.runStep({
       name: 'build-generated-project',
       cwd: projectRoot,
-      command: 'npm',
-      args: ['run', 'build'],
+      command: packageManager,
+      args: runScriptArgs('build'),
     });
 
     harness.runStep({
       name: 'type-check-generated-project',
       cwd: projectRoot,
-      command: 'npm',
-      args: ['run', 'type-check'],
+      command: packageManager,
+      args: runScriptArgs('type-check'),
     });
     // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-build-typecheck
   } else {
-    harness.log('Skipping npm install/build/type-check');
+    harness.log(`Skipping ${packageManager} install/build/type-check`);
   }
 
   runProjectValidation(projectRoot);

@@ -63,10 +63,38 @@ try {
     name: 'create-hai3-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'hai3'],
+    args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'hai3', '--package-manager', 'npm'],
   });
   maybeInstallAndCheck(appRoot, true);
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
+
+  const pnpmRoot = path.join(workspace, 'nightly-pnpm');
+  harness.runStep({
+    name: 'create-pnpm-app',
+    cwd: workspace,
+    command: 'node',
+    args: [CLI_ENTRY, 'create', 'nightly-pnpm', '--no-studio', '--uikit', 'hai3', '--package-manager', 'pnpm'],
+  });
+  const pnpmPackageJson = harness.readJson(path.join(pnpmRoot, 'package.json'));
+  harness.assert(
+    pnpmPackageJson.packageManager?.startsWith('pnpm@'),
+    'pnpm app should set packageManager to pnpm'
+  );
+  harness.assertPathExists(path.join(pnpmRoot, 'pnpm-workspace.yaml'));
+
+  const yarnRoot = path.join(workspace, 'nightly-yarn');
+  harness.runStep({
+    name: 'create-yarn-app',
+    cwd: workspace,
+    command: 'node',
+    args: [CLI_ENTRY, 'create', 'nightly-yarn', '--no-studio', '--uikit', 'hai3', '--package-manager', 'yarn'],
+  });
+  const yarnPackageJson = harness.readJson(path.join(yarnRoot, 'package.json'));
+  harness.assert(
+    yarnPackageJson.packageManager?.startsWith('yarn@'),
+    'yarn app should set packageManager to yarn'
+  );
+  harness.assertPathExists(path.join(yarnRoot, '.yarnrc.yml'));
 
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
   harness.runStep({
@@ -106,7 +134,7 @@ try {
     name: 'create-custom-app',
     cwd: workspace,
     command: 'node',
-    args: [CLI_ENTRY, 'create', 'nightly-custom', '--no-studio', '--uikit', 'none'],
+    args: [CLI_ENTRY, 'create', 'nightly-custom', '--no-studio', '--uikit', 'none', '--package-manager', 'npm'],
   });
   const customPackageJson = harness.readJson(path.join(customRoot, 'package.json'));
   harness.assert(

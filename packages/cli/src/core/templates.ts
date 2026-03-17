@@ -21,6 +21,10 @@ import {
   isTargetApplicableToLayer,
   type LayerType,
 } from './layers.js';
+import {
+  detectPackageManager,
+  transformPackageManagerText,
+} from './packageManager.js';
 
 /**
  * Items to EXCLUDE from template sync (internal CLI files only)
@@ -48,6 +52,50 @@ export interface TemplateLogger {
   warn?: (msg: string) => void;
 }
 
+function shouldTransformFile(filePath: string): boolean {
+  const ext = path.extname(filePath);
+  const textExtensions = new Set([
+    '.md',
+    '.mdc',
+    '.ts',
+    '.tsx',
+    '.js',
+    '.cjs',
+    '.mjs',
+    '.yaml',
+    '.yml',
+  ]);
+  return textExtensions.has(ext);
+}
+
+async function transformPathForPackageManager(
+  targetPath: string,
+  manager: 'npm' | 'pnpm' | 'yarn'
+): Promise<void> {
+  if (!(await fs.pathExists(targetPath))) {
+    return;
+  }
+
+  const stats = await fs.stat(targetPath);
+  if (stats.isDirectory()) {
+    const entries = await fs.readdir(targetPath);
+    for (const entry of entries) {
+      await transformPathForPackageManager(path.join(targetPath, entry), manager);
+    }
+    return;
+  }
+
+  if (!shouldTransformFile(targetPath)) {
+    return;
+  }
+
+  const content = await fs.readFile(targetPath, 'utf-8');
+  const transformed = transformPackageManagerText(content, manager);
+  if (transformed !== content) {
+    await fs.writeFile(targetPath, transformed);
+  }
+}
+
 /**
  * Sync a directory, preserving user content in specific subdirectories
  *
@@ -59,6 +107,13 @@ async function syncDirectory(
   destDir: string,
   relativePath: string
 ): Promise<void> {
+  const variantAppFiles = new Set([
+    'App.no-studio.tsx',
+    'App.no-uikit.tsx',
+    'App.no-uikit.no-studio.tsx',
+    'main.no-uikit.tsx',
+  ]);
+
   // Special handling for src/screensets/ - preserve user screensets
   if (relativePath === 'src/screensets' || relativePath === 'src\\screensets') {
     await fs.ensureDir(destDir);
@@ -113,6 +168,16 @@ async function syncDirectory(
     const entries = await fs.readdir(srcDir, { withFileTypes: true });
 
     for (const entry of entries) {
+      // Template variant files are only used during project generation and
+      // must never be synced into existing projects.
+      if (
+        (relativePath === 'src/app' || relativePath === 'src\\app') &&
+        entry.isFile() &&
+        variantAppFiles.has(entry.name)
+      ) {
+        continue;
+      }
+
       const srcPath = path.join(srcDir, entry.name);
       const destPath = path.join(destDir, entry.name);
       const subRelativePath = path.join(relativePath, entry.name);
@@ -122,6 +187,16 @@ async function syncDirectory(
       } else {
         // Files in src/ root (like main.tsx, App.tsx) are replaced
         await fs.copy(srcPath, destPath, { overwrite: true });
+      }
+    }
+
+    // Remove stale template-variant files that may have been synced previously.
+    if (relativePath === 'src/app' || relativePath === 'src\\app') {
+      for (const variantFile of variantAppFiles) {
+        const variantPath = path.join(destDir, variantFile);
+        if (await fs.pathExists(variantPath)) {
+          await fs.remove(variantPath);
+        }
       }
     }
     return;
@@ -193,6 +268,11 @@ export async function syncTemplates(
     } catch (err) {
       logger.info(`  Warning: Could not sync ${name}: ${err}`);
     }
+  }
+
+  const packageManager = (await detectPackageManager(projectRoot)).manager;
+  for (const syncedPath of synced) {
+    await transformPathForPackageManager(path.join(projectRoot, syncedPath), packageManager);
   }
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-return-synced-dirs

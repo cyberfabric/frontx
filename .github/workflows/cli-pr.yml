@@ -14,6 +14,10 @@ concurrency:
 jobs:
   cli-pr-e2e:
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        package-manager: [npm, pnpm, yarn]
 
     steps:
       - name: Checkout code
@@ -28,6 +32,9 @@ jobs:
       - name: Enable Corepack
         run: corepack enable
 
+      - name: Activate test package manager
+        run: corepack prepare ${{ matrix.package-manager }}@latest --activate
+
       - name: Install dependencies
         run: npm ci
 
@@ -38,11 +45,12 @@ jobs:
         run: npm run test:e2e:pr --workspace=@hai3/cli
         env:
           CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/pr
+          CLI_E2E_PM: ${{ matrix.package-manager }}
 
       - name: Upload CLI E2E artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: cli-pr-e2e-logs
+          name: cli-pr-e2e-logs-${{ matrix.package-manager }}
           path: .artifacts/cli-e2e/pr
           retention-days: 14
