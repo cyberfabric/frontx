@@ -32,7 +32,7 @@ function installArgs() {
   if (packageManager === 'pnpm') {
     return ['install', '--no-frozen-lockfile'];
   }
-  return ['install'];
+  return ['install', '--no-immutable'];
 }
 
 function runProjectValidation(projectRoot) {
