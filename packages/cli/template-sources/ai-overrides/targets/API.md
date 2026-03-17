@@ -8,12 +8,14 @@
 - One domain service per backend domain (no entity-based services).
 - Services self-register using apiRegistry.register(...).
 - All calls go through typed service methods (no raw get("/url")).
-- Mock data lives in the app layer and is wired via apiRegistry.initialize().
-- All services extend BaseApiService and update ApiServicesMap via module augmentation.
+- Mock data lives in the app layer and is wired via protocol-specific mock plugins.
+- All services extend BaseApiService.
+- Cached reads and writes use explicit descriptor contracts such as `RestEndpointProtocol.query()` / `queryWith()` / `mutation()`.
+- SSE streams use explicit stream contracts such as `SseStreamProtocol.stream()`.
 
 ## USAGE RULES
-- Access only via apiRegistry.getService(DOMAIN).methodName().
-- Type inference must originate from ApiServicesMap.
+- Access only via `apiRegistry.getService(ServiceClass)`.
+- Type inference must originate from the service class constructor reference.
 - No direct axios or fetch usage outside BaseApiService.
 
 ## MOCK DATA RULES
@@ -30,6 +32,6 @@
 ## PRE-DIFF CHECKLIST
 - [ ] Domain constant created.
 - [ ] BaseApiService extended with baseURL.
-- [ ] ApiServicesMap augmented.
-- [ ] App mocks added and exported.
+- [ ] Descriptor contracts registered where cached endpoints are exposed.
+- [ ] App mocks added and exported via protocol-specific mock plugins.
 - [ ] No raw get("/url") calls.

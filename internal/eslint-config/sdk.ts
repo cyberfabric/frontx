@@ -23,7 +23,7 @@ export const sdkConfig: ConfigArray = [
           patterns: [
             {
               group: ['@cyberfabric/*'],
-              message: 'SDK VIOLATION: SDK packages cannot import other @hai3 packages. SDK packages must have ZERO @cyberfabric dependencies.',
+              message: 'SDK VIOLATION: SDK packages cannot import other @cyberfabric packages. SDK packages must have ZERO @cyberfabric dependencies.',
             },
             {
               group: ['react', 'react-dom', 'react/*'],

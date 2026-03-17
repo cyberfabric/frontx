@@ -62,8 +62,11 @@ export abstract class ActionHandler {
    * @returns Promise that resolves when action is handled
    */
   abstract handleAction(
+    
     actionTypeId: string,
+   
     payload: Record<string, unknown> | undefined
+  
   ): Promise<void>;
 }
 

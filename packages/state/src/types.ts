@@ -7,7 +7,8 @@
  * SDK Layer: L1 (Only peer dependency on @reduxjs/toolkit)
  */
 
-import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
+import type { Dispatch, PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
+import type { Observable } from 'redux';
 
 // ============================================================================
 // Reducer Payload Type (Renamed from PayloadAction)
@@ -263,9 +264,10 @@ export interface RootState {
 /**
  * App Dispatch Type
  * The dispatch function type for the FrontX store.
- * Supports plain actions (not thunks - FrontX uses event-driven pattern instead).
+ * Aliases Redux `Dispatch<UnknownAction>` so `HAI3Store` is structurally compatible with
+ * `Store` (e.g. react-redux `Provider`) while keeping the same call shape for effects.
  */
-export type AppDispatch = (action: UnknownAction) => UnknownAction;
+export type AppDispatch = Dispatch<UnknownAction>;
 
 // ============================================================================
 // Slice Types
@@ -372,6 +374,8 @@ export interface HAI3Store<TState = RootState> {
   subscribe: (listener: () => void) => () => void;
   /** Replace the root reducer */
   replaceReducer: (nextReducer: Reducer<TState>) => void;
+  /** Redux observable interop (required for react-redux `Provider` typing) */
+  [Symbol.observable](): Observable<TState>;
 }
 
 // ============================================================================

@@ -9,6 +9,12 @@ export { i18n } from './i18n';
 export { effects } from './effects';
 export { mock, type MockPluginConfig } from './mock';
 export {
+  queryCache,
+  queryCacheShared,
+  subscribeQueryCacheRuntimeChanged,
+  type QueryCacheConfig,
+} from './queryCache';
+export {
   microfrontends,
   // MFE actions
   loadExtension,

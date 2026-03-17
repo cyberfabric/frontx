@@ -1,9 +1,14 @@
 import React from 'react';
 import type { ChildMfeBridge } from '@cyberfabric/react';
-import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
+import { ThemeAwareReactLifecycle } from '@cyberfabric/react';
+import { mfeApp } from './init';
 import { UIKitElementsScreen } from './screens/uikit/UIKitElementsScreen';
 
 class UIKitElementsLifecycle extends ThemeAwareReactLifecycle {
+  constructor() {
+    super(mfeApp);
+  }
+
   protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
     return <UIKitElementsScreen bridge={bridge} />;
   }

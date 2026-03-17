@@ -1,44 +1,19 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@cyberfabric/react';
-import { Toaster } from '@/app/components/ui/sonner';
-import { AccountsApiService } from '@/app/api';
+import { HAI3Provider } from '@cyberfabric/react';
+import { Toaster } from 'sonner';
 import './globals.css'; // Global styles with CSS variables
-import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
-import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';
+import { app } from './initApp';
 
 // Import all themes
+// @ts-expect-error Theme modules are produced at scaffold from monorepo src/app/themes; missing in template-sources-only tree.
 import { DEFAULT_THEME_ID, defaultTheme } from '@/app/themes/default';
+// @ts-expect-error Theme modules are produced at scaffold from monorepo src/app/themes; missing in template-sources-only tree.
 import { darkTheme } from '@/app/themes/dark';
+// @ts-expect-error Theme modules are produced at scaffold from monorepo src/app/themes; missing in template-sources-only tree.
 import { lightTheme } from '@/app/themes/light';
-
-// Register application-specific GTS schemas before constructing the app.
-// These derived schemas encode application-level constraints (valid theme names,
-// supported languages, screen extension shape) and are not part of the core
-// type system in @cyberfabric/screensets.
-gtsPlugin.registerSchema(themeSchema);
-gtsPlugin.registerSchema(languageSchema);
-gtsPlugin.registerSchema(extensionScreenSchema);
-
-// Register accounts service (application-level service for user info)
-apiRegistry.register(AccountsApiService);
-
-// Initialize API services
-apiRegistry.initialize({});
-
-// Create FrontX app instance
-// Register MfeHandlerMF to enable Module Federation MFE loading
-const app = createHAI3App({
-  microfrontends: {
-    typeSystem: gtsPlugin,
-    mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
-  },
-});
-
-// Register app-level effects (pass store dispatch)
-registerBootstrapEffects(app.store.dispatch);
 
 // Register all themes (default theme has default:true, activates automatically)
 app.themeRegistry.register(defaultTheme);

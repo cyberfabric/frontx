@@ -29,9 +29,13 @@ export {
   layout,
   i18n,
   effects,
+  queryCache,
+  queryCacheShared,
+  subscribeQueryCacheRuntimeChanged,
   mock,
   microfrontends,
   type MockPluginConfig,
+  type QueryCacheConfig,
 } from './plugins';
 
 // MFE Plugin Exports
@@ -76,6 +80,7 @@ export {
 
 // MFE Types (re-exported from @cyberfabric/screensets for convenience)
 export type {
+  MfeMountContext,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -321,7 +326,9 @@ export {
   apiRegistry,
   BaseApiService,
   RestProtocol,
+  RestEndpointProtocol,
   SseProtocol,
+  SseStreamProtocol,
   // Protocol-specific mock plugins (replaces generic MockPlugin)
   RestMockPlugin,
   SseMockPlugin,
@@ -334,6 +341,7 @@ export {
   RestPluginWithConfig,
   SsePlugin,
   SsePluginWithConfig,
+  resetSharedFetchCache,
   // Type guards
   isShortCircuit,
   isRestShortCircuit,
@@ -372,6 +380,14 @@ export type {
   RestMockConfig,
   SseMockConfig,
   SseMockEvent,
+  // Endpoint descriptor types (consumed by useApiQuery / useApiMutation at L3)
+  EndpointOptions,
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  // Stream descriptor types (consumed by useApiStream at L3)
+  StreamDescriptor,
+  StreamStatus,
 } from '@cyberfabric/api';
 
 

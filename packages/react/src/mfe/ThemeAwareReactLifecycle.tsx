@@ -1,8 +1,72 @@
+// @cpt-flow:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2
+
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '@cyberfabric/react';
-import { HAI3Provider } from '@cyberfabric/react';
-import { mfeApp } from '../init';
+import type {
+  HAI3App,
+  MfeEntryLifecycle,
+  ChildMfeBridge,
+  MfeMountContext,
+} from '@cyberfabric/framework';
+import { HAI3Provider } from '../HAI3Provider';
+import { hasHAI3QueryClientActivator, resolveHAI3QueryClient } from '../queryClient';
+
+interface ProviderMountOptions {
+  mfeBridge?: {
+    bridge: ChildMfeBridge;
+    extensionId: string;
+    domainId: string;
+  };
+}
+
+function resolveProviderMountOptions(
+  app: HAI3App,
+  bridge: ChildMfeBridge,
+  mountContext?: MfeMountContext
+): ProviderMountOptions {
+  const extensionId = mountContext?.extensionId;
+  const domainId = mountContext?.domainId;
+  const isMountedMfe = typeof extensionId === 'string' && typeof domainId === 'string';
+
+  if (
+    isMountedMfe &&
+    !resolveHAI3QueryClient(app) &&
+    !hasHAI3QueryClientActivator(app)
+  ) {
+    throw new Error(
+      '[HAI3Provider] Mounted MFEs require queryCacheShared() in the child app and queryCache() in the host app before loading the MFE app.'
+    );
+  }
+
+  return {
+    mfeBridge:
+      isMountedMfe
+        ? { bridge, extensionId, domainId }
+        : undefined,
+  };
+}
+
+interface MountRuntimeAwareProviderProps {
+  readonly app: HAI3App;
+  readonly mfeBridge?: Readonly<{
+    readonly bridge: ChildMfeBridge;
+    readonly extensionId: string;
+    readonly domainId: string;
+  }>;
+  readonly children: React.ReactNode;
+}
+
+function MountRuntimeAwareProvider({
+  app,
+  mfeBridge,
+  children,
+}: Readonly<MountRuntimeAwareProviderProps>): React.JSX.Element {
+  return (
+    <HAI3Provider app={app} mfeBridge={mfeBridge}>
+      {children}
+    </HAI3Provider>
+  );
+}
 
 /**
  * Abstract base class for React-based MFE lifecycle implementations.
@@ -26,7 +90,9 @@ import { mfeApp } from '../init';
 export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
   private root: Root | null = null;
 
-  mount(container: Element | ShadowRoot, bridge: ChildMfeBridge): void {
+  constructor(private readonly app: HAI3App) { }
+
+  mount(container: Element | ShadowRoot, bridge: ChildMfeBridge, mountContext?: MfeMountContext): void {
     if (container instanceof ShadowRoot) {
       this.adoptHostStylesIntoShadowRoot(container);
     }
@@ -34,11 +100,15 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     this.injectBaseResets(container);
     this.initializeStyles(container);
 
+    const providerMountOptions = resolveProviderMountOptions(this.app, bridge, mountContext);
     this.root = createRoot(container);
     this.root.render(
-      <HAI3Provider app={mfeApp}>
+      <MountRuntimeAwareProvider
+        app={this.app}
+        mfeBridge={providerMountOptions.mfeBridge}
+      >
         {this.renderContent(bridge)}
-      </HAI3Provider>
+      </MountRuntimeAwareProvider>
     );
   }
 
@@ -55,16 +125,16 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
    */
   protected adoptHostStylesIntoShadowRoot(shadowRoot: ShadowRoot): void {
     const styleElements = document.head.querySelectorAll('style');
-    for (const el of styleElements) {
+    styleElements.forEach((el) => {
       const clone = document.createElement('style');
       clone.textContent = el.textContent ?? '';
       shadowRoot.appendChild(clone);
-    }
+    });
     const linkElements = document.head.querySelectorAll('link[rel="stylesheet"]');
-    for (const el of linkElements) {
+    linkElements.forEach((el) => {
       const clone = el.cloneNode(true) as HTMLLinkElement;
       shadowRoot.appendChild(clone);
-    }
+    });
   }
 
   /**
@@ -97,11 +167,11 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
   /**
    * Hook for subclasses to inject additional CSS not covered by the adopted host
    * stylesheet (e.g., MFE-specific @font-face rules or custom animations).
-   * No-op by default — Tailwind utilities are already provided by the host CSS.
+   * No-op by default: host styles adopted in adoptHostStylesIntoShadowRoot()
+   * already include all Tailwind utilities compiled from MFE source files.
    */
   protected initializeStyles(_container: Element | ShadowRoot): void {
-    // No-op: host styles adopted in adoptHostStylesIntoShadowRoot() already
-    // include all Tailwind utilities compiled from MFE source files.
+    // No-op by default.
   }
 
   /**

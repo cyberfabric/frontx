@@ -20,17 +20,56 @@
     "remoteEntry": "http://localhost:3001/assets/remoteEntry.js",
     "remoteName": "demoMfe",
     "sharedDependencies": [
-      { "name": "react", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react.js" },
-      { "name": "react-dom", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react-dom.js" },
-      { "name": "tailwindcss", "chunkPath": "__federation_shared_tailwindcss.js" },
-      { "name": "@cyberfabric/react", "chunkPath": "__federation_shared_@cyberfabric/react.js" },
-      { "name": "@cyberfabric/framework", "chunkPath": "__federation_shared_@cyberfabric/framework.js" },
-      { "name": "@cyberfabric/state", "chunkPath": "__federation_shared_@cyberfabric/state.js" },
-      { "name": "@cyberfabric/screensets", "chunkPath": "__federation_shared_@cyberfabric/screensets.js" },
-      { "name": "@cyberfabric/api", "chunkPath": "__federation_shared_@cyberfabric/api.js" },
-      { "name": "@cyberfabric/i18n", "chunkPath": "__federation_shared_@cyberfabric/i18n.js" },
-      { "name": "@reduxjs/toolkit", "chunkPath": "__federation_shared_@reduxjs/toolkit.js" },
-      { "name": "react-redux", "chunkPath": "__federation_shared_react-redux.js" }
+      {
+        "name": "react",
+        "requiredVersion": "^19.0.0",
+        "chunkPath": "__federation_shared_react.js"
+      },
+      {
+        "name": "react-dom",
+        "requiredVersion": "^19.0.0",
+        "chunkPath": "__federation_shared_react-dom.js"
+      },
+      {
+        "name": "tailwindcss",
+        "chunkPath": "__federation_shared_tailwindcss.js"
+      },
+      {
+        "name": "@cyberfabric/react",
+        "chunkPath": "__federation_shared_@cyberfabric/react.js"
+      },
+      {
+        "name": "@cyberfabric/framework",
+        "chunkPath": "__federation_shared_@cyberfabric/framework.js"
+      },
+      {
+        "name": "@cyberfabric/state",
+        "chunkPath": "__federation_shared_@cyberfabric/state.js"
+      },
+      {
+        "name": "@cyberfabric/screensets",
+        "chunkPath": "__federation_shared_@cyberfabric/screensets.js"
+      },
+      {
+        "name": "@cyberfabric/api",
+        "chunkPath": "__federation_shared_@cyberfabric/api.js"
+      },
+      {
+        "name": "@cyberfabric/i18n",
+        "chunkPath": "__federation_shared_@cyberfabric/i18n.js"
+      },
+      {
+        "name": "@tanstack/react-query",
+        "chunkPath": "__federation_shared_@tanstack/react-query.js"
+      },
+      {
+        "name": "@reduxjs/toolkit",
+        "chunkPath": "__federation_shared_@reduxjs/toolkit.js"
+      },
+      {
+        "name": "react-redux",
+        "chunkPath": "__federation_shared_react-redux.js"
+      }
     ]
   },
   "entries": [

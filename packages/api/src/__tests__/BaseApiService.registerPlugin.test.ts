@@ -4,6 +4,7 @@
  * Tests the generic plugin registration API used by framework for mock mode control.
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { BaseApiService } from '../BaseApiService';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { SseProtocol } from '../protocols/SseProtocol';

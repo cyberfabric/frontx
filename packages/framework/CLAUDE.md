@@ -50,13 +50,55 @@ const headlessApp = createHAI3()
 
 | Plugin | Provides | Dependencies |
 |--------|----------|--------------|
-| `screensets()` | screensetsRegistry (MFE-enabled), layout domain slices | - |
+| `screensets()` | `screenSlice` state, `setActiveScreen`, `setScreenLoading` | - |
 | `themes()` | themeRegistry, changeTheme action | - |
 | `layout()` | header, footer, menu, sidebar, popup, overlay state | screensets |
-| `microfrontends()` | MFE actions, selectors, domain constants | screensets |
+| `microfrontends()` | `screensetsRegistry` (MFE-enabled), MFE actions, selectors, domain constants | screensets |
 | `i18n()` | i18nRegistry, setLanguage action | - |
 | `effects()` | Core effect coordination | - |
+| `queryCache()` | Host-owned shared `QueryClient` lifecycle, Flux `cache/*` events, mock toggle + destroy cleanup, L1 `sharedFetchCache` retain/release and invalidation sync | - |
+| `queryCacheShared()` | Joins the host `QueryClient` from `queryCache()` for MFE / child roots (no second client) | host `queryCache()` runtime must exist |
 | `mock()` | mockSlice, toggleMockMode action | effects |
+
+### Query Cache Plugin
+
+The `queryCache()` plugin owns the shared **headless TanStack Query `QueryClient`** (`@tanstack/query-core` peer) and bridges it to L1 transport dedup: it **retains** the global `sharedFetchCache` from `@cyberfabric/api` for the app lifetime and **keeps it aligned** with Flux-driven cache events. It's included in the `full()` preset by default:
+
+```typescript
+import { createHAI3App } from '@cyberfabric/framework';
+
+// Full preset includes queryCache plugin automatically
+const app = createHAI3App();
+
+// The plugin attaches the shared QueryClient to the app for React bindings
+// and shared child roots via queryCacheShared().
+
+// Cache is cleared on mock mode toggle (query cache + shared fetch layer)
+// Flux effects can drive cache via eventBus, e.g.:
+//   eventBus.emit('cache/invalidate', { queryKey })
+//   eventBus.emit('cache/set', { queryKey, dataOrUpdater })
+//   eventBus.emit('cache/remove', { queryKey })
+```
+
+For custom plugin compositions:
+
+```typescript
+import { createHAI3, queryCache } from '@cyberfabric/framework';
+
+const app = createHAI3()
+  .use(queryCache({ staleTime: 60_000, gcTime: 600_000 }))
+  .build();
+```
+
+The plugin:
+- Creates or joins a shared `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`, `refetchOnWindowFocus`)
+- Calls `retainSharedFetchCache()` on init and `releaseSharedFetchCache()` after teardown on destroy (balances in-flight shared fetch retention)
+- On mock toggle: cancels queries, clears the shared `QueryClient`, then clears `peekSharedFetchCache()` when present
+- Subscribes to `cache/invalidate`, `cache/set`, and `cache/remove` — updates the shared `QueryClient` **and** mirrors invalidation to `sharedFetchCache` for matching keys (avoiding stale transport dedup vs React observers)
+- Attaches the shared `QueryClient` to each app instance so `@cyberfabric/react` can resolve it internally
+- On destroy: unsubscribes listeners, cancels and clears the client when the last retainer is released, then releases shared-fetch retention
+
+`@tanstack/query-core` is a peer dependency of `@cyberfabric/framework` (React bindings remain in `@cyberfabric/react`).
 
 ### Mock Mode Control
 
@@ -88,10 +130,10 @@ Services register mock plugins using `registerPlugin()` in their constructor. Th
 
 ### Built Application
 
-After calling `.build()`, access registries, actions, and the MFE-enabled screensetsRegistry:
+After calling `.build()`, access registries and actions through `app.*`. The MFE-enabled `screensetsRegistry` is available when the build includes `microfrontends()` (for example, `createHAI3App()`):
 
 ```typescript
-const app = createHAI3App();
+const app = createHAI3App(); // Full preset includes microfrontends()
 
 // Access MFE-enabled registry
 app.screensetsRegistry.registerDomain(screenDomain, containerProvider);
@@ -125,7 +167,7 @@ app.destroy();
 
 ## MFE Plugin
 
-The `microfrontends()` plugin provides MFE support:
+The `microfrontends()` plugin provides the MFE-enabled `screensetsRegistry` plus the MFE action surface:
 
 ### MFE Actions
 
@@ -259,7 +301,7 @@ export function myPlugin(): HAI3Plugin {
 3. **Dependencies are auto-resolved** - Plugin order doesn't matter
 4. **Access via app instance** - All registries and actions on `app.*`
 5. **NO React in this package** - Framework is headless, use @cyberfabric/react for React bindings
-6. **MFE is the primary architecture** - Use `screensetsRegistry` for domain/extension management
+6. **MFE is the primary architecture** - Use `screensetsRegistry` for domain/extension management when the app includes `microfrontends()`
 
 ## Re-exports
 
@@ -267,7 +309,7 @@ For convenience, this package re-exports from SDK packages:
 
 - From @cyberfabric/state: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`
 - From @cyberfabric/screensets: `LayoutDomain`, `ScreensetsRegistry`, `Extension`, `ScreenExtension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `ParentMfeBridge`, `ChildMfeBridge`, action/property constants, contracts/types
-- From @cyberfabric/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MOCK_PLUGIN`, `isMockPlugin`
+- From @cyberfabric/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MOCK_PLUGIN`, `isMockPlugin`, `StreamDescriptor`, `StreamStatus`
 - From @cyberfabric/i18n: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, `getLanguageMetadata`
 
 **Layout Slices (owned by @cyberfabric/framework):**
@@ -296,7 +338,7 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 - `presets` - Available presets (full, minimal, headless)
 
 ### Plugins
-- `screensets`, `themes`, `layout`, `microfrontends`, `i18n`, `effects`, `mock`
+- `screensets`, `themes`, `layout`, `microfrontends`, `i18n`, `effects`, `queryCache`, `queryCacheShared`, `mock`
 
 ### Registries
 - `createThemeRegistry` - Theme registry factory

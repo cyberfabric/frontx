@@ -185,29 +185,17 @@ describe('Extension Lifecycle Actions', () => {
       const container = document.createElement('div');
       mockContainerProvider.getContainer = vi.fn().mockReturnValue(container);
 
-      // Load first, then mount
       await registry.executeActionsChain({
-        action: {
-          type: HAI3_ACTION_LOAD_EXT,
-          target: toggleDomain.id,
-          payload: { subject: testExtension1.id },
-        },
+        action: { type: HAI3_ACTION_LOAD_EXT, target: toggleDomain.id, payload: { subject: testExtension1.id } },
       });
-
       await registry.executeActionsChain({
-        action: {
-          type: HAI3_ACTION_MOUNT_EXT,
-          target: toggleDomain.id,
-          payload: { subject: testExtension1.id },
-        },
+        action: { type: HAI3_ACTION_MOUNT_EXT, target: toggleDomain.id, payload: { subject: testExtension1.id } },
       });
 
       expect(registry.getMountedExtension(toggleDomain.id)).toBe(testExtension1.id);
     });
 
     it('should fail chain gracefully when mount payload is missing', async () => {
-      // Missing payload causes the handler to throw MfeError inside the mediator.
-      // registry.executeActionsChain() catches this and resolves (logs the error).
       registry.registerDomain(toggleDomain, mockContainerProvider);
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -216,7 +204,7 @@ describe('Extension Lifecycle Actions', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: toggleDomain.id,
-          // no payload
+          // no payload — handler logs MfeError and resolves
         },
       });
 

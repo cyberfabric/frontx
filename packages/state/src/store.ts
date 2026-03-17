@@ -6,7 +6,7 @@
  * - Dynamic slice registration (registerSlice)
  * - Type-safe state access via module augmentation
  *
- * SDK Layer: L1 (Zero @hai3 dependencies)
+ * SDK Layer: L1 (Zero @cyberfabric dependencies)
  */
 
 import {
@@ -73,11 +73,13 @@ export function createStore(
   });
 
   // Create typed wrapper - RootState is extended via module augmentation
+  const instance = storeInstance!;
   const store: HAI3Store<RootState> = {
-    getState: () => storeInstance!.getState() as RootState,
-    dispatch: storeInstance!.dispatch as AppDispatch,
-    subscribe: storeInstance!.subscribe,
-    replaceReducer: storeInstance!.replaceReducer as HAI3Store<RootState>['replaceReducer'],
+    getState: () => instance.getState() as RootState,
+    dispatch: instance.dispatch as AppDispatch,
+    subscribe: instance.subscribe,
+    replaceReducer: instance.replaceReducer as HAI3Store<RootState>['replaceReducer'],
+    [Symbol.observable]: () => instance[Symbol.observable](),
   };
 
   return store;
@@ -94,11 +96,13 @@ export function getStore(): HAI3Store<RootState> {
     return createStore();
   }
 
+  const instance = storeInstance!;
   return {
-    getState: () => storeInstance!.getState() as RootState,
-    dispatch: storeInstance.dispatch,
-    subscribe: storeInstance.subscribe,
-    replaceReducer: storeInstance.replaceReducer as HAI3Store<RootState>['replaceReducer'],
+    getState: () => instance.getState() as RootState,
+    dispatch: instance.dispatch,
+    subscribe: instance.subscribe,
+    replaceReducer: instance.replaceReducer as HAI3Store<RootState>['replaceReducer'],
+    [Symbol.observable]: () => instance[Symbol.observable](),
   };
 }
 

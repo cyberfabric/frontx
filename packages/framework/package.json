@@ -16,6 +16,11 @@
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
       "require": "./dist/types.cjs"
+    },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "require": "./dist/testing.cjs"
     }
   },
   "files": [
@@ -32,6 +37,7 @@
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
+    "@tanstack/query-core": "^5.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.2"
   },
@@ -39,7 +45,8 @@
     "@cyberfabric/state": "*",
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
-    "@cyberfabric/i18n": "*"
+    "@cyberfabric/i18n": "*",
+    "@tanstack/query-core": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@cyberfabric/state": {
@@ -52,6 +59,9 @@
       "optional": false
     },
     "@cyberfabric/i18n": {
+      "optional": false
+    },
+    "@tanstack/query-core": {
       "optional": false
     }
   },

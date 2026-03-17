@@ -15,6 +15,7 @@
   - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
+  - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle--query-integration--high)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -373,6 +374,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `updateSharedProperty()` global broadcast
   - GTS validation of shared property values
   - `setSharedProperty()` / `getSharedProperty()` bridge
+  - `queryCache()` plugin for host-owned shared `QueryClient` lifecycle, mock mode cache integration, and Flux cache invalidation; `queryCacheShared()` plugin so separately mounted child roots (including MFE apps) join the same host client without a second `QueryClient`
   - SDK re-exports for consumer convenience
 
 - **Out of scope**:
@@ -421,7 +423,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **API**:
   - `createHAI3()` / `.use()` / `.build()`
-  - `microfrontends()` / `themes()` / `i18n()` / `effects()` / `mock()` plugins
+  - `microfrontends()` / `themes()` / `i18n()` / `effects()` / `mock()` / `queryCache()` / `queryCacheShared()` plugins
   - `setSharedProperty()` / `getSharedProperty()`
   - `AppConfig` type
 
@@ -443,8 +445,9 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Scope**:
   - `HAI3Provider` root component (Redux store, i18n, theme, framework context)
-  - Typed hooks: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()`
-  - `MfeContainer` component with Shadow DOM wrapping
+  - Resolves the shared `QueryClient` from the app when built with `queryCache()` or `queryCacheShared()` (host vs child join path); does not instantiate its own TanStack client
+  - Typed hooks: `useHAI3()`, `useAppSelector()`, `useAppDispatch()`, `useTranslation()`, `useScreenTranslations()`, `useFormatters()`, `useTheme()`, `useMfeBridge()`, `useSharedProperty()`, `useHostAction()`, and related MFE hooks
+  - `ExtensionDomainSlot` host renderer with RefContainerProvider-backed container coordination
   - Per-MFE React error boundaries
   - Initialization sequence orchestration
   - Screen component with React.lazy() wrapping and Suspense fallback
@@ -477,10 +480,11 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-component-react`
 
 - **API**:
-  - `<HAI3Provider>`
-  - `<MfeContainer>`
+  - `<HAI3Provider>` (with optional internal query provider when `queryCache()` / `queryCacheShared()` registered)
+  - `<ExtensionDomainSlot>`
+  - `<RefContainerProvider>`
   - `<Screen>`
-  - `useSelector()` / `useDispatch()` / `useTranslation()` / `useSharedProperty()` / `useAction()`
+  - `useHAI3()` / `useAppSelector()` / `useAppDispatch()` / `useTranslation()` / `useScreenTranslations()` / `useFormatters()` / `useTheme()` / `useMfeBridge()` / `useSharedProperty()` / `useHostAction()` — plus descriptor-driven `useApiQuery()` / `useApiSuspenseQuery()` / `useApiInfiniteQuery()` / `useApiSuspenseInfiniteQuery()` / `useApiMutation()` / `useApiStream()` / `useQueryCache()` (see [2.12](#212-request-lifecycle--query-integration--high))
 
 - **Sequences**:
 
@@ -710,6 +714,92 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
+### 2.12 [Request Lifecycle & Query Integration](feature-request-lifecycle/) ⏳ HIGH
+
+- [x] `p2` - **ID**: `cpt-frontx-feature-request-lifecycle`
+
+- **Purpose**: Adds `AbortSignal`-based request cancellation to `RestProtocol` at L1, explicit declarative endpoint/stream contracts for library-agnostic caching at L1, a `queryCache()` / `queryCacheShared()` framework plugin pair at L2 (host owns the shared `QueryClient`; child roots join it), and descriptor-consuming hooks at L3 for declarative data fetching and mutations with automatic caching, deduplication, optimistic updates, and cache invalidation.
+
+- **Depends On**: `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-react-bindings`, `cpt-frontx-feature-framework-composition`
+
+- **Scope**:
+  - `AbortSignal` threading through `RestProtocol` and plugin chain
+  - `RestRequestOptions` pattern for HTTP method extensibility
+  - `CanceledError` detection and plugin chain bypass
+  - `EndpointDescriptor<TData>`, `MutationDescriptor<TData, TVariables>`, and `StreamDescriptor<TEvent>` types at L1 (`@cyberfabric/api`)
+  - `RestEndpointProtocol.query(path)`, `queryWith(pathFn)`, `mutation(method, path)`, and `SseStreamProtocol.stream(path)` — cache keys derived from `[baseURL, 'GET', path]` for static reads, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, and `[baseURL, 'SSE', path]` for streams
+  - `queryCache()` framework plugin at L2 — creates and owns the host shared `QueryClient`, handles `MockEvents.Toggle` cache clear, handles `cache/invalidate` / `cache/set` / `cache/remove` events from Flux effects, keeps the L1 `sharedFetchCache` in sync, and attaches the client to the app instance for internal React consumption
+  - `queryCacheShared()` framework plugin at L2 — required for separately mounted child roots (including MFE apps): joins the existing host `QueryClient` from `queryCache()` without creating a second client; may register before the host runtime and attach when the host initializes
+  - `HAI3Provider` resolves the shared `QueryClient` from the app instance for both `queryCache()` and `queryCacheShared()` compositions (not creating its own)
+  - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) accepts `EndpointDescriptor | QueryKey` — exposed via `useQueryCache()` and injected into mutation callbacks
+  - `useApiQuery(descriptor)` hook for declarative single-page reads — returns `ApiQueryResult<TData>` (HAI3-owned type)
+  - `useApiSuspenseQuery(descriptor)` hook for Suspense-driven single-page reads — returns `ApiSuspenseQueryResult<TData>` (HAI3-owned type)
+  - `useApiInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` hook for descriptor-driven paginated reads — returns `ApiInfiniteQueryResult<TPage>` (HAI3-owned type)
+  - `useApiSuspenseInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` hook for Suspense-driven paginated reads — returns `ApiSuspenseInfiniteQueryResult<TPage>` (HAI3-owned type)
+  - `useApiMutation({ endpoint, ... })` hook for declarative writes — returns `ApiMutationResult<TData>` (HAI3-owned type)
+  - `useApiStream(descriptor, options?)` hook for declarative SSE streaming — returns `ApiStreamResult<TEvent>` (HAI3-owned type) with `'latest'`/`'accumulate'` modes and automatic connect/disconnect lifecycle
+  - Event-based cache updates for L2 Flux effects (`cache/invalidate`, `cache/set`, and `cache/remove` handled by the host `queryCache()` plugin; joined child apps reuse the same client)
+  - Flux escape hatch for cross-feature orchestration
+
+- **Out of scope**:
+  - SSE-to-cache integration for query invalidation (known gap — event-based `cache/update` pattern deferred; `useApiStream` provides reactive state but does not write to `QueryCache` automatically)
+  - SSE cancellation (handled by `SseProtocol.disconnect()` and `useApiStream` unmount cleanup)
+  - Custom cache storage backends (TanStack Query uses in-memory cache)
+  - Server-side rendering / hydration support
+  - GraphQL protocol support (descriptors are protocol-agnostic by design but only REST is implemented)
+
+- **Requirements Covered**:
+
+  - `cpt-frontx-fr-sdk-api-package`
+  - `cpt-frontx-fr-sdk-react-layer`
+  - `cpt-frontx-fr-api-endpoint-descriptors`
+  - `cpt-frontx-fr-sse-stream-descriptors`
+  - `cpt-frontx-fr-framework-query-cache-plugin`
+
+- **Design Principles Covered**:
+
+  - `cpt-frontx-principle-layer-isolation` (descriptors at L1, `queryCache()` / `queryCacheShared()` plugins at L2, hooks at L3)
+
+- **Design Constraints Covered**:
+
+  - `cpt-frontx-constraint-no-react-below-l3`
+  - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+
+- **Domain Model Entities**:
+  - (No new domain entities — extends existing API and React layers)
+
+- **Design Components**:
+
+  - `cpt-frontx-component-api`
+  - `cpt-frontx-component-react`
+
+- **API**:
+  - `RestProtocol.get(url, { signal })` / `.post()` / `.put()` / `.patch()` / `.delete()`
+  - `RestEndpointProtocol.query<TData>(path, options?)` → `EndpointDescriptor<TData>` (always GET)
+  - `RestEndpointProtocol.queryWith<TData, TParams>(pathFn, options?)` → `ParameterizedEndpointDescriptor<TData, TParams>` (always GET)
+  - `RestEndpointProtocol.mutation<TData, TVariables>(method, path)` → `MutationDescriptor<TData, TVariables>`
+  - `SseStreamProtocol.stream<TEvent>(path, options?)` → `StreamDescriptor<TEvent>` — routes through `SseProtocol` plugin chain
+  - `queryCache(config?)` framework plugin — creates and owns the host shared `QueryClient`
+  - `queryCacheShared()` framework plugin — joins the host `QueryClient` for child roots (no second client; host `queryCache()` runtime must exist or attach when it appears)
+  - `useApiQuery(descriptor)` → `ApiQueryResult<TData>` — caching, dedup, cancel on unmount
+  - `useApiSuspenseQuery(descriptor)` → `ApiSuspenseQueryResult<TData>` — Suspense-driven reads with descriptor-based cancellation and refetch
+  - `useApiInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` → `ApiInfiniteQueryResult<TPage>` — paginated reads, adjacent-page descriptor resolution, cancel on unmount
+  - `useApiSuspenseInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` → `ApiSuspenseInfiniteQueryResult<TPage>` — Suspense-driven paginated reads with descriptor-based adjacent-page resolution
+  - `useApiMutation({ endpoint, onMutate, onSuccess, onError, onSettled })` → `ApiMutationResult<TData>` — callbacks receive `{ queryCache }`
+  - `useApiStream(descriptor, options?)` → `ApiStreamResult<TEvent>` — connect on mount, disconnect on unmount, `'latest'`/`'accumulate'` modes
+  - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor | QueryKey`
+  - Cache keys derived automatically: `[baseURL, 'GET', path]` for static reads, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, `[baseURL, 'SSE', path]` for streams — no manual key factories
+
+- **Sequences**:
+  - None
+
+- **Data**:
+  - N/A (client-side library)
+
+- **ADRs**:
+
+  - `cpt-frontx-adr-tanstack-query-data-management`
+
 ---
 
 ## 3. Feature Dependencies
@@ -732,7 +822,11 @@ cpt-frontx-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
     │                 api-communication, i18n-infrastructure
     │
     └─→ cpt-frontx-feature-react-bindings
-            requires: framework-composition
+    │       requires: framework-composition
+    │
+    └─→ cpt-frontx-feature-request-lifecycle
+            requires: api-communication, react-bindings,
+                      framework-composition
 ```
 
 **Dependency Rationale**:
@@ -740,5 +834,6 @@ cpt-frontx-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
 - `cpt-frontx-feature-mfe-isolation` requires `cpt-frontx-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
 - `cpt-frontx-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
 - `cpt-frontx-feature-react-bindings` requires `cpt-frontx-feature-framework-composition`: React layer consumes the built framework output
+- `cpt-frontx-feature-request-lifecycle` requires `cpt-frontx-feature-api-communication` (AbortSignal and descriptors at L1), `cpt-frontx-feature-framework-composition` (`queryCache()` / `queryCacheShared()` plugins at L2), and `cpt-frontx-feature-react-bindings` (TanStack Query hooks and provider resolution at L3)
 - `cpt-frontx-feature-ui-libraries-choice` requires `cpt-frontx-feature-cli-tooling`: CLI commands (`frontx create`, `frontx screenset`) implement the UI kit scaffolding
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

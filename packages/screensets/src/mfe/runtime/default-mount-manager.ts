@@ -10,7 +10,7 @@
 // @cpt-state:cpt-frontx-state-screenset-registry-extension-load:p1
 // @cpt-state:cpt-frontx-state-screenset-registry-extension-mount:p1
 
-import type { MfeHandler, ParentMfeBridge } from '../handler/types';
+import type { MfeHandler, MfeMountContext, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 import type { ActionHandler } from '../mediator/types';
 import type { ActionsChain } from '../types';
@@ -191,7 +191,10 @@ export class DefaultMountManager extends MountManager {
    * @returns Promise resolving to the parent bridge
    */
   // @cpt-begin:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
+  async mountExtension(
+    extensionId: string,
+    container: Element
+  ): Promise<ParentMfeBridge> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
     if (!extensionState) {
@@ -264,7 +267,7 @@ export class DefaultMountManager extends MountManager {
       // Store shadow root on extension state for unmount
       extensionState.shadowRoot = shadowRoot;
 
-      // Call lifecycle.mount(shadowRoot, childBridge) - pass shadow root instead of container
+      // Call lifecycle.mount(shadowRoot, childBridge, mountContext).
       const lifecycle = extensionState.lifecycle;
       if (!lifecycle) {
         throw new Error(
@@ -272,7 +275,11 @@ export class DefaultMountManager extends MountManager {
           `This should not happen - loadExtension should have cached the lifecycle.`
         );
       }
-      await lifecycle.mount(shadowRoot, childBridge);
+      const mountContext: MfeMountContext = {
+        extensionId,
+        domainId: extensionState.extension.domain,
+      };
+      await lifecycle.mount(shadowRoot, childBridge, mountContext);
 
       // Update state
       extensionState.bridge = parentBridge;

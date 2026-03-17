@@ -13,9 +13,13 @@
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-internal-dataflow:p1
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
 
-import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@cyberfabric/react';
-import { profileSlice } from './slices/profileSlice';
-import { initProfileEffects } from './effects/profileEffects';
+import {
+  createHAI3,
+  apiRegistry,
+  effects,
+  mock,
+  queryCacheShared,
+} from '@cyberfabric/react';
 import { AccountsApiService } from './api/AccountsApiService';
 
 // Register API services BEFORE build — mock plugin syncs during build(),
@@ -23,10 +27,8 @@ import { AccountsApiService } from './api/AccountsApiService';
 apiRegistry.register(AccountsApiService);
 apiRegistry.initialize();
 
-// Create FrontX app with effects + mock plugins (mock auto-enables on localhost)
-const mfeApp = createHAI3().use(effects()).use(mock()).build();
-
-// Register slices with effects (needs store from build())
-registerSlice(profileSlice, initProfileEffects);
+// Create the MFE-local app shell only.
+// queryCacheShared() joins the host-owned QueryClient without reconfiguring it.
+const mfeApp = createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
 
 export { mfeApp };

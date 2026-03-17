@@ -56,35 +56,30 @@ Create `src/lifecycle.tsx`:
 ```typescript
 import React from 'react';
 import type { ChildMfeBridge } from '@cyberfabric/react';
-import { ThemeAwareReactLifecycle } from '@cyberfabric/screensets/mfe/handler';
+import { ThemeAwareReactLifecycle } from '@cyberfabric/react';
+import { mfeApp } from './init';
 import { YourScreen } from './screens/YourScreen';
 
 class Lifecycle extends ThemeAwareReactLifecycle {
   constructor() {
-    super({
-      name: '{screensetName}',
-      version: '1.0.0',
-    });
+    super(mfeApp);
   }
 
-  async mount(shadowRoot: ShadowRoot, bridge: ChildMfeBridge) {
-    const div = document.createElement('div');
-    shadowRoot.appendChild(div);
-
-    const style = document.createElement('style');
-    style.textContent = tailwindStyles;
-    shadowRoot.appendChild(style);
-
-    // Render component
-    const root = ReactDOM.createRoot(div);
-    root.render(<YourScreen bridge={bridge} />);
-
-    return { root, div };
+  protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
+    return <YourScreen bridge={bridge} />;
   }
 }
 
 export default new Lifecycle();
 ```
+
+## CACHE SETUP
+
+- Host apps already own the shared server-state runtime via `createHAI3App()`.
+- `ThemeAwareReactLifecycle` receives that host-owned runtime automatically during `mount_ext`.
+- Use endpoint descriptors with `useApiQuery(service.descriptor)` and `useApiMutation({ endpoint: service.descriptor })`.
+- Do not add `queryCache()`, `createHAI3App()`, `QueryClientProvider`, or `useQueryClient()` inside the MFE package.
+- If you run an MFE outside the host shell, query hooks will not have the host cache/runtime unless you build a dedicated standalone harness.
 
 ## ADDING TO dev:all COMMAND
 
@@ -137,15 +132,50 @@ npm run dev:all
 - Use `useState` for local state management
 - Do not import Redux hooks (@cyberfabric/react)
 
+## API SERVICE & DATA FETCHING
+
+MFEs use endpoint descriptors on their API service class:
+
+```typescript
+class MyApiService extends BaseApiService {
+  constructor() {
+    const restProtocol = new RestProtocol({ timeout: 30000 });
+    const restEndpoints = new RestEndpointProtocol(restProtocol);
+    super({ baseURL: '/api/my-domain' }, restProtocol, restEndpoints);
+    this.registerPlugin(restProtocol, new RestMockPlugin({ mockMap, delay: 100 }));
+  }
+
+  readonly getItems = this.protocol(RestEndpointProtocol).query<ItemsResponse>('/items');
+  readonly createItem = this.protocol(RestEndpointProtocol)
+    .mutation<Item, CreateItemVars>('POST', '/items');
+}
+```
+
+Screens consume descriptors directly:
+```typescript
+const service = apiRegistry.getService(MyApiService);
+const { data, isLoading } = useApiQuery(service.getItems);
+const { mutateAsync } = useApiMutation({ endpoint: service.createItem });
+```
+
+**Cache sharing**: MFEs with the same `baseURL` and path share cache entries automatically.
+To isolate cache, use a different `baseURL`.
+
 ## BEST PRACTICES
 
 ✅ **DO:**
-- Use mock data with useState for UI-only MFEs
+- Define endpoints as descriptors on the service via explicit contracts (for example `this.protocol(RestEndpointProtocol).query()` / `.mutation()`)
+- Use `useApiQuery(service.descriptor)` for reads
+- Use `useApiMutation({ endpoint: service.descriptor })` for writes
+- Let the host own caching; mounted MFEs reuse it automatically
 - Keep MFE logic isolated and simple
 - Own UI components locally in `components/ui/` (no shared UI kit)
 - Test with Chrome DevTools MCP
 
 ❌ **DON'T:**
+- Add standalone modules with query key factories or `queryOptions()` alongside the service
+- Import `queryOptions` from `@tanstack/react-query` or `@cyberfabric/react`
+- Add `queryCache()`, `createHAI3App()`, or `QueryClientProvider` inside the MFE bootstrap
 - Import Redux hooks directly
 - Use vite build && vite preview in dev mode
 - Create complex state management in MFE

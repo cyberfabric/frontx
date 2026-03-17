@@ -1,7 +1,7 @@
 import React from 'react';
-import type { ChildMfeBridge } from '@cyberfabric/react';
-import { ActionHandler } from '@cyberfabric/react';
-import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
+import type { ChildMfeBridge, JsonObject } from '@cyberfabric/react';
+import { ActionHandler, ThemeAwareReactLifecycle } from '@cyberfabric/react';
+import { mfeApp } from './init';
 import { ProfileScreen } from './screens/profile/ProfileScreen';
 import { fetchUser } from './actions/profileActions';
 import { DEMO_ACTION_REFRESH_PROFILE } from './shared/extension-ids';
@@ -10,13 +10,21 @@ import { DEMO_ACTION_REFRESH_PROFILE } from './shared/extension-ids';
 
 // @cpt-begin:child-bridge-action-handler:p3:inst-1
 class ProfileRefreshHandler extends ActionHandler {
-  async handleAction(): Promise<void> {
-    await fetchUser();
+  handleAction(
+    _actionTypeId: string,
+    _payload: JsonObject | undefined
+  ): Promise<void> {
+    fetchUser();
+    return Promise.resolve();
   }
 }
 // @cpt-end:child-bridge-action-handler:p3:inst-1
 
 class ProfileLifecycle extends ThemeAwareReactLifecycle {
+  constructor() {
+    super(mfeApp);
+  }
+
   protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
     return <ProfileScreen bridge={bridge} />;
   }

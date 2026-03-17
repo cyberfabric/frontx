@@ -20,6 +20,7 @@
  */
 
 import { ActionHandler } from '../mediator/types';
+import type { ActionsChain } from '../types';
 import type { ParentMfeBridgeImpl } from './ParentMfeBridge';
 
 /**
@@ -50,7 +51,7 @@ export class ChildDomainForwardingHandler extends ActionHandler {
   ): Promise<void> {
     // Wrap the action in an ActionsChain for bridge transport.
     // The child registry's mediator will unwrap and execute it.
-    const chain = {
+    const chain: ActionsChain = {
       action: {
         type: actionTypeId,
         target: this.childDomainId,

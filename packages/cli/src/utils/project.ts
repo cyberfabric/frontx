@@ -189,6 +189,8 @@ export async function findMonorepoRoot(fromPath: string): Promise<string | null>
   return null;
 }
 
+const CURRENT_FRONTX_PACKAGE_SCOPE = '@cyberfabric/';
+
 /**
  * Resolve a @cyberfabric package name to a file: URL path relative to projectPath.
  * e.g. '@cyberfabric/react' with monorepoRoot /repo and projectPath /repo/app
@@ -199,13 +201,80 @@ export function getLocalPackageRef(
   monorepoRoot: string,
   projectPath: string
 ): string {
-  if (!packageName.startsWith('@cyberfabric/')) {
+  if (!packageName.startsWith(CURRENT_FRONTX_PACKAGE_SCOPE)) {
     return packageName;
   }
-  const subPackage = packageName.slice('@cyberfabric/'.length);
+  const subPackage = packageName.slice(CURRENT_FRONTX_PACKAGE_SCOPE.length);
   const packageDir = path.join(monorepoRoot, 'packages', subPackage);
   const relativePath = path.relative(projectPath, packageDir);
   const normalized = relativePath.split(path.sep).join('/');
   return `file:${normalized}`;
+}
+
+function getLocalPackageSourceRef(
+  packageName: string,
+  monorepoRoot: string,
+  projectPath: string,
+  isWildcard: boolean
+): string {
+  const subPackage = packageName.slice(CURRENT_FRONTX_PACKAGE_SCOPE.length);
+  const sourceDir = path.join(monorepoRoot, 'packages', subPackage, 'src');
+  const relativePath = path.relative(projectPath, sourceDir).split(path.sep).join('/');
+  return isWildcard ? `${relativePath}/*` : `${relativePath}/index.ts`;
+}
+
+function getInstalledPackageSourceRef(packageName: string, isWildcard: boolean): string {
+  const basePath = `./node_modules/${packageName}`;
+  return isWildcard ? `${basePath}/*` : basePath;
+}
+
+/**
+ * Rewrite scaffolded tsconfig package aliases so generated apps do not keep
+ * template-relative monorepo source paths.
+ */
+export function rewriteTsconfigPackagePaths(
+  tsconfigContent: string,
+  input: {
+    useLocalPackages: boolean;
+    monorepoRoot?: string;
+    projectPath?: string;
+  }
+): string {
+  // Standalone preset tsconfig files are JSONC and often have no package aliases.
+  // Avoid strict JSON parsing unless there is actually a @cyberfabric path to rewrite.
+  if (!tsconfigContent.includes(CURRENT_FRONTX_PACKAGE_SCOPE)) {
+    return tsconfigContent;
+  }
+
+  const tsconfig = JSON.parse(tsconfigContent) as {
+    compilerOptions?: {
+      paths?: Record<string, string[]>;
+    };
+  };
+  const existingPaths = tsconfig.compilerOptions?.paths;
+  if (!existingPaths) {
+    return tsconfigContent;
+  }
+
+  const rewrittenPaths: Record<string, string[]> = {};
+  for (const [alias, targets] of Object.entries(existingPaths)) {
+    if (!alias.startsWith(CURRENT_FRONTX_PACKAGE_SCOPE)) {
+      rewrittenPaths[alias] = targets;
+      continue;
+    }
+
+    const isWildcard = alias.endsWith('/*');
+    const packageName = isWildcard ? alias.slice(0, -2) : alias;
+    const rewrittenTarget =
+      input.useLocalPackages && input.monorepoRoot && input.projectPath
+        ? getLocalPackageSourceRef(packageName, input.monorepoRoot, input.projectPath, isWildcard)
+        : getInstalledPackageSourceRef(packageName, isWildcard);
+
+    rewrittenPaths[alias] = [rewrittenTarget];
+  }
+
+  tsconfig.compilerOptions ??= {};
+  tsconfig.compilerOptions.paths = rewrittenPaths;
+  return JSON.stringify(tsconfig, null, 2) + '\n';
 }
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-project-utils

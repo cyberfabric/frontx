@@ -50,3 +50,12 @@ export enum UserRole {
 export interface GetCurrentUserResponse {
   user: ApiUser;
 }
+
+/**
+ * Update profile request payload.
+ */
+export interface UpdateProfileRequest {
+  firstName: string;
+  lastName: string;
+  department?: string;
+}

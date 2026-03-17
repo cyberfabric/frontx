@@ -9,7 +9,7 @@
 // @cpt-state:cpt-frontx-state-framework-composition-mfe-mount:p1
 // @cpt-dod:cpt-frontx-dod-framework-composition-mfe-plugin:p1
 
-import { createSlice, type ReducerPayload } from '@cyberfabric/state';
+import { createSlice, type ReducerPayload, type RootState } from '@cyberfabric/state';
 
 // ============================================================================
 // State Types
@@ -24,6 +24,13 @@ export interface MfeState {
   errors: Record<string, string>;
   /** Tracks which extension is mounted in each domain. Used as a notification signal for React hooks. */
   mountedExtensions: Record<string, string | undefined>;
+}
+
+declare module '@cyberfabric/state' {
+  interface RootState {
+    /** Present when the microfrontends plugin is registered. */
+    mfe?: MfeState;
+  }
 }
 
 // ============================================================================
@@ -104,16 +111,18 @@ export const {
  * Select extension registration state for an extension.
  * Returns 'unregistered' if extension is not tracked.
  */
-export function selectExtensionState(state: { mfe: MfeState }, extensionId: string): ExtensionRegistrationState {
-  return state.mfe.registrationStates[extensionId] ?? 'unregistered';
+export function selectExtensionState(state: RootState, extensionId: string): ExtensionRegistrationState {
+  return state.mfe?.registrationStates[extensionId] ?? 'unregistered';
 }
 
 /**
  * Select all registered extensions.
  * Returns array of extension IDs with 'registered' state.
  */
-export function selectRegisteredExtensions(state: { mfe: MfeState }): string[] {
-  return Object.entries(state.mfe.registrationStates)
+export function selectRegisteredExtensions(state: RootState): string[] {
+  const mfe = state.mfe;
+  if (!mfe) return [];
+  return Object.entries(mfe.registrationStates)
     .filter(([_, regState]) => regState === 'registered')
     .map(([extensionId]) => extensionId);
 }
@@ -122,16 +131,16 @@ export function selectRegisteredExtensions(state: { mfe: MfeState }): string[] {
  * Select extension error for an extension.
  * Returns undefined if no error.
  */
-export function selectExtensionError(state: { mfe: MfeState }, extensionId: string): string | undefined {
-  return state.mfe.errors[extensionId];
+export function selectExtensionError(state: RootState, extensionId: string): string | undefined {
+  return state.mfe?.errors[extensionId];
 }
 
 /**
  * Select mounted extension for a domain.
  * Returns the extension ID if mounted, undefined otherwise.
  */
-export function selectMountedExtension(state: { mfe: MfeState }, domainId: string): string | undefined {
-  return state.mfe.mountedExtensions[domainId];
+export function selectMountedExtension(state: RootState, domainId: string): string | undefined {
+  return state.mfe?.mountedExtensions[domainId];
 }
 
 export default slice.reducer;

@@ -1,11 +1,22 @@
 /**
  * MFE Bootstrap — executed once when any entry first loads.
  * Creates the minimal FrontX app, registers slices, effects, and API services.
+ * Cache/runtime note:
+ * - The host app owns the shared runtime via queryCache().
+ * - Child apps join that shared QueryClient via queryCacheShared().
+ * - Do not add queryCache(), createHAI3App(), or QueryClientProvider here.
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-internal-dataflow:p1
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
 
-import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@cyberfabric/react';
+import {
+  createHAI3,
+  registerSlice,
+  apiRegistry,
+  effects,
+  mock,
+  queryCacheShared,
+} from '@cyberfabric/react';
 import { homeSlice } from './slices/homeSlice';
 import { initHomeEffects } from './effects/homeEffects';
 import { _BlankApiService } from './api/_BlankApiService';
@@ -15,8 +26,9 @@ import { _BlankApiService } from './api/_BlankApiService';
 apiRegistry.register(_BlankApiService);
 apiRegistry.initialize();
 
-// Create FrontX app with effects + mock plugins (mock auto-enables on localhost)
-const mfeApp = createHAI3().use(effects()).use(mock()).build();
+// Create only the local MFE app shell.
+// queryCacheShared() joins the host-owned QueryClient without reconfiguring it.
+const mfeApp = createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
 
 // Register slices with effects (needs store from build())
 registerSlice(homeSlice, initHomeEffects);

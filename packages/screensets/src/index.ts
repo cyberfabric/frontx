@@ -60,11 +60,13 @@ export type {
   MountExtPayload,
   UnmountExtPayload,
   // Handler types
+  MfeMountContext,
   MfeEntryLifecycle,
 } from './mfe';
 
 // MFE Handler Abstract Classes (concrete implementations are internal)
-export { MfeHandler, MfeBridgeFactory, ParentMfeBridge, ChildMfeBridge } from './mfe';
+export { MfeHandler, MfeBridgeFactory } from './mfe';
+export { ParentMfeBridge, ChildMfeBridge } from './mfe';
 
 // Mediator types needed by MFE consumers to implement action handlers
 export { ActionHandler } from './mfe';
@@ -85,7 +87,12 @@ export {
 } from './mfe';
 
 // MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)
-export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory, ContainerProvider } from './mfe';
+export {
+  ScreensetsRegistry,
+  ScreensetsRegistryFactory,
+  screensetsRegistryFactory,
+  ContainerProvider,
+} from './mfe';
 export type { ScreensetsRegistryConfig, RegisterDomainOptions } from './mfe';
 
 // Shadow DOM Utilities

@@ -51,6 +51,7 @@ Before saving updates:
 - No duplicated rules across files.
 - No unicode characters.
 - No examples or multi-line explanations.
+- FORBIDDEN: adding tooling metadata to public or cross-layer system contracts; keep tooling state internal.
 - Section count remains the same unless the user requested otherwise.
 - File remains under 100 lines.
 

@@ -11,8 +11,11 @@
 // @cpt-dod:cpt-frontx-dod-react-bindings-extension-slot:p1
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { ScreensetsRegistry, ParentMfeBridge } from '@cyberfabric/framework';
+import type { RefObject } from 'react';
 import {
+  type ActionsChain,
+  type ParentMfeBridge,
+  type ScreensetsRegistry,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '@cyberfabric/framework';
@@ -65,6 +68,14 @@ export interface ExtensionDomainSlotProps {
    * Optional error component renderer
    */
   errorComponent?: (error: Error) => React.ReactNode;
+
+  /**
+   * Optional external ref for the container div rendered in the success state.
+   * Use this when the domain's ContainerProvider needs to reference the same DOM
+   * element that this slot renders (e.g. RefContainerProvider wrapping this ref).
+   * When omitted, an internal ref is used.
+   */
+  containerRef?: RefObject<HTMLDivElement | null>;
 }
 
 /**
@@ -98,9 +109,20 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
     onError,
     loadingComponent,
     errorComponent,
+    containerRef: externalContainerRef,
   } = props;
 
-  const containerRef = useRef<HTMLDivElement>(null);
+  const internalContainerRef = useRef<HTMLDivElement | null>(null);
+  // Prefer the externally-provided ref so the caller can share it with a ContainerProvider
+  const containerRef = externalContainerRef ?? internalContainerRef;
+  // Callbacks are stored in refs so inline parent handlers do not re-run the mount effect
+  // (which would remount the extension every parent render).
+  const onMountedRef = useRef(onMounted);
+  const onUnmountedRef = useRef(onUnmounted);
+  const onErrorRef = useRef(onError);
+  onMountedRef.current = onMounted;
+  onUnmountedRef.current = onUnmounted;
+  onErrorRef.current = onError;
   // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-mount
   const [isLoading, setIsLoading] = useState(true);
   // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-mount
@@ -110,6 +132,11 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
   useEffect(() => {
     let mounted = true;
     let currentBridge: ParentMfeBridge | null = null;
+
+    // Whether this domain advertises explicit unmount (registry action list).
+    // Domains without unmount_ext (e.g. default screen: swap via mount_ext) skip teardown here.
+    const domainSupportsUnmount =
+      registry.getDomain(domainId)?.actions.includes(HAI3_ACTION_UNMOUNT_EXT) ?? false;
 
     async function mountExtension() {
       if (!containerRef.current) {
@@ -127,30 +154,34 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
         // Mount the extension via actions chain (auto-loads if not already loaded)
         // Container is provided by the domain's ContainerProvider (registered at domain registration time)
-        await registry.executeActionsChain({
+        const mountChain: ActionsChain = {
           action: {
             type: HAI3_ACTION_MOUNT_EXT,
             target: domainId,
             payload: {
-              extensionId,
+              subject: extensionId,
             },
           },
-        });
+        };
+
+        await registry.executeActionsChain(mountChain);
         // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
 
         // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
         // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-race-unmount
         if (!mounted) {
-          // Component was unmounted while mounting - clean up
-          await registry.executeActionsChain({
-            action: {
-              type: HAI3_ACTION_UNMOUNT_EXT,
-              target: domainId,
-              payload: {
-                extensionId,
+          // Component was unmounted while mounting — clean up only if the domain advertises unmount_ext.
+          if (domainSupportsUnmount) {
+            await registry.executeActionsChain({
+              action: {
+                type: HAI3_ACTION_UNMOUNT_EXT,
+                target: domainId,
+                payload: {
+                  subject: extensionId,
+                },
               },
-            },
-          });
+            });
+          }
           return;
         }
         // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
@@ -172,9 +203,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
 
         // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
         // Notify parent
-        if (onMounted) {
-          onMounted(newBridge);
-        }
+        onMountedRef.current?.(newBridge);
         // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
       } catch (err) {
         // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
@@ -187,9 +216,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         setError(errorObj);
         setIsLoading(false);
 
-        if (onError) {
-          onError(errorObj);
-        }
+        onErrorRef.current?.(errorObj);
         // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
         // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-mount-error
       }
@@ -204,51 +231,41 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
     return () => {
       mounted = false;
 
-      if (currentBridge) {
+      if (currentBridge && domainSupportsUnmount) {
         // Unmount extension asynchronously via actions chain
         void registry.executeActionsChain({
           action: {
             type: HAI3_ACTION_UNMOUNT_EXT,
             target: domainId,
             payload: {
-              extensionId,
+              subject: extensionId,
             },
           },
         }).then(() => {
-          if (onUnmounted) {
-            onUnmounted();
-          }
+          onUnmountedRef.current?.();
         });
       }
     };
     // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
     // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-unmount
-  }, [registry, domainId, extensionId, onMounted, onUnmounted, onError]);
+  }, [registry, domainId, extensionId, containerRef]);
 
   // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
-  // Render loading state
+  // Always render the mount host so the first effect pass can mount into a live DOM node.
+  let statusContent: React.ReactNode = null;
   if (isLoading) {
-    return (
-      <div className={className} data-domain-id={domainId} data-extension-id={extensionId}>
-        {loadingComponent ?? <div>Loading extension...</div>}
+    statusContent = loadingComponent ?? <div>Loading extension...</div>;
+  } else if (error) {
+    statusContent = errorComponent ? (
+      errorComponent(error)
+    ) : (
+      <div>
+        <strong>Error loading extension:</strong>
+        <pre>{error.message}</pre>
       </div>
     );
   }
   // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
-
-  // Render error state
-  if (error) {
-    return (
-      <div className={className} data-domain-id={domainId} data-extension-id={extensionId}>
-        {errorComponent ? errorComponent(error) : (
-          <div>
-            <strong>Error loading extension:</strong>
-            <pre>{error.message}</pre>
-          </div>
-        )}
-      </div>
-    );
-  }
 
   // Render the container for the mounted extension
   return (
@@ -258,7 +275,9 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
       data-domain-id={domainId}
       data-extension-id={extensionId}
       data-bridge-active={bridge !== null}
-    />
+    >
+      {statusContent}
+    </div>
   );
 }
 // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-render-slot

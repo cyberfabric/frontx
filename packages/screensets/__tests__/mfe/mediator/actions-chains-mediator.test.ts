@@ -9,8 +9,9 @@
  * - Payload validation
  * - Handler lifecycle
  * - Timeout handling
+ *
+ * @vitest-environment jsdom
  */
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
@@ -24,7 +25,9 @@ import { MockContainerProvider } from '../test-utils';
  * Allows standard vitest assertions (toHaveBeenCalled, etc.) on the wrapped mock.
  */
 class MockActionHandler extends ActionHandler {
-  readonly mock = vi.fn<[string, Record<string, unknown> | undefined], Promise<void>>();
+  readonly mock = vi.fn<
+    (actionTypeId: string, payload: Record<string, unknown> | undefined) => Promise<void>
+  >();
 
   async handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void> {
     return this.mock(actionTypeId, payload);
@@ -229,6 +232,43 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       expect(handler.mock).toHaveBeenCalledWith(
         'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        payload
+      );
+    });
+
+    it('passes the mediated action to the handler without extra runtime metadata', async () => {
+      const handler = vi.fn().mockResolvedValue(undefined);
+      const domainId = 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~';
+      const actionTypeId = 'gts.hai3.mfes.comm.action.v1~test.action.v1~';
+
+      mediator.registerHandler(domainId, actionTypeId, {
+        handleAction: handler,
+      });
+
+      const domain: ExtensionDomain = {
+        id: domainId,
+        sharedProperties: [],
+        actions: [actionTypeId],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain, mockContainerProvider);
+
+      const payload = { data: 'test value' };
+      const chain: ActionsChain = {
+        action: {
+          type: actionTypeId,
+          target: domainId,
+          payload,
+        },
+      };
+
+      await mediator.executeActionsChain(chain);
+
+      expect(handler).toHaveBeenCalledWith(
+        actionTypeId,
         payload
       );
     });

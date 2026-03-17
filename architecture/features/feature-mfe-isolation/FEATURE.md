@@ -148,7 +148,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 1. [x] - `p1` - The MFE's `init.ts` module is evaluated as a module-level side effect when the expose chunk is first imported — `inst-init-side-effect`
 2. [x] - `p1` - `init.ts` calls `apiRegistry.register()` and `apiRegistry.initialize()` to register API services before the store is built — `inst-register-api`
-3. [x] - `p1` - `createHAI3().use(effects()).use(mock()).build()` creates a minimal `HAI3App` with an isolated store singleton — `inst-create-mfe-app`
+3. [x] - `p1` - `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` creates a minimal `HAI3App` with an isolated store singleton and joins the host-owned QueryClient — `inst-create-mfe-app`
 4. [x] - `p1` - `registerSlice(slice, effectInitializer)` wires domain state into the MFE-local store — `inst-register-slice`
 5. [x] - `p1` - `mfeApp` is exported for use by lifecycle React components as the `<HAI3Provider app={mfeApp}>` prop — `inst-export-mfe-app`
 6. [x] - `p1` - **IF** any lifecycle component imports `react-redux`, `redux`, or `@reduxjs/toolkit` directly, the architecture constraint is violated — `inst-no-direct-redux`
@@ -483,7 +483,7 @@ Each MFE package bootstraps its own isolated `HAI3App` and exposes it for use by
 
 **Implementation details**:
 - Files: `src/mfe_packages/<mfe-name>/src/init.ts` (module-level bootstrap)
-- Pattern: `createHAI3().use(effects()).use(mock()).build()` — only `effects()` and `mock()` plugins
+- Pattern: `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` — `queryCacheShared()` joins the host `queryCache()` runtime; do not use `queryCache()` in MFE `init.ts`
 - MFE lifecycle components wrap their React tree in `<HAI3Provider app={mfeApp}>`
 
 **Implements**:

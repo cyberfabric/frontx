@@ -54,6 +54,9 @@ Check for violations in each category:
 - [ ] Domain-based services (not entity-based)
 - [ ] Extends BaseApiService
 - [ ] Self-registers via apiRegistry
+- [ ] Read endpoints use explicit descriptor contracts such as `RestEndpointProtocol.query()` / `queryWith()` only
+- [ ] Write endpoints use explicit descriptor contracts such as `RestEndpointProtocol.mutation()`
+- [ ] Screens use `useApiQuery(service.descriptor)` — no queryOptions or manual key factories
 - [ ] Mocks in app layer
 
 ### Screenset Rules

@@ -39,13 +39,15 @@
 - DETECT: grep -rn "Object\\.defineProperty.*reducer" src/screensets
 
 ## MFE STATE MANAGEMENT
-- REQUIRED: Create FrontX app via createHAI3().use(effects()).use(mock()).build() from @cyberfabric/react.
+- REQUIRED: Create FrontX app via `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` from `@cyberfabric/react`. The host owns the shared QueryClient via `queryCache()`; MFEs must join it with `queryCacheShared()` so query hooks resolve the same cache (see `src/mfe_packages/_blank-mfe/src/init.ts`).
 - REQUIRED: Register API services BEFORE .build() — mock plugin syncs during build, services must exist.
 - REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
 - REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @cyberfabric/react.
 - REQUIRED: registerSlice() and createSlice() from @cyberfabric/react for slice management.
+- FORBIDDEN: Direct `useQueryClient()` in MFE screen code; use `@cyberfabric/react` query hooks and follow `.ai/targets/REACT.md` for restricted cache access.
+- FORBIDDEN: `queryCache()`, `createHAI3App()`, or `QueryClientProvider` in MFE bootstrap — the host configures the shared query runtime; MFE init only joins via `queryCacheShared()`.
 - REQUIRED: Shared init.ts module for idempotent MFE bootstrap (module-level side effect).
-- REQUIRED: init.ts ordering: apiRegistry.register() → apiRegistry.initialize() → createHAI3().build() → registerSlice().
+- REQUIRED: init.ts ordering: `apiRegistry.register()` → `apiRegistry.initialize()` → `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` → `registerSlice()` (when slices exist).
 - REQUIRED: Module augmentation for RootState on @cyberfabric/react (not @cyberfabric/state).
 - FORBIDDEN: Direct react-redux, redux, or @reduxjs/toolkit imports in MFE code.
 - FORBIDDEN: createHAI3App() or full preset in MFE (heavyweight, not needed).
@@ -207,7 +209,7 @@
 - [ ] MFE integration uses TypeSystemPlugin abstraction (gtsPlugin default).
 - [ ] Type IDs are opaque - call plugin.parseTypeId() for metadata.
 - [ ] Contract validation via plugin.validateInstance() after plugin.register().
-- [ ] MFE uses createHAI3().use(effects()).use(mock()).build() + HAI3Provider (no direct Redux).
+- [ ] MFE uses `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` + HAI3Provider (no direct Redux; no `queryCache()` in MFE init).
 - [ ] MFE API services are local (not imported from host).
 - [ ] MFE events use mfe/ prefix convention.
 - [ ] MFE init.ts creates app, registers slices, registers API services.

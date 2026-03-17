@@ -13,8 +13,8 @@ import {
   eventBus,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SCREEN_DOMAIN,
-  type MenuState,
   type Extension,
+  type MenuState,
   type ScreenExtension,
 } from '@cyberfabric/react';
 import {
@@ -52,13 +52,11 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
     const refresh = () => {
       let screenExts: ScreenExtension[];
       if (activePackage) {
-        // Filter extensions by the active GTS package, then by screen domain
         const packageExts = screensetsRegistry.getExtensionsForPackage(activePackage);
         screenExts = packageExts.filter(
           (ext: Extension) => ext.domain === HAI3_SCREEN_DOMAIN && 'presentation' in ext
         ) as ScreenExtension[];
       } else {
-        // Fallback: show all screen extensions when no package is active yet
         screenExts = screensetsRegistry.getExtensionsForDomain(HAI3_SCREEN_DOMAIN) as ScreenExtension[];
       }
       const sorted = screenExts

@@ -1,6 +1,6 @@
 {
   "name": "@cyberfabric/state",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "State management for FrontX SDK - event bus, store, and effects",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -29,7 +29,8 @@
     "typescript": "^5.4.2"
   },
   "peerDependencies": {
-    "@reduxjs/toolkit": ">=2.0.0"
+    "@reduxjs/toolkit": ">=2.0.0",
+    "redux": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"

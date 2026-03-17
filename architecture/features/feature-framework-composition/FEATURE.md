@@ -139,7 +139,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 
 1. [ ] `p1` - Host calls `createHAI3App(config?)` - `inst-call-createapp`
 2. [ ] `p1` - `createHAI3App` delegates to `createHAI3(config).useAll(full(presetConfig)).build()` - `inst-delegate-full`
-3. [ ] `p1` - `full()` preset returns the canonical plugin set: `effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends` - `inst-full-plugin-set`
+3. [ ] `p1` - `full()` preset returns the canonical plugin set: `effects`, `screensets`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends` - `inst-full-plugin-set`
 4. [ ] `p1` - **RETURN** fully assembled `HAI3App` - `inst-return-full-app`
 
 ### Theme Change and MFE Propagation
@@ -511,7 +511,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-presets`
 
 Three presets are provided as functions returning `HAI3Plugin[]`:
-- `full(config?)` — all seven plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends`)
+- `full(config?)` — all plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends`)
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
 
@@ -532,7 +532,7 @@ All presets are exported from `@cyberfabric/framework`. The `presets` object col
 `@cyberfabric/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
 - From `@cyberfabric/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
 - From `@cyberfabric/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
-- From `@cyberfabric/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
+- From `@cyberfabric/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards, `StreamDescriptor`, `StreamStatus`
 - From `@cyberfabric/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.

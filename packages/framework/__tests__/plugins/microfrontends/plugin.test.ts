@@ -15,13 +15,15 @@ import { effects } from '../../../src/plugins/effects';
 import {
   microfrontends,
   loadExtension,
+  unmountExtension,
   MfeEvents,
   selectExtensionState,
   selectExtensionError,
+  selectMountedExtension,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@cyberfabric/state';
+import { HAI3_ACTION_MOUNT_EXT, screensetsRegistryFactory, type Extension } from '@cyberfabric/screensets';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
-import type { Extension } from '@cyberfabric/screensets';
 import type { HAI3App } from '../../../src/types';
 
 describe('microfrontends plugin - Phase 13', () => {
@@ -30,6 +32,7 @@ describe('microfrontends plugin - Phase 13', () => {
   afterEach(() => {
     apps.forEach(app => app.destroy());
     apps = [];
+    vi.restoreAllMocks();
     resetStore();
   });
   describe('13.8.1 - plugin registration', () => {
@@ -68,7 +71,7 @@ describe('microfrontends plugin - Phase 13', () => {
       expect(typeof app.actions.loadExtension).toBe('function');
       expect(typeof app.actions.mountExtension).toBe('function');
       expect(typeof app.actions.unmountExtension).toBe('function');
-      expect(app.actions.handleMfeHostAction).toBeUndefined();
+      expect(app.actions).not.toHaveProperty('handleMfeHostAction');
     });
   });
 
@@ -90,8 +93,10 @@ describe('microfrontends plugin - Phase 13', () => {
         entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
       };
 
-      vi.spyOn(app.screensetsRegistry, 'getExtension').mockReturnValue(testExtension);
-      const spy = vi.spyOn(app.screensetsRegistry, 'executeActionsChain').mockResolvedValue(undefined);
+      const registry = app.screensetsRegistry;
+      if (!registry) throw new Error('expected screensetsRegistry');
+      vi.spyOn(registry, 'getExtension').mockReturnValue(testExtension);
+      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
       // Call loadExtension - should call executeActionsChain fire-and-forget
       loadExtension(testExtensionId);
@@ -103,6 +108,34 @@ describe('microfrontends plugin - Phase 13', () => {
           payload: { subject: testExtensionId },
         },
       });
+    });
+
+    it('should throw when unmountExtension resolves a domain that is not registered on the registry', () => {
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
+      const testExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext.v1';
+      const testExtension: Extension = {
+        id: testExtensionId,
+        domain: testDomainId,
+        entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
+      };
+
+      const registry = app.screensetsRegistry;
+      if (!registry) throw new Error('expected screensetsRegistry');
+      vi.spyOn(registry, 'getExtension').mockReturnValue(testExtension);
+      vi.spyOn(registry, 'getDomain').mockReturnValue(undefined);
+      const chainSpy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
+
+      expect(() => unmountExtension(testExtensionId)).toThrow(
+        /domain 'gts\.hai3\.mfes\.ext\.domain\.v1~test\.app\.test\.domain\.v1' is not registered.*extension 'gts\.hai3\.mfes\.ext\.extension\.v1~test\.app\.test\.ext\.v1'/
+      );
+      expect(chainSpy).not.toHaveBeenCalled();
     });
 
     it('should verify registration events still work', () => {
@@ -156,6 +189,195 @@ describe('microfrontends plugin - Phase 13', () => {
 
       const error = selectExtensionError(state, uniqueExtId);
       expect(error).toBeUndefined();
+    });
+  });
+
+  describe('13.8.4 - mount state sync follows registry state', () => {
+    it('does not mark the requested extension mounted when the chain resolves without mounting it', async () => {
+      const fakeRegistry = {
+        typeSystem: gtsPlugin,
+        executeActionsChain: vi.fn().mockResolvedValue(undefined),
+        getMountedExtension: vi.fn().mockReturnValue(undefined),
+        registerExtension: vi.fn().mockResolvedValue(undefined),
+        unregisterExtension: vi.fn().mockResolvedValue(undefined),
+      };
+
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const domainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
+      const requestedExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.ext.v1';
+
+      await app.screensetsRegistry?.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: domainId,
+          payload: { subject: requestedExtensionId },
+        },
+      });
+
+      expect(selectMountedExtension(app.store.getState(), domainId)).toBeUndefined();
+    });
+
+    it('mirrors the registry mounted extension when a fallback path leaves a different extension mounted', async () => {
+      const mountedByDomain = new Map<string, string | undefined>();
+      const fakeRegistry = {
+        typeSystem: gtsPlugin,
+        executeActionsChain: vi.fn().mockImplementation(async (chain: { action: { target: string } }) => {
+          mountedByDomain.set(
+            chain.action.target,
+            'gts.hai3.mfes.ext.extension.v1~test.app.fallback.ext.v1'
+          );
+        }),
+        getMountedExtension: vi.fn((domainId: string) => mountedByDomain.get(domainId)),
+        registerExtension: vi.fn().mockResolvedValue(undefined),
+        unregisterExtension: vi.fn().mockResolvedValue(undefined),
+      };
+
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const domainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
+      const requestedExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.ext.v1';
+      const fallbackExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.fallback.ext.v1';
+
+      await app.screensetsRegistry?.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: domainId,
+          payload: { subject: requestedExtensionId },
+        },
+      });
+
+      expect(selectMountedExtension(app.store.getState(), domainId)).toBe(fallbackExtensionId);
+    });
+
+    it('syncs every domain touched by a chained mount/unmount sequence', async () => {
+      const mountedByDomain = new Map<string, string | undefined>();
+      const fakeRegistry = {
+        typeSystem: gtsPlugin,
+        executeActionsChain: vi.fn().mockImplementation(async (chain: {
+          action: { target: string };
+          next?: { action: { target: string } };
+        }) => {
+          mountedByDomain.set(
+            chain.action.target,
+            'gts.hai3.mfes.ext.extension.v1~test.app.root.ext.v1'
+          );
+          if (chain.next) {
+            mountedByDomain.set(
+              chain.next.action.target,
+              'gts.hai3.mfes.ext.extension.v1~test.app.next.ext.v1'
+            );
+          }
+        }),
+        getMountedExtension: vi.fn((domainId: string) => mountedByDomain.get(domainId)),
+        registerExtension: vi.fn().mockResolvedValue(undefined),
+        unregisterExtension: vi.fn().mockResolvedValue(undefined),
+      };
+
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const rootDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.root.domain.v1';
+      const nextDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.next.domain.v1';
+      const rootExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.root.v1';
+      const nextExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.next.v1';
+
+      await app.screensetsRegistry?.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: rootDomainId,
+          payload: { subject: rootExtensionId },
+        },
+        next: {
+          action: {
+            type: HAI3_ACTION_MOUNT_EXT,
+            target: nextDomainId,
+            payload: { subject: nextExtensionId },
+          },
+        },
+      });
+
+      expect(selectMountedExtension(app.store.getState(), rootDomainId)).toBe(
+        'gts.hai3.mfes.ext.extension.v1~test.app.root.ext.v1'
+      );
+      expect(selectMountedExtension(app.store.getState(), nextDomainId)).toBe(
+        'gts.hai3.mfes.ext.extension.v1~test.app.next.ext.v1'
+      );
+    });
+
+    it('does not dispatch mount sync for fallback-only domains that were never executed', async () => {
+      const mountedByDomain = new Map<string, string | undefined>();
+      const fakeRegistry = {
+        typeSystem: gtsPlugin,
+        executeActionsChain: vi.fn().mockImplementation(async (chain: { action: { target: string } }) => {
+          mountedByDomain.set(
+            chain.action.target,
+            'gts.hai3.mfes.ext.extension.v1~test.app.root.ext.v1'
+          );
+        }),
+        getMountedExtension: vi.fn((domainId: string) => mountedByDomain.get(domainId)),
+        registerExtension: vi.fn().mockResolvedValue(undefined),
+        unregisterExtension: vi.fn().mockResolvedValue(undefined),
+      };
+
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const rootDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.root.domain.v1';
+      const fallbackDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.fallback.domain.v1';
+      const rootExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.root.v1';
+      let notificationCount = 0;
+      const unsubscribe = app.store.subscribe(() => {
+        notificationCount += 1;
+      });
+
+      await app.screensetsRegistry?.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: rootDomainId,
+          payload: { subject: rootExtensionId },
+        },
+        fallback: {
+          action: {
+            type: HAI3_ACTION_MOUNT_EXT,
+            target: fallbackDomainId,
+            payload: { subject: 'gts.hai3.mfes.ext.extension.v1~test.app.requested.fallback.v1' },
+          },
+        },
+      });
+      unsubscribe();
+
+      expect(selectMountedExtension(app.store.getState(), rootDomainId)).toBe(
+        'gts.hai3.mfes.ext.extension.v1~test.app.root.ext.v1'
+      );
+      expect(selectMountedExtension(app.store.getState(), fallbackDomainId)).toBeUndefined();
+      expect(notificationCount).toBe(1);
     });
   });
 

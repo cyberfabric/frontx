@@ -152,6 +152,20 @@ export function mountExtension(extensionId: string): void {
 // @cpt-begin:cpt-frontx-flow-framework-composition-mfe-lifecycle:p1:inst-3
 export function unmountExtension(extensionId: string): void {
   const domainId = resolveDomainId(extensionId);
+  const domain = screensetsRegistry!.getDomain(domainId);
+  if (domain === undefined) {
+    throw new Error(
+      `MFE unmount failed: domain '${domainId}' is not registered (extension '${extensionId}'). Register the domain before unmounting.`
+    );
+  }
+  const supportsUnmount = domain.actions.includes(HAI3_ACTION_UNMOUNT_EXT);
+
+  if (!supportsUnmount) {
+    console.warn(
+      `[MFE] Skipping unmount for ${extensionId}: domain '${domainId}' uses swap semantics and does not support ${HAI3_ACTION_UNMOUNT_EXT}.`
+    );
+    return;
+  }
 
   // Call executeActionsChain fire-and-forget (no await)
   screensetsRegistry!.executeActionsChain({

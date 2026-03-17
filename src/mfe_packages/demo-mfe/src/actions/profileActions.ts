@@ -1,17 +1,15 @@
-/**
- * Profile Domain - Actions
- *
- * Actions emit events to trigger profile flux flows.
- * Following flux architecture: Actions emit events → Effects listen and dispatch.
- */
+import { apiRegistry, invalidateQueryCacheForApp } from '@cyberfabric/react';
+import { AccountsApiService } from '../api/AccountsApiService';
+import { mfeApp } from '../init';
 
-import { eventBus } from '@cyberfabric/react';
-import '../events/profileEvents';
-
-/**
- * Request a user data fetch.
- * Emits 'mfe/profile/user-fetch-requested' — the profile effect handles the API call.
- */
+/** Invalidates the shared `getCurrentUser` query so ProfileScreen refetches. */
 export function fetchUser(): void {
-  eventBus.emit('mfe/profile/user-fetch-requested');
+  void Promise.resolve()
+    .then(() => {
+      const service = apiRegistry.getService(AccountsApiService);
+      return invalidateQueryCacheForApp(mfeApp, service.getCurrentUser);
+    })
+    .catch((error) => {
+      console.error('[demo-mfe] fetchUser failed:', error);
+    });
 }

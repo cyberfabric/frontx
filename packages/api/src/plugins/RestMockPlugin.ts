@@ -116,6 +116,7 @@ export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
   /**
    * Find a mock factory for the given method and URL.
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-factory-match:p2:inst-find-mock-factory
   private findMockFactory(
     method: string,
     url: string
@@ -145,10 +146,12 @@ export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
 
     return undefined;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-factory-match:p2:inst-find-mock-factory
 
   /**
    * Match URL against pattern with :params.
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-factory-match:p2:inst-match-url-pattern
   private matchUrlPattern(pattern: string, url: string): boolean {
     if (!pattern.includes(':')) {
       return pattern === url;
@@ -168,13 +171,16 @@ export class RestMockPlugin extends RestPluginWithConfig<RestMockConfig> {
     const regex = new RegExp(`^${regexPattern}$`);
     return regex.test(url);
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-factory-match:p2:inst-match-url-pattern
 
   /**
    * Simulate network delay.
    */
+  // @cpt-begin:cpt-frontx-flow-api-communication-mock-activation:p2:inst-simulate-delay
   private simulateDelay(): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, this.config.delay ?? 0));
   }
+  // @cpt-end:cpt-frontx-flow-api-communication-mock-activation:p2:inst-simulate-delay
 
   /**
    * Cleanup plugin resources.

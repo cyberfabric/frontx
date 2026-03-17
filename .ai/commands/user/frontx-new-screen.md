@@ -33,7 +33,7 @@ Present the following to the user for approval:
   - If uikit is a third-party package: import its components directly.
   - components/ui/: base UI primitives (shadcn components or custom)
   - screens/{screen}/components/: screen-specific components
-- **Data Flow**: Uses existing screenset events/slices per EVENTS.md; screen dispatches actions, never direct slice updates.
+- **Data Flow**: Uses existing screenset events/slices per EVENTS.md; screen dispatches actions, never direct slice updates. Data fetching via endpoint descriptors: `useApiQuery(service.descriptor)`, `useApiMutation({ endpoint: service.descriptor })`.
 - **Tasks**:
   - Add screen ID to ids.ts
   - Create components per Component Plan (BEFORE screen file)

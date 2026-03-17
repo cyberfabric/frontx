@@ -13,6 +13,11 @@
 // @cpt-algo:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1
 // @cpt-algo:cpt-frontx-algo-api-communication-plugin-ordering:p1
 // @cpt-state:cpt-frontx-state-api-communication-rest-connection:p1
+// @cpt-dod:cpt-frontx-dod-request-lifecycle-abort-signal:p1
+// @cpt-flow:cpt-frontx-flow-request-lifecycle-rest-abort:p1
+// @cpt-algo:cpt-frontx-algo-request-lifecycle-signal-threading:p1
+// @cpt-algo:cpt-frontx-algo-request-lifecycle-cancel-detection:p1
+// @cpt-algo:cpt-frontx-algo-request-lifecycle-request-options:p1
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import {
@@ -21,16 +26,17 @@ import {
   type RestProtocolConfig,
   type ApiRequestContext,
   type ApiResponseContext,
-  type ShortCircuitResponse,
   type RestPluginHooks,
   type HttpMethod,
   type PluginClass,
   type ApiPluginErrorContext,
   type RestResponseContext,
   type RestRequestContext,
+  type RestRequestOptions,
 } from '../types';
 import { isRestShortCircuit } from '../types';
-import { apiRegistry } from '../apiRegistry';
+import { protocolPluginRegistry } from '../protocolPluginRegistry';
+import { peekSharedFetchCache } from '../sharedFetchCache';
 
 /**
  * Default REST protocol configuration.
@@ -38,6 +44,23 @@ import { apiRegistry } from '../apiRegistry';
 const DEFAULT_REST_CONFIG: RestProtocolConfig = {
   withCredentials: false,
   contentType: 'application/json',
+};
+
+let nextSharedRequestScopeId = 0;
+
+function allocateRestProtocolSharedRequestScopeId(): string {
+  nextSharedRequestScopeId += 1;
+  return `rest-protocol:${nextSharedRequestScopeId}`;
+}
+
+type PreparedRestRequest = {
+  readonly originalRequestContext: ApiRequestContext;
+  readonly processedRequestContext: ApiRequestContext;
+  readonly shortCircuitResponse?: ApiResponseContext;
+};
+
+type SharedGetResponseEnvelope = {
+  readonly responseContext: ApiResponseContext;
 };
 
 /**
@@ -63,6 +86,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   /** REST-specific config */
   private restConfig: RestProtocolConfig;
 
+  /** Stable per-instance scope so request preparation dedupes only within one protocol. */
+  private readonly sharedRequestScopeId = allocateRestProtocolSharedRequestScopeId();
 
   /** Callback to get excluded plugin classes from service */
   private getExcludedClasses: () => ReadonlySet<PluginClass> = () => new Set();
@@ -74,6 +99,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Instance plugin management namespace
    * Plugins registered here apply only to this RestProtocol instance
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-plugin-ordering:p1:inst-rest-instance-plugins
   public readonly plugins = {
     /**
      * Add an instance REST plugin
@@ -102,11 +128,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       return Array.from(this._instancePlugins);
     },
   };
+  // @cpt-end:cpt-frontx-algo-api-communication-plugin-ordering:p1:inst-rest-instance-plugins
 
+  // @cpt-begin:cpt-frontx-dod-api-communication-rest-protocol:p1:inst-constructor
   constructor(restConfig: RestProtocolConfig = {}) {
     super();
     this.restConfig = { ...DEFAULT_REST_CONFIG, ...restConfig };
   }
+  // @cpt-end:cpt-frontx-dod-api-communication-rest-protocol:p1:inst-constructor
 
   // ============================================================================
   // Initialization
@@ -158,7 +187,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    */
   // @cpt-begin:cpt-frontx-algo-api-communication-plugin-ordering:p1:inst-1
   private getGlobalPlugins(): readonly RestPluginHooks[] {
-    const allGlobalPlugins = apiRegistry.plugins.getAll(RestProtocol);
+    const allGlobalPlugins = protocolPluginRegistry.getAll(RestProtocol);
     const excludedClasses = this.getExcludedClasses();
 
     if (excludedClasses.size === 0) {
@@ -193,12 +222,69 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   // HTTP Methods
   // ============================================================================
 
+  // @cpt-begin:cpt-frontx-algo-request-lifecycle-request-options:p1:inst-update-signatures
   /**
    * Perform GET request.
    * @template TResponse - Response type
    */
-  async get<TResponse>(url: string, params?: Record<string, string>): Promise<TResponse> {
-    return this.request<TResponse>('GET', url, undefined, params);
+  async get<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('GET', url, undefined, options);
+  }
+
+  /**
+   * Perform GET request with shared-fetch reuse when a global cache is retained.
+   * The shared key is derived from the plugin-processed request identity so
+   * auth/tenant headers and similar request mutations stay isolated per root.
+   *
+   * @internal Used by RestEndpointProtocol query descriptors.
+   */
+  async getWithSharedCache<TResponse>(
+    url: string,
+    options?: RestRequestOptions & { descriptorKey?: readonly unknown[]; staleTime?: number }
+  ): Promise<TResponse> {
+    const cache = peekSharedFetchCache();
+    if (!cache) {
+      return this.get<TResponse>(url, options);
+    }
+
+    const preparationKey = this.resolveSharedGetPreparationKey(url, options?.params);
+    const preparedRequest = await cache.getOrFetch(
+      preparationKey,
+      ({ signal }) => this.prepareRequest('GET', url, undefined, signal),
+      {
+        signal: options?.signal,
+        aliases: options?.descriptorKey ? [options.descriptorKey] : undefined,
+        staleTime: 0,
+      }
+    );
+    const sharedKey = this.resolveSharedGetCacheKey(
+      preparedRequest.processedRequestContext,
+      options?.params
+    );
+    const sharedEnvelope = await cache.getOrFetch<SharedGetResponseEnvelope>(
+      sharedKey,
+      ({ signal }) =>
+        this.fetchSharedGetResponse(
+          preparedRequest,
+          'GET',
+          url,
+          options?.params,
+          signal,
+          0
+        ),
+      {
+        signal: options?.signal,
+        aliases: options?.descriptorKey ? [options.descriptorKey] : undefined,
+        staleTime: options?.staleTime,
+      }
+    );
+
+    const finalResponse = await this.executePluginOnResponse(
+      sharedEnvelope.responseContext,
+      preparedRequest.originalRequestContext
+    );
+
+    return finalResponse.data as TResponse;
   }
 
   /**
@@ -206,8 +292,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('POST', url, data);
+  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('POST', url, data, options);
   }
 
   /**
@@ -215,8 +301,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('PUT', url, data);
+  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PUT', url, data, options);
   }
 
   /**
@@ -224,17 +310,25 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('PATCH', url, data);
+  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PATCH', url, data, options);
   }
 
   /**
    * Perform DELETE request.
+   * Omit `data` when the endpoint has no body; pass `undefined` explicitly when combining with `options`
+   * (e.g. `delete(url, undefined, { signal })`), same pattern as POST/PUT/PATCH.
    * @template TResponse - Response type
+   * @template TRequest - Request body type (optional)
    */
-  async delete<TResponse>(url: string): Promise<TResponse> {
-    return this.request<TResponse>('DELETE', url);
+  async delete<TResponse, TRequest = unknown>(
+    url: string,
+    data?: TRequest,
+    options?: RestRequestOptions
+  ): Promise<TResponse> {
+    return this.request<TResponse>('DELETE', url, data, options);
   }
+  // @cpt-end:cpt-frontx-algo-request-lifecycle-request-options:p1:inst-update-signatures
 
   // ============================================================================
   // Request Execution
@@ -244,14 +338,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Execute an HTTP request with plugin chain.
    * Public entry point - delegates to requestInternal with retryCount: 0.
    */
+  // @cpt-begin:cpt-frontx-algo-request-lifecycle-request-options:p1:inst-forward-to-internal
   private async request<T>(
     method: HttpMethod,
     url: string,
     data?: unknown,
-    params?: Record<string, string>
+    options?: RestRequestOptions
   ): Promise<T> {
-    return this.requestInternal<T>(method, url, data, params, 0);
+    return this.requestInternal<T>(method, url, data, options?.params, options?.signal, 0);
   }
+  // @cpt-end:cpt-frontx-algo-request-lifecycle-request-options:p1:inst-forward-to-internal
 
   /**
    * Internal request execution with retry support.
@@ -260,12 +356,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   // @cpt-begin:cpt-frontx-flow-api-communication-rest-request:p1:inst-1
   // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-1
   // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-request-lifecycle-signal-threading:p1:inst-receive-signal
   private async requestInternal<T>(
     method: HttpMethod,
     url: string,
     data?: unknown,
     params?: Record<string, string>,
-    retryCount: number = 0
+    signal?: AbortSignal,
+    retryCount: number = 0,
+    /** Merged request headers from plugin retry() — must be applied before onRequest, not rebuilt from config only */
+    retryHeaders?: Record<string, string>
   ): Promise<T> {
     if (!this.client) {
       throw new Error('RestProtocol not initialized. Call initialize() first.');
@@ -276,27 +376,76 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     if (retryCount >= maxDepth) {
       throw new Error(`Max retry depth (${maxDepth}) exceeded`);
     }
-
-    // Build full URL for plugins (baseURL + relative url)
-    const fullUrl = this.config?.baseURL
-      ? `${this.config.baseURL}${url}`.replace(/\/+/g, '/').replace(':/', '://')
-      : url;
-
-    // Build request context for plugins (pure request data - no serviceName)
-    const requestContext: ApiRequestContext = {
+    const requestContext = this.buildRequestContext(
       method,
-      url: fullUrl,
-      headers: { ...this.config?.headers },
-      body: data,
+      url,
+      data,
+      signal,
+      retryHeaders
+    );
+
+    let preparedRequest: PreparedRestRequest;
+
+    try {
+      preparedRequest = await this.prepareRequestContext(requestContext);
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        throw error;
+      }
+
+      const err = error instanceof Error ? error : new Error(String(error));
+      const finalResult = await this.executePluginOnError(
+        err,
+        requestContext,
+        url,
+        params,
+        signal,
+        retryCount
+      );
+
+      if (this.isApiResponseContext(finalResult)) {
+        return this.unwrapResponseData<T>(finalResult, requestContext);
+      }
+
+      throw finalResult;
+    }
+
+    return this.executePreparedRequest<T>(
+      preparedRequest,
+      method,
+      url,
+      params,
+      signal,
+      retryCount
+    );
+  }
+  // @cpt-end:cpt-frontx-algo-request-lifecycle-signal-threading:p1:inst-receive-signal
+  // @cpt-end:cpt-frontx-flow-api-communication-rest-request:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-1
+
+  private async executePreparedRequest<T>(
+    preparedRequest: PreparedRestRequest,
+    method: HttpMethod,
+    url: string,
+    params?: Record<string, string>,
+    signal?: AbortSignal,
+    retryCount: number = 0
+  ): Promise<T> {
+    const requestContext = {
+      ...preparedRequest.originalRequestContext,
+      signal,
+    };
+    const processedContext = {
+      ...preparedRequest.processedRequestContext,
+      signal,
     };
 
     try {
-      // Execute onRequest plugin chain
-      const pluginResult = await this.executePluginOnRequest(requestContext);
-
-      // Check if a plugin short-circuited
-      if (isRestShortCircuit(pluginResult)) {
-        const shortCircuitResponse = pluginResult.shortCircuit;
+      // Check if a plugin short-circuited (signal is irrelevant when no HTTP call is made)
+      // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-short-circuit-bypass
+      if (preparedRequest.shortCircuitResponse) {
+        const shortCircuitResponse = preparedRequest.shortCircuitResponse;
 
         // Execute onResponse for plugins in reverse order
         const processedShortCircuit = await this.executePluginOnResponse(
@@ -306,23 +455,26 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
         return processedShortCircuit.data as T;
       }
+      // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-short-circuit-bypass
 
-      // Use processed context from plugins
-      const processedContext = pluginResult;
-
-      // Build axios config
+      // Build axios config.
       // IMPORTANT: Use the original relative URL for axios since it already has baseURL configured.
       // Plugin chain receives full URL for mock matching, but axios needs relative URL.
+      // @cpt-begin:cpt-frontx-algo-request-lifecycle-signal-threading:p1:inst-copy-to-axios
+      // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-axios-signal
       const axiosConfig: AxiosRequestConfig = {
         method,
         url,  // Use original relative URL, not processedContext.url which includes baseURL
         headers: processedContext.headers,
         data: processedContext.body,
         params,
+        signal,
       };
+      // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-axios-signal
+      // @cpt-end:cpt-frontx-algo-request-lifecycle-signal-threading:p1:inst-copy-to-axios
 
       // Execute actual HTTP request
-      const response = await this.client.request(axiosConfig);
+      const response = await this.client!.request(axiosConfig);
 
       // Build response context
       const responseContext: ApiResponseContext = {
@@ -339,6 +491,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
       return finalResponse.data as T;
     } catch (error) {
+      // @cpt-begin:cpt-frontx-algo-request-lifecycle-cancel-detection:p1:inst-check-is-cancel
+      // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-cancel-skip-plugins
+      // Canceled requests bypass the error plugin chain entirely — they are not retryable
+      // and the caller (e.g., TanStack Query on unmount) expects the raw CanceledError.
+      if (axios.isCancel(error)) {
+        throw error;
+      }
+      // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-cancel-skip-plugins
+      // @cpt-end:cpt-frontx-algo-request-lifecycle-cancel-detection:p1:inst-check-is-cancel
+
       const err = error instanceof Error ? error : new Error(String(error));
 
       // Execute onError plugin chain with retry support
@@ -347,20 +509,85 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         requestContext,
         url,
         params,
+        signal,
         retryCount
       );
 
       // Check if error was recovered (plugin returned ApiResponseContext)
-      if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
-        return (finalResult as ApiResponseContext).data as T;
+      if (this.isApiResponseContext(finalResult)) {
+        return this.unwrapResponseData<T>(finalResult, requestContext);
       }
 
       throw finalResult;
     }
   }
-  // @cpt-end:cpt-frontx-flow-api-communication-rest-request:p1:inst-1
-  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-1
-  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-1
+
+  private async fetchSharedGetResponse(
+    preparedRequest: PreparedRestRequest,
+    method: HttpMethod,
+    url: string,
+    params?: Record<string, string>,
+    signal?: AbortSignal,
+    retryCount: number = 0
+  ): Promise<SharedGetResponseEnvelope> {
+    const requestContext = {
+      ...preparedRequest.originalRequestContext,
+      signal,
+    };
+    const processedContext = {
+      ...preparedRequest.processedRequestContext,
+      signal,
+    };
+
+    try {
+      if (preparedRequest.shortCircuitResponse) {
+        return {
+          responseContext: preparedRequest.shortCircuitResponse,
+        };
+      }
+
+      const axiosConfig: AxiosRequestConfig = {
+        method,
+        url,
+        headers: processedContext.headers,
+        data: processedContext.body,
+        params,
+        signal,
+      };
+
+      const response = await this.client!.request(axiosConfig);
+
+      return {
+        responseContext: {
+          status: response.status,
+          headers: response.headers as Record<string, string>,
+          data: response.data,
+        },
+      };
+    } catch (error) {
+      if (axios.isCancel(error)) {
+        throw error;
+      }
+
+      const err = error instanceof Error ? error : new Error(String(error));
+      const finalResult = await this.executePluginOnError(
+        err,
+        requestContext,
+        url,
+        params,
+        signal,
+        retryCount
+      );
+
+      if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
+        return {
+          responseContext: finalResult as ApiResponseContext,
+        };
+      }
+
+      throw finalResult;
+    }
+  }
 
   // ============================================================================
   // Plugin Chain Execution
@@ -371,9 +598,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Plugins execute in FIFO order (global first, then instance).
    * Any plugin can short-circuit by returning { shortCircuit: response }.
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-execute-on-request
   private async executePluginOnRequest(
     context: ApiRequestContext
-  ): Promise<ApiRequestContext | ShortCircuitResponse> {
+  ): Promise<PreparedRestRequest> {
     let currentContext: ApiRequestContext = { ...context };
 
     // Use protocol-level plugins (global + instance)
@@ -388,7 +616,11 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
         // Check if plugin short-circuited
         if (isRestShortCircuit(result)) {
-          return result; // Stop chain and return short-circuit response
+          return {
+            originalRequestContext: context,
+            processedRequestContext: currentContext,
+            shortCircuitResponse: result.shortCircuit,
+          };
         }
 
         // Update context
@@ -396,13 +628,18 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       }
     }
 
-    return currentContext;
+    return {
+      originalRequestContext: context,
+      processedRequestContext: currentContext,
+    };
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-execute-on-request
 
   /**
    * Execute onResponse plugin chain.
    * Plugins execute in reverse order (LIFO - onion model).
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-execute-on-response
   private async executePluginOnResponse(
     context: ApiResponseContext,
     _requestContext: ApiRequestContext
@@ -419,17 +656,32 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentContext;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-execute-on-response
+
+  private isApiResponseContext(value: Error | ApiResponseContext): value is ApiResponseContext {
+    return Boolean(value) && typeof value === 'object' && 'status' in value && 'data' in value;
+  }
+
+  private async unwrapResponseData<T>(
+    responseContext: ApiResponseContext,
+    requestContext: ApiRequestContext
+  ): Promise<T> {
+    const finalResponse = await this.executePluginOnResponse(responseContext, requestContext);
+    return finalResponse.data as T;
+  }
 
   /**
    * Execute onError plugin chain with retry support.
    * Plugins execute in reverse order (LIFO).
    * Plugins can transform error, recover with ApiResponseContext, or retry the request.
    */
+  // @cpt-begin:cpt-frontx-flow-api-communication-rest-request:p1:inst-execute-on-error
   private async executePluginOnError(
     error: Error,
     context: ApiRequestContext,
     originalUrl: string,
     params: Record<string, string> | undefined,
+    signal: AbortSignal | undefined,
     retryCount: number
   ): Promise<Error | ApiResponseContext> {
     // Create retry function that calls requestInternal with incremented retryCount
@@ -440,13 +692,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         headers: { ...context.headers, ...modifiedRequest?.headers },
       };
 
-      // Re-execute through requestInternal with incremented retryCount
+      // Re-execute through requestInternal with incremented retryCount.
+      // Signal is forwarded so aborted retries also cancel correctly.
       const result = await this.requestInternal(
         retryContext.method,
         originalUrl,
         retryContext.body,
         params,
-        retryCount + 1
+        signal,
+        retryCount + 1,
+        retryContext.headers
       );
 
       // Wrap result in response context format
@@ -485,6 +740,82 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     }
 
     return currentResult;
+  }
+  // @cpt-end:cpt-frontx-flow-api-communication-rest-request:p1:inst-execute-on-error
+
+  private async prepareRequest(
+    method: HttpMethod,
+    url: string,
+    data?: unknown,
+    signal?: AbortSignal,
+    retryHeaders?: Record<string, string>
+  ): Promise<PreparedRestRequest> {
+    // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-build-context-signal
+    const requestContext = this.buildRequestContext(method, url, data, signal, retryHeaders);
+    // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-build-context-signal
+
+    return this.prepareRequestContext(requestContext);
+  }
+
+  private async prepareRequestContext(
+    requestContext: ApiRequestContext
+  ): Promise<PreparedRestRequest> {
+    // Execute onRequest plugin chain — plugins receive context with signal
+    // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-plugin-chain-signal
+    return this.executePluginOnRequest(requestContext);
+    // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-plugin-chain-signal
+  }
+
+  private buildRequestContext(
+    method: HttpMethod,
+    url: string,
+    data?: unknown,
+    signal?: AbortSignal,
+    retryHeaders?: Record<string, string>
+  ): ApiRequestContext {
+    const fullUrl = this.config?.baseURL
+      ? `${this.config.baseURL}${url}`.replace(/\/+/g, '/').replace(':/', '://')
+      : url;
+
+    return {
+      method,
+      url: fullUrl,
+      headers: retryHeaders
+        ? { ...this.config?.headers, ...retryHeaders }
+        : { ...this.config?.headers },
+      body: data,
+      signal,
+    };
+  }
+
+  private resolveSharedGetCacheKey(
+    context: ApiRequestContext,
+    params?: Record<string, string>
+  ): readonly unknown[] {
+    return [
+      context.method,
+      context.url,
+      { ...context.headers },
+      params ? { ...params } : undefined,
+      context.body,
+      Boolean(this.restConfig.withCredentials),
+    ] as const;
+  }
+
+  private resolveSharedGetPreparationKey(
+    url: string,
+    params?: Record<string, string>
+  ): readonly unknown[] {
+    const requestContext = this.buildRequestContext('GET', url);
+
+    return [
+      this.sharedRequestScopeId,
+      requestContext.method,
+      requestContext.url,
+      { ...requestContext.headers },
+      params ? { ...params } : undefined,
+      requestContext.body,
+    ] as const;
   }
 
 }

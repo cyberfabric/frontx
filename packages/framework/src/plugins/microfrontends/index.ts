@@ -17,6 +17,7 @@
 
 import {
   screensetsRegistryFactory,
+  type ActionsChain,
   type MfeHandler,
   type TypeSystemPlugin,
   HAI3_ACTION_MOUNT_EXT,
@@ -34,7 +35,6 @@ import {
   unregisterExtension,
   setMfeRegistry,
 } from './actions';
-
 /**
  * Configuration for the microfrontends plugin.
  */
@@ -53,6 +53,32 @@ export interface MicrofrontendsConfig {
    * handlers manually via screensetsRegistry API.
    */
   mfeHandlers?: MfeHandler[];
+}
+
+function collectLifecycleDomains(chain: ActionsChain): string[] {
+  const domains = new Set<string>();
+
+  const visit = (link: ActionsChain): void => {
+    const actionType = link.action?.type;
+    const domainId = link.action?.target;
+    if (
+      (actionType === HAI3_ACTION_MOUNT_EXT || actionType === HAI3_ACTION_UNMOUNT_EXT) &&
+      domainId
+    ) {
+      domains.add(domainId);
+    }
+
+    if (link.next) {
+      visit(link.next);
+    }
+
+    if (link.fallback) {
+      visit(link.fallback);
+    }
+  };
+
+  visit(chain);
+  return [...domains];
 }
 
 /**
@@ -106,21 +132,28 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
   // Wrap executeActionsChain to intercept mount/unmount completions for store dispatch
   const originalExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
   screensetsRegistry.executeActionsChain = async (chain) => {
+    const lifecycleDomains = collectLifecycleDomains(chain);
+    const mountedBeforeByDomain = new Map(
+      lifecycleDomains.map((domainId) => [domainId, screensetsRegistry.getMountedExtension(domainId)])
+    );
+
     await originalExecuteActionsChain(chain);
-    // After successful execution, dispatch store updates for mount/unmount
-    const actionType = chain.action?.type;
-    if (actionType === HAI3_ACTION_MOUNT_EXT) {
+    // Sync the store from the registry's post-condition instead of assuming
+    // that a resolved chain mounted/unmounted only the root link's extension.
+    if (lifecycleDomains.length > 0) {
       const store = getStore();
-      const domainId = chain.action!.target;
-      const extensionId = typeof chain.action?.payload?.subject === 'string' ? chain.action.payload.subject : undefined;
-      if (domainId && extensionId) {
-        store.dispatch(setExtensionMounted({ domainId, extensionId }));
-      }
-    } else if (actionType === HAI3_ACTION_UNMOUNT_EXT) {
-      const store = getStore();
-      const domainId = chain.action!.target;
-      if (domainId) {
-        store.dispatch(setExtensionUnmounted({ domainId }));
+      for (const domainId of lifecycleDomains) {
+        const mountedBefore = mountedBeforeByDomain.get(domainId);
+        const mountedExtensionId = screensetsRegistry.getMountedExtension(domainId);
+        if (mountedBefore === mountedExtensionId) {
+          continue;
+        }
+
+        if (mountedExtensionId) {
+          store.dispatch(setExtensionMounted({ domainId, extensionId: mountedExtensionId }));
+        } else {
+          store.dispatch(setExtensionUnmounted({ domainId }));
+        }
       }
     }
   };

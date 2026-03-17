@@ -34,6 +34,14 @@ import { apiRegistry } from '@cyberfabric/api';
 // Plugin Resolution
 // ============================================================================
 
+const DUPLICATE_PLUGIN_CLEANUP_SYMBOL = Symbol.for(
+  'hai3:plugin:duplicate-cleanup'
+);
+
+type PluginWithDuplicateCleanup = HAI3Plugin & {
+  [DUPLICATE_PLUGIN_CLEANUP_SYMBOL]?: () => void;
+};
+
 // @cpt-begin:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-1
 /**
  * Check if value is a plugin factory function
@@ -49,6 +57,20 @@ function isPluginFactory(
  */
 function resolvePlugin(plugin: HAI3Plugin | PluginFactory): HAI3Plugin {
   return isPluginFactory(plugin) ? plugin() : plugin;
+}
+
+function resolvePluginNameHint(
+  plugin: HAI3Plugin | PluginFactory
+): string | undefined {
+  if (isPluginFactory(plugin)) {
+    return plugin.name || undefined;
+  }
+
+  return plugin.name;
+}
+
+function cleanupSkippedDuplicatePlugin(plugin: HAI3Plugin): void {
+  (plugin as PluginWithDuplicateCleanup)[DUPLICATE_PLUGIN_CLEANUP_SYMBOL]?.();
 }
 // @cpt-end:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-1
 
@@ -85,10 +107,24 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       return this;
     }
 
+    const pluginNameHint = resolvePluginNameHint(plugin);
+    if (pluginNameHint && this.plugins.some((p) => p.name === pluginNameHint)) {
+      if (!isPluginFactory(plugin)) {
+        cleanupSkippedDuplicatePlugin(plugin);
+      }
+      if (this.config.devMode) {
+        console.warn(
+          `Plugin "${pluginNameHint}" is already registered. Skipping duplicate.`
+        );
+      }
+      return this;
+    }
+
     const resolved = resolvePlugin(plugin);
 
     // Check if plugin already registered
     if (this.plugins.some((p) => p.name === resolved.name)) {
+      cleanupSkippedDuplicatePlugin(resolved);
       if (this.config.devMode) {
         console.warn(
           `Plugin "${resolved.name}" is already registered. Skipping duplicate.`

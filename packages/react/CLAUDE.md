@@ -28,12 +28,114 @@ function App() {
   <YourApp />
 </HAI3Provider>
 
-// With pre-built app
+// With pre-built app (host-style shell; host typically also uses queryCache() — see REACT.md)
 const app = createHAI3().use(screensets()).build();
 <HAI3Provider app={app}>
   <YourApp />
 </HAI3Provider>
+
+// Child MFE app — canonical bootstrap matches src/mfe_packages/*/init.ts and .ai/targets/SCREENSETS.md:
+// apiRegistry.register / initialize before .build; createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
+// registerSlice after .build when slices exist.
+const mfeApp = createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build();
+<HAI3Provider app={mfeApp}>
+  <YourApp />
+</HAI3Provider>
 ```
+
+The shared `QueryClient` is created and owned by the `queryCache()` framework plugin at L2.
+`HAI3Provider` resolves that client from the app instance — it does not create its own `QueryClient`.
+
+When the host uses `queryCache()` and the child MFE app uses `queryCacheShared()` (with `effects()` and `mock()` on the same chain as in repo MFE inits), both roots join the same shared `QueryClient` while keeping separate React trees. `ThemeAwareReactLifecycle` relies on that shared plugin-owned client through the app instance. If the shared client is missing for a mounted MFE, the lifecycle now fails explicitly instead of silently falling back.
+
+For separate roots, build each app with the appropriate query-cache plugin (`queryCache()` for the host, `queryCacheShared()` for child MFE shells) so every tree joins the same cache through plugin composition. MFE package ordering and forbidden bootstrap pieces are defined in SCREENSETS.md. Host apps should register domains/extensions during bootstrap; **`ExtensionDomainSlot`** is the preferred host-side renderer for screen slots while the framework wires `mount_ext`.
+
+### Data Fetching with Endpoint Descriptors
+
+Services define endpoints as descriptors. Components consume them via `useApiQuery` and `useApiMutation`. No manual query keys, no `queryOptions()` calls.
+
+```tsx
+import { useApiQuery, useApiMutation, apiRegistry } from '@cyberfabric/react';
+import { AccountsApiService } from '../api/AccountsApiService';
+
+function ProfileScreen() {
+  const service = apiRegistry.getService(AccountsApiService);
+
+  // Read — pass descriptor directly
+  const { data, isLoading, error } = useApiQuery(service.getCurrentUser);
+
+  // Read with params
+  const { data: user } = useApiQuery(service.getUser({ id: '123' }));
+
+  // Write with optimistic update
+  const { mutateAsync, isPending } = useApiMutation({
+    endpoint: service.updateProfile,
+    onMutate: async (variables, { queryCache }) => {
+      await queryCache.cancel(service.getCurrentUser);
+      const snapshot = queryCache.get(service.getCurrentUser);
+      queryCache.set(service.getCurrentUser, (old) => ({
+        ...old, user: { ...old.user, ...variables }
+      }));
+      return { snapshot };
+    },
+    onError: (_err, _vars, context, { queryCache }) => {
+      if (context?.snapshot) {
+        queryCache.set(service.getCurrentUser, context.snapshot);
+      }
+    },
+    onSettled: async (_data, _err, _vars, _ctx, { queryCache }) => {
+      await queryCache.invalidate(service.getCurrentUser);
+    },
+  });
+
+  // Per-endpoint cache override (rare)
+  const { data: config } = useApiQuery(service.getConfig, { staleTime: 0 });
+}
+```
+
+Cache keys are derived automatically by the service — `QueryCache` methods accept
+endpoint descriptors directly (e.g., `queryCache.get(service.getCurrentUser)`).
+
+### SSE Streaming with Stream Descriptors
+
+Services declare SSE endpoints as stream descriptors. Components consume them via `useApiStream`, which manages the EventSource lifecycle automatically (connect on mount, disconnect on unmount).
+
+```tsx
+import { useApiStream, apiRegistry } from '@cyberfabric/react';
+import { ChatApiService } from '../api/ChatApiService';
+
+function ChatStream() {
+  const service = apiRegistry.getService(ChatApiService);
+
+  // Latest event only (default mode)
+  const { data, status, error } = useApiStream(service.messageStream);
+
+  // Accumulate all events
+  const { events, status: streamStatus } = useApiStream(
+    service.messageStream,
+    { mode: 'accumulate' }
+  );
+
+  // Deferred connection (enabled: false)
+  const [active, setActive] = useState(false);
+  const { data: msg, disconnect } = useApiStream(
+    service.messageStream,
+    { enabled: active }
+  );
+
+  if (status === 'connecting') return <Loading />;
+  if (error) return <Error error={error} />;
+
+  return <div>{data?.text}</div>;
+}
+```
+
+`useApiStream` returns `{ data, events, status, error, disconnect }`:
+- `data` — latest event payload (always set in both modes)
+- `events` — all received events when `mode: 'accumulate'`; empty array in `'latest'` mode
+- `status` — `'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'`
+- `error` — connection error if any
+- `disconnect()` — manually close the connection
 
 ### Available Hooks
 
@@ -254,7 +356,7 @@ import { MfeProvider } from '@cyberfabric/react';
 
 function MfeHost() {
   return (
-    <MfeProvider bridge={parentBridge}>
+    <MfeProvider value={{ bridge: parentBridge, extensionId: 'home', domainId: 'screen' }}>
       <ExtensionContainer />
     </MfeProvider>
   );
@@ -270,16 +372,26 @@ import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function LayoutScreen() {
   return (
-    <div>
-      <ExtensionDomainSlot
-        domainId="screen"
-        containerRef={screenContainerRef}
-        fallback={<Loading />}
-      />
-    </div>
+    <ExtensionDomainSlot
+      registry={registry}
+      domainId="screen"
+      extensionId="home"
+      loadingComponent={<Loading />}
+    />
   );
 }
 ```
+
+`ExtensionDomainSlot` is the preferred host-side renderer for screen MFEs. It
+owns mount/unmount and loading/error UI while host bootstrap handles domain
+registration and shared property setup before slot-driven `mount_ext`.
+The host `QueryClient` is reused by MFE React trees through
+`queryCacheShared()`, not by embedding a `QueryClient` on `MfeMountContext`
+or expecting host React context inside Shadow DOM.
+
+When the domain's `ContainerProvider` must point at the same DOM node rendered
+by the slot, pass `containerRef` to `ExtensionDomainSlot` and share that ref
+with `RefContainerProvider`.
 
 #### RefContainerProvider
 
@@ -304,9 +416,12 @@ function Layout() {
 
 1. **Wrap with HAI3Provider** - Required for all hooks to work
 2. **Use hooks for state access** - Don't import selectors directly from @cyberfabric/framework
-3. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
-4. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
-5. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
+3. **Use endpoint descriptors for data** - `useApiQuery(service.endpoint)` for REST, `useApiStream(service.stream)` for SSE — not `queryOptions()` or manual key factories
+4. **Service is the cache contract** - The service IS the data layer; cache keys are derived automatically
+5. **QueryCache uses descriptors** - `queryCache.get(service.endpoint)`, not raw key arrays
+6. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
+7. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
+8. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
 
 ## Re-exports
 
@@ -332,6 +447,10 @@ This allows users to import everything from `@cyberfabric/react` without needing
 - `useFrontX` - Access app instance
 - `useAppDispatch` - Typed dispatch
 - `useAppSelector` - Typed selector
+- `useApiQuery` - Declarative data fetch from endpoint descriptor; returns `ApiQueryResult<TData>`
+- `useApiMutation` - Declarative mutation with endpoint descriptor and optimistic update support; returns `ApiMutationResult<TData>`
+- `useApiStream` - Declarative SSE streaming from stream descriptor; returns `ApiStreamResult<TEvent>`
+- `useQueryCache` - Restricted query cache access (accepts descriptors or raw keys)
 - `useTranslation` - Translation utilities
 - `useScreenTranslations` - Screen translation loading
 - `useTheme` - Theme utilities
@@ -348,9 +467,15 @@ This allows users to import everything from `@cyberfabric/react` without needing
 
 ### Types
 - `HAI3ProviderProps`
+- `ApiQueryResult<TData>` - HAI3-owned query result type (data, error, isLoading, refetch, etc.)
+- `ApiMutationResult<TData>` - HAI3-owned mutation result type (mutateAsync, isPending, error, reset, etc.)
+- `ApiStreamResult<TEvent>` - HAI3-owned stream result type (data, events, status, error, disconnect)
+- `ApiStreamOptions` - Stream hook options (mode, enabled)
+- `QueryCache` - Restricted cache interface (accepts descriptors or raw keys)
+- `MutationCallbackContext` - Context with queryCache injected into mutation callbacks
 - `MfeProviderProps`, `ExtensionDomainSlotProps`
 - `UseTranslationReturn`, `UseThemeReturn`
-- All types from @cyberfabric/framework
+- All types from @cyberfabric/framework (including `EndpointDescriptor`, `MutationDescriptor`, `StreamDescriptor`, `StreamStatus`)
 
 ## Migration from Legacy API
 
@@ -403,16 +528,17 @@ function MyComponent() {
 }
 ```
 
-**NEW (Alternative)**: Use ExtensionDomainSlot
+**NEW (Preferred for host screen slots)**: Use ExtensionDomainSlot
 ```tsx
 import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function MyComponent() {
   return (
     <ExtensionDomainSlot
+      registry={app.screensetsRegistry}
       domainId="screen"
-      containerRef={screenContainerRef}
-      fallback={<Loading />}
+      extensionId="home"
+      loadingComponent={<Loading />}
     />
   );
 }

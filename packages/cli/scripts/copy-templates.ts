@@ -557,6 +557,11 @@ async function copyTemplates() {
   const presetsEntries = await fs.readdir(presetsDir, { withFileTypes: true });
   const rootFiles = presetsEntries.filter(e => e.isFile());
   for (const file of rootFiles) {
+    // Monorepo-only: root tsconfig extends configs/ and maps workspace packages to src.
+    // Standalone templates get tsconfig.json from flattening configs/ only.
+    if (file.name === 'tsconfig.json') {
+      continue;
+    }
     await fs.copy(path.join(presetsDir, file.name), path.join(TEMPLATES_DIR, file.name));
     console.log(`  ✓ ${file.name}`);
   }
@@ -594,22 +599,14 @@ async function copyTemplates() {
   }
 
   // Copy src/app/mfe/ from monorepo root (MfeScreenContainer, bootstrap, etc.)
-  // This is handled separately from manifest directories because standalone projects
-  // need the bootstrap overridden with standalone-specific versions
+  // Standalone-specific bootstrap and manifest stubs are applied later via the
+  // Stage 1b override files in template-sources/project/src/app/mfe/.
   const mfeSrc = path.join(PROJECT_ROOT, 'src/app/mfe');
   const mfeDest = path.join(TEMPLATES_DIR, 'src/app/mfe');
   if (await fs.pathExists(mfeSrc)) {
     await fs.copy(mfeSrc, mfeDest);
     const mfeFileCount = await countFiles(mfeDest);
     console.log(`  ✓ src/app/mfe/ (${mfeFileCount} files from monorepo)`);
-  }
-
-  // Overwrite MFE bootstrap with standalone version (no mfe_packages — new projects have no demo/blank MFEs)
-  const standaloneBootstrapSrc = path.join(CLI_ROOT, 'template-sources', 'standalone-mfe-bootstrap.ts');
-  const mfeBootstrapDest = path.join(TEMPLATES_DIR, 'src/app/mfe/bootstrap.ts');
-  if (await fs.pathExists(standaloneBootstrapSrc)) {
-    await fs.copy(standaloneBootstrapSrc, mfeBootstrapDest);
-    console.log('  ✓ src/app/mfe/bootstrap.ts (standalone template)');
   }
 
   // Demo bootstrap variant removed — all projects now use the same bootstrap.ts

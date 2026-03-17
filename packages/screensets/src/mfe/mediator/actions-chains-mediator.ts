@@ -216,7 +216,9 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param action - The action to execute
    * @returns Promise that resolves when action completes
    */
-  private async executeAction(action: ActionsChain['action']): Promise<void> {
+  private async executeAction(
+    action: ActionsChain['action']
+  ): Promise<void> {
     // Resolve per-(target, actionType) handler
     const handler = this.resolveHandler(action.target, action.type);
 

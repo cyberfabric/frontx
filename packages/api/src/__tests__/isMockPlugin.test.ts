@@ -5,6 +5,7 @@
  * Validates OCP compliance - new mock plugins can be identified without modifying isMockPlugin.
  */
 
+import { describe, expect, it } from 'vitest';
 import { MOCK_PLUGIN, isMockPlugin, ApiPluginBase } from '../types';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
 import { SseMockPlugin } from '../plugins/SseMockPlugin';
@@ -68,14 +69,12 @@ describe('isMockPlugin', () => {
       }
       class DerivedMockPlugin extends BaseMockPlugin {}
 
-      // Note: Static properties are not inherited in JavaScript
-      // Each class needs to declare its own MOCK_PLUGIN symbol
       const basePlugin = new BaseMockPlugin();
       const derivedPlugin = new DerivedMockPlugin();
 
       expect(isMockPlugin(basePlugin)).toBe(true);
-      // Derived class doesn't inherit static symbol
-      expect(isMockPlugin(derivedPlugin)).toBe(false);
+      // Subclass constructor inherits static [MOCK_PLUGIN] from base
+      expect(isMockPlugin(derivedPlugin)).toBe(true);
     });
   });
 

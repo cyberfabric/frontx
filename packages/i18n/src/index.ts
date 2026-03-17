@@ -7,7 +7,7 @@
  * - RTL support for Arabic, Hebrew, Persian, Urdu
  * - Lazy loading with dynamic imports
  *
- * SDK Layer: L1 (Zero @hai3 dependencies)
+ * SDK Layer: L1 (Zero @cyberfabric dependencies)
  */
 
 // Re-export enums and constants

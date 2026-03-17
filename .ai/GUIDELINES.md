@@ -45,6 +45,7 @@
 - App-level deps limited to: @cyberfabric/react, react, react-dom. Standalone projects must also declare peer deps explicitly: @cyberfabric/framework, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/screensets, @cyberfabric/state.
 - MFE UI autonomy: MFEs own their UI components locally (e.g., components/ui/). No shared UI kit required.
 - Cross-domain communication only via events.
+- Public system contracts must not carry tooling metadata; keep tooling and runtime handoff state internal; do not export internal-only Flux event names used for L2/L3 wiring (narrow subscribe helpers are OK).
 - No string literal identifiers; use constants or enums.
 - No any, no unknown in type definitions, no "as unknown as" casts.
 - REQUIRED: Use lodash for non-trivial object and array operations.

@@ -321,7 +321,14 @@ describe('Dynamic Registration', () => {
 
       // Verify mount was called with shadowRoot (not the raw container)
       // Phase 42: DefaultMountManager creates shadow DOM boundary
-      expect(mockLifecycle.mount).toHaveBeenCalledWith(container.shadowRoot, expect.anything());
+      expect(mockLifecycle.mount).toHaveBeenCalledWith(
+        container.shadowRoot,
+        expect.anything(),
+        expect.objectContaining({
+          extensionId: testExtension.id,
+          domainId: testDomain.id,
+        })
+      );
 
       // Verify extension is mounted
       expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);
