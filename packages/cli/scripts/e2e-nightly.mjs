@@ -95,6 +95,10 @@ try {
   );
   const appConfig = harness.readJson(path.join(appRoot, 'hai3.config.json'));
   harness.assert(
+    appConfig.packageManager === 'npm',
+    'npm app hai3.config.json must set packageManager to npm'
+  );
+  harness.assert(
     !('packageManagerVersion' in appConfig),
     'npm app hai3.config.json must not include packageManagerVersion'
   );
@@ -120,6 +124,10 @@ try {
   harness.assertPathExists(path.join(pnpmRoot, 'pnpm-workspace.yaml'));
   const pnpmConfig = harness.readJson(path.join(pnpmRoot, 'hai3.config.json'));
   harness.assert(
+    pnpmConfig.packageManager === 'pnpm',
+    'pnpm app hai3.config.json must set packageManager to pnpm'
+  );
+  harness.assert(
     !('packageManagerVersion' in pnpmConfig),
     'pnpm app hai3.config.json must not include packageManagerVersion'
   );
@@ -143,6 +151,10 @@ try {
   );
   harness.assertPathExists(path.join(yarnRoot, '.yarnrc.yml'));
   const yarnConfig = harness.readJson(path.join(yarnRoot, 'hai3.config.json'));
+  harness.assert(
+    yarnConfig.packageManager === 'yarn',
+    'yarn app hai3.config.json must set packageManager to yarn'
+  );
   harness.assert(
     !('packageManagerVersion' in yarnConfig),
     'yarn app hai3.config.json must not include packageManagerVersion'

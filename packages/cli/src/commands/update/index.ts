@@ -50,17 +50,21 @@ function detectCurrentChannel(): 'alpha' | 'stable' {
     let searchDir = path.dirname(currentFile);
     let version = '';
 
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-read-cli-package-version
     while (searchDir !== path.dirname(searchDir)) {
       const packageJsonPath = path.join(searchDir, 'package.json');
       if (fs.pathExistsSync(packageJsonPath)) {
         const packageJson = fs.readJsonSync(packageJsonPath);
+        // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-read-cli-version-string
         if (packageJson.name === '@hai3/cli' && typeof packageJson.version === 'string') {
           version = packageJson.version;
           break;
         }
+        // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-read-cli-version-string
       }
       searchDir = path.dirname(searchDir);
     }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-read-cli-package-version
 
     // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-check-prerelease-tag
     // Check for prerelease identifiers (alpha, beta, rc, etc.)

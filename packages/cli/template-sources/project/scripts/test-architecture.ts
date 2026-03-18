@@ -72,6 +72,7 @@ interface ArchCheck {
 
 type PackageManager = 'npm' | 'pnpm' | 'yarn';
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 function detectPackageManager(): PackageManager {
   try {
     const packageJson = JSON.parse(
@@ -86,13 +87,16 @@ function detectPackageManager(): PackageManager {
   }
   return 'npm';
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 function runScriptCommand(packageManager: PackageManager, scriptName: string): string {
   if (packageManager === 'yarn') {
     return `yarn ${scriptName}`;
   }
   return `${packageManager} run ${scriptName}`;
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 
 /**
  * Standalone architecture checks

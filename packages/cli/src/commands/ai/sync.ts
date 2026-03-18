@@ -570,7 +570,9 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     const tool = (args.tool ?? 'all') as AiTool;
     const detectPackages = args.detectPackages ?? false;
     const showDiff = args.diff ?? false;
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
     const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
+    // @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
     if (showDiff) {
       logger.info('Showing diff of AI assistant configuration changes...');

@@ -2,6 +2,7 @@ import fs from 'fs-extra';
 import path from 'path';
 import type { Hai3Config, PackageManager } from './types.js';
 
+// @cpt-algo:cpt-hai3-algo-cli-tooling-package-manager-policy:p1
 export const SUPPORTED_PACKAGE_MANAGERS: PackageManager[] = ['npm', 'pnpm', 'yarn'];
 export const DEFAULT_PACKAGE_MANAGER: PackageManager = 'npm';
 
@@ -41,6 +42,7 @@ export function isSupportedPackageManager(value: unknown): value is PackageManag
   return typeof value === 'string' && SUPPORTED_PACKAGE_MANAGERS.includes(value as PackageManager);
 }
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-parse-package-manager-field
 export function parsePackageManagerField(value: string | undefined): PackageManagerContext | null {
   if (!value || typeof value !== 'string') {
     return null;
@@ -56,14 +58,18 @@ export function parsePackageManagerField(value: string | undefined): PackageMana
     version,
   };
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-parse-package-manager-field
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-field
 export function packageManagerFieldValue(
   manager: PackageManager,
   version: string = PACKAGE_MANAGER_POLICY[manager].defaultVersion
 ): string {
   return `${manager}@${version}`;
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-field
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-engines
 export function getPackageManagerEngineRange(manager: PackageManager): string {
   return PACKAGE_MANAGER_POLICY[manager].minEngine;
 }
@@ -77,7 +83,9 @@ export function getPackageManagerEngines(
     [manager]: getPackageManagerEngineRange(manager),
   };
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-engines
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 export async function detectPackageManager(
   projectRoot: string,
   config?: Hai3Config | null
@@ -112,7 +120,9 @@ export async function detectPackageManager(
 
   return { manager: DEFAULT_PACKAGE_MANAGER };
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 export function getInstallCommand(manager: PackageManager): string {
   if (manager === 'yarn') {
     return 'yarn install';
@@ -162,6 +172,7 @@ export function getAddPackagesCommand(
   }
   return options?.dev ? `yarn add -D ${pkgList}` : `yarn add ${pkgList}`;
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 
 export function getGlobalInstallCommand(manager: PackageManager, target: string): string | null {
   if (manager === 'npm') {
@@ -173,6 +184,7 @@ export function getGlobalInstallCommand(manager: PackageManager, target: string)
   return null;
 }
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-workspace-files
 export function getManagerWorkspaceFiles(manager: PackageManager): Array<{ path: string; content: string }> {
   if (manager === 'pnpm') {
     return [
@@ -192,11 +204,13 @@ export function getManagerWorkspaceFiles(manager: PackageManager): Array<{ path:
   }
   return [];
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-workspace-files
 
 /**
  * Transform npm-focused command snippets to the configured package manager.
  * This is intentionally string-based so it can be used for docs, templates and comments.
  */
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-transform-package-manager-text
 export function transformPackageManagerText(content: string, manager: PackageManager): string {
   if (manager === 'npm') {
     return content;
@@ -220,3 +234,4 @@ export function transformPackageManagerText(content: string, manager: PackageMan
 
   return transformed;
 }
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-transform-package-manager-text

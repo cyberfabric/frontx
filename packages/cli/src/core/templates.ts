@@ -72,6 +72,10 @@ async function transformPathForPackageManager(
   targetPath: string,
   manager: 'npm' | 'pnpm' | 'yarn'
 ): Promise<void> {
+  if (manager === 'npm') {
+    return;
+  }
+
   if (!(await fs.pathExists(targetPath))) {
     return;
   }
@@ -190,6 +194,7 @@ async function syncDirectory(
       }
     }
 
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-skip-variant-app-files
     // Remove stale template-variant files that may have been synced previously.
     if (relativePath === 'src/app' || relativePath === 'src\\app') {
       for (const variantFile of variantAppFiles) {
@@ -199,6 +204,7 @@ async function syncDirectory(
         }
       }
     }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-skip-variant-app-files
     return;
   }
 
@@ -271,9 +277,11 @@ export async function syncTemplates(
   }
 
   const packageManager = (await detectPackageManager(projectRoot)).manager;
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-transform-synced-files
   for (const syncedPath of synced) {
     await transformPathForPackageManager(path.join(projectRoot, syncedPath), packageManager);
   }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-transform-synced-files
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-return-synced-dirs
   return synced;

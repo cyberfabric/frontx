@@ -242,6 +242,7 @@ export const createCommand: CommandDefinition<
     }
     // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
 
+    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
     if (args.packageManager === undefined) {
       promptQuestions.push({
         name: 'packageManager',
@@ -255,6 +256,7 @@ export const createCommand: CommandDefinition<
         default: DEFAULT_PACKAGE_MANAGER,
       });
     }
+    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
 
     if (promptQuestions.length > 0) {
       const answers = await prompt<{

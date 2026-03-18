@@ -83,7 +83,9 @@ export async function runProjectValidation(
 
   const steps: ValidationStepResult[] = [];
   const checksToRun = checks ?? ['typeCheck', 'lint', 'archCheck'];
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
   const manager = (await detectPackageManager(projectRoot)).manager;
+  // @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
   logger.newline();
   logger.info('Running validation...');

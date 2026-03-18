@@ -135,6 +135,10 @@ try {
   }
   const hai3Config = harness.readJson(path.join(projectRoot, 'hai3.config.json'));
   harness.assert(
+    hai3Config.packageManager === packageManager,
+    `Generated hai3.config.json must set packageManager to ${packageManager}`
+  );
+  harness.assert(
     !('packageManagerVersion' in hai3Config),
     'Generated hai3.config.json must not include packageManagerVersion'
   );
