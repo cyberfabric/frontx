@@ -134,6 +134,19 @@ jobs:
             return 1
           }
 
+          # Pin @hai3/* peer dependencies to the package's own version before publishing.
+          # Prevents npm from resolving internal peers via the 'latest' dist-tag, which
+          # would produce an incompatible mix when installing from pre-release channels.
+          pin_peer_deps() {
+            jq --arg v "$1" '
+              if .peerDependencies then
+                .peerDependencies |= with_entries(
+                  if (.key | startswith("@hai3/")) and .value == "*" then .value = $v else . end
+                )
+              else . end
+            ' package.json > package.json.tmp && mv package.json.tmp package.json
+          }
+
           # Sort packages by layer (L1=SDK, L2=Framework, L3=React, L4=Studio, L5=CLI)
           SORTED=$(echo "$PACKAGES" | jq -c 'sort_by(.dir |
             if . == "state" or . == "screensets" or . == "api" or . == "i18n" or . == "uikit" then 1
@@ -171,6 +184,9 @@ jobs:
             echo "Publishing $NAME@$VERSION with tag '$NPM_TAG'..."
 
             cd "packages/$DIR"
+
+            echo "Pinning internal @hai3/* peer deps to $VERSION..."
+            pin_peer_deps "$VERSION" || { echo "FAILED: peer dep pinning failed for $NAME"; exit 1; }
 
             if ! publish_with_retry "$NPM_TAG"; then
               echo "FAILED: $NAME@$VERSION publish failed after retries"

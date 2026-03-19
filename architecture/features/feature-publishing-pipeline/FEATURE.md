@@ -17,6 +17,7 @@
   - [Publish with Retry](#publish-with-retry)
   - [Detect Version Changes](#detect-version-changes)
   - [Validate Package Metadata](#validate-package-metadata)
+  - [Pin Peer Dependencies](#pin-peer-dependencies)
   - [Layer Sort Order](#layer-sort-order)
 - [4. States (CDSL)](#4-states-cdsl)
   - [Workflow Run State](#workflow-run-state)
@@ -31,6 +32,7 @@
   - [Build Order vs. Publish Order](#build-order-vs-publish-order)
   - [Prerelease Dist-Tag Strategy](#prerelease-dist-tag-strategy)
   - [Fail-Fast vs. Continue-on-Error](#fail-fast-vs-continue-on-error)
+  - [Peer Dependency Version Pinning](#peer-dependency-version-pinning)
   - [Architecture Enforcement Connection](#architecture-enforcement-connection)
 
 <!-- /toc -->
@@ -78,7 +80,7 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 - DECOMPOSITION: [feature #11 — Publishing Pipeline](../../DECOMPOSITION.md#211-publishing-pipeline)
 - DESIGN: [Layer Isolation principle](../../DESIGN.md#layer-isolation), [ESM-First constraint](../../DESIGN.md#esm-first-module-format)
 - OpenSpec: [`openspec/specs/publishing/spec.md`](../../../openspec/specs/publishing/spec.md)
-- ADR: `cpt-hai3-adr-automated-layer-ordered-publishing`, `cpt-hai3-adr-esm-first-module-format`
+- ADR: `cpt-hai3-adr-automated-layer-ordered-publishing`, `cpt-hai3-adr-esm-first-module-format`, `cpt-hai3-adr-peer-dep-version-pinning`
 - Workflow source: [`.github/workflows/publish-packages.yml`](../../../.github/workflows/publish-packages.yml)
 
 ---
@@ -118,9 +120,10 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 2. [x] `p1` - CI/CD queries NPM registry: `npm view <name>@<version> version` — `inst-npm-view`
 3. [x] `p1` - IF the version already exists on NPM THEN CI/CD logs "Skipping `<name>@<version>` — already exists on NPM" and continues to the next package — `inst-skip-existing`
 4. [x] `p1` - CI/CD changes working directory to `packages/<dir>` — `inst-cd-pkg`
-5. [x] `p1` - CI/CD calls `cpt-hai3-algo-publishing-pipeline-publish-with-retry` with the resolved dist-tag — `inst-call-retry-algo`
-6. [x] `p1` - IF all retry attempts fail THEN CI/CD logs "FAILED: `<name>@<version>` publish failed after retries" and exits with status 1, stopping all further publishing — `inst-fail-fast`
-7. [x] `p1` - IF publish succeeds THEN CI/CD logs "SUCCESS: Published `<name>@<version>`" and records the package in the published list — `inst-record-success`
+5. [x] `p1` - CI/CD runs `cpt-hai3-algo-publishing-pipeline-pin-peer-deps` to replace `"*"` peer dependency ranges for internal `@hai3/*` packages with the package's own version string — `inst-pin-peer-deps`
+6. [x] `p1` - CI/CD calls `cpt-hai3-algo-publishing-pipeline-publish-with-retry` with the resolved dist-tag — `inst-call-retry-algo`
+7. [x] `p1` - IF all retry attempts fail THEN CI/CD logs "FAILED: `<name>@<version>` publish failed after retries" and exits with status 1, stopping all further publishing — `inst-fail-fast`
+8. [x] `p1` - IF publish succeeds THEN CI/CD logs "SUCCESS: Published `<name>@<version>`" and records the package in the published list — `inst-record-success`
 
 ---
 
@@ -205,6 +208,24 @@ Required fields for all packages:
 
 1. [x] `p2` - FOR EACH required field: IF the field is absent or has an incorrect value THEN RETURN error identifying the missing field and the package — `inst-field-check`
 2. [x] `p2` - IF all fields are present and valid THEN RETURN valid — `inst-metadata-valid`
+
+---
+
+### Pin Peer Dependencies
+
+- [x] `p1` - **ID**: `cpt-hai3-algo-publishing-pipeline-pin-peer-deps`
+
+Rewrites `"*"` version ranges for internal `@hai3/*` peer dependencies in
+`package.json` to the package's own version string before publish. Operates
+inside the package directory (`packages/<dir>`). The rewrite is applied only
+to the working copy on the CI runner — source files are never modified.
+
+1. [x] `p1` - Read `package.json` from the current working directory — `inst-read-pkg`
+2. [x] `p1` - Read `version` from the parsed package metadata — `inst-read-version`
+3. [x] `p1` - IF `peerDependencies` is absent or empty THEN RETURN success — `inst-no-peers`
+4. [x] `p1` - FOR EACH entry in `peerDependencies`: IF the key starts with `@hai3/` AND the value is `"*"` THEN set the value to `version` — `inst-rewrite-peers`
+5. [x] `p1` - Write the modified `package.json` back to disk — `inst-write-pkg`
+6. [x] `p1` - RETURN success — `inst-done`
 
 ---
 
@@ -347,6 +368,7 @@ fail-fast error handling. The workflow triggers on push to `main` only.
 - `cpt-hai3-algo-publishing-pipeline-layer-sort`
 - `cpt-hai3-algo-publishing-pipeline-resolve-dist-tag`
 - `cpt-hai3-algo-publishing-pipeline-publish-with-retry`
+- `cpt-hai3-algo-publishing-pipeline-pin-peer-deps`
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-pub-ci`
@@ -394,6 +416,7 @@ publishes. Packages whose version already exists on NPM are silently skipped.
 - [ ] All published packages include `"type": "module"`, dual ESM/CJS `exports`, and complete metadata fields (`author`, `license`, `publishConfig`, `engines`)
 - [ ] TypeScript declarations (`index.d.ts`) are included in the published tarball
 - [ ] The `npm pack` output for any package contains only `dist/` files and documented extras — no raw `.ts` source files
+- [ ] Published packages have internal `@hai3/*` peer dependencies set to the exact version string rather than `"*"` (e.g., `"0.4.0-alpha.0"` instead of `"*"`)
 
 ---
 
@@ -422,6 +445,18 @@ entire run. This is intentional. If a lower-layer package fails to publish, allo
 higher-layer packages to publish would produce an inconsistent registry state where consumers
 see a new `@hai3/framework` but cannot resolve its new `@hai3/state` dependency. Fail-fast
 and the fixed layer order together guarantee registry consistency.
+
+### Peer Dependency Version Pinning
+
+Alpha and other pre-release versions cannot rely on the `latest` dist-tag to resolve internal
+peer dependencies: `latest` points to the previous stable release, producing an incompatible
+combination when a consumer installs from any pre-release channel. The
+`cpt-hai3-algo-publishing-pipeline-pin-peer-deps` algorithm replaces `"*"` with the exact
+version string in the CI runner's working copy before each `npm publish`, ensuring that
+consumers who install from any dist-tag receive a fully compatible set of `@hai3/*` packages.
+The rewrite is CI-only — source `package.json` files intentionally retain `"*"` and are
+never modified. See ADR `cpt-hai3-adr-peer-dep-version-pinning` for the decision rationale
+and alternatives considered.
 
 ### Architecture Enforcement Connection
 
