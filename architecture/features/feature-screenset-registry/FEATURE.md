@@ -432,7 +432,7 @@ All registration paths perform GTS-native validation:
 - Validates the value once using a deterministic ephemeral GTS instance ID before touching any domain
 - Throws synchronously on validation failure — no partial updates
 - Propagates the raw value to all matching domain states and notifies all per-domain, per-property subscribers
-- Built-in property constants are `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'` and `HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~'`
+- Known property constants are `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'` and `HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~'`. Their derived GTS schemas are registered at the application layer, not bundled in the SDK.
 
 **Implements**:
 - `cpt-hai3-flow-screenset-registry-update-shared-property`

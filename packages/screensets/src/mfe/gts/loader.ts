@@ -14,7 +14,6 @@ import type { LifecycleStage, Action } from '../types';
 import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
 import domainSchema from './hai3.mfes/schemas/ext/domain.v1.json';
 import extensionSchema from './hai3.mfes/schemas/ext/extension.v1.json';
-import extensionScreenSchema from './hai3.mfes/schemas/ext/extension_screen.v1.json';
 import actionSchema from './hai3.mfes/schemas/comm/action.v1.json';
 import actionsChainSchema from './hai3.mfes/schemas/comm/actions_chain.v1.json';
 import sharedPropertySchema from './hai3.mfes/schemas/comm/shared_property.v1.json';
@@ -22,10 +21,6 @@ import lifecycleStageSchema from './hai3.mfes/schemas/lifecycle/stage.v1.json';
 import lifecycleHookSchema from './hai3.mfes/schemas/lifecycle/hook.v1.json';
 import manifestSchema from './hai3.mfes/schemas/mfe/mf_manifest.v1.json';
 import entryMfSchema from './hai3.mfes/schemas/mfe/entry_mf.v1.json';
-
-// Import derived shared property schemas
-import themeSharedPropertySchema from './hai3.mfes/schemas/comm/theme.v1.json';
-import languageSharedPropertySchema from './hai3.mfes/schemas/comm/language.v1.json';
 
 // Import lifecycle stage instances
 import lifecycleInitInstance from './hai3.mfes/instances/lifecycle/init.v1.json';
@@ -40,7 +35,10 @@ import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.j
 
 /**
  * Load all core MFE schema JSON files.
- * These are the 13 first-class citizen schemas (8 core + 2 MF-specific + 3 built-in derived).
+ * These are the 10 core schemas (8 core + 2 MF-specific).
+ *
+ * Application-specific derived schemas (theme, language, extension_screen) are
+ * registered at the application layer via @hai3/framework.
  *
  * @returns Array of JSON schemas for core MFE types
  */
@@ -58,10 +56,6 @@ export function loadSchemas(): JSONSchema[] {
     // MF-specific types (2)
     manifestSchema as JSONSchema,
     entryMfSchema as JSONSchema,
-    // Built-in derived types (3)
-    extensionScreenSchema as JSONSchema,
-    themeSharedPropertySchema as JSONSchema,
-    languageSharedPropertySchema as JSONSchema,
   ];
 }
 

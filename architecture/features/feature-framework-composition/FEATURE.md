@@ -39,6 +39,7 @@
   - [Shared Property Broadcast with GTS Validation](#shared-property-broadcast-with-gts-validation)
   - [Presets](#presets)
   - [SDK Re-exports and Convenience Surface](#sdk-re-exports-and-convenience-surface)
+  - [GTS Derived Schemas for Application-Layer Registration](#gts-derived-schemas-for-application-layer-registration)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
   - [Plugin Lifecycle Sequence](#plugin-lifecycle-sequence)
@@ -533,6 +534,20 @@ All presets are exported from `@hai3/framework`. The `presets` object collects a
 - From `@hai3/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.
+
+---
+
+### GTS Derived Schemas for Application-Layer Registration
+
+- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-derived-schemas`
+
+`@hai3/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@hai3/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the HAI3 app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-mfe-shared-property`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-framework`
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-sdk-framework-layer`
