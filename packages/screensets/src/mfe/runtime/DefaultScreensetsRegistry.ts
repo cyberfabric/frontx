@@ -200,9 +200,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       bridgeFactory: this.bridgeFactory,
     });
 
-    // Verify first-class schemas are available
-    this.verifyFirstClassSchemas();
-
     // Register custom handlers if provided
     if (config.mfeHandlers) {
       for (const handler of config.mfeHandlers) {
@@ -211,42 +208,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       this.handlers.sort((a, b) => (b.priority ?? 0) - (a.priority ?? 0));
     }
   }
-
-  /**
-   * Verify that first-class citizen schemas are available in the plugin.
-   * First-class schemas are built into the GTS plugin during construction.
-   */
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-schema-verification:p1:inst-1
-  private verifyFirstClassSchemas(): void {
-    const coreTypeIds = [
-      'gts.hai3.mfes.mfe.entry.v1~',
-      'gts.hai3.mfes.ext.domain.v1~',
-      'gts.hai3.mfes.ext.extension.v1~',
-      'gts.hai3.mfes.comm.shared_property.v1~',
-      'gts.hai3.mfes.comm.action.v1~',
-      'gts.hai3.mfes.comm.actions_chain.v1~',
-      'gts.hai3.mfes.lifecycle.stage.v1~',
-      'gts.hai3.mfes.lifecycle.hook.v1~',
-    ];
-
-    const missingSchemas: string[] = [];
-
-    for (const typeId of coreTypeIds) {
-      const schema = this.typeSystem.getSchema(typeId);
-      if (!schema) {
-        missingSchemas.push(typeId);
-      }
-    }
-
-    if (missingSchemas.length > 0) {
-      throw new Error(
-        `TypeSystemPlugin is missing first-class citizen schemas. ` +
-        `The following schemas are required but not found: ${missingSchemas.join(', ')}. ` +
-        `Ensure the plugin has all built-in schemas registered during construction.`
-      );
-    }
-  }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-schema-verification:p1:inst-1
 
   /**
    * Validate that at least one registered handler can handle the given entry type.

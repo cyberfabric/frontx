@@ -26,7 +26,6 @@
   - [GTS Package Auto-Discovery](#gts-package-auto-discovery)
   - [Entry Type Handler Resolution](#entry-type-handler-resolution)
   - [Operation Serialization](#operation-serialization)
-  - [First-Class Schema Verification](#first-class-schema-verification)
   - [Domain Semantics Determination](#domain-semantics-determination)
 - [4. States (CDSL)](#4-states-cdsl)
   - [Extension Load State](#extension-load-state)
@@ -195,8 +194,7 @@ Success criteria: A host application can register a domain and extension, execut
 2. - [x] `p1` - IF no instance is cached: factory creates a `DefaultScreensetsRegistry`, caches it along with the config, and returns it - `inst-create-and-cache`
 3. - [x] `p1` - IF instance is already cached AND the provided `typeSystem` differs from the cached one: RETURN throw with config mismatch message - `inst-throw-mismatch`
 4. - [x] `p1` - IF instance is cached AND `typeSystem` matches: RETURN the cached instance - `inst-return-cached`
-5. - [x] `p1` - During construction, `DefaultScreensetsRegistry` runs `cpt-hai3-algo-screenset-registry-schema-verification` — IF any first-class schema is missing, RETURN throw - `inst-verify-schemas`
-6. - [x] `p1` - IF `mfeHandlers` are provided, handlers are sorted by descending `priority` before being stored - `inst-sort-handlers`
+5. - [x] `p1` - IF `mfeHandlers` are provided, handlers are sorted by descending `priority` before being stored - `inst-sort-handlers`
 
 ---
 
@@ -285,16 +283,6 @@ All mutating operations on a given entity are queued per entity ID to prevent co
 2. - [x] `p1` - IF another operation is already running for `entityId`, the new operation waits in the queue - `inst-wait-in-queue`
 3. - [x] `p1` - When the running operation completes (resolve or reject), the next queued operation starts - `inst-dequeue-next`
 4. - [x] `p1` - `unregisterExtension` always calls `MountManager.unmountExtension` directly (not via `OperationSerializer`) to avoid deadlock — the parent `unregisterExtension` operation already holds the serializer lock for that entity - `inst-bypass-serializer-for-unmount`
-
-### First-Class Schema Verification
-
-- [x] `p1` - **ID**: `cpt-hai3-algo-screenset-registry-schema-verification`
-
-Performed once during `DefaultScreensetsRegistry` construction to fail fast if the type system plugin is incomplete.
-
-1. - [x] `p1` - FOR EACH type ID in the required set (`gts.hai3.mfes.mfe.entry.v1~`, `gts.hai3.mfes.ext.domain.v1~`, `gts.hai3.mfes.ext.extension.v1~`, `gts.hai3.mfes.comm.shared_property.v1~`, `gts.hai3.mfes.comm.action.v1~`, `gts.hai3.mfes.comm.actions_chain.v1~`, `gts.hai3.mfes.lifecycle.stage.v1~`, `gts.hai3.mfes.lifecycle.hook.v1~`): call `typeSystem.getSchema(typeId)` - `inst-check-each-schema`
-2. - [x] `p1` - Collect all type IDs for which `getSchema` returns undefined - `inst-collect-missing`
-3. - [x] `p1` - IF any schemas are missing RETURN throw with list of missing type IDs - `inst-throw-missing-schemas`
 
 ### Domain Semantics Determination
 
@@ -490,7 +478,6 @@ All registration paths perform GTS-native validation:
 
 **Implements**:
 - `cpt-hai3-flow-screenset-registry-factory-build`
-- `cpt-hai3-algo-screenset-registry-schema-verification`
 - `cpt-hai3-state-screenset-registry-factory-cache`
 
 **Covers (PRD)**:
