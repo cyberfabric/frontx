@@ -4,10 +4,10 @@ Cypilot Validator - Document Utilities
 Functions for working with documents and file paths.
 """
 
+# @cpt-begin:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-datamodel
 from pathlib import Path
 import re
 from typing import Dict, List, Optional, Tuple
-
 
 _CPT_ID_RE = re.compile(r"(cpt-[a-z0-9][a-z0-9-]+)")
 _HEADING_RE = re.compile(r"^\s*(#{1,6})\s+(.+?)\s*$")
@@ -30,11 +30,12 @@ _ID_REF_RE = re.compile(
 )
 _BACKTICK_ID_RE = re.compile(r"`(cpt-[a-z0-9][a-z0-9-]+)`")
 
+# @cpt-begin:cpt-cypilot-algo-traceability-validation-scan-cdsl:p1:inst-scan-cdsl-datamodel
 _CDSL_LINE_RE = re.compile(
     r"^\s*(?:\d+\.\s+|-\s+)\[\s*(?P<check>[xX ])\s*\]\s*-\s*`(?P<phase>(?:p\d+|ph-\d+))`\s*-\s*.+\s*-\s*`inst-(?P<inst>[a-z0-9-]+)`\s*$"
 )
 _CDSL_PHASE_NUM_RE = re.compile(r"^(?:p|ph-)(?P<num>\d+)$")
-
+# @cpt-end:cpt-cypilot-algo-traceability-validation-scan-cdsl:p1:inst-scan-cdsl-datamodel
 
 def _normalize_cpt_id_from_line(line: str) -> Optional[str]:
     stripped = line.strip()
@@ -55,7 +56,7 @@ def _normalize_cpt_id_from_line(line: str) -> Optional[str]:
 
     matches = _CPT_ID_RE.findall(stripped)
     return matches[0] if matches else None
-
+# @cpt-end:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-datamodel
 
 # @cpt-algo:cpt-cypilot-algo-traceability-validation-scan-ids:p1
 def scan_cpt_ids(path: Path) -> List[Dict[str, object]]:
@@ -146,7 +147,7 @@ def scan_cpt_ids(path: Path) -> List[Dict[str, object]]:
     return hits
     # @cpt-end:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-return-hits
 
-
+# @cpt-begin:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-headings
 def headings_by_line(path: Path) -> List[List[str]]:
     """Return active markdown heading titles for each line (1-indexed).
 
@@ -175,7 +176,7 @@ def headings_by_line(path: Path) -> List[List[str]]:
                 stack.append((level, title))
         out[line_no] = [t for _, t in stack]
     return out
-
+# @cpt-end:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-headings
 
 # @cpt-algo:cpt-cypilot-algo-traceability-validation-scan-cdsl:p1
 def scan_cdsl_instructions(path: Path) -> List[Dict[str, object]]:
@@ -254,7 +255,7 @@ def scan_cdsl_instructions(path: Path) -> List[Dict[str, object]]:
     return hits
     # @cpt-end:cpt-cypilot-algo-traceability-validation-scan-cdsl:p1:inst-return-cdsl
 
-
+# @cpt-begin:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-get-content
 def get_content_scoped(
     path: Path,
     *,
@@ -414,8 +415,9 @@ def get_content_scoped(
         return emit(lines[start : end + 1], start, end)
 
     return None
+# @cpt-end:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-get-content
 
-
+# @cpt-begin:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-file-utils
 def iter_text_files(
     root: Path,
     *,
@@ -425,52 +427,52 @@ def iter_text_files(
 ) -> List[Path]:
     """
     Iterate over text files in directory.
-
+    
     Args:
         root: Root directory to search
         includes: Glob patterns to include
         excludes: Glob patterns to exclude
         max_bytes: Maximum file size in bytes
-
+    
     Returns:
         List of file paths
     """
     import os
     import fnmatch
-
+    
     if excludes is None:
         excludes = []
-
+    
     skip_dirs = {
         ".git", ".hg", ".svn", ".idea", ".vscode", "__pycache__",
         ".pytest_cache", ".mypy_cache", ".ruff_cache",
         "node_modules", "target", "dist", "build", ".venv", "venv",
     }
-
+    
     out: List[Path] = []
     root = root.resolve()
-
+    
     for dirpath, dirnames, filenames in os.walk(root):
         # Filter out skip directories
         dirnames[:] = sorted([d for d in dirnames if d not in skip_dirs and not d.startswith(".")])
-
+        
         for fn in sorted(filenames):
             fp = Path(dirpath) / fn
-
+            
             # Get relative path for pattern matching
             try:
                 rel = fp.relative_to(root).as_posix()
             except ValueError:
                 continue
-
+            
             # Check excludes
             if excludes and any(fnmatch.fnmatch(rel, ex) for ex in excludes):
                 continue
-
+            
             # Check includes (when provided)
             if includes is not None and not any(fnmatch.fnmatch(rel, inc) for inc in includes):
                 continue
-
+            
             # Check file size
             try:
                 st = fp.stat()
@@ -478,19 +480,18 @@ def iter_text_files(
                     continue
             except OSError:
                 continue
-
+            
             out.append(fp)
-
+    
     return out
-
 
 def read_text_safe(path: Path) -> Optional[List[str]]:
     """
     Safely read text file to lines.
-
+    
     Args:
         path: File path to read
-
+    
     Returns:
         List of lines or None if error
     """
@@ -514,15 +515,14 @@ def read_text_safe(path: Path) -> Optional[List[str]]:
 
     return text.splitlines()
 
-
 def to_relative_posix(path: Path, root: Path) -> str:
     """
     Convert path to relative POSIX string from root.
-
+    
     Args:
         path: Path to convert
         root: Root path
-
+    
     Returns:
         Relative POSIX path string
     """
@@ -531,7 +531,6 @@ def to_relative_posix(path: Path, root: Path) -> str:
     except Exception:
         return path.as_posix()
     return rel.as_posix()
-
 
 __all__ = [
     "iter_text_files",
@@ -542,3 +541,4 @@ __all__ = [
     "scan_cdsl_instructions",
     "headings_by_line",
 ]
+# @cpt-end:cpt-cypilot-algo-traceability-validation-scan-ids:p1:inst-scan-ids-file-utils

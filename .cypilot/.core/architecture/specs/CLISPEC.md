@@ -49,7 +49,7 @@
 
 <!-- /toc -->
 
-**Version**: 1.0
+**Version**: 1.0  
 **Purpose**: Human and machine-readable format for CLI command documentation
 
 ---
