@@ -17,7 +17,7 @@
   - [Update Shared Property](#update-shared-property)
   - [Query Registry State](#query-registry-state)
   - [Build Registry via Factory](#build-registry-via-factory)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Extension Registration Validation Pipeline](#extension-registration-validation-pipeline)
   - [Domain Registration Validation](#domain-registration-validation)
   - [Contract Matching](#contract-matching)

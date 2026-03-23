@@ -15,7 +15,7 @@ date: 2025-11-16
   - [Consequences](#consequences)
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
-  - [Fixed Action → Event → Effect → Reducer → Store sequence with typed EventBus](#fixed-action-event-effect-reducer-store-sequence-with-typed-eventbus)
+  - [Fixed Action → Event → Effect → Reducer → Store sequence with typed EventBus](#fixed-action--event--effect--reducer--store-sequence-with-typed-eventbus)
   - [Direct Redux dispatch from components](#direct-redux-dispatch-from-components)
   - [Effects calling APIs directly without event mediation](#effects-calling-apis-directly-without-event-mediation)
   - [Redux Toolkit thunks](#redux-toolkit-thunks)

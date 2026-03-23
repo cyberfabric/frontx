@@ -12,7 +12,7 @@
   - [Publish on PR Merge](#publish-on-pr-merge)
   - [Publish Single Package](#publish-single-package)
   - [Developer Version Bump](#developer-version-bump)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Resolve Dist-Tag](#resolve-dist-tag)
   - [Publish with Retry](#publish-with-retry)
   - [Detect Version Changes](#detect-version-changes)

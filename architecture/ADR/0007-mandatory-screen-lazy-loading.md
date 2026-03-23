@@ -17,7 +17,7 @@ date: 2025-11-14
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Union type allowing both eager and lazy screen components](#union-type-allowing-both-eager-and-lazy-screen-components)
   - [Wrap screens with React.lazy() inside the registry during getScreens()](#wrap-screens-with-reactlazy-inside-the-registry-during-getscreens)
-  - [Mandatory ScreenLoader type — all screens use lazy loaders; React.lazy() wrapping in Screen rendering component](#mandatory-screenloader-type-all-screens-use-lazy-loaders-reactlazy-wrapping-in-screen-rendering-component)
+  - [Mandatory ScreenLoader type — all screens use lazy loaders; React.lazy() wrapping in Screen rendering component](#mandatory-screenloader-type--all-screens-use-lazy-loaders-reactlazy-wrapping-in-screen-rendering-component)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 

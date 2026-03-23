@@ -17,7 +17,7 @@ date: 2025-11-19
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Centralized API services shared across screensets](#centralized-api-services-shared-across-screensets)
   - [Shared API packages imported by multiple screensets](#shared-api-packages-imported-by-multiple-screensets)
-  - [Vertical slice isolation — each screenset owns its entire dependency tree](#vertical-slice-isolation-each-screenset-owns-its-entire-dependency-tree)
+  - [Vertical slice isolation — each screenset owns its entire dependency tree](#vertical-slice-isolation--each-screenset-owns-its-entire-dependency-tree)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 

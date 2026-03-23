@@ -15,11 +15,11 @@
   - [Theme Change and MFE Propagation](#theme-change-and-mfe-propagation)
   - [Language Change and MFE Propagation](#language-change-and-mfe-propagation)
   - [MFE Extension Registration](#mfe-extension-registration)
-  - [MFE Extension Lifecycle (Load / Mount / Unmount)](#mfe-extension-lifecycle-load-mount-unmount)
+  - [MFE Extension Lifecycle (Load / Mount / Unmount)](#mfe-extension-lifecycle-load--mount--unmount)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [App Configuration via Events](#app-configuration-via-events)
   - [Application Teardown](#application-teardown)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Builder Dependency Resolution (Topological Sort)](#builder-dependency-resolution-topological-sort)
   - [Plugin Provides Aggregation](#plugin-provides-aggregation)
   - [GTS Shared Property Validation](#gts-shared-property-validation)
@@ -45,7 +45,7 @@
   - [Plugin Lifecycle Sequence](#plugin-lifecycle-sequence)
   - [MFE Effects Initialization Exception](#mfe-effects-initialization-exception)
   - [Shared Property Late Registration Limitation](#shared-property-late-registration-limitation)
-  - [No `updateDomainProperty` / `updateDomainProperties`](#no-updatedomainproperty-updatedomainproperties)
+  - [No `updateDomainProperty` / `updateDomainProperties`](#no-updatedomainproperty--updatedomainproperties)
   - [HAI3Config Fields](#hai3config-fields)
 
 <!-- /toc -->
