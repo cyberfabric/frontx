@@ -15,23 +15,28 @@ concurrency:
   group: pages
   cancel-in-progress: false
 
+env:
+  # Workaround: configure-pages, upload-pages-artifact, and deploy-pages
+  # have no node24-native releases yet. Remove after June 2, 2026.
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: 'npm'
 
       - name: Setup Pages
-        uses: actions/configure-pages@v4
+        uses: actions/configure-pages@v5
 
       - name: Install dependencies
         run: npm ci
@@ -42,7 +47,7 @@ jobs:
         run: npm run docs:build -w packages/docs
 
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
           path: packages/docs/src/.vitepress/dist
 
