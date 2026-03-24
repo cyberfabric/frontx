@@ -52,6 +52,7 @@ export {
   MfeProvider,
   useMfeBridge,
   executeActionsChainWithMountContext,
+  ThemeAwareReactLifecycle,
   useSharedProperty,
   useHostAction,
   useDomainExtensions,

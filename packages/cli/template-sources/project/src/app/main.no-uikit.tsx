@@ -1,7 +1,17 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
+import {
+  HAI3Provider,
+  apiRegistry,
+  createHAI3App,
+  MfeHandlerMF,
+  gtsPlugin,
+  HAI3_MFE_ENTRY_MF,
+  themeSchema,
+  languageSchema,
+  extensionScreenSchema,
+} from '@hai3/react';
 import { AccountsApiService } from '@/app/api';
 import './globals.css';
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
@@ -9,6 +19,11 @@ import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Re
 import App from './App';
 
 import { hai3Themes, DEFAULT_THEME_ID } from '@/app/themes';
+
+// Register framework-level derived GTS schemas before the MFE registry is built.
+gtsPlugin.registerSchema(themeSchema);
+gtsPlugin.registerSchema(languageSchema);
+gtsPlugin.registerSchema(extensionScreenSchema);
 
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);

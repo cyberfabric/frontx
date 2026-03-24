@@ -49,18 +49,19 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<string>('default');
   const [language, setLanguage] = useState<string>('en');
+  const [cacheWarmOnMount, setCacheWarmOnMount] = useState<boolean | null>(null);
   const queryCache = useQueryCache();
-  const cacheWarmOnMountRef = useRef<boolean | null>(null);
-
-  if (cacheWarmOnMountRef.current === null) {
-    cacheWarmOnMountRef.current =
-      queryCache.getState(accountsKeys.currentUser())?.data !== undefined;
-  }
 
   const { t, loading } = useScreenTranslations(languageModules, bridge);
   const { data, isLoading, isError, error, refetch } = useApiQuery(
     accountsQueries.currentUser()
   );
+
+  useEffect(() => {
+    setCacheWarmOnMount(
+      queryCache.getState(accountsKeys.currentUser())?.data !== undefined
+    );
+  }, [queryCache]);
 
   useEffect(() => {
     // Read initial property values
@@ -198,7 +199,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
               <div>
                 <dt className="font-medium">Cache Warm On Mount</dt>
                 <dd className="font-mono text-sm text-muted-foreground">
-                  {cacheWarmOnMountRef.current ? 'yes' : 'no'}
+                  {cacheWarmOnMount === null ? 'pending' : cacheWarmOnMount ? 'yes' : 'no'}
                 </dd>
               </div>
             </dl>

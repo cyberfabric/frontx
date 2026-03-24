@@ -61,30 +61,17 @@ Create `src/lifecycle.tsx`:
 ```typescript
 import React from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { ThemeAwareReactLifecycle } from '@hai3/screensets/mfe/handler';
+import { ThemeAwareReactLifecycle } from '@hai3/react';
+import { mfeApp } from './init';
 import { YourScreen } from './screens/YourScreen';
 
 class Lifecycle extends ThemeAwareReactLifecycle {
   constructor() {
-    super({
-      name: '{screensetName}',
-      version: '1.0.0',
-    });
+    super(mfeApp);
   }
 
-  async mount(shadowRoot: ShadowRoot, bridge: ChildMfeBridge) {
-    const div = document.createElement('div');
-    shadowRoot.appendChild(div);
-
-    const style = document.createElement('style');
-    style.textContent = tailwindStyles;
-    shadowRoot.appendChild(style);
-
-    // Render component
-    const root = ReactDOM.createRoot(div);
-    root.render(<YourScreen bridge={bridge} />);
-
-    return { root, div };
+  protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
+    return <YourScreen bridge={bridge} />;
   }
 }
 

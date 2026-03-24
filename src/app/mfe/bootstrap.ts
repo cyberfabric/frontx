@@ -74,9 +74,8 @@ export async function bootstrapMFE(
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
 
-  // Ensure every mount action, including ones triggered outside ExtensionDomainSlot
-  // (menu clicks, browser history, cross-MFE navigation), receives the host-owned
-  // QueryClient so separately mounted React roots share one cache.
+  // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
+  // the host-owned QueryClient and join the shared cache.
   const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
   screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
     await executeActionsChainWithMountContext(

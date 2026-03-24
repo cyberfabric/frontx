@@ -1,9 +1,10 @@
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import type { QueryClient } from '@tanstack/react-query';
-import type { MfeEntryLifecycle, ChildMfeBridge, MfeMountContext } from '@hai3/react';
-import { HAI3Provider } from '@hai3/react';
-import { mfeApp } from '../init';
+import type { HAI3App, MfeEntryLifecycle, ChildMfeBridge, MfeMountContext } from '@hai3/framework';
+import { HAI3Provider } from '../HAI3Provider';
 
 interface ProviderMountOptions {
   queryClient?: QueryClient;
@@ -68,6 +69,8 @@ function resolveProviderMountOptions(
 export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
   private root: Root | null = null;
 
+  constructor(private readonly app: HAI3App) {}
+
   mount(container: Element | ShadowRoot, bridge: ChildMfeBridge, mountContext?: MfeMountContext): void {
     if (container instanceof ShadowRoot) {
       this.adoptHostStylesIntoShadowRoot(container);
@@ -80,7 +83,7 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     const providerMountOptions = resolveProviderMountOptions(bridge, mountContext);
     this.root.render(
       <HAI3Provider
-        app={mfeApp}
+        app={this.app}
         queryClient={providerMountOptions.queryClient}
         mfeBridge={providerMountOptions.mfeBridge}
       >
@@ -102,16 +105,16 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
    */
   protected adoptHostStylesIntoShadowRoot(shadowRoot: ShadowRoot): void {
     const styleElements = document.head.querySelectorAll('style');
-    for (const el of styleElements) {
+    styleElements.forEach((el) => {
       const clone = document.createElement('style');
       clone.textContent = el.textContent ?? '';
       shadowRoot.appendChild(clone);
-    }
+    });
     const linkElements = document.head.querySelectorAll('link[rel="stylesheet"]');
-    for (const el of linkElements) {
+    linkElements.forEach((el) => {
       const clone = el.cloneNode(true) as HTMLLinkElement;
       shadowRoot.appendChild(clone);
-    }
+    });
   }
 
   /**
@@ -144,11 +147,11 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
   /**
    * Hook for subclasses to inject additional CSS not covered by the adopted host
    * stylesheet (e.g., MFE-specific @font-face rules or custom animations).
-   * No-op by default — Tailwind utilities are already provided by the host CSS.
+   * No-op by default: host styles adopted in adoptHostStylesIntoShadowRoot()
+   * already include all Tailwind utilities compiled from MFE source files.
    */
   protected initializeStyles(_container: Element | ShadowRoot): void {
-    // No-op: host styles adopted in adoptHostStylesIntoShadowRoot() already
-    // include all Tailwind utilities compiled from MFE source files.
+    // No-op by default.
   }
 
   /**

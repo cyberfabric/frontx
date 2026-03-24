@@ -2,7 +2,8 @@
  * MFE Bootstrap (standalone project template)
  *
  * Registers MFE domains and shared properties. No mfe_packages or extensions
- * are registered — add your own MFE configs and call registerExtension as needed.
+ * are registered. Initial screen mounting is owned by ExtensionDomainSlot once
+ * its container ref is attached.
  * This file is imported in main.tsx via MfeScreenContainer.
  */
 
@@ -32,7 +33,8 @@ class DetachedContainerProvider extends RefContainerProvider {
 /**
  * Bootstrap MFE system for the host application.
  * Registers the four extension domains. Add your own manifest/extension
- * registration and mounting logic after this.
+ * registration after this, then return screen extensions so
+ * MfeScreenContainer can drive routing and mounting.
  *
  * @param app - HAI3 application instance
  * @param screenContainerRef - React ref for the screen domain container element
