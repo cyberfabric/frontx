@@ -445,7 +445,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Scope**:
   - `HAI3Provider` root component (Redux store, i18n, theme, framework context)
   - Typed hooks: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()`
-  - `MfeContainer` component with Shadow DOM wrapping
+  - `ExtensionDomainSlot` host renderer with RefContainerProvider-backed container coordination
   - Per-MFE React error boundaries
   - Initialization sequence orchestration
   - Screen component with React.lazy() wrapping and Suspense fallback
@@ -479,7 +479,8 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **API**:
   - `<HAI3Provider>`
-  - `<MfeContainer>`
+  - `<ExtensionDomainSlot>`
+  - `<RefContainerProvider>`
   - `<Screen>`
   - `useSelector()` / `useDispatch()` / `useTranslation()` / `useSharedProperty()` / `useAction()`
 

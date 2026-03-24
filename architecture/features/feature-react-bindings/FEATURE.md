@@ -199,14 +199,14 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 **Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-microfrontend`, `cpt-hai3-actor-runtime`
 
-1. [x] - `p1` - Host renders `<ExtensionDomainSlot registry={registry} domainId={...} extensionId={...}>` - `inst-render-slot`
+1. [x] - `p1` - Host renders `<ExtensionDomainSlot registry={registry} domainId={...} extensionId={...}>`, optionally sharing `containerRef` with a `RefContainerProvider` - `inst-render-slot`
 2. [x] - `p1` - Component renders a loading placeholder while mounting proceeds - `inst-show-loading`
-3. [x] - `p1` - Component dispatches `HAI3_ACTION_MOUNT_EXT` via `registry.executeActionsChain()` with `domainId` and `extensionId` - `inst-dispatch-mount`
+3. [x] - `p1` - Component dispatches `HAI3_ACTION_MOUNT_EXT` via mount-context-aware execution so each mount receives the host `QueryClient` with `domainId` and `extensionId` - `inst-dispatch-mount`
 4. [x] - `p1` - IF mount succeeds THEN component queries `registry.getParentBridge(extensionId)` to obtain the parent bridge - `inst-get-bridge`
 5. [x] - `p1` - IF bridge is returned THEN component transitions to mounted state and invokes optional `onMounted(bridge)` callback - `inst-notify-mounted`
 6. [x] - `p1` - IF mount throws THEN component transitions to error state, renders error UI, invokes optional `onError(err)` callback - `inst-handle-mount-error`
-7. [x] - `p1` - On component unmount: IF bridge was obtained THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` asynchronously, then invoke optional `onUnmounted()` callback - `inst-cleanup-unmount`
-8. [x] - `p2` - IF component unmounts while mount is still in progress THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` immediately after the in-flight mount resolves - `inst-race-cleanup`
+7. [x] - `p1` - On component unmount: IF bridge was obtained AND domain supports explicit unmount THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` asynchronously, then invoke optional `onUnmounted()` callback - `inst-cleanup-unmount`
+8. [x] - `p2` - IF component unmounts while mount is still in progress AND domain supports explicit unmount THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` immediately after the in-flight mount resolves; screen domain relies on swap semantics instead - `inst-race-cleanup`
 
 ---
 
@@ -530,7 +530,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-extension-slot`
 
-`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders a DOM container div when mounted. It dispatches `HAI3_ACTION_MOUNT_EXT` on mount and `HAI3_ACTION_UNMOUNT_EXT` on unmount. Unmounting during an in-flight mount dispatches unmount after the mount operation settles. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
+`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders the DOM container div for the domain even while loading so a shared `containerRef` can be used by `RefContainerProvider`. It dispatches `HAI3_ACTION_MOUNT_EXT` through mount-context-aware execution so separately mounted roots receive the host `QueryClient`. Domains with explicit unmount support dispatch `HAI3_ACTION_UNMOUNT_EXT` on cleanup; the screen domain relies on mount swap semantics instead. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
 
 **Implements**:
 - `cpt-hai3-flow-react-bindings-extension-domain-slot`
@@ -641,7 +641,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 - [x]`useScreenTranslations` transitions through `UNLOADED → LOADING → LOADED` states; reloads when language changes; does not update state after unmount
 - [x]`useTheme` returns current theme and available themes; `setTheme` triggers framework theme change action
 - [x]`useFormatters` returns locale-aware formatters that recalculate on language change
-- [x]`ExtensionDomainSlot` shows loading state during mount, transitions to mounted container on success, shows error UI on failure, and dispatches unmount on React component unmount
+- [x]`ExtensionDomainSlot` shows loading state during mount, transitions to mounted container on success, shows error UI on failure, injects host mount context for `mount_ext`, and dispatches unmount on cleanup only for domains that support explicit unmount
 - [x]`useSharedProperty` re-renders MFE component when host updates the subscribed property
 - [x]`useHostAction` sends an `ActionsChain` to the host bridge; errors are logged to console, not thrown
 - [x]`useDomainExtensions`, `useRegisteredPackages`, `useActivePackage` all throw descriptive errors when `microfrontends()` plugin is absent

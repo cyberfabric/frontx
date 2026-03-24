@@ -10,13 +10,13 @@
  */
 
 import type { QueryClient } from '@tanstack/react-query';
-import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
+import type { HAI3App, JSONSchema, MfeEntry, Extension, ScreenExtension } from '@hai3/react';
 import {
+  executeActionsChainWithMountContext,
   screenDomain,
   sidebarDomain,
   popupDomain,
   overlayDomain,
-  HAI3_ACTION_MOUNT_EXT,
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   RefContainerProvider,
@@ -40,7 +40,6 @@ function isScreenExtension(extension: Extension): extension is ScreenExtension {
  */
 class DetachedContainerProvider extends RefContainerProvider {
   constructor() {
-    // Create a detached DOM element
     const detachedElement = document.createElement('div');
     super({ current: detachedElement });
   }
@@ -48,48 +47,52 @@ class DetachedContainerProvider extends RefContainerProvider {
 
 /**
  * Bootstrap MFE system for the host application.
- * Registers domains, extensions, and mounts the default extension.
+ * Registers domains, extensions, and shared properties.
+ * Mount/unmount lifecycle is delegated to ExtensionDomainSlot in MfeScreenContainer.
  *
  * @param app - HAI3 application instance
  * @param screenContainerRef - React ref for the screen domain container element
+ * @returns Array of registered screen extensions, for URL routing in MfeScreenContainer
  */
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: React.RefObject<HTMLDivElement>,
-  queryClient: QueryClient
-): Promise<void> {
-  const { screensetsRegistry } = app;
-
+  queryClient: QueryClient,
+): Promise<ScreenExtension[]> {
+  const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
     throw new Error('[MFE Bootstrap] screensetsRegistry is not available on app instance');
   }
 
-  // Step 1: Register all 4 extension domains with ContainerProviders
-  // Screen domain uses the actual container ref from the host UI
   const screenContainerProvider = new RefContainerProvider(screenContainerRef);
   screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
+  screensetsRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
 
-  // Sidebar, popup, and overlay domains use detached container providers (no host element required)
-  const sidebarContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(sidebarDomain, sidebarContainerProvider);
-
-  const popupContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(popupDomain, popupContainerProvider);
-
-  const overlayContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(overlayDomain, overlayContainerProvider);
-
-  // Step 2: Initialize domain shared properties
   const currentThemeId = app.themeRegistry.getCurrent()?.id ?? 'default';
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
+
+  // Ensure every mount action, including ones triggered outside ExtensionDomainSlot
+  // (menu clicks, browser history, cross-MFE navigation), receives the host-owned
+  // QueryClient so separately mounted React roots share one cache.
+  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+    await executeActionsChainWithMountContext(
+      screensetsRegistry,
+      chain,
+      queryClient,
+      origExecuteActionsChain,
+    );
+  }) as typeof screensetsRegistry.executeActionsChain;
 
   // Step 3: Guard — no manifests generated yet
   if (MFE_MANIFESTS.length === 0) {
     console.warn(
       '[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.'
     );
-    return;
+    return [];
   }
 
   // Step 4: Register all MFE manifests, entries, and extensions dynamically
@@ -119,95 +122,5 @@ export async function bootstrapMFE(
     );
   }
 
-  // Step 5: Mount the extension matching the current URL route, or the default (first)
-  if (screenExtensions.length === 0) {
-    console.warn('[MFE Bootstrap] No screen extensions available, skipping mount');
-    return;
-  }
-
-  const currentPath = window.location.pathname;
-  const matchingExt = screenExtensions.find((ext) => ext.presentation.route === currentPath);
-  const targetExtId = matchingExt?.id ?? screenExtensions[0].id;
-  const screenRouteMap = new Map(
-    screenExtensions.map((ext) => [ext.id, ext.presentation.route])
-  );
-
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  const getMountedExtensionId = (
-    chain: Parameters<typeof origExecuteActionsChain>[0]
-  ): string | undefined => {
-    const extensionId = chain.action.payload?.extensionId;
-    return chain.action.type === HAI3_ACTION_MOUNT_EXT && typeof extensionId === 'string'
-      ? extensionId
-      : undefined;
-  };
-
-  const withSharedQueryClient = async (
-    chain: Parameters<typeof origExecuteActionsChain>[0]
-  ): Promise<void> => {
-    const extensionId = getMountedExtensionId(chain);
-    if (!extensionId) {
-      await origExecuteActionsChain(chain);
-      return;
-    }
-
-    screensetsRegistry.setExtensionMountContext(extensionId, {
-      queryClient,
-      extensionId,
-      domainId: chain.action.target,
-    });
-
-    try {
-      await origExecuteActionsChain(chain);
-    } finally {
-      screensetsRegistry.clearExtensionMountContext(extensionId);
-    }
-  };
-
-  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    const extensionId = getMountedExtensionId(chain);
-    await withSharedQueryClient(chain);
-
-    if (
-      chain.action.target === screenDomain.id &&
-      extensionId
-    ) {
-      const route = screenRouteMap.get(extensionId);
-      if (route && window.location.pathname !== route) {
-        window.history.pushState(null, '', route);
-      }
-    }
-  }) as typeof screensetsRegistry.executeActionsChain;
-
-  await withSharedQueryClient({
-    action: {
-      type: HAI3_ACTION_MOUNT_EXT,
-      target: screenDomain.id,
-      payload: { extensionId: targetExtId },
-    },
-  });
-
-  // Sync URL if no match was found (navigated to "/" or unknown path)
-  if (!matchingExt) {
-    const defaultRoute = screenExtensions[0].presentation.route;
-    window.history.replaceState(null, '', defaultRoute);
-  }
-
-  // Step 6: Browser navigation -> screen mount
-  // The wrapped executeActionsChain above already syncs URL + shared QueryClient
-  // mount context for all screen mounts. Here we only react to back/forward navigation.
-  // Handle browser back/forward navigation
-  window.addEventListener('popstate', () => {
-    const path = window.location.pathname;
-    const ext = screenExtensions.find((e) => e.presentation.route === path);
-    if (ext) {
-      screensetsRegistry.executeActionsChain({
-        action: {
-          type: HAI3_ACTION_MOUNT_EXT,
-          target: screenDomain.id,
-          payload: { extensionId: ext.id },
-        },
-      });
-    }
-  });
+  return screenExtensions;
 }

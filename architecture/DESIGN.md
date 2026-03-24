@@ -336,7 +336,7 @@ All packages output ESM as the primary module format. `package.json` files inclu
 │  │ @hai3/  │  │  @hai3/react │  │  app-owned UI        │ │
 │  │ studio  │  │  HAI3Provider │  │  components          │ │
 │  └─────────┘  │  hooks        │  └──────────────────────┘ │
-│               │  MfeContainer │                           │
+│               │  ExtensionDomainSlot │                   │
 │               └──────┬───────┘                            │
 │                      │ depends on                         │
 │               ┌──────▼───────┐                            │
@@ -415,7 +415,7 @@ Defines the contract between the host application and microfrontend extensions. 
 ##### Related components (by ID)
 
 - `cpt-hai3-component-framework` — depends on: framework's `microfrontends()` plugin orchestrates MFE lifecycle using screensets API
-- `cpt-hai3-component-react` — depends on: `MfeContainer` component renders loaded MFE content
+- `cpt-hai3-component-react` — depends on: `ExtensionDomainSlot` renders loaded MFE content into host-managed domain containers
 
 #### @hai3/api (L1)
 
@@ -520,7 +520,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
 - **Query hooks**: `useApiQuery()` for declarative reads with caching/deduplication, `useApiMutation()` for writes with optimistic updates via `QueryCache`, and `useQueryCache()` as the sanctioned imperative cache API. `QueryCache` exposes `get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, and `remove`. `queryClient` is internal — app and MFE code use `QueryCache`, not raw TanStack APIs. `useQueryClient` is NOT exported from `@hai3/react`.
 - **Query key factories**: Per-domain factories in `packages/react/src/queries/` with `@domain` prefix convention (e.g., `['@accounts', 'current-user']`). Use `queryOptions()` with an explicit typed service dependency resolved once per module or injected into the factory.
-- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation. MFEs render in separate React roots, so they do not inherit host React context. Shared caching is achieved by passing the same host-owned `QueryClient` into each MFE root via mount context — no per-MFE `QueryClient`.
+- **MFE rendering**: `ExtensionDomainSlot` drives host-side mount/unmount for domain content, while `RefContainerProvider` lets the framework resolve the same DOM node that React renders. Host bootstrap registers domains/extensions/shared properties and returns screen extensions for route selection; the host screen container renders `ExtensionDomainSlot`, and every `mount_ext` path carries the same host-owned `QueryClient` via mount context. MFEs still render inside Shadow DOM and do not inherit host React context directly.
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
 - **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
 
@@ -835,10 +835,10 @@ sequenceDiagram
     FW->>FW: propagate theme
     FW->>FW: propagate i18n
     FW->>Host: MFE ready
-    Host->>Host: MfeContainer renders in Shadow DOM
+    Host->>Host: ExtensionDomainSlot renders in host screen container
 ```
 
-**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@hai3/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer renders the MFE content inside a Shadow DOM container for CSS isolation.
+**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@hai3/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer uses `ExtensionDomainSlot` plus a host-managed container provider to render the MFE into a Shadow DOM container for CSS isolation.
 
 #### Shared Property Broadcast
 

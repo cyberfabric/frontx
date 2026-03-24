@@ -9,8 +9,10 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
+import type { QueryClient } from '@tanstack/react-query';
+import type { HAI3App, JSONSchema, MfeEntry, Extension, ScreenExtension } from '@hai3/react';
 import {
+  executeActionsChainWithMountContext,
   screenDomain,
   sidebarDomain,
   popupDomain,
@@ -39,7 +41,6 @@ function isScreenExtension(extension: Extension): extension is ScreenExtension {
  */
 class DetachedContainerProvider extends RefContainerProvider {
   constructor() {
-    // Create a detached DOM element
     const detachedElement = document.createElement('div');
     super({ current: detachedElement });
   }
@@ -54,33 +55,37 @@ class DetachedContainerProvider extends RefContainerProvider {
  */
 export async function bootstrapMFE(
   app: HAI3App,
-  screenContainerRef: React.RefObject<HTMLDivElement>
+  screenContainerRef: React.RefObject<HTMLDivElement>,
+  queryClient: QueryClient
 ): Promise<void> {
-  const { screensetsRegistry } = app;
-
+  const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
     throw new Error('[MFE Bootstrap] screensetsRegistry is not available on app instance');
   }
 
-  // Step 1: Register all 4 extension domains with ContainerProviders
-  // Screen domain uses the actual container ref from the host UI
   const screenContainerProvider = new RefContainerProvider(screenContainerRef);
   screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
+  screensetsRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
 
-  // Sidebar, popup, and overlay domains use detached container providers (no host element required)
-  const sidebarContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(sidebarDomain, sidebarContainerProvider);
-
-  const popupContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(popupDomain, popupContainerProvider);
-
-  const overlayContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(overlayDomain, overlayContainerProvider);
-
-  // Step 2: Initialize domain shared properties
   const currentThemeId = app.themeRegistry.getCurrent()?.id ?? 'default';
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
+
+  // Ensure every mount action receives the host-owned QueryClient so separately
+  // mounted React roots can share one cache.
+  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+  const withSharedQueryClient = async (
+    chain: Parameters<typeof origExecuteActionsChain>[0]
+  ): Promise<void> => {
+    await executeActionsChainWithMountContext(
+      screensetsRegistry,
+      chain,
+      queryClient,
+      origExecuteActionsChain,
+    );
+  };
 
   // Step 3: Guard — no manifests generated yet
   if (MFE_MANIFESTS.length === 0) {
@@ -127,7 +132,7 @@ export async function bootstrapMFE(
   const matchingExt = screenExtensions.find((ext) => ext.presentation.route === currentPath);
   const targetExtId = matchingExt?.id ?? screenExtensions[0].id;
 
-  await screensetsRegistry.executeActionsChain({
+  await withSharedQueryClient({
     action: {
       type: HAI3_ACTION_MOUNT_EXT,
       target: screenDomain.id,
@@ -147,9 +152,8 @@ export async function bootstrapMFE(
     screenExtensions.map((ext) => [ext.id, ext.presentation.route])
   );
 
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
   screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    await origExecuteActionsChain(chain);
+    await withSharedQueryClient(chain);
     if (
       chain.action.type === HAI3_ACTION_MOUNT_EXT &&
       chain.action.target === screenDomain.id

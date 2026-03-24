@@ -41,7 +41,9 @@ const app = createHAI3().use(screensets()).build();
 ```
 
 When MFEs render in separate React roots, pass the same host-owned `queryClient`
-to each `HAI3Provider` so they share one TanStack Query cache.
+to each `HAI3Provider` so they share one TanStack Query cache. Host apps should
+register domains/extensions during bootstrap, then let `ExtensionDomainSlot`
+drive the actual `mount_ext` lifecycle for screen content.
 
 ### Available Hooks
 
@@ -288,6 +290,14 @@ function LayoutScreen() {
 }
 ```
 
+`ExtensionDomainSlot` is the preferred host-side renderer for screen MFEs. It
+owns mount/unmount, loading/error UI, and wraps `mount_ext` execution with the
+current `QueryClient` so separately mounted roots reuse the host cache.
+
+When the domain's `ContainerProvider` must point at the same DOM node rendered
+by the slot, pass `containerRef` to `ExtensionDomainSlot` and share that ref
+with `RefContainerProvider`.
+
 #### RefContainerProvider
 
 Provide container references for MFE mounting:
@@ -359,6 +369,9 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `UseTranslationReturn`, `UseThemeReturn`
 - All types from @hai3/framework
 
+### Utilities
+- `executeActionsChainWithMountContext` - Wrap `mount_ext` execution with host-provided mount context such as a shared `QueryClient`
+
 ## Migration from Legacy API
 
 The `useNavigation` hook has been removed. Use MFE hooks and actions instead:
@@ -410,7 +423,7 @@ function MyComponent() {
 }
 ```
 
-**NEW (Alternative)**: Use ExtensionDomainSlot
+**NEW (Preferred for host screen slots)**: Use ExtensionDomainSlot
 ```tsx
 import { ExtensionDomainSlot } from '@hai3/react';
 

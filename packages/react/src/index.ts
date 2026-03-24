@@ -51,6 +51,7 @@ export {
   useMfeContext,
   MfeProvider,
   useMfeBridge,
+  executeActionsChainWithMountContext,
   useSharedProperty,
   useHostAction,
   useDomainExtensions,

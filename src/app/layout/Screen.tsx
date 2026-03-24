@@ -13,7 +13,7 @@ export interface ScreenProps {
 
 export const Screen: React.FC<ScreenProps> = ({ children }) => {
   return (
-    <main className="flex flex-col flex-1 overflow-hidden bg-background p-4">
+    <main className="flex flex-col flex-1 overflow-hidden bg-background px-4">
       {children}
     </main>
   );

@@ -152,6 +152,14 @@ export function mountExtension(extensionId: string): void {
 // @cpt-begin:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1:inst-3
 export function unmountExtension(extensionId: string): void {
   const domainId = resolveDomainId(extensionId);
+  const supportsUnmount = screensetsRegistry?.getDomain(domainId)?.actions.includes(HAI3_ACTION_UNMOUNT_EXT) ?? false;
+
+  if (!supportsUnmount) {
+    console.warn(
+      `[MFE] Skipping unmount for ${extensionId}: domain '${domainId}' uses swap semantics and does not support ${HAI3_ACTION_UNMOUNT_EXT}.`
+    );
+    return;
+  }
 
   // Call executeActionsChain fire-and-forget (no await)
   screensetsRegistry!.executeActionsChain({

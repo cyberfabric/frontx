@@ -6,8 +6,10 @@
  * This file is imported in main.tsx via MfeScreenContainer.
  */
 
-import type { HAI3App } from '@hai3/react';
+import type { QueryClient } from '@tanstack/react-query';
+import type { HAI3App, ScreenExtension } from '@hai3/react';
 import {
+  executeActionsChainWithMountContext,
   screenDomain,
   sidebarDomain,
   popupDomain,
@@ -37,32 +39,38 @@ class DetachedContainerProvider extends RefContainerProvider {
  */
 export async function bootstrapMFE(
   app: HAI3App,
-  screenContainerRef: React.RefObject<HTMLDivElement>
-): Promise<void> {
-  const { screensetsRegistry } = app;
-
+  screenContainerRef: React.RefObject<HTMLDivElement>,
+  queryClient: QueryClient
+): Promise<ScreenExtension[]> {
+  const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
     throw new Error('[MFE Bootstrap] screensetsRegistry is not available on app instance');
   }
 
-  // Register all 4 extension domains
   const screenContainerProvider = new RefContainerProvider(screenContainerRef);
   screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
+  screensetsRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
+  screensetsRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
 
-  const sidebarContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(sidebarDomain, sidebarContainerProvider);
-
-  const popupContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(popupDomain, popupContainerProvider);
-
-  const overlayContainerProvider = new DetachedContainerProvider();
-  screensetsRegistry.registerDomain(overlayDomain, overlayContainerProvider);
-
-  // Initialize shared properties (theme and language)
   const currentThemeId = app.themeRegistry?.getCurrent()?.id ?? 'default';
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
 
-  // Standalone: no mfe.json or extensions registered here.
-  // Register your MFE manifests and extensions, then mount as needed.
+  // Ensure any later mount_ext action receives the host-owned QueryClient so
+  // separate MFE React roots can share one cache.
+  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+    await executeActionsChainWithMountContext(
+      screensetsRegistry,
+      chain,
+      queryClient,
+      origExecuteActionsChain,
+    );
+  }) as typeof screensetsRegistry.executeActionsChain;
+
+  // Standalone: no extensions registered by default.
+  // Register your MFE manifests and extensions, then return the screen extensions
+  // so MfeScreenContainer can handle URL routing.
+  return [];
 }
