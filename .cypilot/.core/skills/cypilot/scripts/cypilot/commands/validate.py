@@ -1,3 +1,4 @@
+# @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-imports
 import argparse
 import json
 from pathlib import Path
@@ -9,9 +10,70 @@ from ..utils.constraints import ArtifactRecord, cross_validate_artifacts, error 
 from ..utils.document import scan_cdsl_instructions, scan_cpt_ids
 from ..utils.fixing import enrich_issues
 from ..utils.ui import ui
+# @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-imports
+
+# @cpt-begin:cpt-cypilot-algo-workspace-determine-target:p1:inst-validate-source-flag
+def _resolve_source_context(source_name: str, ws_ctx: Optional["WorkspaceContext"]) -> Optional["CypilotContext"]:
+    """Resolve a workspace source name to its adapter CypilotContext.
+
+    Returns the adapter context on success, or None after emitting an error.
+    """
+    from ..utils.context import WorkspaceContext, resolve_adapter_context
+
+    if ws_ctx is None:
+        ui.result({"status": "ERROR", "message": "--source requires a workspace context. Run 'workspace-init' first."})
+        return None
+    sc = ws_ctx.sources.get(source_name)
+    if sc is None:
+        ui.result({"status": "ERROR", "message": f"Source '{source_name}' not found in workspace"})
+        return None
+    if not sc.reachable:
+        ui.result({"status": "ERROR", "message": f"Source '{source_name}' is not reachable"})
+        return None
+    adapter_ctx = resolve_adapter_context(sc)
+    if adapter_ctx is None:
+        ui.result({"status": "ERROR", "message": f"Cannot resolve adapter context for source '{source_name}'"})
+        return None
+    return adapter_ctx
+# @cpt-end:cpt-cypilot-algo-workspace-determine-target:p1:inst-validate-source-flag
+
+
+# @cpt-dod:cpt-cypilot-dod-workspace-cross-repo:p1
+def _collect_cross_repo_artifacts(
+    ws_ctx: "WorkspaceContext",
+    already_seen: Set[str],
+) -> List[ArtifactRecord]:
+    """Collect artifacts from remote workspace sources for cross-reference context.
+
+    Remote artifacts are NOT validated themselves — only used so that
+    cross-references FROM validated (local) artifacts can be resolved.
+    """
+    from ..utils.context import get_expanded_meta as _get_expanded_meta
+
+    result: List[ArtifactRecord] = []
+    seen = set(already_seen)
+    for sc in ws_ctx.sources.values():
+        if not sc.reachable or sc.meta is None or sc.path is None or sc.role not in ("artifacts", "full"):
+            continue
+        expanded = _get_expanded_meta(sc)
+        if expanded is None:
+            continue
+        for art, _sys in expanded.iter_all_artifacts():
+            art_path = (sc.path / art.path).resolve()
+            if not art_path.exists() or str(art_path) in seen:
+                continue
+            seen.add(str(art_path))
+            result.append(ArtifactRecord(
+                path=art_path,
+                artifact_kind=str(art.kind),
+                constraints=None,
+            ))
+    return result
 
 
 # @cpt-flow:cpt-cypilot-flow-traceability-validation-validate:p1
+# @cpt-dod:cpt-cypilot-dod-traceability-validation-cross-refs:p1
+# @cpt-dod:cpt-cypilot-dod-traceability-validation-cdsl:p1
 def cmd_validate(argv: List[str]) -> int:
     """Validate Cypilot artifacts and code traceability.
 
@@ -29,6 +91,8 @@ def cmd_validate(argv: List[str]) -> int:
     p.add_argument("--skip-code", action="store_true", help="Skip code traceability validation")
     p.add_argument("--verbose", action="store_true", help="Print full validation report")
     p.add_argument("--output", default=None, help="Write report to file instead of stdout")
+    p.add_argument("--local-only", action="store_true", help="Skip cross-repo workspace validation (validate local repo only)")
+    p.add_argument("--source", default=None, help="Target a specific workspace source for validation (uses that source's adapter context)")
     args = p.parse_args(argv)
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-user-validate
 
@@ -41,8 +105,32 @@ def cmd_validate(argv: List[str]) -> int:
         return 1
         # @cpt-end:cpt-cypilot-state-traceability-validation-report:p1:inst-error
 
+    # Preserve workspace wrapper — ctx may be narrowed to a source-specific
+    # CypilotContext by --source/--artifact, but workspace-level features
+    # (cross-repo ID resolution, path routing, config validation) need the
+    # original WorkspaceContext.
+    from ..utils.context import WorkspaceContext
+    ws_ctx = ctx if isinstance(ctx, WorkspaceContext) else None
+
+    # @cpt-begin:cpt-cypilot-algo-workspace-determine-target:p1:inst-validate-source-flag
+    if args.source:
+        ctx = _resolve_source_context(args.source, ws_ctx)
+        if ctx is None:
+            return 1
+    # @cpt-end:cpt-cypilot-algo-workspace-determine-target:p1:inst-validate-source-flag
+
     # Surface context-level load errors (e.g., invalid constraints.toml) as validation errors.
     ctx_errors = list(getattr(ctx, "_errors", []) or [])
+
+    # Validate workspace config if present
+    if ws_ctx is not None:
+        from ..utils.workspace import find_workspace_config as _find_ws
+        _ws_cfg, _ = _find_ws(ws_ctx.project_root)
+        if _ws_cfg is not None:
+            for ws_err in _ws_cfg.validate():
+                ctx_errors.append(constraints_error(
+                    "workspace", ws_err, path=str(_ws_cfg.workspace_file),
+                ))
 
     meta = ctx.meta
     project_root = ctx.project_root
@@ -52,20 +140,19 @@ def cmd_validate(argv: List[str]) -> int:
     # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-self-check
     if getattr(meta, "kits", None):
         try:
-            from .self_check import run_self_check_from_meta
+            from .validate_kits import run_validate_kits
 
-            rc, report = run_self_check_from_meta(
+            rc, report = run_validate_kits(
                 project_root=project_root,
                 adapter_dir=ctx.adapter_dir,
-                artifacts_meta=meta,
                 kit_filter=None,
                 verbose=bool(args.verbose),
             )
             if rc != 0 or str(report.get("status")) != "PASS":
                 out = {
                     "status": "FAIL" if rc == 2 else "ERROR",
-                    "message": "self-check failed (templates/examples are inconsistent)",
-                    "self_check": report,
+                    "message": "validate-kits failed (kit structure or templates are inconsistent)",
+                    "validate_kits": report,
                 }
                 ui.result(out)
                 return 2 if rc == 2 else 1
@@ -78,7 +165,7 @@ def cmd_validate(argv: List[str]) -> int:
             ui.result(out)
             return 1
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-self-check
-
+    
     for loaded_kit in (ctx.kits or {}).values():
         kit_constraints = getattr(loaded_kit, "constraints", None)
         if not kit_constraints:
@@ -100,16 +187,32 @@ def cmd_validate(argv: List[str]) -> int:
             ui.result({"status": "ERROR", "message": f"Artifact not found: {artifact_path}"})
             return 1
 
-        # Load context from artifact's location
-        from ..utils.context import CypilotContext
+        # @cpt-begin:cpt-cypilot-algo-workspace-determine-target:p1:inst-target-resolve-abs
+        # In workspace mode, auto-detect which source owns the artifact
+        from ..utils.context import CypilotContext, determine_target_source
 
-        ctx = CypilotContext.load(artifact_path.parent)
-        if not ctx:
-            ui.result({"status": "ERROR", "message": "Cypilot not initialized"})
-            return 1
+        if ws_ctx is not None:
+            matched_sc, matched_ctx = determine_target_source(artifact_path, ws_ctx)
+            if matched_ctx is None:
+                ui.result({"status": "ERROR", "message": f"Cannot resolve context for artifact: {artifact_path}"})
+                return 1
+            if args.source and matched_sc is not None and matched_sc.name != args.source:
+                ui.result({"status": "ERROR", "message": (
+                    f"Artifact '{args.artifact}' belongs to source '{matched_sc.name}', "
+                    f"not '{args.source}'."
+                )})
+                return 1
+            ctx = matched_ctx
+        else:
+            # Non-workspace: load context from artifact's location
+            ctx = CypilotContext.load(artifact_path.parent)
+            if not ctx:
+                ui.result({"status": "ERROR", "message": "Cypilot not initialized"})
+                return 1
+        # @cpt-end:cpt-cypilot-algo-workspace-determine-target:p1:inst-target-resolve-abs
 
-        # Refresh context-level errors for this context.
-        ctx_errors = list(getattr(ctx, "_errors", []) or [])
+        # Merge context-level errors from matched source, preserving workspace errors.
+        ctx_errors.extend(getattr(ctx, "_errors", []) or [])
 
         meta = ctx.meta
         project_root = ctx.project_root
@@ -146,9 +249,12 @@ def cmd_validate(argv: List[str]) -> int:
             if not pkg or not pkg.is_cypilot_format():
                 continue
             template_path_str = pkg.get_template_path(artifact_meta.kind)
-            artifact_path = (project_root / artifact_meta.path).resolve()
+            if ws_ctx is not None:
+                artifact_path = ws_ctx.resolve_artifact_path(artifact_meta, project_root)
+            else:
+                artifact_path = (project_root / artifact_meta.path).resolve()
             template_path = (project_root / template_path_str).resolve()
-            if artifact_path.exists():
+            if artifact_path is not None and artifact_path.exists():
                 artifacts_to_validate.append((artifact_path, template_path, artifact_meta.kind, artifact_meta.traceability, system_node.kit))
 
     # Surface context-level errors (e.g., invalid constraints.toml) even when
@@ -169,6 +275,7 @@ def cmd_validate(argv: List[str]) -> int:
         return 0
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-resolve-artifacts
 
+    # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-if-registry-fail
     # Validate each artifact
     all_errors: List[Dict[str, object]] = []
     all_warnings: List[Dict[str, object]] = []
@@ -196,6 +303,7 @@ def cmd_validate(argv: List[str]) -> int:
         else:
             ui.result(out, human_fn=lambda d: _human_validate(d))
         return 2
+    # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-if-registry-fail
 
     # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-foreach-artifact
     for artifact_path, _template_path, artifact_type, traceability, kit_id in artifacts_to_validate:
@@ -257,6 +365,7 @@ def cmd_validate(argv: List[str]) -> int:
         all_warnings.extend(warnings)
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-foreach-artifact
 
+    # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-helpers
     def _attach_issue_to_artifact_report(issue: Dict[str, object], *, is_error: bool) -> None:
         ipath = str(issue.get("path", "") or "")
         rep = artifact_report_by_path.get(ipath)
@@ -272,6 +381,7 @@ def cmd_validate(argv: List[str]) -> int:
             rep["warning_count"] = int(rep.get("warning_count", 0) or 0) + 1
             if args.verbose and isinstance(rep.get("warnings"), list):
                 rep["warnings"].append(issue)
+    # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-helpers
 
     # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-if-structure-fail
     # Stop early: cross-artifact reference checks and code traceability checks are run only
@@ -307,16 +417,23 @@ def cmd_validate(argv: List[str]) -> int:
         pkg = meta.get_kit(system_node.kit)
         if not pkg or not pkg.is_cypilot_format():
             continue
-        art_path = (project_root / artifact_meta.path).resolve()
+        if ws_ctx is not None:
+            art_path = ws_ctx.resolve_artifact_path(artifact_meta, project_root)
+        else:
+            art_path = (project_root / artifact_meta.path).resolve()
+        if art_path is None or not art_path.exists():
+            continue
         if str(art_path) in validated_paths:
             continue  # Already parsed
-        if not art_path.exists():
-            continue
         constraints_for_kind = None
         loaded_kit = (ctx.kits or {}).get(str(system_node.kit))
         if loaded_kit and loaded_kit.constraints and str(artifact_meta.kind) in loaded_kit.constraints.by_kind:
             constraints_for_kind = loaded_kit.constraints.by_kind[str(artifact_meta.kind)]
         all_artifacts_for_cross.append(ArtifactRecord(path=art_path, artifact_kind=str(artifact_meta.kind), constraints=constraints_for_kind))
+
+    if not args.local_only and ws_ctx is not None and ws_ctx.cross_repo and ws_ctx.resolve_remote_ids:
+        _seen_cross = {str(r.path) for r in all_artifacts_for_cross}
+        all_artifacts_for_cross.extend(_collect_cross_repo_artifacts(ws_ctx, _seen_cross))
 
     if len(all_artifacts_for_cross) > 0:
         cross_result = cross_validate_artifacts(all_artifacts_for_cross, registered_systems=registered_systems, known_kinds=known_kinds)
@@ -396,16 +513,24 @@ def cmd_validate(argv: List[str]) -> int:
                                     to_code_ids.add(did)
                                 break
 
+    # Workspace: expand artifact_ids with IDs from all workspace sources (primary + remote)
+    if not args.local_only and ws_ctx is not None:
+        artifact_ids.update(ws_ctx.get_all_artifact_ids())
+
     if should_scan_code:
         # Scan code files from all systems
-        def resolve_code_path(pth: str) -> Path:
+        def resolve_code_path(entry: object) -> Optional[Path]:
+            src_name = getattr(entry, "source", None)
+            if src_name and ws_ctx is not None:
+                return ws_ctx.resolve_artifact_path(entry, project_root)
+            pth = getattr(entry, "path", "") if not isinstance(entry, dict) else entry.get("path", "")
             return (project_root / pth).resolve()
 
         def scan_codebase_entry(entry: object, traceability: str) -> None:
-            code_path = resolve_code_path(getattr(entry, "path", "") if not isinstance(entry, dict) else entry.get("path", ""))
+            code_path = resolve_code_path(entry)
             extensions = (getattr(entry, "extensions", None) if not isinstance(entry, dict) else entry.get("extensions", None)) or [".py"]
 
-            if not code_path.exists():
+            if code_path is None or not code_path.exists():
                 return
 
             if code_path.is_file():
@@ -453,11 +578,13 @@ def cmd_validate(argv: List[str]) -> int:
 
         def scan_system_codebase(system_node: "SystemNode") -> None:
             for cb_entry in system_node.codebase:
-                # Determine traceability from system artifacts
-                traceability = "FULL"
+                # Determine traceability from system artifacts:
+                # scan as FULL if ANY artifact requires it (per-artifact
+                # DOCS-ONLY is handled during to_code_ids collection).
+                traceability = "DOCS-ONLY"
                 for art in system_node.artifacts:
-                    if art.traceability == "DOCS-ONLY":
-                        traceability = "DOCS-ONLY"
+                    if art.traceability == "FULL":
+                        traceability = "FULL"
                         break
                 scan_codebase_entry(cb_entry, traceability)
             for child in system_node.children:
@@ -578,10 +705,10 @@ def cmd_validate(argv: List[str]) -> int:
                 _attach_issue_to_artifact_report(err, is_error=True)
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-if-code
 
+    # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-enrich-errors
     # Resolve target artifact paths for cross-ref errors (before enrich_issues strips 'path')
     _enrich_target_artifact_paths(all_errors, meta=meta, project_root=project_root)
 
-    # @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-enrich-errors
     # Enrich errors/warnings with fixing prompts for LLM agents
     enrich_issues(all_errors, project_root=project_root)
     enrich_issues(all_warnings, project_root=project_root)
@@ -645,7 +772,7 @@ def cmd_validate(argv: List[str]) -> int:
     # @cpt-end:cpt-cypilot-state-traceability-validation-report:p1:inst-fail
     # @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-return-report
 
-
+# @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-helpers
 def _enrich_target_artifact_paths(
     issues: List[Dict[str, object]],
     *,
@@ -696,7 +823,6 @@ def _enrich_target_artifact_paths(
             issue["target_artifact_suggested_path"] = suggested
         # else: neither set → fixing.py will ask user
 
-
 def _find_artifact_in_system(node: object, target_kind: str, project_root: Path) -> Optional[str]:
     """Search system node and its children for an existing artifact of target_kind.
 
@@ -716,7 +842,6 @@ def _find_artifact_in_system(node: object, target_kind: str, project_root: Path)
         if found:
             return found
     return None
-
 
 def _suggest_path_from_autodetect(node: object, target_kind: str) -> Optional[str]:
     """Derive a suggested file path from autodetect rules for a missing artifact.
@@ -763,12 +888,13 @@ def _suggest_path_from_autodetect(node: object, target_kind: str) -> Optional[st
         return suggested
 
     return None
-
+# @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-helpers
 
 # ---------------------------------------------------------------------------
 # Human-friendly formatter
 # ---------------------------------------------------------------------------
 
+# @cpt-begin:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-format
 def _human_validate(data: dict) -> None:
     status = data.get("status", "")
     n_art = data.get("artifacts_validated", data.get("artifact_count", 0))
@@ -812,7 +938,6 @@ def _human_validate(data: dict) -> None:
         ui.info(f"Status: {status}")
     ui.blank()
 
-
 def _issue_location(issue: dict) -> str:
     """Extract display location from an issue dict, relative to cwd."""
     loc = str(issue.get("location") or "")
@@ -828,7 +953,6 @@ def _issue_location(issue: dict) -> str:
         if parts[1].isdigit():
             return f"{ui.relpath(parts[0])}:{parts[1]}"
     return ui.relpath(loc)
-
 
 def _format_issue(issue: object, *, is_error: bool) -> None:
     """Format a single error/warning with all available fields.
@@ -897,3 +1021,4 @@ def _format_issue(issue: object, *, is_error: bool) -> None:
 
     if has_extra:
         ui.blank()
+# @cpt-end:cpt-cypilot-flow-traceability-validation-validate:p1:inst-validate-format

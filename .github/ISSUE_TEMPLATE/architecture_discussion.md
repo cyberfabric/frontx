@@ -35,7 +35,6 @@ Which HAI3 components or packages are affected?
 - [ ] Internationalization (@hai3/i18n)
 - [ ] State Management (@hai3/state)
 - [ ] Studio (@hai3/studio)
-- [ ] UI Kit (@hai3/uikit)
 - [ ] Multiple packages
 
 ## Breaking Changes
@@ -46,9 +45,9 @@ Are there any performance or security implications?
 
 ## Discussion Points
 What specific aspects would you like feedback on?
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## References
 Links to related issues, specs, or documentation:

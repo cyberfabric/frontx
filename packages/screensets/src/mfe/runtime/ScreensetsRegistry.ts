@@ -270,6 +270,17 @@ export abstract class ScreensetsRegistry {
    */
   abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
 
+  // --- Theme ---
+
+  /**
+   * Apply theme CSS custom properties via the mount manager.
+   * The framework calls this on every theme change. The mount manager
+   * handles delivery appropriate to its isolation context.
+   *
+   * @param cssVars - CSS custom property name→value map
+   */
+  abstract setTheme(cssVars: Record<string, string>): void;
+
   // --- Lifecycle ---
 
   /**

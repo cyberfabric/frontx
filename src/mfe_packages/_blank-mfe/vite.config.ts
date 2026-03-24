@@ -6,8 +6,6 @@ import { hai3MfeExternalize } from '../shared/vite-plugin-hai3-externalize';
 const sharedDeps = [
   'react',
   'react-dom',
-  'tailwindcss',
-  '@hai3/uikit',
   '@hai3/react',
   '@hai3/framework',
   '@hai3/state',
@@ -35,5 +33,6 @@ export default defineConfig({
     target: 'esnext',
     minify: false,
     cssCodeSplit: false,
+    modulePreload: false,
   },
 });

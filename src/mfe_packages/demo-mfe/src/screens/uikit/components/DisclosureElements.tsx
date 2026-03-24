@@ -5,18 +5,20 @@
  */
 
 import React from 'react';
+import { Separator } from '../../../components/ui/separator';
 import {
-  Separator,
   Accordion,
   AccordionItem,
   AccordionTrigger,
   AccordionContent,
+} from '../../../components/ui/accordion';
+import {
   Collapsible,
   CollapsibleTrigger,
   CollapsibleContent,
-  Button,
-  ButtonVariant,
-} from '@hai3/uikit';
+} from '../../../components/ui/collapsible';
+import { Button } from '../../../components/ui/button';
+import { ButtonVariant } from '../../../components/types';
 
 interface DisclosureElementsProps {
   t: (key: string) => string;

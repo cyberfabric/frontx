@@ -1,7 +1,14 @@
 // @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
 import path from 'path';
 import fs from 'fs-extra';
-import type { GeneratedFile, LayerType } from '../core/types.js';
+import type { GeneratedFile, LayerType, PackageManager } from '../core/types.js';
+import {
+  DEFAULT_PACKAGE_MANAGER,
+  getAddPackagesCommand,
+  getRunScriptCommand,
+  packageManagerFieldValue,
+  transformPackageManagerText,
+} from '../core/packageManager.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
 
@@ -13,6 +20,8 @@ export interface LayerPackageInput {
   packageName: string;
   /** SDK layer */
   layer: LayerType;
+  /** Package manager to configure package for */
+  packageManager?: PackageManager;
 }
 
 /**
@@ -300,7 +309,7 @@ function getTsConfig(layer: LayerType): string {
  */
 // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 export async function generateLayerPackage(input: LayerPackageInput): Promise<GeneratedFile[]> {
-  const { packageName, layer } = input;
+  const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
 
@@ -309,6 +318,7 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
     name: packageName,
     version: '0.1.0',
     type: 'module',
+    packageManager: packageManagerFieldValue(packageManager),
     main: './dist/index.cjs',
     module: './dist/index.js',
     types: './dist/index.d.ts',
@@ -397,7 +407,7 @@ A HAI3 ${layer}-layer package.
 ## Installation
 
 \`\`\`bash
-npm install ${packageName}
+${getAddPackagesCommand(packageManager, [packageName])}
 \`\`\`
 
 ## Usage
@@ -411,10 +421,10 @@ console.log(VERSION);
 ## Development
 
 \`\`\`bash
-npm run dev     # Watch mode
-npm run build   # Production build
-npm run lint    # ESLint
-npm run type-check  # TypeScript check
+${getRunScriptCommand(packageManager, 'dev')}     # Watch mode
+${getRunScriptCommand(packageManager, 'build')}   # Production build
+${getRunScriptCommand(packageManager, 'lint')}    # ESLint
+${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 \`\`\`
 
 ## Layer: ${layer}
@@ -448,6 +458,7 @@ Apache-2.0
       {
         hai3: true,
         layer,
+        packageManager,
       },
       null,
       2
@@ -525,6 +536,12 @@ Apache-2.0
         // Copy to .ai/commands/ directory
         files.push({ path: `.ai/commands/${baseName}`, content });
       }
+    }
+  }
+
+  for (const file of files) {
+    if (/\.(md|mdc|ts|tsx|js|cjs|mjs|yaml|yml)$/.test(file.path)) {
+      file.content = transformPackageManagerText(file.content, packageManager);
     }
   }
 

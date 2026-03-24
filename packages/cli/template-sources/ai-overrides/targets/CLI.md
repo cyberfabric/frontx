@@ -27,7 +27,7 @@
 ## PROJECT STRUCTURE
 - src/screensets/: Application screensets with screens, state, i18n.
 - src/themes/: Theme configurations and token overrides.
-- src/uikit/: Local UI component customizations.
+- src/components/ui/: Local UI component primitives.
 - src/icons/: Custom icon components.
 - .ai/: AI assistant guidelines and commands.
 

@@ -7,7 +7,6 @@
  *
  * Framework package CANNOT import:
  * - @hai3/react (would create circular dependency)
- * - @hai3/uikit, @hai3/uikit-contracts (UI layer)
  * - @hai3/uicore (deprecated)
  * - react, react-dom (framework is headless)
  */
@@ -23,7 +22,7 @@ module.exports = {
       name: 'framework-only-sdk-deps',
       severity: 'error',
       from: { path: '^packages/framework/src' },
-      to: { path: 'node_modules/@hai3/(react|uikit|uikit-contracts|uicore)' },
+      to: { path: 'node_modules/@hai3/(react|uicore)' },
       comment: 'FRAMEWORK VIOLATION: Framework can only import SDK packages (@hai3/state, layout, api, i18n).',
     },
     {

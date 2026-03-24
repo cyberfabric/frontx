@@ -14,15 +14,11 @@ This package eliminates manual project configuration and boilerplate creation. I
 
 ### Project Creation
 
-Initialize new HAI3 applications with complete project structure, dependency management, and build tooling. The creation process offers interactive prompts for customizing the initial setup, including UI Kit selection and development overlay inclusion.
+Initialize new HAI3 applications with complete project structure, dependency management, and build tooling. The creation process offers interactive prompts for customizing the initial setup, including UI kit choice (shadcn/ui, none, or a third-party package) and Studio overlay inclusion.
 
 ### Screenset Generation
 
-Create new screensets with proper directory structure, ID management, and template files. Screensets generate with all required files including configuration, screen components, translations, and event handlers.
-
-### Screenset Duplication
-
-Copy existing screensets while automatically transforming all IDs and namespaces to prevent conflicts. This command updates screenset IDs, screen IDs, translation keys, event names, and icon references throughout all files in the source screenset.
+Create new MFE screenset packages from the framework template. Each screenset is a self-contained MFE with its own dev server port, configuration, and structure under `src/mfe_packages/`.
 
 ### Dependency Updates
 
@@ -48,128 +44,102 @@ Install as a dev dependency when using CLI commands within project scripts or wh
 
 ## Command Reference
 
+**Global option:** `-q, --quiet` — Suppress non-essential output (any command).
+
 ### `hai3 create <project-name>`
 
 Creates a new HAI3 project or SDK layer package with the specified name.
 
 **Options:**
-- `--layer`, `-l` - Create a package for a specific SDK layer (`sdk`, `framework`, `react`)
-- `--uikit` - UI Kit to use (`hai3` or `custom`)
+- `-l, --layer <type>` - Create a package for a specific SDK layer (`sdk`, `framework`, `react`, or `app`)
+- `--uikit <type>` - UI components: `shadcn` for shadcn/ui, `none` for no UI library, or an npm package name (e.g. `@mui/material`, `antd`)
 - `--studio` / `--no-studio` - Include or exclude Studio package
-- `--no-git` - Skip git initialization
-- `--no-install` - Skip npm install
+- `--local` - Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or `HAI3_MONOREPO_ROOT`
+- `--package-manager` - Package manager to use (`npm`, `pnpm`, `yarn`)
 
-**Interactive Options (when `--layer` not specified):**
-- UI Kit selection (HAI3 reference implementation or custom)
-- Development overlay inclusion (Studio package)
-- Git repository initialization
-- Automatic dependency installation
+**Interactive (when `--layer` not specified):**
+- UI kit selection (shadcn, none, or custom package name)
+- Studio overlay inclusion
+- Package manager selection (`npm` default, `pnpm`, `yarn`)
 
-**Output (App Project - default):**
-- Fully configured Vite + React + TypeScript project
+**Output (App project — default):**
+- Vite + React + TypeScript project with `hai3.config.json` (uikit, etc.)
 - HAI3 framework packages installed and configured
-- Build and development scripts ready to use
-- Architecture validation rules configured
+- Build and dev scripts; layout/components scaffolded per UI kit choice
 
-**Output (Layer Package):**
-- Layer-appropriate package structure with correct peer dependencies
-- TypeScript configuration with layer-specific rules
-- ESLint configuration enforcing layer boundaries
-- AI assistant configurations (CLAUDE.md, Copilot, Cursor, Windsurf)
+**Output (Layer package):**
+- Layer-appropriate package structure and peer dependencies
+- TypeScript and ESLint configs enforcing layer boundaries
+- AI assistant config (CLAUDE.md, Copilot, Cursor, Windsurf)
 
 ### `hai3 screenset create <name>`
 
-Generates a new screenset with proper structure and template files.
+Creates a new MFE screenset package under `src/mfe_packages/<name>-mfe/` from the framework template.
 
 **Options:**
-- `--category` - Specify screenset category (drafts, mockups, production)
+- `-p, --port <number>` - MFE dev server port (auto-assigned if omitted)
 
-**Generated Structure:**
-- Screenset configuration file
-- IDs file with all screenset constants
-- Screen directory with starter screen
-- Internationalization files for all 36 languages
-- Event and effect handler files
-- Redux slice files
+**Requirements:**
+- Run from project root; name must be camelCase (e.g. `contacts`, `myDashboard`).
 
-### `hai3 screenset copy <source> <target>`
+**Generated structure:** MFE package with config, screens, i18n, events, and build setup.
 
-Duplicates an existing screenset with automatic ID transformation.
+### `hai3 update` / `hai3 update packages`
+
+Updates CLI and framework packages to latest versions (default subcommand is `packages`).
 
 **Options:**
-- `--category` - Target screenset category
-
-**Transformations Applied:**
-- Screenset ID updates
-- Screen ID updates
-- Translation key namespacing
-- Event name updates
-- Icon ID updates
-- Redux state key updates
-
-### `hai3 update`
-
-Updates CLI and framework packages to latest versions.
-
-**Options:**
-- `--alpha`, `-a` - Update to latest alpha/prerelease version
-- `--stable`, `-s` - Update to latest stable version
+- `-a, --alpha` - Update to latest alpha/prerelease version
+- `-s, --stable` - Update to latest stable version
 - `--templates-only` - Only sync templates (skip CLI and package updates)
 - `--skip-ai-sync` - Skip running AI sync after update
 
-**Channel Detection:**
-By default, the command auto-detects which channel to use based on the currently installed CLI version. If you have an alpha version installed, it updates from the alpha channel. If you have a stable version, it updates from the stable channel.
+**Channel:** Auto-detects from the installed CLI version (alpha vs stable).
 
-**Behavior:**
-- Inside project: Updates CLI globally, framework packages, templates, and AI configurations
-- Outside project: Updates only CLI globally
+**Behavior:** Inside a project: updates CLI globally, framework packages, templates, and AI configs. Outside a project: updates only CLI globally.
 
 ### `hai3 update layout`
 
-Updates layout components from the latest templates.
+Updates layout components from the latest templates. Run from project root.
 
 **Options:**
-- `--ui-kit`, `-u` - UI kit to use (`hai3-uikit` or `custom`)
-- `--force`, `-f` - Force update without prompting
-
-**Behavior:**
-Auto-detects current UI kit from existing layout files and prompts for confirmation before overwriting.
+- `-f, --force` - Force update without prompting
 
 ### `hai3 scaffold layout`
 
-Generates layout components in your project from templates.
+Generates layout components in your project from templates. Run from project root.
 
 **Options:**
-- `--ui-kit`, `-u` - UI kit to use (`hai3-uikit` or `custom`, default: `hai3-uikit`)
-- `--force`, `-f` - Overwrite existing layout files
+- `-f, --force` - Overwrite existing layout files
 
-**Generated Components:**
-- `src/layout/Layout.tsx` - Main layout orchestrator
-- `src/layout/Header.tsx` - Header component
-- `src/layout/Footer.tsx` - Footer component
-- `src/layout/Menu.tsx` - Navigation menu
-- `src/layout/Sidebar.tsx` - Sidebar component
-- `src/layout/Screen.tsx` - Screen content area
-- `src/layout/Popup.tsx` - Popup/modal container
-- `src/layout/Overlay.tsx` - Overlay component
-- `src/layout/index.ts` - Barrel exports
+**Generated:** Layout orchestrator, Header, Footer, Menu, Sidebar, Screen, Popup, Overlay, and barrel exports under `src/layout/`.
+
+### `hai3 validate components [path]`
+
+Validates component structure and placement (e.g. layer boundaries, conventions). Path defaults to current directory.
+
+### `hai3 migrate [targetVersion]`
+
+Applies codemod migrations to update HAI3 projects to a target version.
+
+**Options:**
+- `-d, --dry-run` - Preview changes without applying
+- `-l, --list` - List available migrations
+- `-s, --status` - Show migration status
+- `-p, --path <path>` - Target directory to migrate
+- `--include <patterns>` - Include glob patterns (comma-separated)
+- `--exclude <patterns>` - Exclude glob patterns (comma-separated)
 
 ### `hai3 ai sync`
 
-Syncs AI assistant configuration files across multiple IDEs.
+Syncs AI assistant configuration files from `.ai/GUIDELINES.md` and `.ai/commands/` into IDE-specific configs.
 
 **Options:**
-- `--tool`, `-t` - Specific tool to sync (`claude`, `copilot`, `cursor`, `windsurf`, `all`)
-- `--detect-packages`, `-d` - Detect installed @hai3 packages and merge their configs
+- `-t, --tool <tool>` - Tool to sync: `claude`, `copilot`, `cursor`, `windsurf`, or `all` (default: `all`)
+- `-d, --detect-packages` - Detect installed @hai3 packages and merge their configs
+- `--diff` - Show diff of changes without writing files
 
-**Generated Files:**
-- `CLAUDE.md` - Claude Code configuration with command adapters in `.claude/commands/`
-- `.github/copilot-instructions.md` - GitHub Copilot instructions
-- `.cursor/rules/hai3.mdc` - Cursor rules with command adapters
-- `.windsurf/rules/hai3.md` - Windsurf rules with workflow adapters
-
-**Source Files:**
-Reads from `.ai/GUIDELINES.md` and `.ai/commands/` directory to generate IDE-specific configurations.
+**Generated:** `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and command adapters.
 
 ## Project Generation Details
 
@@ -191,24 +161,30 @@ Generated projects include scripts for development server, production builds, ty
 
 ## UI Kit Options
 
-HAI3 supports two UI kit configurations when creating projects or scaffolding layout components.
+At project creation, you choose how UI components are provided. The choice is stored in `hai3.config.json` and used by the CLI when scaffolding layout and screensets.
 
-### HAI3 UIKit (Default)
+### Shadcn (`shadcn`)
 
-The `hai3-uikit` option generates layout components that import from `@hai3/uikit`. This option is recommended for most projects as it provides pre-built, theme-aware components that integrate seamlessly with the HAI3 framework.
+Scaffolds the project with local shadcn/ui components in `components/ui/` (button, input, card, dialog, form, toast, etc.). Recommended for new projects.
 
 ```bash
-hai3 create my-project --uikit=hai3
-hai3 scaffold layout --ui-kit=hai3-uikit
+hai3 create my-project --uikit=shadcn
 ```
 
-### Custom UIKit
+### No UI library (`none`)
 
-The `custom` option generates placeholder layout components without any `@hai3/uikit` imports. Use this when you want to integrate your own UI library (Material UI, Chakra, etc.) or build components from scratch.
+Placeholder layout and components without a UI library. Use when you want to bring your own components or build from scratch.
 
 ```bash
-hai3 create my-project --uikit=custom
-hai3 scaffold layout --ui-kit=custom
+hai3 create my-project --uikit=none
+```
+
+### Third-party package
+
+Use an npm package name (e.g. `@mui/material`, `antd`) so the CLI scaffolds a bridge and config; you implement components with that library.
+
+```bash
+hai3 create my-project --uikit=@mui/material
 ```
 
 ## SDK Layer Development
@@ -287,120 +263,33 @@ The AI tools will warn you if you attempt to import from a higher layer (e.g., i
 
 ## Implementing Custom UI Components
 
-When using the `custom` UI kit option, you receive placeholder components that you need to implement with your preferred UI library. Here's how to customize each component:
-
-### Component Integration Pattern
-
-Each generated layout component follows this pattern:
-
-```tsx
-// src/layout/Header.tsx (custom template)
-import React from 'react';
-
-export interface HeaderProps {
-  children?: React.ReactNode;
-}
-
-export const Header: React.FC<HeaderProps> = ({ children }) => {
-  return (
-    <header className="h-14 border-b border-border bg-background flex items-center px-4">
-      {/* Replace with your UI library components */}
-      {children}
-    </header>
-  );
-};
-```
-
-### Integration with UI Libraries
-
-**Material UI Example:**
-
-```tsx
-import React from 'react';
-import { AppBar, Toolbar } from '@mui/material';
-
-export const Header: React.FC<HeaderProps> = ({ children }) => {
-  return (
-    <AppBar position="static">
-      <Toolbar>{children}</Toolbar>
-    </AppBar>
-  );
-};
-```
-
-**Chakra UI Example:**
-
-```tsx
-import React from 'react';
-import { Box, Flex } from '@chakra-ui/react';
-
-export const Header: React.FC<HeaderProps> = ({ children }) => {
-  return (
-    <Box as="header" borderBottomWidth="1px" bg="white" px={4} h={14}>
-      <Flex align="center" h="full">{children}</Flex>
-    </Box>
-  );
-};
-```
-
-### Required Hooks Integration
-
-Custom layout components should still use HAI3's Redux hooks for state management:
-
-```tsx
-import { useAppSelector, useAppDispatch } from '@hai3/react';
-import { selectMenuItems, selectSidebarOpen } from '@hai3/uicore';
-
-export const Menu: React.FC = () => {
-  const menuItems = useAppSelector(selectMenuItems);
-  const dispatch = useAppDispatch();
-
-  // Render menu items with your UI library
-};
-```
-
-### Theme Integration
-
-Custom components should respect HAI3's theme system. Use CSS variables or Tailwind theme tokens:
-
-```tsx
-// Using Tailwind CSS (included by default)
-<div className="bg-background text-foreground border-border">
-
-// Using CSS variables
-<div style={{ backgroundColor: 'var(--background)', color: 'var(--foreground)' }}>
-```
+When using `--uikit=none` or a third-party package, you get placeholder layout components to implement with your UI library. Use HAI3's Redux hooks (`useAppSelector`, `useAppDispatch`) from `@hai3/react` for state, and respect the theme via CSS variables or Tailwind tokens (`bg-background`, `text-foreground`, `border-border`, or `var(--background)` etc.).
 
 ## Advanced Usage
 
 ### Programmatic API
 
-The CLI exposes a programmatic API for use in build scripts, automation tools, or custom workflows. Import command executors and invoke them with configuration objects.
+The CLI exposes a programmatic API for build scripts and automation. Use `executeCommand` with the registered command and options; set `interactive: false` for non-interactive runs.
 
 ```typescript
 import { executeCommand, commands } from '@hai3/cli';
 
 // Create a new project
 const result = await executeCommand(
-  commands.createCommand,
-  { projectName: 'my-app', uikit: 'hai3', studio: true },
+  commands.create,
+  { projectName: 'my-app', uikit: 'shadcn', studio: true },
   { interactive: false }
 );
 
-// Create a screenset
+// Update packages
 await executeCommand(
-  commands.screensetCreateCommand,
-  { name: 'billing', category: 'drafts' },
-  { interactive: false }
-);
-
-// Run AI sync
-await executeCommand(
-  commands.aiSyncCommand,
-  { tool: 'all', detectPackages: true },
+  commands.update,
+  { alpha: false, skipAiSync: false },
   { interactive: false }
 );
 ```
+
+The package also exports `createCommand` and `updateCommand` by name. Other commands (validate, scaffold, ai sync, screenset create, migrate) are available only via the CLI.
 
 ### Template Customization
 
@@ -413,7 +302,7 @@ CLI ships with comprehensive template files that new projects copy. These templa
 
 ## Version
 
-**Alpha Release** (`0.1.0-alpha.0`) - Commands and APIs may change before stable release.
+**Alpha** (`0.4.0-alpha.0`) — Commands and APIs may change before stable release.
 
 ## License
 
@@ -425,6 +314,5 @@ Apache-2.0
 
 ## Related Packages
 
-- [`@hai3/uicore`](../uicore) - Core framework package
-- [`@hai3/uikit`](../uikit) - UI component library
-- [`@hai3/studio`](../studio) - Development tools overlay
+- [`@hai3/uicore`](../uicore) — Core framework types and selectors
+- [`@hai3/studio`](../studio) — Development tools overlay (optional)

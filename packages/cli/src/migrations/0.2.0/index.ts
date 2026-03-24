@@ -5,7 +5,7 @@
  * to the new SDK architecture:
  *
  * - @hai3/uicore -> @hai3/react
- * - @hai3/uikit-contracts -> @hai3/uikit
+ * - @hai3/uikit-contracts -> @hai3/react
  * - Module augmentations updated
  */
 
@@ -20,7 +20,7 @@ export const migration020: Migration = {
   name: 'SDK Architecture Migration',
   description:
     'Updates HAI3 projects from legacy package structure to SDK architecture. ' +
-    'Transforms @hai3/uicore to @hai3/react, @hai3/uikit-contracts to @hai3/uikit, ' +
+    'Transforms @hai3/uicore to @hai3/react, @hai3/uikit-contracts to @hai3/react, ' +
     'and updates module augmentation targets.',
   transforms: [
     uicoreToReactTransform,

@@ -118,11 +118,6 @@ export default [
                 'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
             },
             {
-              group: ['@hai3/uikit', '@hai3/uikit/*'],
-              message:
-                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
-            },
-            {
               group: ['react', 'react-dom', 'react/*'],
               message:
                 'FRAMEWORK VIOLATION: Framework cannot import React.',
@@ -156,11 +151,6 @@ export default [
               group: ['@hai3/react', '@hai3/react/*'],
               message:
                 'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
-            },
-            {
-              group: ['@hai3/uikit', '@hai3/uikit/*'],
-              message:
-                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
             },
             {
               group: ['react', 'react-dom', 'react/*'],
@@ -203,11 +193,6 @@ export default [
               group: ['@hai3/react', '@hai3/react/*'],
               message:
                 'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
-            },
-            {
-              group: ['@hai3/uikit', '@hai3/uikit/*'],
-              message:
-                'FRAMEWORK VIOLATION: Framework cannot import @hai3/uikit.',
             },
             {
               group: ['react', 'react-dom', 'react/*'],

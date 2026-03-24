@@ -1,6 +1,8 @@
 /**
  * String transformation utilities for code generation
  */
+// @cpt-algo:cpt-hai3-algo-cli-tooling-generate-project:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
 
 import lodash from 'lodash';
 const { upperFirst, lowerFirst, toUpper, toLower } = lodash;

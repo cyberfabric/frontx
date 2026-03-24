@@ -3,93 +3,56 @@
  *
  * Framework Layer: L2
  */
+// @cpt-flow:cpt-hai3-flow-framework-composition-theme-propagation:p1
+// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1
 
-import type { ThemeRegistry, ThemeConfig, UikitTheme, ThemeApplyFn, ThemesConfig } from '../types';
+import type { ThemeRegistry, ThemeConfig } from '../types';
 
 /**
  * Create a new theme registry instance.
- *
- * @param config - Optional configuration for the theme registry
  */
-export function createThemeRegistry(config?: ThemesConfig): ThemeRegistry {
+export function createThemeRegistry(): ThemeRegistry {
   const themes = new Map<string, ThemeConfig>();
-  // Store UIKit themes (e.g., @hai3/uikit themes)
-  const uikitThemes = new Map<string, UikitTheme>();
   let currentThemeId: string | null = null;
-  // Custom apply function for UIKit themes (passed via constructor injection)
-  const customApplyFn: ThemeApplyFn | null = config?.applyFn ?? null;
+  /** Track CSS property names set by the previous theme so they can be cleared on switch */
+  let previousVarKeys: string[] = [];
 
   // Subscription support for React
   const subscribers = new Set<() => void>();
   let version = 0;
 
-  /**
-   * Notify subscribers of theme change
-   */
   function notifySubscribers(): void {
     version++;
     subscribers.forEach((callback) => callback());
   }
 
   /**
-   * Apply CSS custom properties from theme to :root
+   * Clear previous theme vars and apply new CSS custom properties to :root
    */
-  function applyCSSVariables(config: ThemeConfig): void {
-    // Skip if not in browser environment
+  function applyCSSVariables(variables: Record<string, string>): void {
     if (typeof document === 'undefined') return;
 
     const root = document.documentElement;
 
+    // Clear previous theme vars that are not in the new set
+    const newKeys = Object.keys(variables);
+    for (const key of previousVarKeys) {
+      if (!(key in variables)) {
+        root.style.removeProperty(key);
+      }
+    }
+
     // Apply each CSS variable
-    Object.entries(config.variables).forEach(([key, value]) => {
+    for (const [key, value] of Object.entries(variables)) {
       root.style.setProperty(key, value);
-    });
+    }
+
+    previousVarKeys = newKeys;
   }
 
   return {
-    /**
-     * Register a theme.
-     * Supports both config-based API and UIKit theme API.
-     */
-    register(configOrId: ThemeConfig | string, uikitTheme?: UikitTheme): void {
-      // Handle UIKit theme API: register(id, theme)
-      if (typeof configOrId === 'string') {
-        const id = configOrId;
-        if (!uikitTheme) {
-          console.warn(`register() called with ID "${id}" but no theme object. Skipping.`);
-          return;
-        }
-
-        if (themes.has(id)) {
-          console.warn(`Theme "${id}" is already registered. Skipping.`);
-          return;
-        }
-
-        // Store UIKit theme for apply
-        uikitThemes.set(id, uikitTheme);
-
-        // Create a minimal ThemeConfig for the registry
-        // Try to extract name from UIKit theme if it's an object
-        let themeName = id;
-        if (uikitTheme && typeof uikitTheme === 'object' && 'name' in uikitTheme) {
-          const nameValue = (uikitTheme as { name?: unknown }).name;
-          if (typeof nameValue === 'string') {
-            themeName = nameValue;
-          }
-        }
-        const config: ThemeConfig = {
-          id,
-          name: themeName,
-          variables: {}, // UIKit themes use custom apply function
-        };
-
-        themes.set(id, config);
-        return;
-      }
-
-      // New API: register(config)
-      const config = configOrId;
-
+    register(config: ThemeConfig): void {
       if (themes.has(config.id)) {
         console.warn(`Theme "${config.id}" is already registered. Skipping.`);
         return;
@@ -103,23 +66,14 @@ export function createThemeRegistry(config?: ThemesConfig): ThemeRegistry {
       }
     },
 
-    /**
-     * Get theme by ID.
-     */
     get(id: string): ThemeConfig | undefined {
       return themes.get(id);
     },
 
-    /**
-     * Get all themes.
-     */
     getAll(): ThemeConfig[] {
       return Array.from(themes.values());
     },
 
-    /**
-     * Apply a theme.
-     */
     apply(id: string): void {
       const config = themes.get(id);
 
@@ -128,34 +82,15 @@ export function createThemeRegistry(config?: ThemesConfig): ThemeRegistry {
         return;
       }
 
-      // Apply CSS variables if theme has them (config-based API)
-      if (config.variables && Object.keys(config.variables).length > 0) {
-        applyCSSVariables(config);
-      }
-
-      // Apply UIKit theme using custom apply function
-      const uikitTheme = uikitThemes.get(id);
-      if (uikitTheme && customApplyFn) {
-        customApplyFn(uikitTheme, id);
-      }
-
+      applyCSSVariables(config.variables);
       currentThemeId = id;
-
-      // Notify React subscribers of theme change
       notifySubscribers();
     },
 
-    /**
-     * Get current theme.
-     */
     getCurrent(): ThemeConfig | undefined {
       return currentThemeId ? themes.get(currentThemeId) : undefined;
     },
 
-    /**
-     * Subscribe to theme changes.
-     * Returns unsubscribe function.
-     */
     subscribe(callback: () => void): () => void {
       subscribers.add(callback);
       return () => {
@@ -163,10 +98,6 @@ export function createThemeRegistry(config?: ThemesConfig): ThemeRegistry {
       };
     },
 
-    /**
-     * Get current version number.
-     * Used by React for re-rendering.
-     */
     getVersion(): number {
       return version;
     },

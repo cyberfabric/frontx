@@ -1,20 +1,28 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, type ThemeApplyFn, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
-import { Toaster, applyTheme } from '@hai3/uikit';
+import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@hai3/react';
+import { Toaster } from '@/app/components/ui/sonner';
 import { AccountsApiService } from '@/app/api';
-import '@hai3/uikit/styles'; // UI Kit styles
+import './globals.css'; // Global styles with CSS variables
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
 import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';
 
 // Import all themes
 import { DEFAULT_THEME_ID, defaultTheme } from '@/app/themes/default';
-import { DARK_THEME_ID, darkTheme } from '@/app/themes/dark';
-import { LIGHT_THEME_ID, lightTheme } from '@/app/themes/light';
-import { DRACULA_THEME_ID, draculaTheme } from '@/app/themes/dracula';
-import { DRACULA_LARGE_THEME_ID, draculaLargeTheme } from '@/app/themes/dracula-large';
+import { darkTheme } from '@/app/themes/dark';
+import { lightTheme } from '@/app/themes/light';
+import { draculaTheme } from '@/app/themes/dracula';
+import { draculaLargeTheme } from '@/app/themes/dracula-large';
+
+// Register application-specific GTS schemas before constructing the HAI3 app.
+// These derived schemas encode application-level constraints (valid theme names,
+// supported languages, screen extension shape) and are not part of the core
+// type system in @hai3/screensets.
+gtsPlugin.registerSchema(themeSchema);
+gtsPlugin.registerSchema(languageSchema);
+gtsPlugin.registerSchema(extensionScreenSchema);
 
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);
@@ -22,10 +30,9 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance with theme apply function (constructor injection)
+// Create HAI3 app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
-  themes: { applyFn: applyTheme as ThemeApplyFn },
   microfrontends: {
     typeSystem: gtsPlugin,
     mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
@@ -35,14 +42,14 @@ const app = createHAI3App({
 // Register app-level effects (pass store dispatch)
 registerBootstrapEffects(app.store.dispatch);
 
-// Register all themes (default theme first, becomes the default selection)
-app.themeRegistry.register(DEFAULT_THEME_ID, defaultTheme);
-app.themeRegistry.register(LIGHT_THEME_ID, lightTheme);
-app.themeRegistry.register(DARK_THEME_ID, darkTheme);
-app.themeRegistry.register(DRACULA_THEME_ID, draculaTheme);
-app.themeRegistry.register(DRACULA_LARGE_THEME_ID, draculaLargeTheme);
+// Register all themes (default theme has default:true, activates automatically)
+app.themeRegistry.register(defaultTheme);
+app.themeRegistry.register(lightTheme);
+app.themeRegistry.register(darkTheme);
+app.themeRegistry.register(draculaTheme);
+app.themeRegistry.register(draculaLargeTheme);
 
-// Apply default theme
+// Apply default theme explicitly
 app.themeRegistry.apply(DEFAULT_THEME_ID);
 
 /**

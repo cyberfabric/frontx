@@ -5,8 +5,8 @@
  */
 
 import React, { useState } from 'react';
+import { Separator } from '../../../components/ui/separator';
 import {
-  Separator,
   Dialog,
   DialogTrigger,
   DialogContent,
@@ -14,6 +14,8 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
+} from '../../../components/ui/dialog';
+import {
   AlertDialog,
   AlertDialogTrigger,
   AlertDialogContent,
@@ -23,6 +25,8 @@ import {
   AlertDialogFooter,
   AlertDialogAction,
   AlertDialogCancel,
+} from '../../../components/ui/alert-dialog';
+import {
   Drawer,
   DrawerTrigger,
   DrawerContent,
@@ -31,14 +35,16 @@ import {
   DrawerDescription,
   DrawerFooter,
   DrawerClose,
+} from '../../../components/ui/drawer';
+import {
   Popover,
   PopoverTrigger,
   PopoverContent,
-  Button,
-  ButtonVariant,
-  Input,
-  Label,
-} from '@hai3/uikit';
+} from '../../../components/ui/popover';
+import { Button } from '../../../components/ui/button';
+import { ButtonVariant } from '../../../components/types';
+import { Input } from '../../../components/ui/input';
+import { Label } from '../../../components/ui/label';
 
 interface OverlayElementsProps {
   t: (key: string) => string;

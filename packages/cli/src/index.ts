@@ -20,6 +20,7 @@ import {
   aiSyncCommand,
   updateLayoutCommand,
   migrateCommand,
+  screensetCreateCommand,
 } from './commands/index.js';
 
 // CLI version
@@ -33,9 +34,20 @@ registry.register(scaffoldLayoutCommand);
 registry.register(aiSyncCommand);
 registry.register(updateLayoutCommand);
 registry.register(migrateCommand);
+registry.register(screensetCreateCommand);
 
 // Create Commander program
 const program = new Command();
+
+const parsePortOption = (value: string): number => {
+  const normalizedValue = value.trim();
+
+  if (!/^\d+$/.test(normalizedValue)) {
+    throw new Error('Port must be a number');
+  }
+
+  return parseInt(normalizedValue, 10);
+};
 
 program
   .name('hai3')
@@ -51,16 +63,23 @@ program
   .description('Create a new HAI3 project or layer package')
   .option('--studio', 'Include Studio package')
   .option('--no-studio', 'Exclude Studio package')
-  .option('--uikit <type>', "UI kit to use ('hai3' for @hai3/uikit, 'none' for no UI kit)")
+  .option('--uikit <type>', "UI components ('shadcn' for shadcn/ui, 'none' for no UI components)")
+  .option(
+    '--package-manager <manager>',
+    "Package manager to use ('npm', 'pnpm', 'yarn')"
+  )
   .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
+  .option('--local', 'Use local @hai3 packages from monorepo (file:) instead of npm')
   .action(async (projectName: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
       createCommand,
       {
         projectName,
         studio: options.studio as boolean | undefined,
-        uikit: options.uikit as 'hai3' | 'none' | undefined,
+        uikit: options.uikit as 'shadcn' | 'none' | undefined,
+        packageManager: options.packageManager as 'npm' | 'pnpm' | 'yarn' | undefined,
         layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
+        local: options.local as boolean | undefined,
       },
       { interactive: true }
     );
@@ -148,7 +167,7 @@ const scaffoldCmd = program
 // hai3 scaffold layout
 scaffoldCmd
   .command('layout')
-  .description('Generate HAI3 UIKit layout components in your project')
+  .description('Generate HAI3 layout components in your project')
   .option('-f, --force', 'Overwrite existing layout files')
   .action(async (options: Record<string, unknown>) => {
     const result = await executeCommand(
@@ -187,6 +206,31 @@ aiCmd
         tool: options.tool as 'claude' | 'copilot' | 'cursor' | 'windsurf' | 'all',
         detectPackages: options.detectPackages as boolean,
         diff: options.diff as boolean,
+      },
+      { interactive: true }
+    );
+
+    if (!result.success) {
+      process.exit(1);
+    }
+  });
+
+// hai3 screenset subcommand
+const screensetCmd = program
+  .command('screenset')
+  .description('Screenset management commands');
+
+// hai3 screenset create <name>
+screensetCmd
+  .command('create <name>')
+  .description('Create a new MFE screenset package')
+  .option('-p, --port <number>', 'MFE dev server port (auto-assigned if omitted)', parsePortOption)
+  .action(async (name: string, options: Record<string, unknown>) => {
+    const result = await executeCommand(
+      screensetCreateCommand,
+      {
+        name,
+        port: options.port as number | undefined,
       },
       { interactive: true }
     );

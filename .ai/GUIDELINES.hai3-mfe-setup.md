@@ -109,7 +109,7 @@ This starts:
 
 - **Use mock data** with `useState` for UI-only MFEs
 - **Isolate MFE logic** - keep it simple and focused
-- **Use @hai3/uikit** components for consistency
+- **Own UI components locally** in `components/ui/` — no shared UI kit required
 - **Test with Chrome DevTools MCP** before submission
 - **Use local state** for temporary UI state
 - **Document component APIs** clearly

@@ -30,9 +30,8 @@ Ask user for:
    - STOP if MCP connection fails
 
 ## COMPONENT PLAN
-- REQUIRED: Use @hai3/uikit components first; local uikit only if missing.
-- uikit/base/: rare primitives (inline styles allowed, needs justification)
-- uikit/composite/: screenset composites (theme tokens only)
+- REQUIRED: Use local components (e.g. `components/ui/`) — no shared UI kit package.
+- components/ui/: base UI primitives (shadcn components or custom)
 - screens/{screen}/components/: screen-specific components
 
 ## DATA FLOW

@@ -11,14 +11,14 @@ import {
   type ScreenExtension,
   type Extension,
 } from '@hai3/react';
-import { ButtonVariant } from '@hai3/uikit';
+import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownButton,
-} from '@hai3/uikit';
+} from '../uikit/base/dropdown-menu';
+import { DropdownButton } from '../uikit/composite/DropdownButton';
 import { useStudioContext } from '../StudioProvider';
 import { useTranslation } from '@hai3/react';
 import { StudioEvents } from '../events/studioEvents';

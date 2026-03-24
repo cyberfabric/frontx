@@ -21,6 +21,10 @@ import {
   isTargetApplicableToLayer,
   type LayerType,
 } from './layers.js';
+import {
+  detectPackageManager,
+  transformPackageManagerText,
+} from './packageManager.js';
 
 /**
  * Items to EXCLUDE from template sync (internal CLI files only)
@@ -37,7 +41,17 @@ const SYNC_EXCLUDE = [
 export function getTemplatesDir(): string {
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
-  return path.resolve(__dirname, '..', 'templates');
+  const resolved = path.resolve(__dirname, '..', 'templates');
+  // When running from source (src/core/), '../templates' lands on src/templates/
+  // which lacks the full template set. Fall back to the package-root templates/.
+  if (!fs.existsSync(path.join(resolved, 'manifest.json'))) {
+    const packageRoot = path.resolve(__dirname, '..', '..');
+    const fallback = path.join(packageRoot, 'templates');
+    if (fs.existsSync(path.join(fallback, 'manifest.json'))) {
+      return fallback;
+    }
+  }
+  return resolved;
 }
 
 /**
@@ -46,6 +60,54 @@ export function getTemplatesDir(): string {
 export interface TemplateLogger {
   info: (msg: string) => void;
   warn?: (msg: string) => void;
+}
+
+function shouldTransformFile(filePath: string): boolean {
+  const ext = path.extname(filePath);
+  const textExtensions = new Set([
+    '.md',
+    '.mdc',
+    '.ts',
+    '.tsx',
+    '.js',
+    '.cjs',
+    '.mjs',
+    '.yaml',
+    '.yml',
+  ]);
+  return textExtensions.has(ext);
+}
+
+async function transformPathForPackageManager(
+  targetPath: string,
+  manager: 'npm' | 'pnpm' | 'yarn'
+): Promise<void> {
+  if (manager === 'npm') {
+    return;
+  }
+
+  if (!(await fs.pathExists(targetPath))) {
+    return;
+  }
+
+  const stats = await fs.stat(targetPath);
+  if (stats.isDirectory()) {
+    const entries = await fs.readdir(targetPath);
+    for (const entry of entries) {
+      await transformPathForPackageManager(path.join(targetPath, entry), manager);
+    }
+    return;
+  }
+
+  if (!shouldTransformFile(targetPath)) {
+    return;
+  }
+
+  const content = await fs.readFile(targetPath, 'utf-8');
+  const transformed = transformPackageManagerText(content, manager);
+  if (transformed !== content) {
+    await fs.writeFile(targetPath, transformed);
+  }
 }
 
 /**
@@ -59,6 +121,13 @@ async function syncDirectory(
   destDir: string,
   relativePath: string
 ): Promise<void> {
+  const variantAppFiles = new Set([
+    'App.no-studio.tsx',
+    'App.no-uikit.tsx',
+    'App.no-uikit.no-studio.tsx',
+    'main.no-uikit.tsx',
+  ]);
+
   // Special handling for src/screensets/ - preserve user screensets
   if (relativePath === 'src/screensets' || relativePath === 'src\\screensets') {
     await fs.ensureDir(destDir);
@@ -113,6 +182,16 @@ async function syncDirectory(
     const entries = await fs.readdir(srcDir, { withFileTypes: true });
 
     for (const entry of entries) {
+      // Template variant files are only used during project generation and
+      // must never be synced into existing projects.
+      if (
+        (relativePath === 'src/app' || relativePath === 'src\\app') &&
+        entry.isFile() &&
+        variantAppFiles.has(entry.name)
+      ) {
+        continue;
+      }
+
       const srcPath = path.join(srcDir, entry.name);
       const destPath = path.join(destDir, entry.name);
       const subRelativePath = path.join(relativePath, entry.name);
@@ -124,6 +203,18 @@ async function syncDirectory(
         await fs.copy(srcPath, destPath, { overwrite: true });
       }
     }
+
+    // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-skip-variant-app-files
+    // Remove stale template-variant files that may have been synced previously.
+    if (relativePath === 'src/app' || relativePath === 'src\\app') {
+      for (const variantFile of variantAppFiles) {
+        const variantPath = path.join(destDir, variantFile);
+        if (await fs.pathExists(variantPath)) {
+          await fs.remove(variantPath);
+        }
+      }
+    }
+    // @cpt-end:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-skip-variant-app-files
     return;
   }
 
@@ -139,7 +230,7 @@ async function syncDirectory(
  * This includes:
  * - presets/standalone/ content (auto-discovered, extensible)
  * - Root project files (index.html, vite.config.ts, etc.)
- * - Source directories (src/themes, src/uikit, src/icons, src/screensets/demo)
+ * - Source directories (src/themes, src/icons, src/screensets/demo)
  * - AI configuration (.ai/, .claude/, .cursor/, .windsurf/, CLAUDE.md)
  *
  * User-created screensets in src/screensets/ are preserved.
@@ -194,6 +285,13 @@ export async function syncTemplates(
       logger.info(`  Warning: Could not sync ${name}: ${err}`);
     }
   }
+
+  const packageManager = (await detectPackageManager(projectRoot)).manager;
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-transform-synced-files
+  for (const syncedPath of synced) {
+    await transformPathForPackageManager(path.join(projectRoot, syncedPath), packageManager);
+  }
+  // @cpt-end:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-transform-synced-files
 
   // @cpt-begin:cpt-hai3-algo-cli-tooling-sync-templates:p2:inst-return-synced-dirs
   return synced;

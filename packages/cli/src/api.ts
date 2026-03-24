@@ -44,6 +44,7 @@ export type {
   CommandContext,
   CommandDefinition,
   Hai3Config,
+  ConfigLoadResult,
   ScreensetCategory,
   ArgDefinition,
   OptionDefinition,

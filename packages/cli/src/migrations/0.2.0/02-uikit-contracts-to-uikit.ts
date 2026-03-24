@@ -1,23 +1,23 @@
 // @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
 /**
- * Transform: uikit-contracts-to-uikit
+ * Transform: uikit-contracts-to-react
  *
- * Transforms @hai3/uikit-contracts imports to @hai3/uikit
+ * Transforms @hai3/uikit-contracts imports to @hai3/react
  *
  * Before: import { ButtonVariant } from '@hai3/uikit-contracts';
- * After:  import { ButtonVariant } from '@hai3/uikit';
+ * After:  import { ButtonVariant } from '@hai3/react';
  */
 
 import type { SourceFile } from 'ts-morph';
 import type { Transform, TransformChange, TransformResult } from '../types.js';
 
 const SOURCE_MODULE = '@hai3/uikit-contracts';
-const TARGET_MODULE = '@hai3/uikit';
+const TARGET_MODULE = '@hai3/react';
 
 // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const uikitContractsToUikitTransform: Transform = {
-  id: 'uikit-contracts-to-uikit',
-  name: 'Update @hai3/uikit-contracts to @hai3/uikit',
+  id: 'uikit-contracts-to-react',
+  name: 'Update @hai3/uikit-contracts to @hai3/react',
   description: `Transforms ${SOURCE_MODULE} imports to ${TARGET_MODULE}`,
 
   canApply(sourceFile: SourceFile): boolean {

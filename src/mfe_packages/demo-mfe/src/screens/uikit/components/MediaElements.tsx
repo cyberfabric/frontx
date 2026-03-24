@@ -5,20 +5,20 @@
  */
 
 import React, { useState } from 'react';
+import { Separator } from '../../../components/ui/separator';
+import { Calendar } from '../../../components/ui/calendar';
 import {
-  Separator,
-  Calendar,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
-  ChartTooltip,
-  ChartTooltipContent,
   LineChart,
   Line,
   ResponsiveContainer,
-} from '@hai3/uikit';
+  ChartTooltip,
+  ChartTooltipContent,
+} from '../../../components/ui/chart';
 
 interface MediaElementsProps {
   t: (key: string) => string;

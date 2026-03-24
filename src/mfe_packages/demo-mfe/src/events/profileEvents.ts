@@ -7,6 +7,8 @@
  * Convention: `mfe/<domain>/<eventName>`
  */
 
+export {};
+
 declare module '@hai3/react' {
   interface EventPayloadMap {
     /** Emitted when the profile screen requests a user fetch */

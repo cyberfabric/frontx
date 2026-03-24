@@ -16,8 +16,8 @@ import { join } from 'path';
 
 const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
 
-// Packages to skip (templates, blanks, shared libraries)
-const EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared']);
+// Packages to skip (shared libraries)
+const EXCLUDED_PACKAGES = new Set(['shared']);
 
 interface MfeInfo {
   name: string;

@@ -6,86 +6,18 @@
 - [1. Architecture Overview](#1-architecture-overview)
   - [1.1 Architectural Vision](#11-architectural-vision)
   - [1.2 Architecture Drivers](#12-architecture-drivers)
-    - [Functional Drivers](#functional-drivers)
-    - [NFR Allocation](#nfr-allocation)
   - [1.3 Architecture Layers](#13-architecture-layers)
-- [2. Principles & Constraints](#2-principles-constraints)
+- [2. Principles & Constraints](#2-principles--constraints)
   - [2.1 Design Principles](#21-design-principles)
-    - [Event-Driven Architecture](#event-driven-architecture)
-    - [Layer Isolation](#layer-isolation)
-    - [Plugin-First Composition](#plugin-first-composition)
-    - [Self-Registering Registries](#self-registering-registries)
-    - [Action → Event → Effect → Reducer Flux](#action-event-effect-reducer-flux)
-    - [MFE Isolation](#mfe-isolation)
   - [2.2 Constraints](#22-constraints)
-    - [No React Below L3](#no-react-below-l3)
-    - [Zero Cross-Dependencies at L1](#zero-cross-dependencies-at-l1)
-    - [No Package Internals Imports](#no-package-internals-imports)
-    - [No Barrel Exports for Registries](#no-barrel-exports-for-registries)
-    - [TypeScript Strict Mode](#typescript-strict-mode)
-    - [ESM-First Module Format](#esm-first-module-format)
 - [3. Technical Architecture](#3-technical-architecture)
   - [3.1 Domain Model](#31-domain-model)
   - [3.2 Component Model](#32-component-model)
-    - [@hai3/state (L1)](#hai3state-l1)
-      - [Why this component exists](#why-this-component-exists)
-      - [Responsibility scope](#responsibility-scope)
-      - [Responsibility boundaries](#responsibility-boundaries)
-      - [Related components (by ID)](#related-components-by-id)
-    - [@hai3/screensets (L1)](#hai3screensets-l1)
-      - [Why this component exists](#why-this-component-exists-1)
-      - [Responsibility scope](#responsibility-scope-1)
-      - [Responsibility boundaries](#responsibility-boundaries-1)
-      - [Related components (by ID)](#related-components-by-id-1)
-    - [@hai3/api (L1)](#hai3api-l1)
-      - [Why this component exists](#why-this-component-exists-2)
-      - [Responsibility scope](#responsibility-scope-2)
-      - [Responsibility boundaries](#responsibility-boundaries-2)
-      - [Related components (by ID)](#related-components-by-id-2)
-    - [@hai3/i18n (L1)](#hai3i18n-l1)
-      - [Why this component exists](#why-this-component-exists-3)
-      - [Responsibility scope](#responsibility-scope-3)
-      - [Responsibility boundaries](#responsibility-boundaries-3)
-      - [Related components (by ID)](#related-components-by-id-3)
-    - [@hai3/framework (L2)](#hai3framework-l2)
-      - [Why this component exists](#why-this-component-exists-4)
-      - [Responsibility scope](#responsibility-scope-4)
-      - [Responsibility boundaries](#responsibility-boundaries-4)
-      - [Related components (by ID)](#related-components-by-id-4)
-    - [@hai3/react (L3)](#hai3react-l3)
-      - [Why this component exists](#why-this-component-exists-5)
-      - [Responsibility scope](#responsibility-scope-5)
-      - [Responsibility boundaries](#responsibility-boundaries-5)
-      - [Related components (by ID)](#related-components-by-id-5)
-    - [@hai3/uikit (Standalone)](#hai3uikit-standalone)
-      - [Why this component exists](#why-this-component-exists-6)
-      - [Responsibility scope](#responsibility-scope-6)
-      - [Responsibility boundaries](#responsibility-boundaries-6)
-      - [Related components (by ID)](#related-components-by-id-6)
-    - [@hai3/studio (Standalone)](#hai3studio-standalone)
-      - [Why this component exists](#why-this-component-exists-7)
-      - [Responsibility scope](#responsibility-scope-7)
-      - [Responsibility boundaries](#responsibility-boundaries-7)
-      - [Related components (by ID)](#related-components-by-id-7)
-    - [@hai3/cli (Tooling)](#hai3cli-tooling)
-      - [Why this component exists](#why-this-component-exists-8)
-      - [Responsibility scope](#responsibility-scope-8)
-      - [Responsibility boundaries](#responsibility-boundaries-8)
-      - [Related components (by ID)](#related-components-by-id-8)
   - [3.3 API Contracts](#33-api-contracts)
   - [3.4 Internal Dependencies](#34-internal-dependencies)
   - [3.5 External Dependencies](#35-external-dependencies)
-    - [React Ecosystem](#react-ecosystem)
-    - [State Management](#state-management)
-    - [Build Toolchain](#build-toolchain)
-    - [UI Foundation](#ui-foundation)
-    - [HTTP & Networking](#http-networking)
-  - [3.6 Interactions & Sequences](#36-interactions-sequences)
-    - [Application Bootstrap](#application-bootstrap)
-    - [Screen-Set Data Flow](#screen-set-data-flow)
-    - [MFE Extension Loading](#mfe-extension-loading)
-    - [Shared Property Broadcast](#shared-property-broadcast)
-  - [3.7 Database schemas & tables](#37-database-schemas-tables)
+  - [3.6 Interactions & Sequences](#36-interactions--sequences)
+  - [3.7 Database schemas & tables](#37-database-schemas--tables)
 - [4. Additional context](#4-additional-context)
 - [5. Traceability](#5-traceability)
 
@@ -95,7 +27,7 @@
 
 ### 1.1 Architectural Vision
 
-HAI3 is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, and screen-set contracts. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (UIKit, Studio, CLI) operate outside the layer hierarchy with minimal coupling.
+HAI3 is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, and screen-set contracts. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@hai3/studio`, `@hai3/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
 
 This layering enforces a strict dependency direction: higher layers depend on lower layers, never the reverse. L1 packages have zero cross-dependencies, meaning any SDK package can be used in isolation — in a Node.js CLI, a web worker, or a non-React rendering engine. The plugin architecture at L2 means the framework never needs modification to add capabilities; all extensions compose through `createHAI3().use(plugin).build()`.
 
@@ -179,12 +111,6 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-fr-i18n-formatter-exports` | Formatters exported from `@hai3/i18n`, re-exported from `@hai3/framework`, accessible via `useFormatters()` |
 | `cpt-hai3-fr-i18n-graceful-invalid` | All formatters return `''` for null, undefined, or invalid inputs; never throw |
 | `cpt-hai3-fr-i18n-hybrid-namespace` | Two-tier namespaces: `screenset.<id>` for shared content, `screen.<setId>.<screenId>` for screen-specific |
-| `cpt-hai3-fr-uikit-react19-ref` | All UIKit components use React 19 native ref-as-prop; `forwardRef` not used |
-| `cpt-hai3-fr-uikit-layout` | Layout components: AspectRatio, Drawer, Resizable, ScrollArea, Separator, Card, Dialog, Sheet |
-| `cpt-hai3-fr-uikit-nav` | Navigation components: Breadcrumb, Pagination, NavigationMenu, Menubar, Tabs |
-| `cpt-hai3-fr-uikit-form` | Form components: Input, Textarea, Checkbox, RadioGroup, NativeSelect, Calendar, InputOTP, Label, Field, InputGroup |
-| `cpt-hai3-fr-uikit-chart` | Chart components built on Recharts: ChartContainer, ChartTooltip, ChartLegend; Line, Bar, Area, Pie types |
-| `cpt-hai3-fr-uikit-toast-hook` | `useToast` hook wraps Sonner; returns typed methods: toast, success, error, warning, info, loading, promise, dismiss |
 | `cpt-hai3-fr-studio-panel` | `StudioPanel` floating overlay: draggable, resizable, collapsible; visible only in dev mode; state in localStorage |
 | `cpt-hai3-fr-studio-controls` | StudioPanel provides: theme selector, MFE package selector, language selector, mock/real API toggle |
 | `cpt-hai3-fr-studio-persistence` | Theme, language, mock API state, GTS package persisted to localStorage; restored on Studio mount |
@@ -193,7 +119,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-fr-cli-package` | `@hai3/cli` workspace package with binary `hai3`; ESM (Node 18+) and programmatic API |
 | `cpt-hai3-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate |
 | `cpt-hai3-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned |
-| `cpt-hai3-fr-cli-skills` | CLI build copies OpenSpec skills to `.claude/skills/`, `.cursor/skills/`, `.windsurf/skills/`, `.github/copilot-commands/` |
+| `cpt-hai3-fr-cli-skills` | CLI build generates IDE guidance files and command adapters for Claude, Cursor, Windsurf, and GitHub Copilot |
 | `cpt-hai3-fr-cli-e2e-verification` | Two-tier CI verification: required PR workflow (`cli-pr-e2e`) validates critical scaffold path; nightly workflow covers broader scenarios; shared scripted harness with artifact upload |
 | `cpt-hai3-fr-pub-metadata` | All `@hai3/*` packages include complete NPM metadata: author, license, repository, engines, exports |
 | `cpt-hai3-fr-pub-versions` | All `@hai3/*` packages use aligned (same) version numbers |
@@ -217,7 +143,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-nfr-compat-node` | Packages installable on Node ≥ 18 | All packages | `engines` field in each `package.json`; CI matrix tests Node 18/20/22 | CI build matrix |
 | `cpt-hai3-nfr-compat-typescript` | TypeScript ≥ 5.5 | All packages | `tsconfig.json` targets ES2022; strict mode enabled | CI type-check step |
 | `cpt-hai3-nfr-compat-esm` | ESM-first output | All packages | tsup configured with `format: ['esm']`; `"type": "module"` in `package.json` | Import resolution tests |
-| `cpt-hai3-nfr-compat-react` | Compatible with React 19 | `cpt-hai3-component-react`, `cpt-hai3-component-uikit` | React 19 as peer dependency; `ref` as prop (no `forwardRef`) | CI tests against React 19 |
+| `cpt-hai3-nfr-compat-react` | Compatible with React 19 | `cpt-hai3-component-react` | React 19 as peer dependency; `ref` as prop (no `forwardRef`) | CI tests against React 19 |
 | `cpt-hai3-nfr-maint-zero-crossdeps` | L1 packages have zero cross-dependencies | All L1 packages | Each L1 `package.json` lists no `@hai3/*` dependencies; `dependency-cruiser` rule blocks violations | CI dependency-cruiser check |
 | `cpt-hai3-nfr-maint-event-driven` | Cross-domain communication via events only | `cpt-hai3-component-state`, `cpt-hai3-component-framework` | `eventBus` is the sole cross-domain channel; no direct store imports across domains | Architecture lint rules |
 | `cpt-hai3-nfr-maint-arch-enforcement` | Layer violations detected automatically | Build system | `dependency-cruiser` config with forbidden dependency rules; `knip` for unused exports | CI gate on lint failure |
@@ -241,7 +167,7 @@ Requirements that significantly influence architecture decisions.
 │ state  │ screen │ api      │ i18n                    │
 │        │ sets   │          │                         │
 ├────────┴────────┴──────────┴────────────────────────┤
-│ Standalone: @hai3/uikit · @hai3/studio · @hai3/cli  │
+│ Standalone: @hai3/studio · @hai3/cli                            │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -250,11 +176,10 @@ Requirements that significantly influence architecture decisions.
 | L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure | TypeScript, Redux Toolkit, Axios, i18next |
 | L2 Framework | Plugin composition, layout orchestration, configuration management, re-exports SDK surface | TypeScript, Redux Toolkit (slices) |
 | L3 React | React bindings, provider tree, hooks, MFE rendering components | React 19, Shadow DOM |
-| Standalone — UIKit | Presentational components, layout primitives, form controls | React 19, shadcn/ui, Radix, Tailwind CSS, Lucide |
 | Standalone — Studio | Development overlay for theme/i18n/state inspection | React 19, localStorage |
 | Tooling — CLI | Scaffolding, code generation, AI skill integration | Node.js, Commander |
 
-**Build order**: SDK (L1) → Framework (L2) → React (L3) → UIKit → CLI (`npm run build:packages`)
+**Build order**: SDK (L1) → Framework (L2) → React (L3) → Studio → CLI (`npm run build:packages`)
 
 ## 2. Principles & Constraints
 
@@ -278,7 +203,7 @@ The event bus uses a publish/subscribe model with typed event names and payloads
 
 Dependencies flow strictly downward: L3 → L2 → L1. No upward or lateral dependencies are permitted within the layer hierarchy. L1 packages have zero `@hai3/*` dependencies. L2 depends only on L1 packages. L3 depends only on L2 (which re-exports L1 surface). This enables each layer to be tested, built, and versioned independently.
 
-Standalone packages (UIKit, Studio, CLI) exist outside the layer hierarchy and do not depend on framework or SDK packages, ensuring they can evolve independently.
+Standalone packages (`@hai3/studio`, `@hai3/cli`) exist outside the layer hierarchy and do not depend on framework or SDK packages, ensuring they can evolve independently. UI components are generated into or authored within application code rather than shipped as a shared workspace package.
 
 #### Plugin-First Composition
 
@@ -294,7 +219,7 @@ The host application composes its feature set by chaining `.use()` calls: `creat
 
 - [x] `p2` - **ID**: `cpt-hai3-principle-self-registering-registries`
 
-Registries (screensets, UIKit components, themes, API services, routes, i18n namespaces) populate themselves at import time through side-effect registrations. Consumers never edit a central registry file to add entries. Each screen-set, component, or service registers itself in its own module. The registry root file only provides the registry factory/accessor — it never contains an item list.
+Registries (screensets, themes, API services, routes, i18n namespaces) populate themselves at import time through side-effect registrations. Consumers never edit a central registry file to add entries. Each screen-set, component, or service registers itself in its own module. The registry root file only provides the registry factory/accessor — it never contains an item list.
 
 This eliminates merge conflicts on registry files and enables tree-shaking of unused registrations.
 
@@ -324,7 +249,7 @@ Microfrontend extensions execute in an isolated context. JavaScript isolation is
 
 **ADRs**: `cpt-hai3-adr-four-layer-sdk-architecture`
 
-L1 SDK and L2 Framework packages SHALL NOT import React or any React-specific APIs. This ensures the SDK and framework are usable in non-React environments (Node.js scripts, web workers, alternative renderers). React appears only in L3 (`@hai3/react`) and standalone UI packages (`@hai3/uikit`, `@hai3/studio`).
+L1 SDK and L2 Framework packages SHALL NOT import React or any React-specific APIs. This ensures the SDK and framework are usable in non-React environments (Node.js scripts, web workers, alternative renderers). React appears only in L3 (`@hai3/react`) and standalone packages (`@hai3/studio`).
 
 **Enforcement**: `dependency-cruiser` rules flag any `react` import in `packages/state/`, `packages/screensets/`, `packages/api/`, `packages/i18n/`, or `packages/framework/`.
 
@@ -382,7 +307,7 @@ All packages output ESM as the primary module format. `package.json` files inclu
 |--------|-------------|----------|
 | ScreenSet | A named collection of screens registered at runtime; the primary unit of UI composition | `packages/screensets/src/types.ts` |
 | Screen | A single view within a screen-set; may contain components and MFE slots | `packages/screensets/src/types.ts` |
-| Component | A React UI element from the UIKit; self-registers in the component registry | `packages/uikit/src/` |
+| Component | A React UI element authored in app-owned UI folders such as `components/ui/` | Per-MFE/screenset or generated app source |
 | Microfrontend | An externally-built UI bundle loaded at runtime via blob URL isolation | `packages/screensets/src/mfe/` |
 | State (Store) | Redux Toolkit store composed from plugin-registered slices | `packages/state/src/store.ts` |
 | Event | A typed message on the event bus; carries a name and payload | `packages/state/src/eventBus.ts` |
@@ -407,8 +332,8 @@ All packages output ESM as the primary module format. `package.json` files inclu
 │                      Host Application                      │
 │                                                           │
 │  ┌─────────┐  ┌──────────────┐  ┌──────────────────────┐ │
-│  │ @hai3/  │  │  @hai3/react │  │    @hai3/uikit       │ │
-│  │ studio  │  │  HAI3Provider │  │    shadcn components │ │
+│  │ @hai3/  │  │  @hai3/react │  │  app-owned UI        │ │
+│  │ studio  │  │  HAI3Provider │  │  components          │ │
 │  └─────────┘  │  hooks        │  └──────────────────────┘ │
 │               │  MfeContainer │                           │
 │               └──────┬───────┘                            │
@@ -568,7 +493,7 @@ Composes L1 SDK packages into a cohesive application framework through a plugin 
 ##### Responsibility boundaries
 
 - Does NOT provide React components or hooks — delegated to `cpt-hai3-component-react`
-- Does NOT define UI components — delegated to `cpt-hai3-component-uikit`
+- Does NOT define UI components — delegated to application/screenset local UI
 - Does NOT implement blob URL isolation — uses `cpt-hai3-component-screensets` API
 - Does NOT bundle L1 packages — re-exports only; each L1 remains independently installable
 
@@ -594,47 +519,24 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
 - **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
-- **Initialization sequence**: Orchestrates `uikitRegistry → themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
+- **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
 
 ##### Responsibility boundaries
 
 - Does NOT define the store, event bus, or action system — uses `cpt-hai3-component-framework`
-- Does NOT define UI component implementations — uses `cpt-hai3-component-uikit`
+- Does NOT define UI component implementations — uses application/screenset local UI
 - Does NOT manage MFE loading or blob URL creation — uses `cpt-hai3-component-screensets` via framework
 
 ##### Related components (by ID)
 
 - `cpt-hai3-component-framework` — depends on: consumes builder output and plugin registrations
-- `cpt-hai3-component-uikit` — used by: application renders UIKit components within HAI3Provider context
 - `cpt-hai3-component-studio` — used by: studio panel renders inside the provider tree
 
-#### @hai3/uikit (Standalone)
-
-- [x] `p1` - **ID**: `cpt-hai3-component-uikit`
-
-##### Why this component exists
-
-Provides a consistent, accessible component library built on shadcn/ui patterns. By wrapping Radix primitives with Tailwind styling and HAI3-specific conventions, the UIKit ensures visual consistency across all screen-sets and MFEs while remaining independent of the framework layer.
-
-##### Responsibility scope
-
-- **Layout components**: `AppLayout`, `Header`, `Footer`, `Sidebar`, responsive containers
-- **Navigation components**: `NavMenu`, `Breadcrumb`, tabs, command palette
-- **Form components**: `Input`, `Select`, `Checkbox`, `DatePicker`, form validation integration
-- **Data display**: `DataTable`, `Chart` (via Recharts), `Badge`, `Avatar`, `Card`
-- **Feedback**: `Toast` system with `useToast()` hook, `Alert`, `Dialog`, `Sheet`
-- **React 19 compatibility**: All components accept `ref` as prop (no `forwardRef` wrapper)
-
-##### Responsibility boundaries
-
-- Does NOT depend on `@hai3/state`, `@hai3/framework`, or any SDK package
-- Does NOT manage application state — purely presentational with controlled/uncontrolled patterns
-- Does NOT define screen-set structure — consumed by screen-set authors
 
 ##### Related components (by ID)
 
-- `cpt-hai3-component-react` — used by: application renders UIKit within HAI3Provider
-- `cpt-hai3-component-studio` — uses: studio panel reuses UIKit primitives for its controls
+- `cpt-hai3-component-react` — used by: application renders UI within HAI3Provider
+- `cpt-hai3-component-studio` — uses: studio panel uses local UI primitives for its controls
 
 #### @hai3/studio (Standalone)
 
@@ -661,7 +563,6 @@ Provides a development-time overlay for inspecting and tweaking theme, i18n, vie
 ##### Related components (by ID)
 
 - `cpt-hai3-component-react` — used by: renders inside HAI3Provider context
-- `cpt-hai3-component-uikit` — depends on: uses UIKit components for panel UI
 
 #### @hai3/cli (Tooling)
 
@@ -772,7 +673,6 @@ interface SharedPropertyBridge {
 | `cpt-hai3-interface-i18n` | `@hai3/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-hai3-interface-framework` | `@hai3/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-hai3-interface-react` | `@hai3/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
-| `cpt-hai3-interface-uikit` | `@hai3/uikit` | shadcn/ui-based component library with 30+ base components, variant enums, theme CSS variables, Recharts charts |
 | `cpt-hai3-interface-studio` | `@hai3/studio` | Dev-only floating overlay with MFE package selector, theme/language/mock controls, persistence, viewport clamping |
 | `cpt-hai3-interface-cli` | `@hai3/cli` | Project scaffolding, code generation, migration runners, AI tool configuration sync |
 
@@ -797,7 +697,7 @@ interface SharedPropertyBridge {
 - No circular dependencies (enforced by `dependency-cruiser`)
 - L1 packages have zero `@hai3/*` dependencies
 - L2 depends only on L1; L3 depends only on L2
-- Standalone packages (uikit, studio) have zero `@hai3/*` dependencies
+- Standalone packages (`@hai3/studio`, `@hai3/cli`) sit outside the L1/L2/L3 dependency chain
 - Cross-package imports use workspace names (`@hai3/…`), never `../packages/*/src/*`
 
 ### 3.5 External Dependencies
@@ -806,7 +706,7 @@ interface SharedPropertyBridge {
 
 | Dependency | Version | Used By | Purpose |
 |-----------|---------|---------|---------|
-| `react` | ^19.0.0 | `@hai3/react`, `@hai3/uikit`, `@hai3/studio` | UI rendering, hooks, concurrent features |
+| `react` | ^19.0.0 | `@hai3/react`, `@hai3/studio` | UI rendering, hooks, concurrent features |
 | `react-dom` | ^19.0.0 | `@hai3/react` | DOM mounting, Shadow DOM for MFE isolation |
 
 #### State Management
@@ -823,15 +723,15 @@ interface SharedPropertyBridge {
 | `vite` | ^6.x | Build system | Development server, production bundling |
 | `tsup` | ^8.x | All packages | TypeScript compilation to ESM |
 | `typescript` | ^5.5 | All packages | Type checking, declaration generation |
-| `tailwindcss` | ^3.x | `@hai3/uikit` | Utility-first CSS |
+| `tailwindcss` | ^3.x | Local MFE/screenset | Utility-first CSS |
 
 #### UI Foundation
 
 | Dependency | Version | Used By | Purpose |
 |-----------|---------|---------|---------|
-| `@radix-ui/*` | various | `@hai3/uikit` | Accessible headless UI primitives |
-| `lucide-react` | ^0.x | `@hai3/uikit` | Icon system |
-| `recharts` | ^2.x | `@hai3/uikit` | Chart components |
+| `@radix-ui/*` | various | Local UI | Accessible headless UI primitives |
+| `lucide-react` | ^0.x | Local UI | Icon system |
+| `recharts` | ^2.x | Local UI | Chart components |
 | `i18next` | ^23.x | `@hai3/i18n` | Translation runtime |
 
 #### HTTP & Networking
@@ -867,13 +767,12 @@ sequenceDiagram
     Plugin->>Registry: screensetsRegistry.register()
     Builder-->>App: { store, config, registries }
     App->>Provider: <HAI3Provider config={...}>
-    Provider->>Registry: uikitRegistry init
     Provider->>Registry: themeRegistry init
     Provider->>Registry: screensetsRegistryFactory.build()
     Provider-->>App: Application rendered
 ```
 
-**Description**: The host application creates a framework instance via the builder, chains plugins, and calls `.build()`. Each plugin initializes by registering its slices, effects, and registry entries through the context. The built configuration is passed to `HAI3Provider`, which orchestrates the initialization sequence: UIKit registry → theme registry → screen-sets registry (with MFE handlers) → domain registration → render.
+**Description**: The host application creates a framework instance via the builder, chains plugins, and calls `.build()`. Each plugin initializes by registering its slices, effects, and registry entries through the context. The built configuration is passed to `HAI3Provider`, which orchestrates the initialization sequence: theme registry → screen-sets registry (with MFE handlers) → domain registration → render.
 
 #### Screen-Set Data Flow
 
@@ -975,12 +874,11 @@ Not applicable — HAI3 is a frontend framework with no server-side database.
 
 **Initialization Sequence Detail**: The initialization follows a strict order to ensure registries are populated before consumers access them:
 
-1. `uikitRegistry` — component definitions available
-2. `themeRegistry` — theme tokens resolved
-3. `screensetsRegistryFactory.build()` — screen-set definitions with MFE handlers wired
-4. Domain registration — domain plugins register `ContainerProviders` for their screen-sets
-5. Extension registration — MFE extensions registered and loaded
-6. `HAI3Provider` mounts — React tree renders with all contexts available
+1. `themeRegistry` — theme tokens resolved
+2. `screensetsRegistryFactory.build()` — screen-set definitions with MFE handlers wired
+3. Domain registration — domain plugins register `ContainerProviders` for their screen-sets
+4. Extension registration — MFE extensions registered and loaded
+5. `HAI3Provider` mounts — React tree renders with all contexts available
 
 **Module Augmentation Pattern**: Plugins extend framework types without modifying source files:
 
@@ -994,7 +892,7 @@ declare module '@hai3/state' {
 
 This provides type-safe access to `store.getState().myDomain` across the entire application while keeping the state package unaware of domain-specific slices.
 
-**Build Orchestration**: The monorepo uses npm workspaces. Build order matters because higher layers import from lower layers' built output: `npm run build:packages` executes SDK → Framework → React → UIKit → CLI sequentially.
+**Build Orchestration**: The monorepo uses npm workspaces. Build order matters because higher layers import from lower layers' built output: `npm run build:packages` executes SDK → Framework → React → Studio → CLI sequentially.
 
 ## 5. Traceability
 

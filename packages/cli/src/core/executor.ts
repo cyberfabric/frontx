@@ -12,7 +12,8 @@ import { findProjectRoot, loadConfig } from '../utils/project.js';
 async function buildContext(mode: ExecutionMode): Promise<CommandContext> {
   const cwd = process.cwd();
   const projectRoot = await findProjectRoot(cwd);
-  const config = projectRoot ? await loadConfig(projectRoot) : null;
+  const configResult = projectRoot ? await loadConfig(projectRoot) : null;
+  const config = configResult?.ok ? configResult.config : null;
 
   const logger = mode.interactive ? new Logger() : Logger.silent();
   const prompt = mode.interactive

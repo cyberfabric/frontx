@@ -14,6 +14,7 @@ apiRegistry.register(AccountsApiService);
 apiRegistry.initialize({});
 
 // Create HAI3 app instance (no theme support when using --uikit none)
+// No UI component library included
 const app = createHAI3App();
 
 // Register app-level effects (pass store dispatch)
@@ -34,7 +35,7 @@ registerBootstrapEffects(app.store.dispatch);
  * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.
  *
  * This template is for projects created with --uikit none.
- * No @hai3/uikit dependencies are included (no Toaster, no applyTheme, no UI Kit styles).
+ * No UI component library is included (no Toaster, no themes, no styles).
  * User provides their own UI components and theme system.
  */
 createRoot(document.getElementById('root')!).render(

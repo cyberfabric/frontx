@@ -11,9 +11,6 @@
     },
     "packages/cli": {
       "ignore": ["templates/**", "template-sources/**"]
-    },
-    "packages/uikit": {
-      "ignoreDependencies": ["@hookform/resolvers"]
     }
   },
   "ignore": [

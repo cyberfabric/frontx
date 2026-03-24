@@ -3,6 +3,8 @@
  *
  * Tests for ExtensionLifecycleActionHandler and the three lifecycle actions:
  * load_ext, mount_ext, unmount_ext.
+ *
+ * @vitest-environment jsdom
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -260,7 +262,7 @@ describe('Extension Lifecycle Actions', () => {
         expect(unmountOrder).toBeLessThan(mountOrder);
       });
 
-      it('should not unmount when mounting the same extension', async () => {
+      it('should no-op when mounting the same extension that is already mounted', async () => {
         const callbacks = makeSwapCallbacks({
           getMountedExtension: vi.fn().mockReturnValue(testExtension2.id),
         });
@@ -276,9 +278,8 @@ describe('Extension Lifecycle Actions', () => {
           extensionId: testExtension2.id,
         });
 
-        // Verify unmount was NOT called (same extension)
         expect(callbacks.unmountExtension).not.toHaveBeenCalled();
-        expect(callbacks.mountExtension).toHaveBeenCalledWith(testExtension2.id, mockContainerProvider.mockContainer);
+        expect(callbacks.mountExtension).not.toHaveBeenCalled();
       });
 
       it('should mount directly when no extension is currently mounted', async () => {

@@ -1,10 +1,30 @@
 // @cpt-dod:cpt-hai3-dod-mfe-isolation-externalize-plugin:p1
 // @cpt-flow:cpt-hai3-flow-mfe-isolation-build:p2
 import type { Plugin, ResolvedConfig } from 'vite';
-import type { NormalizedOutputOptions, OutputBundle, OutputChunk } from 'rollup';
 
 export interface Hai3MfeExternalizeOptions {
   shared: string[];
+}
+
+type OutputAssetLike = {
+  type: 'asset';
+  fileName: string;
+};
+
+type OutputChunkLike = {
+  type: 'chunk';
+  fileName: string;
+  code: string;
+  imports: string[];
+  dynamicImports: string[];
+};
+
+type OutputBundleLike = Record<string, OutputAssetLike | OutputChunkLike>;
+
+function isOutputChunkLike(
+  entry: OutputAssetLike | OutputChunkLike
+): entry is OutputChunkLike {
+  return entry.type === 'chunk';
 }
 
 /**
@@ -28,7 +48,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
    * Extract the package name from a __federation_shared_* bundle key.
    * Handles both:
    *   assets/__federation_shared_react-DMgTugcw.js  → react
-   *   assets/__federation_shared_@hai3/uikit-BYlz3jvo.js → @hai3/uikit
+   *   assets/__federation_shared_@hai3/react-BYlz3jvo.js → @hai3/react
    */
   function extractPackageNameFromFederationKey(bundleKey: string): string | null {
     const match = /__federation_shared_(.+)-[A-Za-z0-9_-]{8}\.js$/.exec(bundleKey);
@@ -78,20 +98,22 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
       isBuild = config.command === 'build';
     },
 
-    generateBundle(_options: NormalizedOutputOptions, bundle: OutputBundle): void {
+    generateBundle(_options, bundle): void {
       if (!isBuild) {
         return;
       }
+
+      const outputBundle = bundle as OutputBundleLike;
 
       // ---- Step 1: Identify all __federation_shared_* chunks ----
       // @cpt-algo:cpt-hai3-algo-mfe-isolation-rename-shared-chunks:p1
 
       const renameMap = new Map<string, string>(); // oldKey → newKey
       // federationChunks: packageName → { chunk, codeLength }
-      const federationChunks = new Map<string, { chunk: OutputChunk; codeLength: number }>();
+      const federationChunks = new Map<string, { chunk: OutputChunkLike; codeLength: number }>();
 
-      for (const [bundleKey, chunk] of Object.entries(bundle)) {
-        if (chunk.type !== 'chunk') {
+      for (const [bundleKey, chunk] of Object.entries(outputBundle)) {
+        if (!isOutputChunkLike(chunk)) {
           continue;
         }
         const pkgName = extractPackageNameFromFederationKey(bundleKey);
@@ -99,8 +121,8 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
           const deterministicKey = bundleKey.replace(/-[A-Za-z0-9_-]{8}\.js$/, '.js');
           renameMap.set(bundleKey, deterministicKey);
           federationChunks.set(pkgName, {
-            chunk: chunk as OutputChunk,
-            codeLength: (chunk as OutputChunk).code.length,
+            chunk,
+            codeLength: chunk.code.length,
           });
         }
       }
@@ -133,14 +155,15 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
 
       // Get the code length of each bundled chunk (non-federation) for comparison
       const bundledChunkCodeLength = new Map<string, number>(); // baseName → codeLength
-      for (const [bundleKey, chunk] of Object.entries(bundle)) {
-        if (chunk.type === 'chunk' && !isFederationInfrastructure(bundleKey)) {
-          // Skip federation shared wrappers themselves
-          if (extractPackageNameFromFederationKey(bundleKey) !== null) {
-            continue;
-          }
-          bundledChunkCodeLength.set(baseName(bundleKey), chunk.code.length);
+      for (const [bundleKey, chunk] of Object.entries(outputBundle)) {
+        if (!isOutputChunkLike(chunk) || isFederationInfrastructure(bundleKey)) {
+          continue;
         }
+        // Skip federation shared wrappers themselves
+        if (extractPackageNameFromFederationKey(bundleKey) !== null) {
+          continue;
+        }
+        bundledChunkCodeLength.set(baseName(bundleKey), chunk.code.length);
       }
 
       for (const [pkgName, { chunk, codeLength }] of federationChunks) {
@@ -176,29 +199,29 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
       // ---- Step 3: Apply renames to bundle (deterministic filenames) ----
 
       for (const [oldKey, newKey] of renameMap) {
-        const chunk = bundle[oldKey];
+        const chunk = outputBundle[oldKey];
         if (chunk) {
           chunk.fileName = newKey;
-          bundle[newKey] = chunk;
-          delete bundle[oldKey];
+          outputBundle[newKey] = chunk;
+          delete outputBundle[oldKey];
         }
       }
 
       // Update import references in all chunks to point to renamed files
-      for (const chunk of Object.values(bundle)) {
-        if (chunk.type !== 'chunk') {
+      for (const chunk of Object.values(outputBundle)) {
+        if (!isOutputChunkLike(chunk)) {
           continue;
         }
-        const outputChunk = chunk as OutputChunk;
+        const outputChunk = chunk;
 
         if (outputChunk.imports) {
           outputChunk.imports = outputChunk.imports.map(
-            (imp) => renameMap.get(imp) ?? imp
+            (imp: string) => renameMap.get(imp) ?? imp
           );
         }
         if (outputChunk.dynamicImports) {
           outputChunk.dynamicImports = outputChunk.dynamicImports.map(
-            (imp) => renameMap.get(imp) ?? imp
+            (imp: string) => renameMap.get(imp) ?? imp
           );
         }
 
@@ -235,7 +258,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
 
       // Find the __federation_fn_import chunk filename (provides importShared)
       let federationFnImportFile: string | null = null;
-      for (const fileName of Object.keys(bundle)) {
+      for (const fileName of Object.keys(outputBundle)) {
         if (baseName(fileName).startsWith('__federation_fn_import')) {
           federationFnImportFile = baseName(fileName);
           break;
@@ -246,12 +269,12 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
         return;
       }
 
-      for (const [chunkKey, chunk] of Object.entries(bundle)) {
-        if (chunk.type !== 'chunk') {
+      for (const [chunkKey, chunk] of Object.entries(outputBundle)) {
+        if (!isOutputChunkLike(chunk)) {
           continue;
         }
 
-        const outputChunk = chunk as OutputChunk;
+        const outputChunk = chunk;
         const chunkBase = baseName(chunkKey);
 
         // Skip federation infrastructure chunks — they import from bundled copies

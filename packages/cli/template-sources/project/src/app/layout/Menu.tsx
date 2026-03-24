@@ -2,7 +2,7 @@
  * Menu Component (Standalone)
  *
  * Side navigation menu for standalone HAI3 projects.
- * Uses @hai3/uikit Sidebar components for proper styling and collapsible behavior.
+ * Uses local shadcn/ui Sidebar components for proper styling and collapsible behavior.
  */
 
 import React from 'react';
@@ -18,7 +18,7 @@ import {
   SidebarMenuItem,
   SidebarMenuButton,
   SidebarHeader,
-} from '@hai3/uikit';
+} from '@/app/components/ui/sidebar';
 import { HAI3LogoIcon } from '@/app/icons/HAI3LogoIcon';
 import { HAI3LogoTextIcon } from '@/app/icons/HAI3LogoTextIcon';
 

@@ -4,17 +4,17 @@
 
 - [1. Overview](#1-overview)
 - [2. Entries](#2-entries)
-  - [2.1 State Management ⏳ HIGH](#21-state-management-high)
-  - [2.2 Screenset Registry & Contracts ⏳ HIGH](#22-screenset-registry-contracts-high)
-  - [2.3 MFE Blob URL Isolation ⏳ HIGH](#23-mfe-blob-url-isolation-high)
-  - [2.4 API Communication ⏳ HIGH](#24-api-communication-high)
-  - [2.5 Internationalization Infrastructure ⏳ HIGH](#25-internationalization-infrastructure-high)
-  - [2.6 Framework Composition ⏳ HIGH](#26-framework-composition-high)
-  - [2.7 React Bindings ⏳ HIGH](#27-react-bindings-high)
-  - [2.8 UIKit Components ⏳ HIGH](#28-uikit-components-high)
-  - [2.9 Studio DevTools ⏳ MEDIUM](#29-studio-devtools-medium)
-  - [2.10 CLI Tooling ⏳ MEDIUM](#210-cli-tooling-medium)
-  - [2.11 Publishing Pipeline ⏳ MEDIUM](#211-publishing-pipeline-medium)
+  - [2.1 State Management ⏳ HIGH](#21-state-management--high)
+  - [2.2 Screenset Registry & Contracts ⏳ HIGH](#22-screenset-registry--contracts--high)
+  - [2.3 MFE Blob URL Isolation ⏳ HIGH](#23-mfe-blob-url-isolation--high)
+  - [2.4 API Communication ⏳ HIGH](#24-api-communication--high)
+  - [2.5 Internationalization Infrastructure ⏳ HIGH](#25-internationalization-infrastructure--high)
+  - [2.6 Framework Composition ⏳ HIGH](#26-framework-composition--high)
+  - [2.7 React Bindings ⏳ HIGH](#27-react-bindings--high)
+  - [2.8 Studio DevTools ⏳ MEDIUM](#28-studio-devtools--medium)
+  - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
+  - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
+  - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -23,7 +23,7 @@
 
 The DESIGN is decomposed into 11 features aligned with package/module boundaries in the monorepo. Each feature maps to a cohesive set of source files that can be implemented, tested, and reviewed independently.
 
-**Decomposition strategy**: One feature per logical package or cross-cutting capability. L1 SDK packages each get their own feature (state, screensets, api, i18n). L2/L3 packages get their own features. MFE isolation is separated from screenset registry because it spans multiple packages and has distinct FRs. Standalone packages (uikit, studio, cli) are individual features. Publishing/CI is a separate infrastructure feature.
+**Decomposition strategy**: One feature per logical package or cross-cutting capability. L1 SDK packages each get their own feature (state, screensets, api, i18n). L2/L3 packages get their own features. MFE isolation is separated from screenset registry because it spans multiple packages and has distinct FRs. Standalone packages (studio, cli) are individual features, and UI strategy is captured as a separate CLI-driven feature. Publishing/CI is a separate infrastructure feature.
 
 **Dependency direction**: Features follow the same layer dependency as the architecture — SDK features have no inter-dependencies, framework depends on SDK features, react depends on framework, standalone features are independent.
 
@@ -378,7 +378,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Out of scope**:
   - React provider/hooks (see `cpt-hai3-feature-react-bindings`)
   - Blob URL isolation mechanics (see `cpt-hai3-feature-mfe-isolation`)
-  - UI components (see `cpt-hai3-feature-uikit-components`)
+  - App-owned UI component implementations (see `cpt-hai3-feature-ui-libraries-choice`)
 
 - **Requirements Covered**:
 
@@ -450,7 +450,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Screen component with React.lazy() wrapping and Suspense fallback
 
 - **Out of scope**:
-  - UI component implementations (see `cpt-hai3-feature-uikit-components`)
+  - App-owned UI component implementations (see `cpt-hai3-feature-ui-libraries-choice`)
   - Framework plugin logic (see `cpt-hai3-feature-framework-composition`)
 
 - **Requirements Covered**:
@@ -489,61 +489,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.8 [UIKit Components](feature-uikit-components/) ⏳ HIGH
-
-- [x] `p1` - **ID**: `cpt-hai3-feature-uikit-components`
-
-- **Purpose**: Provides a consistent, accessible component library built on shadcn/ui patterns with Radix primitives and Tailwind CSS. All components use React 19 ref-as-prop pattern. UIKit is standalone with no HAI3 framework dependencies.
-
-- **Depends On**: None
-
-- **Scope**:
-  - Layout components (AppLayout, Header, Footer, Sidebar)
-  - Navigation components (NavMenu, Breadcrumb, tabs, command palette)
-  - Form components (Input, Select, Checkbox, DatePicker, form validation)
-  - Data display (DataTable, Chart via Recharts, Badge, Avatar, Card)
-  - Feedback (Toast system with `useToast()` hook, Alert, Dialog, Sheet)
-  - React 19 ref-as-prop (no forwardRef)
-
-- **Out of scope**:
-  - State management integration (purely presentational)
-  - Application layout rendering (generated by CLI into user's project)
-
-- **Requirements Covered**:
-
-  - [x] `p1` - `cpt-hai3-fr-uikit-react19-ref`
-  - [x] `p1` - `cpt-hai3-fr-uikit-layout`
-  - [x] `p1` - `cpt-hai3-fr-uikit-nav`
-  - [x] `p1` - `cpt-hai3-fr-uikit-form`
-  - [x] `p1` - `cpt-hai3-fr-uikit-chart`
-  - [x] `p1` - `cpt-hai3-fr-uikit-toast-hook`
-  - [x] `p1` - `cpt-hai3-nfr-compat-react`
-
-- **Design Principles Covered**:
-  - (No architecture-level principle uniquely owned by UIKit)
-
-- **Design Constraints Covered**:
-
-  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
-
-- **Domain Model Entities**:
-  - Component
-
-- **Design Components**:
-
-  - [x] `p1` - `cpt-hai3-component-uikit`
-
-- **API**:
-  - All component exports from `@hai3/uikit`
-  - `useToast()` hook
-
-- **Sequences**:
-  - None
-
-- **Data**:
-  - N/A (client-side library)
-
-### 2.9 [Studio DevTools](feature-studio-devtools/) ⏳ MEDIUM
+### 2.8 [Studio DevTools](feature-studio-devtools/) ⏳ MEDIUM
 
 - [x] `p2` - **ID**: `cpt-hai3-feature-studio-devtools`
 
@@ -595,7 +541,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.10 [CLI Tooling](feature-cli-tooling/) ⏳ MEDIUM
+### 2.9 [CLI Tooling](feature-cli-tooling/) ⏳ MEDIUM
 
 - [x] `p2` - **ID**: `cpt-hai3-feature-cli-tooling`
 
@@ -652,7 +598,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.11 [Publishing Pipeline](feature-publishing-pipeline/) ⏳ MEDIUM
+### 2.10 [Publishing Pipeline](feature-publishing-pipeline/) ⏳ MEDIUM
 
 - [x] `p2` - **ID**: `cpt-hai3-feature-publishing-pipeline`
 
@@ -663,7 +609,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Scope**:
   - GitHub Actions workflow triggered on PR merge to main
   - Version change detection via git diff
-  - Layer-ordered sequential publishing (SDK → Framework → React → UIKit → Studio → CLI)
+  - Layer-ordered sequential publishing (SDK → Framework → React → Studio → CLI)
   - NPM registry pre-check for idempotency
   - Retry with exponential backoff
   - `package.json` metadata: `engines`, `exports`, `type`, `sideEffects`
@@ -712,6 +658,58 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
+### 2.11 [UI Libraries Choice](feature-ui-libraries-choice/) ⏳ HIGH
+
+- [x] `p1` - **ID**: `cpt-hai3-feature-ui-libraries-choice`
+
+- **Purpose**: Provides a per-project UI strategy chosen at creation time. When running `hai3 create`, the developer selects a UI approach for the project: copy-owned shadcn/ui components, a third-party library (MUI, Ant Design, etc.), or fully custom components. The CLI reads `hai3.config.json` to determine the active UI kit and scaffolds accordingly.
+
+- **Depends On**: `cpt-hai3-feature-cli-tooling`
+
+- **Scope**:
+  - `hai3.config.json` `uikit` field supporting `"shadcn"`, `"none"`, or a third-party package name
+  - CLI `hai3 create` scaffolding per UI kit type (shadcn components, bridge file, or empty uikit)
+  - CLI `hai3 screenset` generation respecting the project's configured UI kit
+  - UIKit bridge generation for third-party libraries
+  - CSS variable theme propagation for all UI kit types
+  - AI guidelines updated (UIKIT.md, SCREENSETS.md)
+
+- **Out of scope**:
+  - MFE isolation mechanics (see `cpt-hai3-feature-mfe-isolation`)
+
+- **Requirements Covered**:
+
+  - [x] `p1` - `cpt-hai3-fr-cli-commands`
+  - [x] `p1` - `cpt-hai3-fr-cli-templates`
+  - [x] `p1` - `cpt-hai3-nfr-maint-zero-crossdeps`
+
+- **Design Principles Covered**:
+
+  - [x] `p1` - `cpt-hai3-principle-mfe-isolation`
+  - [x] `p2` - `cpt-hai3-principle-self-registering-registries`
+
+- **Design Constraints Covered**:
+
+  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
+
+- **Domain Model Entities**:
+  - Component
+
+- **Design Components**:
+
+  - [x] `p1` - `cpt-hai3-component-cli`
+
+- **API**:
+  - `hai3 create` (UI kit selection prompt)
+  - `hai3 screenset` (UI kit-aware generation)
+  - `hai3.config.json` `uikit` field
+
+- **Sequences**:
+  - None
+
+- **Data**:
+  - N/A (client-side library)
+
 ---
 
 ## 3. Feature Dependencies
@@ -721,10 +719,10 @@ cpt-hai3-feature-state-management          (L1, no deps)
 cpt-hai3-feature-screenset-registry        (L1, no deps)
 cpt-hai3-feature-api-communication         (L1, no deps)
 cpt-hai3-feature-i18n-infrastructure       (L1, no deps)
-cpt-hai3-feature-uikit-components          (standalone, no deps)
 cpt-hai3-feature-studio-devtools           (standalone, no deps)
 cpt-hai3-feature-cli-tooling               (standalone, no deps)
 cpt-hai3-feature-publishing-pipeline       (infrastructure, no deps)
+cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
     │
     ├─→ cpt-hai3-feature-mfe-isolation
     │       requires: screenset-registry
@@ -742,4 +740,5 @@ cpt-hai3-feature-publishing-pipeline       (infrastructure, no deps)
 - `cpt-hai3-feature-mfe-isolation` requires `cpt-hai3-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
 - `cpt-hai3-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
 - `cpt-hai3-feature-react-bindings` requires `cpt-hai3-feature-framework-composition`: React layer consumes the built framework output
+- `cpt-hai3-feature-ui-libraries-choice` requires `cpt-hai3-feature-cli-tooling`: CLI commands (`hai3 create`, `hai3 screenset`) implement the UI kit scaffolding
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

@@ -1,138 +1,90 @@
 /**
  * Dark theme for HAI3
+ * CSS custom properties map following shadcn/ui variable naming convention.
  */
+// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
 
-import type { Theme } from '@hai3/uikit';
+import type { ThemeConfig } from '@hai3/react';
 import colors from './tailwindColors';
+import { hslToVar } from './utils';
 
 /**
  * Dark theme ID
  */
 export const DARK_THEME_ID = 'dark' as const;
 
-export const darkTheme: Theme = {
-  name: DARK_THEME_ID,
-  colors: {
-    // Dark theme - using Tailwind colors directly
-    primary: colors.zinc[50],
-    secondary: colors.zinc[800],
-    accent: colors.zinc[400],
-    background: colors.zinc[950],
-    foreground: colors.zinc[50],
-    muted: colors.zinc[800],
-    border: colors.zinc[800],
-    error: colors.red[900],
-    warning: colors.orange[500],
-    success: colors.green[500],
-    info: colors.sky[500],
-    mainMenu: {
-      DEFAULT: colors.black,
-      foreground: colors.zinc[400],
-      hover: colors.zinc[900],
-      selected: colors.zinc[500],
-      border: colors.zinc[800],
-    },
-    chat: {
-      leftMenu: {
-        DEFAULT: colors.zinc[900],
-        foreground: colors.zinc[100],
-        hover: colors.zinc[800],
-        selected: colors.zinc[700],
-        border: colors.zinc[800],
-      },
-      message: {
-        user: {
-          background: colors.blue[600],
-          foreground: colors.white,
-        },
-        assistant: {
-          background: colors.green[600],
-          foreground: colors.white,
-        },
-      },
-      input: {
-        background: colors.zinc[900],
-        foreground: colors.zinc[100],
-        border: colors.zinc[700],
-      },
-      codeBlock: {
-        background: colors.zinc[900],
-        foreground: colors.zinc[200],
-        border: colors.zinc[800],
-        headerBackground: colors.zinc[800],
-      },
-    },
-    inScreenMenu: {
-      DEFAULT: colors.zinc[900],
-      foreground: colors.zinc[100],
-      hover: colors.zinc[800],
-      selected: colors.zinc[700],
-      border: colors.zinc[800],
-    },
-    // Chart colors for data visualization (OKLCH format, shadcn/ui dark theme)
-    chart: {
-      1: 'oklch(0.488 0.243 264.376)',  // blue
-      2: 'oklch(0.696 0.17 162.48)',    // emerald
-      3: 'oklch(0.769 0.188 70.08)',    // amber
-      4: 'oklch(0.627 0.265 303.9)',    // violet
-      5: 'oklch(0.645 0.246 16.439)',   // rose
-    },
-  },
-  spacing: {
-    xs: '0.25rem',
-    sm: '0.5rem',
-    md: '1rem',
-    lg: '1.5rem',
-    xl: '2rem',
-    '2xl': '3rem',
-    '3xl': '4rem',
-  },
-  typography: {
-    fontFamily: {
-      sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
-    },
-    fontSize: {
-      xs: '0.75rem',
-      sm: '0.875rem',
-      base: '1rem',
-      lg: '1.125rem',
-      xl: '1.25rem',
-      '2xl': '1.5rem',
-      '3xl': '1.875rem',
-      '4xl': '2.25rem',
-      '5xl': '3rem',
-    },
-    fontWeight: {
-      normal: '400',
-      medium: '500',
-      semibold: '600',
-      bold: '700',
-    },
-    lineHeight: {
-      tight: '1.25',
-      normal: '1.5',
-      relaxed: '1.75',
-    },
-  },
-  borderRadius: {
-    none: '0',
-    sm: '0.125rem',
-    md: '0.25rem',
-    lg: '0.5rem',
-    xl: '1rem',
-    full: '9999px',
-  },
-  shadows: {
-    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
-  },
-  transitions: {
-    fast: '150ms',
-    base: '200ms',
-    slow: '300ms',
-    slower: '500ms',
+export const darkTheme: ThemeConfig = {
+  id: DARK_THEME_ID,
+  name: 'Dark',
+  variables: {
+    // Shadcn color variables
+    '--background': hslToVar(colors.zinc[950]),
+    '--foreground': hslToVar(colors.zinc[50]),
+    '--card': hslToVar(colors.zinc[950]),
+    '--card-foreground': hslToVar(colors.zinc[50]),
+    '--popover': hslToVar(colors.zinc[950]),
+    '--popover-foreground': hslToVar(colors.zinc[50]),
+    '--primary': hslToVar(colors.zinc[50]),
+    '--primary-foreground': hslToVar(colors.zinc[950]),
+    '--secondary': hslToVar(colors.zinc[800]),
+    '--secondary-foreground': hslToVar(colors.zinc[50]),
+    '--muted': hslToVar(colors.zinc[800]),
+    '--muted-foreground': hslToVar(colors.zinc[50]),
+    '--accent': hslToVar(colors.zinc[400]),
+    '--accent-foreground': hslToVar(colors.zinc[950]),
+    '--destructive': hslToVar(colors.red[900]),
+    '--destructive-foreground': hslToVar(colors.zinc[50]),
+    '--border': hslToVar(colors.zinc[800]),
+    '--input': hslToVar(colors.zinc[800]),
+    '--ring': hslToVar(colors.zinc[50]),
+
+    // State colors
+    '--error': hslToVar(colors.red[900]),
+    '--warning': hslToVar(colors.orange[500]),
+    '--success': hslToVar(colors.green[500]),
+    '--info': hslToVar(colors.sky[500]),
+
+    // Chart colors (OKLCH format, shadcn/ui dark theme)
+    '--chart-1': 'oklch(0.488 0.243 264.376)',
+    '--chart-2': 'oklch(0.696 0.17 162.48)',
+    '--chart-3': 'oklch(0.769 0.188 70.08)',
+    '--chart-4': 'oklch(0.627 0.265 303.9)',
+    '--chart-5': 'oklch(0.645 0.246 16.439)',
+
+    // Left menu colors
+    '--left-menu': hslToVar(colors.black),
+    '--left-menu-foreground': hslToVar(colors.zinc[400]),
+    '--left-menu-hover': hslToVar(colors.zinc[900]),
+    '--left-menu-selected': hslToVar(colors.zinc[500]),
+    '--left-menu-border': hslToVar(colors.zinc[800]),
+
+    // Spacing
+    '--spacing-xs': '0.25rem',
+    '--spacing-sm': '0.5rem',
+    '--spacing-md': '1rem',
+    '--spacing-lg': '1.5rem',
+    '--spacing-xl': '2rem',
+    '--spacing-2xl': '3rem',
+    '--spacing-3xl': '4rem',
+
+    // Border radius
+    '--radius-none': '0',
+    '--radius-sm': '0.125rem',
+    '--radius-md': '0.25rem',
+    '--radius-lg': '0.5rem',
+    '--radius-xl': '1rem',
+    '--radius-full': '9999px',
+
+    // Shadows
+    '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.3)',
+    '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.4)',
+    '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.5)',
+    '--shadow-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.6)',
+
+    // Transitions
+    '--transition-fast': '150ms',
+    '--transition-base': '200ms',
+    '--transition-slow': '300ms',
+    '--transition-slower': '500ms',
   },
 };

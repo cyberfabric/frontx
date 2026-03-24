@@ -8,12 +8,17 @@
 import { readFileSync } from 'fs';
 import { createRequire } from 'module';
 
-const [, , check, ...files] = process.argv;
+const [, , check, ...rawFiles] = process.argv;
 
-if (!check || files.length === 0) {
+if (!check || rawFiles.length === 0) {
   console.error('Usage: lint-staged-checks.mjs <check> <file...>');
   process.exit(1);
 }
+
+// Skip auto-managed directories (content not authored by project developers).
+// lint-staged passes absolute paths, so match on path segments, not prefixes.
+const IGNORE_SEGMENTS = ['/.cypilot/.core/', '/.cypilot/.gen/', '/.cypilot/config/kits/'];
+const files = rawFiles.filter(f => !IGNORE_SEGMENTS.some(s => f.includes(s)));
 
 let failed = false;
 

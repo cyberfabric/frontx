@@ -1,9 +1,12 @@
 /**
  * Dracula Large theme for HAI3
  * Based on Dracula theme with larger spacing and typography
+ * CSS custom properties map following shadcn/ui variable naming convention.
  */
+// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
 
-import type { Theme } from '@hai3/uikit';
+import type { ThemeConfig } from '@hai3/react';
+import { hslToVar } from './utils';
 
 /**
  * Dracula Large theme ID
@@ -28,128 +31,78 @@ const dracula = {
   backgroundDark: 'hsl(231 15% 14%)', // darker variant
 };
 
-export const draculaLargeTheme: Theme = {
-  name: DRACULA_LARGE_THEME_ID,
-  colors: {
-    primary: dracula.purple,
-    secondary: dracula.comment,
-    accent: dracula.pink,
-    background: dracula.background,
-    foreground: dracula.foreground,
-    muted: dracula.currentLine,
-    border: dracula.currentLine,
-    error: dracula.red,
-    warning: dracula.yellow,
-    success: dracula.green,
-    info: dracula.cyan,
-    mainMenu: {
-      DEFAULT: dracula.backgroundDark,
-      foreground: dracula.comment,
-      hover: dracula.currentLine,
-      selected: dracula.purple,
-      border: dracula.currentLine,
-    },
-    chat: {
-      leftMenu: {
-        DEFAULT: dracula.backgroundDark,
-        foreground: dracula.foreground,
-        hover: dracula.currentLine,
-        selected: dracula.purple,
-        border: dracula.currentLine,
-      },
-      message: {
-        user: {
-          background: dracula.purple,
-          foreground: dracula.background,
-        },
-        assistant: {
-          background: dracula.green,
-          foreground: dracula.background,
-        },
-      },
-      input: {
-        background: dracula.background,
-        foreground: dracula.foreground,
-        border: dracula.currentLine,
-      },
-      codeBlock: {
-        background: dracula.backgroundDark,
-        foreground: dracula.foreground,
-        border: dracula.currentLine,
-        headerBackground: dracula.currentLine,
-      },
-    },
-    inScreenMenu: {
-      DEFAULT: dracula.backgroundDark,
-      foreground: dracula.foreground,
-      hover: dracula.currentLine,
-      selected: dracula.purple,
-      border: dracula.currentLine,
-    },
-    // Chart colors for data visualization (OKLCH format, Dracula-inspired palette)
-    chart: {
-      1: 'oklch(0.714 0.203 313.26)',   // purple (Dracula purple)
-      2: 'oklch(0.799 0.194 145.19)',   // green (Dracula green)
-      3: 'oklch(0.821 0.173 85.29)',    // yellow (Dracula yellow)
-      4: 'oklch(0.71 0.191 349.76)',    // pink (Dracula pink)
-      5: 'oklch(0.822 0.131 194.77)',   // cyan (Dracula cyan)
-    },
-  },
-  spacing: {
-    xs: '0.375rem',   // 1.5x
-    sm: '0.75rem',    // 1.5x
-    md: '1.5rem',     // 1.5x
-    lg: '2.25rem',    // 1.5x
-    xl: '3rem',       // 1.5x
-    '2xl': '4.5rem',  // 1.5x
-    '3xl': '6rem',    // 1.5x
-  },
-  typography: {
-    fontFamily: {
-      sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
-      mono: ['JetBrains Mono', 'Menlo', 'Monaco', 'monospace'],
-    },
-    fontSize: {
-      xs: '0.9375rem',   // 1.25x
-      sm: '1.09375rem',  // 1.25x
-      base: '1.25rem',   // 1.25x
-      lg: '1.40625rem',  // 1.25x
-      xl: '1.5625rem',   // 1.25x
-      '2xl': '1.875rem', // 1.25x
-      '3xl': '2.34375rem', // 1.25x
-      '4xl': '2.8125rem',  // 1.25x
-      '5xl': '3.75rem',    // 1.25x
-    },
-    fontWeight: {
-      normal: '400',
-      medium: '500',
-      semibold: '600',
-      bold: '700',
-    },
-    lineHeight: {
-      tight: '1.25',
-      normal: '1.5',
-      relaxed: '1.75',
-    },
-  },
-  borderRadius: {
-    none: '0',
-    sm: '0.1875rem',  // Slightly larger
-    md: '0.375rem',   // Slightly larger
-    lg: '0.75rem',    // Slightly larger
-    xl: '1.5rem',     // Slightly larger
-    full: '9999px',
-  },
-  shadows: {
-    sm: '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
-    md: '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
-    lg: '0 10px 15px -3px rgba(0, 0, 0, 0.6)',
-    xl: '0 20px 25px -5px rgba(0, 0, 0, 0.7)',
-  },
-  transitions: {
-    fast: '150ms',
-    base: '200ms',
-    slow: '300ms',
-    slower: '500ms',
+export const draculaLargeTheme: ThemeConfig = {
+  id: DRACULA_LARGE_THEME_ID,
+  name: 'Dracula Large',
+  variables: {
+    // Shadcn color variables (same colors as dracula)
+    '--background': hslToVar(dracula.background),
+    '--foreground': hslToVar(dracula.foreground),
+    '--card': hslToVar(dracula.background),
+    '--card-foreground': hslToVar(dracula.foreground),
+    '--popover': hslToVar(dracula.background),
+    '--popover-foreground': hslToVar(dracula.foreground),
+    '--primary': hslToVar(dracula.purple),
+    '--primary-foreground': hslToVar(dracula.background),
+    '--secondary': hslToVar(dracula.comment),
+    '--secondary-foreground': hslToVar(dracula.foreground),
+    '--muted': hslToVar(dracula.currentLine),
+    '--muted-foreground': hslToVar(dracula.foreground),
+    '--accent': hslToVar(dracula.pink),
+    '--accent-foreground': hslToVar(dracula.background),
+    '--destructive': hslToVar(dracula.red),
+    '--destructive-foreground': hslToVar(dracula.foreground),
+    '--border': hslToVar(dracula.currentLine),
+    '--input': hslToVar(dracula.currentLine),
+    '--ring': hslToVar(dracula.purple),
+
+    // State colors
+    '--error': hslToVar(dracula.red),
+    '--warning': hslToVar(dracula.yellow),
+    '--success': hslToVar(dracula.green),
+    '--info': hslToVar(dracula.cyan),
+
+    // Chart colors (OKLCH format, Dracula-inspired palette)
+    '--chart-1': 'oklch(0.714 0.203 313.26)',
+    '--chart-2': 'oklch(0.799 0.194 145.19)',
+    '--chart-3': 'oklch(0.821 0.173 85.29)',
+    '--chart-4': 'oklch(0.71 0.191 349.76)',
+    '--chart-5': 'oklch(0.822 0.131 194.77)',
+
+    // Left menu colors
+    '--left-menu': hslToVar(dracula.backgroundDark),
+    '--left-menu-foreground': hslToVar(dracula.comment),
+    '--left-menu-hover': hslToVar(dracula.currentLine),
+    '--left-menu-selected': hslToVar(dracula.purple),
+    '--left-menu-border': hslToVar(dracula.currentLine),
+
+    // Spacing (1.5x scaled)
+    '--spacing-xs': '0.375rem',
+    '--spacing-sm': '0.75rem',
+    '--spacing-md': '1.5rem',
+    '--spacing-lg': '2.25rem',
+    '--spacing-xl': '3rem',
+    '--spacing-2xl': '4.5rem',
+    '--spacing-3xl': '6rem',
+
+    // Border radius (slightly larger)
+    '--radius-none': '0',
+    '--radius-sm': '0.1875rem',
+    '--radius-md': '0.375rem',
+    '--radius-lg': '0.75rem',
+    '--radius-xl': '1.5rem',
+    '--radius-full': '9999px',
+
+    // Shadows
+    '--shadow-sm': '0 1px 2px 0 rgba(0, 0, 0, 0.4)',
+    '--shadow-md': '0 4px 6px -1px rgba(0, 0, 0, 0.5)',
+    '--shadow-lg': '0 10px 15px -3px rgba(0, 0, 0, 0.6)',
+    '--shadow-xl': '0 20px 25px -5px rgba(0, 0, 0, 0.7)',
+
+    // Transitions
+    '--transition-fast': '150ms',
+    '--transition-base': '200ms',
+    '--transition-slow': '300ms',
+    '--transition-slower': '500ms',
   },
 };

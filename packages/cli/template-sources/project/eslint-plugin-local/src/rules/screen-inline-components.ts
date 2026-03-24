@@ -46,7 +46,7 @@ const rule: Rule.RuleModule = {
       inlineComponent:
         'Inline component "{{name}}" detected in screen file. ' +
         'Extract to: screens/{screen}/components/{{name}}.tsx (if screen-specific) ' +
-        'or screensets/{name}/uikit/{{name}}.tsx (if presentational). ' +
+        'or components/ui/{{name}}.tsx (if presentational). ' +
         'Screen files should only orchestrate/compose components.',
     },
     schema: [],

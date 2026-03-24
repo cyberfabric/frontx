@@ -2,7 +2,7 @@
  * Task 20: Automated Integration Test - Class-Based Service Registration
  *
  * Tests for class-based service registration with apiRegistry.
- * Validates AC1 from the OpenSpec.
+ * Validates API Communication feature acceptance criteria.
  */
 
 import { BaseApiService } from '../BaseApiService';

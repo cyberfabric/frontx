@@ -17,7 +17,7 @@
   - [Update Shared Property](#update-shared-property)
   - [Query Registry State](#query-registry-state)
   - [Build Registry via Factory](#build-registry-via-factory)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Extension Registration Validation Pipeline](#extension-registration-validation-pipeline)
   - [Domain Registration Validation](#domain-registration-validation)
   - [Contract Matching](#contract-matching)
@@ -26,7 +26,6 @@
   - [GTS Package Auto-Discovery](#gts-package-auto-discovery)
   - [Entry Type Handler Resolution](#entry-type-handler-resolution)
   - [Operation Serialization](#operation-serialization)
-  - [First-Class Schema Verification](#first-class-schema-verification)
   - [Domain Semantics Determination](#domain-semantics-determination)
 - [4. States (CDSL)](#4-states-cdsl)
   - [Extension Load State](#extension-load-state)
@@ -80,8 +79,6 @@ Success criteria: A host application can register a domain and extension, execut
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — section 2.2
-- OpenSpec screensets: [openspec/specs/screensets/spec.md](../../../openspec/specs/screensets/spec.md)
-- OpenSpec microfrontends: [openspec/specs/microfrontends/spec.md](../../../openspec/specs/microfrontends/spec.md)
 - Component: `cpt-hai3-component-screensets`
 - Design principle: `cpt-hai3-principle-self-registering-registries`
 - Design constraint: `cpt-hai3-constraint-no-react-below-l3`
@@ -197,8 +194,7 @@ Success criteria: A host application can register a domain and extension, execut
 2. - [x] `p1` - IF no instance is cached: factory creates a `DefaultScreensetsRegistry`, caches it along with the config, and returns it - `inst-create-and-cache`
 3. - [x] `p1` - IF instance is already cached AND the provided `typeSystem` differs from the cached one: RETURN throw with config mismatch message - `inst-throw-mismatch`
 4. - [x] `p1` - IF instance is cached AND `typeSystem` matches: RETURN the cached instance - `inst-return-cached`
-5. - [x] `p1` - During construction, `DefaultScreensetsRegistry` runs `cpt-hai3-algo-screenset-registry-schema-verification` — IF any first-class schema is missing, RETURN throw - `inst-verify-schemas`
-6. - [x] `p1` - IF `mfeHandlers` are provided, handlers are sorted by descending `priority` before being stored - `inst-sort-handlers`
+5. - [x] `p1` - IF `mfeHandlers` are provided, handlers are sorted by descending `priority` before being stored - `inst-sort-handlers`
 
 ---
 
@@ -288,16 +284,6 @@ All mutating operations on a given entity are queued per entity ID to prevent co
 3. - [x] `p1` - When the running operation completes (resolve or reject), the next queued operation starts - `inst-dequeue-next`
 4. - [x] `p1` - `unregisterExtension` always calls `MountManager.unmountExtension` directly (not via `OperationSerializer`) to avoid deadlock — the parent `unregisterExtension` operation already holds the serializer lock for that entity - `inst-bypass-serializer-for-unmount`
 
-### First-Class Schema Verification
-
-- [x] `p1` - **ID**: `cpt-hai3-algo-screenset-registry-schema-verification`
-
-Performed once during `DefaultScreensetsRegistry` construction to fail fast if the type system plugin is incomplete.
-
-1. - [x] `p1` - FOR EACH type ID in the required set (`gts.hai3.mfes.mfe.entry.v1~`, `gts.hai3.mfes.ext.domain.v1~`, `gts.hai3.mfes.ext.extension.v1~`, `gts.hai3.mfes.comm.shared_property.v1~`, `gts.hai3.mfes.comm.action.v1~`, `gts.hai3.mfes.comm.actions_chain.v1~`, `gts.hai3.mfes.lifecycle.stage.v1~`, `gts.hai3.mfes.lifecycle.hook.v1~`): call `typeSystem.getSchema(typeId)` - `inst-check-each-schema`
-2. - [x] `p1` - Collect all type IDs for which `getSchema` returns undefined - `inst-collect-missing`
-3. - [x] `p1` - IF any schemas are missing RETURN throw with list of missing type IDs - `inst-throw-missing-schemas`
-
 ### Domain Semantics Determination
 
 - [x] `p1` - **ID**: `cpt-hai3-algo-screenset-registry-domain-semantics`
@@ -377,7 +363,7 @@ Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-screenset-registry-type-contracts`
 
-All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and OpenSpec:
+All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and architecture artifacts:
 
 - `MfeEntry`: `id`, `requiredProperties`, `actions`, `domainActions`, optional `optionalProperties`
 - `MfeEntryMF` extends `MfeEntry`: adds `manifest` (`string | MfManifest`), `exposedModule`
@@ -434,7 +420,7 @@ All registration paths perform GTS-native validation:
 - Validates the value once using a deterministic ephemeral GTS instance ID before touching any domain
 - Throws synchronously on validation failure — no partial updates
 - Propagates the raw value to all matching domain states and notifies all per-domain, per-property subscribers
-- Built-in property constants are `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'` and `HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~'`
+- Known property constants are `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'` and `HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~'`. Their derived GTS schemas are registered at the application layer, not bundled in the SDK.
 
 **Implements**:
 - `cpt-hai3-flow-screenset-registry-update-shared-property`
@@ -492,7 +478,6 @@ All registration paths perform GTS-native validation:
 
 **Implements**:
 - `cpt-hai3-flow-screenset-registry-factory-build`
-- `cpt-hai3-algo-screenset-registry-schema-verification`
 - `cpt-hai3-state-screenset-registry-factory-cache`
 
 **Covers (PRD)**:

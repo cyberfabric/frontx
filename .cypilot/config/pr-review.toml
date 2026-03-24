@@ -16,8 +16,11 @@ data_dir = ".prs"
 
 [[prompts]]
 description = "Code Review"
-prompt_file = "{cypilot_path}/.gen/kits/sdlc/scripts/prompts/pr/code-review.md"
+prompt_file = "{cypilot_path}/config/kits/sdlc/scripts/prompts/pr/code-review.md"
 checklist   = "{cypilot_path}/.gen/kits/sdlc/codebase/checklist.md"
+spec_coverage_checklist = "{cypilot_path}/config/kits/sdlc/codebase/spec-coverage-checklist.md"
+min_coverage    = "100"
+min_granularity = "0.5"
 # coding_guidelines = "docs/coding-guidelines.md"
 # security_guidelines = "docs/security-guidelines.md"
 

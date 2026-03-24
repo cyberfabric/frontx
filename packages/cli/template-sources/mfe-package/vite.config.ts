@@ -11,7 +11,7 @@ export default defineConfig({
       exposes: {
         './lifecycle': './src/lifecycle.tsx',
       },
-      shared: ['react', 'react-dom', 'tailwindcss', '@hai3/uikit'],
+      shared: ['react', 'react-dom'],
     }),
   ],
   build: {

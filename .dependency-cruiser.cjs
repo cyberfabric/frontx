@@ -23,13 +23,6 @@ module.exports = {
       comment: 'MONOREPO VIOLATION: App cannot import package internals. Use package root exports.'
     },
     {
-      name: 'uikit-standalone',
-      severity: 'error',
-      from: { path: '^packages/uikit/' },
-      to: { path: '^packages/(framework|react|state|screensets|api|i18n)/' },
-      comment: 'PACKAGE VIOLATION: uikit is standalone and cannot depend on @hai3 framework packages.'
-    },
-    {
       name: 'sdk-no-framework-import',
       severity: 'error',
       from: { path: '^packages/(state|screensets|api|i18n)/' },

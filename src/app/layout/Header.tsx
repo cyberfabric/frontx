@@ -7,7 +7,8 @@
 
 import React from 'react';
 import { useAppSelector, type HeaderState } from '@hai3/react';
-import { UserInfo } from '@hai3/uikit';
+import { Avatar, AvatarImage, AvatarFallback } from '@/app/components/ui/avatar';
+import { Skeleton } from '@/app/components/ui/skeleton';
 
 export interface HeaderProps {
   children?: React.ReactNode;
@@ -19,16 +20,33 @@ export const Header: React.FC<HeaderProps> = ({ children }) => {
   const user = headerState?.user;
   const loading = headerState?.loading ?? false;
 
+  const getInitials = (): string => {
+    if (!user?.displayName) return (user?.email?.[0] || '?').toUpperCase();
+    const parts = user.displayName.trim().split(/\s+/);
+    if (parts.length >= 2) {
+      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+    }
+    return user.displayName.slice(0, 2).toUpperCase();
+  };
+
   return (
     <header className="h-16 flex items-center px-4 border-b border-border bg-background">
       {children}
       <div className="ml-auto">
-        <UserInfo
-          displayName={user?.displayName}
-          email={user?.email}
-          avatarUrl={user?.avatarUrl}
-          loading={loading}
-        />
+        {loading ? (
+          <div className="flex items-center gap-2 text-sm">
+            <Skeleton className="h-8 w-8 rounded-full" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+        ) : (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Avatar className="h-8 w-8">
+              {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user?.displayName || user?.email || 'User'} />}
+              <AvatarFallback>{getInitials()}</AvatarFallback>
+            </Avatar>
+            <span>{user?.displayName || user?.email || 'User'}</span>
+          </div>
+        )}
       </div>
     </header>
   );

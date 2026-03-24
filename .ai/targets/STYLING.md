@@ -15,16 +15,16 @@
 - Units: use rem-based tokens; px allowed only for border width.
 - Hierarchy: Tokens -> Themes -> Base -> Composite -> Core.
 - Dark mode: CSS variables via [data-theme].
-- Inline styles allowed ONLY in screensets/*/uikit/base/ (local base primitives).
+- Inline styles allowed ONLY in base UI component files (components/ui/).
 - No hardcoded colors or inline style={{}} elsewhere.
 
 ## STOP CONDITIONS
-- Hex color literals (for example "#0066cc") outside base uikit folders.
-- Inline style props outside base uikit folders.
+- Hex color literals (for example "#0066cc") outside components/ui/.
+- Inline style props outside components/ui/.
 - px units for sizing or spacing (except borders).
 
 ## PRE-DIFF CHECKLIST
 - [ ] All sizes use rem tokens (for example "w-40", "min-w-40").
-- [ ] Inline styles only in base uikit folders; theme tokens elsewhere.
+- [ ] Inline styles only in components/ui/; theme tokens elsewhere.
 - [ ] Visual styling only in Base layer; others handle layout.
 - [ ] Responsive behavior uses Tailwind prefixes (mobile-first).

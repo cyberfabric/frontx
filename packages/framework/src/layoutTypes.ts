@@ -7,6 +7,7 @@
  *
  * At runtime, these types are satisfied by @hai3/framework slice implementations.
  */
+// @cpt-dod:cpt-hai3-dod-framework-composition-layout:p1
 
 // ============================================================================
 // App State Types

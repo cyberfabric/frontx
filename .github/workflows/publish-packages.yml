@@ -16,7 +16,7 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0  # Full history needed for github.event.before comparison
 
@@ -68,10 +68,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: '25.x'
           registry-url: 'https://registry.npmjs.org'
@@ -136,7 +136,7 @@ jobs:
 
           # Sort packages by layer (L1=SDK, L2=Framework, L3=React, L4=Studio, L5=CLI)
           SORTED=$(echo "$PACKAGES" | jq -c 'sort_by(.dir |
-            if . == "state" or . == "screensets" or . == "api" or . == "i18n" or . == "uikit" then 1
+            if . == "state" or . == "screensets" or . == "api" or . == "i18n" then 1
             elif . == "framework" then 2
             elif . == "react" then 3
             elif . == "studio" then 4

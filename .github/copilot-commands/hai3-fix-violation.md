@@ -40,9 +40,8 @@ REQUIRED: All checks must pass.
 ## COMMON FIXES
 - Direct dispatch: BAD dispatch(setMenuItems(items)) -> GOOD navigateToScreen(screenId)
 - Hardcoded colors: BAD style with inline color -> GOOD className="text-primary"
-- Import violations: BAD import from '@hai3/uikit/src/Foo' -> GOOD import from '@hai3/uikit'
+- Import violations: BAD import from '@hai3/react/src/Foo' -> GOOD import from '@hai3/react'
 - String literals: BAD screenId: 'dashboard' -> GOOD export const DASHBOARD_SCREEN_ID = 'dashboard'
-- Inline component: Extract to screens/screen/components/ or uikit/ per SCREENSETS.md
-- Inline style: BAD style with inline padding -> GOOD className="p-2" (except in uikit/base/)
+- Inline component: Extract to screens/screen/components/ per SCREENSETS.md
+- Inline style: BAD style with inline padding -> GOOD className="p-2" (except in components/ui/)
 - Inline data: Move to api/domain/mocks.ts, fetch via event-driven flow
-- UIKit impurity: Move component from uikit/ to components/ if needs @hai3/uicore

@@ -125,8 +125,6 @@ Apache-2.0
 ## Related Packages
 
 - [`@hai3/uicore`](../uicore) - Core layout and state management
-- [`@hai3/uikit`](../uikit) - UI component library
-- [`@hai3/uikit-contracts`](../uikit-contracts) - Type definitions
 
 ## Contributing
 

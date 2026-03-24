@@ -106,16 +106,16 @@ describe('Phase 12.1: Integration Testing', () => {
     });
   });
 
-  describe('Phase 37: Screen Extension Derived Type Schema Validation', () => {
-    it('should have extension_screen.v1 schema loaded as built-in', () => {
-      // Verify the screen extension derived type schema is registered
-      const schema = runtime.typeSystem.getSchema(HAI3_SCREEN_EXTENSION_TYPE);
-      expect(schema).toBeDefined();
-      expect(schema?.$id).toContain('extension.v1~hai3.screensets.layout.screen.v1~');
-    });
+  describe('Phase 37: Screen Extension Derived Type - Type Hierarchy', () => {
+    // NOTE: The extension_screen.v1 schema is NOT a built-in L1 schema.
+    // It lives in @hai3/framework and is registered at the application layer.
+    // Schema content tests are in packages/framework/__tests__/plugins/microfrontends/property-validation.test.ts.
+    // Only the string-based type hierarchy check (isTypeOf) is tested here
+    // because it does not require schema registration.
 
     it('should check type hierarchy for screen extension derived type', () => {
       // Screen extension type derives from base extension type
+      // This check uses string prefix matching — no schema registration needed
       expect(
         runtime.typeSystem.isTypeOf(
           HAI3_SCREEN_EXTENSION_TYPE,
@@ -130,23 +130,6 @@ describe('Phase 12.1: Integration Testing', () => {
           HAI3_SCREEN_EXTENSION_TYPE
         )
       ).toBe(false);
-    });
-
-    it('should have screen extension schema with presentation field', () => {
-      // Verify the screen extension schema defines presentation property
-      const schema = runtime.typeSystem.getSchema(HAI3_SCREEN_EXTENSION_TYPE);
-      expect(schema).toBeDefined();
-
-      // The schema should extend base extension and add presentation
-      // Check that schema has allOf with base reference and presentation requirement
-      expect(schema?.allOf).toBeDefined();
-      expect(Array.isArray(schema?.allOf)).toBe(true);
-
-      // Check for presentation in required fields or properties
-      const hasPresentation =
-        schema?.required?.includes('presentation') ||
-        schema?.properties?.presentation !== undefined;
-      expect(hasPresentation).toBe(true);
     });
 
     it('should have base extension schema without presentation field', () => {

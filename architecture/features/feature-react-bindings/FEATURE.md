@@ -24,7 +24,7 @@
   - [Observe Active Screen Package](#observe-active-screen-package)
   - [Provide MFE Context to Child Extension](#provide-mfe-context-to-child-extension)
   - [Access the HAI3 App Instance Directly](#access-the-hai3-app-instance-directly)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Resolve HAI3App Instance](#resolve-hai3app-instance)
   - [Load Screen Translations](#load-screen-translations)
   - [Build Provider Tree](#build-provider-tree)

@@ -27,7 +27,6 @@
 - packages/react -> .ai/targets/REACT.md
 
 ### UI and Dev Packages
-- packages/uikit -> .ai/targets/UIKIT.md
 - packages/studio -> .ai/targets/STUDIO.md
 
 ### Other
@@ -43,7 +42,8 @@
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).
 - Registries follow Open/Closed; adding items must not modify registry root files.
-- App-level deps: @hai3/react, the configured UI kit, react, react-dom. Standalone projects must also declare peer deps explicitly: @hai3/framework, @hai3/api, @hai3/i18n, @hai3/screensets, @hai3/state.
+- App-level deps limited to: @hai3/react, react, react-dom. Standalone projects must also declare peer deps explicitly: @hai3/framework, @hai3/api, @hai3/i18n, @hai3/screensets, @hai3/state.
+- MFE UI autonomy: MFEs own their UI components locally (e.g., components/ui/). No shared UI kit required.
 - Cross-domain communication only via events.
 - No string literal identifiers; use constants or enums.
 - No any, no unknown in type definitions, no "as unknown as" casts.
@@ -52,7 +52,7 @@
 ## IMPORT RULES
 - Inside same package: relative paths.
 - Cross-branch in app: @/ alias.
-- Cross-package: @hai3/framework, @hai3/react, the configured UI kit.
+- Cross-package: @hai3/framework, @hai3/react. Use local components/ui/ for UI.
 - Index files: only when aggregating 3 or more exports.
 - Redux slices: import directly (no barrels).
 
@@ -78,7 +78,7 @@
 - npm run arch:check passes.
 - Dev server test via Google Chrome MCP Tools:
   - Affected flows and screens exercised.
-  - UI uses the configured UI kit and theme tokens.
+  - UI uses theme CSS tokens (CSS custom properties from :root).
   - Event-driven behavior (no direct slice dispatch).
   - No console errors or missing registrations.
 

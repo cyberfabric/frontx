@@ -12,7 +12,7 @@
 - MFE packages may define local actions, events, slices, effects, API services, and localization.
 
 ## CRITICAL RULES
-- REQUIRED: Use the configured UI kit components; manual styling only in uikit/base/.
+- REQUIRED: Use the configured UI kit components; manual styling only in components/ui/.
 - Data flow must follow EVENTS.md.
 - State management must follow @hai3/state Redux+Flux pattern.
 - Screensets are isolated; no hardcoded screenset names in shared code.
@@ -102,20 +102,29 @@
 - FORBIDDEN: registerIcons() calls or React.ComponentType in MenuItem.icon field.
 - FORBIDDEN: Storing React components as icons (causes Redux serialization warnings).
 
+## UI KIT DISCOVERY (REQUIRED)
+- REQUIRED: Read `hai3.config.json` at project root to find `uikit` value.
+- If `uikit` is `"shadcn"`: use local `components/ui/` (shadcn components already scaffolded).
+- If `uikit` is `"none"`: no UI library; create all components locally in components/ui/.
+- If `uikit` is any other value (e.g., `"@mui/material"`, `"antd"`): it is a third-party UI library.
+  - REQUIRED: Read the package's exports from `node_modules/<package>/` to discover available components.
+  - REQUIRED: Import and use the library's components directly in screens and composites.
+  - REQUIRED: Only create local components/ui/ components for what the library does not provide.
+  - REQUIRED: Follow the library's documented patterns (e.g., MUI's `<TextField>`, Ant Design's `<Input>`).
+
 ## SCREENSET UI KIT RULES
 - REQUIRED: Prioritize the configured UI kit components; create local only if missing.
-- REQUIRED: Screenset uikit/ structure: base/, composite/, icons/ (mirrors global).
-- REQUIRED: uikit/base/ for rare primitives; needs strong justification.
-- REQUIRED: uikit/composite/ for screenset-specific composites (value/onChange).
-- FORBIDDEN: @hai3/state or @hai3/framework imports in screensets/*/uikit/ (UI only).
-- REQUIRED: Inline styles allowed ONLY in uikit/base/; composite uses theme tokens.
+- REQUIRED: components/ui/ for base UI primitives (shadcn or custom).
+- REQUIRED: components/ for shared composites used across screens.
+- FORBIDDEN: @hai3/state or @hai3/framework imports in components/ui/ (UI only).
+- REQUIRED: Inline styles allowed ONLY in components/ui/; composites use theme tokens.
 
 ## COMPONENT PLACEMENT RULES
 - REQUIRED: Decompose screens into components BEFORE writing screen file.
 - REQUIRED: Screen files orchestrate components only.
 - FORBIDDEN: Inline component definitions in *Screen.tsx files.
 - FORBIDDEN: Inline data arrays; use API services per EVENTS.md.
-- REQUIRED: Presentational components (value/onChange only) in screensets/{name}/uikit/.
+- REQUIRED: Presentational components (value/onChange only) in components/ui/ or screens/{screen}/components/.
 - REQUIRED: Shared screenset components in screensets/{name}/components/.
 - REQUIRED: Screen-local components in screens/{screen}/components/.
 - DETECT: eslint local/screen-inline-components
@@ -167,6 +176,12 @@
 - Plugin guide: `packages/screensets/docs/mfe/plugin-interface.md`
 - GTS usage: `packages/screensets/docs/mfe/gts-plugin.md`
 
+## MFE BUILD CONFIGURATION
+- REQUIRED: `build.modulePreload: false` in every MFE vite.config.ts. Vite's modulePreload injects a `__vitePreload` helper that resolves chunk URLs against the page origin (host), not the MFE server origin, causing 404s in cross-origin MFE loading.
+- REQUIRED: `build.target: 'esnext'` for top-level await support (federation runtime uses it).
+- REQUIRED: `build.cssCodeSplit: false` for single CSS output in MFE bundles.
+- REFERENCE: See `src/mfe_packages/_blank-mfe/vite.config.ts` for canonical MFE vite configuration.
+
 ## MFE LIFECYCLE ARCHITECTURE
 - REQUIRED: MFE entries are lifecycle files exporting MfeEntryLifecycle (mount/unmount).
 - REQUIRED: ThemeAwareReactLifecycle abstract base class for React-based MFE entries.
@@ -179,7 +194,8 @@
 - FORBIDDEN: navigateToScreen (removed, replaced by mount_ext actions).
 
 ## PRE-DIFF CHECKLIST
-- [ ] Configured UI kit used; local uikit only if missing (inline styles in base/ only).
+- [ ] UI kit discovered from hai3.config.json; third-party library components used where available.
+- [ ] Local components/ui/ only for what the configured UI kit does not provide (inline styles in components/ui/ only).
 - [ ] Slices use registerSlice with RootState augmentation.
 - [ ] No direct slice imports; no barrel exports in events/ or effects/.
 - [ ] Icons exported; API service isolated; events/effects split by domain.

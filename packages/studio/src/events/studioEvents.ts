@@ -1,3 +1,5 @@
+// @cpt-algo:cpt-hai3-algo-studio-devtools-event-routing:p1
+// @cpt-dod:cpt-hai3-dod-studio-devtools-persistence:p1
 import type { Position, Size } from '../types';
 
 /**

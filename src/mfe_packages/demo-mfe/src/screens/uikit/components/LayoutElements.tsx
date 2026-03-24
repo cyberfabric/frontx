@@ -12,10 +12,10 @@ import {
   CardDescription,
   CardContent,
   CardFooter,
-  Separator,
-  ScrollArea,
-  Header,
-} from '@hai3/uikit';
+} from '../../../components/ui/card';
+import { Separator } from '../../../components/ui/separator';
+import { ScrollArea } from '../../../components/ui/scroll-area';
+import { Header } from '../../../components/ui/header';
 
 interface LayoutElementsProps {
   t: (key: string) => string;

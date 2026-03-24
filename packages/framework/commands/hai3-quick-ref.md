@@ -8,22 +8,20 @@
 - FORBIDDEN: Direct slice dispatch from actions or components.
 
 ## Imports
-- Same package: BAD import from '@hai3/uikit/src/Foo' -> GOOD import from './Foo'.
+- Same package: BAD import from internal paths (e.g. package/src/Foo) -> GOOD import from './Foo' or package root.
 - Cross-branch app: BAD import from '../../core/layout' -> GOOD import from '@/core/layout'.
-- Cross-package: BAD import from '@hai3/uikit/src/internal' -> GOOD import from '@hai3/uikit'.
+- Cross-package: use local components; avoid importing from deprecated shared UI packages.
 
 ## Components
-- REQUIRED: Check global @hai3/uikit first; screenset uikit only if missing.
-- App/screensets: REQUIRED import { Button } from '@hai3/uikit'.
+- REQUIRED: Use local UI (MFE `components/ui/`, screen `components/`).
+- App/screensets: Use local components for UI.
 - FORBIDDEN: Raw HTML elements for UI.
 - FORBIDDEN: Inline component definitions in *Screen.tsx.
 
 ## Component Placement
-- REQUIRED: Screenset uikit/ structure: base/, composite/, icons/.
-- REQUIRED: uikit/base/ for rare primitives (inline styles allowed).
-- REQUIRED: uikit/composite/ for screenset composites (theme tokens only).
-- REQUIRED: Shared components in screensets/{name}/components/.
-- REQUIRED: Screen-local components in screens/{screen}/components/.
+- REQUIRED: components/ui/ for base UI primitives (shadcn or custom).
+- REQUIRED: components/ for shared composites used across screens.
+- REQUIRED: screens/{screen}/components/ for screen-specific components.
 - REQUIRED: Screen files orchestrate components only.
 
 ## Registry
@@ -31,7 +29,7 @@
 - REQUIRED: apiRegistry.register(MyService).
 
 ## Styling
-- Inline styles ONLY in screensets/*/uikit/base/ (rare local primitives).
+- Inline styles ONLY in components/ui/ (base primitives).
 - BAD style={{ backgroundColor: '#fff' }} -> GOOD className="bg-background".
 - BAD style={{ color: '#000' }} -> GOOD className="text-foreground".
 - REQUIRED: Use Tailwind utilities, CSS variables elsewhere.
@@ -51,7 +49,7 @@
 ## Invariants
 - REQUIRED: Event-driven architecture only.
 - REQUIRED: Registries follow Open/Closed principle.
-- REQUIRED: App deps limited to @hai3/react, @hai3/uikit, react, react-dom.
+- REQUIRED: App deps limited to @hai3/react, react, react-dom (use local UI).
 - REQUIRED: Cross-domain communication via events only.
 - FORBIDDEN: String literals for IDs.
 - FORBIDDEN: any type or unsafe casts.

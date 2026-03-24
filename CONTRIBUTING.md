@@ -144,7 +144,7 @@ HAI3 packages are **automatically published** to NPM when a PR is merged to the 
 3. **NPM Check**: Skips versions that already exist on NPM (safe for re-runs)
 4. **Build**: All packages are built via `npm run build:packages` before publishing
 5. **Publish**: Packages are published in dependency order with retry logic:
-   - **Layer 1 (SDK)**: `@hai3/state`, `@hai3/screensets`, `@hai3/api`, `@hai3/i18n`, `@hai3/uikit`
+   - **Layer 1 (SDK)**: `@hai3/state`, `@hai3/screensets`, `@hai3/api`, `@hai3/i18n`
    - **Layer 2 (Framework)**: `@hai3/framework`
    - **Layer 3 (React)**: `@hai3/react`
    - **Layer 4 (Tools)**: `@hai3/studio`

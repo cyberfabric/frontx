@@ -12,15 +12,15 @@ project:
   contents:
     - configs/             # ESLint, depcruise, pre-commit configs (flattened to root)
     - eslint-plugin-local/ # Local ESLint plugin with HAI3 rules
-    - scripts/             # Utility scripts (generate-colors, test-architecture)
+    - scripts/             # Utility scripts (test-architecture, check-mcp)
     - .npmrc               # NPM configuration
     - .nvmrc               # Node version
     - README.md            # Project README template
 
-# Stage 1a: Layout scaffold templates (HAI3 UIKit)
+# Stage 1a: Layout scaffold templates (shadcn)
 layout:
   source: ../../src/app/layout/
-  description: "Layout component templates using @hai3/uikit (from monorepo source)"
+  description: "Layout component templates using shadcn/ui (from monorepo source)"
   destination: src/app/layout/
   files:
     - Layout.tsx
@@ -48,20 +48,26 @@ root:
     # (Stage 1b-override replaces MFE-specific code with standalone-compatible code)
     - src/app/main.tsx
     - src/app/App.tsx
+    - src/app/globals.css
     # Standalone-only files (in template-sources/project/ instead of monorepo root):
     # - vite.config.ts -> configs/vite.config.ts (no federation plugin)
-    # - postcss.config.ts -> configs/postcss.config.ts
+    # - postcss.config.js -> configs/postcss.config.js
     # - src/app/main.no-uikit.tsx -> src/app/ (no MFE imports)
+    # - src/app/main.custom-uikit.tsx -> src/app/ (custom uikit variant)
     # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/
+    # - src/app/App.custom-uikit.tsx, App.custom-uikit.no-studio.tsx -> src/app/
   directories:
-    - src/app/themes      # Theme definitions
+    - src/app/themes      # Theme definitions (default, dark, light)
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)
     - src/app/components  # Reusable components (TextLoader)
+    - src/app/lib         # Utility functions (cn)
+    - src/app/mfe         # MFE bootstrap + generated manifests stub
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
-    - src/app/mfe         # MFE bootstrap + generated manifests stub
+  # MFE template is sourced from src/mfe_packages/_blank-mfe/ (see copy-templates.ts)
+  # src/app/mfe is handled by Stage 1b-override + explicit bootstrap copy
 
 # Stage 1c: AI documentation overrides
 ai_overrides:

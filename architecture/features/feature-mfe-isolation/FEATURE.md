@@ -12,7 +12,7 @@
   - [MFE Load via Blob URL Isolation](#mfe-load-via-blob-url-isolation)
   - [MFE Build with Externalize Plugin](#mfe-build-with-externalize-plugin)
   - [MFE-Internal Bootstrap](#mfe-internal-bootstrap)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Build Share Scope](#build-share-scope)
   - [Blob URL Get Closure](#blob-url-get-closure)
   - [Fetch Source Text (with Cache)](#fetch-source-text-with-cache)
@@ -79,10 +79,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition entry: [DECOMPOSITION.md §2.3](../../DECOMPOSITION.md)
-- OpenSpec — blob URL isolation: `openspec/specs/mfe-blob-url-isolation/spec.md`
-- OpenSpec — externalize plugin: `openspec/specs/mfe-externalize-plugin/spec.md`
-- OpenSpec — internal dataflow: `openspec/specs/mfe-internal-dataflow/spec.md`
-- OpenSpec — share scope management: `openspec/specs/mfe-share-scope-management/spec.md`
+- PRD: [PRD.md](../../PRD.md) — sections 5.6 (MFE Blob URL Isolation), 5.7 (MFE Externalize Plugin), 5.8 (MFE Internal Dataflow), 5.9 (MFE Share Scope Management)
 - ADR: `cpt-hai3-adr-blob-url-mfe-isolation`
 - Depends on feature: `cpt-hai3-feature-screenset-registry`
 

@@ -24,6 +24,8 @@ interface MfeInfo {
   port: number;
 }
 
+type PackageManager = 'npm' | 'pnpm' | 'yarn';
+
 // Scan src/mfe_packages/ and extract port from each package's scripts
 function getMFEPackages(): MfeInfo[] {
   if (!existsSync(MFE_PACKAGES_DIR)) {
@@ -66,15 +68,43 @@ function getMFEPackages(): MfeInfo[] {
   return mfes;
 }
 
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+function getPackageManager(): PackageManager {
+  const rootPkgPath = join(process.cwd(), 'package.json');
+  try {
+    const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf-8')) as {
+      packageManager?: string;
+      scripts?: Record<string, string>;
+    };
+    const managerId = rootPkg.packageManager?.split('@')[0];
+    if (managerId === 'pnpm' || managerId === 'yarn') {
+      return managerId;
+    }
+  } catch {
+    // ignore and use default
+  }
+  return 'npm';
+}
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+
+// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+function runScriptCommand(packageManager: PackageManager, scriptName: string): string {
+  if (packageManager === 'yarn') {
+    return `yarn ${scriptName}`;
+  }
+  return `${packageManager} run ${scriptName}`;
+}
+// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+
 // Determine main app command based on available scripts
-function getMainAppCommand(): string {
+function getMainAppCommand(packageManager: PackageManager): string {
   const rootPkgPath = join(process.cwd(), 'package.json');
   try {
     const rootPkg = JSON.parse(readFileSync(rootPkgPath, 'utf-8')) as {
       scripts?: Record<string, string>;
     };
     if (rootPkg.scripts?.['generate:colors']) {
-      return 'npm run generate:colors && vite';
+      return `${runScriptCommand(packageManager, 'generate:colors')} && vite`;
     }
   } catch {
     // ignore — fall through to default
@@ -83,15 +113,16 @@ function getMainAppCommand(): string {
 }
 
 // Build commands for main app + all MFEs
-function buildCommands(mfes: MfeInfo[]): string[] {
+function buildCommands(mfes: MfeInfo[], packageManager: PackageManager): string[] {
   const commands: string[] = [];
 
   // Add main app
-  commands.push(getMainAppCommand());
+  commands.push(getMainAppCommand(packageManager));
 
-  // Add each MFE
+  // MFEs use "build && preview" because @originjs/vite-plugin-federation
+  // only generates remoteEntry.js at build time, not in dev mode.
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && npm run dev`);
+    commands.push(`cd src/mfe_packages/${mfe.name} && ${runScriptCommand(packageManager, 'build && npm run preview')}`);
   }
 
   return commands;
@@ -114,7 +145,8 @@ async function main() {
     console.log();
   }
 
-  const commands = buildCommands(mfes);
+  const packageManager = getPackageManager();
+  const commands = buildCommands(mfes, packageManager);
 
   // Quote each command properly for concurrently
   const quotedCommands = commands.map((cmd) => `"${cmd.replace(/"/g, '\\"')}"`);

@@ -18,10 +18,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js 24.14.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24.14.x
           cache: npm
@@ -32,17 +32,19 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build CLI package
-        run: npm run build --workspace=@hai3/cli
+      - name: Build all packages (topological order)
+        run: npm run build:packages
 
       - name: Run CLI nightly E2E
         run: npm run test:e2e:nightly --workspace=@hai3/cli
         env:
           CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/nightly
+          HAI3_USE_LOCAL: '1'
+          HAI3_MONOREPO_ROOT: ${{ github.workspace }}
 
       - name: Upload CLI E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cli-nightly-e2e-logs
           path: .artifacts/cli-e2e/nightly

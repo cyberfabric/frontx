@@ -7,7 +7,6 @@
       { "name": "react", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react.js" },
       { "name": "react-dom", "requiredVersion": "^19.0.0", "chunkPath": "__federation_shared_react-dom.js" },
       { "name": "tailwindcss", "chunkPath": "__federation_shared_tailwindcss.js" },
-      { "name": "@hai3/uikit", "chunkPath": "__federation_shared_@hai3/uikit.js" },
       { "name": "@hai3/react", "chunkPath": "__federation_shared_@hai3/react.js" },
       { "name": "@hai3/framework", "chunkPath": "__federation_shared_@hai3/framework.js" },
       { "name": "@hai3/state", "chunkPath": "__federation_shared_@hai3/state.js" },

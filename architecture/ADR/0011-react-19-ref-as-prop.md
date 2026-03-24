@@ -27,7 +27,7 @@ date: 2026-02-03
 **ID**: `cpt-hai3-adr-react-19-ref-as-prop`
 ## Context and Problem Statement
 
-React 19 introduces ref as a regular prop, deprecating `forwardRef`. HAI3's UIKit has approximately 100 `forwardRef` declarations that need updating. A big-bang migration risks a high failure rate and difficult rollback. The upgrade also brings other breaking changes: string refs removed and implicit children type changes.
+React 19 introduces ref as a regular prop, deprecating `forwardRef`. App-owned UI components may have `forwardRef` declarations that need updating. A big-bang migration risks a high failure rate and difficult rollback. The upgrade also brings other breaking changes: string refs removed and implicit children type changes.
 
 ## Decision Drivers
 
@@ -54,7 +54,7 @@ Chosen option: "Two-phase staged migration using official codemod", because sepa
 
 ### Confirmation
 
-All components in `packages/uikit/src/` accept ref as a prop without a `forwardRef` wrapper. React 19 is declared as a peer dependency in `packages/react/package.json` and `packages/uikit/package.json`.
+All app-owned UI components accept ref as a prop without a `forwardRef` wrapper. React 19 is declared as a peer dependency in `packages/react/package.json`.
 
 ## Pros and Cons of the Options
 
@@ -91,7 +91,5 @@ All components in `packages/uikit/src/` accept ref as a prop without a `forwardR
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-uikit-react19-ref` — UIKit components migrated from `forwardRef` to ref-as-prop
 * `cpt-hai3-nfr-compat-react` — React 19 compatibility requirement
-* `cpt-hai3-component-uikit` — UIKit package scope
 * `cpt-hai3-component-react` — React package peer dependency declarations

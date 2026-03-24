@@ -41,7 +41,7 @@
 ## BUILD PROCESS (copy-templates.ts)
 - REQUIRED: Clean templates/ before copying.
 - REQUIRED: Copy standalone presets from presets/standalone/configs/ and presets/standalone/scripts/.
-- REQUIRED: Copy directories (.ai, .cursor, .windsurf, src/themes, src/uikit, src/icons, eslint-plugin-local).
+- REQUIRED: Copy directories (.ai, .cursor, .windsurf, src/themes, src/icons, eslint-plugin-local).
 - REQUIRED: Copy demo screenset and _blank as screenset-template.
 - REQUIRED: Write manifest.json for runtime discovery.
 - REQUIRED: Exclude generated files from templates.

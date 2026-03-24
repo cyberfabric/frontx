@@ -39,3 +39,9 @@ export type {
   MigrateCommandArgs,
   MigrateCommandResult,
 } from './migrate/index.js';
+
+export { screensetCreateCommand } from './screenset/index.js';
+export type {
+  ScreensetCreateArgs,
+  ScreensetCreateResult,
+} from './screenset/index.js';

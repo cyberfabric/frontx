@@ -16,22 +16,6 @@ function createMockPlugin(): TypeSystemPlugin {
   const schemas = new Map<string, JSONSchema>();
   const registeredEntities = new Map<string, unknown>();
 
-  // Add first-class citizen schemas
-  const coreTypeIds = [
-    'gts.hai3.mfes.mfe.entry.v1~',
-    'gts.hai3.mfes.ext.domain.v1~',
-    'gts.hai3.mfes.ext.extension.v1~',
-    'gts.hai3.mfes.comm.shared_property.v1~',
-    'gts.hai3.mfes.comm.action.v1~',
-    'gts.hai3.mfes.comm.actions_chain.v1~',
-    'gts.hai3.mfes.lifecycle.stage.v1~',
-    'gts.hai3.mfes.lifecycle.hook.v1~',
-  ];
-
-  for (const typeId of coreTypeIds) {
-    schemas.set(typeId, { $id: `gts://${typeId}`, type: 'object' });
-  }
-
   return {
     name: 'MockPlugin',
     version: '1.0.0',
@@ -168,41 +152,6 @@ describe('ScreensetsRegistry - Phase 4', () => {
       expect(registry.typeSystem).toBe(config.typeSystem);
       expect(registry.typeSystem.name).toBe('MockPlugin');
       expect(registry.typeSystem.version).toBe('1.0.0');
-    });
-
-    it('should verify first-class schemas are available', () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
-
-      const coreTypeIds = [
-        'gts.hai3.mfes.mfe.entry.v1~',
-        'gts.hai3.mfes.ext.domain.v1~',
-        'gts.hai3.mfes.ext.extension.v1~',
-        'gts.hai3.mfes.comm.shared_property.v1~',
-        'gts.hai3.mfes.comm.action.v1~',
-        'gts.hai3.mfes.comm.actions_chain.v1~',
-        'gts.hai3.mfes.lifecycle.stage.v1~',
-        'gts.hai3.mfes.lifecycle.hook.v1~',
-      ];
-
-      for (const typeId of coreTypeIds) {
-        const schema = registry.typeSystem.getSchema(typeId);
-        expect(schema).toBeDefined();
-      }
-    });
-
-    it('should throw error if plugin is missing first-class schemas', () => {
-      const incompletePlugin: TypeSystemPlugin = {
-        ...createMockPlugin(),
-        getSchema: () => undefined, // Missing all schemas
-      };
-
-      const incompleteConfig: ScreensetsRegistryConfig = {
-        typeSystem: incompletePlugin,
-      };
-
-      expect(() => new DefaultScreensetsRegistry(incompleteConfig)).toThrow(
-        'TypeSystemPlugin is missing first-class citizen schemas'
-      );
     });
 
     it('should register handler if provided in config', () => {

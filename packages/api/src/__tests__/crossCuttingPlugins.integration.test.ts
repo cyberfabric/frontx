@@ -2,7 +2,7 @@
  * Task 72: Integration Test - Cross-Cutting Plugin
  *
  * Tests for plugins implementing multiple protocol hook interfaces.
- * Validates Scenario 5 and AC-6 from the OpenSpec.
+ * Validates API Communication feature acceptance criteria for cross-cutting plugins.
  */
 
 import { RestProtocol } from '../protocols/RestProtocol';

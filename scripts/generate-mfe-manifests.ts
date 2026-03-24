@@ -22,8 +22,8 @@ export interface MfeManifestConfig {
 
 function generateManifestRegistry(): void {
   try {
-    // Packages to exclude (templates, blanks, etc.)
-    const EXCLUDED_PACKAGES = new Set(['_blank-mfe', '.git', '.DS_Store']);
+    // Packages to exclude (shared libraries, hidden dirs, etc.)
+    const EXCLUDED_PACKAGES = new Set(['.git', '.DS_Store']);
 
     // Find all MFE packages
     const mfePackages = readdirSync(MFE_PACKAGES_DIR).filter((dir) => {

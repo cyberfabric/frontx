@@ -1,5 +1,8 @@
+// @cpt-dod:cpt-hai3-dod-cli-tooling-validate:p1
+// @cpt-flow:cpt-hai3-flow-cli-tooling-validate-components:p1
 import { execSync } from 'child_process';
 import type { Logger } from '../core/logger.js';
+import { detectPackageManager, getRunScriptCommand } from '../core/packageManager.js';
 
 /**
  * Result of a single validation step
@@ -63,9 +66,9 @@ function runCheck(
  * Run project validation after scaffolding commands
  *
  * This runs:
- * 1. TypeScript type checking (npm run type-check)
- * 2. ESLint (npm run lint)
- * 3. Architecture checks (npm run arch:check)
+ * 1. TypeScript type checking
+ * 2. ESLint
+ * 3. Architecture checks
  *
  * @param options - Validation options
  * @returns Validation result
@@ -82,6 +85,9 @@ export async function runProjectValidation(
 
   const steps: ValidationStepResult[] = [];
   const checksToRun = checks ?? ['typeCheck', 'lint', 'archCheck'];
+  // @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+  const manager = (await detectPackageManager(projectRoot)).manager;
+  // @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
   logger.newline();
   logger.info('Running validation...');
@@ -90,7 +96,11 @@ export async function runProjectValidation(
   // TypeScript check
   if (checksToRun.includes('typeCheck')) {
     logger.log('  Checking TypeScript...');
-    const typeCheck = runCheck('TypeScript', 'npm run type-check', projectRoot);
+    const typeCheck = runCheck(
+      'TypeScript',
+      getRunScriptCommand(manager, 'type-check'),
+      projectRoot
+    );
     steps.push(typeCheck);
     if (typeCheck.success) {
       logger.success('  TypeScript: OK');
@@ -102,7 +112,7 @@ export async function runProjectValidation(
   // ESLint
   if (checksToRun.includes('lint')) {
     logger.log('  Running ESLint...');
-    const lint = runCheck('ESLint', 'npm run lint', projectRoot);
+    const lint = runCheck('ESLint', getRunScriptCommand(manager, 'lint'), projectRoot);
     steps.push(lint);
     if (lint.success) {
       logger.success('  ESLint: OK');
@@ -114,7 +124,11 @@ export async function runProjectValidation(
   // Architecture check
   if (checksToRun.includes('archCheck')) {
     logger.log('  Checking architecture...');
-    const archCheck = runCheck('Architecture', 'npm run arch:check', projectRoot);
+    const archCheck = runCheck(
+      'Architecture',
+      getRunScriptCommand(manager, 'arch:check'),
+      projectRoot
+    );
     steps.push(archCheck);
     if (archCheck.success) {
       logger.success('  Architecture: OK');

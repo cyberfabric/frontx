@@ -14,7 +14,7 @@ date: 2026-03-10
   - [Consequences](#consequences)
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
-  - [Two-tier: required PR gate + non-required nightly](#two-tier-required-pr-gate-non-required-nightly)
+  - [Two-tier: required PR gate + non-required nightly](#two-tier-required-pr-gate--non-required-nightly)
   - [Single required workflow with full coverage](#single-required-workflow-with-full-coverage)
   - [No required CLI e2e gate](#no-required-cli-e2e-gate)
 - [More Information](#more-information)

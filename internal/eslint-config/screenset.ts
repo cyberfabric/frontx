@@ -102,10 +102,9 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
       },
     }] : []),
 
-    // Screensets UIKit: Presentational components only (no @hai3/react business logic)
+    // UI components: Presentational components only (no @hai3/react business logic)
     ...(localPlugin ? [{
-      files: ['src/screensets/*/uikit/**/*.{ts,tsx}'],
-      ignores: ['src/screensets/*/uikit/icons/**/*'],
+      files: ['src/components/ui/**/*.{ts,tsx}', 'src/mfe_packages/*/src/components/ui/**/*.{ts,tsx}'],
       rules: {
         'local/uikit-no-business-logic': 'error',
       },

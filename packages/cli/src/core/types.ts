@@ -1,11 +1,25 @@
 /**
  * Core type definitions for HAI3 CLI
  */
+// @cpt-dod:cpt-hai3-dod-cli-tooling-command-infra:p1
+// @cpt-dod:cpt-hai3-dod-cli-tooling-layer-variants:p1
 
 /**
  * Layer types for SDK architecture
  */
 export type LayerType = 'sdk' | 'framework' | 'react' | 'app';
+export type PackageManager = 'npm' | 'pnpm' | 'yarn';
+
+/**
+ * Theme configuration for Studio / generated theme files.
+ * Used by uikit bridge and generic theme generation.
+ */
+export interface ThemeConfig {
+  id: string;
+  name: string;
+  default?: boolean;
+  variables: Record<string, string>;
+}
 
 /**
  * HAI3 project configuration stored in hai3.config.json
@@ -16,8 +30,17 @@ export interface Hai3Config {
   hai3: true;
   /** Project layer (SDK architecture tier) */
   layer?: LayerType;
-  /** UI Kit selection: 'none' means no UIKit, any other string is the UIKit identifier */
+  /** UI components: 'shadcn' for shadcn/ui, 'none' for no UI components, or an npm package name */
   uikit?: string;
+  /** Selected package manager for this project */
+  packageManager?: PackageManager;
+  /**
+   * Optional legacy package manager version.
+   * Kept for backwards compatibility with older generated configs.
+   */
+  packageManagerVersion?: string;
+  /** Optional linker mode (used by yarn) */
+  linkerMode?: 'node-modules' | 'pnp';
 }
 
 /**
@@ -92,6 +115,15 @@ export interface ExecutionMode {
   /** Pre-filled answers for prompts (used when interactive: false) */
   answers?: Record<string, unknown>;
 }
+
+/**
+ * Result of loading a HAI3 config file.
+ * Discriminated union so callers handle every outcome without surprise throws.
+ */
+export type ConfigLoadResult =
+  | { ok: true; config: Hai3Config }
+  | { ok: false; error: 'not_found'; message: string }
+  | { ok: false; error: 'invalid'; message: string };
 
 /**
  * Generated file output

@@ -39,7 +39,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
   });
 
   describe('theme propagation via themes() plugin', () => {
-    it('should call updateSharedProperty with theme ID when theme/changed event fires', () => {
+    it('should call setTheme and updateSharedProperty when theme/changed event fires', () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
@@ -48,10 +48,18 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
+      app.themeRegistry.register({
+        id: 'dark',
+        name: 'Dark',
+        variables: { '--color-bg': 'hsl(var(--primary))' },
+      });
+
+      const setThemeSpy = vi.spyOn(app.screensetsRegistry!, 'setTheme');
       const updateSpy = vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty');
 
       eventBus.emit('theme/changed', { themeId: 'dark' });
 
+      expect(setThemeSpy).toHaveBeenCalledWith({ '--color-bg': 'hsl(var(--primary))' });
       expect(updateSpy).toHaveBeenCalledWith(HAI3_SHARED_PROPERTY_THEME, 'dark');
     });
 
@@ -71,6 +79,31 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       expect(() => {
         eventBus.emit('theme/changed', { themeId: 'bad-theme' });
       }).not.toThrow();
+    });
+
+    it('should emit theme/propagation/failed when updateSharedProperty throws', () => {
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(themes())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const propagationError = new Error('GTS validation failed');
+      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+        throw propagationError;
+      });
+
+      const failHandler = vi.fn();
+      eventBus.on('theme/propagation/failed', failHandler);
+
+      eventBus.emit('theme/changed', { themeId: 'bad-theme' });
+
+      expect(failHandler).toHaveBeenCalledWith({
+        themeId: 'bad-theme',
+        error: propagationError,
+      });
     });
 
     it('should still apply the theme even if updateSharedProperty throws', () => {
@@ -142,6 +175,36 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         eventBus.emit('i18n/language/changed', { language: 'xx' });
         await Promise.resolve();
       }).not.toThrow();
+    });
+
+    it('should emit i18n/propagation/failed when updateSharedProperty throws', async () => {
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(i18n())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const propagationError = new Error('GTS validation failed');
+      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+        throw propagationError;
+      });
+
+      const failHandler = vi.fn();
+      eventBus.on('i18n/propagation/failed', failHandler);
+
+      eventBus.emit('i18n/language/changed', { language: 'xx' });
+
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(failHandler).toHaveBeenCalledWith({
+        language: 'xx',
+        error: propagationError,
+      });
     });
   });
 

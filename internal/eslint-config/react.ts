@@ -4,7 +4,6 @@
  *
  * React package CAN import:
  * - @hai3/framework (wires everything together)
- * - @hai3/uikit (standalone UI components)
  * - @hai3/i18n (only for Language enum re-export due to isolatedModules)
  * - react, react-dom (React adapter)
  *

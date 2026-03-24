@@ -114,6 +114,9 @@ export {
 export { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
 export { gtsPlugin } from '@hai3/screensets/plugins/gts';
 
+// GTS Derived Schemas (application-layer registration)
+export { themeSchema, languageSchema, extensionScreenSchema } from './gts';
+
 // MFE Utilities (re-exported from @hai3/screensets for convenience)
 export {
   createShadowRoot,
@@ -158,8 +161,6 @@ export type {
   PluginLifecycle,
   ThemeRegistry,
   ThemeConfig,
-  ThemeApplyFn,
-  UikitTheme,
   RouterMode,
   Preset,
   Presets,
@@ -167,7 +168,9 @@ export type {
   ThemesConfig,
   ShowPopupPayload,
   ChangeThemePayload,
+  ThemePropagationFailedPayload,
   SetLanguagePayload,
+  LanguagePropagationFailedPayload,
 } from './types';
 
 // ============================================================================
