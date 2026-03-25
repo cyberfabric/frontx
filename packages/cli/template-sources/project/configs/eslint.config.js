@@ -298,7 +298,7 @@ export default [
     files: ['src/screensets/**/*.tsx', 'src/components/**/*.tsx', 'src/app/**/*.tsx'],
     ignores: ['**/*.test.*', '**/*.spec.*'],
     rules: {
-      'local/no-hardcoded-strings': 'warn',
+      'local/no-hardcoded-strings': 'error',
     },
   },
 
