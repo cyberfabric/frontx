@@ -9,6 +9,9 @@
  * MFE packages from src/mfe_packages/.
  */
 
+// Module-level reference to allow cleanup on re-runs (e.g. HMR)
+let popstateHandler: (() => void) | null = null;
+
 import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
 import {
   screenDomain,
@@ -163,7 +166,11 @@ export async function bootstrapMFE(
   }) as typeof screensetsRegistry.executeActionsChain;
 
   // Handle browser back/forward navigation
-  window.addEventListener('popstate', () => {
+  // Remove any previous listener before registering a new one (prevents duplicates on HMR)
+  if (popstateHandler) {
+    window.removeEventListener('popstate', popstateHandler);
+  }
+  popstateHandler = () => {
     const path = window.location.pathname;
     const ext = screenExtensions.find((e) => e.presentation.route === path);
     if (ext) {
@@ -175,5 +182,6 @@ export async function bootstrapMFE(
         },
       });
     }
-  });
+  };
+  window.addEventListener('popstate', popstateHandler);
 }
