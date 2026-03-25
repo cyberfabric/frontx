@@ -28,7 +28,7 @@ function generateManifestRegistry(): void {
     // Find all MFE packages
     const mfePackages = readdirSync(MFE_PACKAGES_DIR).filter((dir) => {
       // Skip excluded packages and hidden directories
-      if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.')) {
+      if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.') || dir.startsWith('_')) {
         return false;
       }
 

@@ -8,7 +8,7 @@ in `src/mfe_packages/`, the system picks it up automatically.
 ## How Auto-Discovery Works
 
 `scripts/dev-all.ts` scans `src/mfe_packages/*/` at startup:
-1. Reads each package's `package.json` for a `--port NNNN` argument in the `preview` or `dev` script
+1. Reads each package's `package.json` for a `--port NNNN` argument in the `dev` or `preview` script
 2. Builds a `concurrently` command for all found packages
 3. Starts everything in parallel — no manual registration needed
 
