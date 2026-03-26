@@ -37,8 +37,8 @@ export const accountsMockMap: MockMap = {
     user: mockUser,
   }),
 
-  'PATCH /api/accounts/user/profile': (requestData): GetCurrentUserResponse => {
-    // requestData is the PATCH body forwarded by RestMockPlugin as context.body.
+  'PUT /api/accounts/user/profile': (requestData): GetCurrentUserResponse => {
+    // requestData is the PUT body forwarded by RestMockPlugin as context.body.
     // Merge the patched fields onto the base mock user so the response reflects
     // what the server would return after persisting the change.
     const patch = (requestData ?? {}) as Partial<UpdateProfileRequest>;

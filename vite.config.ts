@@ -12,6 +12,12 @@ export default defineConfig({
       shared: {
         react: { singleton: false, requiredVersion: '^19.0.0' },
         'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
+        // MFEs receive the host-owned QueryClient through mount context, so the
+        // host and remotes must resolve the same React Query runtime.
+        '@tanstack/react-query': {
+          singleton: false,
+          requiredVersion: '^5.90.0',
+        },
         tailwindcss: { singleton: false },
       },
     }),

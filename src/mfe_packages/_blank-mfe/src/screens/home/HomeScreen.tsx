@@ -4,11 +4,12 @@ import {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   useApiQuery,
+  apiRegistry,
 } from '@hai3/react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
-import { blankQueries } from '../../data/blank';
+import { _BlankApiService } from '../../api/_BlankApiService';
 
 // Stable reference for translation modules (hoisted to module level to prevent re-render loops)
 const languageModules = import.meta.glob('./i18n/*.json') as Record<
@@ -47,13 +48,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const [theme, setTheme] = useState<string>('default');
   const [language, setLanguage] = useState<string>('en');
 
+  // @cpt-begin:implement-endpoint-descriptors:p4:inst-blank-home-query
+  const service = apiRegistry.getService(_BlankApiService);
   const { t, loading } = useScreenTranslations(languageModules, bridge);
   const {
     data: statusData,
     isLoading: isStatusLoading,
     isError: isStatusError,
     error: statusError,
-  } = useApiQuery(blankQueries.status());
+  } = useApiQuery(service.getStatus);
+  // @cpt-end:implement-endpoint-descriptors:p4:inst-blank-home-query
 
   useEffect(() => {
     // Read initial property values

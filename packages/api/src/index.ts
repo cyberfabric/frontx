@@ -45,6 +45,11 @@ export type {
   EventSourceLike,
   RestShortCircuitResponse,
   SseShortCircuitResponse,
+  // Endpoint descriptor types
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  EndpointOptions,
 } from './types';
 
 // Re-export mock config types from plugin files

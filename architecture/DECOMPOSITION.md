@@ -374,6 +374,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `updateSharedProperty()` global broadcast
   - GTS validation of shared property values
   - `setSharedProperty()` / `getSharedProperty()` bridge
+  - `queryCache()` plugin for `QueryClient` lifecycle, mock mode cache integration, and Flux cache invalidation
   - SDK re-exports for consumer convenience
 
 - **Out of scope**:
@@ -716,20 +717,22 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - [ ] `p2` - **ID**: `cpt-hai3-feature-request-lifecycle`
 
-- **Purpose**: Adds `AbortSignal`-based request cancellation to `RestProtocol` at L1, and integrates `@tanstack/react-query` at L3 as the default mechanism for declarative data fetching and mutations with automatic caching, deduplication, optimistic updates, and cache invalidation.
+- **Purpose**: Adds `AbortSignal`-based request cancellation to `RestProtocol` at L1, endpoint descriptors on `BaseApiService` for library-agnostic caching at L1, a `queryCache()` framework plugin at L2 that owns the `QueryClient` lifecycle, and descriptor-consuming hooks at L3 for declarative data fetching and mutations with automatic caching, deduplication, optimistic updates, and cache invalidation.
 
-- **Depends On**: `cpt-hai3-feature-api-communication`, `cpt-hai3-feature-react-bindings`
+- **Depends On**: `cpt-hai3-feature-api-communication`, `cpt-hai3-feature-react-bindings`, `cpt-hai3-feature-framework-composition`
 
 - **Scope**:
   - `AbortSignal` threading through `RestProtocol` and plugin chain
   - `RestRequestOptions` pattern for HTTP method extensibility
   - `CanceledError` detection and plugin chain bypass
-  - `QueryClientProvider` in `HAI3Provider`, with a host-owned `QueryClient` injected into separately mounted MFE roots via opaque mount context
-  - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) exposed via `useQueryCache()` and injected into mutation callbacks — `queryClient` not exposed to MFEs
-  - `useApiQuery` hook for declarative reads with caching and deduplication
-  - `useApiMutation` hook for declarative writes with optimistic updates and cache invalidation via `QueryCache`
-  - Query key factories at L3 (`packages/react/src/queries/`) with `@domain` prefix convention
-  - Event-based cache invalidation for L2 Flux effects (`cache/invalidate` event, synchronous listener in `HAI3Provider`)
+  - `EndpointDescriptor<TData>` and `MutationDescriptor<TData, TVariables>` types at L1 (`@hai3/api`)
+  - `BaseApiService.query(path)`, `queryWith(pathFn)`, `mutation(method, path)` methods — cache keys derived from `[baseURL, method, path]`
+  - `queryCache()` framework plugin at L2 — creates `QueryClient`, handles `MockEvents.Toggle` cache clear, handles `cache/invalidate` events from Flux effects, exposes `app.queryClient`
+  - `HAI3Provider` reads `app.queryClient` from the plugin (not creating its own)
+  - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) accepts `EndpointDescriptor | QueryKey` — exposed via `useQueryCache()` and injected into mutation callbacks
+  - `useApiQuery(descriptor)` hook for declarative reads — returns `ApiQueryResult<TData>` (HAI3-owned type)
+  - `useApiMutation({ endpoint, ... })` hook for declarative writes — returns `ApiMutationResult<TData>` (HAI3-owned type)
+  - Event-based cache invalidation for L2 Flux effects (`cache/invalidate` event in `queryCache()` plugin)
   - Flux escape hatch for cross-feature orchestration
 
 - **Out of scope**:
@@ -737,15 +740,18 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - SSE cancellation (already handled by `SseProtocol.disconnect()`)
   - Custom cache storage backends (TanStack Query uses in-memory cache)
   - Server-side rendering / hydration support
+  - GraphQL protocol support (descriptors are protocol-agnostic by design but only REST is implemented)
 
 - **Requirements Covered**:
 
   - `cpt-hai3-fr-sdk-api-package`
   - `cpt-hai3-fr-sdk-react-layer`
+  - `cpt-hai3-fr-api-endpoint-descriptors`
+  - `cpt-hai3-fr-framework-query-cache-plugin`
 
 - **Design Principles Covered**:
 
-  - `cpt-hai3-principle-layer-isolation` (AbortSignal at L1, TanStack at L3)
+  - `cpt-hai3-principle-layer-isolation` (descriptors at L1, queryCache plugin at L2, hooks at L3)
 
 - **Design Constraints Covered**:
 
@@ -762,10 +768,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **API**:
   - `RestProtocol.get(url, { signal })` / `.post()` / `.put()` / `.patch()` / `.delete()`
-  - `useApiQuery({ queryKey, queryFn })` — thin wrapper, no cache access
-  - `useApiMutation({ mutationFn, onMutate, onSuccess, onError, onSettled })` — callbacks receive `{ queryCache }`; `useQueryCache()` exposes the same restricted `QueryCache` interface for imperative cache work
-  - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove`
-  - Query key factories: `accountsKeys.currentUser()` → `['@accounts', 'current-user']`
+  - `BaseApiService.query<TData>(path, options?)` → `EndpointDescriptor<TData>` (always GET)
+  - `BaseApiService.queryWith<TData, TParams>(pathFn, options?)` → `ParameterizedEndpointDescriptor<TData, TParams>` (always GET)
+  - `BaseApiService.mutation<TData, TVariables>(method, path)` → `MutationDescriptor<TData, TVariables>`
+  - `queryCache(config?)` framework plugin — creates `QueryClient`, exposes `app.queryClient`
+  - `useApiQuery(descriptor)` → `ApiQueryResult<TData>` — caching, dedup, cancel on unmount
+  - `useApiMutation({ endpoint, onMutate, onSuccess, onError, onSettled })` → `ApiMutationResult<TData>` — callbacks receive `{ queryCache }`
+  - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor | QueryKey`
+  - Cache keys derived automatically: `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes — no manual key factories
 
 - **Sequences**:
   - None

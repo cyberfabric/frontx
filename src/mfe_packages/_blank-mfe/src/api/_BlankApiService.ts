@@ -3,6 +3,8 @@
  * Replace '_Blank' with your screenset name.
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
 import type { GetBlankStatusResponse } from './types';
 import { blankMockMap } from './mocks';
@@ -28,11 +30,7 @@ export class _BlankApiService extends BaseApiService {
     );
   }
 
-  /**
-   * Example query endpoint for the blank template.
-   * Accepts an AbortSignal so useApiQuery can cancel in-flight requests.
-   */
-  async getStatus(options?: { signal?: AbortSignal }): Promise<GetBlankStatusResponse> {
-    return this.protocol(RestProtocol).get<GetBlankStatusResponse>('/status', options);
-  }
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-blank-descriptors
+  readonly getStatus = this.query<GetBlankStatusResponse>('/status');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-blank-descriptors
 }

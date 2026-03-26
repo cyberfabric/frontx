@@ -18,7 +18,13 @@ import type {
   ApiProtocol,
   ApiPluginBase,
   PluginClass,
+  HttpMethod,
+  EndpointDescriptor,
+  EndpointOptions,
+  MutationDescriptor,
+  ParameterizedEndpointDescriptor,
 } from './types';
+import { RestProtocol } from './protocols/RestProtocol';
 
 /**
  * BaseApiService Implementation
@@ -330,6 +336,149 @@ export abstract class BaseApiService {
 
     return protocol as T;
   }
+
+  // ============================================================================
+  // Endpoint Descriptor Factory Methods
+  // ============================================================================
+
+  // @cpt-FEATURE:implement-endpoint-descriptors:p1
+
+  /**
+   * Create a static read endpoint descriptor.
+   *
+   * The cache key is derived from `[baseURL, method, path]` — no manual key
+   * factory is needed. The fetch function forwards the AbortSignal so that
+   * query libraries can cancel in-flight requests on unmount or re-fetch.
+   *
+   * @template TData - Response data type
+   * @param path    - Relative path (e.g. '/user/current')
+   * @param options - Optional cache hint overrides (staleTime, gcTime)
+   *
+   * @example
+   * ```typescript
+   * readonly getCurrentUser = this.query<User>('/user/current');
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-query
+  protected query<TData>(
+    path: string,
+    options?: EndpointOptions
+  ): EndpointDescriptor<TData> {
+    const key = [this.config.baseURL, 'GET', path] as const;
+
+    return {
+      key,
+      fetch: ({ signal } = {}) =>
+        this.dispatchRequest<TData>('GET', path, undefined, signal),
+      ...(options?.staleTime !== undefined && { staleTime: options.staleTime }),
+      ...(options?.gcTime !== undefined && { gcTime: options.gcTime }),
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-query
+
+  /**
+   * Create a parameterized read endpoint descriptor factory.
+   *
+   * Returns a function. When called with runtime params, the function returns a
+   * concrete `EndpointDescriptor` whose cache key includes both the resolved
+   * path and the params object: `[baseURL, method, resolvedPath, params]`.
+   *
+   * @template TData   - Response data type
+   * @template TParams - Runtime parameters object type
+   * @param pathFn  - Function that maps params to a relative path string
+   * @param options - Optional cache hint overrides (staleTime, gcTime)
+   *
+   * @example
+   * ```typescript
+   * readonly getUser = this.queryWith<User, { id: string }>(
+   *   (p) => `/user/${p.id}`
+   * );
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-query-with
+  protected queryWith<TData, TParams>(
+    pathFn: (params: TParams) => string,
+    options?: EndpointOptions
+  ): ParameterizedEndpointDescriptor<TData, TParams> {
+    return (params: TParams): EndpointDescriptor<TData> => {
+      const resolvedPath = pathFn(params);
+      const key = [this.config.baseURL, 'GET', resolvedPath, params] as const;
+
+      return {
+        key,
+        fetch: ({ signal } = {}) =>
+          this.dispatchRequest<TData>('GET', resolvedPath, undefined, signal),
+        ...(options?.staleTime !== undefined && { staleTime: options.staleTime }),
+        ...(options?.gcTime !== undefined && { gcTime: options.gcTime }),
+      };
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-query-with
+
+  /**
+   * Create a write endpoint descriptor.
+   *
+   * The cache key is derived from `[baseURL, method, path]`. The fetch function
+   * passes the variables object as the HTTP request body.
+   *
+   * @template TData      - Response data type
+   * @template TVariables - Mutation variables / request body type
+   * @param method - HTTP method (e.g. 'PUT', 'POST', 'PATCH', 'DELETE')
+   * @param path   - Relative path (e.g. '/user/profile')
+   *
+   * @example
+   * ```typescript
+   * readonly updateProfile = this.mutation<User, ProfileUpdate>('PUT', '/user/profile');
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-mutation
+  protected mutation<TData, TVariables>(
+    method: HttpMethod,
+    path: string
+  ): MutationDescriptor<TData, TVariables> {
+    const key = [this.config.baseURL, method, path] as const;
+
+    return {
+      key,
+      fetch: (variables: TVariables) =>
+        this.dispatchRequest<TData>(method, path, variables, undefined),
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-mutation
+
+  /**
+   * Dispatch an HTTP request through the RestProtocol.
+   * Routes to the correct protocol method based on the HTTP method string.
+   * Only RestProtocol is used here — descriptors are REST-only by design.
+   *
+   * DELETE and GET carry no body; POST/PUT/PATCH forward the data argument.
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-dispatch
+  private dispatchRequest<TData>(
+    method: HttpMethod,
+    path: string,
+    data: unknown,
+    signal: AbortSignal | undefined
+  ): Promise<TData> {
+    const rest = this.protocol(RestProtocol);
+
+    switch (method) {
+      case 'GET':
+        return rest.get<TData>(path, { signal });
+      case 'DELETE':
+        return rest.delete<TData>(path, { signal });
+      case 'POST':
+        return rest.post<TData>(path, data, { signal });
+      case 'PUT':
+        return rest.put<TData>(path, data, { signal });
+      case 'PATCH':
+        return rest.patch<TData>(path, data, { signal });
+      default:
+        // HEAD and OPTIONS are not meaningful for descriptor-based endpoints
+        throw new Error(`HttpMethod "${method}" is not supported by endpoint descriptors`);
+    }
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-dispatch
 
   // ============================================================================
   // Cleanup

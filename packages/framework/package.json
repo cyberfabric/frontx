@@ -39,7 +39,8 @@
     "@hai3/state": "*",
     "@hai3/screensets": "*",
     "@hai3/api": "*",
-    "@hai3/i18n": "*"
+    "@hai3/i18n": "*",
+    "@tanstack/query-core": "^5.0.0"
   },
   "peerDependenciesMeta": {
     "@hai3/state": {
@@ -52,6 +53,9 @@
       "optional": false
     },
     "@hai3/i18n": {
+      "optional": false
+    },
+    "@tanstack/query-core": {
       "optional": false
     }
   },

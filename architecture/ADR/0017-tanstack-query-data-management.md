@@ -1,9 +1,12 @@
 ---
-status: proposed
+status: amended
 date: 2026-03-17
+amended-by: 0018-endpoint-descriptor-cache-abstraction
 ---
 
 # Adopt TanStack Query for Declarative Data Management at L3
+
+> **Amended by [ADR-0018](0018-endpoint-descriptor-cache-abstraction.md)**: The decision to adopt TanStack Query at L3 remains valid. However, the per-MFE `data/` folder pattern (query key factories, `queryOptions` calls) is superseded by endpoint descriptors on `BaseApiService`. Cache keys are now derived automatically by the service, and `useApiQuery`/`useApiMutation` consume endpoint descriptors instead of TanStack-specific options. See ADR-0018 for details.
 
 
 <!-- toc -->

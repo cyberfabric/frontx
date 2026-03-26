@@ -103,10 +103,12 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 1. [x] `p1` - Developer declares a class extending `BaseApiService` — `inst-extend-base`
 2. [x] `p1` - Constructor calls `super({ baseURL }, ...protocols)` with at least one protocol instance — `inst-super-call`
 3. [x] `p1` - Constructor optionally calls `this.registerPlugin(protocol, mockPlugin)` to pre-register mock plugins — `inst-register-mock-plugin`
-4. [x] `p1` - Developer calls `apiRegistry.register(ServiceClass)` to instantiate and store the service — `inst-registry-register`
-5. [x] `p1` - Consumer calls `apiRegistry.getService(ServiceClass)` to retrieve the typed instance — `inst-registry-get`
-6. [x] `p1` - `apiRegistry.getService` RETURN typed service instance — `inst-return-service`
-7. [x] `p1` - IF `ServiceClass` is not registered, RETURN error: `"Service not found. Did you forget to call apiRegistry.register(…)?"` — `inst-not-found-error`
+4. [ ] - `p3` - Developer declares read endpoints as `readonly prop = this.query<TData>(path, options?)` or `this.queryWith<TData, TParams>(pathFn, options?)` (always GET) — cache keys are derived automatically from `[baseURL, 'GET', path]` — `inst-declare-query-endpoints`
+5. [ ] - `p3` - Developer declares write endpoints as `readonly prop = this.mutation<TData, TVariables>(method, path)` — `inst-declare-mutation-endpoints`
+6. [x] `p1` - Developer calls `apiRegistry.register(ServiceClass)` to instantiate and store the service — `inst-registry-register`
+7. [x] `p1` - Consumer calls `apiRegistry.getService(ServiceClass)` to retrieve the typed instance — `inst-registry-get`
+8. [x] `p1` - `apiRegistry.getService` RETURN typed service instance — `inst-return-service`
+9. [x] `p1` - IF `ServiceClass` is not registered, RETURN error: `"Service not found. Did you forget to call apiRegistry.register(…)?"` — `inst-not-found-error`
 
 ---
 

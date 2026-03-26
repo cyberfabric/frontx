@@ -54,6 +54,9 @@ Check for violations in each category:
 - [ ] Domain-based services (not entity-based)
 - [ ] Extends BaseApiService
 - [ ] Self-registers via apiRegistry
+- [ ] Read endpoints as `this.query()` / `this.queryWith()` descriptors (no data/ folder)
+- [ ] Write endpoints as `this.mutation()` descriptors
+- [ ] Screens use `useApiQuery(service.descriptor)` — no queryOptions or manual key factories
 - [ ] Mocks in app layer
 
 ### Screenset Rules

@@ -830,6 +830,68 @@ export type ProtocolPluginType<T extends ApiProtocol> =
  */
 export type ServiceConstructor<T = BaseApiService> = new () => T;
 
+// ============================================================================
+// Endpoint Descriptor Types
+// ============================================================================
+
+/**
+ * Cache hint options for endpoint descriptors.
+ * These map directly to TanStack Query cache settings at the consumer layer (L2+),
+ * but @hai3/api has no dependency on TanStack — descriptors are plain objects.
+ */
+export interface EndpointOptions {
+  /** How long (ms) data is considered fresh before a background refetch. */
+  staleTime?: number;
+  /** How long (ms) unused cache entries are retained after all observers unmount. */
+  gcTime?: number;
+}
+
+/**
+ * Static read endpoint descriptor.
+ * Produced by `BaseApiService.query()`. Carries a stable cache key derived from
+ * `[baseURL, method, path]` and a fetch function that forwards AbortSignal.
+ *
+ * @template TData - Shape of the resolved response data.
+ */
+export interface EndpointDescriptor<TData> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /** Execute the HTTP request. Signal is forwarded to the underlying protocol. */
+  fetch(options?: { signal?: AbortSignal }): Promise<TData>;
+  /** Optional cache freshness override (milliseconds). */
+  readonly staleTime?: number;
+  /** Optional garbage-collection time override (milliseconds). */
+  readonly gcTime?: number;
+}
+
+/**
+ * Parameterized read endpoint descriptor factory.
+ * Produced by `BaseApiService.queryWith()`. When called with params the factory
+ * returns a concrete `EndpointDescriptor` whose cache key includes the resolved
+ * path and the params object: `[baseURL, method, resolvedPath, params]`.
+ *
+ * @template TData   - Shape of the resolved response data.
+ * @template TParams - Shape of the runtime parameters object.
+ */
+export type ParameterizedEndpointDescriptor<TData, TParams> =
+  (params: TParams) => EndpointDescriptor<TData>;
+
+/**
+ * Write endpoint descriptor.
+ * Produced by `BaseApiService.mutation()`. Carries a stable cache key derived
+ * from `[baseURL, method, path]` and a fetch function that passes variables as
+ * the request body.
+ *
+ * @template TData      - Shape of the resolved response data.
+ * @template TVariables - Shape of the mutation variables / request body.
+ */
+export interface MutationDescriptor<TData, TVariables> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /** Execute the mutation. Variables are sent as the request body. */
+  fetch(variables: TVariables): Promise<TData>;
+}
+
 /**
  * API Registry Interface
  * Central registry for all API service instances.

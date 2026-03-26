@@ -56,7 +56,44 @@ const headlessApp = createHAI3()
 | `microfrontends()` | MFE actions, selectors, domain constants | screensets |
 | `i18n()` | i18nRegistry, setLanguage action | - |
 | `effects()` | Core effect coordination | - |
+| `queryCache()` | QueryClient lifecycle, cache invalidation, mock integration | - |
 | `mock()` | mockSlice, toggleMockMode action | effects |
+
+### Query Cache Plugin
+
+The `queryCache()` plugin owns the `QueryClient` lifecycle and integrates caching with the event-driven architecture. It's included in the `full()` preset by default:
+
+```typescript
+import { createHAI3App } from '@hai3/framework';
+
+// Full preset includes queryCache plugin automatically
+const app = createHAI3App();
+
+// Access QueryClient (for non-React contexts like tests/SSR)
+app.queryClient;
+
+// Cache is automatically cleared on mock mode toggle
+// Flux effects can invalidate cache via eventBus.emit('cache/invalidate', { queryKey })
+```
+
+For custom plugin compositions:
+
+```typescript
+import { createHAI3, queryCache } from '@hai3/framework';
+
+const app = createHAI3()
+  .use(queryCache({ staleTime: 60_000, gcTime: 600_000 }))
+  .build();
+```
+
+The plugin:
+- Creates and manages the `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`)
+- Clears cache on mock mode toggle (via `MockEvents.Toggle` listener)
+- Handles Flux escape hatch: L2 effects invalidate cache via `cache/invalidate` event
+- Exposes `app.queryClient` for `HAI3Provider` and non-React access
+- Calls `queryClient.clear()` on destroy
+
+`@tanstack/query-core` is a peer dependency of `@hai3/framework`.
 
 ### Mock Mode Control
 
@@ -296,7 +333,7 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 - `presets` - Available presets (full, minimal, headless)
 
 ### Plugins
-- `screensets`, `themes`, `layout`, `microfrontends`, `i18n`, `effects`, `mock`
+- `screensets`, `themes`, `layout`, `microfrontends`, `i18n`, `effects`, `queryCache`, `mock`
 
 ### Registries
 - `createThemeRegistry` - Theme registry factory

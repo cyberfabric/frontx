@@ -54,7 +54,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-global-shared-property-broadcast`,
 `cpt-hai3-adr-cli-template-based-code-generation`,
 `cpt-hai3-adr-two-tier-cli-e2e-verification`,
-`cpt-hai3-adr-tanstack-query-data-management`
+`cpt-hai3-adr-tanstack-query-data-management`,
+`cpt-hai3-adr-endpoint-descriptor-cache-abstraction`
 
 #### Functional Drivers
 

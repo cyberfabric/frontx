@@ -137,7 +137,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 1. [ ] `p1` - Host calls `createHAI3App(config?)` - `inst-call-createapp`
 2. [ ] `p1` - `createHAI3App` delegates to `createHAI3(config).useAll(full(presetConfig)).build()` - `inst-delegate-full`
-3. [ ] `p1` - `full()` preset returns the canonical plugin set: `effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends` - `inst-full-plugin-set`
+3. [ ] `p1` - `full()` preset returns the canonical plugin set: `effects`, `screensets`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends` - `inst-full-plugin-set`
 4. [ ] `p1` - **RETURN** fully assembled `HAI3App` - `inst-return-full-app`
 
 ### Theme Change and MFE Propagation
@@ -509,7 +509,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-presets`
 
 Three presets are provided as functions returning `HAI3Plugin[]`:
-- `full(config?)` — all seven plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends`)
+- `full(config?)` — all plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `queryCache`, `mock`, `microfrontends`)
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
 

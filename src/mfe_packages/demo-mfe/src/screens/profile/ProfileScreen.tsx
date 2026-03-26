@@ -1,14 +1,26 @@
 // @cpt-FEATURE:request-cancellation:p2
+// @cpt-FEATURE:implement-endpoint-descriptors:p4
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, useApiQuery, useApiMutation } from '@hai3/react';
+import {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
+  useApiQuery,
+  useApiMutation,
+  apiRegistry,
+} from '@hai3/react';
 import { Card, CardContent, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
-import { accountsMutations, accountsQueries } from '../../data/accounts';
+import { AccountsApiService, type UpdateProfileVariables } from '../../api/AccountsApiService';
+import type { GetCurrentUserResponse } from '../../api/types';
 import { ProfileDetailsCard, type ProfileFormValues } from './components/ProfileDetailsCard';
+
+type UpdateProfileContext = {
+  snapshot: GetCurrentUserResponse | undefined;
+};
 
 /**
  * Props for the ProfileScreen component.
@@ -37,17 +49,20 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
  *   onSettled -> invalidate to refetch authoritative state
  */
 // @cpt-begin:request-cancellation:p2:inst-profile-screen
+// @cpt-begin:implement-endpoint-descriptors:p4:inst-demo-profile-screen
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<string>('default');
   const [language, setLanguage] = useState<string>('en');
+
+  const service = apiRegistry.getService(AccountsApiService);
 
   // Load translations using the shared hook
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
   // TanStack Query — declarative fetch with automatic AbortSignal threading
   const { data, isLoading, isError, error, refetch } = useApiQuery(
-    accountsQueries.currentUser()
+    service.getCurrentUser
   );
 
   // Mutation: update profile name fields with optimistic update + rollback
@@ -55,9 +70,49 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     mutateAsync: updateProfile,
     isPending: isUpdating,
     error: updateError,
-  } = useApiMutation(
-    accountsMutations.updateProfile()
-  );
+  } = useApiMutation<GetCurrentUserResponse, Error, UpdateProfileVariables, UpdateProfileContext>({
+    endpoint: service.updateProfile,
+
+    onMutate: async (variables, { queryCache }) => {
+      // Cancel any in-flight refetch so it doesn't overwrite the optimistic value.
+      await queryCache.cancel(service.getCurrentUser);
+
+      const snapshot = queryCache.get<GetCurrentUserResponse>(service.getCurrentUser);
+
+      queryCache.set<GetCurrentUserResponse>(service.getCurrentUser, (old) => {
+        if (!old) {
+          return old;
+        }
+
+        return {
+          user: {
+            ...old.user,
+            firstName: variables.firstName,
+            lastName: variables.lastName,
+            updatedAt: new Date().toISOString(),
+            extra: {
+              ...old.user.extra,
+              department: variables.department,
+            },
+          },
+        };
+      });
+
+      return { snapshot };
+    },
+
+    onError: (_error, _variables, context, { queryCache }) => {
+      if (context?.snapshot !== undefined) {
+        queryCache.set(service.getCurrentUser, context.snapshot);
+      }
+    },
+
+    onSettled: async (_data, _error, _variables, _context, { queryCache: _queryCache }) => {
+      // Experiment mode: keep the shared cached value instead of invalidating,
+      // because the second MFE uses its own mock backend state.
+      void _queryCache;
+    },
+  });
 
   const handleProfileSave = useCallback(
     async (values: ProfileFormValues) => {
@@ -213,6 +268,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     </div>
   );
 };
+// @cpt-end:implement-endpoint-descriptors:p4:inst-demo-profile-screen
 // @cpt-end:request-cancellation:p2:inst-profile-screen
 
 ProfileScreen.displayName = 'ProfileScreen';

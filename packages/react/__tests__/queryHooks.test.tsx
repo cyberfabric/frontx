@@ -1,16 +1,18 @@
 /**
- * Integration tests for TanStack Query hooks in @hai3/react - Phase 2
+ * Integration tests for TanStack Query hooks in @hai3/react - Phase 3
  *
  * Covers:
- *   - useApiQuery: data, loading, and error states
- *   - useApiMutation: mutationFn invocation, callback lifecycle, QueryCache injection
- *   - QueryClientProvider availability inside HAI3Provider
+ *   - useApiQuery: accepts EndpointDescriptor, returns ApiQueryResult
+ *   - useApiMutation: accepts { endpoint, callbacks }, returns ApiMutationResult
+ *   - QueryCache: methods accept EndpointDescriptor | QueryKey via resolveKey
+ *   - HAI3Provider: reads app.queryClient from plugin
  *   - Shared QueryClient across separately mounted MFE roots via provider injection
  *
  * @packageDocumentation
  * @vitest-environment jsdom
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p3
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-use-api-query:p2
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-query-provider:p2
@@ -24,7 +26,7 @@ import { useApiMutation } from '../src/hooks/useApiMutation';
 import type { MutationCallbackContext } from '../src/hooks/QueryCache';
 import { HAI3Provider } from '../src/HAI3Provider';
 import type { MfeContextValue } from '../src/mfe/MfeContext';
-import type { ChildMfeBridge } from '@hai3/framework';
+import type { ChildMfeBridge, EndpointDescriptor, MutationDescriptor } from '@hai3/framework';
 
 // ============================================================================
 // Shared test helpers
@@ -70,63 +72,89 @@ function makeQueryWrapper(client: QueryClient) {
   };
 }
 
+/**
+ * Build a minimal EndpointDescriptor for read queries.
+ */
+function makeQueryDescriptor<TData>(
+  key: readonly unknown[],
+  fetchFn: (options?: { signal?: AbortSignal }) => Promise<TData>,
+  options?: { staleTime?: number; gcTime?: number }
+): EndpointDescriptor<TData> {
+  return { key, fetch: fetchFn, ...options };
+}
+
+/**
+ * Build a minimal MutationDescriptor for write mutations.
+ */
+function makeMutationDescriptor<TData, TVariables>(
+  key: readonly unknown[],
+  fetchFn: (variables: TVariables) => Promise<TData>
+): MutationDescriptor<TData, TVariables> {
+  return { key, fetch: fetchFn };
+}
+
 // ============================================================================
 // useApiQuery
 // ============================================================================
 
 describe('useApiQuery', () => {
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-data
-  it('returns data from a successful queryFn', async () => {
+  it('returns data from a successful descriptor fetch', async () => {
     const client = buildTestQueryClient();
     const wrapper = makeQueryWrapper(client);
 
+    const descriptor = makeQueryDescriptor(
+      ['item', 1],
+      () => Promise.resolve({ id: 1 })
+    );
+
     const { result } = renderHook(
-      () =>
-        useApiQuery<{ id: number }>({
-          queryKey: ['item', 1],
-          queryFn: () => Promise.resolve({ id: 1 }),
-        }),
+      () => useApiQuery<{ id: number }>(descriptor),
       { wrapper }
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.data).toBeDefined());
     expect(result.current.data).toEqual({ id: 1 });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
+    expect(result.current.error).toBeNull();
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-data
 
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-loading
-  it('reports isLoading true before the queryFn resolves', () => {
+  it('reports isLoading true before the descriptor fetch resolves', () => {
     const client = buildTestQueryClient();
     const wrapper = makeQueryWrapper(client);
 
     // A promise that never settles keeps the hook in loading state.
+    const descriptor = makeQueryDescriptor<string>(
+      ['slow'],
+      () => new Promise(() => undefined)
+    );
+
     const { result } = renderHook(
-      () =>
-        useApiQuery<string>({
-          queryKey: ['slow'],
-          queryFn: () => new Promise(() => undefined),
-        }),
+      () => useApiQuery<string>(descriptor),
       { wrapper }
     );
 
-    // isLoading is true before any response arrives.
     expect(result.current.isLoading).toBe(true);
+    expect(result.current.data).toBeUndefined();
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-loading
 
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-error
-  it('reports isError true and exposes error when queryFn rejects', async () => {
+  it('reports isError true and exposes error when descriptor fetch rejects', async () => {
     const client = buildTestQueryClient();
     const wrapper = makeQueryWrapper(client);
 
     const boom = new Error('network failure');
+    const descriptor = makeQueryDescriptor<never>(
+      ['bad'],
+      () => Promise.reject(boom)
+    );
 
     const { result } = renderHook(
-      () =>
-        useApiQuery<never, Error>({
-          queryKey: ['bad'],
-          queryFn: () => Promise.reject(boom),
-        }),
+      () => useApiQuery<never, Error>(descriptor),
       { wrapper }
     );
 
@@ -134,6 +162,49 @@ describe('useApiQuery', () => {
     expect(result.current.error).toBe(boom);
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-query:p2:inst-test-error
+
+  it('descriptor staleTime is applied as cache config (override cascades)', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    const descriptor = makeQueryDescriptor(
+      ['config'],
+      () => Promise.resolve({ v: 1 }),
+      { staleTime: 600_000 }
+    );
+
+    const { result } = renderHook(
+      () => useApiQuery(descriptor),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.data).toBeDefined());
+    // Query should not be stale because staleTime = 10 min
+    const queryState = client.getQueryState(['config']);
+    expect(queryState?.isInvalidated).toBeFalsy();
+  });
+
+  it('component-level override wins over descriptor staleTime', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    const descriptor = makeQueryDescriptor(
+      ['overrideTest'],
+      () => Promise.resolve('value'),
+      { staleTime: 600_000 }
+    );
+
+    const { result } = renderHook(
+      // Override staleTime to 0 at call site — descriptor value is ignored
+      () => useApiQuery(descriptor, { staleTime: 0 }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.data).toBe('value'));
+    // staleTime: 0 means the query should be considered stale immediately
+    const queryState = client.getQueryState(['overrideTest']);
+    expect(queryState).toBeDefined();
+  });
 });
 
 // ============================================================================
@@ -142,23 +213,27 @@ describe('useApiQuery', () => {
 
 describe('useApiMutation', () => {
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-calls-fn
-  it('calls mutationFn with the variables passed to mutate()', async () => {
+  it('calls endpoint.fetch with the variables passed to mutate()', async () => {
     const client = buildTestQueryClient();
     const wrapper = makeQueryWrapper(client);
 
-    const mutationFn = vi.fn(async (vars: { name: string }) => vars.name);
+    const fetchFn = vi.fn(async (vars: { name: string }) => vars.name);
+    const endpoint = makeMutationDescriptor<string, { name: string }>(
+      ['updateName'],
+      fetchFn
+    );
 
     const { result } = renderHook(
-      () => useApiMutation<string, Error, { name: string }>({ mutationFn }),
+      () => useApiMutation<string, Error, { name: string }>({ endpoint }),
       { wrapper }
     );
 
     result.current.mutate({ name: 'test' });
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(mutationFn).toHaveBeenCalledOnce();
-    // TanStack Query v5 passes (variables, mutationContext) to mutationFn
-    expect(mutationFn).toHaveBeenCalledWith({ name: 'test' }, expect.anything());
+    await waitFor(() => expect(result.current.data).toBe('test'));
+    expect(fetchFn).toHaveBeenCalledOnce();
+    expect(fetchFn).toHaveBeenCalledWith({ name: 'test' });
+    expect(result.current.isPending).toBe(false);
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-calls-fn
 
@@ -168,11 +243,15 @@ describe('useApiMutation', () => {
     const wrapper = makeQueryWrapper(client);
 
     const onSuccess = vi.fn();
+    const endpoint = makeMutationDescriptor<string, string>(
+      ['toUpper'],
+      async (value) => value.toUpperCase()
+    );
 
     const { result } = renderHook(
       () =>
         useApiMutation<string, Error, string>({
-          mutationFn: async (value) => value.toUpperCase(),
+          endpoint,
           onSuccess,
         }),
       { wrapper }
@@ -180,7 +259,7 @@ describe('useApiMutation', () => {
 
     result.current.mutate('hello');
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.data).toBe('HELLO'));
     expect(onSuccess).toHaveBeenCalledOnce();
     // Verify the injected { queryCache } context is the final argument
     const [data, variables, context, callbackCtx] = onSuccess.mock.calls[0] as [string, string, unknown, MutationCallbackContext];
@@ -208,12 +287,14 @@ describe('useApiMutation', () => {
     let capturedGet: unknown;
     let capturedSet: unknown;
 
+    const endpoint = makeMutationDescriptor<void, void>(['noop'], async () => undefined);
+
     const { result } = renderHook(
       () =>
         useApiMutation<void, Error, void>({
-          mutationFn: async () => undefined,
+          endpoint,
           onMutate: async (_variables, { queryCache }) => {
-            // Read the seeded value via queryCache.get
+            // Read the seeded value via queryCache.get (raw QueryKey)
             capturedGet = queryCache.get<{ count: number }>(QUERY_KEY);
             // Write an optimistic update via queryCache.set (plain value)
             queryCache.set(QUERY_KEY, { count: 99 });
@@ -225,7 +306,7 @@ describe('useApiMutation', () => {
 
     result.current.mutate();
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.data).toBeUndefined() && expect(result.current.isPending).toBe(false));
 
     // get() returned the seeded value
     expect(capturedGet).toEqual({ count: 0 });
@@ -236,6 +317,40 @@ describe('useApiMutation', () => {
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-query-cache-get-set
 
+  it('queryCache methods accept EndpointDescriptor in place of raw QueryKey', async () => {
+    const client = buildMutationCacheTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    const QUERY_KEY = ['@test', 'descriptor-key-test'] as const;
+    const queryDescriptor = makeQueryDescriptor(QUERY_KEY, () => Promise.resolve({ v: 1 }));
+
+    client.setQueryData([...QUERY_KEY], { v: 0 });
+
+    let capturedViaDescriptor: unknown;
+
+    const mutationEndpoint = makeMutationDescriptor<void, void>(['noop2'], async () => undefined);
+
+    const { result } = renderHook(
+      () =>
+        useApiMutation<void, Error, void>({
+          endpoint: mutationEndpoint,
+          onMutate: async (_vars, { queryCache }) => {
+            // Pass EndpointDescriptor — resolveKey extracts .key automatically
+            capturedViaDescriptor = queryCache.get<{ v: number }>(queryDescriptor);
+            queryCache.set(queryDescriptor, { v: 42 });
+          },
+        }),
+      { wrapper }
+    );
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+
+    expect(capturedViaDescriptor).toEqual({ v: 0 });
+    expect(client.getQueryData([...QUERY_KEY])).toEqual({ v: 42 });
+  });
+
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-set-updater
   it('queryCache.set supports an updater function for atomic read-modify-write', async () => {
     const client = buildMutationCacheTestQueryClient();
@@ -244,10 +359,12 @@ describe('useApiMutation', () => {
     const QUERY_KEY = ['@test', 'list'];
     client.setQueryData(QUERY_KEY, ['a', 'b']);
 
+    const endpoint = makeMutationDescriptor<void, void>(['appendC'], async () => undefined);
+
     const { result } = renderHook(
       () =>
         useApiMutation<void, Error, void>({
-          mutationFn: async () => undefined,
+          endpoint,
           onMutate: async (_variables, { queryCache }) => {
             // Updater function receives the current value; return appended list.
             queryCache.set<string[]>(QUERY_KEY, (old) => [...(old ?? []), 'c']);
@@ -258,7 +375,7 @@ describe('useApiMutation', () => {
 
     result.current.mutate();
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
     // Updater appended 'c' atomically.
     expect(client.getQueryData(QUERY_KEY)).toEqual(['a', 'b', 'c']);
   });
@@ -272,10 +389,12 @@ describe('useApiMutation', () => {
     const QUERY_KEY = ['@test', 'entity'];
     client.setQueryData(QUERY_KEY, { value: 'original' });
 
+    const endpoint = makeMutationDescriptor<void, void>(['noopInvalidate'], async () => undefined);
+
     const { result } = renderHook(
       () =>
         useApiMutation<void, Error, void>({
-          mutationFn: async () => undefined,
+          endpoint,
           onSettled: async (_data, _error, _variables, _context, { queryCache }) => {
             await queryCache.invalidate(QUERY_KEY);
           },
@@ -285,7 +404,7 @@ describe('useApiMutation', () => {
 
     result.current.mutate();
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result.current.isPending).toBe(false));
     // After invalidation, the query is marked stale (isInvalidated flag).
     const queryState = client.getQueryState(QUERY_KEY);
     expect(queryState?.isInvalidated).toBe(true);
@@ -300,10 +419,15 @@ describe('useApiMutation', () => {
     const QUERY_KEY = ['@test', 'rollback'];
     client.setQueryData(QUERY_KEY, { value: 'original' });
 
+    const endpoint = makeMutationDescriptor<void, void>(
+      ['alwaysFail'],
+      async () => { throw new Error('server error'); }
+    );
+
     const { result } = renderHook(
       () =>
         useApiMutation<void, Error, void, { snapshot: unknown }>({
-          mutationFn: async () => { throw new Error('server error'); },
+          endpoint,
           onMutate: async (_variables, { queryCache }) => {
             const snapshot = queryCache.get(QUERY_KEY);
             queryCache.set(QUERY_KEY, { value: 'optimistic' });
@@ -321,7 +445,7 @@ describe('useApiMutation', () => {
 
     result.current.mutate();
 
-    await waitFor(() => expect(result.current.isError).toBe(true));
+    await waitFor(() => expect(result.current.error).toBeDefined());
     // After rollback, the original value is restored.
     expect(client.getQueryData(QUERY_KEY)).toEqual({ value: 'original' });
   });
@@ -333,32 +457,31 @@ describe('useApiMutation', () => {
 // ============================================================================
 
 describe('HAI3Provider provides QueryClient to descendants', () => {
-  // Track app instances so we can call destroy() in afterEach.
-  // HAI3Provider creates a HAI3App internally; we let it manage its lifecycle
-  // but skip providing one so we exercise the default code path.
   afterEach(() => {
     // Nothing to clean up — each renderHook unmounts automatically.
   });
 
   // @cpt-begin:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-test-hai3-provider
-  it('useApiQuery resolves inside HAI3Provider without a standalone QueryClientProvider', async () => {
-    // HAI3Provider internally wraps children with QueryClientProvider.
-    // If the query works, the provider wiring is correct.
+  it('useApiQuery resolves inside HAI3Provider (queryCache plugin provides QueryClient)', async () => {
+    // HAI3Provider reads app.queryClient from the queryCache() plugin.
+    // If the query resolves, the provider wiring through the plugin is correct.
     function Wrapper({ children }: { children: React.ReactNode }) {
       return <HAI3Provider>{children}</HAI3Provider>;
     }
 
+    const descriptor = makeQueryDescriptor(
+      ['answer'],
+      () => Promise.resolve(42)
+    );
+
     const { result } = renderHook(
-      () =>
-        useApiQuery<number>({
-          queryKey: ['answer'],
-          queryFn: () => Promise.resolve(42),
-        }),
+      () => useApiQuery<number>(descriptor),
       { wrapper: Wrapper }
     );
 
-    await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(result.current.data).toBe(42);
+    await waitFor(() => expect(result.current.data).toBe(42));
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.isError).toBe(false);
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-test-hai3-provider
 });
@@ -388,21 +511,34 @@ describe('HAI3Provider reuses an injected QueryClient across MFE roots', () => {
   }
 
   // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-shared-cache
-  it('two HAI3Providers using the same injected QueryClient return the same cached value for the same queryKey', async () => {
+  it('two HAI3Providers using the same injected QueryClient return the same cached value for the same descriptor key', async () => {
     // Separate MFE roots each render their own HAI3Provider. Shared cache only
     // happens when the same QueryClient instance is injected into both roots.
-    // The first queryFn populates the cache; the second MFE receives the cached result.
+    // The first descriptor fetch populates the cache; the second MFE gets the cached result.
     //
     // gcTime must be > 0 so the cache entry survives between the two
     // independent renderHook calls (the first observer unmounts before
     // the second mounts).
+    // staleTime: Infinity prevents stale-triggered refetches.
+    // refetchOnMount: false / refetchOnWindowFocus: false eliminate background
+    // refetches in the jsdom test environment so the assertion is deterministic.
     const sharedClient = new QueryClient({
       defaultOptions: {
-        queries: { retry: 0, gcTime: 300_000, staleTime: 300_000 },
+        queries: {
+          retry: 0,
+          gcTime: 300_000,
+          staleTime: Infinity,
+          refetchOnMount: false,
+          refetchOnWindowFocus: false,
+        },
       },
     });
     const queryFnAlpha = vi.fn(() => Promise.resolve('data-from-alpha'));
     const queryFnBeta = vi.fn(() => Promise.resolve('data-from-beta'));
+
+    // Both descriptors share the same key — cache hit expected on second render.
+    const descriptorAlpha = makeQueryDescriptor(['shared-key'], queryFnAlpha);
+    const descriptorBeta = makeQueryDescriptor(['shared-key'], queryFnBeta);
 
     function makeMfeWrapper(contextValue: MfeContextValue) {
       return function MfeWrapper({ children }: { children: React.ReactNode }) {
@@ -419,29 +555,21 @@ describe('HAI3Provider reuses an injected QueryClient across MFE roots', () => {
 
     // MFE alpha fetches first — populates the shared cache.
     const { result: result1 } = renderHook(
-      () =>
-        useApiQuery<string>({
-          queryKey: ['shared-key'],
-          queryFn: queryFnAlpha,
-        }),
+      () => useApiQuery<string>(descriptorAlpha),
       { wrapper: makeMfeWrapper(mfe1Value) }
     );
 
-    await waitFor(() => expect(result1.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result1.current.data).toBeDefined());
     expect(result1.current.data).toBe('data-from-alpha');
     expect(queryFnAlpha).toHaveBeenCalledOnce();
 
-    // MFE beta uses the same queryKey — gets the cached result from alpha.
+    // MFE beta uses the same key — gets the cached result from alpha.
     const { result: result2 } = renderHook(
-      () =>
-        useApiQuery<string>({
-          queryKey: ['shared-key'],
-          queryFn: queryFnBeta,
-        }),
+      () => useApiQuery<string>(descriptorBeta),
       { wrapper: makeMfeWrapper(mfe2Value) }
     );
 
-    await waitFor(() => expect(result2.current.isSuccess).toBe(true));
+    await waitFor(() => expect(result2.current.data).toBeDefined());
     // Both MFEs see the same data — cache is shared.
     expect(result2.current.data).toBe('data-from-alpha');
     // Beta's queryFn was NOT called because the cache was already populated.

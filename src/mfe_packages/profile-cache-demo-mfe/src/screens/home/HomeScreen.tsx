@@ -5,12 +5,13 @@ import {
   HAI3_SHARED_PROPERTY_LANGUAGE,
   useApiQuery,
   useQueryCache,
+  apiRegistry,
 } from '@hai3/react';
 import { Button } from '../../components/ui/button';
 import { Card, CardContent } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
-import { accountsKeys, accountsQueries } from '../../data/accounts';
+import { _ProfileCacheDemoApiService } from '../../api/_ProfileCacheDemoApiService';
 import { AccountDetailsCard } from './components/AccountDetailsCard';
 
 // Stable reference for translation modules (hoisted to module level to prevent re-render loops)
@@ -45,6 +46,7 @@ interface HomeScreenProps {
  * 5. Customize this component for your use case
  * 6. Add/modify translation files as needed
  */
+// @cpt-begin:implement-endpoint-descriptors:p4:inst-profile-cache-demo-home
 export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<string>('default');
@@ -52,16 +54,16 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
   const [cacheWarmOnMount, setCacheWarmOnMount] = useState<boolean | null>(null);
   const queryCache = useQueryCache();
 
+  const service = apiRegistry.getService(_ProfileCacheDemoApiService);
   const { t, loading } = useScreenTranslations(languageModules, bridge);
   const { data, isLoading, isError, error, refetch } = useApiQuery(
-    accountsQueries.currentUser()
+    service.getCurrentUser
   );
 
   useEffect(() => {
-    setCacheWarmOnMount(
-      queryCache.getState(accountsKeys.currentUser())?.data !== undefined
-    );
-  }, [queryCache]);
+    const warm = queryCache.getState(service.getCurrentUser)?.data !== undefined;
+    setCacheWarmOnMount(warm);
+  }, [queryCache, service.getCurrentUser]);
 
   useEffect(() => {
     // Read initial property values
@@ -193,7 +195,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
               <div>
                 <dt className="font-medium">{t('cache_key')}</dt>
                 <dd className="font-mono text-sm text-muted-foreground">
-                  {JSON.stringify(accountsKeys.currentUser())}
+                  {JSON.stringify(service.getCurrentUser.key)}
                 </dd>
               </div>
               <div>
@@ -209,5 +211,7 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({ bridge }) => {
     </div>
   );
 };
+
+// @cpt-end:implement-endpoint-descriptors:p4:inst-profile-cache-demo-home
 
 HomeScreen.displayName = 'HomeScreen';

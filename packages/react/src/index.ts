@@ -28,12 +28,11 @@ export {
   useFormatters,
   useTheme,
   useApiQuery,
-  queryOptions,
   useApiMutation,
   useQueryCache,
 } from './hooks';
 
-export type { UseApiQueryOptions } from './hooks/useApiQuery';
+export type { ApiQueryOverrides } from './hooks/useApiQuery';
 export type { UseApiMutationOptions } from './hooks/useApiMutation';
 export type {
   QueryCache,
@@ -81,6 +80,8 @@ export type {
   UseScreenTranslationsReturn,
   UseFormattersReturn,
   UseThemeReturn,
+  ApiQueryResult,
+  ApiMutationResult,
 } from './types';
 
 // ============================================================================
@@ -240,6 +241,11 @@ export type {
   HAI3Plugin,
   HAI3AppBuilder,
   HAI3App,
+  // Endpoint descriptors — L3 components import from @hai3/react
+  EndpointOptions,
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
   PluginFactory,
   PluginProvides,
   PluginLifecycle,

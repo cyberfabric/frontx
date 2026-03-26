@@ -23,7 +23,7 @@ import {
   type PluginClass,
 } from '../types';
 import { isSseShortCircuit } from '../types';
-import { apiRegistry } from '../apiRegistry';
+import { protocolPluginRegistry } from '../protocolPluginRegistry';
 
 /**
  * SSE Protocol Implementation
@@ -111,7 +111,7 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
    */
   // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
   private getGlobalPlugins(): readonly SsePluginHooks[] {
-    const allGlobalPlugins = apiRegistry.plugins.getAll(SseProtocol);
+    const allGlobalPlugins = protocolPluginRegistry.getAll(SseProtocol);
     const excludedClasses = this._getExcludedClasses();
 
     if (excludedClasses.size === 0) {

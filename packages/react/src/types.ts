@@ -15,11 +15,46 @@ import type {
   Language,
   Formatters,
 } from '@hai3/framework';
-import type { QueryClient, QueryClientConfig } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/react-query';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
 export type { HAI3Config, HAI3App };
+
+// ============================================================================
+// API Hook Result Types
+// ============================================================================
+
+/**
+ * HAI3-owned query result type.
+ * Returned by useApiQuery — callers depend on this contract, not on TanStack internals.
+ */
+// @cpt-FEATURE:implement-endpoint-descriptors:p3
+// @cpt-begin:implement-endpoint-descriptors:p3:inst-api-query-result
+export interface ApiQueryResult<TData, TError = Error> {
+  data: TData | undefined;
+  error: TError | null;
+  isLoading: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  refetch: () => Promise<unknown>;
+}
+// @cpt-end:implement-endpoint-descriptors:p3:inst-api-query-result
+
+/**
+ * HAI3-owned mutation result type.
+ * Returned by useApiMutation — callers depend on this contract, not on TanStack internals.
+ */
+// @cpt-begin:implement-endpoint-descriptors:p3:inst-api-mutation-result
+export interface ApiMutationResult<TData, TError = Error, TVariables = void> {
+  mutate: (variables: TVariables) => void;
+  mutateAsync: (variables: TVariables) => Promise<TData>;
+  isPending: boolean;
+  error: TError | null;
+  data: TData | undefined;
+  reset: () => void;
+}
+// @cpt-end:implement-endpoint-descriptors:p3:inst-api-mutation-result
 
 // ============================================================================
 // Type Aliases
@@ -72,18 +107,12 @@ export interface HAI3ProviderProps {
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
   /**
-   * Optional externally managed QueryClient.
-   * Use this when multiple React roots (for example host + MFEs) must share
-   * the same TanStack Query cache instance.
+   * Optional externally managed QueryClient for MFE injection.
+   * When multiple React roots (host + MFEs) must share one cache, pass the
+   * host-owned QueryClient here so each MFE root participates in the same instance.
+   * When omitted, HAI3Provider reads app.queryClient from the queryCache() plugin.
    */
   queryClient?: QueryClient;
-  /**
-   * Optional overrides for the QueryClient defaults.
-   * HAI3 sets staleTime=30s, gcTime=5m, retry=0, refetchOnWindowFocus=true.
-   * Pass this to tune per-app. Retry should remain 0 unless the HAI3 plugin
-   * retry chain is disabled — enabling both causes double retries.
-   */
-  queryClientConfig?: QueryClientConfig;
 }
 
 // ============================================================================

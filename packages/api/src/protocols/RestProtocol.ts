@@ -36,7 +36,7 @@ import {
   type RestRequestOptions,
 } from '../types';
 import { isRestShortCircuit } from '../types';
-import { apiRegistry } from '../apiRegistry';
+import { protocolPluginRegistry } from '../protocolPluginRegistry';
 
 /**
  * Default REST protocol configuration.
@@ -164,7 +164,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    */
   // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
   private getGlobalPlugins(): readonly RestPluginHooks[] {
-    const allGlobalPlugins = apiRegistry.plugins.getAll(RestProtocol);
+    const allGlobalPlugins = protocolPluginRegistry.getAll(RestProtocol);
     const excludedClasses = this.getExcludedClasses();
 
     if (excludedClasses.size === 0) {

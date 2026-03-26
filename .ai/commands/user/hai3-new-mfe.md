@@ -124,15 +124,46 @@ npm run dev:all
 - Use `useState` for local state management
 - Do not import Redux hooks (@hai3/react)
 
+## API SERVICE & DATA FETCHING
+
+MFEs use endpoint descriptors on their API service class — no `data/` folder needed:
+
+```typescript
+class MyApiService extends BaseApiService {
+  constructor() {
+    const restProtocol = new RestProtocol({ timeout: 30000 });
+    super({ baseURL: '/api/my-domain' }, restProtocol);
+    this.registerPlugin(restProtocol, new RestMockPlugin({ mockMap, delay: 100 }));
+  }
+
+  readonly getItems = this.query<ItemsResponse>('/items');
+  readonly createItem = this.mutation<Item, CreateItemVars>('POST', '/items');
+}
+```
+
+Screens consume descriptors directly:
+```typescript
+const service = apiRegistry.getService(MyApiService);
+const { data, isLoading } = useApiQuery(service.getItems);
+const { mutateAsync } = useApiMutation({ endpoint: service.createItem });
+```
+
+**Cache sharing**: MFEs with the same `baseURL` and path share cache entries automatically.
+To isolate cache, use a different `baseURL`.
+
 ## BEST PRACTICES
 
 ✅ **DO:**
-- Use mock data with useState for UI-only MFEs
+- Define endpoints as descriptors on the service (`this.query()`, `this.mutation()`)
+- Use `useApiQuery(service.descriptor)` for reads
+- Use `useApiMutation({ endpoint: service.descriptor })` for writes
 - Keep MFE logic isolated and simple
 - Own UI components locally in `components/ui/` (no shared UI kit)
 - Test with Chrome DevTools MCP
 
 ❌ **DON'T:**
+- Create `data/` folders with query key factories or `queryOptions()`
+- Import `queryOptions` from `@tanstack/react-query` or `@hai3/react`
 - Import Redux hooks directly
 - Use vite build && vite preview in dev mode
 - Create complex state management in MFE

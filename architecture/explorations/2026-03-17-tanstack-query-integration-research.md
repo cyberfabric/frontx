@@ -267,13 +267,85 @@ The overlap zone is "server data stored in Redux slices." If a Redux slice curre
 - Request deduplication is automatic: multiple observers on the same query key share one in-flight request via a shared retryer promise. (Corroborated)
 - TanStack Query manages server state (fetch, cache, refetch, invalidate). It complements Redux/Zustand for client state rather than replacing them. (Substantiated)
 
+### 10. Library swappability: plugin vs. adapter vs. endpoint descriptor
+
+**Research question (added 2026-03-25):** Should TanStack Query be wrapped in a plugin (like the API package's `RestPlugin` system) to allow future swapping to another library (e.g., GraphQL client, SWR)?
+
+**Analysis of three approaches:**
+
+#### Option A: Plugin system (like API package)
+
+The API package's plugin system works because REST/SSE protocols have a stable lifecycle (request → response → error) that plugins hook into with `onRequest`/`onResponse`/`onError`. Data fetching in React has no equivalent stable seam — the primitives differ fundamentally between libraries:
+
+| Concern | TanStack Query | Apollo Client | SWR |
+|---------|---------------|---------------|-----|
+| Cache key | `queryKey: unknown[]` | Normalized by `__typename:id` | `key: string` |
+| Query input | `queryFn: () => Promise<T>` | `query: DocumentNode` | `fetcher: () => Promise<T>` |
+| Cache policy | `staleTime` / `gcTime` | `fetchPolicy: 'cache-first'` | `dedupingInterval` |
+| Mutation | `useMutation({ mutationFn })` | `useMutation(MUTATION_DOC)` | N/A (manual) |
+| Optimistic | `onMutate` callback | `optimisticResponse` option | `mutate(key, data, false)` |
+
+A plugin chain can transform a request/response in a standard way. It cannot meaningfully abstract over these fundamental API shape differences. A `QueryPlugin` with hooks like `onQueryCreate` / `onCacheHit` would be an artificial layer that maps poorly to how these libraries actually work.
+
+**Verdict:** Plugin pattern is wrong here. Plugins are for composable behaviors in a uniform lifecycle, not for swapping fundamental paradigms.
+
+#### Option B: HAI3-owned factory (re-export queryOptions)
+
+Replace TanStack's `queryOptions` re-export with a HAI3-owned factory function. MFEs keep their `data/` folders but import from `@hai3/react`.
+
+This reduces the type leak (HAI3 owns the option and result types) but does not solve the core problem: every MFE still has a `data/` folder with manual key factories, `queryFn` wrappers, and TanStack-shaped option objects. With hundreds of MFEs, a library swap still means editing hundreds of files. The abstraction hides the library name but not its shape.
+
+**Verdict:** Necessary but insufficient. Owning the types is a good step, but doesn't eliminate per-MFE coupling.
+
+#### Option C: Endpoint descriptors on BaseApiService (chosen)
+
+Move caching metadata into the service layer. The service already knows `baseURL` and path — everything needed to derive a cache key. `this.query('/user/current')` returns an `EndpointDescriptor { key, fetch, staleTime?, gcTime? }` (always GET — method is implicit for reads). Components consume descriptors: `useApiQuery(service.getCurrentUser)`.
+
+The descriptor is a plain object at L1 with zero caching library dependency. The React layer (L3) is the sole consumer that maps descriptors to library-specific hooks.
+
+**Key insight for protocol swaps:** For GraphQL, the service would use a `GraphQLProtocol` and `this.query(GET_USER_QUERY)`. The cache key would be derived from the operation name + variables instead of HTTP method + path. Component code stays identical: `useApiQuery(service.getCurrentUser)`. The descriptor is protocol-agnostic.
+
+**Migration surface on library swap:**
+
+| Approach | Files to change | Where |
+|----------|----------------|-------|
+| Plugin | ~5 adapter files + plugin contract | `@hai3/react` |
+| Factory re-export | ~5 framework files + **hundreds of MFE data/ folders** | everywhere |
+| Endpoint descriptor | ~5 framework files | `@hai3/react` only |
+
+**Verdict:** Endpoint descriptors provide the same swap boundary as an API plugin (5 files in `@hai3/react`) without the artificial abstraction layer, and eliminate per-MFE coupling entirely. See [ADR-0018](../ADR/0018-endpoint-descriptor-cache-abstraction.md).
+
+#### Framework plugin for cache lifecycle (complementary, chosen)
+
+Separately from the swappability question, `@tanstack/query-core` can be managed by a **framework plugin** at L2 — following the same pattern as `mock()`, `themes()`, etc. The `queryCache()` plugin:
+
+1. Creates and owns the `QueryClient` with configurable defaults
+2. Exposes it as `app.queryClient` via `provides.registries`
+3. Listens for `MockEvents.Toggle` → clears cache on mock mode changes
+4. Listens for `cache/invalidate` events → Flux escape hatch for L2 effects
+5. Calls `queryClient.clear()` on `onDestroy`
+
+This is analogous to how `mock()` owns mock mode state and syncs plugins via events. The plugin does NOT make TanStack swappable — it centralizes lifecycle management. Combined with endpoint descriptors, the architecture becomes:
+
+```
+L1  EndpointDescriptor { key, fetch }     — library-agnostic, zero deps
+L2  queryCache() plugin                    — owns QueryClient, event integration
+L3  useApiQuery(descriptor)                — maps descriptor → TanStack hook
+```
+
+Swapping TanStack requires changing the L2 plugin + L3 hooks (~6 files). MFEs change nothing.
+
+**Why not a RestPlugin (L1 request chain)?** TanStack operates as a long-lived observer/subscription system: components subscribe, receive reactive updates, trigger background refetches, GC on unsubscribe. The `RestPlugin` lifecycle (`onRequest → onResponse → onError`) is one-shot per request — it cannot model subscriptions, deduplication, or stale-while-revalidate.
+
+**Confidence:** High — analysis based on direct inspection of HAI3 codebase patterns, TanStack Query API surface, Apollo Client API surface, and SWR API surface. The fundamental shape differences between libraries are well-documented.
+
 ## Open questions
 
 1. **Bundle size precision.** Exact minified+gzipped sizes for v5.90.x could not be verified from primary sources during this research. A local `npm pack` or bundlephobia check would provide exact numbers.
 2. **SSE integration pattern.** HAI3 has `SseProtocol` in its API layer. How TanStack Query integrates with long-lived SSE connections (pushing data into cache via `setQueryData`) needs prototyping to validate.
-3. **AbortSignal passthrough.** The current `BaseApiService` / `RestProtocol` does not appear to accept an `AbortSignal` parameter. Passing the signal from `queryFn` context through to the underlying axios call would require extending the protocol API.
+3. ~~**AbortSignal passthrough.** The current `BaseApiService` / `RestProtocol` does not appear to accept an `AbortSignal` parameter.~~ **Resolved:** AbortSignal support was added to `RestProtocol` via `RestRequestOptions { signal? }`. See feature-request-lifecycle FEATURE.md.
 4. **DevTools.** TanStack Query has a dedicated `@tanstack/react-query-devtools` package. Its value for debugging cache state during development was not investigated.
-5. **`queryOptions` factory placement.** Where `queryOptions` definitions live in the architecture (colocated with services? separate query layer?) affects maintainability.
+5. ~~**`queryOptions` factory placement.** Where `queryOptions` definitions live in the architecture (colocated with services? separate query layer?) affects maintainability.~~ **Resolved:** Endpoint descriptors on `BaseApiService` replace `queryOptions` factories entirely. No separate query layer or `data/` folder needed. See ADR-0018.
 6. **Streaming queries.** The `experimental_streamedQuery` export in query-core suggests streaming/SSE support is being developed upstream. Maturity and timeline are unknown.
 
 ## Sources

@@ -2,6 +2,8 @@
  * Accounts API service for the profile cache demo MFE.
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
 import { profileCacheDemoMockMap } from './mocks';
 import type { GetCurrentUserResponse } from './types';
@@ -28,7 +30,11 @@ export class _ProfileCacheDemoApiService extends BaseApiService {
     );
   }
 
-  async getCurrentUser(options?: { signal?: AbortSignal }): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current', options);
-  }
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-profile-cache-demo-descriptors
+  // Keep the cache-demo screen on the shared current-user snapshot instead of
+  // immediately refetching its own mock backend when the MFE mounts.
+  readonly getCurrentUser = this.query<GetCurrentUserResponse>('/user/current', {
+    staleTime: Infinity,
+  });
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-profile-cache-demo-descriptors
 }

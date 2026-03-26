@@ -33,9 +33,19 @@
 - FORBIDDEN: Creating services in src/api/services/ (directory deleted).
 - REQUIRED: Create services in src/screensets/*/api/. See SCREENSETS.md.
 
+## ENDPOINT DESCRIPTOR RULES
+- REQUIRED: Define read endpoints as `this.query<TData>(path, options?)` on the service class (always GET).
+- REQUIRED: Define parameterized read endpoints as `this.queryWith<TData, TParams>(pathFn, options?)` (always GET).
+- REQUIRED: Define write endpoints as `this.mutation<TData, TVariables>(method, path)` on the service class.
+- REQUIRED: Cache keys are derived automatically from `[baseURL, method, path]` — never define manual key factories.
+- REQUIRED: Per-endpoint cache options (`staleTime`, `gcTime`) are set on the descriptor, not in MFE code.
+- FORBIDDEN: Manual query key factory objects (e.g., `accountsKeys = { all: [...] }`).
+- FORBIDDEN: `queryOptions()` calls in MFE `data/` folders — the service IS the data layer.
+- FORBIDDEN: Creating a `data/` folder in MFE packages for query/mutation definitions.
+
 ## USAGE RULES
 - REQUIRED: Access service methods through a typed service instance.
-- REQUIRED: Resolve services lazily via a typed getter or inject the service into query and mutation factories.
+- REQUIRED: Use endpoint descriptors for all cached reads and writes.
 - REQUIRED: Type inference from class constructor reference (no module augmentation).
 - FORBIDDEN: Direct axios or fetch usage outside BaseApiService.
 
@@ -77,6 +87,9 @@
 
 ## PRE-DIFF CHECKLIST
 - [ ] Service class created extending BaseApiService.
+- [ ] Read endpoints use `this.query()` / `this.queryWith()` — no manual query key factories.
+- [ ] Write endpoints use `this.mutation()`.
+- [ ] No `data/` folder with `queryOptions()` calls or manual key arrays.
 - [ ] Service registered with apiRegistry.register(ServiceClass).
 - [ ] Protocol-specific mocks configured (RestMockPlugin, SseMockPlugin) if needed.
 - [ ] No edits to apiRegistry.ts.

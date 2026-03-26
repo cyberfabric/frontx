@@ -6,9 +6,17 @@
  * services into its own isolated apiRegistry instance.
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
-import type { GetCurrentUserResponse, UpdateProfileRequest } from './types';
+import type { GetCurrentUserResponse } from './types';
 import { accountsMockMap } from './mocks';
+
+export type UpdateProfileVariables = {
+  firstName: string;
+  lastName: string;
+  department?: string;
+};
 
 /**
  * Accounts API Service for the demo MFE.
@@ -33,19 +41,8 @@ export class AccountsApiService extends BaseApiService {
     );
   }
 
-  /**
-   * Get current authenticated user.
-   * Accepts an optional AbortSignal so TanStack Query can cancel the in-flight
-   * request when the consuming component unmounts or the query key changes.
-   */
-  async getCurrentUser(options?: { signal?: AbortSignal }): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current', options);
-  }
-
-  /**
-   * Update the current user's profile fields.
-   */
-  async updateProfile(data: UpdateProfileRequest): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).patch<GetCurrentUserResponse>('/user/profile', data);
-  }
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-accounts-descriptors
+  readonly getCurrentUser = this.query<GetCurrentUserResponse>('/user/current');
+  readonly updateProfile = this.mutation<GetCurrentUserResponse, UpdateProfileVariables>('PUT', '/user/profile');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-accounts-descriptors
 }

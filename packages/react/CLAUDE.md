@@ -40,10 +40,58 @@ const app = createHAI3().use(screensets()).build();
 </HAI3Provider>
 ```
 
+The `QueryClient` is created and owned by the `queryCache()` framework plugin at L2.
+`HAI3Provider` reads `app.queryClient` from the plugin — it does not create its own.
 When MFEs render in separate React roots, pass the same host-owned `queryClient`
-to each `HAI3Provider` so they share one TanStack Query cache. Host apps should
-register domains/extensions during bootstrap, then let `ExtensionDomainSlot`
-drive the actual `mount_ext` lifecycle for screen content.
+to each `HAI3Provider` so they share one cache. Host apps should register
+domains/extensions during bootstrap, then let `ExtensionDomainSlot` drive the
+actual `mount_ext` lifecycle for screen content.
+
+### Data Fetching with Endpoint Descriptors
+
+Services define endpoints as descriptors. Components consume them via `useApiQuery` and `useApiMutation`. No `data/` folder, no manual query keys, no `queryOptions()` calls.
+
+```tsx
+import { useApiQuery, useApiMutation, apiRegistry } from '@hai3/react';
+import { AccountsApiService } from '../api/AccountsApiService';
+
+function ProfileScreen() {
+  const service = apiRegistry.getService(AccountsApiService);
+
+  // Read — pass descriptor directly
+  const { data, isLoading, error } = useApiQuery(service.getCurrentUser);
+
+  // Read with params
+  const { data: user } = useApiQuery(service.getUser({ id: '123' }));
+
+  // Write with optimistic update
+  const { mutateAsync, isPending } = useApiMutation({
+    endpoint: service.updateProfile,
+    onMutate: async (variables, { queryCache }) => {
+      await queryCache.cancel(service.getCurrentUser);
+      const snapshot = queryCache.get(service.getCurrentUser);
+      queryCache.set(service.getCurrentUser, (old) => ({
+        ...old, user: { ...old.user, ...variables }
+      }));
+      return { snapshot };
+    },
+    onError: (_err, _vars, context, { queryCache }) => {
+      if (context?.snapshot) {
+        queryCache.set(service.getCurrentUser, context.snapshot);
+      }
+    },
+    onSettled: async (_data, _err, _vars, _ctx, { queryCache }) => {
+      await queryCache.invalidate(service.getCurrentUser);
+    },
+  });
+
+  // Per-endpoint cache override (rare)
+  const { data: config } = useApiQuery(service.getConfig, { staleTime: 0 });
+}
+```
+
+Cache keys are derived automatically by the service — `QueryCache` methods accept
+endpoint descriptors directly (e.g., `queryCache.get(service.getCurrentUser)`).
 
 ### Available Hooks
 
@@ -321,9 +369,12 @@ function Layout() {
 
 1. **Wrap with HAI3Provider** - Required for all hooks to work
 2. **Use hooks for state access** - Don't import selectors directly from @hai3/framework
-3. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
-4. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
-5. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
+3. **Use endpoint descriptors for data** - `useApiQuery(service.endpoint)`, not `queryOptions()` or manual key factories
+4. **No data/ folders in MFEs** - The service IS the data layer; cache keys are derived automatically
+5. **QueryCache uses descriptors** - `queryCache.get(service.endpoint)`, not raw key arrays
+6. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
+7. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
+8. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
 
 ## Re-exports
 
@@ -349,6 +400,9 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `useHAI3` - Access app instance
 - `useAppDispatch` - Typed dispatch
 - `useAppSelector` - Typed selector
+- `useApiQuery` - Declarative data fetch from endpoint descriptor; returns `ApiQueryResult<TData>`
+- `useApiMutation` - Declarative mutation with endpoint descriptor and optimistic update support; returns `ApiMutationResult<TData>`
+- `useQueryCache` - Restricted query cache access (accepts descriptors or raw keys)
 - `useTranslation` - Translation utilities
 - `useScreenTranslations` - Screen translation loading
 - `useTheme` - Theme utilities
@@ -365,9 +419,13 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 
 ### Types
 - `HAI3ProviderProps`
+- `ApiQueryResult<TData>` - HAI3-owned query result type (data, error, isLoading, refetch, etc.)
+- `ApiMutationResult<TData>` - HAI3-owned mutation result type (mutateAsync, isPending, error, reset, etc.)
+- `QueryCache` - Restricted cache interface (accepts descriptors or raw keys)
+- `MutationCallbackContext` - Context with queryCache injected into mutation callbacks
 - `MfeProviderProps`, `ExtensionDomainSlotProps`
 - `UseTranslationReturn`, `UseThemeReturn`
-- All types from @hai3/framework
+- All types from @hai3/framework (including `EndpointDescriptor`, `MutationDescriptor`)
 
 ### Utilities
 - `executeActionsChainWithMountContext` - Wrap `mount_ext` execution with host-provided mount context such as a shared `QueryClient`

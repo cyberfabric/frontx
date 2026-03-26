@@ -45,14 +45,23 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   // Extension-driven menu state — filtered by active GTS package
   const [extensions, setExtensions] = useState<ScreenExtension[]>([]);
   const [mountedId, setMountedId] = useState<string | undefined>();
+  const [lastActivePackage, setLastActivePackage] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (activePackage) {
+      setLastActivePackage(activePackage);
+    }
+  }, [activePackage]);
+
+  const visiblePackage = activePackage ?? lastActivePackage;
 
   useEffect(() => {
     if (!screensetsRegistry) return;
 
     const refresh = () => {
       let screenExts: ScreenExtension[];
-      if (activePackage) {
-        const packageExts = screensetsRegistry.getExtensionsForPackage(activePackage);
+      if (visiblePackage) {
+        const packageExts = screensetsRegistry.getExtensionsForPackage(visiblePackage);
         screenExts = packageExts.filter(
           (ext: Extension) => ext.domain === HAI3_SCREEN_DOMAIN && 'presentation' in ext
         ) as ScreenExtension[];
@@ -68,7 +77,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
     refresh();
     const interval = setInterval(refresh, 500);
     return () => clearInterval(interval);
-  }, [screensetsRegistry, activePackage]);
+  }, [screensetsRegistry, visiblePackage]);
 
   const handleToggleCollapse = () => {
     eventBus.emit('layout/menu/collapsed', { collapsed: !collapsed });
