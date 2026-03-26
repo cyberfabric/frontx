@@ -415,6 +415,7 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `plugins.add(...)` / `plugins.exclude(...)` / `plugins.getAll()` / `plugins.getExcluded()` / `plugins.getPlugin(Class)`
 - `registerPlugin(protocol, plugin)` stores in `registeredPluginsMap: Map<ApiProtocol, Set<ApiPluginBase>>`; throws if protocol not registered on this service
 - `getPlugins()` returns `ReadonlyMap<ApiProtocol, ReadonlySet<ApiPluginBase>>`
+- `stream<TEvent>(path, options?)` method: returns `StreamDescriptor<TEvent>` with key `[baseURL, 'SSE', path]`; `connect` routes through `SseProtocol.connect()` with plugin chain; default parser is `JSON.parse(event.data)`, overridable via `options.parse`
 - `cleanup()` calls `protocol.cleanup()` on each, clears map
 
 **Implements**:
@@ -647,7 +648,7 @@ The `@hai3/api` package exposes a complete, tree-shakeable public surface throug
 
 **Implementation details**:
 
-- Exports: `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`
+- Exports: `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `StreamDescriptor`, `StreamStatus`
 - Exports: `ApiPluginBase`, `ApiPlugin`, `RestPlugin`, `RestPluginWithConfig`, `SsePlugin`, `SsePluginWithConfig`
 - Exports: `apiRegistry`
 - Exports: `MOCK_PLUGIN`, `isMockPlugin`, `isShortCircuit`, `isRestShortCircuit`, `isSseShortCircuit`

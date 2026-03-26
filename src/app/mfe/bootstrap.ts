@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+
 /**
  * MFE Bootstrap
  *
@@ -9,7 +11,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { QueryClient } from '@tanstack/react-query';
+import type { QueryClient } from '@tanstack/query-core';
 import type { HAI3App, JSONSchema, MfeEntry, Extension, ScreenExtension } from '@hai3/react';
 import {
   executeActionsChainWithMountContext,
@@ -57,7 +59,7 @@ class DetachedContainerProvider extends RefContainerProvider {
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: React.RefObject<HTMLDivElement>,
-  queryClient: QueryClient,
+  queryClient?: QueryClient,
 ): Promise<ScreenExtension[]> {
   const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
@@ -74,17 +76,21 @@ export async function bootstrapMFE(
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
 
-  // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
-  // the host-owned QueryClient and join the shared cache.
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    await executeActionsChainWithMountContext(
-      screensetsRegistry,
-      chain,
-      queryClient,
-      origExecuteActionsChain,
-    );
-  }) as typeof screensetsRegistry.executeActionsChain;
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-shared-cache-bootstrap
+  if (queryClient) {
+    // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
+    // the host-owned QueryClient and join the shared cache.
+    const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+    screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+      await executeActionsChainWithMountContext(
+        screensetsRegistry,
+        chain,
+        queryClient,
+        origExecuteActionsChain,
+      );
+    }) as typeof screensetsRegistry.executeActionsChain;
+  }
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-shared-cache-bootstrap
 
   // Step 3: Guard — no manifests generated yet
   if (MFE_MANIFESTS.length === 0) {

@@ -1,4 +1,8 @@
 // @cpt-FEATURE:implement-endpoint-descriptors:p2
+// @cpt-dod:cpt-hai3-dod-request-lifecycle-query-provider:p2
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-flux-escape-hatch:p2
+// @cpt-algo:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2
 
 /**
  * QueryCache Plugin - QueryClient lifecycle management
@@ -65,6 +69,9 @@ export interface QueryCacheConfig {
 // ============================================================================
 
 // @cpt-begin:implement-endpoint-descriptors:p2:inst-1
+// @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mock-cache-clear
+// @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-flux-cache-invalidate
+// @cpt-begin:cpt-hai3-flow-request-lifecycle-flux-escape-hatch:p2:inst-invalidate-after-flux
 /**
  * Initialize cache event listeners and return a cleanup function.
  *
@@ -88,14 +95,14 @@ function initCacheEffects(queryClient: QueryClient): () => void {
     invalidateSub.unsubscribe();
   };
 }
+// @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mock-cache-clear
+// @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-flux-cache-invalidate
+// @cpt-end:cpt-hai3-flow-request-lifecycle-flux-escape-hatch:p2:inst-invalidate-after-flux
 // @cpt-end:implement-endpoint-descriptors:p2:inst-1
 
 // ============================================================================
 // Plugin Factory
 // ============================================================================
-
-// Store cleanup function per plugin instance (module-level to mirror mock.ts pattern)
-let cleanup: (() => void) | null = null;
 
 /**
  * QueryCache plugin factory.
@@ -123,6 +130,9 @@ let cleanup: (() => void) | null = null;
  * ```
  */
 // @cpt-begin:implement-endpoint-descriptors:p2:inst-2
+// @cpt-begin:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-create-in-plugin
+// @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-create-query-client
+// @cpt-begin:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-plugin-factory
 export function queryCache(config?: QueryCacheConfig): HAI3Plugin {
   const queryClient = new QueryClient({
     defaultOptions: {
@@ -136,6 +146,11 @@ export function queryCache(config?: QueryCacheConfig): HAI3Plugin {
       },
     },
   });
+
+  // Closure-scoped so each plugin instance owns its own cleanup reference.
+  // Module-level would cause the second instance to overwrite the first's
+  // cleanup, leading to subscription leaks on destroy.
+  let cleanup: (() => void) | null = null;
 
   return {
     name: 'queryCache',
@@ -157,4 +172,7 @@ export function queryCache(config?: QueryCacheConfig): HAI3Plugin {
     },
   };
 }
+// @cpt-end:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2:inst-create-in-plugin
+// @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-create-query-client
+// @cpt-end:cpt-hai3-dod-request-lifecycle-query-provider:p2:inst-plugin-factory
 // @cpt-end:implement-endpoint-descriptors:p2:inst-2

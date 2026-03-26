@@ -14,6 +14,10 @@
  * @vitest-environment jsdom
  *
  * @cpt-FEATURE:implement-endpoint-descriptors:p2
+ * @cpt-dod:cpt-hai3-dod-request-lifecycle-query-provider:p2
+ * @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+ * @cpt-flow:cpt-hai3-flow-request-lifecycle-flux-escape-hatch:p2
+ * @cpt-algo:cpt-hai3-algo-request-lifecycle-query-client-defaults:p2
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -322,5 +326,39 @@ describe('queryCache() — onDestroy cleanup', () => {
     plugin.onInit!(stubApp());
     plugin.onDestroy!(stubApp());
     expect(() => plugin.onDestroy!(stubApp())).not.toThrow();
+  });
+
+  it('two plugin instances have independent cleanup — destroying one does not break the other', () => {
+    const pluginA = queryCache();
+    const pluginB = queryCache();
+    const clientA = (pluginA.provides!.registries as { queryClient: QueryClient }).queryClient;
+    const clientB = (pluginB.provides!.registries as { queryClient: QueryClient }).queryClient;
+
+    pluginA.onInit!(stubApp());
+    pluginB.onInit!(stubApp());
+
+    // Seed both caches
+    clientA.setQueryData(['a'], 'dataA');
+    clientB.setQueryData(['b'], 'dataB');
+
+    // Destroy plugin A — should NOT affect plugin B's listeners
+    pluginA.onDestroy!(stubApp());
+
+    // Plugin B's cache/invalidate listener should still work
+    clientB.setQueryData(['b'], 'dataB-fresh');
+    eventBus.emit('cache/invalidate', { queryKey: ['b'] });
+
+    const stateB = clientB.getQueryState(['b']);
+    expect(stateB?.isInvalidated).toBe(true);
+
+    // Plugin A's cache should have been cleared by its own destroy
+    expect(clientA.getQueryData(['a'])).toBeUndefined();
+
+    // Plugin B's MockEvents.Toggle listener should still work
+    eventBus.emit(MockEvents.Toggle, { enabled: true });
+    expect(clientB.getQueryData(['b'])).toBeUndefined();
+
+    // Clean up plugin B
+    pluginB.onDestroy!(stubApp());
   });
 });

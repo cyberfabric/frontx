@@ -91,9 +91,14 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
 
   // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-resolve-query-client
   // Priority: explicitly injected client (MFE root) > plugin-owned client (app.queryClient).
-  // Callers must ensure one of these is present; if queryCache() plugin is not registered
-  // and no client is injected, QueryClientProvider will throw at render time.
   const queryClient = providedQueryClient ?? app.queryClient;
+
+  if (!queryClient && process.env.NODE_ENV !== 'production') {
+    console.warn(
+      '[HAI3Provider] No QueryClient available. Add queryCache() to your plugin composition ' +
+      'or pass a queryClient prop. useApiQuery/useApiMutation will fail without it.'
+    );
+  }
   // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-resolve-query-client
 
   // @cpt-begin:cpt-hai3-flow-react-bindings-bootstrap-provider:p1:inst-destroy-app

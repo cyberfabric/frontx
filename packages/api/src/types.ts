@@ -892,6 +892,44 @@ export interface MutationDescriptor<TData, TVariables> {
   fetch(variables: TVariables): Promise<TData>;
 }
 
+// ============================================================================
+// Stream Descriptor Types
+// ============================================================================
+
+// @cpt-FEATURE:cpt-hai3-fr-sse-stream-descriptors:p2
+// @cpt-begin:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-types
+/**
+ * Stream connection status.
+ */
+export type StreamStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
+
+/**
+ * SSE stream endpoint descriptor.
+ * Produced by `BaseApiService.stream()`. Carries a stable key derived from
+ * `[baseURL, 'SSE', path]` and connect/disconnect functions that route
+ * through SseProtocol's plugin chain.
+ *
+ * @template TEvent - Shape of each parsed SSE event payload.
+ */
+export interface StreamDescriptor<TEvent> {
+  /** Stable key: `[baseURL, 'SSE', path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Open the SSE connection. Returns a connectionId for later disconnect.
+   * @param onEvent  - Called for each SSE message with the parsed payload.
+   * @param onComplete - Optional callback when the stream signals completion.
+   */
+  connect(
+    onEvent: (event: TEvent) => void,
+    onComplete?: () => void,
+  ): Promise<string>;
+  /**
+   * Close an active SSE connection by ID.
+   */
+  disconnect(connectionId: string): void;
+}
+// @cpt-end:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-types
+
 /**
  * API Registry Interface
  * Central registry for all API service instances.

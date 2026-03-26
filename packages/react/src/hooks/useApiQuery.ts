@@ -11,6 +11,7 @@
  */
 // @cpt-dod:cpt-hai3-dod-request-lifecycle-use-api-query:p2
 // @cpt-flow:cpt-hai3-flow-request-lifecycle-use-api-query:p2
+// @cpt-state:cpt-hai3-state-request-lifecycle-query:p2
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
 import { useQuery } from '@tanstack/react-query';

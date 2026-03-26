@@ -55,7 +55,9 @@ export function resolveKey(target: EndpointDescriptor<unknown> | QueryKey): read
     typeof target === 'object' &&
     !Array.isArray(target) &&
     'key' in target &&
-    'fetch' in target
+    'fetch' in target &&
+    Array.isArray((target as EndpointDescriptor<unknown>).key) &&
+    typeof (target as EndpointDescriptor<unknown>).fetch === 'function'
   ) {
     return (target as EndpointDescriptor<unknown>).key;
   }

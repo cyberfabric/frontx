@@ -379,6 +379,9 @@ export type {
   EndpointDescriptor,
   ParameterizedEndpointDescriptor,
   MutationDescriptor,
+  // Stream descriptor types (consumed by useApiStream at L3)
+  StreamDescriptor,
+  StreamStatus,
 } from '@hai3/api';
 
 

@@ -34,12 +34,7 @@
   - [5.16 Publishing](#516-publishing)
   - [5.17 Mock Mode](#517-mock-mode)
   - [5.18 Microfrontend Plugin](#518-microfrontend-plugin)
-  - [5.19 Request Lifecycle & Data Management](#519-request-lifecycle-data-management)
-    - [Request Cancellation](#request-cancellation)
-    - [Endpoint Descriptors](#endpoint-descriptors)
-    - [queryCache Framework Plugin](#querycache-framework-plugin)
-    - [Declarative Query Hooks](#declarative-query-hooks)
-    - [Query Client Shared Cache](#query-client-shared-cache)
+  - [5.19 Request Lifecycle & Data Management](#519-request-lifecycle--data-management)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
   - [6.2 NFR Exclusions](#62-nfr-exclusions)
@@ -294,7 +289,7 @@ The system MUST use consistent HAI3 Flux terminology: Action (emits events), Eve
 
 - [x] `p1` - **ID**: `cpt-hai3-fr-sdk-api-package`
 
-`@hai3/api` MUST export `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `ApiPluginBase`, `ApiPlugin`, `ApiProtocol`, `apiRegistry`, and type guards `isShortCircuit`/`isRestShortCircuit`/`isSseShortCircuit`. It MUST have only `axios` as peer dependency.
+`@hai3/api` MUST export `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `ApiPluginBase`, `ApiPlugin`, `ApiProtocol`, `apiRegistry`, type guards `isShortCircuit`/`isRestShortCircuit`/`isSseShortCircuit`, and streaming types `StreamDescriptor`/`StreamStatus`. It MUST have only `axios` as peer dependency.
 
 **Rationale**: Protocol-agnostic API layer with pluggable mock mode.
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-api-protocol`
@@ -437,6 +432,15 @@ SSE-related events MUST be type-safe via `EventPayloadMap` module augmentation.
 
 **Rationale**: Compile-time safety for event-driven SSE integration.
 **Actors**: `cpt-hai3-actor-developer`
+
+#### Stream Descriptors
+
+- [x] `p2` - **ID**: `cpt-hai3-fr-sse-stream-descriptors`
+
+`BaseApiService` at L1 MUST provide `this.stream<TEvent>(path, options?)` that returns a `StreamDescriptor<TEvent>` with `key`, `connect(onEvent, onComplete?)`, and `disconnect(connectionId)`. Cache keys MUST be derived from `[baseURL, 'SSE', path]`. The `connect` method MUST route through `SseProtocol` with full plugin chain support (including mock short-circuit). Default event parsing MUST be `JSON.parse(event.data)` with an optional `parse` override. `@hai3/react` MUST export `useApiStream(descriptor, options?)` that manages EventSource lifecycle (connect on mount, disconnect on unmount), supports `'latest'` and `'accumulate'` modes, and returns `ApiStreamResult<TEvent>` with `{ data, events, status, error, disconnect }`.
+
+**Rationale**: Extends the descriptor pattern to SSE streams, giving components a declarative hook for real-time data that mirrors `useApiQuery` for REST. Services remain the single source of truth for connection shape and mock configuration.
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-screenset-author`
 
 ### 5.4 MFE Type System
 
@@ -897,7 +901,7 @@ The system MUST provide a `microfrontends()` framework plugin with actions (`loa
 
 - [ ] `p2` - **ID**: `cpt-hai3-fr-api-endpoint-descriptors`
 
-`BaseApiService` at L1 MUST provide `this.query<TData>(path, options?)`, `this.queryWith<TData, TParams>(pathFn, options?)`, and `this.mutation<TData, TVariables>(method, path)` methods that return `EndpointDescriptor` / `MutationDescriptor` objects. `query` and `queryWith` are always GET — the method is implicit. Cache keys MUST be derived automatically from `[baseURL, 'GET', path]` for reads and `[baseURL, method, path]` for writes. Descriptors carry optional cache hints (`staleTime`, `gcTime`). MFEs MUST NOT create `data/` folders with manual query key factories or `queryOptions()` calls — the service IS the data layer.
+`BaseApiService` at L1 MUST provide `this.query<TData>(path, options?)`, `this.queryWith<TData, TParams>(pathFn, options?)`, and `this.mutation<TData, TVariables>(method, path)` methods that return `EndpointDescriptor` / `MutationDescriptor` objects, and `this.stream<TEvent>(path, options?)` that returns a `StreamDescriptor<TEvent>`. `query` and `queryWith` are always GET — the method is implicit. Cache keys MUST be derived automatically from `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes, and `[baseURL, 'SSE', path]` for streams. Descriptors carry optional cache hints (`staleTime`, `gcTime`). MFEs MUST NOT create `data/` folders with manual query key factories or `queryOptions()` calls — the service IS the data layer.
 
 **Rationale**: Moves the caching contract to the service layer where the request shape (baseURL, method, path) is already known, eliminating per-MFE coupling to the caching library. A library swap (TanStack → SWR, Apollo, custom) requires changes only in the `queryCache()` plugin and `@hai3/react` hooks (~6 files), not in any MFE.
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-screenset-author`
@@ -915,7 +919,7 @@ The system MUST provide a `microfrontends()` framework plugin with actions (`loa
 
 - [ ] `p2` - **ID**: `cpt-hai3-fr-react-query-hooks`
 
-`@hai3/react` MUST export `useApiQuery`, `useApiMutation`, and `useQueryCache` hooks. `useApiQuery` MUST accept an `EndpointDescriptor` (from `BaseApiService.query()`) and return `ApiQueryResult<TData>` (HAI3-owned type) with automatic caching, request deduplication, stale-while-revalidate, background refetch on window focus, and request cancellation on unmount. `useApiMutation` MUST accept `{ endpoint: MutationDescriptor, onMutate?, onSuccess?, onError?, onSettled? }` and return `ApiMutationResult<TData>` (HAI3-owned type) with support for optimistic updates via `onMutate` with rollback on error. `useQueryCache` MUST expose the sanctioned imperative cache API accepting `EndpointDescriptor | QueryKey` for inspection, invalidation, and targeted cache writes without exposing the raw cache client. `queryOptions` MUST NOT be re-exported. `UseApiQueryOptions` type MUST NOT exist.
+`@hai3/react` MUST export `useApiQuery`, `useApiMutation`, `useApiStream`, and `useQueryCache` hooks. `useApiQuery` MUST accept an `EndpointDescriptor` (from `BaseApiService.query()`) and return `ApiQueryResult<TData>` (HAI3-owned type) with automatic caching, request deduplication, stale-while-revalidate, background refetch on window focus, and request cancellation on unmount. `useApiMutation` MUST accept `{ endpoint: MutationDescriptor, onMutate?, onSuccess?, onError?, onSettled? }` and return `ApiMutationResult<TData>` (HAI3-owned type) with support for optimistic updates via `onMutate` with rollback on error. `useApiStream` MUST accept a `StreamDescriptor<TEvent>` (from `BaseApiService.stream()`) and return `ApiStreamResult<TEvent>` (HAI3-owned type) with connection lifecycle management, `'latest'`/`'accumulate'` modes, and `{ data, events, status, error, disconnect }`. `useQueryCache` MUST expose the sanctioned imperative cache API accepting `EndpointDescriptor | QueryKey` for inspection, invalidation, and targeted cache writes without exposing the raw cache client. `queryOptions` MUST NOT be re-exported. `UseApiQueryOptions` type MUST NOT exist.
 
 **Rationale**: Eliminates per-endpoint boilerplate for component-level reads and writes while keeping MFEs library-agnostic — they consume descriptors, not TanStack-specific types.
 **Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-developer`

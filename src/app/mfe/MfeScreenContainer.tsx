@@ -1,3 +1,5 @@
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
+
 /**
  * MFE Screen Container Component
  *
@@ -7,7 +9,6 @@
  */
 
 import { useRef, useEffect, useCallback, useSyncExternalStore, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import {
   useHAI3,
   ExtensionDomainSlot,
@@ -26,7 +27,9 @@ export function MfeScreenContainer() {
   // that the slot manages.
   const containerRef = useRef<HTMLDivElement>(null);
   const app = useHAI3();
-  const queryClient = useQueryClient();
+  // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
+  const queryClient = app.queryClient;
+  // @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
   const bootstrappedRef = useRef(false);
 
   // Screen extensions collected after bootstrap, used to pick the initial screen

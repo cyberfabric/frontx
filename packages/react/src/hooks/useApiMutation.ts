@@ -18,6 +18,7 @@
 // @cpt-flow:cpt-hai3-flow-request-lifecycle-use-api-mutation:p2
 // @cpt-algo:cpt-hai3-algo-request-lifecycle-optimistic-update:p2
 // @cpt-algo:cpt-hai3-algo-request-lifecycle-query-invalidation:p2
+// @cpt-state:cpt-hai3-state-request-lifecycle-mutation:p2
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
 import { useMemo } from 'react';
@@ -67,7 +68,7 @@ export function useApiMutation<
   // Stable queryCache instance across renders; rebuilt only when queryClient changes.
   const queryCache = useMemo(() => createQueryCache(queryClient), [queryClient]);
 
-  const callbackCtx: MutationCallbackContext = { queryCache };
+  const callbackCtx: MutationCallbackContext = useMemo(() => ({ queryCache }), [queryCache]);
 
   // The adapters below bridge our callback signatures (which include { queryCache } as
   // a final argument) to TanStack's internal callback signatures. We widen the internal

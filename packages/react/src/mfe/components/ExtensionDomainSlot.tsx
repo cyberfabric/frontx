@@ -289,5 +289,6 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
     </div>
   );
 }
+// @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
 // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-render-slot
 // @cpt-end:cpt-hai3-dod-react-bindings-extension-slot:p1:inst-render-slot

@@ -42,7 +42,7 @@ class DetachedContainerProvider extends RefContainerProvider {
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: React.RefObject<HTMLDivElement>,
-  queryClient: QueryClient
+  queryClient?: QueryClient
 ): Promise<ScreenExtension[]> {
   const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
@@ -59,17 +59,19 @@ export async function bootstrapMFE(
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
 
-  // Ensure any later mount_ext action receives the host-owned QueryClient so
-  // separate MFE React roots can share one cache.
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    await executeActionsChainWithMountContext(
-      screensetsRegistry,
-      chain,
-      queryClient,
-      origExecuteActionsChain,
-    );
-  }) as typeof screensetsRegistry.executeActionsChain;
+  if (queryClient) {
+    // Ensure any later mount_ext action receives the host-owned QueryClient so
+    // separate MFE React roots can share one cache.
+    const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+    screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+      await executeActionsChainWithMountContext(
+        screensetsRegistry,
+        chain,
+        queryClient,
+        origExecuteActionsChain,
+      );
+    }) as typeof screensetsRegistry.executeActionsChain;
+  }
 
   // Standalone: no extensions registered by default.
   // Register your MFE manifests and extensions, then return the screen extensions

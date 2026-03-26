@@ -12,6 +12,8 @@ export { useApiQuery } from './useApiQuery';
 export type { ApiQueryOverrides } from './useApiQuery';
 export { useApiMutation } from './useApiMutation';
 export type { UseApiMutationOptions } from './useApiMutation';
+export { useApiStream } from './useApiStream';
+export type { ApiStreamOptions, ApiStreamResult } from './useApiStream';
 export { useQueryCache } from './useQueryCache';
 export type {
   QueryCache,

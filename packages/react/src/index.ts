@@ -29,11 +29,13 @@ export {
   useTheme,
   useApiQuery,
   useApiMutation,
+  useApiStream,
   useQueryCache,
 } from './hooks';
 
 export type { ApiQueryOverrides } from './hooks/useApiQuery';
 export type { UseApiMutationOptions } from './hooks/useApiMutation';
+export type { ApiStreamOptions, ApiStreamResult } from './hooks/useApiStream';
 export type {
   QueryCache,
   QueryCacheInvalidateFilters,
@@ -246,6 +248,9 @@ export type {
   EndpointDescriptor,
   ParameterizedEndpointDescriptor,
   MutationDescriptor,
+  // Stream descriptors
+  StreamDescriptor,
+  StreamStatus,
   PluginFactory,
   PluginProvides,
   PluginLifecycle,

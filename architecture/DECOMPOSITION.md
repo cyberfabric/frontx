@@ -15,7 +15,7 @@
   - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
-  - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle-query-integration-high)
+  - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle--query-integration--high)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -32,7 +32,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 **Overall implementation status:**
 
-- [ ] `p1` - **ID**: `cpt-hai3-status-overall`
+- [x] `p1` - **ID**: `cpt-hai3-status-overall`
 
 ### 2.1 [State Management](feature-state-management/) ⏳ HIGH
 
@@ -715,7 +715,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.12 [Request Lifecycle & Query Integration](feature-request-lifecycle/) ⏳ HIGH
 
-- [ ] `p2` - **ID**: `cpt-hai3-feature-request-lifecycle`
+- [x] `p2` - **ID**: `cpt-hai3-feature-request-lifecycle`
 
 - **Purpose**: Adds `AbortSignal`-based request cancellation to `RestProtocol` at L1, endpoint descriptors on `BaseApiService` for library-agnostic caching at L1, a `queryCache()` framework plugin at L2 that owns the `QueryClient` lifecycle, and descriptor-consuming hooks at L3 for declarative data fetching and mutations with automatic caching, deduplication, optimistic updates, and cache invalidation.
 
@@ -725,19 +725,20 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `AbortSignal` threading through `RestProtocol` and plugin chain
   - `RestRequestOptions` pattern for HTTP method extensibility
   - `CanceledError` detection and plugin chain bypass
-  - `EndpointDescriptor<TData>` and `MutationDescriptor<TData, TVariables>` types at L1 (`@hai3/api`)
-  - `BaseApiService.query(path)`, `queryWith(pathFn)`, `mutation(method, path)` methods — cache keys derived from `[baseURL, method, path]`
+  - `EndpointDescriptor<TData>`, `MutationDescriptor<TData, TVariables>`, and `StreamDescriptor<TEvent>` types at L1 (`@hai3/api`)
+  - `BaseApiService.query(path)`, `queryWith(pathFn)`, `mutation(method, path)`, `stream(path)` methods — cache keys derived from `[baseURL, method, path]` for REST and `[baseURL, 'SSE', path]` for streams
   - `queryCache()` framework plugin at L2 — creates `QueryClient`, handles `MockEvents.Toggle` cache clear, handles `cache/invalidate` events from Flux effects, exposes `app.queryClient`
   - `HAI3Provider` reads `app.queryClient` from the plugin (not creating its own)
   - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) accepts `EndpointDescriptor | QueryKey` — exposed via `useQueryCache()` and injected into mutation callbacks
   - `useApiQuery(descriptor)` hook for declarative reads — returns `ApiQueryResult<TData>` (HAI3-owned type)
   - `useApiMutation({ endpoint, ... })` hook for declarative writes — returns `ApiMutationResult<TData>` (HAI3-owned type)
+  - `useApiStream(descriptor, options?)` hook for declarative SSE streaming — returns `ApiStreamResult<TEvent>` (HAI3-owned type) with `'latest'`/`'accumulate'` modes and automatic connect/disconnect lifecycle
   - Event-based cache invalidation for L2 Flux effects (`cache/invalidate` event in `queryCache()` plugin)
   - Flux escape hatch for cross-feature orchestration
 
 - **Out of scope**:
-  - SSE-to-cache integration (known gap — event-based `cache/update` pattern deferred)
-  - SSE cancellation (already handled by `SseProtocol.disconnect()`)
+  - SSE-to-cache integration for query invalidation (known gap — event-based `cache/update` pattern deferred; `useApiStream` provides reactive state but does not write to `QueryCache` automatically)
+  - SSE cancellation (handled by `SseProtocol.disconnect()` and `useApiStream` unmount cleanup)
   - Custom cache storage backends (TanStack Query uses in-memory cache)
   - Server-side rendering / hydration support
   - GraphQL protocol support (descriptors are protocol-agnostic by design but only REST is implemented)
@@ -747,6 +748,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `cpt-hai3-fr-sdk-api-package`
   - `cpt-hai3-fr-sdk-react-layer`
   - `cpt-hai3-fr-api-endpoint-descriptors`
+  - `cpt-hai3-fr-sse-stream-descriptors`
   - `cpt-hai3-fr-framework-query-cache-plugin`
 
 - **Design Principles Covered**:
@@ -771,11 +773,13 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `BaseApiService.query<TData>(path, options?)` → `EndpointDescriptor<TData>` (always GET)
   - `BaseApiService.queryWith<TData, TParams>(pathFn, options?)` → `ParameterizedEndpointDescriptor<TData, TParams>` (always GET)
   - `BaseApiService.mutation<TData, TVariables>(method, path)` → `MutationDescriptor<TData, TVariables>`
+  - `BaseApiService.stream<TEvent>(path, options?)` → `StreamDescriptor<TEvent>` — routes through `SseProtocol` plugin chain
   - `queryCache(config?)` framework plugin — creates `QueryClient`, exposes `app.queryClient`
   - `useApiQuery(descriptor)` → `ApiQueryResult<TData>` — caching, dedup, cancel on unmount
   - `useApiMutation({ endpoint, onMutate, onSuccess, onError, onSettled })` → `ApiMutationResult<TData>` — callbacks receive `{ queryCache }`
+  - `useApiStream(descriptor, options?)` → `ApiStreamResult<TEvent>` — connect on mount, disconnect on unmount, `'latest'`/`'accumulate'` modes
   - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor | QueryKey`
-  - Cache keys derived automatically: `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes — no manual key factories
+  - Cache keys derived automatically: `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes, `[baseURL, 'SSE', path]` for streams — no manual key factories
 
 - **Sequences**:
   - None

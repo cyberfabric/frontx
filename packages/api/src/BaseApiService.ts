@@ -23,8 +23,10 @@ import type {
   EndpointOptions,
   MutationDescriptor,
   ParameterizedEndpointDescriptor,
+  StreamDescriptor,
 } from './types';
 import { RestProtocol } from './protocols/RestProtocol';
+import { SseProtocol } from './protocols/SseProtocol';
 
 /**
  * BaseApiService Implementation
@@ -402,7 +404,7 @@ export abstract class BaseApiService {
   ): ParameterizedEndpointDescriptor<TData, TParams> {
     return (params: TParams): EndpointDescriptor<TData> => {
       const resolvedPath = pathFn(params);
-      const key = [this.config.baseURL, 'GET', resolvedPath, params] as const;
+      const key = [this.config.baseURL, 'GET', resolvedPath, { ...params }] as const;
 
       return {
         key,
@@ -447,9 +449,62 @@ export abstract class BaseApiService {
   // @cpt-end:implement-endpoint-descriptors:p1:inst-mutation
 
   /**
+   * Create an SSE stream endpoint descriptor.
+   *
+   * The key is derived from `[baseURL, 'SSE', path]`. The connect function
+   * delegates to SseProtocol, running the full plugin chain (including mock
+   * short-circuit). A `parse` option can transform the raw `MessageEvent`
+   * into a typed payload; when omitted, `JSON.parse(event.data)` is used.
+   *
+   * @template TEvent - Shape of each parsed SSE event payload.
+   * @param path    - Relative SSE endpoint path (e.g. '/stream/messages')
+   * @param options - Optional parse function override
+   *
+   * @example
+   * ```typescript
+   * readonly messageStream = this.stream<ChatMessage>('/stream/messages');
+   *
+   * // With custom parser
+   * readonly rawStream = this.stream<string>('/stream/raw', {
+   *   parse: (event) => event.data,
+   * });
+   * ```
+   */
+  // @cpt-begin:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-factory
+  protected stream<TEvent>(
+    path: string,
+    options?: { parse?: (event: MessageEvent) => TEvent }
+  ): StreamDescriptor<TEvent> {
+    const key = [this.config.baseURL, 'SSE', path] as const;
+    const parse = options?.parse ?? ((event: MessageEvent) => JSON.parse(event.data) as TEvent);
+
+    return {
+      key,
+      connect: (onEvent, onComplete) => {
+        const sse = this.protocol(SseProtocol);
+        return sse.connect(
+          path,
+          (event: MessageEvent) => onEvent(parse(event)),
+          onComplete,
+        );
+      },
+      disconnect: (connectionId) => {
+        const sse = this.protocol(SseProtocol);
+        sse.disconnect(connectionId);
+      },
+    };
+  }
+  // @cpt-end:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-factory
+
+  /**
    * Dispatch an HTTP request through the RestProtocol.
    * Routes to the correct protocol method based on the HTTP method string.
-   * Only RestProtocol is used here — descriptors are REST-only by design.
+   *
+   * **Requires a registered RestProtocol** — calling this on a service that only
+   * registers non-REST protocols (e.g., SseProtocol) will throw at runtime via
+   * `this.protocol(RestProtocol)`. Endpoint descriptors are REST-only by design;
+   * future protocol support (e.g., GraphQL) would add protocol-specific descriptor
+   * factory methods rather than extending this dispatcher.
    *
    * DELETE and GET carry no body; POST/PUT/PATCH forward the data argument.
    */

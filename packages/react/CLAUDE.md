@@ -93,6 +93,47 @@ function ProfileScreen() {
 Cache keys are derived automatically by the service — `QueryCache` methods accept
 endpoint descriptors directly (e.g., `queryCache.get(service.getCurrentUser)`).
 
+### SSE Streaming with Stream Descriptors
+
+Services declare SSE endpoints as stream descriptors. Components consume them via `useApiStream`, which manages the EventSource lifecycle automatically (connect on mount, disconnect on unmount).
+
+```tsx
+import { useApiStream, apiRegistry } from '@hai3/react';
+import { ChatApiService } from '../api/ChatApiService';
+
+function ChatStream() {
+  const service = apiRegistry.getService(ChatApiService);
+
+  // Latest event only (default mode)
+  const { data, status, error } = useApiStream(service.messageStream);
+
+  // Accumulate all events
+  const { events, status: streamStatus } = useApiStream(
+    service.messageStream,
+    { mode: 'accumulate' }
+  );
+
+  // Deferred connection (enabled: false)
+  const [active, setActive] = useState(false);
+  const { data: msg, disconnect } = useApiStream(
+    service.messageStream,
+    { enabled: active }
+  );
+
+  if (status === 'connecting') return <Loading />;
+  if (error) return <Error error={error} />;
+
+  return <div>{data?.text}</div>;
+}
+```
+
+`useApiStream` returns `{ data, events, status, error, disconnect }`:
+- `data` — latest event payload (always set in both modes)
+- `events` — all received events when `mode: 'accumulate'`; empty array in `'latest'` mode
+- `status` — `'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'`
+- `error` — connection error if any
+- `disconnect()` — manually close the connection
+
 ### Available Hooks
 
 #### useHAI3
@@ -369,7 +410,7 @@ function Layout() {
 
 1. **Wrap with HAI3Provider** - Required for all hooks to work
 2. **Use hooks for state access** - Don't import selectors directly from @hai3/framework
-3. **Use endpoint descriptors for data** - `useApiQuery(service.endpoint)`, not `queryOptions()` or manual key factories
+3. **Use endpoint descriptors for data** - `useApiQuery(service.endpoint)` for REST, `useApiStream(service.stream)` for SSE — not `queryOptions()` or manual key factories
 4. **No data/ folders in MFEs** - The service IS the data layer; cache keys are derived automatically
 5. **QueryCache uses descriptors** - `queryCache.get(service.endpoint)`, not raw key arrays
 6. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
@@ -402,6 +443,7 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `useAppSelector` - Typed selector
 - `useApiQuery` - Declarative data fetch from endpoint descriptor; returns `ApiQueryResult<TData>`
 - `useApiMutation` - Declarative mutation with endpoint descriptor and optimistic update support; returns `ApiMutationResult<TData>`
+- `useApiStream` - Declarative SSE streaming from stream descriptor; returns `ApiStreamResult<TEvent>`
 - `useQueryCache` - Restricted query cache access (accepts descriptors or raw keys)
 - `useTranslation` - Translation utilities
 - `useScreenTranslations` - Screen translation loading
@@ -421,11 +463,13 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `HAI3ProviderProps`
 - `ApiQueryResult<TData>` - HAI3-owned query result type (data, error, isLoading, refetch, etc.)
 - `ApiMutationResult<TData>` - HAI3-owned mutation result type (mutateAsync, isPending, error, reset, etc.)
+- `ApiStreamResult<TEvent>` - HAI3-owned stream result type (data, events, status, error, disconnect)
+- `ApiStreamOptions` - Stream hook options (mode, enabled)
 - `QueryCache` - Restricted cache interface (accepts descriptors or raw keys)
 - `MutationCallbackContext` - Context with queryCache injected into mutation callbacks
 - `MfeProviderProps`, `ExtensionDomainSlotProps`
 - `UseTranslationReturn`, `UseThemeReturn`
-- All types from @hai3/framework (including `EndpointDescriptor`, `MutationDescriptor`)
+- All types from @hai3/framework (including `EndpointDescriptor`, `MutationDescriptor`, `StreamDescriptor`, `StreamStatus`)
 
 ### Utilities
 - `executeActionsChainWithMountContext` - Wrap `mount_ext` execution with host-provided mount context such as a shared `QueryClient`

@@ -90,6 +90,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-fr-sse-mock-mode` | `SseMockPlugin` short-circuits `EventSource` creation; returns `MockEventSource` for dev/test environments |
 | `cpt-hai3-fr-sse-protocol-registry` | `BaseApiService` uses protocol registry; protocols registered by constructor name via type-safe `protocol<T>()` |
 | `cpt-hai3-fr-sse-type-safe-events` | SSE events typed via `EventPayloadMap` module augmentation for compile-time safety |
+| `cpt-hai3-fr-sse-stream-descriptors` | `BaseApiService.stream<TEvent>()` returns `StreamDescriptor` with `connect`/`disconnect`; `useApiStream` hook manages lifecycle |
 | `cpt-hai3-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
 | `cpt-hai3-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
 | `cpt-hai3-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
@@ -432,6 +433,7 @@ Provides a unified API service layer that abstracts protocol differences (REST, 
 - **Protocol registry**: Registers protocol adapters (REST via Axios, SSE via EventSource) that can be switched at runtime
 - **REST adapter**: Standard HTTP operations with Axios; interceptors for auth, retry, error mapping
 - **SSE adapter**: Server-Sent Events connection management with typed event streams
+- **Stream descriptors**: `this.stream<TEvent>(path)` returns `StreamDescriptor` routing through `SseProtocol` plugin chain; consumed by `useApiStream` at L3
 - **Mock mode**: `RestMockPlugin` and `SseMockPlugin` provide mock responses; `toggleMockMode` action switches at runtime
 - **Type-safe events**: SSE event types are generic-parameterized for compile-time safety
 
@@ -530,7 +532,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - Does NOT define the store, event bus, or action system — uses `cpt-hai3-component-framework`
 - Does NOT define UI component implementations — uses application/screenset local UI
 - Does NOT manage MFE loading or blob URL creation — uses `cpt-hai3-component-screensets` via framework
-- Does NOT place query/caching metadata on `BaseApiService` — services at L1 stay focused on transport. Caching configuration is a consumer concern at L3.
+- Does NOT own the caching library — `BaseApiService` (L1) carries endpoint descriptors with transport metadata and cache hints; the `queryCache()` plugin (L2) owns the `QueryClient`; `@hai3/react` (L3) maps descriptors to library-specific hooks.
 
 ##### Related components (by ID)
 
@@ -655,6 +657,16 @@ interface ApiService<T> {
 }
 ```
 
+Stream descriptors extend the service interface to SSE:
+
+```typescript
+interface StreamDescriptor<TEvent> {
+  readonly key: readonly unknown[];   // [baseURL, 'SSE', path]
+  connect(onEvent: (event: TEvent) => void, onComplete?: () => void): Promise<string>;
+  disconnect(connectionId: string): void;
+}
+```
+
 - [x] `p1` - **ID**: `cpt-hai3-interface-shared-property`
 - **Contract**: cpt-hai3-contract-shared-property
 - **Technology**: TypeScript interface
@@ -674,7 +686,7 @@ interface SharedPropertyBridge {
 |-----------|---------|-------------|
 | `cpt-hai3-interface-state` | `@hai3/state` | Event-driven state management with EventBus, Redux-backed store, dynamic slice registration, and type-safe module augmentation |
 | `cpt-hai3-interface-screensets` | `@hai3/screensets` | MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
-| `cpt-hai3-interface-api` | `@hai3/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards |
+| `cpt-hai3-interface-api` | `@hai3/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards, endpoint/stream descriptors |
 | `cpt-hai3-interface-i18n` | `@hai3/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-hai3-interface-framework` | `@hai3/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-hai3-interface-react` | `@hai3/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |

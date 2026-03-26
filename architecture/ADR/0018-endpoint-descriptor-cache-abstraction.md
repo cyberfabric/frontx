@@ -18,6 +18,8 @@ date: 2026-03-25
   - [HAI3-owned queryOptions factory re-export](#hai3-owned-queryoptions-factory-re-export)
   - [Keep current pattern with manual query key factories](#keep-current-pattern-with-manual-query-key-factories)
 - [More Information](#more-information)
+  - [Why `queryCache()` is a framework plugin, not an API plugin](#why-querycache-is-a-framework-plugin-not-an-api-plugin)
+  - [Layer responsibilities](#layer-responsibilities)
 - [Traceability](#traceability)
 
 <!-- /toc -->
@@ -79,9 +81,11 @@ Confirmed when:
 **L1 — Endpoint Descriptors (`@hai3/api`)**:
 * `BaseApiService` exposes `this.query<TData>(path, options?)` and `this.queryWith<TData, TParams>(pathFn, options?)` for read endpoints (always GET — method is implicit)
 * `BaseApiService` exposes `this.mutation<TData, TVariables>(method, path)` for write endpoints
+* `BaseApiService` exposes `this.stream<TEvent>(path, options?)` for SSE streaming endpoints — returns `StreamDescriptor<TEvent>` with `connect`/`disconnect`
 * `EndpointDescriptor<TData>` interface is defined in `@hai3/api` with `key`, `fetch(options?)`, and optional `staleTime`/`gcTime`
+* `StreamDescriptor<TEvent>` interface is defined in `@hai3/api` with `key`, `connect(onEvent, onComplete?)`, and `disconnect(connectionId)`
 * `ParameterizedEndpointDescriptor<TData, TParams>` returns an `EndpointDescriptor` when called with params
-* Cache keys are derived automatically: `[baseURL, method, path]` for static endpoints, `[baseURL, method, resolvedPath, params]` for parameterized ones
+* Cache keys are derived automatically: `[baseURL, method, path]` for static endpoints, `[baseURL, method, resolvedPath, params]` for parameterized ones, `[baseURL, 'SSE', path]` for streams
 
 **L2 — `queryCache()` Framework Plugin (`@hai3/framework`)**:
 * A `queryCache(config?)` plugin is available that creates and owns the `QueryClient` lifecycle
@@ -96,6 +100,7 @@ Confirmed when:
 **L3 — React Hooks (`@hai3/react`)**:
 * `useApiQuery(descriptor)` accepts an `EndpointDescriptor` and returns `ApiQueryResult<TData>` (HAI3-owned type, not TanStack's `UseQueryResult`)
 * `useApiMutation({ endpoint, onMutate?, ... })` accepts an endpoint descriptor for the mutation and descriptors in `queryCache` operations
+* `useApiStream(descriptor, options?)` accepts a `StreamDescriptor<TEvent>` and returns `ApiStreamResult<TEvent>` (HAI3-owned type) with automatic connect/disconnect lifecycle, `'latest'`/`'accumulate'` modes, and `{ data, events, status, error, disconnect }`
 * `QueryCache.get`, `set`, `invalidate`, `cancel`, `remove` accept `EndpointDescriptor | QueryKey` (descriptor extracts `.key` internally)
 * `ApiQueryResult<TData>` and `ApiMutationResult<TData>` are HAI3-owned types exposing only the fields MFEs use (`data`, `error`, `isLoading`, `isPending`, `refetch`, `mutateAsync`, `reset`)
 * `HAI3Provider` reads `app.queryClient` from the framework plugin instead of creating its own `QueryClient`
@@ -167,7 +172,7 @@ No changes. Each MFE maintains its own `data/` folder with TanStack-specific cod
 
 ## More Information
 
-* The `EndpointDescriptor` pattern is protocol-agnostic. For GraphQL, the service would use `this.query<TData>(QUERY_DOCUMENT)` instead of `this.query<TData>('/path')`. The descriptor's `key` would be derived from the operation name and variables instead of the HTTP method and path. Component code remains identical: `useApiQuery(service.getCurrentUser)`.
+* The descriptor pattern is protocol-agnostic. For GraphQL, the service would use `this.query<TData>(QUERY_DOCUMENT)` instead of `this.query<TData>('/path')`. For SSE, `this.stream<TEvent>('/path')` returns a `StreamDescriptor` that routes through `SseProtocol`. The descriptor's `key` would be derived from the operation name and variables instead of the HTTP method and path. Component code remains identical: `useApiQuery(service.getCurrentUser)` for REST, `useApiStream(service.messageStream)` for SSE.
 * Cache configuration follows a three-tier cascade: component call overrides > descriptor defaults > framework defaults (plugin's `QueryClient` configuration).
 * The `QueryCache` interface is unchanged in shape but now accepts `EndpointDescriptor` in addition to raw `QueryKey` arrays. Internally, it extracts `.key` from descriptors. This is backward-compatible.
 * This ADR supersedes the `data/` folder convention established in ADR-0017. ADR-0017's decision to adopt TanStack Query at L3 remains valid — this ADR changes where the abstraction boundary sits (service layer vs. MFE data folder).
@@ -186,7 +191,8 @@ Both orchestrate cross-cutting behavior through event-driven effects without mod
 
 ```
 L1  @hai3/api          EndpointDescriptor { key, fetch, staleTime?, gcTime? }
-                        BaseApiService.query() / queryWith() / mutation()
+                        StreamDescriptor { key, connect, disconnect }
+                        BaseApiService.query() / queryWith() / mutation() / stream()
                         No caching library dependency
 
 L2  @hai3/framework    queryCache() plugin — owns QueryClient lifecycle
@@ -195,6 +201,7 @@ L2  @hai3/framework    queryCache() plugin — owns QueryClient lifecycle
                         Exposes app.queryClient for non-React access
 
 L3  @hai3/react        useApiQuery(descriptor) / useApiMutation({ endpoint })
+                        useApiStream(descriptor) — SSE lifecycle management
                         @tanstack/react-query as peer dependency
                         Maps descriptors → TanStack hooks using plugin's QueryClient
                         HAI3Provider reads app.queryClient instead of creating its own

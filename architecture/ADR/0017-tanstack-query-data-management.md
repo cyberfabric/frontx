@@ -81,7 +81,7 @@ Confirmed when:
 * `@tanstack/react-query` is declared as a peer dependency of `@hai3/react` (not bundled)
 * `HAI3Provider` renders `QueryClientProvider` with `retry: 0`, configurable `staleTime`/`gcTime`, and optional injected `queryClient`
 * Separately mounted MFEs receive the same host-owned `QueryClient` through an opaque mount context and pass it into `HAI3Provider` (no per-MFE `QueryClient`)
-* `useApiQuery`, `useApiMutation`, and `useQueryCache` hooks are exported from `@hai3/react`; `useQueryClient` is NOT exported — cache operations go through the `QueryCache` interface instead of raw TanStack APIs
+* `useApiQuery`, `useApiMutation`, `useApiStream`, and `useQueryCache` hooks are exported from `@hai3/react`; `useQueryClient` is NOT exported — cache operations go through the `QueryCache` interface instead of raw TanStack APIs
 * Query key factories exist at L3 in `packages/react/src/queries/` with `@domain` prefix convention and lazy typed service getters inside `queryOptions()`
 * `HAI3Provider` subscribes synchronously (render phase, not `useEffect`) to `cache/invalidate` events from EventBus for L2 Flux effect integration
 * The demo MFE (`src/mfe_packages/demo-mfe`) demonstrates shared cache across MFEs by reusing the host-owned `QueryClient` in each MFE root — a query fetched by one MFE is available to another via the same query key

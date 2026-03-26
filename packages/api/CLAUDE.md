@@ -81,6 +81,35 @@ const accounts = apiRegistry.getService(AccountsApiService);
 const user = await accounts.getCurrentUser.fetch();
 ```
 
+### Stream Descriptors (SSE)
+
+Services declare SSE streaming endpoints as stream descriptors. Keys are derived from `[baseURL, 'SSE', path]`. The `stream()` factory routes through `SseProtocol` with full plugin chain support (including mock short-circuit via `SseMockPlugin`).
+
+```typescript
+import { BaseApiService, RestProtocol, SseProtocol } from '@hai3/api';
+
+class ChatApiService extends BaseApiService {
+  constructor() {
+    super(
+      { baseURL: '/api/chat' },
+      new RestProtocol(),
+      new SseProtocol()
+    );
+  }
+
+  // SSE stream — key: ['/api/chat', 'SSE', '/stream/messages']
+  // Default parser: JSON.parse(event.data)
+  readonly messageStream = this.stream<ChatMessage>('/stream/messages');
+
+  // With custom parser
+  readonly rawStream = this.stream<string>('/stream/raw', {
+    parse: (event) => event.data,
+  });
+}
+```
+
+Components consume stream descriptors via `useApiStream(service.streamDescriptor)` — see `@hai3/react`.
+
 ### Mock Support
 
 Configure mocks via RestMockPlugin using the `registerPlugin()` pattern. Framework controls mock plugin activation via the Mock API toggle.
@@ -201,7 +230,7 @@ if (isMockPlugin(plugin)) {
 1. **Services extend BaseApiService** - Use the base class for protocol management
 2. **Register with class reference** - Call `apiRegistry.register(ServiceClass)`
 3. **One service per domain** - Each bounded context gets one service
-4. **Endpoints as descriptors** - Use `this.query()`, `this.queryWith()`, `this.mutation()` for cached endpoints
+4. **Endpoints as descriptors** - Use `this.query()`, `this.queryWith()`, `this.mutation()` for REST; `this.stream()` for SSE
 5. **Cache keys are automatic** - Derived from `[baseURL, method, path]` — never define manual key factories
 6. **No data/ folders** - The service IS the data layer; MFEs do not create `data/` folders with query factories
 7. **Mock plugins via registerPlugin()** - Use `this.registerPlugin(protocol, mockPlugin)` in constructor
@@ -272,10 +301,12 @@ const restProtocol = new RestProtocol({ maxRetryDepth: 5 });
 
 ## Exports
 
-- `BaseApiService` - Abstract base class with endpoint descriptor methods
+- `BaseApiService` - Abstract base class with endpoint and stream descriptor methods
 - `EndpointDescriptor` - Read endpoint descriptor type (key + fetch + cache options)
 - `ParameterizedEndpointDescriptor` - Parameterized read endpoint descriptor type
 - `MutationDescriptor` - Write endpoint descriptor type
+- `StreamDescriptor` - SSE stream descriptor type (key + connect + disconnect)
+- `StreamStatus` - Stream connection status type (`'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'`)
 - `RestProtocol` - REST API protocol
 - `SseProtocol` - SSE protocol
 - `ApiPluginBase` - Abstract base class for plugins (no config)

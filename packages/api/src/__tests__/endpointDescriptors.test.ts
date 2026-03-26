@@ -9,6 +9,9 @@
  * Uses RestMockPlugin to intercept HTTP calls so no real network is needed.
  *
  * @cpt-FEATURE:implement-endpoint-descriptors:p1
+ * @cpt-dod:cpt-hai3-dod-request-lifecycle-query-provider:p2
+ * @cpt-flow:cpt-hai3-flow-request-lifecycle-use-api-query:p2
+ * @cpt-flow:cpt-hai3-flow-request-lifecycle-use-api-mutation:p2
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
@@ -297,10 +300,12 @@ describe('key derivation invariants', () => {
     expect(service.getUser({ id: '5' }).key[2]).toBe('/user/5');
   });
 
-  it('queryWith() descriptor includes params as fourth key segment', () => {
+  it('queryWith() descriptor includes params as fourth key segment (shallow clone)', () => {
     const params = { id: '99' };
     const descriptor = service.getUser(params);
-    expect(descriptor.key[3]).toBe(params);
+    expect(descriptor.key[3]).toStrictEqual(params);
+    // Shallow clone — not the same reference, defending against caller mutation
+    expect(descriptor.key[3]).not.toBe(params);
   });
 
   it('query() descriptor has exactly 3 key segments (no params)', () => {

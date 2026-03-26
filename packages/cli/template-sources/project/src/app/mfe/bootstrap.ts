@@ -59,7 +59,7 @@ class DetachedContainerProvider extends RefContainerProvider {
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: React.RefObject<HTMLDivElement>,
-  queryClient: QueryClient,
+  queryClient?: QueryClient,
 ): Promise<ScreenExtension[]> {
   const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
@@ -76,17 +76,19 @@ export async function bootstrapMFE(
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
 
-  // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
-  // the host-owned QueryClient and join the shared cache.
-  const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-    await executeActionsChainWithMountContext(
-      screensetsRegistry,
-      chain,
-      queryClient,
-      origExecuteActionsChain,
-    );
-  }) as typeof screensetsRegistry.executeActionsChain;
+  if (queryClient) {
+    // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
+    // the host-owned QueryClient and join the shared cache.
+    const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
+    screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
+      await executeActionsChainWithMountContext(
+        screensetsRegistry,
+        chain,
+        queryClient,
+        origExecuteActionsChain,
+      );
+    }) as typeof screensetsRegistry.executeActionsChain;
+  }
 
   // Step 3: Guard — no manifests generated yet
   if (MFE_MANIFESTS.length === 0) {

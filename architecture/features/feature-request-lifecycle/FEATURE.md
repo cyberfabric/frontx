@@ -9,41 +9,44 @@
   - [1.3 Actors](#13-actors)
   - [1.4 References](#14-references)
 - [2. Actor Flows (CDSL)](#2-actor-flows-cdsl)
-  - [Flow 1 — REST Request with AbortSignal Cancellation](#flow-1-rest-request-with-abortsignal-cancellation)
-  - [Flow 2 — Declarative Query via useApiQuery Hook](#flow-2-declarative-query-via-useapiquery-hook)
-  - [Flow 3 — Declarative Mutation via useApiMutation Hook](#flow-3-declarative-mutation-via-useapimutation-hook)
-  - [Flow 5 — Cross-Feature Orchestration via Flux (Escape Hatch)](#flow-5-cross-feature-orchestration-via-flux-escape-hatch)
-  - [Flow 4 — QueryClient Lifecycle in HAI3Provider](#flow-4-queryclient-lifecycle-in-hai3provider)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
-  - [Algorithm 1 — AbortSignal Threading in RestProtocol](#algorithm-1-abortsignal-threading-in-restprotocol)
-  - [Algorithm 2 — CanceledError Detection and Bypass](#algorithm-2-cancelederror-detection-and-bypass)
-  - [Algorithm 3 — RequestOptions Pattern for HTTP Methods](#algorithm-3-requestoptions-pattern-for-http-methods)
-  - [Algorithm 4 — QueryClient Default Configuration](#algorithm-4-queryclient-default-configuration)
-  - [Algorithm 5 — Optimistic Update with Rollback](#algorithm-5-optimistic-update-with-rollback)
-  - [Algorithm 6 — Query Invalidation After Mutation](#algorithm-6-query-invalidation-after-mutation)
+  - [Flow 1 — REST Request with AbortSignal Cancellation](#flow-1--rest-request-with-abortsignal-cancellation)
+  - [Flow 2 — Declarative Query via useApiQuery Hook](#flow-2--declarative-query-via-useapiquery-hook)
+  - [Flow 3 — Declarative Mutation via useApiMutation Hook](#flow-3--declarative-mutation-via-useapimutation-hook)
+  - [Flow 6 — Declarative SSE Stream via useApiStream Hook](#flow-6--declarative-sse-stream-via-useapistream-hook)
+  - [Flow 5 — Cross-Feature Orchestration via Flux (Escape Hatch)](#flow-5--cross-feature-orchestration-via-flux-escape-hatch)
+  - [Flow 4 — QueryClient Lifecycle in HAI3Provider](#flow-4--queryclient-lifecycle-in-hai3provider)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
+  - [Algorithm 1 — AbortSignal Threading in RestProtocol](#algorithm-1--abortsignal-threading-in-restprotocol)
+  - [Algorithm 2 — CanceledError Detection and Bypass](#algorithm-2--cancelederror-detection-and-bypass)
+  - [Algorithm 3 — RequestOptions Pattern for HTTP Methods](#algorithm-3--requestoptions-pattern-for-http-methods)
+  - [Algorithm 4 — QueryClient Default Configuration (queryCache Plugin)](#algorithm-4--queryclient-default-configuration-querycache-plugin)
+  - [Algorithm 5 — Optimistic Update with Rollback](#algorithm-5--optimistic-update-with-rollback)
+  - [Algorithm 6 — Query Invalidation After Mutation](#algorithm-6--query-invalidation-after-mutation)
 - [4. States (CDSL)](#4-states-cdsl)
-  - [State 1 — Query Lifecycle State](#state-1-query-lifecycle-state)
-  - [State 2 — Mutation Lifecycle State](#state-2-mutation-lifecycle-state)
+  - [State 1 — Query Lifecycle State](#state-1--query-lifecycle-state)
+  - [State 2 — Mutation Lifecycle State](#state-2--mutation-lifecycle-state)
 - [5. Definitions of Done](#5-definitions-of-done)
-  - [DoD 1 — AbortSignal Support in RestProtocol](#dod-1-abortsignal-support-in-restprotocol)
-  - [DoD 2 — QueryClientProvider in HAI3Provider](#dod-2-queryclientprovider-in-hai3provider)
-  - [DoD 3 — useApiQuery Hook](#dod-3-useapiquery-hook)
-  - [DoD 4 — useApiMutation Hook](#dod-4-useapimutation-hook)
+  - [DoD 1 — AbortSignal Support in RestProtocol](#dod-1--abortsignal-support-in-restprotocol)
+  - [DoD 2 — QueryClient Lifecycle via queryCache() Plugin](#dod-2--queryclient-lifecycle-via-querycache-plugin)
+  - [DoD 3 — useApiQuery Hook](#dod-3--useapiquery-hook)
+  - [DoD 4 — useApiMutation Hook](#dod-4--useapimutation-hook)
+  - [DoD 5 — useApiStream Hook](#dod-5--useapistream-hook)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
+- [Non-Applicable Domains](#non-applicable-domains)
 - [Additional Context](#additional-context)
   - [TanStack Query Retry Disabled by Default](#tanstack-query-retry-disabled-by-default)
   - [Event-Driven Pattern Coexistence](#event-driven-pattern-coexistence)
   - [AbortSignal in Short-Circuit Path](#abortsignal-in-short-circuit-path)
   - [QueryCache Interface](#querycache-interface)
   - [Shared QueryClient Across MFEs](#shared-queryclient-across-mfes)
-  - [Query Key Factories and `@domain` Prefix Convention](#query-key-factories-and-domain-prefix-convention)
+  - [Endpoint Descriptors and Automatic Cache Keys](#endpoint-descriptors-and-automatic-cache-keys)
   - [Event-Based Cache Invalidation for Flux Effects](#event-based-cache-invalidation-for-flux-effects)
 
 <!-- /toc -->
 
-- [ ] `p1` - **ID**: `cpt-hai3-featstatus-request-lifecycle`
+- [x] `p1` - **ID**: `cpt-hai3-featstatus-request-lifecycle`
 
-- [ ] `p2` - `cpt-hai3-feature-request-lifecycle`
+- [x] `p2` - `cpt-hai3-feature-request-lifecycle`
 ---
 
 ## 1. Feature Context
@@ -85,84 +88,102 @@ Success criteria: A developer can fetch data with `useApiQuery` and submit chang
 
 ### Flow 1 — REST Request with AbortSignal Cancellation
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-request-lifecycle-rest-abort`
+- [x] `p1` - **ID**: `cpt-hai3-flow-request-lifecycle-rest-abort`
 
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
-1. [ ] - `p1` - Developer creates an `AbortController` instance — `inst-create-controller`
-2. [ ] - `p1` - Developer calls a REST method with `signal` option (e.g., `protocol.get(url, { signal })`) — `inst-call-with-signal`
-3. [ ] - `p1` - `RestProtocol` builds `RestRequestContext` including the `signal` property — `inst-build-context-signal`
-4. [ ] - `p1` - `RestProtocol` executes `onRequest` plugin chain; plugins receive context with `signal` — `inst-plugin-chain-signal`
-5. [ ] - `p1` - IF any plugin short-circuits, RETURN short-circuit response (signal is irrelevant) — `inst-short-circuit-bypass`
-6. [ ] - `p1` - `RestProtocol` passes `signal` to `AxiosRequestConfig` for the HTTP call — `inst-axios-signal`
-7. [ ] - `p1` - IF `controller.abort()` is called before response arrives, Axios throws `CanceledError` — `inst-abort-fires`
-8. [ ] - `p1` - `RestProtocol` catches the `CanceledError` and re-throws it without entering the `onError` plugin chain — `inst-cancel-skip-plugins`
-9. [ ] - `p1` - RETURN error to caller; caller handles cancellation (typically a no-op on unmount) — `inst-return-cancel-error`
+1. [x] - `p1` - Developer creates an `AbortController` instance — `inst-create-controller`
+2. [x] - `p1` - Developer calls a REST method with `signal` option (e.g., `protocol.get(url, { signal })`) — `inst-call-with-signal`
+3. [x] - `p1` - `RestProtocol` builds `RestRequestContext` including the `signal` property — `inst-build-context-signal`
+4. [x] - `p1` - `RestProtocol` executes `onRequest` plugin chain; plugins receive context with `signal` — `inst-plugin-chain-signal`
+5. [x] - `p1` - IF any plugin short-circuits, RETURN short-circuit response (signal is irrelevant) — `inst-short-circuit-bypass`
+6. [x] - `p1` - `RestProtocol` passes `signal` to `AxiosRequestConfig` for the HTTP call — `inst-axios-signal`
+7. [x] - `p1` - IF `controller.abort()` is called before response arrives, Axios throws `CanceledError` — `inst-abort-fires`
+8. [x] - `p1` - `RestProtocol` catches the `CanceledError` and re-throws it without entering the `onError` plugin chain — `inst-cancel-skip-plugins`
+9. [x] - `p1` - RETURN error to caller; caller handles cancellation (typically a no-op on unmount) — `inst-return-cancel-error`
 
 ---
 
 ### Flow 2 — Declarative Query via useApiQuery Hook
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-use-api-query`
+- [x] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-use-api-query`
 
 **Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-runtime`
 
-1. [ ] - `p2` - Screen-set author calls `useApiQuery(service.endpoint)` passing an `EndpointDescriptor` from the service class — `inst-call-use-api-query`
-2. [ ] - `p2` - `useApiQuery` extracts `key` and `fetch` from the descriptor, delegates to the underlying caching library (e.g., TanStack Query's `useQuery`) — `inst-delegate-use-query`
-3. [ ] - `p2` - The caching library invokes `descriptor.fetch({ signal })`, passing an internally created `AbortSignal` — `inst-tanstack-provides-signal`
-4. [ ] - `p2` - `fetch` calls the appropriate `BaseApiService` protocol method, forwarding the `signal` — `inst-service-call-with-signal`
-5. [ ] - `p2` - IF the descriptor's key is already cached and fresh, return cached data immediately — `inst-cache-hit`
-6. [ ] - `p2` - IF another component uses the same descriptor (same key) in-flight, deduplicate (share the single request promise) — `inst-dedup`
-7. [ ] - `p2` - On success, cache the response and RETURN `ApiQueryResult { data, isLoading: false, error: null }` — `inst-return-data`
-8. [ ] - `p2` - On error, RETURN `ApiQueryResult { data: undefined, isLoading: false, error }` — `inst-return-error`
-9. [ ] - `p2` - On component unmount, abort the in-flight request via the signal — `inst-unmount-abort`
+1. [x] - `p2` - Screen-set author calls `useApiQuery(service.endpoint)` passing an `EndpointDescriptor` from the service class — `inst-call-use-api-query`
+2. [x] - `p2` - `useApiQuery` extracts `key` and `fetch` from the descriptor, delegates to the underlying caching library (e.g., TanStack Query's `useQuery`) — `inst-delegate-use-query`
+3. [x] - `p2` - The caching library invokes `descriptor.fetch({ signal })`, passing an internally created `AbortSignal` — `inst-tanstack-provides-signal`
+4. [x] - `p2` - `fetch` calls the appropriate `BaseApiService` protocol method, forwarding the `signal` — `inst-service-call-with-signal`
+5. [x] - `p2` - IF the descriptor's key is already cached and fresh, return cached data immediately — `inst-cache-hit`
+6. [x] - `p2` - IF another component uses the same descriptor (same key) in-flight, deduplicate (share the single request promise) — `inst-dedup`
+7. [x] - `p2` - On success, cache the response and RETURN `ApiQueryResult { data, isLoading: false, error: null }` — `inst-return-data`
+8. [x] - `p2` - On error, RETURN `ApiQueryResult { data: undefined, isLoading: false, error }` — `inst-return-error`
+9. [x] - `p2` - On component unmount, abort the in-flight request via the signal — `inst-unmount-abort`
 
 ---
 
 ### Flow 3 — Declarative Mutation via useApiMutation Hook
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-use-api-mutation`
+- [x] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-use-api-mutation`
 
 **Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-runtime`
 
-1. [ ] - `p2` - Screen-set author calls `useApiMutation({ endpoint: service.mutationDescriptor, onMutate?, onSuccess?, onError?, onSettled? })` — `inst-call-use-api-mutation`
-2. [ ] - `p2` - Hook returns `ApiMutationResult { mutate, mutateAsync, isPending, error, data, reset }` — `inst-return-mutation-state`
-3. [ ] - `p2` - Hook internally creates a `QueryCache` accessor (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) wrapping the internal cache client — MFEs never receive the cache client directly. `QueryCache` methods accept `EndpointDescriptor` or raw `QueryKey` — `inst-create-query-cache`
-4. [ ] - `p2` - Author calls `mutate(variables)` from an event handler or form submission — `inst-invoke-mutate`
-5. [ ] - `p2` - IF `onMutate` provided (optimistic update), execute it with `(variables, { queryCache })`: snapshot via `queryCache.get(service.queryDescriptor)`, apply optimistic data via `queryCache.set(service.queryDescriptor, ...)`, RETURN snapshot for rollback — `inst-optimistic-apply`
-6. [ ] - `p2` - The caching library invokes `descriptor.fetch(variables)` which calls the service protocol method (e.g., `RestProtocol.post()`, `RestProtocol.put()`) — `inst-mutation-service-call`
-7. [ ] - `p2` - On success, IF `onSuccess` provided, execute it with `(data, variables, context, { queryCache })` — typically calls `queryCache.invalidate(service.queryDescriptor)` to refetch affected queries — `inst-mutation-on-success`
-8. [ ] - `p2` - On error, IF `onError` provided, execute it with `(error, variables, context, { queryCache })` — IF optimistic update was applied, rollback by restoring snapshot via `queryCache.set(service.queryDescriptor, context.snapshot)` — `inst-mutation-on-error-rollback`
-9. [ ] - `p2` - On settled (success or error), IF `onSettled` provided, execute it with `(data, error, variables, context, { queryCache })` — typically used for final cleanup or conditional invalidation — `inst-mutation-on-settled`
+1. [x] - `p2` - Screen-set author calls `useApiMutation({ endpoint: service.mutationDescriptor, onMutate?, onSuccess?, onError?, onSettled? })` — `inst-call-use-api-mutation`
+2. [x] - `p2` - Hook returns `ApiMutationResult { mutate, mutateAsync, isPending, error, data, reset }` — `inst-return-mutation-state`
+3. [x] - `p2` - Hook internally creates a `QueryCache` accessor (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) wrapping the internal cache client — MFEs never receive the cache client directly. `QueryCache` methods accept `EndpointDescriptor` or raw `QueryKey` — `inst-create-query-cache`
+4. [x] - `p2` - Author calls `mutate(variables)` from an event handler or form submission — `inst-invoke-mutate`
+5. [x] - `p2` - IF `onMutate` provided (optimistic update), execute it with `(variables, { queryCache })`: snapshot via `queryCache.get(service.queryDescriptor)`, apply optimistic data via `queryCache.set(service.queryDescriptor, ...)`, RETURN snapshot for rollback — `inst-optimistic-apply`
+6. [x] - `p2` - The caching library invokes `descriptor.fetch(variables)` which calls the service protocol method (e.g., `RestProtocol.post()`, `RestProtocol.put()`) — `inst-mutation-service-call`
+7. [x] - `p2` - On success, IF `onSuccess` provided, execute it with `(data, variables, context, { queryCache })` — typically calls `queryCache.invalidate(service.queryDescriptor)` to refetch affected queries — `inst-mutation-on-success`
+8. [x] - `p2` - On error, IF `onError` provided, execute it with `(error, variables, context, { queryCache })` — IF optimistic update was applied, rollback by restoring snapshot via `queryCache.set(service.queryDescriptor, context.snapshot)` — `inst-mutation-on-error-rollback`
+9. [x] - `p2` - On settled (success or error), IF `onSettled` provided, execute it with `(data, error, variables, context, { queryCache })` — typically used for final cleanup or conditional invalidation — `inst-mutation-on-settled`
+
+---
+
+### Flow 6 — Declarative SSE Stream via useApiStream Hook
+
+- [x] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-use-api-stream`
+
+**Actors**: `cpt-hai3-actor-screenset-author`, `cpt-hai3-actor-runtime`
+
+1. [x] - `p2` - Screen-set author calls `useApiStream(service.streamDescriptor, options?)` passing a `StreamDescriptor<TEvent>` from the service class — `inst-call-use-api-stream`
+2. [x] - `p2` - `useApiStream` sets status to `'connecting'` and calls `descriptor.connect(onEvent, onComplete)` — `inst-connect-on-mount`
+3. [x] - `p2` - `connect` delegates to `SseProtocol.connect()` which runs the full SSE plugin chain (including mock short-circuit via `SseMockPlugin`) — `inst-sse-plugin-chain`
+4. [x] - `p2` - On each SSE message event, the descriptor's `parse` function (default `JSON.parse(event.data)`) produces a typed `TEvent`, which is passed to the hook's internal `onEvent` handler — `inst-parse-event`
+5. [x] - `p2` - In `'latest'` mode (default), the hook stores only the most recent event in `data`. In `'accumulate'` mode, the hook appends each event to the `events` array — `inst-mode-handling`
+6. [x] - `p2` - Status transitions to `'connected'` after the first event or when the connect promise resolves — `inst-status-connected`
+7. [x] - `p2` - IF the SSE stream emits a `'done'` event, `SseProtocol` calls `onComplete` and disconnects; the hook sets status to `'disconnected'` — `inst-stream-complete`
+8. [x] - `p2` - On component unmount, the hook calls `descriptor.disconnect(connectionId)` to close the EventSource — `inst-disconnect-on-unmount`
+9. [x] - `p2` - IF `options.enabled` is `false`, the hook defers connection (status remains `'idle'`); when toggled to `true`, the hook connects — `inst-enabled-toggle`
 
 ---
 
 ### Flow 5 — Cross-Feature Orchestration via Flux (Escape Hatch)
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-flux-escape-hatch`
+- [x] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-flux-escape-hatch`
 
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
-1. [ ] - `p2` - Developer determines that a mutation must trigger effects across multiple screen-sets or update shared Redux state — `inst-identify-cross-feature`
-2. [ ] - `p2` - Developer uses the existing Flux pattern: action → eventBus.emit → effect → service call → dispatch — `inst-use-flux`
-3. [ ] - `p2` - Effect calls the service method directly (not through TanStack) — `inst-effect-service-call`
-4. [ ] - `p2` - After effect completes, IF TanStack queries are active for the affected data, effect uses a framework-level cache invalidation utility (not direct `queryClient` access) to keep the query cache consistent — `inst-invalidate-after-flux`
-5. [ ] - `p2` - RETURN: both Redux state and TanStack cache are synchronized — `inst-state-sync`
+1. [x] - `p2` - Developer determines that a mutation must trigger effects across multiple screen-sets or update shared Redux state — `inst-identify-cross-feature`
+2. [x] - `p2` - Developer uses the existing Flux pattern: action → eventBus.emit → effect → service call → dispatch — `inst-use-flux`
+3. [x] - `p2` - Effect calls the service method directly (not through TanStack) — `inst-effect-service-call`
+4. [x] - `p2` - After effect completes, IF TanStack queries are active for the affected data, effect uses a framework-level cache invalidation utility (not direct `queryClient` access) to keep the query cache consistent — `inst-invalidate-after-flux`
+5. [x] - `p2` - RETURN: both Redux state and TanStack cache are synchronized — `inst-state-sync`
 
 ---
 
 ### Flow 4 — QueryClient Lifecycle in HAI3Provider
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-query-client-lifecycle`
+- [x] `p2` - **ID**: `cpt-hai3-flow-request-lifecycle-query-client-lifecycle`
 
 **Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
 
-1. [ ] - `p2` - The `queryCache()` framework plugin creates a `QueryClient` instance with configurable defaults during `onInit` and exposes it as `app.queryClient` — `inst-create-query-client`
-2. [ ] - `p2` - `HAI3Provider` reads `app.queryClient` from the framework plugin (or accepts an injected host-owned client) and renders `QueryClientProvider` wrapping children — `inst-render-query-provider`
-3. [ ] - `p2` - IF MFE mode, the host passes its `QueryClient` to each separately mounted MFE root via opaque mount context, and the MFE forwards that client into `HAI3Provider` — shared cache across all MFEs, each using its own `apiRegistry` as `queryFn` — `inst-mfe-query-client`
-4. [ ] - `p2` - The `queryCache()` plugin listens for `MockEvents.Toggle` and clears cache on mock mode changes — `inst-mock-cache-clear`
-5. [ ] - `p2` - The `queryCache()` plugin listens for `cache/invalidate` events from L2 Flux effects and invalidates the corresponding cache entries — `inst-flux-cache-invalidate`
-6. [ ] - `p2` - On `app.destroy()`, the `queryCache()` plugin's `onDestroy` clears and garbage-collects the `QueryClient` — `inst-cleanup-query-client`
+1. [x] - `p2` - The `queryCache()` framework plugin creates a `QueryClient` instance with configurable defaults during `onInit` and exposes it as `app.queryClient` — `inst-create-query-client`
+2. [x] - `p2` - `HAI3Provider` reads `app.queryClient` from the framework plugin (or accepts an injected host-owned client) and renders `QueryClientProvider` wrapping children — `inst-render-query-provider`
+3. [x] - `p2` - IF MFE mode, the host passes its `QueryClient` to each separately mounted MFE root via opaque mount context, and the MFE forwards that client into `HAI3Provider` — shared cache across all MFEs, each using its own `apiRegistry` as `queryFn` — `inst-mfe-query-client`
+4. [x] - `p2` - The `queryCache()` plugin listens for `MockEvents.Toggle` and clears cache on mock mode changes — `inst-mock-cache-clear`
+5. [x] - `p2` - The `queryCache()` plugin listens for `cache/invalidate` events from L2 Flux effects and invalidates the corresponding cache entries — `inst-flux-cache-invalidate`
+6. [x] - `p2` - On `app.destroy()`, the `queryCache()` plugin's `onDestroy` clears and garbage-collects the `QueryClient` — `inst-cleanup-query-client`
 
 ---
 
@@ -170,79 +191,79 @@ Success criteria: A developer can fetch data with `useApiQuery` and submit chang
 
 ### Algorithm 1 — AbortSignal Threading in RestProtocol
 
-- [ ] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-signal-threading`
+- [x] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-signal-threading`
 
-1. [ ] - `p1` - Receive `signal` from caller via `RequestOptions` parameter — `inst-receive-signal`
-2. [ ] - `p1` - Attach `signal` to `RestRequestContext` as a readonly optional property — `inst-attach-to-context`
-3. [ ] - `p1` - Pass `RestRequestContext` through `executePluginOnRequest` chain (plugins can read `signal` but MUST NOT replace it) — `inst-plugin-passthrough`
-4. [ ] - `p1` - Copy `signal` from context to `AxiosRequestConfig.signal` before HTTP execution — `inst-copy-to-axios`
-5. [ ] - `p1` - IF `signal` is already aborted before Axios call, Axios throws synchronously — `inst-pre-aborted`
-6. [ ] - `p1` - RETURN: Axios handles abort natively; no additional wiring needed — `inst-axios-native`
+1. [x] - `p1` - Receive `signal` from caller via `RequestOptions` parameter — `inst-receive-signal`
+2. [x] - `p1` - Attach `signal` to `RestRequestContext` as a readonly optional property — `inst-attach-to-context`
+3. [x] - `p1` - Pass `RestRequestContext` through `executePluginOnRequest` chain (plugins can read `signal` but MUST NOT replace it) — `inst-plugin-passthrough`
+4. [x] - `p1` - Copy `signal` from context to `AxiosRequestConfig.signal` before HTTP execution — `inst-copy-to-axios`
+5. [x] - `p1` - IF `signal` is already aborted before Axios call, Axios throws synchronously — `inst-pre-aborted`
+6. [x] - `p1` - RETURN: Axios handles abort natively; no additional wiring needed — `inst-axios-native`
 
 ---
 
 ### Algorithm 2 — CanceledError Detection and Bypass
 
-- [ ] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-cancel-detection`
+- [x] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-cancel-detection`
 
-1. [ ] - `p1` - In `requestInternal` catch block, check if error is an Axios `CanceledError` (via `axios.isCancel(error)`) — `inst-check-is-cancel`
-2. [ ] - `p1` - IF `axios.isCancel(error)` is true, re-throw immediately without entering `executePluginOnError` — `inst-rethrow-cancel`
-3. [ ] - `p1` - IF `axios.isCancel(error)` is false, proceed to `executePluginOnError` as before — `inst-normal-error-path`
-4. [ ] - `p1` - RETURN: cancellation errors are never retried and never processed by plugins — `inst-no-retry-cancel`
+1. [x] - `p1` - In `requestInternal` catch block, check if error is an Axios `CanceledError` (via `axios.isCancel(error)`) — `inst-check-is-cancel`
+2. [x] - `p1` - IF `axios.isCancel(error)` is true, re-throw immediately without entering `executePluginOnError` — `inst-rethrow-cancel`
+3. [x] - `p1` - IF `axios.isCancel(error)` is false, proceed to `executePluginOnError` as before — `inst-normal-error-path`
+4. [x] - `p1` - RETURN: cancellation errors are never retried and never processed by plugins — `inst-no-retry-cancel`
 
 ---
 
 ### Algorithm 3 — RequestOptions Pattern for HTTP Methods
 
-- [ ] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-request-options`
+- [x] `p1` - **ID**: `cpt-hai3-algo-request-lifecycle-request-options`
 
-1. [ ] - `p1` - Define `RestRequestOptions` interface with optional `signal?: AbortSignal` and optional `params?: Record<string, string>` — `inst-define-options`
-2. [ ] - `p1` - Update `get`, `post`, `put`, `patch`, `delete` method signatures to accept `RestRequestOptions` as final parameter — `inst-update-signatures`
-3. [ ] - `p1` - Extract `signal` and `params` from options in each method, forward to `request()` — `inst-extract-options`
-4. [ ] - `p1` - `request()` passes `signal` and `params` to `requestInternal()` — `inst-forward-to-internal`
-5. [ ] - `p1` - RETURN: existing callers without options continue to work (options parameter is optional) — `inst-backward-compat`
+1. [x] - `p1` - Define `RestRequestOptions` interface with optional `signal?: AbortSignal` and optional `params?: Record<string, string>` — `inst-define-options`
+2. [x] - `p1` - Update `get`, `post`, `put`, `patch`, `delete` method signatures to accept `RestRequestOptions` as final parameter — `inst-update-signatures`
+3. [x] - `p1` - Extract `signal` and `params` from options in each method, forward to `request()` — `inst-extract-options`
+4. [x] - `p1` - `request()` passes `signal` and `params` to `requestInternal()` — `inst-forward-to-internal`
+5. [x] - `p1` - RETURN: existing callers without options continue to work (options parameter is optional) — `inst-backward-compat`
 
 ---
 
 ### Algorithm 4 — QueryClient Default Configuration (queryCache Plugin)
 
-- [ ] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-query-client-defaults`
+- [x] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-query-client-defaults`
 
-1. [ ] - `p2` - The `queryCache()` plugin creates `QueryClient` with defaults merged from plugin config — `inst-create-in-plugin`
-2. [ ] - `p2` - Set `staleTime` to `config.staleTime ?? 30_000` (avoid immediate refetch on re-mount) — `inst-stale-time`
-3. [ ] - `p2` - Set `gcTime` to `config.gcTime ?? 300_000` (garbage-collect unused cache entries) — `inst-gc-time`
-4. [ ] - `p2` - Set `retry` to 0 (HAI3 has its own retry plugin system; avoid double retry) — `inst-no-retry`
-5. [ ] - `p2` - Set `refetchOnWindowFocus` to `config.refetchOnWindowFocus ?? true` (refresh stale data on tab switch) — `inst-refetch-focus`
-6. [ ] - `p2` - Expose `QueryClient` as `app.queryClient` via `provides.registries` — `inst-expose-client`
-7. [ ] - `p2` - `HAI3Provider` reads `app.queryClient` (or uses injected host-owned client for MFEs) — `inst-provider-reads-client`
-8. [ ] - `p2` - RETURN: QueryClient available to both React hooks and non-React contexts — `inst-return-client`
+1. [x] - `p2` - The `queryCache()` plugin creates `QueryClient` with defaults merged from plugin config — `inst-create-in-plugin`
+2. [x] - `p2` - Set `staleTime` to `config.staleTime ?? 30_000` (avoid immediate refetch on re-mount) — `inst-stale-time`
+3. [x] - `p2` - Set `gcTime` to `config.gcTime ?? 300_000` (garbage-collect unused cache entries) — `inst-gc-time`
+4. [x] - `p2` - Set `retry` to 0 (HAI3 has its own retry plugin system; avoid double retry) — `inst-no-retry`
+5. [x] - `p2` - Set `refetchOnWindowFocus` to `config.refetchOnWindowFocus ?? true` (refresh stale data on tab switch) — `inst-refetch-focus`
+6. [x] - `p2` - Expose `QueryClient` as `app.queryClient` via `provides.registries` — `inst-expose-client`
+7. [x] - `p2` - `HAI3Provider` reads `app.queryClient` (or uses injected host-owned client for MFEs) — `inst-provider-reads-client`
+8. [x] - `p2` - RETURN: QueryClient available to both React hooks and non-React contexts — `inst-return-client`
 
 ---
 
 ### Algorithm 5 — Optimistic Update with Rollback
 
-- [ ] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-optimistic-update`
+- [x] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-optimistic-update`
 
 All cache operations use the `QueryCache` interface, either injected into mutation callbacks by `useApiMutation` or returned by `useQueryCache()`. MFEs never access the caching library client directly. `QueryCache` methods accept `EndpointDescriptor` or raw `QueryKey`.
 
-1. [ ] - `p2` - In `onMutate` callback, cancel any outgoing refetches for the affected endpoint via `queryCache.cancel(service.queryDescriptor)` to prevent race conditions — `inst-cancel-refetches`
-2. [ ] - `p2` - Snapshot the current cache value via `queryCache.get(service.queryDescriptor)` — `inst-snapshot`
-3. [ ] - `p2` - Apply the optimistic update via `queryCache.set(service.queryDescriptor, optimisticData)` — `inst-apply-optimistic`
-4. [ ] - `p2` - RETURN the snapshot as the `onMutate` return value (passed to `onError` as `context`) — `inst-return-snapshot`
-5. [ ] - `p2` - IF mutation fails, `onError` receives the snapshot via `context` and restores it via `queryCache.set(service.queryDescriptor, context.snapshot)` — `inst-rollback`
-6. [ ] - `p2` - In `onSettled`, call `queryCache.invalidate(service.queryDescriptor)` to refetch the authoritative server state regardless of success or failure — `inst-refetch-authoritative`
+1. [x] - `p2` - In `onMutate` callback, cancel any outgoing refetches for the affected endpoint via `queryCache.cancel(service.queryDescriptor)` to prevent race conditions — `inst-cancel-refetches`
+2. [x] - `p2` - Snapshot the current cache value via `queryCache.get(service.queryDescriptor)` — `inst-snapshot`
+3. [x] - `p2` - Apply the optimistic update via `queryCache.set(service.queryDescriptor, optimisticData)` — `inst-apply-optimistic`
+4. [x] - `p2` - RETURN the snapshot as the `onMutate` return value (passed to `onError` as `context`) — `inst-return-snapshot`
+5. [x] - `p2` - IF mutation fails, `onError` receives the snapshot via `context` and restores it via `queryCache.set(service.queryDescriptor, context.snapshot)` — `inst-rollback`
+6. [x] - `p2` - In `onSettled`, call `queryCache.invalidate(service.queryDescriptor)` to refetch the authoritative server state regardless of success or failure — `inst-refetch-authoritative`
 
 ---
 
 ### Algorithm 6 — Query Invalidation After Mutation
 
-- [ ] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-query-invalidation`
+- [x] `p2` - **ID**: `cpt-hai3-algo-request-lifecycle-query-invalidation`
 
-1. [ ] - `p2` - In `onSuccess` or `onSettled` callback, determine which endpoint descriptors are affected by the mutation — `inst-determine-keys`
-2. [ ] - `p2` - Call `queryCache.invalidate(service.descriptor)` for each affected endpoint, or `queryCache.invalidateMany(filters)` for namespace-wide invalidation, via the `QueryCache` interface — `inst-invalidate`
-3. [ ] - `p2` - TanStack Query marks matched cached entries as stale — `inst-mark-stale`
-4. [ ] - `p2` - IF any component is currently mounted and observing an invalidated key, TanStack Query triggers a background refetch automatically — `inst-auto-refetch`
-5. [ ] - `p2` - IF no component is observing the key, the stale data remains in cache until next access or GC — `inst-lazy-refetch`
+1. [x] - `p2` - In `onSuccess` or `onSettled` callback, determine which endpoint descriptors are affected by the mutation — `inst-determine-keys`
+2. [x] - `p2` - Call `queryCache.invalidate(service.descriptor)` for each affected endpoint, or `queryCache.invalidateMany(filters)` for namespace-wide invalidation, via the `QueryCache` interface — `inst-invalidate`
+3. [x] - `p2` - TanStack Query marks matched cached entries as stale — `inst-mark-stale`
+4. [x] - `p2` - IF any component is currently mounted and observing an invalidated key, TanStack Query triggers a background refetch automatically — `inst-auto-refetch`
+5. [x] - `p2` - IF no component is observing the key, the stale data remains in cache until next access or GC — `inst-lazy-refetch`
 
 ---
 
@@ -250,34 +271,34 @@ All cache operations use the `QueryCache` interface, either injected into mutati
 
 ### State 1 — Query Lifecycle State
 
-- [ ] `p2` - **ID**: `cpt-hai3-state-request-lifecycle-query`
+- [x] `p2` - **ID**: `cpt-hai3-state-request-lifecycle-query`
 
 **States**: IDLE, FETCHING, SUCCESS, ERROR, STALE
 
 **Initial State**: IDLE
 
-1. [ ] - `p2` - **FROM** IDLE **TO** FETCHING **WHEN** `useApiQuery` mounts and no cached data exists — `inst-initial-fetch`
-2. [ ] - `p2` - **FROM** FETCHING **TO** SUCCESS **WHEN** `queryFn` resolves — `inst-fetch-success`
-3. [ ] - `p2` - **FROM** FETCHING **TO** ERROR **WHEN** `queryFn` rejects — `inst-fetch-error`
-4. [ ] - `p2` - **FROM** SUCCESS **TO** STALE **WHEN** `staleTime` elapses — `inst-become-stale`
-5. [ ] - `p2` - **FROM** STALE **TO** FETCHING **WHEN** component re-mounts or window refocuses — `inst-refetch`
-6. [ ] - `p2` - **FROM** ERROR **TO** FETCHING **WHEN** manual refetch triggered — `inst-retry-manual`
-7. [ ] - `p2` - **FROM** any **TO** IDLE **WHEN** component unmounts and `gcTime` elapses — `inst-gc`
+1. [x] - `p2` - **FROM** IDLE **TO** FETCHING **WHEN** `useApiQuery` mounts and no cached data exists — `inst-initial-fetch`
+2. [x] - `p2` - **FROM** FETCHING **TO** SUCCESS **WHEN** `queryFn` resolves — `inst-fetch-success`
+3. [x] - `p2` - **FROM** FETCHING **TO** ERROR **WHEN** `queryFn` rejects — `inst-fetch-error`
+4. [x] - `p2` - **FROM** SUCCESS **TO** STALE **WHEN** `staleTime` elapses — `inst-become-stale`
+5. [x] - `p2` - **FROM** STALE **TO** FETCHING **WHEN** component re-mounts or window refocuses — `inst-refetch`
+6. [x] - `p2` - **FROM** ERROR **TO** FETCHING **WHEN** manual refetch triggered — `inst-retry-manual`
+7. [x] - `p2` - **FROM** any **TO** IDLE **WHEN** component unmounts and `gcTime` elapses — `inst-gc`
 
 ### State 2 — Mutation Lifecycle State
 
-- [ ] `p2` - **ID**: `cpt-hai3-state-request-lifecycle-mutation`
+- [x] `p2` - **ID**: `cpt-hai3-state-request-lifecycle-mutation`
 
 **States**: IDLE, PENDING, SUCCESS, ERROR
 
 **Initial State**: IDLE
 
-1. [ ] - `p2` - **FROM** IDLE **TO** PENDING **WHEN** `mutate(variables)` is called — `inst-mutation-start`
-2. [ ] - `p2` - **FROM** PENDING **TO** SUCCESS **WHEN** `mutationFn` resolves; `onSuccess` and `onSettled` callbacks fire — `inst-mutation-success`
-3. [ ] - `p2` - **FROM** PENDING **TO** ERROR **WHEN** `mutationFn` rejects; `onError` and `onSettled` callbacks fire, optimistic rollback executes if applicable — `inst-mutation-error`
-4. [ ] - `p2` - **FROM** SUCCESS **TO** IDLE **WHEN** `reset()` is called or component unmounts — `inst-mutation-reset-success`
-5. [ ] - `p2` - **FROM** ERROR **TO** IDLE **WHEN** `reset()` is called or component unmounts — `inst-mutation-reset-error`
-6. [ ] - `p2` - **FROM** ERROR **TO** PENDING **WHEN** `mutate(variables)` is called again (retry) — `inst-mutation-retry`
+1. [x] - `p2` - **FROM** IDLE **TO** PENDING **WHEN** `mutate(variables)` is called — `inst-mutation-start`
+2. [x] - `p2` - **FROM** PENDING **TO** SUCCESS **WHEN** `mutationFn` resolves; `onSuccess` and `onSettled` callbacks fire — `inst-mutation-success`
+3. [x] - `p2` - **FROM** PENDING **TO** ERROR **WHEN** `mutationFn` rejects; `onError` and `onSettled` callbacks fire, optimistic rollback executes if applicable — `inst-mutation-error`
+4. [x] - `p2` - **FROM** SUCCESS **TO** IDLE **WHEN** `reset()` is called or component unmounts — `inst-mutation-reset-success`
+5. [x] - `p2` - **FROM** ERROR **TO** IDLE **WHEN** `reset()` is called or component unmounts — `inst-mutation-reset-error`
+6. [x] - `p2` - **FROM** ERROR **TO** PENDING **WHEN** `mutate(variables)` is called again (retry) — `inst-mutation-retry`
 
 ---
 
@@ -285,7 +306,7 @@ All cache operations use the `QueryCache` interface, either injected into mutati
 
 ### DoD 1 — AbortSignal Support in RestProtocol
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-request-lifecycle-abort-signal`
+- [x] `p1` - **ID**: `cpt-hai3-dod-request-lifecycle-abort-signal`
 
 The system **MUST** support request cancellation via `AbortSignal` in `RestProtocol` without modifying the plugin chain contract.
 
@@ -316,7 +337,7 @@ The system **MUST** support request cancellation via `AbortSignal` in `RestProto
 
 ### DoD 2 — QueryClient Lifecycle via queryCache() Plugin
 
-- [ ] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-query-provider`
+- [x] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-query-provider`
 
 The system **MUST** provide a `queryCache()` framework plugin at L2 that owns the `QueryClient` lifecycle, and a `QueryClientProvider` inside `HAI3Provider` at L3 that consumes the plugin's client. The `QueryClient` is shared across all MFEs even though each MFE renders in its own React root.
 
@@ -349,7 +370,7 @@ The system **MUST** provide a `queryCache()` framework plugin at L2 that owns th
 
 ### DoD 3 — useApiQuery Hook
 
-- [ ] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-use-api-query`
+- [x] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-use-api-query`
 
 The system **MUST** export a `useApiQuery` hook from `@hai3/react` that accepts an `EndpointDescriptor` from a service class, delegates to the underlying caching library, and returns a HAI3-owned `ApiQueryResult<TData>`.
 
@@ -376,7 +397,7 @@ The system **MUST** export a `useApiQuery` hook from `@hai3/react` that accepts 
 
 ### DoD 4 — useApiMutation Hook
 
-- [ ] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-use-api-mutation`
+- [x] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-use-api-mutation`
 
 The system **MUST** export a `useApiMutation` hook from `@hai3/react` that accepts a `MutationDescriptor` from a service class, delegates to the underlying caching library, and supports optimistic updates, rollback, and cache invalidation via a restricted `QueryCache` interface.
 
@@ -402,34 +423,79 @@ The system **MUST** export a `useApiMutation` hook from `@hai3/react` that accep
 
 ---
 
+### DoD 5 — useApiStream Hook
+
+- [x] `p2` - **ID**: `cpt-hai3-dod-request-lifecycle-use-api-stream`
+
+The system **MUST** export a `useApiStream` hook from `@hai3/react` that accepts a `StreamDescriptor<TEvent>` from a service class, manages the SSE connection lifecycle (connect on mount, disconnect on unmount), and returns a HAI3-owned `ApiStreamResult<TEvent>`.
+
+**Implementation details**:
+
+- Hook: `useApiStream` in `packages/react/src/hooks/useApiStream.ts`
+- Signature: accepts `StreamDescriptor<TEvent>` (from `BaseApiService.stream()`) and optional `ApiStreamOptions { mode?, enabled? }`
+- `mode: 'latest'` (default) — `data` holds the most recent event; `mode: 'accumulate'` — `events` holds all received events in order
+- `enabled: false` defers connection (status stays `'idle'`); when toggled to `true`, connects
+- Returns `ApiStreamResult<TEvent>` — HAI3-owned type exposing `data`, `events`, `status`, `error`, `disconnect`
+- `status` is a `StreamStatus`: `'idle' | 'connecting' | 'connected' | 'disconnected' | 'error'`
+- Cleans up (disconnects) on unmount and on descriptor key change
+- Does NOT integrate with `QueryCache` (streaming data is not query-cached; see Known Gap in Additional Context)
+
+**Implements**:
+- `cpt-hai3-flow-request-lifecycle-use-api-stream`
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-sse-stream-descriptors`
+- `cpt-hai3-fr-react-query-hooks`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-constraint-no-react-below-l3`
+- `cpt-hai3-component-react`
+
+---
+
 ## 6. Acceptance Criteria
 
-- [ ] `RestProtocol.get('/url', { signal })` cancels the in-flight request when `controller.abort()` is called; Axios throws `CanceledError`
-- [ ] Canceled requests do NOT enter the `onError` plugin chain and are NOT retried
-- [ ] Existing callers without `signal` option continue to work unchanged (backward compatible)
-- [ ] `queryCache()` framework plugin creates and owns the `QueryClient` with configurable defaults, exposed as `app.queryClient`
-- [ ] `queryCache()` plugin is included in the `full()` preset
-- [ ] `queryCache()` plugin clears cache on `MockEvents.Toggle` and handles `cache/invalidate` events from Flux effects
-- [ ] `HAI3Provider` reads `app.queryClient` from the framework plugin (not creating its own) and renders `QueryClientProvider`
-- [ ] All MFEs share the host's `QueryClient` via injected mount context — overlapping descriptor keys are deduplicated across MFE boundaries
-- [ ] `useApiQuery(service.endpoint)` accepts an `EndpointDescriptor` and returns `ApiQueryResult { data, isLoading, error }` with automatic cancellation on unmount
-- [ ] Two components using the same endpoint descriptor result in a single HTTP request (deduplication)
-- [ ] Stale data is returned immediately on re-mount, with background refetch
-- [ ] `useApiMutation({ endpoint: service.mutation, ... })` supports the full callback lifecycle: `onMutate` (optimistic), `onSuccess`, `onError` (rollback), `onSettled` — each callback receives `{ queryCache }` as an additional parameter
-- [ ] `QueryCache` interface exposes `get`, `getState`, `set` (with updater function support), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor` or raw `QueryKey` — wraps the caching library client internally
-- [ ] The caching library client is NOT re-exported from `@hai3/react` — MFEs cannot access it directly
-- [ ] Optimistic updates apply immediately via `queryCache.set(service.endpoint, updater)` and rollback on error using the snapshot from `onMutate`
-- [ ] `queryCache.invalidate(service.endpoint)` triggers background refetch for mounted observers
-- [ ] Cache keys are derived automatically from `[baseURL, method, path]` via `BaseApiService.query()` / `queryWith()` / `mutation()` — no manual key factories
-- [ ] MFEs do NOT have `data/` folders with query key factories or `queryOptions()` calls — the service IS the data layer
-- [ ] Per-endpoint cache options (`staleTime`, `gcTime`) are set on the descriptor via `this.query('/path', { staleTime, gcTime })`
-- [ ] Cache configuration follows three-tier cascade: component call overrides > descriptor defaults > framework defaults
-- [ ] `ApiQueryResult<TData>` and `ApiMutationResult<TData>` are HAI3-owned types — not TanStack-specific types
-- [ ] `queryOptions` is NOT re-exported from `@hai3/react` — endpoint descriptors replace it
-- [ ] Cross-feature mutations use the Flux pattern with event-based cache invalidation (`cache/invalidate` event from L2, synchronous listener at L3 in HAI3Provider)
-- [ ] Mock mode continues to work: `RestMockPlugin` short-circuits regardless of `signal` presence
-- [ ] `@hai3/api` remains at zero `@hai3/*` dependencies (AbortSignal is a browser API)
-- [ ] `@tanstack/react-query` is a peer dependency of `@hai3/react`, not bundled
+- [x] `RestProtocol.get('/url', { signal })` cancels the in-flight request when `controller.abort()` is called; Axios throws `CanceledError`
+- [x] Canceled requests do NOT enter the `onError` plugin chain and are NOT retried
+- [x] Existing callers without `signal` option continue to work unchanged (backward compatible)
+- [x] `queryCache()` framework plugin creates and owns the `QueryClient` with configurable defaults, exposed as `app.queryClient`
+- [x] `queryCache()` plugin is included in the `full()` preset
+- [x] `queryCache()` plugin clears cache on `MockEvents.Toggle` and handles `cache/invalidate` events from Flux effects
+- [x] `HAI3Provider` reads `app.queryClient` from the framework plugin (not creating its own) and renders `QueryClientProvider`
+- [x] All MFEs share the host's `QueryClient` via injected mount context — overlapping descriptor keys are deduplicated across MFE boundaries
+- [x] `useApiQuery(service.endpoint)` accepts an `EndpointDescriptor` and returns `ApiQueryResult { data, isLoading, error }` with automatic cancellation on unmount
+- [x] Two components using the same endpoint descriptor result in a single HTTP request (deduplication)
+- [x] Stale data is returned immediately on re-mount, with background refetch
+- [x] `useApiMutation({ endpoint: service.mutation, ... })` supports the full callback lifecycle: `onMutate` (optimistic), `onSuccess`, `onError` (rollback), `onSettled` — each callback receives `{ queryCache }` as an additional parameter
+- [x] `QueryCache` interface exposes `get`, `getState`, `set` (with updater function support), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor` or raw `QueryKey` — wraps the caching library client internally
+- [x] The caching library client is NOT re-exported from `@hai3/react` — MFEs cannot access it directly
+- [x] Optimistic updates apply immediately via `queryCache.set(service.endpoint, updater)` and rollback on error using the snapshot from `onMutate`
+- [x] `queryCache.invalidate(service.endpoint)` triggers background refetch for mounted observers
+- [x] Cache keys are derived automatically from `[baseURL, method, path]` via `BaseApiService.query()` / `queryWith()` / `mutation()` — no manual key factories
+- [x] `BaseApiService.stream<TEvent>(path)` returns a `StreamDescriptor<TEvent>` with key `[baseURL, 'SSE', path]` that routes through `SseProtocol` plugin chain
+- [x] `useApiStream(service.streamDescriptor)` connects on mount, disconnects on unmount, and returns `ApiStreamResult { data, events, status, error, disconnect }`
+- [x] `useApiStream` in `'latest'` mode updates `data` with each event; in `'accumulate'` mode appends to `events` array
+- [x] `useApiStream` with `enabled: false` defers connection; toggling to `true` initiates connection
+- [x] `SseMockPlugin` short-circuits `useApiStream` connections the same way it short-circuits direct `SseProtocol.connect()` calls
+- [x] MFEs do NOT have `data/` folders with query key factories or `queryOptions()` calls — the service IS the data layer
+- [x] Per-endpoint cache options (`staleTime`, `gcTime`) are set on the descriptor via `this.query('/path', { staleTime, gcTime })`
+- [x] Cache configuration follows three-tier cascade: component call overrides > descriptor defaults > framework defaults
+- [x] `ApiQueryResult<TData>` and `ApiMutationResult<TData>` are HAI3-owned types — not TanStack-specific types
+- [x] `queryOptions` is NOT re-exported from `@hai3/react` — endpoint descriptors replace it
+- [x] Cross-feature mutations use the Flux pattern with event-based cache invalidation (`cache/invalidate` event from L2, synchronous listener at L3 in HAI3Provider)
+- [x] Mock mode continues to work: `RestMockPlugin` short-circuits regardless of `signal` presence
+- [x] `@hai3/api` remains at zero `@hai3/*` dependencies (AbortSignal is a browser API)
+- [x] `@tanstack/react-query` is a peer dependency of `@hai3/react`, not bundled
+
+---
+
+## Non-Applicable Domains
+
+- **Security**: No authentication, authorization, or sensitive data handling — this feature operates at the transport/caching layer using browser-standard APIs (`AbortSignal`, in-memory cache).
+- **Data**: No database operations — cache is browser-side in-memory only.
+- **UX**: No user-facing UI — developer-facing SDK hooks and framework plugin.
+- **Compliance**: No regulatory data handling.
+- **Operations**: No deployment, observability, or infrastructure changes.
 
 ---
 
@@ -494,7 +560,7 @@ onSettled: async (_data, _err, _vars, _ctx, { queryCache }) => {
 
 **Rationale**: With a shared cache across MFEs, unrestricted access would allow any MFE to read, write, or invalidate any cache entry. The `QueryCache` interface constrains the API surface without limiting functionality — optimistic updates (`get`/`set` with updater), rollback (`set`), state inspection (`getState`), targeted invalidation (`invalidate`), namespace invalidation (`invalidateMany`), race condition prevention (`cancel`), and targeted cache eviction (`remove`) are all supported. Declarative reads still go through `useApiQuery()`, while imperative cache work uses `useQueryCache()`.
 
-**Known gap**: SSE/WebSocket event handlers that push live data into the cache are not mutation callbacks and do not receive `{ queryCache }`. When SSE-to-cache integration is designed, a separate access path (event-based `cache/update` pattern or a dedicated `useCacheUpdater` hook) will be needed.
+**Known gap**: SSE/WebSocket event handlers that push live data into the cache are not mutation callbacks and do not receive `{ queryCache }`. `useApiStream` provides reactive state (`data`, `events`) but does not write to `QueryCache` automatically. When SSE-to-cache integration is designed, a separate access path (event-based `cache/update` pattern, a dedicated `useCacheUpdater` hook, or combining `useApiStream` with `useQueryCache` in the component) will be needed.
 
 ### Shared QueryClient Across MFEs
 
@@ -533,6 +599,9 @@ class AccountsApiService extends BaseApiService {
   readonly updateProfile = this.mutation<GetCurrentUserResponse, UpdateProfileVariables>(
     'PUT', '/user/profile'
   );
+
+  // SSE Stream: key = ['/api/accounts', 'SSE', '/stream/activity']
+  readonly activityStream = this.stream<ActivityEvent>('/stream/activity');
 }
 ```
 
@@ -556,11 +625,20 @@ const { mutateAsync } = useApiMutation({
     return { snapshot };
   },
 });
+
+// SSE Stream — latest event
+const { data: activity, status } = useApiStream(service.activityStream);
+
+// SSE Stream — accumulate all events
+const { events } = useApiStream(service.activityStream, { mode: 'accumulate' });
+
+// SSE Stream — deferred connection
+const { data, disconnect } = useApiStream(service.activityStream, { enabled: isActive });
 ```
 
 `EndpointDescriptor` is defined at L1 (`@hai3/api`) with zero caching library dependency. It is a plain object carrying `key`, `fetch`, and optional cache configuration. The React layer (L3) consumes descriptors and maps them to the underlying caching library.
 
-For GraphQL or other protocols, the service would use `this.query<TData>(QUERY_DOCUMENT)` and the key would be derived from the operation name and variables. Component code remains identical: `useApiQuery(service.endpoint)`.
+For GraphQL or other protocols, the service would use `this.query<TData>(QUERY_DOCUMENT)` and the key would be derived from the operation name and variables. Component code remains identical: `useApiQuery(service.endpoint)` for REST reads, `useApiStream(service.streamDescriptor)` for SSE streams.
 
 ### Event-Based Cache Invalidation for Flux Effects
 

@@ -50,6 +50,9 @@ export type {
   ParameterizedEndpointDescriptor,
   MutationDescriptor,
   EndpointOptions,
+  // Stream descriptor types
+  StreamDescriptor,
+  StreamStatus,
 } from './types';
 
 // Re-export mock config types from plugin files

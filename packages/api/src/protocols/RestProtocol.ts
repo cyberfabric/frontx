@@ -13,7 +13,7 @@
 // @cpt-algo:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1
 // @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
 // @cpt-state:cpt-hai3-state-api-communication-rest-connection:p1
-// @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-abort-signal:p1
+// @cpt-dod:cpt-hai3-dod-request-lifecycle-abort-signal:p1
 // @cpt-flow:cpt-hai3-flow-request-lifecycle-rest-abort:p1
 // @cpt-algo:cpt-hai3-algo-request-lifecycle-signal-threading:p1
 // @cpt-algo:cpt-hai3-algo-request-lifecycle-cancel-detection:p1

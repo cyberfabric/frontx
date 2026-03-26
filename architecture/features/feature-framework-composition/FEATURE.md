@@ -530,7 +530,7 @@ All presets are exported from `@hai3/framework`. The `presets` object collects a
 `@hai3/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
 - From `@hai3/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
 - From `@hai3/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
-- From `@hai3/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
+- From `@hai3/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards, `StreamDescriptor`, `StreamStatus`
 - From `@hai3/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.
