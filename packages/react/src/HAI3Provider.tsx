@@ -16,7 +16,7 @@
 // @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
-import React, { useMemo, useEffect } from 'react';
+import React, { useMemo, useEffect, useRef } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { createHAI3App } from '@hai3/framework';
@@ -24,6 +24,22 @@ import type { HAI3App } from '@hai3/framework';
 import { HAI3Context } from './HAI3Context';
 import { MfeProvider } from './mfe/MfeProvider';
 import type { HAI3ProviderProps } from './types';
+
+/**
+ * Shallow-compare two plain objects by own-enumerable values (Object.is).
+ * Prevents unnecessary app recreation when callers pass inline config literals
+ * whose values haven't actually changed between renders.
+ */
+function shallowEqual(
+  a: Record<string, unknown> | undefined,
+  b: Record<string, unknown> | undefined,
+): boolean {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keysA = Object.keys(a);
+  if (keysA.length !== Object.keys(b).length) return false;
+  return keysA.every((k) => Object.is(a[k], b[k]));
+}
 
 /**
  * HAI3 Provider Component
@@ -75,14 +91,22 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-begin:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-create-app
   // @cpt-begin:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-memoize-app
   // @cpt-begin:cpt-hai3-algo-react-bindings-build-provider-tree:p1:inst-resolve-app-tree
-  // Create or use provided app instance
+  const configRef = useRef(config);
+  if (!shallowEqual(
+    configRef.current as Record<string, unknown> | undefined,
+    config as Record<string, unknown> | undefined,
+  )) {
+    configRef.current = config;
+  }
+  const stableConfig = configRef.current;
+
   const app = useMemo<HAI3App>(() => {
     if (providedApp) {
       return providedApp;
     }
 
-    return createHAI3App(config);
-  }, [providedApp, config]);
+    return createHAI3App(stableConfig);
+  }, [providedApp, stableConfig]);
   // @cpt-end:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-use-provided-app
   // @cpt-end:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-create-app
   // @cpt-end:cpt-hai3-algo-react-bindings-resolve-app:p1:inst-memoize-app
@@ -91,7 +115,12 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
 
   // @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-resolve-query-client
   // Priority: explicitly injected client (MFE root) > plugin-owned client (app.queryClient).
-  const queryClient = providedQueryClient ?? app.queryClient;
+  // Memoized so descendants (e.g. ExtensionDomainSlot effects keyed on app) do not see spurious
+  // reference churn when the provider re-renders with the same inputs.
+  const queryClient = useMemo(
+    () => providedQueryClient ?? app.queryClient,
+    [providedQueryClient, app.queryClient],
+  );
 
   if (!queryClient && process.env.NODE_ENV !== 'production') {
     console.warn(

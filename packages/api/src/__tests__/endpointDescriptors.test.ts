@@ -250,6 +250,15 @@ describe('BaseApiService.mutation()', () => {
     expect(created).toEqual({ id: 'new', name: 'Widget' });
   });
 
+  it('forwards AbortSignal on mutation fetch (non-aborted signal)', async () => {
+    const controller = new AbortController();
+    const updated = await service.updateProfile.fetch(
+      { name: 'Alice Updated' },
+      { signal: controller.signal }
+    );
+    expect(updated).toEqual({ id: '1', name: 'Alice Updated' });
+  });
+
   it('mutation descriptor has no staleTime or gcTime (mutations are not cached)', () => {
     const descriptor = service.updateProfile;
     // MutationDescriptor type does not include cache hints — access via key/fetch only

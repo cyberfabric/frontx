@@ -80,6 +80,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Instance plugin management namespace
    * Plugins registered here apply only to this RestProtocol instance
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-rest-instance-plugins
   public readonly plugins = {
     /**
      * Add an instance REST plugin
@@ -108,11 +109,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       return Array.from(this._instancePlugins);
     },
   };
+  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-rest-instance-plugins
 
+  // @cpt-begin:cpt-hai3-dod-api-communication-rest-protocol:p1:inst-constructor
   constructor(restConfig: RestProtocolConfig = {}) {
     super();
     this.restConfig = { ...DEFAULT_REST_CONFIG, ...restConfig };
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-rest-protocol:p1:inst-constructor
 
   // ============================================================================
   // Initialization
@@ -408,6 +412,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Plugins execute in FIFO order (global first, then instance).
    * Any plugin can short-circuit by returning { shortCircuit: response }.
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1:inst-execute-on-request
   private async executePluginOnRequest(
     context: ApiRequestContext
   ): Promise<ApiRequestContext | ShortCircuitResponse> {
@@ -435,11 +440,13 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentContext;
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1:inst-execute-on-request
 
   /**
    * Execute onResponse plugin chain.
    * Plugins execute in reverse order (LIFO - onion model).
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1:inst-execute-on-response
   private async executePluginOnResponse(
     context: ApiResponseContext,
     _requestContext: ApiRequestContext
@@ -456,12 +463,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentContext;
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1:inst-execute-on-response
 
   /**
    * Execute onError plugin chain with retry support.
    * Plugins execute in reverse order (LIFO).
    * Plugins can transform error, recover with ApiResponseContext, or retry the request.
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-rest-request:p1:inst-execute-on-error
   private async executePluginOnError(
     error: Error,
     context: ApiRequestContext,
@@ -526,5 +535,6 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentResult;
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-rest-request:p1:inst-execute-on-error
 
 }

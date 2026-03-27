@@ -553,6 +553,11 @@ async function copyTemplates() {
   const presetsEntries = await fs.readdir(presetsDir, { withFileTypes: true });
   const rootFiles = presetsEntries.filter(e => e.isFile());
   for (const file of rootFiles) {
+    // Monorepo-only: root tsconfig extends configs/ and maps workspace packages to src.
+    // Standalone templates get tsconfig.json from flattening configs/ only.
+    if (file.name === 'tsconfig.json') {
+      continue;
+    }
     await fs.copy(path.join(presetsDir, file.name), path.join(TEMPLATES_DIR, file.name));
     console.log(`  ✓ ${file.name}`);
   }

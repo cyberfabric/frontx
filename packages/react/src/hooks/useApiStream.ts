@@ -63,19 +63,25 @@ export function useApiStream<TEvent>(
   const [status, setStatus] = useState<StreamStatus>('idle');
   const [error, setError] = useState<Error | null>(null);
 
-  // Track connectionId across renders for cleanup.
+  // Tracks the in-flight connect() promise so cleanup can await it.
+  const connectPromiseRef = useRef<Promise<string> | null>(null);
+  // Tracks the resolved connectionId for the manual disconnect() callback.
   const connectionIdRef = useRef<string | null>(null);
+  // Latest descriptor for connect/disconnect without tying effect or callbacks to object identity.
+  const descriptorRef = useRef(descriptor);
+  descriptorRef.current = descriptor;
 
   // Stable identity derived from descriptor key — used as effect dependency.
-  const descriptorKey = useMemo(() => descriptor.key.join('/'), [descriptor.key]);
+  // JSON.stringify avoids join('/') collisions when a segment contains '/'.
+  const descriptorKey = useMemo(() => JSON.stringify(descriptor.key), [descriptor.key]);
 
   const disconnect = useCallback(() => {
     if (connectionIdRef.current) {
-      descriptor.disconnect(connectionIdRef.current);
+      descriptorRef.current.disconnect(connectionIdRef.current);
       connectionIdRef.current = null;
       setStatus('disconnected');
     }
-  }, [descriptor]);
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
@@ -85,31 +91,34 @@ export function useApiStream<TEvent>(
 
     let cancelled = false;
 
+    const d = descriptorRef.current;
+
+    setData(undefined);
+    setEvents([]);
     setStatus('connecting');
     setError(null);
 
-    descriptor
-      .connect(
-        (event) => {
-          if (cancelled) return;
-          setData(event);
-          setStatus('connected');
-          if (mode === 'accumulate') {
-            setEvents((prev) => [...prev, event]);
-          }
-        },
-        () => {
-          if (cancelled) return;
-          setStatus('disconnected');
-          connectionIdRef.current = null;
-        },
-      )
-      .then((id) => {
-        if (cancelled) {
-          // Component unmounted before connect resolved — tear down immediately.
-          descriptor.disconnect(id);
-          return;
+    const connectPromise = d.connect(
+      (event) => {
+        if (cancelled) return;
+        setData(event);
+        setStatus('connected');
+        if (mode === 'accumulate') {
+          setEvents((prev) => [...prev, event]);
         }
+      },
+      () => {
+        if (cancelled) return;
+        setStatus('disconnected');
+        connectionIdRef.current = null;
+      },
+    );
+
+    connectPromiseRef.current = connectPromise;
+
+    connectPromise
+      .then((id) => {
+        if (cancelled) return;
         connectionIdRef.current = id;
         setStatus('connected');
       })
@@ -121,12 +130,14 @@ export function useApiStream<TEvent>(
 
     return () => {
       cancelled = true;
-      if (connectionIdRef.current) {
-        descriptor.disconnect(connectionIdRef.current);
-        connectionIdRef.current = null;
-      }
+      connectPromise.then(
+        (id) => d.disconnect(id),
+        () => { /* connect failed — nothing to disconnect */ },
+      );
+      connectPromiseRef.current = null;
+      connectionIdRef.current = null;
     };
-  }, [descriptor, descriptorKey, enabled, mode]);
+  }, [descriptorKey, enabled, mode]);
 
   return { data, events, status, error, disconnect };
 }

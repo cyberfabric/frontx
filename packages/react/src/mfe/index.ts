@@ -18,3 +18,4 @@ export { executeActionsChainWithMountContext } from './executeActionsChainWithMo
 export { ThemeAwareReactLifecycle } from './ThemeAwareReactLifecycle';
 export { RefContainerProvider } from './components/RefContainerProvider';
 export { ExtensionDomainSlot, type ExtensionDomainSlotProps } from './components/ExtensionDomainSlot';
+export { bootstrapMfeDomains, DetachedContainerProvider } from './bootstrapMfeCore';

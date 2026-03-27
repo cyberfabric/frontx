@@ -645,11 +645,13 @@ export interface SseShortCircuitResponse {
  * @param result - Plugin onRequest result
  * @returns True if result is a REST short-circuit response
  */
+// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-rest-short-circuit
 export function isRestShortCircuit(
   result: RestRequestContext | RestShortCircuitResponse | undefined
 ): result is RestShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as RestShortCircuitResponse).shortCircuit === 'object' && 'status' in (result as RestShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-rest-short-circuit
 
 /**
  * SSE Short Circuit Type Guard
@@ -658,11 +660,13 @@ export function isRestShortCircuit(
  * @param result - Plugin onConnect result
  * @returns True if result is an SSE short-circuit response
  */
+// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-sse-short-circuit
 export function isSseShortCircuit(
   result: SseConnectContext | SseShortCircuitResponse | undefined
 ): result is SseShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as SseShortCircuitResponse).shortCircuit === 'object' && 'close' in (result as SseShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-sse-short-circuit
 
 // ============================================================================
 // Protocol-Specific Plugin Convenience Classes
@@ -888,8 +892,11 @@ export type ParameterizedEndpointDescriptor<TData, TParams> =
 export interface MutationDescriptor<TData, TVariables> {
   /** Stable cache key: `[baseURL, method, path]`. */
   readonly key: readonly unknown[];
-  /** Execute the mutation. Variables are sent as the request body. */
-  fetch(variables: TVariables): Promise<TData>;
+  /**
+   * Execute the mutation. Variables are sent as the request body.
+   * Optional `signal` is forwarded to the underlying REST protocol (axios).
+   */
+  fetch(variables: TVariables, options?: { signal?: AbortSignal }): Promise<TData>;
 }
 
 // ============================================================================

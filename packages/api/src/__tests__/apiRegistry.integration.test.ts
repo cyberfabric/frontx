@@ -5,6 +5,7 @@
  * Validates API Communication feature acceptance criteria.
  */
 
+import { beforeEach, describe, expect, it } from 'vitest';
 import { BaseApiService } from '../BaseApiService';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { apiRegistry } from '../apiRegistry';

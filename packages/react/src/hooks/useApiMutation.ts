@@ -21,8 +21,8 @@
 // @cpt-state:cpt-hai3-state-request-lifecycle-mutation:p2
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
-import { useMemo } from 'react';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useMutation, useQueryClient, type MutationFunctionContext } from '@tanstack/react-query';
 import type { MutationDescriptor } from '@hai3/framework';
 import { createQueryCache } from './QueryCache';
 import type { QueryCache, MutationCallbackContext } from './QueryCache';
@@ -70,32 +70,81 @@ export function useApiMutation<
 
   const callbackCtx: MutationCallbackContext = useMemo(() => ({ queryCache }), [queryCache]);
 
-  // The adapters below bridge our callback signatures (which include { queryCache } as
-  // a final argument) to TanStack's internal callback signatures. We widen the internal
-  // useMutation call to TContext = unknown so that the onMutate return type (`TContext |
-  // Promise<TContext>`) is assignable — TanStack resolves the actual TOnMutateResult type
-  // at the observer level, not at the options level.
+  // Stable refs so useMutation receives stable function identities; each call reads the
+  // latest options/callbackCtx (TanStack v5 may not re-subscribe when callbacks change).
+  const latestRef = useRef({ options, callbackCtx });
+  latestRef.current = { options, callbackCtx };
+
+  /** Cancels the in-flight mutation request on unmount or when a new mutate supersedes it. */
+  const fetchAbortRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    return () => {
+      fetchAbortRef.current?.abort();
+    };
+  }, []);
+
+  const mutationFn = useCallback((variables: TVariables, context: MutationFunctionContext) => {
+    fetchAbortRef.current?.abort();
+    const controller = new AbortController();
+    fetchAbortRef.current = controller;
+
+    // TanStack Query may add `signal` to this context in future versions; link it so either
+    // source can abort the request we pass to the descriptor.
+    const librarySignal = (context as MutationFunctionContext & { signal?: AbortSignal }).signal;
+    if (librarySignal) {
+      if (librarySignal.aborted) {
+        controller.abort();
+      } else {
+        librarySignal.addEventListener('abort', () => controller.abort(), { once: true });
+      }
+    }
+
+    return latestRef.current.options.endpoint
+      .fetch(variables, { signal: controller.signal })
+      .finally(() => {
+        if (fetchAbortRef.current === controller) {
+          fetchAbortRef.current = null;
+        }
+      });
+  }, []);
+
+  // Helper: creates a stable callback that reads the latest options/ctx from the ref.
+  // Each adapter bridges our callback signatures (which append { queryCache }) to TanStack's.
+  // We widen TContext to unknown so onMutate's return type is assignable at the options level.
+  function useStableAdapter<TArgs extends unknown[], TReturn>(
+    adapter: (o: typeof options, ctx: MutationCallbackContext, ...args: TArgs) => TReturn,
+  ) {
+    const adapterRef = useRef(adapter);
+    adapterRef.current = adapter;
+    return useCallback((...args: TArgs): TReturn => {
+      const { options: o, callbackCtx: ctx } = latestRef.current;
+      return adapterRef.current(o, ctx, ...args);
+    }, []);
+  }
+
+  const onMutateAdapter = useStableAdapter(
+    (o, ctx, variables: TVariables) => o.onMutate!(variables, ctx),
+  );
+  const onSuccessAdapter = useStableAdapter(
+    (o, ctx, data: TData, variables: TVariables, context: unknown) =>
+      o.onSuccess!(data, variables, context as TContext | undefined, ctx),
+  );
+  const onErrorAdapter = useStableAdapter(
+    (o, ctx, error: TError, variables: TVariables, context: unknown) =>
+      o.onError!(error, variables, context as TContext | undefined, ctx),
+  );
+  const onSettledAdapter = useStableAdapter(
+    (o, ctx, data: TData | undefined, error: TError | null, variables: TVariables, context: unknown) =>
+      o.onSettled!(data, error, variables, context as TContext | undefined, ctx),
+  );
+
   const mutation = useMutation<TData, TError, TVariables, unknown>({
-    mutationFn: (variables: TVariables) => options.endpoint.fetch(variables),
-
-    onMutate: options.onMutate
-      ? (variables: TVariables) => options.onMutate!(variables, callbackCtx)
-      : undefined,
-
-    onSuccess: options.onSuccess
-      ? (data: TData, variables: TVariables, context: unknown) =>
-          options.onSuccess!(data, variables, context as TContext | undefined, callbackCtx)
-      : undefined,
-
-    onError: options.onError
-      ? (error: TError, variables: TVariables, context: unknown) =>
-          options.onError!(error, variables, context as TContext | undefined, callbackCtx)
-      : undefined,
-
-    onSettled: options.onSettled
-      ? (data: TData | undefined, error: TError | null, variables: TVariables, context: unknown) =>
-          options.onSettled!(data, error, variables, context as TContext | undefined, callbackCtx)
-      : undefined,
+    mutationFn,
+    onMutate: options.onMutate ? onMutateAdapter : undefined,
+    onSuccess: options.onSuccess ? onSuccessAdapter : undefined,
+    onError: options.onError ? onErrorAdapter : undefined,
+    onSettled: options.onSettled ? onSettledAdapter : undefined,
   });
 
   return {

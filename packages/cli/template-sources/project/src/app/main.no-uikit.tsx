@@ -1,47 +1,12 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import {
-  HAI3Provider,
-  apiRegistry,
-  createHAI3App,
-  MfeHandlerMF,
-  gtsPlugin,
-  HAI3_MFE_ENTRY_MF,
-  themeSchema,
-  languageSchema,
-  extensionScreenSchema,
-} from '@hai3/react';
-import { AccountsApiService } from '@/app/api';
+import { HAI3Provider } from '@hai3/react';
 import './globals.css';
-import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)
-import { registerBootstrapEffects } from '@/app/effects/bootstrapEffects'; // Register app-level effects
 import App from './App';
+import { app } from './initApp';
 
 import { hai3Themes, DEFAULT_THEME_ID } from '@/app/themes';
-
-// Register framework-level derived GTS schemas before the MFE registry is built.
-gtsPlugin.registerSchema(themeSchema);
-gtsPlugin.registerSchema(languageSchema);
-gtsPlugin.registerSchema(extensionScreenSchema);
-
-// Register accounts service (application-level service for user info)
-apiRegistry.register(AccountsApiService);
-
-// Initialize API services
-apiRegistry.initialize({});
-
-// Create HAI3 app instance
-// No UI component library included — user provides their own
-const app = createHAI3App({
-  microfrontends: {
-    typeSystem: gtsPlugin,
-    mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
-  },
-});
-
-// Register app-level effects (pass store dispatch)
-registerBootstrapEffects(app.store.dispatch);
 
 // Register all themes (provides CSS variables regardless of UI kit choice)
 for (const theme of hai3Themes) {

@@ -13,16 +13,7 @@
 
 import type { QueryClient } from '@tanstack/react-query';
 import type { HAI3App, JSONSchema, MfeEntry, Extension, ScreenExtension } from '@hai3/react';
-import {
-  executeActionsChainWithMountContext,
-  screenDomain,
-  sidebarDomain,
-  popupDomain,
-  overlayDomain,
-  HAI3_SHARED_PROPERTY_THEME,
-  HAI3_SHARED_PROPERTY_LANGUAGE,
-  RefContainerProvider,
-} from '@hai3/react';
+import { bootstrapMfeDomains } from '@hai3/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
 
 interface MfeManifestConfig {
@@ -37,23 +28,13 @@ function isScreenExtension(extension: Extension): extension is ScreenExtension {
 }
 
 /**
- * DetachedContainerProvider for domains without a visible host element.
- * Used for domains that don't require direct DOM attachment in the current demo.
- */
-class DetachedContainerProvider extends RefContainerProvider {
-  constructor() {
-    const detachedElement = document.createElement('div');
-    super({ current: detachedElement });
-  }
-}
-
-/**
  * Bootstrap MFE system for the host application.
  * Registers domains, extensions, and shared properties.
  * Initial screen mount is deferred to MfeScreenContainer -> ExtensionDomainSlot.
  *
  * @param app - HAI3 application instance
  * @param screenContainerRef - React ref for the screen domain container element
+ * @param queryClient - optional host-owned QueryClient for shared cache across MFE roots
  * @returns Array of registered screen extensions, for URL routing in MfeScreenContainer
  */
 export async function bootstrapMFE(
@@ -61,68 +42,28 @@ export async function bootstrapMFE(
   screenContainerRef: React.RefObject<HTMLDivElement>,
   queryClient?: QueryClient,
 ): Promise<ScreenExtension[]> {
-  const screensetsRegistry = app.screensetsRegistry;
-  if (!screensetsRegistry) {
-    throw new Error('[MFE Bootstrap] screensetsRegistry is not available on app instance');
-  }
+  const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef, queryClient);
 
-  const screenContainerProvider = new RefContainerProvider(screenContainerRef);
-  screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
-  screensetsRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
-  screensetsRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
-  screensetsRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
-
-  const currentThemeId = app.themeRegistry.getCurrent()?.id ?? 'default';
-  screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
-  screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, 'en');
-
-  if (queryClient) {
-    // Ensure mount_ext actions triggered outside ExtensionDomainSlot still receive
-    // the host-owned QueryClient and join the shared cache.
-    const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-    screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
-      await executeActionsChainWithMountContext(
-        screensetsRegistry,
-        chain,
-        queryClient,
-        origExecuteActionsChain,
-      );
-    }) as typeof screensetsRegistry.executeActionsChain;
-  }
-
-  // Step 3: Guard — no manifests generated yet
   if (MFE_MANIFESTS.length === 0) {
-    console.warn(
-      '[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.'
-    );
+    console.warn('[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.');
     return [];
   }
 
-  // Step 4: Register all MFE manifests, entries, and extensions dynamically
   const manifests = MFE_MANIFESTS as MfeManifestConfig[];
   const screenExtensions: ScreenExtension[] = [];
 
   for (const config of manifests) {
-    // Register manifest type
     screensetsRegistry.typeSystem.register(config.manifest);
 
-    // Register each entry with its manifest inlined
     for (const entry of config.entries) {
-      const entryWithInlineManifest = {
-        ...entry,
-        manifest: config.manifest,
-      };
-      screensetsRegistry.typeSystem.register(entryWithInlineManifest);
+      screensetsRegistry.typeSystem.register({ ...entry, manifest: config.manifest });
     }
 
-    // Register all extensions and collect screen-domain ones for routing
     for (const extension of config.extensions) {
       await screensetsRegistry.registerExtension(extension);
     }
 
-    screenExtensions.push(
-      ...config.extensions.filter(isScreenExtension)
-    );
+    screenExtensions.push(...config.extensions.filter(isScreenExtension));
   }
 
   if (screenExtensions.length === 0) {

@@ -61,6 +61,8 @@ export {
   useActivePackage,
   RefContainerProvider,
   ExtensionDomainSlot,
+  bootstrapMfeDomains,
+  DetachedContainerProvider,
 } from './mfe';
 
 export type {

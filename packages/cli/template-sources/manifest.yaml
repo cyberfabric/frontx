@@ -48,10 +48,12 @@ root:
     # (Stage 1b-override replaces MFE-specific code with standalone-compatible code)
     - src/app/main.tsx
     - src/app/App.tsx
+    - src/app/initApp.ts
     - src/app/globals.css
     # Standalone-only files (in template-sources/project/ instead of monorepo root):
     # - vite.config.ts -> configs/vite.config.ts (no federation plugin)
     # - postcss.config.js -> configs/postcss.config.js
+    # - src/app/initApp.ts -> shared app init (monorepo inlines this in main.tsx)
     # - src/app/main.no-uikit.tsx -> src/app/ (no MFE imports)
     # - src/app/main.custom-uikit.tsx -> src/app/ (custom uikit variant)
     # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/

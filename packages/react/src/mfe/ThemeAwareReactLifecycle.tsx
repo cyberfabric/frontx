@@ -69,7 +69,7 @@ function resolveProviderMountOptions(
 export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<ChildMfeBridge> {
   private root: Root | null = null;
 
-  constructor(private readonly app: HAI3App) {}
+  constructor(private readonly app: HAI3App) { }
 
   mount(container: Element | ShadowRoot, bridge: ChildMfeBridge, mountContext?: MfeMountContext): void {
     if (container instanceof ShadowRoot) {

@@ -5,156 +5,43 @@
  * Validates API Communication feature acceptance criteria for REST plugins.
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
 import { apiRegistry } from '../apiRegistry';
 import type { RestPluginHooks, RestRequestContext, RestResponseContext } from '../types';
+import { createProtocolPluginTests } from './protocolPluginTestFactory';
+
+// ---------------------------------------------------------------------------
+// Shared structural tests (global management, instance management, ordering)
+// ---------------------------------------------------------------------------
+
+createProtocolPluginTests({
+  protocolName: 'RestProtocol',
+  ProtocolClass: RestProtocol as new (...args: unknown[]) => RestProtocol,
+  makePlugin(): RestPluginHooks {
+    return { onRequest: async (ctx) => ctx };
+  },
+  makePluginWithDestroy(onDestroy: () => void): RestPluginHooks & { destroy: () => void } {
+    class DestroyableRestPlugin implements RestPluginHooks {
+      onRequest = async (ctx: RestRequestContext) => ctx;
+      destroy() { onDestroy(); }
+    }
+    return new DestroyableRestPlugin();
+  },
+});
+
+// ---------------------------------------------------------------------------
+// REST-specific tests
+// ---------------------------------------------------------------------------
 
 describe('RestProtocol plugins', () => {
   beforeEach(() => {
-    // Clear all plugins before each test
     apiRegistry.reset();
   });
 
   afterEach(() => {
     apiRegistry.reset();
-  });
-
-  describe('global plugin management via apiRegistry', () => {
-    it('should register global plugins', () => {
-      const plugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, plugin);
-      expect(apiRegistry.plugins.has(RestProtocol, plugin.constructor as never)).toBe(true);
-      expect(apiRegistry.plugins.getAll(RestProtocol)).toContain(plugin);
-    });
-
-    it('should remove global plugins by class and call destroy', () => {
-      let destroyCalled = false;
-
-      class TestPlugin implements RestPluginHooks {
-        onRequest = async (ctx: RestRequestContext) => ctx;
-        destroy() { destroyCalled = true; }
-      }
-
-      const plugin = new TestPlugin();
-      apiRegistry.plugins.add(RestProtocol, plugin);
-      apiRegistry.plugins.remove(RestProtocol, TestPlugin);
-
-      expect(apiRegistry.plugins.has(RestProtocol, TestPlugin)).toBe(false);
-      expect(destroyCalled).toBe(true);
-    });
-
-    it('should clear all global plugins and call destroy on each', () => {
-      let destroyCount = 0;
-
-      class TestPlugin implements RestPluginHooks {
-        onRequest = async (ctx: RestRequestContext) => ctx;
-        destroy() { destroyCount++; }
-      }
-
-      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
-      apiRegistry.plugins.add(RestProtocol, new TestPlugin());
-
-      apiRegistry.plugins.clear(RestProtocol);
-
-      expect(apiRegistry.plugins.getAll(RestProtocol).length).toBe(0);
-      expect(destroyCount).toBe(2);
-    });
-  });
-
-  describe('instance plugin management', () => {
-    it('should register instance plugins', () => {
-      const restProtocol = new RestProtocol();
-      const plugin: RestPluginHooks = {
-        onRequest: async (ctx) => ctx,
-      };
-
-      restProtocol.plugins.add(plugin);
-      expect(restProtocol.plugins.getAll()).toContain(plugin);
-    });
-
-    it('should remove instance plugins and call destroy', () => {
-      const restProtocol = new RestProtocol();
-      let destroyCalled = false;
-      const plugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => { destroyCalled = true; },
-      };
-
-      restProtocol.plugins.add(plugin);
-      restProtocol.plugins.remove(plugin);
-
-      expect(restProtocol.plugins.getAll()).not.toContain(plugin);
-      expect(destroyCalled).toBe(true);
-    });
-  });
-
-  describe('plugin execution order', () => {
-    it('should execute global plugins before instance plugins', () => {
-      const executionOrder: string[] = [];
-
-      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => {
-          executionOrder.push('global');
-          return ctx;
-        },
-        destroy: () => {},
-      };
-
-      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => {
-          executionOrder.push('instance');
-          return ctx;
-        },
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, globalPlugin);
-
-      const restProtocol = new RestProtocol();
-      restProtocol.plugins.add(instancePlugin);
-
-      // Get plugins in order
-      const plugins = restProtocol.getPluginsInOrder();
-      expect(plugins.length).toBe(2);
-      expect(plugins[0]).toBe(globalPlugin);
-      expect(plugins[1]).toBe(instancePlugin);
-    });
-
-    it('should execute global plugins for all protocol instances', () => {
-      const globalPlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      apiRegistry.plugins.add(RestProtocol, globalPlugin);
-
-      const protocol1 = new RestProtocol();
-      const protocol2 = new RestProtocol();
-
-      // Both instances should have access to global plugin
-      expect(protocol1.getPluginsInOrder()).toContain(globalPlugin);
-      expect(protocol2.getPluginsInOrder()).toContain(globalPlugin);
-    });
-
-    it('should execute instance plugins only for that instance', () => {
-      const instancePlugin: RestPluginHooks & { destroy: () => void } = {
-        onRequest: async (ctx) => ctx,
-        destroy: () => {},
-      };
-
-      const protocol1 = new RestProtocol();
-      const protocol2 = new RestProtocol();
-
-      protocol1.plugins.add(instancePlugin);
-
-      expect(protocol1.plugins.getAll()).toContain(instancePlugin);
-      expect(protocol2.plugins.getAll()).not.toContain(instancePlugin);
-    });
   });
 
   describe('short-circuit with RestMockPlugin', () => {

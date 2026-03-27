@@ -4,6 +4,8 @@
  * Covers:
  *   - useApiQuery: accepts EndpointDescriptor, returns ApiQueryResult
  *   - useApiMutation: accepts { endpoint, callbacks }, returns ApiMutationResult
+ *   - useApiStream: StreamDescriptor lifecycle, cancellation, connect/reject paths
+ *   - useApiStream: stable stream identity from descriptor.key (no reconnect on new object, same key)
  *   - QueryCache: methods accept EndpointDescriptor | QueryKey via resolveKey
  *   - HAI3Provider: reads app.queryClient from plugin
  *   - Shared QueryClient across separately mounted MFE roots via provider injection
@@ -15,18 +17,20 @@
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-use-api-query:p2
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2
+// @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-use-api-stream:p2
 // @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-query-provider:p2
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import React from 'react';
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useApiQuery } from '../src/hooks/useApiQuery';
 import { useApiMutation } from '../src/hooks/useApiMutation';
+import { useApiStream } from '../src/hooks/useApiStream';
 import type { MutationCallbackContext } from '../src/hooks/QueryCache';
 import { HAI3Provider } from '../src/HAI3Provider';
 import type { MfeContextValue } from '../src/mfe/MfeContext';
-import type { ChildMfeBridge, EndpointDescriptor, MutationDescriptor } from '@hai3/framework';
+import type { ChildMfeBridge, EndpointDescriptor, MutationDescriptor, StreamDescriptor } from '@hai3/framework';
 
 // ============================================================================
 // Shared test helpers
@@ -88,9 +92,24 @@ function makeQueryDescriptor<TData>(
  */
 function makeMutationDescriptor<TData, TVariables>(
   key: readonly unknown[],
-  fetchFn: (variables: TVariables) => Promise<TData>
+  fetchFn: (variables: TVariables, options?: { signal?: AbortSignal }) => Promise<TData>
 ): MutationDescriptor<TData, TVariables> {
   return { key, fetch: fetchFn };
+}
+
+/**
+ * Minimal StreamDescriptor for useApiStream tests (no QueryClient).
+ */
+function makeStreamDescriptor<TEvent>(config: {
+  key: readonly unknown[];
+  connect: StreamDescriptor<TEvent>['connect'];
+  disconnect?: StreamDescriptor<TEvent>['disconnect'];
+}): StreamDescriptor<TEvent> {
+  return {
+    key: config.key,
+    connect: config.connect,
+    disconnect: config.disconnect ?? vi.fn(),
+  };
 }
 
 // ============================================================================
@@ -232,7 +251,10 @@ describe('useApiMutation', () => {
 
     await waitFor(() => expect(result.current.data).toBe('test'));
     expect(fetchFn).toHaveBeenCalledOnce();
-    expect(fetchFn).toHaveBeenCalledWith({ name: 'test' });
+    expect(fetchFn).toHaveBeenCalledWith(
+      { name: 'test' },
+      expect.objectContaining({ signal: expect.any(AbortSignal) })
+    );
     expect(result.current.isPending).toBe(false);
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-calls-fn
@@ -450,6 +472,441 @@ describe('useApiMutation', () => {
     expect(client.getQueryData(QUERY_KEY)).toEqual({ value: 'original' });
   });
   // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-on-error-rollback
+
+  // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-abort-unmount
+  it('aborts the descriptor fetch signal on unmount so the in-flight mutateAsync does not complete successfully', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    let resolveGate!: () => void;
+    const gate = new Promise<void>((r) => {
+      resolveGate = r;
+    });
+
+    let ranPastGate = false;
+    const endpoint = makeMutationDescriptor<string, void>(['abortOnUnmount'], async (_vars, opts) => {
+      await gate;
+      if (opts?.signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      ranPastGate = true;
+      return 'should-not-win';
+    });
+
+    const { result, unmount } = renderHook(
+      () => useApiMutation<string, Error, void>({ endpoint }),
+      { wrapper }
+    );
+
+    let mutatePromise!: Promise<string>;
+    await act(async () => {
+      mutatePromise = result.current.mutateAsync();
+    });
+
+    unmount();
+
+    await act(async () => {
+      resolveGate();
+      await expect(mutatePromise).rejects.toMatchObject({ name: 'AbortError' });
+    });
+    expect(ranPastGate).toBe(false);
+  });
+  // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-abort-unmount
+
+  // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-abort-supersede
+  it('aborts the prior in-flight fetch when a new mutateAsync starts (superseding mutation)', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    let resolveGate1!: () => void;
+    const gate1 = new Promise<void>((r) => {
+      resolveGate1 = r;
+    });
+    let resolveGate2!: () => void;
+    const gate2 = new Promise<void>((r) => {
+      resolveGate2 = r;
+    });
+
+    let firstCompleted = false;
+    const endpoint = makeMutationDescriptor<number, { batch: 1 | 2 }>(
+      ['abortSupersede'],
+      async (vars, opts) => {
+        await (vars.batch === 1 ? gate1 : gate2);
+        if (opts?.signal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
+        }
+        if (vars.batch === 1) {
+          firstCompleted = true;
+        }
+        return vars.batch;
+      }
+    );
+
+    const { result } = renderHook(
+      () => useApiMutation<number, Error, { batch: 1 | 2 }>({ endpoint }),
+      { wrapper }
+    );
+
+    let firstPromise!: Promise<number>;
+    let secondPromise!: Promise<number>;
+    await act(async () => {
+      firstPromise = result.current.mutateAsync({ batch: 1 });
+    });
+    await act(async () => {
+      secondPromise = result.current.mutateAsync({ batch: 2 });
+    });
+
+    await act(async () => {
+      resolveGate1();
+      await expect(firstPromise).rejects.toMatchObject({ name: 'AbortError' });
+    });
+    expect(firstCompleted).toBe(false);
+
+    await act(async () => {
+      resolveGate2();
+      await expect(secondPromise).resolves.toBe(2);
+    });
+  });
+  // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-mutation:p2:inst-test-abort-supersede
+});
+
+// ============================================================================
+// useApiStream
+// ============================================================================
+
+describe('useApiStream', () => {
+  it('sets connected, latest data, and leaves events empty in latest mode', async () => {
+    const disconnect = vi.fn();
+    let emit: (e: string) => void = () => {};
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'latest'],
+      disconnect,
+      connect: (onEvent) => {
+        emit = onEvent;
+        return Promise.resolve('cid-1');
+      },
+    });
+
+    const { result } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    act(() => {
+      emit('hello');
+    });
+    await waitFor(() => expect(result.current.data).toBe('hello'));
+    expect(result.current.events).toEqual([]);
+    expect(result.current.error).toBeNull();
+  });
+
+  it('accumulate mode appends each event and keeps data as the last payload', async () => {
+    const disconnect = vi.fn();
+    let emit: (e: number) => void = () => {};
+    const descriptor = makeStreamDescriptor<number>({
+      key: ['@stream', 'accumulate'],
+      disconnect,
+      connect: (onEvent) => {
+        emit = onEvent;
+        return Promise.resolve('cid-acc');
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useApiStream(descriptor, { mode: 'accumulate' }),
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    act(() => {
+      emit(1);
+      emit(2);
+    });
+    await waitFor(() => expect(result.current.events).toEqual([1, 2]));
+    expect(result.current.data).toBe(2);
+  });
+
+  it('sets error status when connect rejects with Error', async () => {
+    const boom = new Error('sse failed');
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'reject-error'],
+      connect: () => Promise.reject(boom),
+    });
+
+    const { result } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toBe(boom);
+  });
+
+  it('wraps non-Error connect rejection as Error', async () => {
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'reject-string'],
+      connect: () => Promise.reject('offline'),
+    });
+
+    const { result } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('error'));
+    expect(result.current.error).toEqual(new Error('offline'));
+  });
+
+  it('with enabled false stays idle and never calls connect', () => {
+    const connect = vi.fn(() => Promise.resolve('x'));
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'disabled'],
+      connect,
+    });
+
+    const { result } = renderHook(() =>
+      useApiStream(descriptor, { enabled: false }),
+    );
+
+    expect(result.current.status).toBe('idle');
+    expect(connect).not.toHaveBeenCalled();
+  });
+
+  it('unmount disconnects using the resolved connection id', async () => {
+    const disconnect = vi.fn();
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'unmount-disconnect'],
+      disconnect,
+      connect: () => Promise.resolve('cid-unmount'),
+    });
+
+    const { result, unmount } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    expect(disconnect).not.toHaveBeenCalled();
+    unmount();
+    await waitFor(() => expect(disconnect).toHaveBeenCalledWith('cid-unmount'));
+  });
+
+  it('does not call disconnect on unmount when connect already rejected', async () => {
+    const disconnect = vi.fn();
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'reject-no-disconnect'],
+      disconnect,
+      connect: () => Promise.reject(new Error('nope')),
+    });
+
+    const { unmount } = renderHook(() => useApiStream(descriptor));
+    await waitFor(() => expect(disconnect).not.toHaveBeenCalled());
+    unmount();
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(disconnect).not.toHaveBeenCalled();
+  });
+
+  it('disconnect() invokes descriptor.disconnect and sets status disconnected', async () => {
+    const disconnect = vi.fn();
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'manual-off'],
+      disconnect,
+      connect: () => Promise.resolve('manual-id'),
+    });
+
+    const { result } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    act(() => {
+      result.current.disconnect();
+    });
+    expect(disconnect).toHaveBeenCalledWith('manual-id');
+    expect(result.current.status).toBe('disconnected');
+  });
+
+  it('onComplete sets status to disconnected', async () => {
+    const disconnect = vi.fn();
+    let complete: () => void = () => {};
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'on-complete'],
+      disconnect,
+      connect: (_onEvent, onComplete) => {
+        complete = onComplete ?? (() => {});
+        return Promise.resolve('id-done');
+      },
+    });
+
+    const { result } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    act(() => {
+      complete();
+    });
+    expect(result.current.status).toBe('disconnected');
+  });
+
+  it('ignores onEvent after unmount (cancelled guard)', async () => {
+    const disconnect = vi.fn();
+    let emit: (e: string) => void = () => {};
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'cancel-on-event'],
+      disconnect,
+      connect: (onEvent) => {
+        emit = onEvent;
+        return Promise.resolve('eid');
+      },
+    });
+
+    const { result, unmount } = renderHook(() => useApiStream(descriptor));
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    unmount();
+    await waitFor(() => expect(disconnect).toHaveBeenCalledWith('eid'));
+    act(() => {
+      emit('too-late');
+    });
+  });
+
+  it('after unmount, deferred connect resolve runs cleanup disconnect', async () => {
+    const disconnect = vi.fn();
+    let resolveConnect!: (id: string) => void;
+    const pending = new Promise<string>((r) => {
+      resolveConnect = r;
+    });
+    const descriptor = makeStreamDescriptor<number>({
+      key: ['@stream', 'late-resolve'],
+      disconnect,
+      connect: () => pending,
+    });
+
+    const { unmount } = renderHook(() => useApiStream(descriptor));
+    unmount();
+
+    await act(async () => {
+      resolveConnect('late');
+      await pending;
+    });
+
+    expect(disconnect).toHaveBeenCalledWith('late');
+  });
+
+  it('after unmount, connect rejection is handled by cleanup without disconnect', async () => {
+    const disconnect = vi.fn();
+    let rejectConnect!: (e: Error) => void;
+    const pending = new Promise<string>((_, rej) => {
+      rejectConnect = rej;
+    });
+    const descriptor = makeStreamDescriptor<string>({
+      key: ['@stream', 'late-reject'],
+      disconnect,
+      connect: () => pending,
+    });
+
+    const { unmount } = renderHook(() => useApiStream(descriptor));
+    unmount();
+
+    await act(async () => {
+      rejectConnect(new Error('late'));
+      await pending.catch(() => undefined);
+    });
+
+    expect(disconnect).not.toHaveBeenCalled();
+  });
+
+  it('changing descriptor key disconnects the previous connection id', async () => {
+    const disconnectA = vi.fn();
+    const disconnectB = vi.fn();
+    const descA = makeStreamDescriptor<string>({
+      key: ['@stream', 'key-a'],
+      disconnect: disconnectA,
+      connect: () => Promise.resolve('id-a'),
+    });
+    const descB = makeStreamDescriptor<string>({
+      key: ['@stream', 'key-b'],
+      disconnect: disconnectB,
+      connect: () => Promise.resolve('id-b'),
+    });
+
+    const { result, rerender } = renderHook(
+      (d: StreamDescriptor<string>) => useApiStream(d),
+      { initialProps: descA },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    rerender(descB);
+    await waitFor(() => expect(disconnectA).toHaveBeenCalledWith('id-a'));
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    expect(disconnectB).not.toHaveBeenCalled();
+  });
+
+  it('resets data and events when descriptor key changes', async () => {
+    let emitA: (e: string) => void = () => {};
+    const descA = makeStreamDescriptor<string>({
+      key: ['@stream', 'reset-a'],
+      connect: (onEvent) => {
+        emitA = onEvent;
+        return Promise.resolve('id-a');
+      },
+    });
+
+    let emitB: (e: string) => void = () => {};
+    const descB = makeStreamDescriptor<string>({
+      key: ['@stream', 'reset-b'],
+      connect: (onEvent) => {
+        emitB = onEvent;
+        return Promise.resolve('id-b');
+      },
+    });
+
+    const { result, rerender } = renderHook(
+      (d: StreamDescriptor<string>) => useApiStream(d, { mode: 'accumulate' }),
+      { initialProps: descA },
+    );
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    act(() => {
+      emitA('a1');
+      emitA('a2');
+    });
+    expect(result.current.data).toBe('a2');
+    expect(result.current.events).toEqual(['a1', 'a2']);
+
+    rerender(descB);
+
+    await waitFor(() => expect(result.current.status).toBe('connected'));
+    expect(result.current.data).toBeUndefined();
+    expect(result.current.events).toEqual([]);
+
+    act(() => emitB('b1'));
+    expect(result.current.data).toBe('b1');
+    expect(result.current.events).toEqual(['b1']);
+  });
+
+  // @cpt-begin:cpt-hai3-dod-request-lifecycle-use-api-stream:p2:inst-test-same-key-no-reconnect
+  it('does not call connect again when a new descriptor object shares the same key', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    const streamKey: readonly unknown[] = ['/api/test', 'SSE', '/stream'];
+    const connectFirst = vi.fn(() => Promise.resolve('conn-first'));
+    const disconnectFirst = vi.fn();
+
+    const descriptorFirst: StreamDescriptor<string> = {
+      key: streamKey,
+      connect: connectFirst,
+      disconnect: disconnectFirst,
+    };
+
+    const { rerender } = renderHook(
+      (d: StreamDescriptor<string>) => useApiStream(d),
+      { wrapper, initialProps: descriptorFirst },
+    );
+
+    await waitFor(() => expect(connectFirst).toHaveBeenCalledTimes(1));
+
+    const connectSecond = vi.fn(() => Promise.resolve('conn-second'));
+    const descriptorSecond: StreamDescriptor<string> = {
+      key: streamKey,
+      connect: connectSecond,
+      disconnect: vi.fn(),
+    };
+
+    rerender(descriptorSecond);
+
+    await waitFor(() => expect(connectSecond).not.toHaveBeenCalled());
+    expect(connectFirst).toHaveBeenCalledTimes(1);
+  });
+  // @cpt-end:cpt-hai3-dod-request-lifecycle-use-api-stream:p2:inst-test-same-key-no-reconnect
 });
 
 // ============================================================================

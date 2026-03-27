@@ -44,7 +44,7 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
       dispatch(setHeaderLoading(true));
       // Get accounts service using class-based registration
       const accountsService = apiRegistry.getService(AccountsApiService);
-      const response = await accountsService.getCurrentUser();
+      const response = await accountsService.getCurrentUser.fetch();
       if (response?.user) {
         dispatch(setUser(toHeaderUser(response.user)));
       }

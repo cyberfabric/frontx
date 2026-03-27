@@ -78,6 +78,16 @@ export abstract class BaseApiService {
       );
       this.protocols.set(protocol.constructor.name, protocol);
     });
+
+    // Retain descriptor factory methods on the prototype in Module Federation
+    // shared chunks. These protected methods are only called from subclass
+    // field initializers (in MFE expose chunks), making them invisible to the
+    // shared-chunk dependency graph. Without these anchors, esbuild/Rollup may
+    // strip them and MFE services hit "this.query is not a function".
+    void this.query;
+    void this.queryWith;
+    void this.mutation;
+    void this.stream;
   }
   // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
 
@@ -149,9 +159,11 @@ export abstract class BaseApiService {
      * console.log(`${excluded.length} plugin classes excluded`);
      * ```
      */
+    // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded
     getExcluded: (): readonly PluginClass[] => {
       return Array.from(this.excludedPluginClasses);
     },
+    // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded
 
     /**
      * Get all service-specific plugins.
@@ -165,9 +177,11 @@ export abstract class BaseApiService {
      * console.log(`${plugins.length} service plugins registered`);
      * ```
      */
+    // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-all
     getAll: (): readonly ApiPluginBase[] => {
       return [...this.servicePlugins];
     },
+    // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-all
 
     /**
      * Get a plugin instance by class reference.
@@ -189,6 +203,7 @@ export abstract class BaseApiService {
      * const auth = service.plugins.getPlugin(AuthPlugin);
      * ```
      */
+    // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-plugin
     getPlugin: <T extends ApiPluginBase>(
       pluginClass: new (...args: never[]) => T
     ): T | undefined => {
@@ -200,6 +215,7 @@ export abstract class BaseApiService {
       );
       return servicePlugin as T | undefined;
     },
+    // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-plugin
   };
 
   // ============================================================================
@@ -214,11 +230,13 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-in-order
   protected getMergedPluginsInOrder(): readonly ApiPluginBase[] {
     // Return only service plugins
     // Protocol-level global plugins are now queried directly by protocols via apiRegistry
     return [...this.servicePlugins];
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-in-order
 
   /**
    * Get excluded plugin classes.
@@ -228,9 +246,11 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded-classes
   protected getExcludedPluginClasses(): ReadonlySet<PluginClass> {
     return this.excludedPluginClasses;
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded-classes
 
   /**
    * Get merged plugins in reverse order.
@@ -240,9 +260,11 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-reversed
   protected getMergedPluginsReversed(): readonly ApiPluginBase[] {
     return [...this.getMergedPluginsInOrder()].reverse();
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-reversed
 
 
   // ============================================================================
@@ -275,7 +297,8 @@ export abstract class BaseApiService {
    */
   // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
   registerPlugin(protocol: ApiProtocol, plugin: ApiPluginBase): void {
-    if (!this.protocols.has(protocol.constructor.name)) {
+    const registered = this.protocols.get(protocol.constructor.name);
+    if (registered !== protocol) {
       throw new Error(
         `Protocol "${protocol.constructor.name}" not registered on this service`
       );
@@ -309,9 +332,11 @@ export abstract class BaseApiService {
    * }
    * ```
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-plugins
   getPlugins(): ReadonlyMap<ApiProtocol, ReadonlySet<ApiPluginBase>> {
     return this.registeredPluginsMap;
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-plugins
 
   // ============================================================================
   // Protocol Access
@@ -325,6 +350,7 @@ export abstract class BaseApiService {
    * @returns The protocol instance
    * @throws Error if protocol not registered
    */
+  // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-protocol-accessor
   protected protocol<T extends ApiProtocol>(
     type: new (...args: never[]) => T
   ): T {
@@ -338,6 +364,7 @@ export abstract class BaseApiService {
 
     return protocol as T;
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-protocol-accessor
 
   // ============================================================================
   // Endpoint Descriptor Factory Methods
@@ -421,7 +448,8 @@ export abstract class BaseApiService {
    * Create a write endpoint descriptor.
    *
    * The cache key is derived from `[baseURL, method, path]`. The fetch function
-   * passes the variables object as the HTTP request body.
+   * passes the variables object as the HTTP request body and forwards an optional
+   * `AbortSignal` (same pattern as `query()` descriptors).
    *
    * @template TData      - Response data type
    * @template TVariables - Mutation variables / request body type
@@ -442,8 +470,8 @@ export abstract class BaseApiService {
 
     return {
       key,
-      fetch: (variables: TVariables) =>
-        this.dispatchRequest<TData>(method, path, variables, undefined),
+      fetch: (variables: TVariables, options?: { signal?: AbortSignal }) =>
+        this.dispatchRequest<TData>(method, path, variables, options?.signal),
     };
   }
   // @cpt-end:implement-endpoint-descriptors:p1:inst-mutation

@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "./configs/tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@/app/*": ["./src/app/*"],
+      "@/screensets/*": ["./src/screensets/*"],
+      "@hai3/state": ["../../../state/src/index.ts"],
+      "@hai3/state/*": ["../../../state/src/*"],
+      "@hai3/layout": ["../../../layout/src/index.ts"],
+      "@hai3/layout/*": ["../../../layout/src/*"],
+      "@hai3/api": ["../../../api/src/index.ts"],
+      "@hai3/api/*": ["../../../api/src/*"],
+      "@hai3/i18n": ["../../../i18n/src/index.ts"],
+      "@hai3/i18n/*": ["../../../i18n/src/*"],
+      "@hai3/screensets": ["../../../screensets/src/index.ts"],
+      "@hai3/screensets/*": ["../../../screensets/src/*"],
+      "@hai3/framework": ["../../../framework/src/index.ts"],
+      "@hai3/framework/*": ["../../../framework/src/*"],
+      "@hai3/react": ["../../../react/src/index.ts"],
+      "@hai3/react/*": ["../../../react/src/*"],
+      "@hai3/studio": ["../../../studio/src/index.ts"],
+      "@hai3/studio/*": ["../../../studio/src/*"],
+      "@hai3/cli": ["../../src/index.ts"],
+      "@hai3/cli/*": ["../../src/*"]
+    }
+  },
+  "include": ["src"]
+}

@@ -12,13 +12,14 @@
 
 import React, { useEffect, useRef, useState } from 'react';
 import type { RefObject } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
 import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/framework';
+import { useHAI3 } from '../../HAI3Context';
 import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
   screenDomain,
 } from '@hai3/framework';
+import type { ActionsChain } from '@hai3/framework';
 import { executeActionsChainWithMountContext } from '../executeActionsChainWithMountContext';
 
 /**
@@ -116,7 +117,16 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
   const internalContainerRef = useRef<HTMLDivElement | null>(null);
   // Prefer the externally-provided ref so the caller can share it with a ContainerProvider
   const containerRef = externalContainerRef ?? internalContainerRef;
-  const queryClient = useQueryClient();
+  const app = useHAI3();
+
+  // Callbacks are stored in refs so inline parent handlers do not re-run the mount effect
+  // (which would remount the extension every parent render).
+  const onMountedRef = useRef(onMounted);
+  const onUnmountedRef = useRef(onUnmounted);
+  const onErrorRef = useRef(onError);
+  onMountedRef.current = onMounted;
+  onUnmountedRef.current = onUnmounted;
+  onErrorRef.current = onError;
   // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
   const [isLoading, setIsLoading] = useState(true);
   // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
@@ -152,20 +162,27 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
         // Mount the extension via actions chain (auto-loads if not already loaded)
         // Container is provided by the domain's ContainerProvider (registered at domain registration time)
-        await executeActionsChainWithMountContext(
-          registry,
-          {
-            action: {
-              type: HAI3_ACTION_MOUNT_EXT,
-              target: domainId,
-              payload: {
-                extensionId,
-              },
+        const mountChain: ActionsChain = {
+          action: {
+            type: HAI3_ACTION_MOUNT_EXT,
+            target: domainId,
+            payload: {
+              extensionId,
             },
           },
-          queryClient,
-          registry.executeActionsChain.bind(registry),
-        );
+        };
+
+        const queryClient = app.queryClient;
+        if (queryClient) {
+          await executeActionsChainWithMountContext(
+            registry,
+            mountChain,
+            queryClient,
+            registry.executeActionsChain.bind(registry),
+          );
+        } else {
+          await registry.executeActionsChain(mountChain);
+        }
         // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
 
         // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
@@ -205,9 +222,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
 
         // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
         // Notify parent
-        if (onMounted) {
-          onMounted(newBridge);
-        }
+        onMountedRef.current?.(newBridge);
         // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
       } catch (err) {
         // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
@@ -220,9 +235,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         setError(errorObj);
         setIsLoading(false);
 
-        if (onError) {
-          onError(errorObj);
-        }
+        onErrorRef.current?.(errorObj);
         // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
         // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-mount-error
       }
@@ -248,15 +261,13 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
             },
           },
         }).then(() => {
-          if (onUnmounted) {
-            onUnmounted();
-          }
+          onUnmountedRef.current?.();
         });
       }
     };
     // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
     // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-unmount
-  }, [registry, domainId, extensionId, onMounted, onUnmounted, onError, queryClient, containerRef]);
+  }, [registry, domainId, extensionId, app, containerRef]);
 
   // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
   // The container div is always rendered so the ref stays attached throughout the lifecycle.

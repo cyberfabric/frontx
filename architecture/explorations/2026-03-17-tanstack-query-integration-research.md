@@ -313,7 +313,7 @@ The descriptor is a plain object at L1 with zero caching library dependency. The
 | Factory re-export | ~5 framework files + **hundreds of MFE data/ folders** | everywhere |
 | Endpoint descriptor | ~5 framework files | `@hai3/react` only |
 
-**Verdict:** Endpoint descriptors provide the same swap boundary as an API plugin (5 files in `@hai3/react`) without the artificial abstraction layer, and eliminate per-MFE coupling entirely. See [ADR-0018](../ADR/0018-endpoint-descriptor-cache-abstraction.md).
+**Verdict:** Endpoint descriptors provide the same swap boundary as an API plugin (5 files in `@hai3/react`) without the artificial abstraction layer, and eliminate per-MFE coupling entirely. See [ADR-0017](../ADR/0017-tanstack-query-data-management.md).
 
 #### Framework plugin for cache lifecycle (complementary, chosen)
 
@@ -345,7 +345,7 @@ Swapping TanStack requires changing the L2 plugin + L3 hooks (~6 files). MFEs ch
 2. **SSE integration pattern.** HAI3 has `SseProtocol` in its API layer. How TanStack Query integrates with long-lived SSE connections (pushing data into cache via `setQueryData`) needs prototyping to validate.
 3. ~~**AbortSignal passthrough.** The current `BaseApiService` / `RestProtocol` does not appear to accept an `AbortSignal` parameter.~~ **Resolved:** AbortSignal support was added to `RestProtocol` via `RestRequestOptions { signal? }`. See feature-request-lifecycle FEATURE.md.
 4. **DevTools.** TanStack Query has a dedicated `@tanstack/react-query-devtools` package. Its value for debugging cache state during development was not investigated.
-5. ~~**`queryOptions` factory placement.** Where `queryOptions` definitions live in the architecture (colocated with services? separate query layer?) affects maintainability.~~ **Resolved:** Endpoint descriptors on `BaseApiService` replace `queryOptions` factories entirely. No separate query layer or `data/` folder needed. See ADR-0018.
+5. ~~**`queryOptions` factory placement.** Where `queryOptions` definitions live in the architecture (colocated with services? separate query layer?) affects maintainability.~~ **Resolved:** Endpoint descriptors on `BaseApiService` replace `queryOptions` factories entirely. No separate query layer or `data/` folder needed. See ADR-0017.
 6. **Streaming queries.** The `experimental_streamedQuery` export in query-core suggests streaming/SSE support is being developed upstream. Maturity and timeline are unknown.
 
 ## Sources

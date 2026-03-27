@@ -77,11 +77,13 @@ class ApiRegistryImpl implements IApiRegistry {
    * Initialize the registry with configuration.
    * Services are already instantiated during register().
    */
+  // @cpt-begin:cpt-hai3-dod-api-communication-registry:p1:inst-initialize
   initialize(config?: ApiServicesConfig): void {
     if (config) {
       this.config = { ...DEFAULT_CONFIG, ...config };
     }
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-registry:p1:inst-initialize
 
   // ============================================================================
   // Service Access
@@ -109,9 +111,11 @@ class ApiRegistryImpl implements IApiRegistry {
   /**
    * Check if service is registered.
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-has
   has<T extends BaseApiService>(serviceClass: new () => T): boolean {
     return this.services.has(serviceClass);
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-has
 
   /**
    * Get all registered service instances.
@@ -128,9 +132,11 @@ class ApiRegistryImpl implements IApiRegistry {
    * }
    * ```
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-all
   getAll(): readonly BaseApiService[] {
     return Array.from(this.services.values());
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-all
 
   // ============================================================================
   // Configuration
@@ -139,9 +145,11 @@ class ApiRegistryImpl implements IApiRegistry {
   /**
    * Get current configuration.
    */
+  // @cpt-begin:cpt-hai3-dod-api-communication-registry:p1:inst-get-config
   getConfig(): Readonly<ApiServicesConfig> {
     return { ...this.config };
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-registry:p1:inst-get-config
 
   // ============================================================================
   // Protocol Plugin Management
@@ -235,6 +243,7 @@ class ApiRegistryImpl implements IApiRegistry {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-dod-api-communication-registry:p1:inst-reset
   reset(): void {
     // Cleanup all services
     this.services.forEach((service) => {
@@ -247,6 +256,7 @@ class ApiRegistryImpl implements IApiRegistry {
     protocolPluginRegistry.reset();
     this.config = { ...DEFAULT_CONFIG };
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-registry:p1:inst-reset
 }
 
 // ============================================================================

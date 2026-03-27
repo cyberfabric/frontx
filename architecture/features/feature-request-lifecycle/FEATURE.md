@@ -570,8 +570,6 @@ All MFEs share the host's cache client, but not through React-context inheritanc
 
 ### Endpoint Descriptors and Automatic Cache Keys
 
-> **Supersedes**: The per-MFE `data/` folder pattern with manual query key factories and `queryOptions()` calls is replaced by endpoint descriptors on `BaseApiService`. See [ADR-0018](../../ADR/0018-endpoint-descriptor-cache-abstraction.md).
-
 Cache keys are derived automatically from the service's `baseURL`, the HTTP method, and the endpoint path. No manual key factories are needed.
 
 ```typescript

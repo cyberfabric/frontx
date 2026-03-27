@@ -103,6 +103,7 @@ export interface MutationCallbackContext {
 
 type QueryCacheUpdater<T> = T | ((old: T | undefined) => T | undefined);
 
+// @cpt-begin:implement-endpoint-descriptors:p3:inst-to-query-updater
 function toQueryUpdater<T>(
   dataOrUpdater: QueryCacheUpdater<T>
 ): (old: T | undefined) => T | undefined {
@@ -112,6 +113,7 @@ function toQueryUpdater<T>(
 
   return () => dataOrUpdater;
 }
+// @cpt-end:implement-endpoint-descriptors:p3:inst-to-query-updater
 
 /**
  * Build a restricted QueryCache facade from the internal TanStack QueryClient.
