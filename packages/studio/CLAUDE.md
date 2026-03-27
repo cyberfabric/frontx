@@ -1,10 +1,10 @@
 # @cyberfabric/studio
 
-HAI3 Studio overlay package for runtime inspection and control of MFE applications.
+FrontX Studio overlay package for runtime inspection and control of MFE applications.
 
 ## Studio Layer
 
-This package is part of the **Studio Layer (L4)** - it provides developer tooling for inspecting and controlling HAI3 applications at runtime.
+This package is part of the **Studio Layer (L4)** - it provides developer tooling for inspecting and controlling FrontX applications at runtime.
 
 ## What This Package Contains
 

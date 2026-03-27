@@ -121,7 +121,7 @@ Based on the Cypilot pipeline (PRD -> ADR + DESIGN -> DECOMPOSITION -> FEATURE -
 | Anti-pattern catalog | Smell detection | God class, feature envy, shotgun surgery |
 | [ISO 25010 quality attributes](https://en.wikipedia.org/wiki/Non-functional_requirement) | Systematic NFR coverage | Performance, security, maintainability, portability |
 | ATAM sensitivity/trade-off framework | Structured risk identification | "Changing X affects both Y and Z -- this is a sensitivity point" |
-| HAI3-specific patterns | Repo-specific consistency | Event-driven architecture, registry patterns, layer boundaries |
+| FrontX-specific patterns | Repo-specific consistency | Event-driven architecture, registry patterns, layer boundaries |
 
 #### 2.3 How reviewer context differs from architect context
 
@@ -237,7 +237,7 @@ The architect's context is **generative** -- they synthesize requirements into d
 - Unique perspective not covered by any existing agent
 - Directly tied to adoption and productivity outcomes
 - Catches designs that are correct but hostile to use
-- Evaluates extension points and plugin ergonomics (relevant for HAI3's plugin-first composition)
+- Evaluates extension points and plugin ergonomics (relevant for FrontX's plugin-first composition)
 
 **Weaknesses**:
 - Narrow focus -- misses structural and correctness concerns
@@ -254,7 +254,7 @@ The architect's context is **generative** -- they synthesize requirements into d
 - **Intent alignment check**: Section 1.5 is genuinely valuable -- catching contradictions between stated goals and actual proposals. This is a unique contribution not covered elsewhere.
 - **SOLID compliance report**: Systematic per-principle evaluation with PASS/RISK/FAIL verdicts. However, this duplicates what the architect agent already does (the architect has an identical SOLID section).
 - **Linting policy check**: Prevents scope creep in proposals.
-- **Layer propagation check**: HAI3-specific, catches missing cross-layer updates.
+- **Layer propagation check**: FrontX-specific, catches missing cross-layer updates.
 - **Read-only restriction**: Appropriate for a reviewer role.
 - **Binary decision model**: "Everything is either a BLOCK or clean" (borrowed from implementation-reviewer) prevents ambiguous feedback.
 
@@ -297,7 +297,7 @@ The current reviewer is essentially a **specification completeness checker with 
 | Risk of duplicating architect | Low | High | Low | Low | Low |
 | Risk of false positives | Low | Low | High | Low | Low |
 | Calibration complexity | Low | Medium | High | Medium | Low |
-| Fits HAI3 artifact pipeline | Yes | Yes | Partially | Yes | Partially |
+| Fits FrontX artifact pipeline | Yes | Yes | Partially | Yes | Partially |
 
 ## Key takeaways
 

@@ -1,9 +1,9 @@
-# HAI3 Quick Start Guide
+# FrontX Quick Start Guide
 
 > **TARGET AUDIENCE:** Humans
 > **PURPOSE:** Quick start guide for developers
 
-This guide will help you get started with HAI3 development.
+This guide will help you get started with FrontX development.
 
 ## Installation
 
@@ -138,19 +138,19 @@ const MyComponent = () => {
 
 ### Use event-driven actions (recommended)
 ```typescript
-import { useHAI3Actions } from '@cyberfabric/react';
+import { useFrontXActions } from '@cyberfabric/react';
 
 const MyComponent = () => {
-  const { toggleMenu } = useHAI3Actions();
+  const { toggleMenu } = useFrontXActions();
   return <button onClick={toggleMenu}>Toggle Menu</button>;
 };
 ```
 
-HAI3 uses event-driven architecture. Prefer action creators that emit events over direct dispatch.
+FrontX uses event-driven architecture. Prefer action creators that emit events over direct dispatch.
 
 ## Styling with Tailwind
 
-HAI3 uses Tailwind CSS with custom theme tokens:
+FrontX uses Tailwind CSS with custom theme tokens:
 
 ```typescript
 <div className="bg-background text-foreground">

@@ -1,6 +1,6 @@
 # @cyberfabric/state
 
-State management for HAI3 applications - event bus, store, and slices.
+State management for FrontX applications - event bus, store, and slices.
 
 ## SDK Layer
 
@@ -12,7 +12,7 @@ This package is part of the **SDK Layer (L1)** - zero @cyberfabric dependencies,
 - **Reducer**: Pure function in a slice that updates state
 - **ReducerPayload**: Type for reducer parameters
 
-**IMPORTANT:** The word "action" refers ONLY to HAI3 Actions (event emitters). Redux internals are completely hidden.
+**IMPORTANT:** The word "action" refers ONLY to FrontX Actions (event emitters). Redux internals are completely hidden.
 
 ## Core Concepts
 
@@ -37,7 +37,7 @@ subscription.unsubscribe();
 
 ### Slices
 
-HAI3's `createSlice` returns `{ slice, ...reducerFunctions }`:
+FrontX's `createSlice` returns `{ slice, ...reducerFunctions }`:
 
 ```typescript
 import { createSlice, registerSlice, type ReducerPayload } from '@cyberfabric/state';
@@ -105,7 +105,7 @@ declare module '@cyberfabric/state' {
 ### Functions
 - `eventBus` - Singleton EventBus instance
 - `createSlice` - Create slice, returns `{ slice, ...reducerFunctions }`
-- `createStore` - Create HAI3 store
+- `createStore` - Create FrontX store
 - `getStore` - Get store instance
 - `registerSlice` - Register dynamic slice
 - `unregisterSlice` - Remove dynamic slice
@@ -119,7 +119,7 @@ declare module '@cyberfabric/state' {
 - `RootState` - Augmentable root state interface
 - `AppDispatch` - Dispatch type for effects
 - `EffectInitializer` - Effect initializer function type
-- `HAI3Store` - Store type
+- `FrontXStore` - Store type
 - `SliceObject<TState>` - Slice interface (name + reducer)
 - `EventBus` - EventBus interface
 - `Subscription` - Subscription with unsubscribe method

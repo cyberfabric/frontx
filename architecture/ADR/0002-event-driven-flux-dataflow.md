@@ -27,7 +27,7 @@ date: 2025-11-16
 **ID**: `cpt-frontx-adr-event-driven-flux-dataflow`
 ## Context and Problem Statement
 
-HAI3 needed a consistent data flow pattern across all domains. Without enforcement, developers mix direct dispatch, imperative logic in components, and async middleware — creating untraceable state mutations that are difficult to debug and impossible to observe from outside a domain. SSE streaming integration highlighted this gap: actions need to orchestrate API streaming while effects remain responsible solely for state updates in response to events.
+FrontX needed a consistent data flow pattern across all domains. Without enforcement, developers mix direct dispatch, imperative logic in components, and async middleware — creating untraceable state mutations that are difficult to debug and impossible to observe from outside a domain. SSE streaming integration highlighted this gap: actions need to orchestrate API streaming while effects remain responsible solely for state updates in response to events.
 
 ## Decision Drivers
 

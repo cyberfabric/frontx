@@ -1,7 +1,7 @@
 ---
 name: /frontx-new-screen
 id: frontx-new-screen
-category: HAI3
+category: FrontX
 description: Add a new screen to an existing screenset
 ---
 

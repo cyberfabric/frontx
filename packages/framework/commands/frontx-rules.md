@@ -1,5 +1,5 @@
 <!-- @standalone -->
-# frontx:rules - Show HAI3 Rules for Specific Area
+# frontx:rules - Show FrontX Rules for Specific Area
 
 Ask the user which area they want rules for, or detect from context.
 

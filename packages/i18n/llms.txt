@@ -1,8 +1,8 @@
 # @cyberfabric/i18n
 
-> Internationalization with 36 languages, namespace support, lazy loading, and RTL detection for HAI3 SDK.
+> Internationalization with 36 languages, namespace support, lazy loading, and RTL detection for FrontX SDK.
 
-Part of the HAI3 SDK Layer (L1) - can be used independently without other @cyberfabric packages. Zero dependencies.
+Part of the FrontX SDK Layer (L1) - can be used independently without other @cyberfabric packages. Zero dependencies.
 
 ## Core API
 

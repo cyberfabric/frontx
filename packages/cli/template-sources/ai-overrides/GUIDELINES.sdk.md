@@ -1,4 +1,4 @@
-# HAI3 AI Guidelines (SDK Layer)
+# FrontX AI Guidelines (SDK Layer)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.

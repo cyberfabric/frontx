@@ -1,10 +1,10 @@
 # GTS Plugin Usage Guide
 
-This document explains how to use the GTS (Global Type System) plugin with HAI3's MFE system.
+This document explains how to use the GTS (Global Type System) plugin with FrontX's MFE system.
 
 ## Overview
 
-The GTS plugin (`gtsPlugin`) is HAI3's default `TypeSystemPlugin` implementation. It uses `@globaltypesystem/gts-ts` internally and comes with all first-class citizen schemas built-in.
+The GTS plugin (`gtsPlugin`) is FrontX's default `TypeSystemPlugin` implementation. It uses `@globaltypesystem/gts-ts` internally and comes with all first-class citizen schemas built-in.
 
 ## Installation
 
@@ -41,7 +41,7 @@ registry.registerDomain(myDomain, containerProvider);
 
 ### Plugin is Ready Immediately
 
-The GTS plugin ships with all HAI3 first-class citizen schemas **built-in**. No registration needed:
+The GTS plugin ships with all FrontX first-class citizen schemas **built-in**. No registration needed:
 
 ```typescript
 // ✅ Correct - Build registry with factory

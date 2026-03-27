@@ -1,6 +1,6 @@
 # @cyberfabric/framework
 
-Plugin-based application framework for HAI3 applications. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
+Plugin-based application framework for FrontX applications. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
 
 ## Framework Layer
 
@@ -68,7 +68,7 @@ import { createHAI3App } from '@cyberfabric/framework';
 // Full preset includes mock plugin automatically
 const app = createHAI3App();
 
-// Toggle mock mode via actions (used by HAI3 Studio ApiModeToggle)
+// Toggle mock mode via actions (used by FrontX Studio ApiModeToggle)
 app.actions.toggleMockMode(true);  // Activates all registered mock plugins
 app.actions.toggleMockMode(false); // Deactivates all registered mock plugins
 ```
@@ -180,9 +180,9 @@ const error = selectExtensionError(state, 'home');
 ```typescript
 import {
   HAI3_SCREEN_DOMAIN,
-  HAI3_SIDEBAR_DOMAIN,
-  HAI3_POPUP_DOMAIN,
-  HAI3_OVERLAY_DOMAIN,
+  FrontX_SIDEBAR_DOMAIN,
+  FrontX_POPUP_DOMAIN,
+  FrontX_OVERLAY_DOMAIN,
   screenDomain,
   sidebarDomain,
   popupDomain,
@@ -191,9 +191,9 @@ import {
 
 // String constants (GTS instance IDs)
 HAI3_SCREEN_DOMAIN   // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1'
-HAI3_SIDEBAR_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1'
-HAI3_POPUP_DOMAIN    // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1'
-HAI3_OVERLAY_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1'
+FrontX_SIDEBAR_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1'
+FrontX_POPUP_DOMAIN    // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1'
+FrontX_OVERLAY_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1'
 
 // Domain objects (ExtensionDomain interface: id, actions, extensionsActions,
 // sharedProperties, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages,
@@ -227,12 +227,12 @@ HAI3_SHARED_PROPERTY_LANGUAGE // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfe
 
 ## Creating Custom Plugins
 
-Extend HAI3 with custom functionality:
+Extend FrontX with custom functionality:
 
 ```typescript
-import type { HAI3Plugin } from '@cyberfabric/framework';
+import type { FrontXPlugin } from '@cyberfabric/framework';
 
-export function myPlugin(): HAI3Plugin {
+export function myPlugin(): FrontXPlugin {
   return {
     name: 'my-plugin',
     dependencies: ['screensets'], // Optional dependencies
@@ -283,7 +283,7 @@ For convenience, this package re-exports from SDK packages:
 
 **NOTE:** `createAction` is NOT exported to consumers. Actions should be handwritten functions in extensions that contain business logic and emit events via `eventBus.emit()`.
 
-**NOTE:** "Selector" is Redux terminology and is not used in HAI3. Access state via `useAppSelector` hook from @cyberfabric/react:
+**NOTE:** "Selector" is Redux terminology and is not used in FrontX. Access state via `useAppSelector` hook from @cyberfabric/react:
 ```typescript
 const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 ```
@@ -302,14 +302,14 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 - `createThemeRegistry` - Theme registry factory
 
 ### Types
-- `HAI3Config`, `HAI3Plugin`, `HAI3App`, `HAI3AppBuilder`
+- `FrontXConfig`, `FrontXPlugin`, `HAI3App`, `HAI3AppBuilder`
 - `PluginFactory`, `PluginProvides`, `PluginLifecycle`
 - `Preset`, `Presets`, `ScreensetsConfig`
 - All re-exported types from SDK packages
 
 ## Migration from Legacy API
 
-The legacy screenset navigation API has been removed. HAI3 now uses the MFE architecture exclusively:
+The legacy screenset navigation API has been removed. FrontX now uses the MFE architecture exclusively:
 
 ### Removed APIs
 - `screensetRegistry` (replaced by `screensetsRegistry`)

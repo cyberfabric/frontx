@@ -1,5 +1,5 @@
 ---
-description: Create a new screenset following HAI3 architecture
+description: Create a new screenset following FrontX architecture
 auto_execution_mode: 3
 ---
 

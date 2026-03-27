@@ -58,19 +58,19 @@
 
 ### 1.1 Overview
 
-The CLI Tooling feature provides the `@cyberfabric/cli` package — a standalone scaffolding tool that reduces boilerplate and enforces HAI3 architectural conventions across all project layers. It generates complete project structures, layout components, and AI assistant configurations from real project files used as build-time templates.
+The CLI Tooling feature provides the `@cyberfabric/cli` package — a standalone scaffolding tool that reduces boilerplate and enforces FrontX architectural conventions across all project layers. It generates complete project structures, layout components, and AI assistant configurations from real project files used as build-time templates.
 
 Problem: Without tooling, developers must manually assemble multi-file project structures, navigate layer-specific package.json configurations, and keep AI assistant integration files in sync across Claude, Cursor, Windsurf, and GitHub Copilot. Inconsistencies accumulate quickly across teams.
 
-Primary value: A single `frontx create` command produces a complete, layered HAI3 project with correct dependencies, IDE configs, and AI skill integrations in under a minute.
+Primary value: A single `frontx create` command produces a complete, layered FrontX project with correct dependencies, IDE configs, and AI skill integrations in under a minute.
 
 Key assumptions: The CLI runs in Node.js 18+ environments. It may be installed globally via a supported package manager (`npm` or `pnpm`; `yarn` global install is not managed by the CLI update flow). Templates are packaged into the CLI build and are not loaded from the network at runtime.
 
 ### 1.2 Purpose
 
-Enable `cpt-frontx-actor-developer` and `cpt-frontx-actor-cli` to scaffold new HAI3 projects and layer packages, generate layout components on demand, keep AI assistant configurations current, apply codemod migrations across major version upgrades, and validate component structure rules — all through a consistent programmatic interface usable by both humans and AI agents.
+Enable `cpt-frontx-actor-developer` and `cpt-frontx-actor-cli` to scaffold new FrontX projects and layer packages, generate layout components on demand, keep AI assistant configurations current, apply codemod migrations across major version upgrades, and validate component structure rules — all through a consistent programmatic interface usable by both humans and AI agents.
 
-Success criteria: A developer runs `frontx create my-app`, selects or passes a supported package manager (`npm`, `pnpm`, or `yarn`), changes into the directory, runs the generated manager-appropriate install and dev commands, and has a working HAI3 application with all AI configurations set up correctly.
+Success criteria: A developer runs `frontx create my-app`, selects or passes a supported package manager (`npm`, `pnpm`, or `yarn`), changes into the directory, runs the generated manager-appropriate install and dev commands, and has a working FrontX application with all AI configurations set up correctly.
 
 ### 1.3 Actors
 
@@ -115,8 +115,8 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `frontx scaffold layout` from a HAI3 project directory, optionally with `--force` - `inst-invoke-scaffold-layout`
-2. [x] - `p1` - **IF** not inside a HAI3 project root (no `frontx.config.json`) **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-scaffold`
+1. [x] - `p1` - Developer invokes `frontx scaffold layout` from a FrontX project directory, optionally with `--force` - `inst-invoke-scaffold-layout`
+2. [x] - `p1` - **IF** not inside a FrontX project root (no `frontx.config.json`) **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-scaffold`
 3. [x] - `p1` - Read layout templates from the bundled CLI templates directory - `inst-read-layout-templates`
 4. [x] - `p1` - **IF** `--force` is false **AND** any target layout file already exists **THEN** skip existing files - `inst-check-force-flag`
 5. [x] - `p1` - Write layout component files to `src/app/layout/` inside the project root - `inst-write-layout-files`
@@ -132,9 +132,9 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 2. [x] - `p1` - **IF** both `--alpha` and `--stable` are specified **RETURN** validation error `CONFLICTING_OPTIONS` - `inst-check-conflicting-update-flags`
 3. [x] - `p1` - Algorithm: resolve release channel using `cpt-frontx-algo-cli-tooling-detect-release-channel` - `inst-run-detect-channel`
 4. [x] - `p1` - **IF** `--templates-only` is not set **THEN** install `@cyberfabric/cli@<tag>` globally using the detected project package manager; **IF** the manager is `yarn` **THEN** skip global CLI update with a warning because yarn global install is not managed by the command - `inst-update-cli-global`
-5. [x] - `p1` - **IF** `--templates-only` is not set **AND** inside a HAI3 project **THEN** locate all `@cyberfabric/*` entries in project `package.json` and install each with the resolved tag - `inst-update-project-packages`
-6. [x] - `p1` - **IF** inside a HAI3 project **THEN** sync templates using `cpt-frontx-algo-cli-tooling-sync-templates` - `inst-run-sync-templates`
-7. [x] - `p1` - **IF** inside a HAI3 project **AND** `--skip-ai-sync` is not set **THEN** execute `aiSyncCommand` with `detectPackages: true` - `inst-run-ai-sync-after-update`
+5. [x] - `p1` - **IF** `--templates-only` is not set **AND** inside a FrontX project **THEN** locate all `@cyberfabric/*` entries in project `package.json` and install each with the resolved tag - `inst-update-project-packages`
+6. [x] - `p1` - **IF** inside a FrontX project **THEN** sync templates using `cpt-frontx-algo-cli-tooling-sync-templates` - `inst-run-sync-templates`
+7. [x] - `p1` - **IF** inside a FrontX project **AND** `--skip-ai-sync` is not set **THEN** execute `aiSyncCommand` with `detectPackages: true` - `inst-run-ai-sync-after-update`
 8. [x] - `p1` - **RETURN** `UpdateCommandResult` with flags for each step completed - `inst-return-update`
 
 ### Update Layout
@@ -144,7 +144,7 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
 1. [x] - `p2` - Developer invokes `frontx update layout` with optional `--force` flag - `inst-invoke-update-layout`
-2. [x] - `p2` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-update-layout`
+2. [x] - `p2` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-update-layout`
 3. [x] - `p2` - Read current layout files from `src/app/layout/` and compare against bundled templates - `inst-compare-layout-files`
 4. [x] - `p2` - **IF** `--force` is false **THEN** prompt developer to confirm each modified file - `inst-prompt-confirm-layout-overwrite`
 5. [x] - `p2` - Write updated layout files to `src/app/layout/` - `inst-write-updated-layout`
@@ -157,7 +157,7 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
 1. [x] - `p1` - Developer invokes `frontx ai sync` with optional `--tool` (default `all`), `--detect-packages`, `--diff` - `inst-invoke-ai-sync`
-2. [x] - `p1` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-ai-sync`
+2. [x] - `p1` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-ai-sync`
 3. [x] - `p1` - **IF** `.ai/` directory does not exist **AND** not in `--diff` mode **THEN** create minimal `.ai/GUIDELINES.md` stub - `inst-create-ai-dir`
 4. [x] - `p1` - Read user custom rules from `.ai/rules/app.md` if the file exists - `inst-read-user-rules`
 5. [x] - `p1` - **IF** `--detect-packages` is set **THEN** scan `node_modules/@cyberfabric/*/commands/*.md` for package command files, skipping `hai3dev-*` prefixed files - `inst-scan-package-commands`
@@ -173,7 +173,7 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
 1. [x] - `p1` - Developer invokes `frontx validate components [path]` - `inst-invoke-validate`
-2. [x] - `p1` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-validate`
+2. [x] - `p1` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-validate`
 3. [x] - `p1` - Determine scan path: use provided path argument if given, otherwise default to `src/screensets/` - `inst-resolve-scan-path`
 4. [x] - `p1` - Algorithm: scan all `.ts` and `.tsx` files recursively using `cpt-frontx-algo-cli-tooling-scan-component-violations` - `inst-run-scan`
 5. [x] - `p1` - **IF** any `error`-severity violations exist **THEN** print violation report grouped by file and **RETURN** `passed: false` - `inst-report-violations`
@@ -251,7 +251,7 @@ Success criteria: A developer runs `frontx create my-app`, selects or passes a s
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-generate-project`
 
-Constructs the complete set of `GeneratedFile` entries for a new HAI3 project from bundled templates and dynamic content.
+Constructs the complete set of `GeneratedFile` entries for a new FrontX project from bundled templates and dynamic content.
 
 1. [x] - `p1` - Load `templates/manifest.json` from the CLI package; **IF** manifest is not found **RETURN** error indicating CLI needs rebuild
 2. [x] - `p1` - **FOR EACH** file in `manifest.stage1b.rootFiles`: copy from the templates directory to the file list; apply variant selection for `src/app/main.tsx` (uikit variant) and `src/app/App.tsx` (uikit + studio variant)
@@ -279,7 +279,7 @@ Constructs the complete set of `GeneratedFile` entries for a new HAI3 project fr
 Provides package-manager-aware command generation, metadata parsing, engine policy, workspace-file generation, and npm-to-target-manager text transformation.
 
 1. [x] - `p1` - Parse `package.json.packageManager` values into `{ manager, version }`; reject unsupported manager identifiers - `inst-parse-package-manager-field`
-2. [x] - `p1` - Resolve package manager context with priority: explicit HAI3 config manager -> `package.json.packageManager` -> default `npm`; preserve legacy `frontx.config.json.packageManagerVersion` only as backwards-compatible fallback - `inst-detect-package-manager`
+2. [x] - `p1` - Resolve package manager context with priority: explicit FrontX config manager -> `package.json.packageManager` -> default `npm`; preserve legacy `frontx.config.json.packageManagerVersion` only as backwards-compatible fallback - `inst-detect-package-manager`
 3. [x] - `p1` - Build `package.json.packageManager` values from a centralized policy that defines exact default versions per supported manager - `inst-build-package-manager-field`
 4. [x] - `p1` - Build manager-specific `engines` entries from the same centralized policy while keeping the Node engine range separate - `inst-build-package-manager-engines`
 5. [x] - `p1` - Build manager-specific shell commands for install, script execution, workspace script execution, package add/update, and global install where supported - `inst-build-package-manager-commands`
@@ -290,7 +290,7 @@ Provides package-manager-aware command generation, metadata parsing, engine poli
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-select-command-variant`
 
-Selects the most specific command file variant for a given HAI3 architecture layer. Implements cascade fallback so higher layers inherit lower-layer commands when no specific override exists.
+Selects the most specific command file variant for a given FrontX architecture layer. Implements cascade fallback so higher layers inherit lower-layer commands when no specific override exists.
 
 1. [x] - `p1` - Determine fallback priority chain for the given layer: `sdk` → `['.sdk.md', '.md']`; `framework` → `['.framework.md', '.sdk.md', '.md']`; `react` / `app` → `['.react.md', '.framework.md', '.sdk.md', '.md']` - `inst-build-priority-chain`
 2. [x] - `p1` - Strip the `.md` extension from the base command name to produce the base stem - `inst-strip-ext`
@@ -669,7 +669,7 @@ A non-required nightly/manual GitHub Actions workflow covers broader CLI scenari
 
 ## 6. Acceptance Criteria
 
-- [x] `frontx create my-app` scaffolds a complete HAI3 application with correct `package.json`, `frontx.config.json`, `CLAUDE.md`, and all four AI tool configuration files
+- [x] `frontx create my-app` scaffolds a complete FrontX application with correct `package.json`, `frontx.config.json`, `CLAUDE.md`, and all four AI tool configuration files
 - [x] `frontx create my-app --package-manager <npm|pnpm|yarn>` records the selected manager in generated metadata, emits manager-specific next-step commands, and generates required workspace/config files for the selected manager
 - [x] `frontx create my-sdk --layer sdk` generates a minimal SDK-layer package with only sdk-applicable target files and command variants
 - [x] `frontx scaffold layout` writes layout components to `src/app/layout/` inside an existing project; skips existing files unless `--force` is passed

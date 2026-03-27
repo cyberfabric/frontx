@@ -39,7 +39,7 @@
 - DETECT: grep -rn "Object\\.defineProperty.*reducer" src/screensets
 
 ## MFE STATE MANAGEMENT
-- REQUIRED: Create HAI3 app via createHAI3().use(effects()).use(mock()).build() from @cyberfabric/react.
+- REQUIRED: Create FrontX app via createHAI3().use(effects()).use(mock()).build() from @cyberfabric/react.
 - REQUIRED: Register API services BEFORE .build() — mock plugin syncs during build, services must exist.
 - REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
 - REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @cyberfabric/react.

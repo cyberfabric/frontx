@@ -7,7 +7,7 @@
 - FORBIDDEN: Command logic in IDE-specific folders.
 
 ## COMMAND CATEGORIES
-frontx-*: Standalone project commands (shipped to all HAI3 projects).
+frontx-*: Standalone project commands (shipped to all FrontX projects).
 frontxdev-*: Monorepo-only commands (framework development only).
 
 ## NAMING CONVENTIONS

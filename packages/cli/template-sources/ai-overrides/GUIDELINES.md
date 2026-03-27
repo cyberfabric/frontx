@@ -1,4 +1,4 @@
-# HAI3 AI Guidelines (React/App Layer)
+# FrontX AI Guidelines (React/App Layer)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.

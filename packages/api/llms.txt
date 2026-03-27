@@ -1,8 +1,8 @@
 # @cyberfabric/api
 
-> API communication protocols and service registry for HAI3 SDK. Supports REST, SSE, and mock protocols.
+> API communication protocols and service registry for FrontX SDK. Supports REST, SSE, and mock protocols.
 
-Part of the HAI3 SDK Layer (L1) - can be used independently without other @cyberfabric packages. Peer dependency on axios.
+Part of the FrontX SDK Layer (L1) - can be used independently without other @cyberfabric packages. Peer dependency on axios.
 
 ## Core API
 

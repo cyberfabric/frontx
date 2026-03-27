@@ -363,7 +363,7 @@ Source: ATAM utility tree approach (mapping business goals to quality attribute 
 
 **Confidence:** Substantiated.
 
-#### 4.6 Questions specific to HAI3 context
+#### 4.6 Questions specific to FrontX context
 
 Given the FrontX architecture (4-layer SDK, event-driven, plugin-first composition, microfrontend isolation):
 
@@ -477,7 +477,7 @@ For each deferred decision, the critic should check:
 
 4. **Codebase reading depth**: The critic is scoped to `architecture/` artifacts. Some findings (consistency with codebase patterns) require reading actual code in `packages/` and `src/`. The extent of codebase access affects the quality of consistency checks.
 
-5. **HAI3-specific question calibration**: The HAI3-specific questions (section 4.6) are derived from current codebase patterns. These will drift as the codebase evolves. Should they live in the agent prompt or in a separate reference file the agent reads?
+5. **FrontX-specific question calibration**: The FrontX-specific questions (section 4.6) are derived from current codebase patterns. These will drift as the codebase evolves. Should they live in the agent prompt or in a separate reference file the agent reads?
 
 ## Sources
 

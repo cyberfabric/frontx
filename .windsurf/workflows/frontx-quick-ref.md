@@ -1,5 +1,5 @@
 ---
-description: Quick reference for common HAI3 patterns
+description: Quick reference for common FrontX patterns
 auto_execution_mode: 3
 ---
 

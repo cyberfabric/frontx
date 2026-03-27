@@ -1,6 +1,6 @@
 # @cyberfabric/i18n
 
-Internationalization (i18n) system for HAI3 applications with 36 supported languages.
+Internationalization (i18n) system for FrontX applications with 36 supported languages.
 
 ## SDK Layer
 

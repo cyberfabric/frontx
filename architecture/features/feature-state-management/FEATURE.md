@@ -47,7 +47,7 @@
 
 ### 1.1 Overview
 
-Foundational state management and event infrastructure for the entire HAI3 system. This feature delivers the typed EventBus, Redux Toolkit store with dynamic slice registration, the FrontX `createSlice` wrapper, and the effect system that enforce the Action → Event → Effect → Reducer data-flow pattern.
+Foundational state management and event infrastructure for the entire FrontX system. This feature delivers the typed EventBus, Redux Toolkit store with dynamic slice registration, the FrontX `createSlice` wrapper, and the effect system that enforce the Action → Event → Effect → Reducer data-flow pattern.
 
 Problem: Without a shared event bus and store abstraction every package would implement its own state patterns, producing fragmented debugging, untraceable data flow, and ad-hoc state mutations.
 
@@ -57,7 +57,7 @@ Key assumptions: Consumers operate in a browser or Node.js ESM environment. Redu
 
 ### 1.2 Purpose
 
-Provide the event bus, store factory, slice factory, and effect system that every higher HAI3 layer depends on, without coupling to React, the framework, or any other SDK package.
+Provide the event bus, store factory, slice factory, and effect system that every higher FrontX layer depends on, without coupling to React, the framework, or any other SDK package.
 
 Success criteria: Any `@cyberfabric/state` consumer can emit and receive typed events, register slices dynamically, and wire effects — all with compile-time type safety and zero `@cyberfabric/*` transitive dependencies.
 
@@ -142,8 +142,8 @@ Success criteria: Any `@cyberfabric/state` consumer can emit and receive typed e
 
 1. [x] `p1` - Framework plugin calls `createStore(initialReducers)` with its static layout reducers - `inst-call-create-store`
 2. [x] `p1` - Runtime creates a Redux Toolkit store via `configureStore` using the combined static reducers - `inst-configure-rtk-store`
-3. [x] `p1` - Runtime wraps the RTK store in a typed `HAI3Store<RootState>` facade exposing `getState`, `dispatch`, `subscribe`, `replaceReducer` - `inst-wrap-store`
-4. [x] `p1` - RETURN `HAI3Store` instance to the framework plugin - `inst-return-store`
+3. [x] `p1` - Runtime wraps the RTK store in a typed `FrontXStore<RootState>` facade exposing `getState`, `dispatch`, `subscribe`, `replaceReducer` - `inst-wrap-store`
+4. [x] `p1` - RETURN `FrontXStore` instance to the framework plugin - `inst-return-store`
 5. [x] `p1` - Subsequent calls to `getStore()` by any module return the same instance without re-creation - `inst-get-store-singleton`
 
 ---
@@ -156,7 +156,7 @@ Success criteria: Any `@cyberfabric/state` consumer can emit and receive typed e
 
 **Pre-condition**: A slice is registered with effects wired. The consuming component has called the action function.
 
-1. [x] `p1` - A HAI3 Action function (authored by the developer) calls `eventBus.emit(eventKey, payload)` - `inst-action-emit`
+1. [x] `p1` - A FrontX Action function (authored by the developer) calls `eventBus.emit(eventKey, payload)` - `inst-action-emit`
 2. [x] `p1` - EventBus delivers the payload synchronously to all registered handlers for that event key - `inst-bus-deliver`
 3. [x] `p1` - The matching Effect handler receives the payload and performs any side-effect work (e.g., API call, validation) - `inst-effect-side-effect`
 4. [x] `p1` - Effect handler calls `dispatch(reducerFunction(payload))` to produce a Redux action - `inst-effect-dispatch`
@@ -346,7 +346,7 @@ The `eventBus` singleton provides type-safe event emission and subscription. Emi
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-state-management-store-factory`
 
-`createStore(initialReducers)` produces a `HAI3Store<RootState>` wrapping a Redux Toolkit store configured with the provided static reducers. `getStore()` returns the same instance without re-creating it; if no instance exists it auto-creates an empty store. The `HAI3Store` facade exposes `getState`, `dispatch`, `subscribe`, and `replaceReducer`. Redux internals (`EnhancedStore`, `configureStore`, `combineReducers`) are not re-exported.
+`createStore(initialReducers)` produces a `FrontXStore<RootState>` wrapping a Redux Toolkit store configured with the provided static reducers. `getStore()` returns the same instance without re-creating it; if no instance exists it auto-creates an empty store. The `FrontXStore` facade exposes `getState`, `dispatch`, `subscribe`, and `replaceReducer`. Redux internals (`EnhancedStore`, `configureStore`, `combineReducers`) are not re-exported.
 
 **Implements**:
 - `cpt-frontx-flow-state-management-store-init`
@@ -415,7 +415,7 @@ The `eventBus` singleton provides type-safe event emission and subscription. Emi
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-state-management-create-slice`
 
-`createSlice(options)` wraps Redux Toolkit's `createSlice` and returns `{ slice, ...reducerFunctions }`. The `slice` property carries only `name` and `reducer` — all Redux Toolkit internals (`.actions`, `.selectors`, `.caseReducers`) are excluded. Reducer functions are spread at the top level of the return value so effects can import them directly. This enforces HAI3 terminology where "action" means an event-emitting function, not a Redux action creator.
+`createSlice(options)` wraps Redux Toolkit's `createSlice` and returns `{ slice, ...reducerFunctions }`. The `slice` property carries only `name` and `reducer` — all Redux Toolkit internals (`.actions`, `.selectors`, `.caseReducers`) are excluded. Reducer functions are spread at the top level of the return value so effects can import them directly. This enforces FrontX terminology where "action" means an event-emitting function, not a Redux action creator.
 
 **Implements**:
 - `cpt-frontx-algo-state-management-create-slice`

@@ -1,7 +1,7 @@
 ---
 name: /frontx-duplicate-screenset
 id: frontx-duplicate-screenset
-category: HAI3
+category: FrontX
 description: Duplicate an existing screenset with all IDs changed
 ---
 

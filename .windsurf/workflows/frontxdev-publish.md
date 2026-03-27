@@ -1,5 +1,5 @@
 ---
-description: Publish HAI3 packages to NPM (monorepo only)
+description: Publish FrontX packages to NPM (monorepo only)
 auto_execution_mode: 3
 ---
 

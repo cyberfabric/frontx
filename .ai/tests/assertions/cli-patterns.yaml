@@ -1,4 +1,4 @@
-# CLI Pattern Assertions for HAI3 Commands
+# CLI Pattern Assertions for FrontX Commands
 # These assertions verify commands follow CLI delegation pattern
 
 # Assertion: Commands must delegate to CLI

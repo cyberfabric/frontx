@@ -28,7 +28,7 @@ date: 2026-01-04
 **ID**: `cpt-frontx-adr-symbol-based-mock-plugin-identification`
 ## Context and Problem Statement
 
-HAI3 needs centralized mock mode control across all API services while maintaining layer separation — L1 (SDK) is mock-agnostic and L2 (Framework) owns mock logic. The framework must be able to identify which plugins are mock plugins in order to activate or deactivate them, without L1 gaining any knowledge of mock-specific concerns.
+FrontX needs centralized mock mode control across all API services while maintaining layer separation — L1 (SDK) is mock-agnostic and L2 (Framework) owns mock logic. The framework must be able to identify which plugins are mock plugins in order to activate or deactivate them, without L1 gaining any knowledge of mock-specific concerns.
 
 ## Decision Drivers
 

@@ -1,13 +1,13 @@
 # @cyberfabric/docs
 
-HAI3 Documentation Site - AI-driven product lifecycle and framework documentation.
+FrontX Documentation Site - AI-driven product lifecycle and framework documentation.
 
 ## Overview
 
-This package contains the VitePress-based documentation site for HAI3, covering:
+This package contains the VitePress-based documentation site for FrontX, covering:
 
 - **AI Product Lifecycle**: Strategic, Organizational, Tactical, and Technical layers
-- **HAI3 Framework**: Architecture, concepts, guides, and API reference
+- **FrontX Framework**: Architecture, concepts, guides, and API reference
 - **Case Studies**: Real-world examples including portal microfrontend architecture
 - **Terminology**: Core concepts and extensibility guide
 
@@ -52,13 +52,13 @@ packages/docs/
 │   ├── config.ts         # Site config, navigation, theme
 │   └── theme/            # Custom theme
 │       ├── index.ts
-│       └── custom.css    # HAI3 branding
+│       └── custom.css    # FrontX branding
 ├── src/                  # Documentation content (Markdown)
 │   ├── index.md          # Homepage
 │   ├── getting-started.md
 │   ├── TERMINOLOGY.md
 │   ├── lifecycle/        # AI product lifecycle docs
-│   ├── frontx/             # HAI3 framework docs
+│   ├── frontx/             # FrontX framework docs
 │   └── case-studies/     # Case studies
 ├── public/               # Static assets (images, diagrams)
 └── dist/                 # Build output (gitignored)
@@ -107,7 +107,7 @@ See [VitePress documentation](https://vitepress.dev/guide/markdown) for details.
 
 The site navigation is configured in `.vitepress/config.ts`:
 
-- **Top nav**: Main sections (Lifecycle, HAI3, Case Studies)
+- **Top nav**: Main sections (Lifecycle, FrontX, Case Studies)
 - **Sidebar**: Hierarchical navigation within each section
 - **Search**: Local search powered by VitePress
 

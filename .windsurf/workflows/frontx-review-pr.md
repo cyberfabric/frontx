@@ -1,5 +1,5 @@
 ---
-description: Review code changes against HAI3 guidelines
+description: Review code changes against FrontX guidelines
 auto_execution_mode: 3
 ---
 

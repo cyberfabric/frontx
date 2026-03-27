@@ -1,6 +1,6 @@
 # @cyberfabric/cli
 
-Command-line interface for scaffolding and managing HAI3 framework projects.
+Command-line interface for scaffolding and managing FrontX framework projects.
 
 ## Overview
 
@@ -22,7 +22,7 @@ Create new MFE screenset packages from the framework template. Each screenset is
 
 ### Dependency Updates
 
-Update the CLI itself and all HAI3 framework packages to their latest versions. The command detects whether it's running inside a project or standalone and adjusts its behavior accordingly.
+Update the CLI itself and all FrontX framework packages to their latest versions. The command detects whether it's running inside a project or standalone and adjusts its behavior accordingly.
 
 ## Installation
 
@@ -64,7 +64,7 @@ Creates a new FrontX project or SDK layer package with the specified name.
 
 **Output (App project — default):**
 - Vite + React + TypeScript project with `frontx.config.json` (uikit, etc.)
-- HAI3 framework packages installed and configured
+- FrontX framework packages installed and configured
 - Build and dev scripts; layout/components scaffolded per UI kit choice
 
 **Output (Layer package):**
@@ -189,7 +189,7 @@ frontx create my-project --uikit=@mui/material
 
 ## SDK Layer Development
 
-HAI3 uses a 3-layer SDK architecture. When building custom packages that extend the framework, use the `--layer` option to generate properly configured package scaffolding.
+FrontX uses a 3-layer SDK architecture. When building custom packages that extend the framework, use the `--layer` option to generate properly configured package scaffolding.
 
 ### Layer Architecture
 
@@ -212,7 +212,7 @@ HAI3 uses a 3-layer SDK architecture. When building custom packages that extend 
 ### Creating Layer Packages
 
 ```bash
-# SDK layer - pure TypeScript, no HAI3 dependencies
+# SDK layer - pure TypeScript, no FrontX dependencies
 frontx create my-contracts --layer=sdk
 
 # Framework layer - depends on @cyberfabric/events, @cyberfabric/store
@@ -293,7 +293,7 @@ The package also exports `createCommand` and `updateCommand` by name. Other comm
 
 ### Template Customization
 
-CLI ships with comprehensive template files that new projects copy. These templates stay synchronized with the main HAI3 repository, ensuring new projects always use current best practices.
+CLI ships with comprehensive template files that new projects copy. These templates stay synchronized with the main FrontX repository, ensuring new projects always use current best practices.
 
 ## Requirements
 
@@ -310,7 +310,7 @@ Apache-2.0
 
 ## Repository
 
-[https://github.com/HAI3org/HAI3](https://github.com/HAI3org/HAI3)
+[https://github.com/Cyber Fabric/FrontX](https://github.com/Cyber Fabric/FrontX)
 
 ## Related Packages
 

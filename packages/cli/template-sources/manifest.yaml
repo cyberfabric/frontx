@@ -11,7 +11,7 @@ project:
   description: "Project configuration files for standalone FrontX projects"
   contents:
     - configs/             # ESLint, depcruise, pre-commit configs (flattened to root)
-    - eslint-plugin-local/ # Local ESLint plugin with HAI3 rules
+    - eslint-plugin-local/ # Local ESLint plugin with FrontX rules
     - scripts/             # Utility scripts (test-architecture, check-mcp)
     - .npmrc               # NPM configuration
     - .nvmrc               # Node version

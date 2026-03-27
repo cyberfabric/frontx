@@ -53,7 +53,7 @@
 
 ### 1.1 Purpose
 
-FrontX is an AI-optimized UI development kit that accelerates the creation of production-ready interfaces from concept to deployment. It bridges the gap between rapid prototyping (Drafts → Mockups) and scalable production systems through a layered architecture that decouples domain logic, UI components, and business functionality. Built on React 19 with TypeScript, Vite, and Redux Toolkit, HAI3 provides a plugin-based framework enabling developers to extend functionality without modifying core code.
+FrontX is an AI-optimized UI development kit that accelerates the creation of production-ready interfaces from concept to deployment. It bridges the gap between rapid prototyping (Drafts → Mockups) and scalable production systems through a layered architecture that decouples domain logic, UI components, and business functionality. Built on React 19 with TypeScript, Vite, and Redux Toolkit, FrontX provides a plugin-based framework enabling developers to extend functionality without modifying core code.
 
 The dev kit targets teams building internal tools, dashboards, AI-powered applications, and embedded UI systems. It standardizes patterns for state management, API integration, localization, component reuse, and extensibility while maintaining full control over UI rendering through a customizable UI kit built on shadcn/ui.
 
@@ -68,7 +68,7 @@ Modern UI frameworks optimize for component reuse and visual design, but fail at
 - **Monorepo Bloat**: Framework code, UI components, app templates, and build tools entangled in single packages, forcing unnecessary dependencies.
 - **No Clear Upgrade Path**: Breaking changes to core packages ripple across all screens; adding new features requires updating multiple layers.
 
-HAI3 solves these by enforcing a proven architectural model with four isolated layers: flat SDK packages (zero inter-dependencies), composable framework plugins, React adapters, and user-owned layout templates. The framework enforces event-driven Flux patterns and zero cross-layer dependencies, ensuring applications remain maintainable as they scale from single screens to complex multi-feature applications with microfrontend deployments.
+FrontX solves these by enforcing a proven architectural model with four isolated layers: flat SDK packages (zero inter-dependencies), composable framework plugins, React adapters, and user-owned layout templates. The framework enforces event-driven Flux patterns and zero cross-layer dependencies, ensuring applications remain maintainable as they scale from single screens to complex multi-feature applications with microfrontend deployments.
 
 ### 1.3 Goals (Business Outcomes)
 
@@ -142,7 +142,7 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 
 **ID**: `cpt-frontx-actor-host-app`
 
-**Role**: Initializes HAI3 via `createHAI3().use(...).build()`, registers screensets, provides `HAI3Provider` to React tree, emits configuration events (tenant, language, theme).
+**Role**: Initializes FrontX via `createHAI3().use(...).build()`, registers screensets, provides `HAI3Provider` to React tree, emits configuration events (tenant, language, theme).
 
 #### Build System
 
@@ -208,7 +208,7 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 
 **ID**: `cpt-frontx-actor-ai-agent`
 
-**Role**: Generates and modifies shell code and MFE packages within screensets under PM or designer direction. Operates through IDE-integrated AI assistants, using CLI commands and HAI3-provided skills and workflows for screenset-aware operations.
+**Role**: Generates and modifies shell code and MFE packages within screensets under PM or designer direction. Operates through IDE-integrated AI assistants, using CLI commands and FrontX-provided skills and workflows for screenset-aware operations.
 
 #### Dev Server
 
@@ -295,7 +295,7 @@ The system MUST provide 4 flat SDK packages (`@cyberfabric/state`, `@cyberfabric
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sdk-state-interface`
 
-`@cyberfabric/state` MUST export EventBus (singleton + interface), `createStore`, `getStore`, `registerSlice`, `unregisterSlice`, `hasSlice`, `getRegisteredSlices`, `resetStore`, `createSlice`, and types `ReducerPayload`, `EventPayloadMap`, `RootState`, `AppDispatch`, `EffectInitializer`, `HAI3Store`, `SliceObject`, `EventHandler`, `Subscription`.
+`@cyberfabric/state` MUST export EventBus (singleton + interface), `createStore`, `getStore`, `registerSlice`, `unregisterSlice`, `hasSlice`, `getRegisteredSlices`, `resetStore`, `createSlice`, and types `ReducerPayload`, `EventPayloadMap`, `RootState`, `AppDispatch`, `EffectInitializer`, `FrontXStore`, `SliceObject`, `EventHandler`, `Subscription`.
 
 **Rationale**: Complete state management foundation for event-driven Flux architecture.
 **Actors**: `cpt-frontx-actor-developer`
@@ -306,7 +306,7 @@ The system MUST provide 4 flat SDK packages (`@cyberfabric/state`, `@cyberfabric
 
 The system MUST use consistent FrontX Flux terminology: Action (emits events), Event (past-tense message), Effect (subscribes + calls reducers), Reducer (pure state update), Slice (reducers + initial state). The terms "action creator" and "dispatch" MUST NOT appear in public API.
 
-**Rationale**: Avoids confusion with Redux terminology; enforces HAI3 event-driven patterns.
+**Rationale**: Avoids confusion with Redux terminology; enforces FrontX event-driven patterns.
 **Actors**: `cpt-frontx-actor-developer`
 
 #### Screensets Package
@@ -414,7 +414,7 @@ The system MUST support event-driven configuration for tenant, language, theme, 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-appconfig-router-config`
 
-The system MUST provide router mode configuration via `HAI3Config.routerMode` supporting `'browser'` (default), `'hash'`, and `'memory'` types.
+The system MUST provide router mode configuration via `FrontXConfig.routerMode` supporting `'browser'` (default), `'hash'`, and `'memory'` types.
 
 **Rationale**: Different deployment environments require different routing strategies.
 **Actors**: `cpt-frontx-actor-host-app`
@@ -905,7 +905,7 @@ The system MUST provide a `toggleMockMode` action via `mock()` plugin that activ
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-plugin`
 
-The system MUST provide a `microfrontends()` framework plugin with actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) and domain constants (`HAI3_SCREEN_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_POPUP_DOMAIN`, `HAI3_OVERLAY_DOMAIN`). The plugin MUST orchestrate MFE loading via blob URL isolation, propagate theme and i18n changes to mounted extensions, and bridge shared properties between host and MFE.
+The system MUST provide a `microfrontends()` framework plugin with actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) and domain constants (`HAI3_SCREEN_DOMAIN`, `FrontX_SIDEBAR_DOMAIN`, `FrontX_POPUP_DOMAIN`, `FrontX_OVERLAY_DOMAIN`). The plugin MUST orchestrate MFE loading via blob URL isolation, propagate theme and i18n changes to mounted extensions, and bridge shared properties between host and MFE.
 
 **Rationale**: Core orchestration plugin that integrates MFE lifecycle management, theme/i18n propagation, and shared property bridging into the framework's plugin chain.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`
@@ -1006,7 +1006,7 @@ Studio MUST provide a screenset selector as the top-level navigation control. Th
 
 - [ ] `p1` - **ID**: `cpt-frontx-fr-ai-agent-integration`
 
-The system MUST provide HAI3-specific AI skills and workflows that enable AI agents to create screensets, modify shell code, and manage MFE packages within screensets. Each screenset MUST include machine-readable context (guidelines, structure descriptions) that AI agents can consume to understand the screenset's structure and conventions.
+The system MUST provide FrontX-specific AI skills and workflows that enable AI agents to create screensets, modify shell code, and manage MFE packages within screensets. Each screenset MUST include machine-readable context (guidelines, structure descriptions) that AI agents can consume to understand the screenset's structure and conventions.
 
 **Rationale**: AI tooling is the primary mechanism for PMs and designers to modify shell code. Without dedicated skills and context, AI agents would lack the domain knowledge to operate on screensets effectively.
 **Actors**: `cpt-frontx-actor-ai-agent`, `cpt-frontx-actor-product-manager`
@@ -1024,7 +1024,7 @@ The production build MUST include only the production screenset(s) and their ref
 
 - [ ] `p1` - **ID**: `cpt-frontx-fr-multi-product`
 
-A single HAI3 project MUST support multiple independent production screensets representing different products (e.g., partner back-office and customer console). Each production screenset MUST be independently deployable. Each production screenset MUST be able to have its own draft and mockup variants progressing through the SDLC pipeline independently.
+A single FrontX project MUST support multiple independent production screensets representing different products (e.g., partner back-office and customer console). Each production screenset MUST be independently deployable. Each production screenset MUST be able to have its own draft and mockup variants progressing through the SDLC pipeline independently.
 
 **Rationale**: Companies often build multiple frontend products from a single codebase, sharing infrastructure and MFE packages while maintaining independent release cycles.
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-product-manager`
@@ -1217,8 +1217,8 @@ Non-production screensets MUST NOT be included in the production build's module 
 
 - **Accessibility** (UX-PRD-002): Not applicable at framework level — accessibility is the responsibility of application/screenset UI components and application-level code. Local UI may use Radix UI primitives for accessibility foundations.
 - **Safety** (SAFE-PRD-001/002): Not applicable — FrontX is a client-side UI framework with no physical interaction, medical, or vehicle control capabilities.
-- **Regulatory Compliance** (COMPL-PRD-001/002/003): Not applicable — HAI3 does not process PII, financial data, or healthcare data. Applications built with FrontX may have compliance requirements, but those are application-level concerns.
-- **Internationalization** (UX-PRD-003): Addressed as functional requirement `cpt-frontx-fr-sdk-i18n-package` — HAI3 provides the i18n infrastructure; application-level translation content is out of scope.
+- **Regulatory Compliance** (COMPL-PRD-001/002/003): Not applicable — FrontX does not process PII, financial data, or healthcare data. Applications built with FrontX may have compliance requirements, but those are application-level concerns.
+- **Internationalization** (UX-PRD-003): Addressed as functional requirement `cpt-frontx-fr-sdk-i18n-package` — FrontX provides the i18n infrastructure; application-level translation content is out of scope.
 - **Offline Capability** (UX-PRD-004): Not applicable — FrontX is designed for always-connected SPA environments.
 - **Availability/Recovery** (REL-PRD-001/002): Not applicable — FrontX is a client-side library, not a hosted service. Availability and recovery are deployment-level concerns.
 
@@ -1327,7 +1327,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Actor**: `cpt-frontx-actor-host-app`
 
 **Preconditions**:
-- HAI3 app initialized with `microfrontends()` plugin
+- FrontX app initialized with `microfrontends()` plugin
 - Extension domain registered with shared properties and actions
 
 **Main Flow**:
@@ -1353,7 +1353,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Actor**: `cpt-frontx-actor-developer`
 
 **Preconditions**:
-- HAI3 project exists with `@cyberfabric/cli` installed
+- FrontX project exists with `@cyberfabric/cli` installed
 
 **Main Flow**:
 1. Developer runs `frontx scaffold screenset my-feature`

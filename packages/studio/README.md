@@ -1,6 +1,6 @@
 # @cyberfabric/studio
 
-Development tools overlay for HAI3 applications providing runtime controls and debugging capabilities.
+Development tools overlay for FrontX applications providing runtime controls and debugging capabilities.
 
 ## Overview
 
@@ -74,7 +74,7 @@ After production builds, studio adds 0 bytes to bundle size. No studio code appe
 
 ### Event-Driven State
 
-Studio integrates with HAI3's event bus for all state changes. Position, size, and configuration updates emit events that persistence effects subscribe to. This maintains loose coupling with the framework core.
+Studio integrates with FrontX's event bus for all state changes. Position, size, and configuration updates emit events that persistence effects subscribe to. This maintains loose coupling with the framework core.
 
 ### Localization System
 
@@ -128,4 +128,4 @@ Apache-2.0
 
 ## Contributing
 
-Studio is part of the HAI3 monorepo. See the main repository for contribution guidelines and development setup instructions.
+Studio is part of the FrontX monorepo. See the main repository for contribution guidelines and development setup instructions.

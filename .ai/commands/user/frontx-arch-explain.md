@@ -1,5 +1,5 @@
 <!-- @standalone -->
-# frontx:arch-explain - Explain HAI3 Architecture Concepts
+# frontx:arch-explain - Explain FrontX Architecture Concepts
 
 Ask the user which concept they want explained, or detect from context:
 

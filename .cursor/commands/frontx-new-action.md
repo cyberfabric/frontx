@@ -1,7 +1,7 @@
 ---
 name: /frontx-new-action
 id: frontx-new-action
-category: HAI3
+category: FrontX
 description: Create a new action following event-driven architecture
 ---
 

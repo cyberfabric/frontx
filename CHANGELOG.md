@@ -3,7 +3,7 @@
 > **TARGET AUDIENCE:** Humans
 > **PURPOSE:** History of changes and version tracking
 
-All notable changes to HAI3 UI-Core will be documented in this file.
+All notable changes to FrontX UI-Core will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -73,7 +73,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Project Philosophy
 
-This initial release establishes the foundation for HAI3's mission:
+This initial release establishes the foundation for FrontX's mission:
 - **Human-driven UI-Core**: Well-structured, polished base framework
 - **AI-driven screens**: Built on top of the UI-Core foundation
 - **Modular architecture**: Screensets as vertical slices
@@ -103,4 +103,4 @@ Future releases will add:
 - Testing framework
 - CLI tools for scaffolding
 
-[0.1.0]: https://github.com/your-org/HAI3/releases/tag/v0.1.0
+[0.1.0]: https://github.com/your-org/FrontX/releases/tag/v0.1.0

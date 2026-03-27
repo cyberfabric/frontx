@@ -1,30 +1,30 @@
-# Claude Code Commands for HAI3
+# Claude Code Commands for FrontX
 
-This directory contains slash commands for Claude Code to help with HAI3 development following the project's architectural guidelines.
+This directory contains slash commands for Claude Code to help with FrontX development following the project's architectural guidelines.
 
 ## Available Commands
 
 ### Development Workflow
 
 #### `/validate`
-Validate changes before commit following HAI3 guidelines. Runs architecture checks, verifies event-driven flow, and checks for common violations.
+Validate changes before commit following FrontX guidelines. Runs architecture checks, verifies event-driven flow, and checks for common violations.
 
 **Use when:** Before committing code changes
 
 #### `/review-pr`
-Comprehensive code review against HAI3 guidelines. Checks all applicable rules, runs validation, and provides detailed feedback.
+Comprehensive code review against FrontX guidelines. Checks all applicable rules, runs validation, and provides detailed feedback.
 
 **Use when:** Reviewing pull requests or significant changes
 
 ### Creating New Features
 
 #### `/new-screenset`
-Create a new screenset following HAI3 vertical slice architecture. Guides through directory structure, configuration, and registration.
+Create a new screenset following FrontX vertical slice architecture. Guides through directory structure, configuration, and registration.
 
 **Use when:** Adding a new screenset to drafts/mockups/production
 
 #### `/new-component`
-Add a new UI component (base, composite, or screenset-specific) following HAI3 component architecture.
+Add a new UI component (base, composite, or screenset-specific) following FrontX component architecture.
 
 **Use when:** Creating new reusable UI components
 
@@ -41,24 +41,24 @@ Add a new domain-based API service with mock data support.
 ### Fixing Issues
 
 #### `/fix-violation`
-Fix a rule violation following HAI3 correction policy. Identifies, classifies, and fixes violations with proper validation.
+Fix a rule violation following FrontX correction policy. Identifies, classifies, and fixes violations with proper validation.
 
 **Use when:** Architecture checks fail or linting identifies issues
 
 ### Learning & Reference
 
 #### `/rules`
-Show HAI3 rules for a specific area (events, screensets, studio, etc.) with examples.
+Show FrontX rules for a specific area (events, screensets, studio, etc.) with examples.
 
 **Use when:** Need to understand rules for a specific area
 
 #### `/arch-explain`
-Explain HAI3 architecture concepts with diagrams, examples, and patterns.
+Explain FrontX architecture concepts with diagrams, examples, and patterns.
 
 **Use when:** Learning or clarifying architectural concepts
 
 #### `/quick-ref`
-Quick reference for common HAI3 patterns (events, imports, components, styling, i18n).
+Quick reference for common FrontX patterns (events, imports, components, styling, i18n).
 
 **Use when:** Need a quick lookup of common patterns
 
@@ -81,7 +81,7 @@ Invoke commands by typing `/` followed by the command name in Claude Code:
 
 ## Guidelines Structure
 
-The commands are based on HAI3's structured guidelines:
+The commands are based on FrontX's structured guidelines:
 
 ```
 .ai/
@@ -122,9 +122,9 @@ The commands are based on HAI3's structured guidelines:
 2. `/quick-ref` - Reference common patterns
 3. `/rules` - Deep dive into specific areas
 
-## Integration with HAI3 Architecture
+## Integration with FrontX Architecture
 
-These commands enforce HAI3's core principles:
+These commands enforce FrontX's core principles:
 
 - **Event-Driven Architecture**: Actions emit events, effects listen and update slices
 - **Registry Pattern**: Self-registration following Open/Closed principle
@@ -143,7 +143,7 @@ All commands respect the validation workflow:
 
 ## Quick Start
 
-New to HAI3? Start with these commands:
+New to FrontX? Start with these commands:
 
 1. `/arch-explain` - Understand the architecture
 2. `/quick-ref` - Learn common patterns

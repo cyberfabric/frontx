@@ -151,7 +151,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 3. [ ] `p1` - The `themes` plugin's `onInit` handler receives the event - `inst-themes-plugin-handler`
 4. [ ] `p1` - Handler calls `themeRegistry.apply(themeId)` to update the in-process theme - `inst-apply-theme`
 5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` to broadcast to all MFE domains - `inst-broadcast-theme`
-6. [ ] `p1` - **CATCH** log error `"[HAI3] Failed to propagate theme to MFE domains"` without re-throwing - `inst-catch-theme-error`
+6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate theme to MFE domains"` without re-throwing - `inst-catch-theme-error`
 
 ### Language Change and MFE Propagation
 
@@ -164,7 +164,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 3. [ ] `p1` - The `i18n` plugin's `onInit` handler receives the event - `inst-i18n-plugin-handler`
 4. [ ] `p1` - Handler calls `i18nRegistry.setLanguage(language)` asynchronously - `inst-set-language`
 5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` to broadcast to all MFE domains - `inst-broadcast-lang`
-6. [ ] `p1` - **CATCH** log error `"[HAI3] Failed to propagate language to MFE domains"` without re-throwing - `inst-catch-lang-error`
+6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate language to MFE domains"` without re-throwing - `inst-catch-lang-error`
 
 ### MFE Extension Registration
 
@@ -273,7 +273,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-base-path`
 
-1. [ ] `p1` - Receive raw `base` string from `HAI3Config`; **IF** empty or undefined **RETURN** `"/"` - `inst-empty-base`
+1. [ ] `p1` - Receive raw `base` string from `FrontXConfig`; **IF** empty or undefined **RETURN** `"/"` - `inst-empty-base`
 2. [ ] `p1` - **IF** `base` does not start with `"/"`: prepend `"/"` - `inst-add-leading-slash`
 3. [ ] `p1` - **IF** normalized value is not `"/"` AND ends with `"/"`: remove trailing slash - `inst-remove-trailing-slash`
 4. [ ] `p1` - **RETURN** normalized base path - `inst-return-base`
@@ -347,7 +347,7 @@ Tracked in `state.tenant`.
 Host applications can compose a FrontX framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
 
 **API surface**:
-- `createHAI3(config?: HAI3Config): HAI3AppBuilder`
+- `createHAI3(config?: FrontXConfig): HAI3AppBuilder`
 - `HAI3AppBuilder.use(plugin): HAI3AppBuilder`
 - `HAI3AppBuilder.useAll(plugins): HAI3AppBuilder`
 - `HAI3AppBuilder.build(): HAI3App`
@@ -402,7 +402,7 @@ The `layout()` plugin registers Redux slices for all seven layout domains (heade
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-app-config`
 
-The framework provides an event-driven API for configuring tenant, language, theme, and navigation. All configuration changes propagate via the event bus rather than direct state mutation. The `Tenant` type has shape `{ id: string }` and tenant state is typed `Tenant | null`. Router mode is configurable via `HAI3Config.routerMode` (`'browser'` | `'hash'` | `'memory'`). Base path normalization handles leading slash insertion, trailing slash removal, and empty-string-to-root conversion.
+The framework provides an event-driven API for configuring tenant, language, theme, and navigation. All configuration changes propagate via the event bus rather than direct state mutation. The `Tenant` type has shape `{ id: string }` and tenant state is typed `Tenant | null`. Router mode is configurable via `FrontXConfig.routerMode` (`'browser'` | `'hash'` | `'memory'`). Base path normalization handles leading slash insertion, trailing slash removal, and empty-string-to-root conversion.
 
 **Events**:
 - `app/tenant/changed` → `setTenant(tenant)` in tenant slice
@@ -460,9 +460,9 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 **Domain constants** (GTS instance IDs):
 - `HAI3_SCREEN_DOMAIN` — main content area
-- `HAI3_SIDEBAR_DOMAIN` — collapsible side panel
-- `HAI3_POPUP_DOMAIN` — modal dialogs
-- `HAI3_OVERLAY_DOMAIN` — full-screen overlay
+- `FrontX_SIDEBAR_DOMAIN` — collapsible side panel
+- `FrontX_POPUP_DOMAIN` — modal dialogs
+- `FrontX_OVERLAY_DOMAIN` — full-screen overlay
 
 **Implements**:
 - `cpt-frontx-flow-framework-composition-mfe-registration`
@@ -508,7 +508,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-presets`
 
-Three presets are provided as functions returning `HAI3Plugin[]`:
+Three presets are provided as functions returning `FrontXPlugin[]`:
 - `full(config?)` — all seven plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends`)
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
@@ -607,7 +607,7 @@ These methods were removed as part of the global shared property broadcast model
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | `string` | `'HAI3 App'` | Application identifier |
+| `name` | `string` | `'FrontX App'` | Application identifier |
 | `devMode` | `boolean` | `false` | Enables duplicate plugin warnings |
 | `strictMode` | `boolean` | `false` | Throws on missing plugin dependencies |
 | `autoNavigate` | `boolean` | `true` | Deprecated — auto-route to first screen on mount |

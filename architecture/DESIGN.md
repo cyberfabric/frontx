@@ -85,7 +85,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sdk-react-layer` | `@cyberfabric/react` depends only on `@cyberfabric/framework`; provides `HAI3Provider` and typed hooks; no layout components |
 | `cpt-frontx-fr-sdk-module-augmentation` | TypeScript module augmentation for `EventPayloadMap` and `RootState` extensibility; custom events type-safe |
 | `cpt-frontx-fr-appconfig-tenant` | `Tenant` type with `{ id: string }`; tenant change events via event bus (`app/tenant/changed`, `app/tenant/cleared`) |
-| `cpt-frontx-fr-appconfig-router-config` | `HAI3Config.routerMode` supporting `'browser'`, `'hash'`, `'memory'` routing strategies |
+| `cpt-frontx-fr-appconfig-router-config` | `FrontXConfig.routerMode` supporting `'browser'`, `'hash'`, `'memory'` routing strategies |
 | `cpt-frontx-fr-appconfig-layout-visibility` | Imperative actions (`setFooterVisible`, `setMenuVisible`, `setSidebarVisible`) control layout region visibility |
 | `cpt-frontx-fr-sse-mock-mode` | `SseMockPlugin` short-circuits `EventSource` creation; returns `MockEventSource` for dev/test environments |
 | `cpt-frontx-fr-sse-protocol-registry` | `BaseApiService` uses protocol registry; protocols registered by constructor name via type-safe `protocol<T>()` |
@@ -213,7 +213,7 @@ Standalone packages (`@cyberfabric/studio`, `@cyberfabric/cli`) exist outside th
 
 **ADRs**: `cpt-frontx-adr-plugin-based-framework-composition`
 
-All framework capabilities are delivered through plugins. The framework core (`createHAI3()`) is a minimal builder that assembles a plugin chain. Each plugin implements the `HAI3Plugin` interface with an `init(context: HAI3PluginContext)` method. Plugins register slices, effects, event listeners, and UI extensions through the context object.
+All framework capabilities are delivered through plugins. The framework core (`createHAI3()`) is a minimal builder that assembles a plugin chain. Each plugin implements the `FrontXPlugin` interface with an `init(context: HAI3PluginContext)` method. Plugins register slices, effects, event listeners, and UI extensions through the context object.
 
 The host application composes its feature set by chaining `.use()` calls: `createHAI3().use(microfrontends()).use(myDomainPlugin()).build()`. No framework source code needs modification to add capabilities.
 
@@ -233,7 +233,7 @@ This eliminates merge conflicts on registry files and enables tree-shaking of un
 
 All state mutations follow a fixed sequence: (1) Component calls `createAction()`, (2) action dispatches an event via `eventBus`, (3) registered effects handle the event (API calls, validation, side effects), (4) effects dispatch Redux actions, (5) reducers produce new state. Components never dispatch Redux actions directly. This ensures every state change is traceable and debuggable.
 
-The terminology follows Redux Toolkit conventions: slices, reducers, selectors, thunks — but wrapped in HAI3's action/event abstraction to enforce the data flow pattern.
+The terminology follows Redux Toolkit conventions: slices, reducers, selectors, thunks — but wrapped in FrontX's action/event abstraction to enforce the data flow pattern.
 
 #### MFE Isolation
 
@@ -315,7 +315,7 @@ All packages output ESM as the primary module format. `package.json` files inclu
 | Event | A typed message on the event bus; carries a name and payload | `packages/state/src/eventBus.ts` |
 | Action | A domain operation that dispatches events; created via `createAction()` | `packages/state/src/actions.ts` |
 | Effect | An event handler that performs side effects and dispatches reducers | `packages/state/src/effects.ts` |
-| Plugin | A framework extension implementing `HAI3Plugin` interface | `packages/framework/src/plugin.ts` |
+| Plugin | A framework extension implementing `FrontXPlugin` interface | `packages/framework/src/plugin.ts` |
 | SharedProperty | A typed value bridging host and MFE state; validated at boundaries | `packages/framework/src/sharedProperty.ts` |
 
 **Relationships**:
@@ -485,7 +485,7 @@ Composes L1 SDK packages into a cohesive application framework through a plugin 
 ##### Responsibility scope
 
 - **Builder API**: `createHAI3()` returns a builder with `.use(plugin)` chaining and `.build()` finalization
-- **Plugin system**: `HAI3Plugin` interface with `init(context: HAI3PluginContext)`; context provides access to store, event bus, registries
+- **Plugin system**: `FrontXPlugin` interface with `init(context: HAI3PluginContext)`; context provides access to store, event bus, registries
 - **Layout orchestration**: Layout slices (menu, header, footer, sidebars, overlay, popups) managed as Redux state
 - **Configuration management**: `AppConfig` with tenant settings, router config, layout visibility, theme — propagated via `app/*` events
 - **MFE lifecycle plugin**: `microfrontends()` plugin handles MFE registration, theme propagation, i18n forwarding, shared property bridge
@@ -578,7 +578,7 @@ Reduces boilerplate and enforces conventions by generating screen-sets, MFE pack
 
 - **Package**: Standalone npm package with `frontx` binary entry point
 - **Commands**: `create` (project), `generate` (screen-set, MFE, component), `dev` (development server)
-- **Templates**: EJS-based templates for screen-sets, MFE packages, components — each follows HAI3 conventions
+- **Templates**: EJS-based templates for screen-sets, MFE packages, components — each follows FrontX conventions
 - **AI skills**: Embedded skill definitions for Claude Code / AI assistants to scaffold domain code
 
 ##### Responsibility boundaries
@@ -593,7 +593,7 @@ Reduces boilerplate and enforces conventions by generating screen-sets, MFE pack
 
 ### 3.3 API Contracts
 
-FrontX is a frontend framework; all API contracts are TypeScript interfaces consumed at build time. There are no REST/GraphQL server endpoints defined by HAI3 itself.
+FrontX is a frontend framework; all API contracts are TypeScript interfaces consumed at build time. There are no REST/GraphQL server endpoints defined by FrontX itself.
 
 - [x] `p1` - **ID**: `cpt-frontx-interface-plugin`
 - **Contract**: cpt-frontx-contract-hai3-plugin
@@ -601,13 +601,13 @@ FrontX is a frontend framework; all API contracts are TypeScript interfaces cons
 - **Location**: `packages/framework/src/plugin.ts`
 
 ```typescript
-interface HAI3Plugin {
+interface FrontXPlugin {
   name: string;
   init(context: HAI3PluginContext): void | Promise<void>;
 }
 
 interface HAI3PluginContext {
-  store: HAI3Store;
+  store: FrontXStore;
   eventBus: EventBus;
   registerSlice(slice: Slice): void;
   registerEffect(effect: Effect): void;

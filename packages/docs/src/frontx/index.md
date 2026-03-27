@@ -1,10 +1,10 @@
-# HAI3 Framework
+# FrontX Framework
 
-The HAI3 Framework is a technical implementation framework for building scalable, AI-driven applications.
+The FrontX Framework is a technical implementation framework for building scalable, AI-driven applications.
 
 ## Overview
 
-Documentation for the HAI3 Framework is being prepared. This section will cover:
+Documentation for the FrontX Framework is being prepared. This section will cover:
 
 - Architecture and design patterns
 - Core concepts and principles

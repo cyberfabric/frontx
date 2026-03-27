@@ -27,7 +27,7 @@ date: 2026-01-04
 **ID**: `cpt-frontx-adr-automated-layer-ordered-publishing`
 ## Context and Problem Statement
 
-HAI3's monorepo has 9 packages arranged in a layered architecture where higher layers depend on the published versions of lower layers. Manual publishing is error-prone because publishing in the wrong order breaks installs. Managing 9 packages individually — each requiring version checks and NPM credentials — is tedious and does not scale.
+FrontX's monorepo has 9 packages arranged in a layered architecture where higher layers depend on the published versions of lower layers. Manual publishing is error-prone because publishing in the wrong order breaks installs. Managing 9 packages individually — each requiring version checks and NPM credentials — is tedious and does not scale.
 
 ## Decision Drivers
 
@@ -45,7 +45,7 @@ HAI3's monorepo has 9 packages arranged in a layered architecture where higher l
 
 ## Decision Outcome
 
-Chosen option: "Custom GitHub Actions workflow with explicit layer order", because sequential publishing in explicit dependency layer order guarantees resolution, version diff detection is simple and reliable, and NPM registry idempotency checks make re-runs safe. A single workflow file is easy to maintain and matches HAI3's simplicity principles.
+Chosen option: "Custom GitHub Actions workflow with explicit layer order", because sequential publishing in explicit dependency layer order guarantees resolution, version diff detection is simple and reliable, and NPM registry idempotency checks make re-runs safe. A single workflow file is easy to maintain and matches FrontX's simplicity principles.
 
 ### Consequences
 

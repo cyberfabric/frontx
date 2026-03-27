@@ -26,7 +26,7 @@ date: 2025-11-14
 **ID**: `cpt-frontx-adr-mandatory-screen-lazy-loading`
 ## Context and Problem Statement
 
-HAI3 loaded all screen components eagerly, creating larger bundles and slower startup times. With multiple screensets, the initial bundle included all screens regardless of whether they would be viewed. Lazy loading must be enforced uniformly to deliver consistent performance guarantees.
+FrontX loaded all screen components eagerly, creating larger bundles and slower startup times. With multiple screensets, the initial bundle included all screens regardless of whether they would be viewed. Lazy loading must be enforced uniformly to deliver consistent performance guarantees.
 
 ## Decision Drivers
 

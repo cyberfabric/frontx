@@ -1,5 +1,5 @@
 ---
-description: Explain HAI3 architecture concepts
+description: Explain FrontX architecture concepts
 auto_execution_mode: 3
 ---
 

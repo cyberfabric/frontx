@@ -30,7 +30,7 @@
 
 ## THREE-LEVEL GUIDELINES HIERARCHY
 FrontX projects support a 3-level guidelines hierarchy:
-- Level 1 (HAI3): .ai/GUIDELINES.md and .ai/targets/ - managed by CLI, updated via frontx update.
+- Level 1 (FrontX): .ai/GUIDELINES.md and .ai/targets/ - managed by CLI, updated via frontx update.
 - Level 2 (Company): .ai/company/GUIDELINES.md and .ai/company/targets/ - preserved on update.
 - Level 3 (Project): .ai/project/GUIDELINES.md and .ai/project/targets/ - preserved on update.
 Routing: GUIDELINES.md routes to company/ and project/ when relevant to context.

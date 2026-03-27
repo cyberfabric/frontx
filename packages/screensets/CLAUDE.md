@@ -1,6 +1,6 @@
 # @cyberfabric/screensets
 
-Pure TypeScript contracts and MFE (Microfrontend) runtime for HAI3 applications.
+Pure TypeScript contracts and MFE (Microfrontend) runtime for FrontX applications.
 
 ## SDK Layer
 
@@ -33,7 +33,7 @@ This package is part of the **SDK Layer (L1)** - it has **ZERO dependencies** an
 
 ## MFE Architecture
 
-HAI3 uses a microfrontend architecture where extensions (screens, popups, sidebars) are dynamically registered, loaded, and mounted into layout domains.
+FrontX uses a microfrontend architecture where extensions (screens, popups, sidebars) are dynamically registered, loaded, and mounted into layout domains.
 
 ### ScreensetsRegistry
 
@@ -128,7 +128,7 @@ const theme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
 
 ## Action Constants
 
-HAI3 defines standard actions for extension lifecycle:
+FrontX defines standard actions for extension lifecycle:
 
 ```typescript
 import {
@@ -145,7 +145,7 @@ HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_
 
 ## Shared Property Constants
 
-HAI3 defines standard shared properties for cross-MFE communication:
+FrontX defines standard shared properties for cross-MFE communication:
 
 ```typescript
 import {
@@ -160,7 +160,7 @@ HAI3_SHARED_PROPERTY_LANGUAGE // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfe
 
 ## Layout Domains
 
-HAI3 defines 7 layout domains that extensions can target:
+FrontX defines 7 layout domains that extensions can target:
 
 | Domain | Description |
 |--------|-------------|
@@ -194,7 +194,7 @@ const myTypeSystem: TypeSystemPlugin = {
 };
 ```
 
-HAI3 provides a GTS (Global Type System) plugin for JSON Schema validation. Import from the subpath to avoid dependency bloat:
+FrontX provides a GTS (Global Type System) plugin for JSON Schema validation. Import from the subpath to avoid dependency bloat:
 
 ```typescript
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
@@ -277,7 +277,7 @@ Packages are tracked automatically when extensions are registered. There is no e
 
 ## Migration from Legacy Screensets
 
-The legacy screenset API (`screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`) has been removed. HAI3 now uses the MFE architecture exclusively:
+The legacy screenset API (`screensetRegistry`, `ScreensetDefinition`, `ScreensetCategory`) has been removed. FrontX now uses the MFE architecture exclusively:
 
 - **OLD**: `screensetRegistry.register(screensetDefinition)`
 - **NEW**: `registry.registerDomain(domain, containerProvider)` + `await registry.registerExtension(extension)`

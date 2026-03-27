@@ -1,5 +1,5 @@
 ---
-description: Fix a rule violation following HAI3 correction policy
+description: Fix a rule violation following FrontX correction policy
 auto_execution_mode: 3
 ---
 

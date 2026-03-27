@@ -1,5 +1,5 @@
 ---
-description: Create a new MFE (microfrontend) package following HAI3 architecture
+description: Create a new MFE (microfrontend) package following FrontX architecture
 auto_execution_mode: 3
 ---
 

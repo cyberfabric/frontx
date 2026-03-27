@@ -1,5 +1,5 @@
 ---
-description: Test HAI3 package changes before publishing (monorepo only)
+description: Test FrontX package changes before publishing (monorepo only)
 auto_execution_mode: 3
 ---
 

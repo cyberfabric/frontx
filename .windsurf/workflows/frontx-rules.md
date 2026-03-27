@@ -1,5 +1,5 @@
 ---
-description: Show HAI3 rules for a specific area
+description: Show FrontX rules for a specific area
 auto_execution_mode: 3
 ---
 

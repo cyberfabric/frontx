@@ -27,7 +27,7 @@ What changes or improvements are you proposing?
 Why would this change be beneficial? What problems does it solve?
 
 ## Affected Components
-Which HAI3 components or packages are affected?
+Which FrontX components or packages are affected?
 - [ ] Core Framework (@cyberfabric/framework)
 - [ ] React Integration (@cyberfabric/react)
 - [ ] Screensets (@cyberfabric/screensets)

@@ -1,5 +1,5 @@
 <!-- @standalone:override -->
-# HAI3 AI Guidelines (Canonical)
+# FrontX AI Guidelines (Canonical)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.

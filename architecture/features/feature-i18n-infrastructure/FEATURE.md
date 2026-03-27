@@ -43,7 +43,7 @@
 
 ### 1.1 Overview
 
-Internationalization Infrastructure provides the foundational i18n layer for the entire HAI3 system. It covers 36 built-in language configurations, locale-aware formatting utilities, a hybrid two-tier namespace model for translations, and lazy on-demand chunk loading per namespace. The package is an L1 SDK concern with zero `@cyberfabric/*` dependencies, consumed by `@cyberfabric/framework` (which initializes and propagates language state) and by `@cyberfabric/react` (which exposes `useTranslation()` and `useFormatters()` hooks).
+Internationalization Infrastructure provides the foundational i18n layer for the entire FrontX system. It covers 36 built-in language configurations, locale-aware formatting utilities, a hybrid two-tier namespace model for translations, and lazy on-demand chunk loading per namespace. The package is an L1 SDK concern with zero `@cyberfabric/*` dependencies, consumed by `@cyberfabric/framework` (which initializes and propagates language state) and by `@cyberfabric/react` (which exposes `useTranslation()` and `useFormatters()` hooks).
 
 Problem: Translation files historically load monolithically, wasting bandwidth; locale-aware formatting logic is duplicated across screens; there is no consistent namespace pattern to colocate screen translations with screen components.
 

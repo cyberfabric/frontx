@@ -10,7 +10,7 @@
 
 ## CONSTRAINTS
 - MUST modify files in .ai/company/ or .ai/project/ only.
-- FORBIDDEN: Modifying .ai/GUIDELINES.md or .ai/targets/ (HAI3 base guidelines).
+- FORBIDDEN: Modifying .ai/GUIDELINES.md or .ai/targets/ (FrontX base guidelines).
 - MUST NOT restate rules from other files.
 - MUST keep each file under 100 lines, ASCII only.
 - MUST keep changes minimal (add/update bullets, short sentences).
@@ -19,7 +19,7 @@
 This command updates custom guidelines at company or project level:
 - Company guidelines: .ai/company/GUIDELINES.md and .ai/company/targets/
 - Project guidelines: .ai/project/GUIDELINES.md and .ai/project/targets/
-HAI3 base guidelines (.ai/GUIDELINES.md, .ai/targets/) are managed by CLI only.
+FrontX base guidelines (.ai/GUIDELINES.md, .ai/targets/) are managed by CLI only.
 
 ## STEP 1: Identify Level
 Ask user if the change applies to:
@@ -50,4 +50,4 @@ Use keywords: MUST, REQUIRED, FORBIDDEN, STOP, DETECT
 
 ## PRESERVATION
 Company and project guidelines are preserved on frontx update.
-They will never be overwritten by HAI3 CLI updates.
+They will never be overwritten by FrontX CLI updates.

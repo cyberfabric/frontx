@@ -1,6 +1,6 @@
 # Blank MFE Template
 
-This is a template for creating new HAI3 Microfrontend packages. It provides a complete, working MFE structure with:
+This is a template for creating new FrontX Microfrontend packages. It provides a complete, working MFE structure with:
 
 - Shadow DOM isolation
 - Bridge communication with the host

@@ -9,7 +9,7 @@
   - [1.3 Actors](#13-actors)
   - [1.4 References](#14-references)
 - [2. Actor Flows (CDSL)](#2-actor-flows-cdsl)
-  - [Bootstrap Application with FrontXProvider](#bootstrap-application-with-frontxprovider)
+  - [Bootstrap Application with HAI3Provider](#bootstrap-application-with-hai3provider)
   - [Access Typed Redux State in a Component](#access-typed-redux-state-in-a-component)
   - [Dispatch Actions from a Component](#dispatch-actions-from-a-component)
   - [Use Translations in a Component](#use-translations-in-a-component)
@@ -62,7 +62,7 @@ React Bindings is the L3 boundary that exposes the FrontX framework to React 19 
 
 Problem: The framework layer (`@cyberfabric/framework`) is deliberately React-agnostic. Application developers need typed React hooks, a root provider that wires Redux and i18n into the React tree, and components that can mount MFE extensions with CSS isolation — without importing directly from L1/L2 packages.
 
-Primary value: One import (`@cyberfabric/react`) gives developers access to the full HAI3 surface in a React-idiomatic way while preserving the strict layer hierarchy.
+Primary value: One import (`@cyberfabric/react`) gives developers access to the full FrontX surface in a React-idiomatic way while preserving the strict layer hierarchy.
 
 Key assumptions:
 - The consuming application runs React 19.
@@ -94,7 +94,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 ## 2. Actor Flows (CDSL)
 
-### Bootstrap Application with FrontXProvider
+### Bootstrap Application with HAI3Provider
 
 - [x] `p1` - **ID**: `cpt-frontx-flow-react-bindings-bootstrap-provider`
 
@@ -298,7 +298,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 **Actors**: `cpt-frontx-actor-developer`
 
-1. [x] - `p2` - Developer calls `useHAI3()` inside a component wrapped by `HAI3Provider` - `inst-call-use-hai3`
+1. [x] - `p2` - Developer calls `useFrontX()` inside a component wrapped by `HAI3Provider` - `inst-call-use-hai3`
 2. [x] - `p2` - Hook reads `HAI3Context` and throws if context value is `null` (i.e., called outside `HAI3Provider`) - `inst-guard-hai3-context`
 3. [x] - `p2` - RETURN `HAI3App` instance - `inst-return-hai3-app`
 
@@ -351,7 +351,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 Guards that throw when MFE-scoped hooks are used outside their required context.
 
 1. [x] - `p1` - `useMfeBridge()`, `useMfeContext()`, `useSharedProperty()`, `useHostAction()` MUST throw a descriptive error if called outside a `MfeProvider` ancestor - `inst-throw-no-mfe-context`
-2. [x] - `p1` - `useHAI3()` MUST throw a descriptive error if called outside a `HAI3Provider` ancestor - `inst-throw-no-hai3-context`
+2. [x] - `p1` - `useFrontX()` MUST throw a descriptive error if called outside a `HAI3Provider` ancestor - `inst-throw-no-hai3-context`
 3. [x] - `p1` - `useDomainExtensions()`, `useRegisteredPackages()`, `useActivePackage()` MUST throw if `app.screensetsRegistry` is not present, directing developers to add the `microfrontends()` plugin - `inst-throw-no-registry`
 
 ---
@@ -647,7 +647,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 - [x]`useDomainExtensions`, `useRegisteredPackages`, `useActivePackage` all throw descriptive errors when `microfrontends()` plugin is absent
 - [x]All three observation hooks return referentially stable arrays when the underlying data has not changed
 - [x]MFE-scoped hooks throw descriptive errors when called outside `MfeProvider`
-- [x]`useHAI3` throws descriptive error when called outside `HAI3Provider`
+- [x]`useFrontX` throws descriptive error when called outside `HAI3Provider`
 - [x]`@cyberfabric/react` imports ZERO `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, or `@cyberfabric/i18n` packages directly (enforced by dependency-cruiser)
 - [x]All components accept `ref` as a prop (React 19 pattern; no `forwardRef`)
 - [x]TypeScript strict mode passes with zero `@ts-ignore` suppressions in source files

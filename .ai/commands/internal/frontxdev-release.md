@@ -1,4 +1,4 @@
-# frontxdev:release - Release HAI3 Version
+# frontxdev:release - Release FrontX Version
 
 ## AI WORKFLOW (REQUIRED)
 1) Gather release info from user.

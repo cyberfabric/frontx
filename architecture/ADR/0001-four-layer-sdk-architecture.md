@@ -26,7 +26,7 @@ date: 2025-12-21
 **ID**: `cpt-frontx-adr-four-layer-sdk-architecture`
 ## Context and Problem Statement
 
-HAI3 needed a modular architecture allowing users to pick individual SDK pieces while maintaining a cohesive framework, without imposing React on SDK consumers. The predecessor `@cyberfabric/uicore` monolith bundled state, API, i18n, and UI concerns in a single package. This made it impossible to adopt individual capabilities independently, forced React on non-UI consumers, and created circular dependency risks as the codebase grew.
+FrontX needed a modular architecture allowing users to pick individual SDK pieces while maintaining a cohesive framework, without imposing React on SDK consumers. The predecessor `@cyberfabric/uicore` monolith bundled state, API, i18n, and UI concerns in a single package. This made it impossible to adopt individual capabilities independently, forced React on non-UI consumers, and created circular dependency risks as the codebase grew.
 
 ## Decision Drivers
 

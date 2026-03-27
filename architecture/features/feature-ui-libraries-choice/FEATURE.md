@@ -178,7 +178,7 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 ### Add Shadcn Component to an Existing MFE (Manual Process)
 
-This is a manual developer process using the external shadcn CLI — not implemented by HAI3 code.
+This is a manual developer process using the external shadcn CLI — not implemented by FrontX code.
 
 **Actor**: `cpt-frontx-actor-developer`
 

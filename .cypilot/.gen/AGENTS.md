@@ -1,4 +1,4 @@
-# Cypilot: HAI3 Dev Kit
+# Cypilot: FrontX Dev Kit
 
 ## Navigation Rules
 

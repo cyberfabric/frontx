@@ -49,7 +49,7 @@ Chosen option: "ESM-only output across all packages", because it resolves ESM-on
 ### Consequences
 
 * Good, because module resolution is unambiguous, tree-shaking works as intended, and build configuration is simpler with a single output format
-* Bad, because CJS consumers cannot `require()` HAI3 packages — this is accepted because the CLI is an entry point, not a library consumed by CJS hosts, and all application-layer consumers are expected to use Vite or another ESM-aware bundler
+* Bad, because CJS consumers cannot `require()` FrontX packages — this is accepted because the CLI is an entry point, not a library consumed by CJS hosts, and all application-layer consumers are expected to use Vite or another ESM-aware bundler
 
 ### Confirmation
 
@@ -60,7 +60,7 @@ Every `packages/*/package.json` contains `"type": "module"` and an `"exports"` f
 ### ESM-only output across all packages
 
 * Good, because a single output format eliminates interop shims, keeps `package.json` exports fields minimal, and makes static analysis unambiguous for bundlers
-* Bad, because any downstream consumer using `require()` cannot consume HAI3 packages without a bundler or dynamic import wrapper
+* Bad, because any downstream consumer using `require()` cannot consume FrontX packages without a bundler or dynamic import wrapper
 
 ### Dual ESM/CJS exports per package
 
@@ -91,4 +91,4 @@ Every `packages/*/package.json` contains `"type": "module"` and an `"exports"` f
 This decision directly addresses:
 * `cpt-frontx-fr-pub-esm` — functional requirement for ESM-format package publication
 * `cpt-frontx-nfr-compat-esm` — non-functional requirement for ESM-only runtime compatibility
-* `cpt-frontx-constraint-esm-first-module-format` — hard constraint prohibiting CJS output from HAI3 packages
+* `cpt-frontx-constraint-esm-first-module-format` — hard constraint prohibiting CJS output from FrontX packages

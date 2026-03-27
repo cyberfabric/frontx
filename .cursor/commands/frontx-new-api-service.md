@@ -1,7 +1,7 @@
 ---
 name: /frontx-new-api-service
 id: frontx-new-api-service
-category: HAI3
+category: FrontX
 description: Add a new API service following domain-based architecture
 ---
 

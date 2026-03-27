@@ -43,7 +43,7 @@ jobs:
 
       - name: Build docs
         env:
-          VITE_BASE: '/HAI3/'
+          VITE_BASE: '/FrontX/'
         run: npm run docs:build -w packages/docs
 
       - name: Upload artifact

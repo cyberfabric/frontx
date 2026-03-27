@@ -11,7 +11,7 @@ assignees: ''
 A clear and concise description of what the bug is.
 
 ## Environment
-- **HAI3 Version**: (e.g., 0.1.0)
+- **FrontX Version**: (e.g., 0.1.0)
 - **Node.js Version**: (e.g., v25.1.0)
 - **OS**: (e.g., Linux, macOS, Windows)
 - **Package(s) Affected**: (e.g., @cyberfabric/framework, @cyberfabric/react, @cyberfabric/cli)

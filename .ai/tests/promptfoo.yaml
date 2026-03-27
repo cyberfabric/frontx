@@ -1,7 +1,7 @@
-# HAI3 Prompt Testing Configuration
+# FrontX Prompt Testing Configuration
 # Validates AI commands follow architecture patterns
 
-description: HAI3 AI Command Quality Tests
+description: FrontX AI Command Quality Tests
 
 # Define prompts with raw option to avoid template parsing
 prompts:

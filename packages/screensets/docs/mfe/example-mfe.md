@@ -1,6 +1,6 @@
 # Example MFE Implementation with GTS Plugin
 
-This document provides a complete, working example of creating a microfrontend (MFE) extension using HAI3's MFE system with the GTS plugin.
+This document provides a complete, working example of creating a microfrontend (MFE) extension using FrontX's MFE system with the GTS plugin.
 
 ## Overview
 

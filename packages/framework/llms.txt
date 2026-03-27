@@ -1,8 +1,8 @@
 # @cyberfabric/framework
 
-> Plugin-based application framework for HAI3 SDK. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
+> Plugin-based application framework for FrontX SDK. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
 
-Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n). Owns layout slices.
+Part of the FrontX Framework Layer (L2) - depends on all SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n). Owns layout slices.
 
 ## Core API
 
@@ -86,9 +86,9 @@ import {
 ```typescript
 import {
   HAI3_SCREEN_DOMAIN,   // 'screen'
-  HAI3_SIDEBAR_DOMAIN,  // 'sidebar'
-  HAI3_POPUP_DOMAIN,    // 'popup'
-  HAI3_OVERLAY_DOMAIN,  // 'overlay'
+  FrontX_SIDEBAR_DOMAIN,  // 'sidebar'
+  FrontX_POPUP_DOMAIN,    // 'popup'
+  FrontX_OVERLAY_DOMAIN,  // 'overlay'
   screenDomain,         // ExtensionDomain object
   sidebarDomain,        // ExtensionDomain object
   popupDomain,          // ExtensionDomain object

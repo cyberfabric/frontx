@@ -26,7 +26,7 @@ date: 2025-11-16
 **ID**: `cpt-frontx-adr-protocol-separated-api-architecture`
 ## Context and Problem Statement
 
-HAI3 needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another.
+FrontX needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another.
 
 ## Decision Drivers
 

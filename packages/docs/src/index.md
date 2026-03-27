@@ -2,7 +2,7 @@
 layout: home
 
 hero:
-  name: "HAI3"
+  name: "FrontX"
   text: "Human-AI Integrated Intelligence"
   tagline: Framework and Methodology Documentation
   actions:
@@ -11,7 +11,7 @@ hero:
       link: /getting-started
     - theme: alt
       text: View on GitHub
-      link: https://github.com/HAI3org/HAI3
+      link: https://github.com/Cyber Fabric/FrontX
 
 features:
   - icon: 🎯
@@ -19,7 +19,7 @@ features:
     details: Comprehensive methodology for AI-driven product development.
     link: /lifecycle/
   - icon: 🏗️
-    title: HAI3 Framework
+    title: FrontX Framework
     details: Technical framework for building scalable applications.
     link: /frontx/
   - icon: 📚
@@ -28,14 +28,14 @@ features:
     link: /case-studies/
 ---
 
-## Welcome to HAI3 Documentation
+## Welcome to FrontX Documentation
 
-This documentation site is currently under development. HAI3 (Human-AI Integrated Intelligence) is a comprehensive framework and methodology for AI-driven product development.
+This documentation site is currently under development. FrontX (Human-AI Integrated Intelligence) is a comprehensive framework and methodology for AI-driven product development.
 
 ### Documentation Sections
 
 - [**AI Product Lifecycle**](/lifecycle/) - Product development methodology
-- [**HAI3 Framework**](/frontx/) - Technical framework documentation
+- [**FrontX Framework**](/frontx/) - Technical framework documentation
 - [**Case Studies**](/case-studies/) - Implementation examples
 
 ### Getting Started

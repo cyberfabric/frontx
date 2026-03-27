@@ -1,8 +1,8 @@
-# HAI3 AI Commands
+# FrontX AI Commands
 
 ## Command Distribution
 
-HAI3 commands are distributed across packages based on their layer:
+FrontX commands are distributed across packages based on their layer:
 
 | Package | Layer | Commands |
 |---------|-------|----------|
@@ -14,12 +14,12 @@ HAI3 commands are distributed across packages based on their layer:
 
 Commands in this directory (`user/`) are monorepo-specific and NOT shipped with packages:
 
-- `frontx-arch-explain.md` - Explains HAI3 architecture (references monorepo internals)
-- `frontx-review-pr.md` - Reviews PRs against HAI3 guidelines (references monorepo targets)
+- `frontx-arch-explain.md` - Explains FrontX architecture (references monorepo internals)
+- `frontx-review-pr.md` - Reviews PRs against FrontX guidelines (references monorepo targets)
 
 ## Internal Commands
 
-Commands in `internal/` are for HAI3 development only:
+Commands in `internal/` are for FrontX development only:
 
 - `frontxdev-publish.md` - Publish packages to NPM
 - `frontxdev-release.md` - Create releases

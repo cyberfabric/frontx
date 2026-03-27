@@ -1,5 +1,5 @@
 ---
-description: Add a new UI component following HAI3 architecture
+description: Add a new UI component following FrontX architecture
 auto_execution_mode: 3
 ---
 

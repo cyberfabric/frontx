@@ -7,13 +7,13 @@
 
 ## COMMAND HIERARCHY
 FrontX projects support a 3-level command hierarchy:
-- Level 1 (HAI3): .ai/commands/ - managed by CLI, updated via frontx update.
+- Level 1 (FrontX): .ai/commands/ - managed by CLI, updated via frontx update.
 - Level 2 (Company): .ai/company/commands/ - preserved on update.
 - Level 3 (Project): .ai/project/commands/ - preserved on update.
 
 ## COMMAND PRECEDENCE
 When multiple commands share the same name, precedence is: project > company > frontx.
-Most specific level wins. This allows overriding HAI3 commands with custom versions.
+Most specific level wins. This allows overriding FrontX commands with custom versions.
 
 ## COMMAND CATEGORIES
 frontx-*: User project commands (shipped to all FrontX projects).
@@ -58,7 +58,7 @@ Project commands (.ai/project/commands/):
 - Preserved on frontx update.
 
 ## COMMAND FORMAT
-All commands (HAI3, company, project) use the same README.md-based format:
+All commands (FrontX, company, project) use the same README.md-based format:
 - Title line: # namespace:command-name - Description
 - AI WORKFLOW (REQUIRED) section with steps
 - CONSTRAINTS or CRITICAL RULES section

@@ -1,8 +1,8 @@
 # @cyberfabric/screensets
 
-> Pure TypeScript contracts and MFE (Microfrontend) runtime for HAI3 SDK. Manages extension domains, lifecycle, and coordination.
+> Pure TypeScript contracts and MFE (Microfrontend) runtime for FrontX SDK. Manages extension domains, lifecycle, and coordination.
 
-Part of the HAI3 SDK Layer (L1) - ZERO dependencies. Can be used independently without other @cyberfabric packages.
+Part of the FrontX SDK Layer (L1) - ZERO dependencies. Can be used independently without other @cyberfabric packages.
 
 ## Core API
 
@@ -99,7 +99,7 @@ import {
 
 ## GTS Type System
 
-HAI3 uses GTS (Global Type System) for runtime type validation. Import from subpath to avoid dependency bloat:
+FrontX uses GTS (Global Type System) for runtime type validation. Import from subpath to avoid dependency bloat:
 
 ```typescript
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';

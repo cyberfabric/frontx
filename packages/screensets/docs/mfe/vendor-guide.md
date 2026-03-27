@@ -1,6 +1,6 @@
 # MFE Vendor Development Guide
 
-This guide explains how third-party vendors can develop microfrontend (MFE) extensions for HAI3 applications.
+This guide explains how third-party vendors can develop microfrontend (MFE) extensions for FrontX applications.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This guide explains how third-party vendors can develop microfrontend (MFE) exte
 
 ## Overview
 
-HAI3's MFE system enables vendors to create extensions that integrate into host applications through well-defined contracts. Key features:
+FrontX's MFE system enables vendors to create extensions that integrate into host applications through well-defined contracts. Key features:
 
 - **Framework Agnostic**: MFEs can use any UI framework (React, Vue, Angular, Svelte, etc.)
 - **Instance-Level Isolation**: Each MFE instance has its own runtime and state (default handler)
@@ -28,7 +28,7 @@ HAI3's MFE system enables vendors to create extensions that integrate into host 
 
 ### Type System Plugin
 
-HAI3 uses a pluggable Type System abstraction. The default implementation is GTS (`@globaltypesystem/gts-ts`). All type IDs are opaque strings - the plugin handles parsing and validation.
+FrontX uses a pluggable Type System abstraction. The default implementation is GTS (`@globaltypesystem/gts-ts`). All type IDs are opaque strings - the plugin handles parsing and validation.
 
 **Key Principle**: When you need metadata about a type ID, call `plugin.parseTypeId()`, `plugin.getAttribute()`, or other plugin methods directly.
 
@@ -351,7 +351,7 @@ export const ChartWidget: MfeEntryLifecycle = {
 
 ### Default Lifecycle Stages
 
-HAI3 provides 4 default lifecycle stages:
+FrontX provides 4 default lifecycle stages:
 
 1. **init** - `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1`
    - Triggered: After extension registration

@@ -26,7 +26,7 @@ date: 2026-03-10
 
 ## Context and Problem Statement
 
-The CLI package generates complete HAI3 projects, but existing CI only validated the CLI package build itself — not the generated project. A freshly scaffolded app could fail during `npm install`, `npm run build`, or `npm run type-check` without triggering any required PR check. The generated project now includes MFE bootstrap and manifest-generation scripts, making a package-level build check insufficient. The CI must prove the real scaffold path works, but running every CLI scenario as a required PR gate would increase merge latency unacceptably.
+The CLI package generates complete FrontX projects, but existing CI only validated the CLI package build itself — not the generated project. A freshly scaffolded app could fail during `npm install`, `npm run build`, or `npm run type-check` without triggering any required PR check. The generated project now includes MFE bootstrap and manifest-generation scripts, making a package-level build check insufficient. The CI must prove the real scaffold path works, but running every CLI scenario as a required PR gate would increase merge latency unacceptably.
 
 ## Decision Drivers
 

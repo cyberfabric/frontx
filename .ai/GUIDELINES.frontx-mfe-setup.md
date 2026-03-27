@@ -1,8 +1,8 @@
-# HAI3 MFE Setup Guidelines
+# FrontX MFE Setup Guidelines
 
 ## Overview
 
-This document describes the HAI3 Microfrontend (MFE) architecture and setup requirements for creating and managing MFE packages in a monorepo environment.
+This document describes the FrontX Microfrontend (MFE) architecture and setup requirements for creating and managing MFE packages in a monorepo environment.
 
 ## Architecture
 

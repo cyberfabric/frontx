@@ -1,6 +1,6 @@
 # @cyberfabric/api
 
-API communication protocols and service registry for HAI3 applications.
+API communication protocols and service registry for FrontX applications.
 
 ## SDK Layer
 
@@ -143,7 +143,7 @@ const restProtocol = new RestProtocol({
 Mock mode is controlled centrally by the framework via the `toggleMockMode()` action. Services register mock plugins using `registerPlugin()`, and the framework activates/deactivates them based on mock mode state.
 
 ```typescript
-// In @cyberfabric/framework - toggle mock mode (used by HAI3 Studio)
+// In @cyberfabric/framework - toggle mock mode (used by FrontX Studio)
 import { toggleMockMode } from '@cyberfabric/framework';
 toggleMockMode(true);  // Enable all mock plugins
 toggleMockMode(false); // Disable all mock plugins

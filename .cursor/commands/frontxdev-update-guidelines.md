@@ -1,7 +1,7 @@
 ---
 name: /frontxdev-update-guidelines
 id: frontxdev-update-guidelines
-category: HAI3
+category: FrontX
 description: Update AI guidelines following the correction policy
 ---
 

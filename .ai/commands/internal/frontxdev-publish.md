@@ -1,4 +1,4 @@
-# frontxdev:publish - Publish HAI3 Packages
+# frontxdev:publish - Publish FrontX Packages
 
 ## AI WORKFLOW (REQUIRED)
 1) Read .ai/targets/CLI.md before starting.

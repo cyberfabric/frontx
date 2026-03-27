@@ -1,5 +1,5 @@
 ---
-description: Release a new HAI3 version with changelog and tags (monorepo only)
+description: Release a new FrontX version with changelog and tags (monorepo only)
 auto_execution_mode: 3
 ---
 

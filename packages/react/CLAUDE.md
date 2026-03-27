@@ -1,6 +1,6 @@
 # @cyberfabric/react
 
-React bindings and hooks for HAI3 applications. Provides the React integration layer with MFE (Microfrontend) support.
+React bindings and hooks for FrontX applications. Provides the React integration layer with MFE (Microfrontend) support.
 
 ## React Layer
 
@@ -37,15 +37,15 @@ const app = createHAI3().use(screensets()).build();
 
 ### Available Hooks
 
-#### useHAI3
+#### useFrontX
 
-Access the HAI3 app instance:
+Access the FrontX app instance:
 
 ```tsx
-import { useHAI3 } from '@cyberfabric/react';
+import { useFrontX } from '@cyberfabric/react';
 
 function MyComponent() {
-  const app = useHAI3();
+  const app = useFrontX();
 
   // Access MFE-enabled registry
   const extensions = app.screensetsRegistry.getRegisteredExtensions();
@@ -329,7 +329,7 @@ This allows users to import everything from `@cyberfabric/react` without needing
 - `RefContainerProvider` - Container reference provider
 
 ### Hooks
-- `useHAI3` - Access app instance
+- `useFrontX` - Access app instance
 - `useAppDispatch` - Typed dispatch
 - `useAppSelector` - Typed selector
 - `useTranslation` - Translation utilities
@@ -378,10 +378,10 @@ function MyComponent() {
 
 **NEW**: Mount extension using app actions
 ```tsx
-import { useHAI3 } from '@cyberfabric/react';
+import { useFrontX } from '@cyberfabric/react';
 
 function MyComponent() {
-  const app = useHAI3();
+  const app = useFrontX();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleNavigate = async () => {
