@@ -13,7 +13,7 @@
 
 import { useSyncExternalStore, useCallback, useRef } from 'react';
 import { useHAI3 } from '../../HAI3Context';
-import { extractGtsPackage, HAI3_SCREEN_DOMAIN } from '@hai3/framework';
+import { extractGtsPackage, HAI3_SCREEN_DOMAIN } from '@cyberfabric/framework';
 
 // ============================================================================
 // Hook Implementation

@@ -1,15 +1,15 @@
 /**
  * Migrate Command
  *
- * Applies codemod migrations to update HAI3 projects to new versions.
+ * Applies codemod migrations to update FrontX projects to new versions.
  *
  * Usage:
- *   hai3 migrate                    # Interactive - show available migrations
- *   hai3 migrate 0.2.0              # Apply all migrations up to version
- *   hai3 migrate --dry-run          # Preview changes without applying
- *   hai3 migrate --list             # List applied and pending migrations
- *   hai3 migrate --status           # Show migration status
- *   hai3 migrate --path <dir>       # Target specific directory
+ *   frontx migrate                    # Interactive - show available migrations
+ *   frontx migrate 0.2.0              # Apply all migrations up to version
+ *   frontx migrate --dry-run          # Preview changes without applying
+ *   frontx migrate --list             # List applied and pending migrations
+ *   frontx migrate --status           # Show migration status
+ *   frontx migrate --path <dir>       # Target specific directory
  */
 // @cpt-flow:cpt-hai3-flow-cli-tooling-migrate:p2
 // @cpt-dod:cpt-hai3-dod-cli-tooling-migrations:p2
@@ -92,7 +92,7 @@ export const migrateCommand: CommandDefinition<
   MigrateCommandResult
 > = {
   name: 'migrate',
-  description: 'Apply codemod migrations to update HAI3 projects',
+  description: 'Apply codemod migrations to update FrontX projects',
   args: [
     {
       name: 'targetVersion',

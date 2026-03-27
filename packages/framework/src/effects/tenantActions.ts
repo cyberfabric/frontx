@@ -7,7 +7,7 @@
  * These emit events that are consumed by tenantEffects.
  */
 
-import { eventBus, getStore } from '@hai3/state';
+import { eventBus, getStore } from '@cyberfabric/state';
 import { setTenantLoading } from '../slices/tenantSlice';
 import { TenantEvents } from './tenantEffects';
 import type { Tenant } from '../layoutTypes';
@@ -18,7 +18,7 @@ import type { Tenant } from '../layoutTypes';
  *
  * @example
  * ```typescript
- * import { changeTenant } from '@hai3/framework';
+ * import { changeTenant } from '@cyberfabric/framework';
  * changeTenant({ id: 'tenant-123' });
  * ```
  */

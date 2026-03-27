@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/api",
-  "version": "0.4.0-alpha.0",
-  "description": "API communication protocols and service registry for HAI3 SDK",
+  "name": "@cyberfabric/api",
+  "version": "0.2.0-alpha.0",
+  "description": "API communication protocols and service registry for FrontX SDK",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -41,12 +41,12 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "api",
     "rest",
     "sse",
     "typescript"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

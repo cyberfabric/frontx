@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@cyberfabric/react';
 import { AccountsApiService } from '@/app/api';
 import './globals.css';
 import '@/app/events/bootstrapEvents'; // Register app-level events (type augmentation)

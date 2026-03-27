@@ -6,7 +6,7 @@
  * This file is imported in main.tsx via MfeScreenContainer.
  */
 
-import type { HAI3App } from '@hai3/react';
+import type { HAI3App } from '@cyberfabric/react';
 import {
   screenDomain,
   sidebarDomain,
@@ -15,7 +15,7 @@ import {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   RefContainerProvider,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 
 /**
  * DetachedContainerProvider for domains without a visible host element.

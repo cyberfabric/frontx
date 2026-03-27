@@ -11,11 +11,11 @@
 // @cpt-dod:cpt-hai3-dod-react-bindings-extension-slot:p1
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/framework';
+import type { ScreensetsRegistry, ParentMfeBridge } from '@cyberfabric/framework';
 import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 /**
  * Props for ExtensionDomainSlot component

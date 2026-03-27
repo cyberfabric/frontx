@@ -56,7 +56,7 @@ function detectCurrentChannel(): 'alpha' | 'stable' {
       if (fs.pathExistsSync(packageJsonPath)) {
         const packageJson = fs.readJsonSync(packageJsonPath);
         // @cpt-begin:cpt-hai3-algo-cli-tooling-detect-release-channel:p1:inst-read-cli-version-string
-        if (packageJson.name === '@hai3/cli' && typeof packageJson.version === 'string') {
+        if (packageJson.name === '@cyberfabric/cli' && typeof packageJson.version === 'string') {
           version = packageJson.version;
           break;
         }
@@ -93,7 +93,7 @@ export const updateCommand: CommandDefinition<
   UpdateCommandResult
 > = {
   name: 'update',
-  description: 'Update HAI3 CLI and project packages',
+  description: 'Update FrontX CLI and project packages',
   args: [],
   options: [
     {
@@ -172,7 +172,7 @@ export const updateCommand: CommandDefinition<
       // Update CLI
       logger.info('Checking for CLI updates...');
       try {
-        const cliUpdateTarget = `@hai3/cli${tag}`;
+        const cliUpdateTarget = `@cyberfabric/cli${tag}`;
         const globalInstallCmd = getGlobalInstallCommand(
           packageManagerCtx.manager,
           cliUpdateTarget
@@ -185,10 +185,10 @@ export const updateCommand: CommandDefinition<
         } else {
           execSync(globalInstallCmd, { stdio: 'pipe' });
           cliUpdated = true;
-          logger.success(`@hai3/cli updated (${channel})`);
+          logger.success(`@cyberfabric/cli updated (${channel})`);
         }
       } catch {
-        logger.info('@hai3/cli is already up to date');
+        logger.info('@cyberfabric/cli is already up to date');
       }
       // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-cli-global
 
@@ -201,22 +201,22 @@ export const updateCommand: CommandDefinition<
         const packageJsonPath = path.join(projectRoot, 'package.json');
         const packageJson = await fs.readJson(packageJsonPath);
 
-        const hai3Packages: string[] = [];
+        const frontxPackages: string[] = [];
 
-        // Find all @hai3/* packages
+        // Find all @cyberfabric/* packages
         for (const dep of Object.keys(packageJson.dependencies || {})) {
-          if (dep.startsWith('@hai3/')) {
-            hai3Packages.push(dep);
+          if (dep.startsWith('@cyberfabric/')) {
+            frontxPackages.push(dep);
           }
         }
         for (const dep of Object.keys(packageJson.devDependencies || {})) {
-          if (dep.startsWith('@hai3/')) {
-            hai3Packages.push(dep);
+          if (dep.startsWith('@cyberfabric/')) {
+            frontxPackages.push(dep);
           }
         }
 
-        if (hai3Packages.length > 0) {
-          const packagesToUpdate = [...new Set(hai3Packages)];
+        if (frontxPackages.length > 0) {
+          const packagesToUpdate = [...new Set(frontxPackages)];
           logger.info(`Found ${packagesToUpdate.length} HAI3 packages to update`);
 
           try {
@@ -238,8 +238,8 @@ export const updateCommand: CommandDefinition<
         }
       } else {
         logger.newline();
-        logger.info('Not inside a HAI3 project. Only CLI was updated.');
-        logger.info('Run `hai3 update` from a project directory to update project packages.');
+        logger.info('Not inside a FrontX project. Only CLI was updated.');
+        logger.info('Run `frontx update` from a project directory to update project packages.');
       }
       // @cpt-end:cpt-hai3-flow-cli-tooling-update-project:p1:inst-update-project-packages
     }

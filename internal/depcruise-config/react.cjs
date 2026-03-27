@@ -1,14 +1,14 @@
 /**
  * HAI3 Dependency Cruiser React Configuration (L3)
- * Rules for @hai3/react package
+ * Rules for @cyberfabric/react package
  *
  * React package CAN import:
- * - @hai3/framework (wires everything together)
+ * - @cyberfabric/framework (wires everything together)
  * - react, react-dom (React adapter)
  *
  * React package CANNOT import:
- * - @hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n (use framework re-exports)
- * - @hai3/uicore (deprecated)
+ * - @cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n (use framework re-exports)
+ * - @cyberfabric/uicore (deprecated)
  */
 
 const base = require('./base.cjs');
@@ -22,15 +22,15 @@ module.exports = {
       name: 'react-only-framework-dep',
       severity: 'error',
       from: { path: '^packages/react/src' },
-      to: { path: 'node_modules/@hai3/(state|screensets|api|i18n)' },
-      comment: 'REACT VIOLATION: React package imports SDK via @hai3/framework, not directly. Use framework re-exports.',
+      to: { path: 'node_modules/@cyberfabric/(state|screensets|api|i18n)' },
+      comment: 'REACT VIOLATION: React package imports SDK via @cyberfabric/framework, not directly. Use framework re-exports.',
     },
     {
       name: 'react-no-uicore',
       severity: 'error',
       from: { path: '^packages/react/src' },
-      to: { path: 'node_modules/@hai3/uicore' },
-      comment: 'REACT VIOLATION: @hai3/uicore is deprecated. Use @hai3/framework and @hai3/react.',
+      to: { path: 'node_modules/@cyberfabric/uicore' },
+      comment: 'REACT VIOLATION: @cyberfabric/uicore is deprecated. Use @cyberfabric/framework and @cyberfabric/react.',
     },
   ],
   options: base.options,

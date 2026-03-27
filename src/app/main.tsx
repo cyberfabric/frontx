@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@cyberfabric/react';
 import { Toaster } from '@/app/components/ui/sonner';
 import { AccountsApiService } from '@/app/api';
 import './globals.css'; // Global styles with CSS variables
@@ -19,7 +19,7 @@ import { draculaLargeTheme } from '@/app/themes/dracula-large';
 // Register application-specific GTS schemas before constructing the HAI3 app.
 // These derived schemas encode application-level constraints (valid theme names,
 // supported languages, screen extension shape) and are not part of the core
-// type system in @hai3/screensets.
+// type system in @cyberfabric/screensets.
 gtsPlugin.registerSchema(themeSchema);
 gtsPlugin.registerSchema(languageSchema);
 gtsPlugin.registerSchema(extensionScreenSchema);

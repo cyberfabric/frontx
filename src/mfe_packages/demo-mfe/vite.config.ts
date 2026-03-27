@@ -1,17 +1,17 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
-import { hai3MfeExternalize } from '../shared/vite-plugin-hai3-externalize';
+import { hai3MfeExternalize } from '../shared/vite-plugin-frontx-externalize';
 
 const sharedDeps = [
   'react',
   'react-dom',
-  '@hai3/react',
-  '@hai3/framework',
-  '@hai3/state',
-  '@hai3/screensets',
-  '@hai3/api',
-  '@hai3/i18n',
+  '@cyberfabric/react',
+  '@cyberfabric/framework',
+  '@cyberfabric/state',
+  '@cyberfabric/screensets',
+  '@cyberfabric/api',
+  '@cyberfabric/i18n',
   '@reduxjs/toolkit',
   'react-redux',
 ];

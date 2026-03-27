@@ -53,7 +53,7 @@ async function readTemplateFiles(
 
 /**
  * Generate layout files from template
- * Copies the HAI3 layout templates
+ * Copies the FrontX layout templates
  */
 // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
 export async function copyLayoutTemplates(

@@ -1,9 +1,9 @@
 /**
- * @hai3/react ESLint Configuration
+ * @cyberfabric/react ESLint Configuration
  * Extends React layer config - can import framework and React
  */
 
-import { reactConfig } from '@hai3/eslint-config/react.js';
+import { reactConfig } from '@cyberfabric/eslint-config/react.js';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [

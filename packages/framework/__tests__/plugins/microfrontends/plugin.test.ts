@@ -19,9 +19,9 @@ import {
   selectExtensionState,
   selectExtensionError,
 } from '../../../src/plugins/microfrontends';
-import { eventBus, resetStore } from '@hai3/state';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-import type { Extension } from '@hai3/screensets';
+import { eventBus, resetStore } from '@cyberfabric/state';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { Extension } from '@cyberfabric/screensets';
 import type { HAI3App } from '../../../src/types';
 
 describe('microfrontends plugin - Phase 13', () => {

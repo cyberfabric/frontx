@@ -70,7 +70,7 @@ export function isTargetApplicableToLayer(targetFileName: string, layer: LayerTy
  * - react: .react.md → .framework.md → .sdk.md → .md
  * - app: .react.md → .framework.md → .sdk.md → .md
  *
- * @param baseName - Base command filename (e.g., "hai3-validate.md")
+ * @param baseName - Base command filename (e.g., "frontx-validate.md")
  * @param layer - Target layer
  * @param availableFiles - List of available command files
  * @returns Selected variant filename or null if command should be excluded

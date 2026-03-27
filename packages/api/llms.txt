@@ -1,15 +1,15 @@
-# @hai3/api
+# @cyberfabric/api
 
 > API communication protocols and service registry for HAI3 SDK. Supports REST, SSE, and mock protocols.
 
-Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Peer dependency on axios.
+Part of the HAI3 SDK Layer (L1) - can be used independently without other @cyberfabric packages. Peer dependency on axios.
 
 ## Core API
 
-- [BaseApiService](https://hai3.dev/docs/api/service): Abstract base class for domain services
-- [apiRegistry](https://hai3.dev/docs/api/registry): Central registry for service instances
-- [RestProtocol](https://hai3.dev/docs/api/rest): HTTP REST communication
-- [MockPlugin](https://hai3.dev/docs/api/mock): Mock data for development/testing
+- [BaseApiService](https://frontx.dev/docs/api/service): Abstract base class for domain services
+- [apiRegistry](https://frontx.dev/docs/api/registry): Central registry for service instances
+- [RestProtocol](https://frontx.dev/docs/api/rest): HTTP REST communication
+- [MockPlugin](https://frontx.dev/docs/api/mock): Mock data for development/testing
 
 ## Key Patterns
 
@@ -22,7 +22,7 @@ Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 
 ## Quick Start
 
 ```typescript
-import { BaseApiService, RestProtocol, apiRegistry, MockMap } from '@hai3/api';
+import { BaseApiService, RestProtocol, apiRegistry, MockMap } from '@cyberfabric/api';
 
 // Define service
 class AccountsApiService extends BaseApiService {
@@ -35,7 +35,7 @@ class AccountsApiService extends BaseApiService {
 }
 
 // Module augmentation
-declare module '@hai3/api' {
+declare module '@cyberfabric/api' {
   interface ApiServicesMap {
     accounts: AccountsApiService;
   }
@@ -49,5 +49,5 @@ const accounts = apiRegistry.getService('accounts');
 
 ## Optional
 
-- [SSE Protocol](https://hai3.dev/docs/api/sse): Server-Sent Events support
-- [Custom Plugins](https://hai3.dev/docs/api/plugins): Auth, logging, retry plugins
+- [SSE Protocol](https://frontx.dev/docs/api/sse): Server-Sent Events support
+- [Custom Plugins](https://frontx.dev/docs/api/plugins): Auth, logging, retry plugins

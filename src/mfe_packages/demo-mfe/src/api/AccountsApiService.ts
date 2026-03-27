@@ -2,11 +2,11 @@
  * Accounts Domain - API Service
  * Service for accounts domain (users, tenants, authentication, permissions)
  *
- * MFE-local service. The MFE bundles its own copy of @hai3/react and registers
+ * MFE-local service. The MFE bundles its own copy of @cyberfabric/react and registers
  * services into its own isolated apiRegistry instance.
  */
 
-import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
+import { BaseApiService, RestProtocol, RestMockPlugin } from '@cyberfabric/react';
 import type { GetCurrentUserResponse } from './types';
 import { accountsMockMap } from './mocks';
 

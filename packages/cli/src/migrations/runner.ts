@@ -29,7 +29,7 @@ import type {
 import { getMigrations } from './registry.js';
 
 /** Default tracker file path */
-const TRACKER_FILE = '.hai3/migrations.json';
+const TRACKER_FILE = '.frontx/migrations.json';
 
 /** Default include patterns */
 const DEFAULT_INCLUDE = ['**/*.ts', '**/*.tsx'];
@@ -47,7 +47,7 @@ async function loadTracker(targetPath: string): Promise<MigrationTracker> {
     return JSON.parse(content) as MigrationTracker;
   } catch {
     // @cpt-begin:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-init
-    // .hai3/migrations.json absent — initialise in-memory tracker with empty applied list
+    // .frontx/migrations.json absent — initialise in-memory tracker with empty applied list
     return {
       version: '1.0.0',
       applied: [],
@@ -89,11 +89,11 @@ export async function getMigrationStatus(
     const pkgPath = path.join(targetPath, 'package.json');
     const pkg = await fs.readJson(pkgPath);
     // Check for HAI3 packages
-    const hai3Deps = Object.keys(pkg.dependencies || {}).filter((d) =>
-      d.startsWith('@hai3/')
+    const frontxDeps = Object.keys(pkg.dependencies || {}).filter((d) =>
+      d.startsWith('@cyberfabric/')
     );
-    if (hai3Deps.length > 0) {
-      const firstDep = pkg.dependencies[hai3Deps[0]];
+    if (frontxDeps.length > 0) {
+      const firstDep = pkg.dependencies[frontxDeps[0]];
       // Extract version from semver range
       currentVersion = firstDep.replace(/^[\^~]/, '');
     }

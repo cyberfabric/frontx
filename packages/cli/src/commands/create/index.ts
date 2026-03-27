@@ -58,7 +58,7 @@ export const createCommand: CommandDefinition<
   CreateCommandResult
 > = {
   name: 'create',
-  description: 'Create a new HAI3 project',
+  description: 'Create a new FrontX project',
   args: [
     {
       name: 'projectName',
@@ -86,7 +86,7 @@ export const createCommand: CommandDefinition<
     },
     {
       name: 'local',
-      description: 'Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or HAI3_MONOREPO_ROOT',
+      description: 'Use local @cyberfabric packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or FRONTX_MONOREPO_ROOT',
       type: 'boolean',
     },
     {
@@ -347,10 +347,10 @@ export const createCommand: CommandDefinition<
       monorepoRoot = await findMonorepoRoot(getTemplatesDir());
       if (!monorepoRoot) {
         logger.warn(
-          'Local packages requested but HAI3 monorepo root not found. Set HAI3_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
+          'Local packages requested but FrontX monorepo root not found. Set FRONTX_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
         );
       } else {
-        logger.info('Using local @hai3 packages from monorepo (file:).');
+        logger.info('Using local @cyberfabric packages from monorepo (file:).');
       }
     }
 
@@ -378,11 +378,11 @@ export const createCommand: CommandDefinition<
     if (isCustomUikit(resolvedUikit)) {
       logger.newline();
       logger.info('Library themes configured. Run `npm run dev` to see the Studio theme selector.');
-      logger.log('Demo screenset excluded — create your own with `hai3 screenset create`.');
+      logger.log('Demo screenset excluded — create your own with `frontx screenset create`.');
     } else if (resolvedUikit !== 'shadcn') {
       logger.newline();
       logger.warn('No UI components included.');
-      logger.log('Create your own screenset with `hai3 screenset create`.');
+      logger.log('Create your own screenset with `frontx screenset create`.');
     }
 
     // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create

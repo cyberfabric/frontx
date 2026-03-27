@@ -41,8 +41,8 @@ export interface FullPresetConfig {
  *
  * @example
  * ```typescript
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
  * const app = createHAI3()
  *   .use(full({

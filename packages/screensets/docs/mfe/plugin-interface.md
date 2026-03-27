@@ -225,7 +225,7 @@ Used for dynamic schema resolution. This method is **REQUIRED** - all plugins mu
 ### Building the Registry
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 
 // Build the registry with GTS plugin at application wiring time
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
@@ -237,7 +237,7 @@ registry.registerDomain(myDomain, containerProvider);
 ### Registering and Validating Entities
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 

@@ -1,5 +1,5 @@
 /**
- * @hai3/api - API Communication
+ * @cyberfabric/api - API Communication
  *
  * This package provides:
  * - API service interface and registry

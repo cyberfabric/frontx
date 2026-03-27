@@ -1,5 +1,5 @@
 /**
- * @hai3/screensets
+ * @cyberfabric/screensets
  *
  * Pure TypeScript contracts and registry for HAI3 screenset management.
  * This package has ZERO dependencies - SDK Layer (L1).
@@ -7,12 +7,12 @@
  * Screensets are HAI3's first-class citizen - self-contained vertical slices
  * that can be composed into applications or injected into external platforms.
  *
- * NOTE: Translations are NOT part of this package. Use @hai3/i18n for translations.
+ * NOTE: Translations are NOT part of this package. Use @cyberfabric/i18n for translations.
  * Screensets register translations directly with i18nRegistry via framework.
  *
  * @example
  * ```typescript
- * import { LayoutDomain } from '@hai3/screensets';
+ * import { LayoutDomain } from '@cyberfabric/screensets';
  *
  * // LayoutDomain is used by framework layout slices
  * const visibleDomains = [
@@ -94,4 +94,4 @@ export { createShadowRoot, injectCssVariables } from './mfe';
 export { extractGtsPackage } from './mfe';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
-// for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'
+// for consumers who don't need it. Import directly from '@cyberfabric/screensets/plugins/gts'

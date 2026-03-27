@@ -1,14 +1,14 @@
-# @hai3/framework
+# @cyberfabric/framework
 
 > Plugin-based application framework for HAI3 SDK. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
 
-Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n). Owns layout slices.
+Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n). Owns layout slices.
 
 ## Core API
 
-- [createHAI3](https://hai3.dev/docs/framework/create): App builder with plugin composition
-- [createHAI3App](https://hai3.dev/docs/framework/app): Convenience function (full preset with MFE)
-- [presets](https://hai3.dev/docs/framework/presets): Pre-configured plugin combinations (full, minimal, headless)
+- [createHAI3](https://frontx.dev/docs/framework/create): App builder with plugin composition
+- [createHAI3App](https://frontx.dev/docs/framework/app): Convenience function (full preset with MFE)
+- [presets](https://frontx.dev/docs/framework/presets): Pre-configured plugin combinations (full, minimal, headless)
 
 ## Available Plugins
 
@@ -25,7 +25,7 @@ Part of the HAI3 Framework Layer (L2) - depends on all SDK packages (@hai3/state
 ## Quick Start
 
 ```typescript
-import { createHAI3, screensets, themes, layout, microfrontends, i18n } from '@hai3/framework';
+import { createHAI3, screensets, themes, layout, microfrontends, i18n } from '@cyberfabric/framework';
 
 // Compose plugins
 const app = createHAI3()
@@ -37,7 +37,7 @@ const app = createHAI3()
   .build();
 
 // Or use preset (equivalent to above)
-import { createHAI3App } from '@hai3/framework';
+import { createHAI3App } from '@cyberfabric/framework';
 const app = createHAI3App();
 
 // Access MFE-enabled registry
@@ -68,7 +68,7 @@ import {
   unmountExtension,     // Unmount extension from domain
   registerExtension,    // Register extension dynamically
   unregisterExtension,  // Unregister extension
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ### MFE Selectors
@@ -78,7 +78,7 @@ import {
   selectExtensionState,       // Get extension state
   selectRegisteredExtensions, // Get all registered extensions
   selectExtensionError,       // Get extension error
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ### Domain Constants
@@ -93,7 +93,7 @@ import {
   sidebarDomain,        // ExtensionDomain object
   popupDomain,          // ExtensionDomain object
   overlayDomain,        // ExtensionDomain object
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ### Action Constants
@@ -103,7 +103,7 @@ import {
   HAI3_ACTION_LOAD_EXT,     // 'hai3.action.load_ext'
   HAI3_ACTION_MOUNT_EXT,    // 'hai3.action.mount_ext'
   HAI3_ACTION_UNMOUNT_EXT,  // 'hai3.action.unmount_ext'
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ### Shared Property Constants
@@ -112,13 +112,13 @@ import {
 import {
   HAI3_SHARED_PROPERTY_THEME,     // 'hai3.shared.theme'
   HAI3_SHARED_PROPERTY_LANGUAGE,  // 'hai3.shared.language'
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ## Plugin Composition Pattern
 
 ```typescript
-import { createHAI3, screensets, microfrontends } from '@hai3/framework';
+import { createHAI3, screensets, microfrontends } from '@cyberfabric/framework';
 
 // MFE-enabled app
 const app = createHAI3()
@@ -144,18 +144,18 @@ import type {
   ChildMfeBridge,         // Child bridge interface
   LifecycleStage,         // Lifecycle stage definition
   ActionsChain,           // Actions chain for lifecycle hooks
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 ```
 
 ## Concrete MFE Implementations
 
 ```typescript
-import { MfeHandlerMF } from '@hai3/framework';  // Module Federation handler
-import { gtsPlugin } from '@hai3/framework';     // GTS type validation plugin
+import { MfeHandlerMF } from '@cyberfabric/framework';  // Module Federation handler
+import { gtsPlugin } from '@cyberfabric/framework';     // GTS type validation plugin
 ```
 
 ## Optional
 
-- [Custom Plugins](https://hai3.dev/docs/framework/plugins): Creating custom plugins
-- [MFE Bridge Communication](https://hai3.dev/docs/framework/mfe-bridge): Parent-child patterns
-- [Migration Guide](https://hai3.dev/docs/framework/migration): Migrating from legacy screensets API
+- [Custom Plugins](https://frontx.dev/docs/framework/plugins): Creating custom plugins
+- [MFE Bridge Communication](https://frontx.dev/docs/framework/mfe-bridge): Parent-child patterns
+- [Migration Guide](https://frontx.dev/docs/framework/migration): Migrating from legacy screensets API

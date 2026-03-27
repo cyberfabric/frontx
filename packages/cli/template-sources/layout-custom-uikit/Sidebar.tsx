@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppSelector, type SidebarState } from '@hai3/react';
+import { useAppSelector, type SidebarState } from '@cyberfabric/react';
 
 export interface SidebarProps {
   children?: React.ReactNode;

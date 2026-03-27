@@ -11,7 +11,7 @@
  *
  * NOTE: Tests that verify enum-level constraints (e.g. "dark" is valid, "neon" is invalid)
  * require application-specific derived schemas (theme.v1, language.v1). Those schemas
- * live in @hai3/framework and are tested in framework/property-validation tests.
+ * live in @cyberfabric/framework and are tested in framework/property-validation tests.
  *
  * This file uses a simple inline-registered test schema to keep the structural
  * tests self-contained and free of L1→L2 dependencies.
@@ -50,7 +50,7 @@ describe('updateSharedProperty - GTS runtime validation mechanics', () => {
   beforeEach(() => {
     gtsPlugin = new GtsPlugin();
     // Register a simple inline test schema so updateSharedProperty can validate
-    // without requiring the application-layer derived schemas from @hai3/framework.
+    // without requiring the application-layer derived schemas from @cyberfabric/framework.
     gtsPlugin.registerSchema(testPropertySchema);
 
     registry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });

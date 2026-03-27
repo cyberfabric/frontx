@@ -145,7 +145,7 @@ export interface FileResult {
 }
 
 /**
- * Record of an applied migration (stored in .hai3/migrations.json)
+ * Record of an applied migration (stored in .frontx/migrations.json)
  */
 export interface AppliedMigration {
   /** Migration ID */
@@ -171,7 +171,7 @@ export interface AppliedTransformRecord {
 }
 
 /**
- * Migration tracker stored in .hai3/migrations.json
+ * Migration tracker stored in .frontx/migrations.json
  */
 export interface MigrationTracker {
   /** Schema version for the tracker file */

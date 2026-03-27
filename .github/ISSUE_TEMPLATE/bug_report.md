@@ -14,13 +14,13 @@ A clear and concise description of what the bug is.
 - **HAI3 Version**: (e.g., 0.1.0)
 - **Node.js Version**: (e.g., v25.1.0)
 - **OS**: (e.g., Linux, macOS, Windows)
-- **Package(s) Affected**: (e.g., @hai3/framework, @hai3/react, @hai3/cli)
+- **Package(s) Affected**: (e.g., @cyberfabric/framework, @cyberfabric/react, @cyberfabric/cli)
 
 ## Steps to Reproduce
 Steps to reproduce the behavior:
-1. 
-2. 
-3. 
+1.
+2.
+3.
 
 ## Expected Behavior
 A clear and concise description of what you expected to happen.

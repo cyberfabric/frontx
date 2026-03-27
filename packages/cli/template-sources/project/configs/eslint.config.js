@@ -3,7 +3,7 @@
  * Base rules for HAI3 projects - screenset architecture and flux pattern
  *
  * This is a SELF-CONTAINED configuration that includes all rules inline.
- * It does NOT depend on @hai3/eslint-config (which is monorepo-only internal tooling).
+ * It does NOT depend on @cyberfabric/eslint-config (which is monorepo-only internal tooling).
  *
  * Rules included:
  * - L0 Base: Universal rules (no-any, unused-imports, prefer-const, etc.)
@@ -97,49 +97,49 @@ export default [
       'no-empty-pattern': 'error',
 
       // Layer Architecture Enforcement
-      // App-layer projects must only import from @hai3/react (Layer 3), not from L1/L2 packages
+      // App-layer projects must only import from @cyberfabric/react (Layer 3), not from L1/L2 packages
       // Use @typescript-eslint rule to catch TypeScript-specific imports (import type, side-effect imports)
       '@typescript-eslint/no-restricted-imports': [
         'error',
         {
           patterns: [
             {
-              group: ['@hai3/framework', '@hai3/framework/*'],
+              group: ['@cyberfabric/framework', '@cyberfabric/framework/*'],
               message:
-                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/framework (Layer 2).',
+                'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/framework (Layer 2).',
             },
             {
-              group: ['@hai3/state', '@hai3/state/*'],
+              group: ['@cyberfabric/state', '@cyberfabric/state/*'],
               message:
-                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/state (Layer 1).',
+                'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/state (Layer 1).',
             },
             {
-              group: ['@hai3/api', '@hai3/api/*'],
+              group: ['@cyberfabric/api', '@cyberfabric/api/*'],
               message:
-                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/api (Layer 1).',
+                'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/api (Layer 1).',
             },
             {
-              group: ['@hai3/i18n', '@hai3/i18n/*'],
+              group: ['@cyberfabric/i18n', '@cyberfabric/i18n/*'],
               message:
-                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/i18n (Layer 1).',
+                'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/i18n (Layer 1).',
             },
             {
-              group: ['@hai3/screensets', '@hai3/screensets/*'],
+              group: ['@cyberfabric/screensets', '@cyberfabric/screensets/*'],
               message:
-                'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/screensets (Layer 1).',
+                'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/screensets (Layer 1).',
             },
             // Redux term bans - use HAI3 state terms instead
             {
               group: ['react-redux'],
               importNames: ['useDispatch'],
               message:
-                'REDUX VIOLATION: Do not use useDispatch from react-redux. Use useAppDispatch from @hai3/react instead.',
+                'REDUX VIOLATION: Do not use useDispatch from react-redux. Use useAppDispatch from @cyberfabric/react instead.',
             },
             {
               group: ['react-redux'],
               importNames: ['useSelector'],
               message:
-                'REDUX VIOLATION: Do not use useSelector from react-redux. Use useAppSelector from @hai3/react instead.',
+                'REDUX VIOLATION: Do not use useSelector from react-redux. Use useAppSelector from @cyberfabric/react instead.',
             },
           ],
         },
@@ -276,7 +276,7 @@ export default [
     },
   },
 
-  // UI components: Presentational components only (no @hai3/react business logic)
+  // UI components: Presentational components only (no @cyberfabric/react business logic)
   {
     files: ['src/components/ui/**/*.{ts,tsx}', 'src/mfe_packages/*/src/components/ui/**/*.{ts,tsx}'],
     rules: {

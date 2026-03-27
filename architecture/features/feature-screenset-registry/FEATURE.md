@@ -55,7 +55,7 @@
 
 The Screenset Registry & Contracts feature provides the foundational contract layer between host applications and microfrontend extensions in HAI3. It defines all TypeScript type contracts for the MFE type system, implements the `ScreensetsRegistry` runtime facade, and manages the lifecycle of extension domains and extensions through a GTS-validated registration pipeline.
 
-The feature is a pure TypeScript L1 SDK package (`@hai3/screensets`) with zero `@hai3/*` inter-dependencies. It exports abstract classes (`ScreensetsRegistry`, `ScreensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`), all MFE TypeScript interfaces, action/property constants, and the `TypeSystemPlugin` interface that decouples the registry from any specific type system implementation.
+The feature is a pure TypeScript L1 SDK package (`@cyberfabric/screensets`) with zero `@cyberfabric/*` inter-dependencies. It exports abstract classes (`ScreensetsRegistry`, `ScreensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`), all MFE TypeScript interfaces, action/property constants, and the `TypeSystemPlugin` interface that decouples the registry from any specific type system implementation.
 
 The registry acts as the central runtime authority: it owns domain and extension state, enforces multi-step validation on registration, serializes concurrent operations per entity, mediates action chain execution, and manages the parent/child MFE bridge lifecycle.
 
@@ -63,7 +63,7 @@ The registry acts as the central runtime authority: it owns domain and extension
 
 Enable host applications and microfrontend extensions to communicate through declared contracts validated at runtime, while keeping the registry itself free of any React, framework, or type-system implementation dependencies.
 
-Success criteria: A host application can register a domain and extension, execute actions chains, broadcast shared properties, and dispose the registry — all without importing anything beyond `@hai3/screensets`.
+Success criteria: A host application can register a domain and extension, execute actions chains, broadcast shared properties, and dispose the registry — all without importing anything beyond `@cyberfabric/screensets`.
 
 ### 1.3 Actors
 
@@ -460,8 +460,8 @@ All registration paths perform GTS-native validation:
 - `validateInstance(instanceId: string): ValidationResult` — validates a registered instance; schema extracted from chained ID (named instance pattern)
 - `isTypeOf(typeId: string, baseTypeId: string): boolean` — type hierarchy check
 - `JSONSchema`, `ValidationError`, `ValidationResult` supporting types are exported alongside the interface
-- The package treats all type IDs as opaque strings; no parsing of type IDs occurs in `@hai3/screensets`
-- The GTS plugin implementation is exported via subpath `@hai3/screensets/plugins/gts` to avoid pulling `@globaltypesystem/gts-ts` when consumers only need the contracts
+- The package treats all type IDs as opaque strings; no parsing of type IDs occurs in `@cyberfabric/screensets`
+- The GTS plugin implementation is exported via subpath `@cyberfabric/screensets/plugins/gts` to avoid pulling `@globaltypesystem/gts-ts` when consumers only need the contracts
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-sdk-screensets-package`
@@ -492,7 +492,7 @@ All registration paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-screenset-registry-layer-constraints`
 
-`@hai3/screensets` has zero `@hai3/*` entries in `dependencies` or `devDependencies`. No `import 'react'` or any React API appears in `packages/screensets/src/`. The package output is ESM-only (`"type": "module"`, `format: ['esm']` in tsup config). All source compiles with `"strict": true`. `LayoutDomain` enum and all action/property constants are exported from the main barrel. Concrete runtime classes (`DefaultScreensetsRegistry`, `DefaultScreensetsRegistryFactory`) are not exported from the main barrel — only abstract base classes are public.
+`@cyberfabric/screensets` has zero `@cyberfabric/*` entries in `dependencies` or `devDependencies`. No `import 'react'` or any React API appears in `packages/screensets/src/`. The package output is ESM-only (`"type": "module"`, `format: ['esm']` in tsup config). All source compiles with `"strict": true`. `LayoutDomain` enum and all action/property constants are exported from the main barrel. Concrete runtime classes (`DefaultScreensetsRegistry`, `DefaultScreensetsRegistryFactory`) are not exported from the main barrel — only abstract base classes are public.
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-sdk-flat-packages`
@@ -521,5 +521,5 @@ All registration paths perform GTS-native validation:
 - [ ] Concurrent `registerExtension` calls for the same extension ID are serialized via `OperationSerializer`; calls for different IDs proceed concurrently
 - [ ] `getRegisteredPackages()` returns packages in discovery order; `getExtensionsForPackage(packageId)` returns only live (still-registered) extensions
 - [ ] `dispose()` clears all internal state, disposes all bridges, and clears the `packages` Map
-- [ ] `@hai3/screensets` package has zero `@hai3/*` dependencies and zero React imports, confirmed by CI dependency-cruiser check
+- [ ] `@cyberfabric/screensets` package has zero `@cyberfabric/*` dependencies and zero React imports, confirmed by CI dependency-cruiser check
 - [ ] All source compiles without TypeScript errors under `"strict": true`

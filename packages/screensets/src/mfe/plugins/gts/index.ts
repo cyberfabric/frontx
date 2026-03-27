@@ -146,7 +146,7 @@ export class GtsPlugin implements TypeSystemPlugin {
  *
  * @example
  * ```typescript
- * import { gtsPlugin, screensetsRegistryFactory } from '@hai3/screensets';
+ * import { gtsPlugin, screensetsRegistryFactory } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });

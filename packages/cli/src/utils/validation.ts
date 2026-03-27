@@ -69,7 +69,7 @@ export function isPascalCase(str: string): boolean {
 // @cpt-algo:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1
 const NPM_PACKAGE_NAME_RE = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
 const LEGACY_UIKIT_ALIAS: Record<string, string> = {
-  hai3: 'shadcn',
+  frontx: 'shadcn',
 };
 
 /**

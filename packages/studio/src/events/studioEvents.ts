@@ -40,9 +40,9 @@ export const StudioEvents = {
 
 /**
  * Module Augmentation
- * Extend EventPayloadMap from @hai3/state for type safety
+ * Extend EventPayloadMap from @cyberfabric/state for type safety
  */
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'studio/positionChanged': PositionChangedPayload;
     'studio/sizeChanged': SizeChangedPayload;

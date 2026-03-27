@@ -14,7 +14,7 @@
  * - Files marked with <!-- @standalone --> are copied verbatim
  * - Files marked with <!-- @standalone:override --> use versions from ai-overrides/
  * - Files without markers are monorepo-only (not copied)
- * - hai3dev-* commands are monorepo-only (not copied to standalone projects)
+ * - frontxdev-* commands are monorepo-only (not copied to standalone projects)
  * - Command adapters are GENERATED for all IDEs
  */
 // @cpt-algo:cpt-hai3-algo-cli-tooling-build-templates:p1
@@ -102,23 +102,23 @@ async function loadManifest(): Promise<Manifest> {
 async function extractCommandDescription(filePath: string): Promise<string> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    // Look for "# hai3:command-name - Description" pattern
-    const h1Match = content.match(/^#\s+hai3:\S+\s+-\s+(.+)$/m);
+    // Look for "# frontx:command-name - Description" pattern
+    const h1Match = content.match(/^#\s+frontx:\S+\s+-\s+(.+)$/m);
     if (h1Match) {
       return trim(h1Match[1]);
     }
     // Fallback: use filename
     const name = path.basename(filePath, '.md');
-    return `HAI3 ${name.replace('hai3-', '').replace(/-/g, ' ')} command`;
+    return `FrontX ${name.replace('frontx-', '').replace(/-/g, ' ')} command`;
   } catch {
-    return 'HAI3 command';
+    return 'FrontX command';
   }
 }
 
 /**
  * Generate IDE command adapters from @standalone marked commands
  * Generates adapters for Claude (commands), Cursor (commands), and Windsurf (workflows)
- * Excludes hai3dev-* commands (monorepo-only)
+ * Excludes frontxdev-* commands (monorepo-only)
  *
  * @param standaloneCommands - List of standalone command paths
  * @param templatesDir - Destination templates directory
@@ -141,15 +141,15 @@ async function generateCommandAdapters(
   let cursorCount = 0;
   let windsurfCount = 0;
 
-  // Generate hai3-* command adapters
+  // Generate frontx-* command adapters
   for (const relativePath of standaloneCommands) {
     // Only process commands/ directory files
     if (!relativePath.startsWith('commands/')) continue;
 
-    const cmdFileName = path.basename(relativePath); // e.g., "hai3-validate.md"
+    const cmdFileName = path.basename(relativePath); // e.g., "frontx-validate.md"
 
-    // Skip internal commands (monorepo-only - hai3dev-* and commands/internal/)
-    if (cmdFileName.startsWith('hai3dev-') || relativePath.includes('commands/internal/')) continue;
+    // Skip internal commands (monorepo-only - frontxdev-* and commands/internal/)
+    if (cmdFileName.startsWith('frontxdev-') || relativePath.includes('commands/internal/')) continue;
 
     const srcPath = path.join(PROJECT_ROOT, '.ai', relativePath);
     const description = await extractCommandDescription(srcPath);
@@ -189,7 +189,7 @@ Use \`.ai/${relativePath}\` as the single source of truth.
 }
 
 /**
- * Bundle commands from @hai3 packages into CLI templates
+ * Bundle commands from @cyberfabric packages into CLI templates
  * These are the actual command files (not adapters) that ship with each package
  * Scans packages/[pkg]/commands/[cmd].md and copies ALL variants to a commands-bundle directory
  * The variant selection happens at project creation time, not at CLI build time
@@ -221,7 +221,7 @@ async function bundlePackageCommands(
     for (const file of files) {
       if (!file.endsWith('.md')) continue;
       // Skip monorepo-only commands
-      if (file.startsWith('hai3dev-')) continue;
+      if (file.startsWith('frontxdev-')) continue;
 
       const srcPath = path.join(commandsDir, file);
       const destPath = path.join(commandsBundleDir, file);
@@ -230,7 +230,7 @@ async function bundlePackageCommands(
       await fs.copy(srcPath, destPath);
       bundledVariants++;
 
-      // Extract base command name (e.g., "hai3-new-api-service" from "hai3-new-api-service.framework.md")
+      // Extract base command name (e.g., "frontx-new-api-service" from "frontx-new-api-service.framework.md")
       const baseName = file.replace(/\.(sdk|framework|react)\.md$/, '').replace(/\.md$/, '');
       baseCommands.add(baseName);
     }
@@ -317,7 +317,7 @@ async function generateIdeRules(templatesDir: string): Promise<void> {
   // CLAUDE.md at project root
   const guidelinesPointer = `REQUIRED: Read \`.ai/GUIDELINES.md\` before implementing any code changes. Follow its ROUTING section to find the correct target file.
 
-REQUIRED: When creating or modifying UI components, check the configured UI kit (\`hai3.config.json\` → \`uikit\`) and use its components. Read \`.ai/targets/UIKIT.md\` if it exists.`;
+REQUIRED: When creating or modifying UI components, check the configured UI kit (\`frontx.config.json\` → \`uikit\`) and use its components. Read \`.ai/targets/UIKIT.md\` if it exists.`;
 
   const claudeMdContent = `# CLAUDE.md
 
@@ -329,14 +329,14 @@ ${guidelinesPointer}
   const cursorRulesDir = path.join(templatesDir, '.cursor', 'rules');
   await fs.ensureDir(cursorRulesDir);
   const cursorRuleContent = `---
-description: HAI3 development guidelines
+description: FrontX development guidelines
 globs: ["**/*"]
 alwaysApply: true
 ---
 
 ${guidelinesPointer}
 `;
-  await fs.writeFile(path.join(cursorRulesDir, 'hai3.mdc'), cursorRuleContent);
+  await fs.writeFile(path.join(cursorRulesDir, 'frontx.mdc'), cursorRuleContent);
 
   // Windsurf rules
   const windsurfRulesDir = path.join(templatesDir, '.windsurf', 'rules');
@@ -347,12 +347,12 @@ trigger: always_on
 
 ${guidelinesPointer}
 `;
-  await fs.writeFile(path.join(windsurfRulesDir, 'hai3.md'), windsurfRuleContent);
+  await fs.writeFile(path.join(windsurfRulesDir, 'frontx.md'), windsurfRuleContent);
 
   // GitHub Copilot instructions
   const githubDir = path.join(templatesDir, '.github');
   await fs.ensureDir(githubDir);
-  const copilotInstructionsContent = `# HAI3 Development Guidelines for GitHub Copilot
+  const copilotInstructionsContent = `# FrontX Development Guidelines for GitHub Copilot
 
 Always read \`.ai/GUIDELINES.md\` before making changes.
 
@@ -372,19 +372,19 @@ For detailed guidance, use these resources:
 2. **REQUIRED**: Event-driven architecture only (dispatch events, handle in actions)
 3. **FORBIDDEN**: Direct slice dispatch from UI components
 4. **FORBIDDEN**: Hardcoded colors or inline styles
-5. **REQUIRED**: Use the configured UI kit for all UI (check \`hai3.config.json\` \`uikit\` field)
+5. **REQUIRED**: Use the configured UI kit for all UI (check \`frontx.config.json\` \`uikit\` field)
 6. **REQUIRED**: Run \`npm run arch:check\` before committing
 
 ## Available Commands
 
 Use \`.ai/commands/\` for detailed workflows:
-- \`hai3-new-screenset\` - Create new screenset
-- \`hai3-new-screen\` - Add screen to screenset
-- \`hai3-new-action\` - Create action handler
-- \`hai3-new-api-service\` - Add API service
-- \`hai3-new-component\` - Add UI component
-- \`hai3-validate\` - Validate changes
-- \`hai3-quick-ref\` - Quick reference guide
+- \`frontx-new-screenset\` - Create new screenset
+- \`frontx-new-screen\` - Add screen to screenset
+- \`frontx-new-action\` - Create action handler
+- \`frontx-new-api-service\` - Add API service
+- \`frontx-new-component\` - Add UI component
+- \`frontx-validate\` - Validate changes
+- \`frontx-quick-ref\` - Quick reference guide
 
 ## Routing
 
@@ -703,8 +703,8 @@ async function copyTemplates() {
     const destPath = path.join(aiDestDir, relativePath);
     await fs.ensureDir(path.dirname(destPath));
 
-    // Skip internal commands (monorepo-only - hai3dev-* and commands/internal/)
-    if (relativePath.includes('hai3dev-') || relativePath.includes('commands/internal/')) continue;
+    // Skip internal commands (monorepo-only - frontxdev-* and commands/internal/)
+    if (relativePath.includes('frontxdev-') || relativePath.includes('commands/internal/')) continue;
 
     if (marker === 'standalone') {
       // Copy verbatim from root .ai/
@@ -766,7 +766,7 @@ async function copyTemplates() {
     .map((f) => f.relativePath);
   const adapterCounts = await generateCommandAdapters(standaloneCommands, TEMPLATES_DIR);
 
-  // Bundle ALL command variants from @hai3 packages (packages/*/commands/)
+  // Bundle ALL command variants from @cyberfabric packages (packages/*/commands/)
   // Variant selection happens at project creation time
   const packageCounts = await bundlePackageCommands(TEMPLATES_DIR);
 
@@ -787,8 +787,8 @@ async function copyTemplates() {
   // Generate IDE rules (CLAUDE.md, .cursor/rules/, .windsurf/rules/, .github/copilot-instructions.md)
   await generateIdeRules(TEMPLATES_DIR);
   console.log('  ✓ CLAUDE.md (pointer to .ai/GUIDELINES.md)');
-  console.log('  ✓ .cursor/rules/hai3.mdc (pointer)');
-  console.log('  ✓ .windsurf/rules/hai3.md (pointer)');
+  console.log('  ✓ .cursor/rules/frontx.mdc (pointer)');
+  console.log('  ✓ .windsurf/rules/frontx.md (pointer)');
   console.log('  ✓ .github/copilot-instructions.md (GitHub Copilot)');
   // @cpt-end:cpt-hai3-algo-cli-tooling-build-templates:p1:inst-copy-ide-adapters
 
@@ -796,7 +796,7 @@ async function copyTemplates() {
   // Write output manifest.json (runtime manifest for CLI)
   // ============================================
   const standaloneCommandFiles = standaloneCommands
-    .filter((f) => f.startsWith('commands/') && !f.includes('hai3dev-') && !f.includes('commands/internal/'));
+    .filter((f) => f.startsWith('commands/') && !f.includes('frontxdev-') && !f.includes('commands/internal/'));
   const outputManifest = {
     pipeline: '3-stage',
     sourceManifest: 'packages/cli/template-sources/manifest.yaml',
@@ -813,7 +813,7 @@ async function copyTemplates() {
       source: 'root .ai/ (marker-based)',
       overridesSource: manifest.ai_overrides.source,
       standaloneFiles: markedFiles
-        .filter((f) => f.marker === 'standalone' && !f.relativePath.includes('hai3dev-') && !f.relativePath.includes('commands/internal/'))
+        .filter((f) => f.marker === 'standalone' && !f.relativePath.includes('frontxdev-') && !f.relativePath.includes('commands/internal/'))
         .map((f) => f.relativePath),
       overrideFiles: markedFiles
         .filter((f) => f.marker === 'override')
@@ -822,8 +822,8 @@ async function copyTemplates() {
     stage2: {
       generated: [
         'CLAUDE.md',
-        '.cursor/rules/hai3.mdc',
-        '.windsurf/rules/hai3.md',
+        '.cursor/rules/frontx.mdc',
+        '.windsurf/rules/frontx.md',
         ...standaloneCommandFiles.map((f) => `.claude/commands/${path.basename(f)}`),
       ],
     },

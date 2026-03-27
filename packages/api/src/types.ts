@@ -1,5 +1,5 @@
 /**
- * @hai3/api - Type Definitions
+ * @cyberfabric/api - Type Definitions
  *
  * Core types for HAI3 API communication.
  * Supports REST, SSE, and mock protocols.
@@ -774,7 +774,7 @@ export abstract class SsePluginWithConfig<TConfig> implements SsePluginHooks {
  *
  * @example
  * ```typescript
- * import { RestProtocol, SseProtocol } from '@hai3/api';
+ * import { RestProtocol, SseProtocol } from '@cyberfabric/api';
  * const protocolClass: ProtocolClass = RestProtocol;
  * apiRegistry.plugins.add(RestProtocol, plugin);
  * ```

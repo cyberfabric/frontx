@@ -21,8 +21,8 @@ import {
   type TypeSystemPlugin,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/screensets';
-import { getStore } from '@hai3/state';
+} from '@cyberfabric/screensets';
+import { getStore } from '@cyberfabric/state';
 import type { HAI3Plugin } from '../../types';
 import { mfeSlice, setExtensionMounted, setExtensionUnmounted } from './slice';
 import { initMfeEffects } from './effects';
@@ -72,9 +72,9 @@ export interface MicrofrontendsConfig {
  *
  * @example
  * ```typescript
- * import { createHAI3, microfrontends } from '@hai3/framework';
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { createHAI3, microfrontends } from '@cyberfabric/framework';
+ * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
  * const app = createHAI3()
  *   .use(microfrontends({

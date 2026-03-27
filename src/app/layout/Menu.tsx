@@ -16,7 +16,7 @@ import {
   type MenuState,
   type Extension,
   type ScreenExtension,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 import {
   Sidebar,
   SidebarContent,

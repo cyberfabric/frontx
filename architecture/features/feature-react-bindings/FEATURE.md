@@ -9,7 +9,7 @@
   - [1.3 Actors](#13-actors)
   - [1.4 References](#14-references)
 - [2. Actor Flows (CDSL)](#2-actor-flows-cdsl)
-  - [Bootstrap Application with HAI3Provider](#bootstrap-application-with-hai3provider)
+  - [Bootstrap Application with FrontXProvider](#bootstrap-application-with-hai3provider)
   - [Access Typed Redux State in a Component](#access-typed-redux-state-in-a-component)
   - [Dispatch Actions from a Component](#dispatch-actions-from-a-component)
   - [Use Translations in a Component](#use-translations-in-a-component)
@@ -23,7 +23,7 @@
   - [Observe Registered Packages](#observe-registered-packages)
   - [Observe Active Screen Package](#observe-active-screen-package)
   - [Provide MFE Context to Child Extension](#provide-mfe-context-to-child-extension)
-  - [Access the HAI3 App Instance Directly](#access-the-hai3-app-instance-directly)
+  - [Access the FrontX App Instance Directly](#access-the-hai3-app-instance-directly)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Resolve HAI3App Instance](#resolve-hai3app-instance)
   - [Load Screen Translations](#load-screen-translations)
@@ -58,11 +58,11 @@
 
 ### 1.1 Overview
 
-React Bindings is the L3 boundary that exposes the HAI3 framework to React 19 applications. It converts the framework's plain-object output (`HAI3App`) into React context, typed hooks, and MFE rendering components, forming the primary developer-facing API surface of the entire system.
+React Bindings is the L3 boundary that exposes the FrontX framework to React 19 applications. It converts the framework's plain-object output (`HAI3App`) into React context, typed hooks, and MFE rendering components, forming the primary developer-facing API surface of the entire system.
 
-Problem: The framework layer (`@hai3/framework`) is deliberately React-agnostic. Application developers need typed React hooks, a root provider that wires Redux and i18n into the React tree, and components that can mount MFE extensions with CSS isolation — without importing directly from L1/L2 packages.
+Problem: The framework layer (`@cyberfabric/framework`) is deliberately React-agnostic. Application developers need typed React hooks, a root provider that wires Redux and i18n into the React tree, and components that can mount MFE extensions with CSS isolation — without importing directly from L1/L2 packages.
 
-Primary value: One import (`@hai3/react`) gives developers access to the full HAI3 surface in a React-idiomatic way while preserving the strict layer hierarchy.
+Primary value: One import (`@cyberfabric/react`) gives developers access to the full HAI3 surface in a React-idiomatic way while preserving the strict layer hierarchy.
 
 Key assumptions:
 - The consuming application runs React 19.
@@ -71,9 +71,9 @@ Key assumptions:
 
 ### 1.2 Purpose
 
-Bridge `@hai3/framework` to React 19 by providing the provider tree, typed hooks, and MFE rendering components that application developers interact with directly. Keep all React-specific code confined to L3, preserving framework-agnosticism of L1 and L2.
+Bridge `@cyberfabric/framework` to React 19 by providing the provider tree, typed hooks, and MFE rendering components that application developers interact with directly. Keep all React-specific code confined to L3, preserving framework-agnosticism of L1 and L2.
 
-Success criteria: Developers can wrap their application with `<HAI3Provider>`, access typed Redux state, translations, theme, shared properties, and domain extensions solely through hooks exported from `@hai3/react`, with no need to import from `@hai3/framework` or lower layers.
+Success criteria: Developers can wrap their application with `<HAI3Provider>`, access typed Redux state, translations, theme, shared properties, and domain extensions solely through hooks exported from `@cyberfabric/react`, with no need to import from `@cyberfabric/framework` or lower layers.
 
 ### 1.3 Actors
 
@@ -94,7 +94,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 ## 2. Actor Flows (CDSL)
 
-### Bootstrap Application with HAI3Provider
+### Bootstrap Application with FrontXProvider
 
 - [x] `p1` - **ID**: `cpt-hai3-flow-react-bindings-bootstrap-provider`
 
@@ -117,7 +117,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
 1. [x] - `p1` - Developer calls `useAppSelector(selectorFn)` inside a component tree wrapped by `HAI3Provider` - `inst-call-selector`
-2. [x] - `p1` - Hook delegates to `react-redux` `useSelector` typed against `RootState` from `@hai3/framework` - `inst-delegate-selector`
+2. [x] - `p1` - Hook delegates to `react-redux` `useSelector` typed against `RootState` from `@cyberfabric/framework` - `inst-delegate-selector`
 3. [x] - `p1` - Runtime returns the slice of state selected by `selectorFn` - `inst-return-state`
 4. [x] - `p1` - Component re-renders when selected value changes - `inst-rerender-on-change`
 
@@ -130,7 +130,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 **Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
 1. [x] - `p1` - Developer calls `useAppDispatch()` inside a component tree wrapped by `HAI3Provider` - `inst-call-dispatch`
-2. [x] - `p1` - Hook delegates to `react-redux` `useDispatch` and casts return type to `AppDispatch` from `@hai3/framework` - `inst-delegate-dispatch`
+2. [x] - `p1` - Hook delegates to `react-redux` `useDispatch` and casts return type to `AppDispatch` from `@cyberfabric/framework` - `inst-delegate-dispatch`
 3. [x] - `p1` - Developer uses returned `dispatch` function to dispatch typed Redux actions - `inst-use-dispatch`
 
 ---
@@ -292,7 +292,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 ---
 
-### Access the HAI3 App Instance Directly
+### Access the FrontX App Instance Directly
 
 - [x] `p2` - **ID**: `cpt-hai3-flow-react-bindings-use-hai3`
 
@@ -430,7 +430,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-redux-hooks`
 
-`useAppSelector` is a `TypedUseSelectorHook<RootState>` wrapping `react-redux` `useSelector`. `useAppDispatch` wraps `react-redux` `useDispatch` and casts the return type to `AppDispatch`. Both hooks require `HAI3Provider` in the ancestor tree. Neither hook imports directly from `@hai3/state`.
+`useAppSelector` is a `TypedUseSelectorHook<RootState>` wrapping `react-redux` `useSelector`. `useAppDispatch` wraps `react-redux` `useDispatch` and casts the return type to `AppDispatch`. Both hooks require `HAI3Provider` in the ancestor tree. Neither hook imports directly from `@cyberfabric/state`.
 
 **Implements**:
 - `cpt-hai3-flow-react-bindings-use-selector`
@@ -451,7 +451,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-translation-hook`
 
-`useTranslation` returns `{ t, language, setLanguage, isRTL }`. It subscribes to `i18nRegistry` version via `useSyncExternalStore` so components re-render on language changes. `setLanguage` dispatches `app.actions.setLanguage` which propagates to MFEs via the event bus. The hook never imports from `@hai3/i18n` directly.
+`useTranslation` returns `{ t, language, setLanguage, isRTL }`. It subscribes to `i18nRegistry` version via `useSyncExternalStore` so components re-render on language changes. `setLanguage` dispatches `app.actions.setLanguage` which propagates to MFEs via the event bus. The hook never imports from `@cyberfabric/i18n` directly.
 
 **Implements**:
 - `cpt-hai3-flow-react-bindings-use-translation`
@@ -511,7 +511,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-formatters-hook`
 
-`useFormatters` returns a memoized `Formatters` object containing all locale-aware formatter functions from `@hai3/framework`. It internally calls `useTranslation()` to subscribe to language changes. The returned object is re-created only when `language` changes, preventing unnecessary re-renders from unrelated state updates.
+`useFormatters` returns a memoized `Formatters` object containing all locale-aware formatter functions from `@cyberfabric/framework`. It internally calls `useTranslation()` to subscribe to language changes. The returned object is re-created only when `language` changes, preventing unnecessary re-renders from unrelated state updates.
 
 **Implements**:
 - `cpt-hai3-flow-react-bindings-use-formatters`
@@ -598,7 +598,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-react-bindings-ref-container-provider`
 
-`RefContainerProvider` is a concrete `ContainerProvider` (from `@hai3/framework`) that wraps a React `RefObject<HTMLDivElement>`. It implements `getContainer(extensionId)` by returning `ref.current`, throwing if the ref is not yet attached. `releaseContainer` is a no-op because React manages the ref lifecycle. This class bridges React DOM refs to the framework's container abstraction without introducing React into the framework layer.
+`RefContainerProvider` is a concrete `ContainerProvider` (from `@cyberfabric/framework`) that wraps a React `RefObject<HTMLDivElement>`. It implements `getContainer(extensionId)` by returning `ref.current`, throwing if the ref is not yet attached. `releaseContainer` is a no-op because React manages the ref lifecycle. This class bridges React DOM refs to the framework's container abstraction without introducing React into the framework layer.
 
 **Implements**:
 - (supports `cpt-hai3-flow-react-bindings-extension-domain-slot` via container injection)
@@ -617,7 +617,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 
 - [x] `p2` - **ID**: `cpt-hai3-dod-react-bindings-event-payload-map`
 
-`@hai3/react` re-declares `EventPayloadMap` as an interface extending `FrameworkEventPayloadMap` from `@hai3/framework`. This creates a TypeScript declaration site at L3 that application code can augment using `declare module '@hai3/react'`, avoiding direct imports from L1 (`@hai3/state`). The `eventBus` instance is re-exported with the augmented type so that event bus calls in application code are type-safe against both framework and application events.
+`@cyberfabric/react` re-declares `EventPayloadMap` as an interface extending `FrameworkEventPayloadMap` from `@cyberfabric/framework`. This creates a TypeScript declaration site at L3 that application code can augment using `declare module '@cyberfabric/react'`, avoiding direct imports from L1 (`@cyberfabric/state`). The `eventBus` instance is re-exported with the augmented type so that event bus calls in application code are type-safe against both framework and application events.
 
 **Implements**:
 - (architectural pattern, no specific flow)
@@ -648,6 +648,6 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 - [x]All three observation hooks return referentially stable arrays when the underlying data has not changed
 - [x]MFE-scoped hooks throw descriptive errors when called outside `MfeProvider`
 - [x]`useHAI3` throws descriptive error when called outside `HAI3Provider`
-- [x]`@hai3/react` imports ZERO `@hai3/state`, `@hai3/screensets`, `@hai3/api`, or `@hai3/i18n` packages directly (enforced by dependency-cruiser)
+- [x]`@cyberfabric/react` imports ZERO `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, or `@cyberfabric/i18n` packages directly (enforced by dependency-cruiser)
 - [x]All components accept `ref` as a prop (React 19 pattern; no `forwardRef`)
 - [x]TypeScript strict mode passes with zero `@ts-ignore` suppressions in source files

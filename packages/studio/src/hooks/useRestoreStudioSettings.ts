@@ -9,7 +9,7 @@ import {
   type ScreensetsRegistry,
   type Extension,
   type ScreenExtension,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 import { loadStudioState } from '../utils/persistence';
 import { STORAGE_KEYS } from '../types';
 

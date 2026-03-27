@@ -1,14 +1,14 @@
 /**
  * Tests for application-layer derived GTS schemas
  *
- * Verifies that the derived GTS schemas exported from @hai3/framework correctly
+ * Verifies that the derived GTS schemas exported from @cyberfabric/framework correctly
  * constrain property values via the GTS validation mechanism:
  * - Theme schema permits any non-empty string and rejects empty values
  * - Language schema permits the 36 supported locales and rejects others
  * - Extension screen schema defines the required presentation structure
  *
  * These tests live at L2 (framework) because the derived schemas encode
- * application-level decisions. The core GTS type system at L1 (@hai3/screensets)
+ * application-level decisions. The core GTS type system at L1 (@cyberfabric/screensets)
  * only knows about the base shared_property schema — it does not constrain
  * which specific themes or languages are valid.
  *
@@ -16,8 +16,8 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { GtsPlugin } from '@hai3/screensets/plugins/gts';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/screensets';
+import { GtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@cyberfabric/screensets';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../../src/gts';
 
 /**

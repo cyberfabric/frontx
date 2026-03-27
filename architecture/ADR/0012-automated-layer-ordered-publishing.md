@@ -60,7 +60,7 @@ Chosen option: "Custom GitHub Actions workflow with explicit layer order", becau
 
 ### Custom GitHub Actions workflow with explicit layer order
 
-* Good, because it is purpose-built for HAI3's exact layer count and dependency graph
+* Good, because it is purpose-built for FrontX's exact layer count and dependency graph
 * Bad, because it is custom code that must be maintained as the layer structure evolves
 
 ### Changesets

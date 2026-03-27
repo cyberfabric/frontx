@@ -1,20 +1,20 @@
-# @hai3/cli
+# @cyberfabric/cli
 
 Command-line interface for scaffolding and managing HAI3 framework projects.
 
 ## Overview
 
-`@hai3/cli` provides a comprehensive set of commands for creating new HAI3 applications, generating screensets, managing project structure, and maintaining framework dependencies. The CLI streamlines project setup and ongoing development by automating common tasks and enforcing framework conventions.
+`@cyberfabric/cli` provides a comprehensive set of commands for creating new FrontX applications, generating screensets, managing project structure, and maintaining framework dependencies. The CLI streamlines project setup and ongoing development by automating common tasks and enforcing framework conventions.
 
 ## Purpose
 
-This package eliminates manual project configuration and boilerplate creation. It generates properly structured HAI3 projects with all necessary dependencies, build configurations, and development tools pre-configured. The CLI ensures projects follow framework best practices from the start and provides utilities for maintaining that structure as projects evolve.
+This package eliminates manual project configuration and boilerplate creation. It generates properly structured FrontX projects with all necessary dependencies, build configurations, and development tools pre-configured. The CLI ensures projects follow framework best practices from the start and provides utilities for maintaining that structure as projects evolve.
 
 ## Core Commands
 
 ### Project Creation
 
-Initialize new HAI3 applications with complete project structure, dependency management, and build tooling. The creation process offers interactive prompts for customizing the initial setup, including UI kit choice (shadcn/ui, none, or a third-party package) and Studio overlay inclusion.
+Initialize new FrontX applications with complete project structure, dependency management, and build tooling. The creation process offers interactive prompts for customizing the initial setup, including UI kit choice (shadcn/ui, none, or a third-party package) and Studio overlay inclusion.
 
 ### Screenset Generation
 
@@ -29,15 +29,15 @@ Update the CLI itself and all HAI3 framework packages to their latest versions. 
 ### Global Installation (Recommended)
 
 ```bash
-npm install -g @hai3/cli
+npm install -g @cyberfabric/cli
 ```
 
-Global installation makes the `hai3` command available system-wide for creating new projects anywhere on your system.
+Global installation makes the `frontx` command available system-wide for creating new projects anywhere on your system.
 
 ### Project-Level Installation
 
 ```bash
-npm install --save-dev @hai3/cli
+npm install --save-dev @cyberfabric/cli
 ```
 
 Install as a dev dependency when using CLI commands within project scripts or when global installation isn't preferred.
@@ -46,15 +46,15 @@ Install as a dev dependency when using CLI commands within project scripts or wh
 
 **Global option:** `-q, --quiet` — Suppress non-essential output (any command).
 
-### `hai3 create <project-name>`
+### `frontx create <project-name>`
 
-Creates a new HAI3 project or SDK layer package with the specified name.
+Creates a new FrontX project or SDK layer package with the specified name.
 
 **Options:**
 - `-l, --layer <type>` - Create a package for a specific SDK layer (`sdk`, `framework`, `react`, or `app`)
 - `--uikit <type>` - UI components: `shadcn` for shadcn/ui, `none` for no UI library, or an npm package name (e.g. `@mui/material`, `antd`)
 - `--studio` / `--no-studio` - Include or exclude Studio package
-- `--local` - Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or `HAI3_MONOREPO_ROOT`
+- `--local` - Use local @cyberfabric packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or `FRONTX_MONOREPO_ROOT`
 - `--package-manager` - Package manager to use (`npm`, `pnpm`, `yarn`)
 
 **Interactive (when `--layer` not specified):**
@@ -63,7 +63,7 @@ Creates a new HAI3 project or SDK layer package with the specified name.
 - Package manager selection (`npm` default, `pnpm`, `yarn`)
 
 **Output (App project — default):**
-- Vite + React + TypeScript project with `hai3.config.json` (uikit, etc.)
+- Vite + React + TypeScript project with `frontx.config.json` (uikit, etc.)
 - HAI3 framework packages installed and configured
 - Build and dev scripts; layout/components scaffolded per UI kit choice
 
@@ -72,7 +72,7 @@ Creates a new HAI3 project or SDK layer package with the specified name.
 - TypeScript and ESLint configs enforcing layer boundaries
 - AI assistant config (CLAUDE.md, Copilot, Cursor, Windsurf)
 
-### `hai3 screenset create <name>`
+### `frontx screenset create <name>`
 
 Creates a new MFE screenset package under `src/mfe_packages/<name>-mfe/` from the framework template.
 
@@ -84,7 +84,7 @@ Creates a new MFE screenset package under `src/mfe_packages/<name>-mfe/` from th
 
 **Generated structure:** MFE package with config, screens, i18n, events, and build setup.
 
-### `hai3 update` / `hai3 update packages`
+### `frontx update` / `frontx update packages`
 
 Updates CLI and framework packages to latest versions (default subcommand is `packages`).
 
@@ -98,14 +98,14 @@ Updates CLI and framework packages to latest versions (default subcommand is `pa
 
 **Behavior:** Inside a project: updates CLI globally, framework packages, templates, and AI configs. Outside a project: updates only CLI globally.
 
-### `hai3 update layout`
+### `frontx update layout`
 
 Updates layout components from the latest templates. Run from project root.
 
 **Options:**
 - `-f, --force` - Force update without prompting
 
-### `hai3 scaffold layout`
+### `frontx scaffold layout`
 
 Generates layout components in your project from templates. Run from project root.
 
@@ -114,13 +114,13 @@ Generates layout components in your project from templates. Run from project roo
 
 **Generated:** Layout orchestrator, Header, Footer, Menu, Sidebar, Screen, Popup, Overlay, and barrel exports under `src/layout/`.
 
-### `hai3 validate components [path]`
+### `frontx validate components [path]`
 
 Validates component structure and placement (e.g. layer boundaries, conventions). Path defaults to current directory.
 
-### `hai3 migrate [targetVersion]`
+### `frontx migrate [targetVersion]`
 
-Applies codemod migrations to update HAI3 projects to a target version.
+Applies codemod migrations to update FrontX projects to a target version.
 
 **Options:**
 - `-d, --dry-run` - Preview changes without applying
@@ -130,22 +130,22 @@ Applies codemod migrations to update HAI3 projects to a target version.
 - `--include <patterns>` - Include glob patterns (comma-separated)
 - `--exclude <patterns>` - Exclude glob patterns (comma-separated)
 
-### `hai3 ai sync`
+### `frontx ai sync`
 
 Syncs AI assistant configuration files from `.ai/GUIDELINES.md` and `.ai/commands/` into IDE-specific configs.
 
 **Options:**
 - `-t, --tool <tool>` - Tool to sync: `claude`, `copilot`, `cursor`, `windsurf`, or `all` (default: `all`)
-- `-d, --detect-packages` - Detect installed @hai3 packages and merge their configs
+- `-d, --detect-packages` - Detect installed @cyberfabric packages and merge their configs
 - `--diff` - Show diff of changes without writing files
 
-**Generated:** `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and command adapters.
+**Generated:** `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/frontx.mdc`, `.windsurf/rules/frontx.md`, and command adapters.
 
 ## Project Generation Details
 
 ### Directory Structure
 
-Created projects follow HAI3's standard monorepo-style structure with clear separation between framework packages, application code, screensets, themes, and configuration.
+Created projects follow FrontX's standard monorepo-style structure with clear separation between framework packages, application code, screensets, themes, and configuration.
 
 ### Build Configuration
 
@@ -161,14 +161,14 @@ Generated projects include scripts for development server, production builds, ty
 
 ## UI Kit Options
 
-At project creation, you choose how UI components are provided. The choice is stored in `hai3.config.json` and used by the CLI when scaffolding layout and screensets.
+At project creation, you choose how UI components are provided. The choice is stored in `frontx.config.json` and used by the CLI when scaffolding layout and screensets.
 
 ### Shadcn (`shadcn`)
 
 Scaffolds the project with local shadcn/ui components in `components/ui/` (button, input, card, dialog, form, toast, etc.). Recommended for new projects.
 
 ```bash
-hai3 create my-project --uikit=shadcn
+frontx create my-project --uikit=shadcn
 ```
 
 ### No UI library (`none`)
@@ -176,7 +176,7 @@ hai3 create my-project --uikit=shadcn
 Placeholder layout and components without a UI library. Use when you want to bring your own components or build from scratch.
 
 ```bash
-hai3 create my-project --uikit=none
+frontx create my-project --uikit=none
 ```
 
 ### Third-party package
@@ -184,7 +184,7 @@ hai3 create my-project --uikit=none
 Use an npm package name (e.g. `@mui/material`, `antd`) so the CLI scaffolds a bridge and config; you implement components with that library.
 
 ```bash
-hai3 create my-project --uikit=@mui/material
+frontx create my-project --uikit=@mui/material
 ```
 
 ## SDK Layer Development
@@ -213,13 +213,13 @@ HAI3 uses a 3-layer SDK architecture. When building custom packages that extend 
 
 ```bash
 # SDK layer - pure TypeScript, no HAI3 dependencies
-hai3 create my-contracts --layer=sdk
+frontx create my-contracts --layer=sdk
 
-# Framework layer - depends on @hai3/events, @hai3/store
-hai3 create my-store-extension --layer=framework
+# Framework layer - depends on @cyberfabric/events, @cyberfabric/store
+frontx create my-store-extension --layer=framework
 
-# React layer - depends on @hai3/framework + React
-hai3 create my-hooks --layer=react
+# React layer - depends on @cyberfabric/framework + React
+frontx create my-hooks --layer=react
 ```
 
 ### Layer Dependencies
@@ -229,8 +229,8 @@ Each layer has specific peer dependency requirements enforced by the generated c
 | Layer | Allowed Dependencies |
 |-------|---------------------|
 | SDK | None (pure TypeScript) |
-| Framework | `@hai3/events`, `@hai3/store` |
-| React | `@hai3/framework`, `react`, `react-dom` |
+| Framework | `@cyberfabric/events`, `@cyberfabric/store` |
+| React | `@cyberfabric/framework`, `react`, `react-dom` |
 
 ### Generated Package Structure
 
@@ -263,7 +263,7 @@ The AI tools will warn you if you attempt to import from a higher layer (e.g., i
 
 ## Implementing Custom UI Components
 
-When using `--uikit=none` or a third-party package, you get placeholder layout components to implement with your UI library. Use HAI3's Redux hooks (`useAppSelector`, `useAppDispatch`) from `@hai3/react` for state, and respect the theme via CSS variables or Tailwind tokens (`bg-background`, `text-foreground`, `border-border`, or `var(--background)` etc.).
+When using `--uikit=none` or a third-party package, you get placeholder layout components to implement with your UI library. Use FrontX's Redux hooks (`useAppSelector`, `useAppDispatch`) from `@cyberfabric/react` for state, and respect the theme via CSS variables or Tailwind tokens (`bg-background`, `text-foreground`, `border-border`, or `var(--background)` etc.).
 
 ## Advanced Usage
 
@@ -272,7 +272,7 @@ When using `--uikit=none` or a third-party package, you get placeholder layout c
 The CLI exposes a programmatic API for build scripts and automation. Use `executeCommand` with the registered command and options; set `interactive: false` for non-interactive runs.
 
 ```typescript
-import { executeCommand, commands } from '@hai3/cli';
+import { executeCommand, commands } from '@cyberfabric/cli';
 
 // Create a new project
 const result = await executeCommand(
@@ -314,5 +314,5 @@ Apache-2.0
 
 ## Related Packages
 
-- [`@hai3/uicore`](../uicore) — Core framework types and selectors
-- [`@hai3/studio`](../studio) — Development tools overlay (optional)
+- [`@cyberfabric/uicore`](../uicore) — Core framework types and selectors
+- [`@cyberfabric/studio`](../studio) — Development tools overlay (optional)

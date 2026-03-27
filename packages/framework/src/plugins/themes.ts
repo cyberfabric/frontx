@@ -9,13 +9,13 @@
 // @cpt-dod:cpt-hai3-dod-framework-composition-propagation:p1
 // @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
 
-import { eventBus } from '@hai3/state';
-import { HAI3_SHARED_PROPERTY_THEME } from '@hai3/screensets';
+import { eventBus } from '@cyberfabric/state';
+import { HAI3_SHARED_PROPERTY_THEME } from '@cyberfabric/screensets';
 import type { HAI3Plugin, ChangeThemePayload, ThemePropagationFailedPayload } from '../types';
 import { createThemeRegistry } from '../registries/themeRegistry';
 
 // Define theme events for module augmentation
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'theme/changed': ChangeThemePayload;
     'theme/propagation/failed': ThemePropagationFailedPayload;

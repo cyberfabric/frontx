@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/screensets",
-  "version": "0.4.0-alpha.2",
-  "description": "Pure TypeScript contracts and registry for HAI3 screenset management",
+  "name": "@cyberfabric/screensets",
+  "version": "0.2.0-alpha.0",
+  "description": "Pure TypeScript contracts and registry for FrontX screenset management",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -49,13 +49,13 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "screensets",
     "contracts",
     "typescript",
     "vertical-slices"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0",
   "dependencies": {
     "@globaltypesystem/gts-ts": "^0.3.0"
