@@ -25,6 +25,7 @@
     "copy-templates": "npx tsx scripts/copy-templates.ts",
     "build": "npm run copy-templates && tsup",
     "dev": "tsup --watch",
+    "test:unit": "node --import tsx --test src/generators/i18n.test.ts",
     "test:e2e:pr": "node scripts/e2e-pr-smoke.mjs",
     "test:e2e:nightly": "node scripts/e2e-nightly.mjs"
   },

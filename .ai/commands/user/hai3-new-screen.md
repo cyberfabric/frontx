@@ -38,7 +38,7 @@ Present the following to the user for approval:
   - Add screen ID to ids.ts
   - Create components per Component Plan (BEFORE screen file)
   - Create screen (orchestrates components, follows EVENTS.md data flow)
-  - Add i18n files for all languages
+  - Add i18n en.json (+ extra locales only on explicit request)
   - Add to menu (if requested)
   - Validate: `npm run type-check && npm run lint`
   - Test via Chrome DevTools MCP
