@@ -102,16 +102,29 @@ function runScriptCommand(packageManager: PackageManager, scriptName: string): s
  * Standalone architecture checks
  * These run in all FrontX projects (standalone and monorepo)
  */
+// @cpt-algo:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1
+// @cpt-dod:cpt-frontx-dod-cli-scaffolding-quality-arch-check-pass:p1
 function getStandaloneChecks(packageManager: PackageManager = detectPackageManager()): ArchCheck[] {
-  return [
-    { command: runScriptCommand(packageManager, 'generate:colors'), description: 'Generate theme colors' },
+  // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-remove-generate-colors-check
+  const checks: ArchCheck[] = [
     {
       command: runScriptCommand(packageManager, 'lint'),
       description: 'ESLint rules'
     },
     { command: runScriptCommand(packageManager, 'type-check'), description: 'TypeScript type check' },
-    { command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' },
   ];
+  // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-remove-generate-colors-check
+
+  // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-gate-arch-deps-node-version
+  const nodeVersion = parseInt(process.versions.node.split('.')[0], 10);
+  if (nodeVersion >= 25) {
+    checks.push({ command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' });
+  } else {
+    log(`⚠️  Dependency rules - SKIPPED (requires Node >= 25, current: ${process.versions.node})`, 'yellow');
+  }
+  // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-gate-arch-deps-node-version
+
+  return checks;
 }
 
 /**

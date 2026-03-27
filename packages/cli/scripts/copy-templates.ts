@@ -510,14 +510,23 @@ async function copyTemplates() {
   }
 
   // Flatten configs/ to templates root
+  // @cpt-algo:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1
+  // @cpt-dod:cpt-frontx-dod-cli-scaffolding-quality-ci-workflow:p1
+  // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-store-ci-template
   const configsSrc = path.join(presetsDir, 'configs');
   if (await fs.pathExists(configsSrc)) {
     const configFiles = await fs.readdir(configsSrc);
     for (const file of configFiles) {
       const srcPath = path.join(configsSrc, file);
+      // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-rename-github-dir
       // Rename _pre-commit-config.yaml to .pre-commit-config.yaml
       // (stored with underscore to prevent prek from detecting it during monorepo commits)
-      const destFileName = file === '_pre-commit-config.yaml' ? '.pre-commit-config.yaml' : file;
+      // Rename _github/ to .github/
+      // (stored with underscore to prevent GitHub from picking up template workflows)
+      const destFileName = file === '_pre-commit-config.yaml' ? '.pre-commit-config.yaml'
+        : file === '_github' ? '.github'
+        : file;
+      // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-rename-github-dir
       const destPath = path.join(TEMPLATES_DIR, destFileName);
 
       // Transform eslint.config.js path for standalone projects
@@ -534,10 +543,20 @@ async function copyTemplates() {
         await fs.copy(srcPath, destPath);
       }
     }
+    // CI template (ci.yml) is configured with main branch triggers and .nvmrc node version
+    // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-main-branch
+    // CI workflow triggers on push and pull_request to main branch (defined in template)
+    // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-main-branch
+    // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-node-from-nvmrc
+    // CI uses node-version-file: '.nvmrc' instead of hardcoded version (defined in template)
+    // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-node-from-nvmrc
     console.log(`  ✓ configs/ flattened to root (${configFiles.length} files)`);
   }
+  // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-store-ci-template
 
   // Flatten scripts/ to templates/scripts/
+  // @cpt-algo:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1
+  // @cpt-dod:cpt-frontx-dod-cli-scaffolding-quality-arch-check-pass:p1
   const scriptsSrc = path.join(presetsDir, 'scripts');
   const scriptsDest = path.join(TEMPLATES_DIR, 'scripts');
   if (await fs.pathExists(scriptsSrc)) {
@@ -546,6 +565,13 @@ async function copyTemplates() {
     for (const file of scriptFiles) {
       await fs.copy(path.join(scriptsSrc, file), path.join(scriptsDest, file));
     }
+    // test-architecture.ts template implements arch check fixes:
+    // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-remove-generate-colors-check
+    // generate:colors excluded from standalone checks (not available in generated projects)
+    // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-remove-generate-colors-check
+    // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-gate-arch-deps-node-version
+    // arch:deps gated behind Node >= 25 check in template
+    // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-fix-arch-check:p1:inst-gate-arch-deps-node-version
     console.log(`  ✓ scripts/ (${scriptFiles.length} files)`);
   }
 

@@ -232,6 +232,11 @@ export function transformPackageManagerText(content: string, manager: PackageMan
   transformed = transformed.replace(/\bnpm ci\b/g, getInstallCommand(manager));
   transformed = transformed.replace(/\bnpm install(?!\s+-g)\b/g, getInstallCommand(manager));
 
+  // @cpt-dod:cpt-frontx-dod-cli-scaffolding-quality-pm-ci-consistency:p1
+  // CI workflow cache key: cache: 'npm' / cache: npm → cache: 'pnpm' / cache: pnpm
+  transformed = transformed.replace(/^([ \t]+cache:[ \t]*)'npm'/gm, `$1'${manager}'`);
+  transformed = transformed.replace(/^([ \t]+cache:[ \t]*)npm[ \t]*$/gm, `$1${manager}`);
+
   return transformed;
 }
 // @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-transform-package-manager-text

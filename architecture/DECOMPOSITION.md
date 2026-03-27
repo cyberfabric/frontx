@@ -13,8 +13,9 @@
   - [2.7 React Bindings ⏳ HIGH](#27-react-bindings--high)
   - [2.8 Studio DevTools ⏳ MEDIUM](#28-studio-devtools--medium)
   - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
-  - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
-  - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
+  - [2.10 CLI Scaffolding Quality ⏳ LOW](#210-cli-scaffolding-quality--low)
+  - [2.11 Publishing Pipeline ⏳ MEDIUM](#211-publishing-pipeline--medium)
+  - [2.12 UI Libraries Choice ⏳ HIGH](#212-ui-libraries-choice--high)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -598,7 +599,33 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.10 [Publishing Pipeline](feature-publishing-pipeline/) ⏳ MEDIUM
+### 2.10 [CLI Scaffolding Quality](feature-cli-scaffolding-quality/) ⏳ LOW
+
+- [x] `p1` - **ID**: `cpt-frontx-feature-cli-scaffolding-quality`
+
+- **Purpose**: Ensures CLI-generated projects are immediately usable out of the box — passing architecture validation, including CI workflow, and having consistent version configuration.
+
+- **Depends On**: `cpt-frontx-feature-cli-tooling`
+
+- **Scope**:
+  - CI workflow template generation (`.github/workflows/ci.yml`)
+  - Architecture check fixes for freshly generated projects
+  - Package manager consistency in CI configuration
+  - Node version sourced from `.nvmrc` in generated CI
+
+- **Out of scope**:
+  - Changes to CLI core scaffolding logic (covered by `cpt-frontx-feature-cli-tooling`)
+
+- **Requirements Covered**:
+
+  - [x] `p1` - `cpt-frontx-fr-cli-templates`
+  - [x] `p1` - `cpt-frontx-fr-cli-e2e-verification`
+
+- **Design Components**:
+
+  - [x] `p2` - `cpt-frontx-component-cli`
+
+### 2.11 [Publishing Pipeline](feature-publishing-pipeline/) ⏳ MEDIUM
 
 - [x] `p2` - **ID**: `cpt-frontx-feature-publishing-pipeline`
 
@@ -658,7 +685,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.11 [UI Libraries Choice](feature-ui-libraries-choice/) ⏳ HIGH
+### 2.12 [UI Libraries Choice](feature-ui-libraries-choice/) ⏳ HIGH
 
 - [x] `p1` - **ID**: `cpt-frontx-feature-ui-libraries-choice`
 

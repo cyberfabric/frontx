@@ -1,0 +1,40 @@
+# @cpt-dod:cpt-frontx-dod-cli-scaffolding-quality-ci-workflow:p1
+name: CI
+
+# @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-main-branch
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+# @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-main-branch
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          # @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-node-from-nvmrc
+          node-version-file: '.nvmrc'
+          # @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-node-from-nvmrc
+          # @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-cache-transform
+          cache: 'npm'
+          # @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-cache-transform
+
+      - name: Enable Corepack
+        run: corepack enable
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Run architecture validation
+        run: npm run arch:check
