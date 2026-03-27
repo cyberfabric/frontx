@@ -68,6 +68,28 @@ export interface ChildMfeBridge {
 }
 
 /**
+ * Minimal shape required to share a TanStack Query client across separate
+ * React roots without coupling the screensets package to TanStack types.
+ */
+export interface QueryClientLike {
+  getQueryCache(): object;
+  getMutationCache(): object;
+  defaultQueryOptions(options: object): object;
+}
+
+/**
+ * Runtime values supplied by the host at mount time.
+ *
+ * These fields let host-owned React roots pass identity metadata and an
+ * externally managed query client into child MFE providers.
+ */
+export interface MfeMountContext {
+  readonly queryClient?: QueryClientLike;
+  readonly extensionId?: string;
+  readonly domainId?: string;
+}
+
+/**
  * MFE lifecycle interface.
  * All MFE entries must implement this interface.
  */
@@ -81,8 +103,13 @@ export interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
    *
    * @param container - DOM element or shadow root to mount into
    * @param bridge - Bridge instance for communication with host
+   * @param mountContext - Host-provided runtime context for this mount
    */
-  mount(container: Element | ShadowRoot, bridge: TBridge): void | Promise<void>;
+  mount(
+    container: Element | ShadowRoot,
+    bridge: TBridge,
+    mountContext?: MfeMountContext
+  ): void | Promise<void>;
 
   /**
    * Unmount the MFE from its container.

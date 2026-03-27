@@ -13,9 +13,7 @@
 // @cpt-dod:cpt-hai3-dod-mfe-isolation-internal-dataflow:p1
 // @cpt-flow:cpt-hai3-flow-mfe-isolation-mfe-bootstrap:p1
 
-import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@hai3/react';
-import { profileSlice } from './slices/profileSlice';
-import { initProfileEffects } from './effects/profileEffects';
+import { createHAI3, apiRegistry, effects, mock } from '@hai3/react';
 import { AccountsApiService } from './api/AccountsApiService';
 
 // Register API services BEFORE build — mock plugin syncs during build(),
@@ -25,8 +23,5 @@ apiRegistry.initialize();
 
 // Create HAI3 app with effects + mock plugins (mock auto-enables on localhost)
 const mfeApp = createHAI3().use(effects()).use(mock()).build();
-
-// Register slices with effects (needs store from build())
-registerSlice(profileSlice, initProfileEffects);
 
 export { mfeApp };

@@ -13,6 +13,7 @@ import { themes } from '../plugins/themes';
 import { layout } from '../plugins/layout';
 import { i18n } from '../plugins/i18n';
 import { effects } from '../plugins/effects';
+import { queryCache } from '../plugins/queryCache';
 import { mock } from '../plugins/mock';
 import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfrontends';
 
@@ -60,6 +61,7 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
     themes(),
     layout(),
     i18n(),
+    queryCache(),
     mock(),
   ];
   if (config?.microfrontends) {

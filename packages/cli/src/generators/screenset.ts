@@ -751,7 +751,8 @@ export async function generateScreenset(
   // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
 
   // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
-  // Ensure mfe_packages/shared/ exists (may be missing in projects created before shared was universal)
+  // Ensure mfe_packages/shared/ exists for shared build-time MFE utilities
+  // such as Vite plugins used across generated packages.
   const sharedDir = path.join(projectRoot, 'src', 'mfe_packages', 'shared');
   if (!(await fs.pathExists(sharedDir))) {
     const mfeSharedTemplateDir = path.join(templatesDir, 'mfe-shared');

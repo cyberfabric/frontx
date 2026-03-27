@@ -5,146 +5,37 @@
  * Validates API Communication feature acceptance criteria for SSE plugins.
  */
 
+import { describe, expect, it } from 'vitest';
 import { SseProtocol } from '../protocols/SseProtocol';
 import { SseMockPlugin } from '../plugins/SseMockPlugin';
 import { MockEventSource } from '../mocks/MockEventSource';
-import { apiRegistry } from '../apiRegistry';
 import type { SsePluginHooks, SseConnectContext } from '../types';
+import { createProtocolPluginTests } from './protocolPluginTestFactory';
+
+// ---------------------------------------------------------------------------
+// Shared structural tests (global management, instance management, ordering)
+// ---------------------------------------------------------------------------
+
+createProtocolPluginTests({
+  protocolName: 'SseProtocol',
+  ProtocolClass: SseProtocol as new (...args: unknown[]) => SseProtocol,
+  makePlugin(): SsePluginHooks {
+    return { onConnect: async (ctx) => ctx };
+  },
+  makePluginWithDestroy(onDestroy: () => void): SsePluginHooks & { destroy: () => void } {
+    class DestroyableSsePlugin implements SsePluginHooks {
+      onConnect = async (ctx: SseConnectContext) => ctx;
+      destroy() { onDestroy(); }
+    }
+    return new DestroyableSsePlugin();
+  },
+});
+
+// ---------------------------------------------------------------------------
+// SSE-specific tests
+// ---------------------------------------------------------------------------
 
 describe('SseProtocol plugins', () => {
-  beforeEach(() => {
-    // Clear all plugins before each test
-    apiRegistry.reset();
-  });
-
-  afterEach(() => {
-    apiRegistry.reset();
-  });
-
-  describe('global plugin management', () => {
-    it('should register global plugins', () => {
-      const plugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      apiRegistry.plugins.add(SseProtocol,plugin);
-      expect(apiRegistry.plugins.has(SseProtocol, plugin.constructor as never)).toBe(true);
-      expect(apiRegistry.plugins.getAll(SseProtocol)).toContain(plugin);
-    });
-
-    it('should remove global plugins and call destroy', () => {
-      let destroyCalled = false;
-      const plugin: SsePluginHooks & { destroy: () => void } = {
-        onConnect: async (ctx) => ctx,
-        destroy: () => { destroyCalled = true; },
-      };
-
-      apiRegistry.plugins.add(SseProtocol,plugin);
-      apiRegistry.plugins.remove(SseProtocol, plugin.constructor as never);
-
-      expect(apiRegistry.plugins.has(SseProtocol, plugin.constructor as never)).toBe(false);
-      expect(destroyCalled).toBe(true);
-    });
-
-    it('should clear all global plugins and call destroy on each', () => {
-      let destroyCount = 0;
-      const createPlugin = (): SsePluginHooks & { destroy: () => void } => ({
-        onConnect: async (ctx) => ctx,
-        destroy: () => { destroyCount++; },
-      });
-
-      apiRegistry.plugins.add(SseProtocol,createPlugin());
-      apiRegistry.plugins.add(SseProtocol,createPlugin());
-
-      apiRegistry.plugins.clear(SseProtocol);
-
-      expect(apiRegistry.plugins.getAll(SseProtocol).length).toBe(0);
-      expect(destroyCount).toBe(2);
-    });
-  });
-
-  describe('instance plugin management', () => {
-    it('should register instance plugins', () => {
-      const sseProtocol = new SseProtocol();
-      const plugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      sseProtocol.plugins.add(plugin);
-      expect(sseProtocol.plugins.getAll()).toContain(plugin);
-    });
-
-    it('should remove instance plugins and call destroy', () => {
-      const sseProtocol = new SseProtocol();
-      let destroyCalled = false;
-      const plugin: SsePluginHooks & { destroy: () => void } = {
-        onConnect: async (ctx) => ctx,
-        destroy: () => { destroyCalled = true; },
-      };
-
-      sseProtocol.plugins.add(plugin);
-      sseProtocol.plugins.remove(plugin);
-
-      expect(sseProtocol.plugins.getAll()).not.toContain(plugin);
-      expect(destroyCalled).toBe(true);
-    });
-  });
-
-  describe('plugin execution order', () => {
-    it('should execute global plugins before instance plugins', () => {
-      const globalPlugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      const instancePlugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      apiRegistry.plugins.add(SseProtocol,globalPlugin);
-
-      const sseProtocol = new SseProtocol();
-      sseProtocol.plugins.add(instancePlugin);
-
-      // Access private method via type assertion for testing
-      const plugins = (sseProtocol as unknown as { getPluginsInOrder: () => SsePluginHooks[] }).getPluginsInOrder();
-      expect(plugins.length).toBe(2);
-      expect(plugins[0]).toBe(globalPlugin);
-      expect(plugins[1]).toBe(instancePlugin);
-    });
-
-    it('should execute global plugins for all protocol instances', () => {
-      const globalPlugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      apiRegistry.plugins.add(SseProtocol,globalPlugin);
-
-      const protocol1 = new SseProtocol();
-      const protocol2 = new SseProtocol();
-
-      // Both instances should have access to global plugin
-      const getPlugins = (p: SseProtocol) =>
-        (p as unknown as { getPluginsInOrder: () => SsePluginHooks[] }).getPluginsInOrder();
-
-      expect(getPlugins(protocol1)).toContain(globalPlugin);
-      expect(getPlugins(protocol2)).toContain(globalPlugin);
-    });
-
-    it('should execute instance plugins only for that instance', () => {
-      const instancePlugin: SsePluginHooks = {
-        onConnect: async (ctx) => ctx,
-      };
-
-      const protocol1 = new SseProtocol();
-      const protocol2 = new SseProtocol();
-
-      protocol1.plugins.add(instancePlugin);
-
-      expect(protocol1.plugins.getAll()).toContain(instancePlugin);
-      expect(protocol2.plugins.getAll()).not.toContain(instancePlugin);
-    });
-  });
-
   describe('short-circuit with SseMockPlugin', () => {
     it('should short-circuit with SseMockPlugin returning MockEventSource', async () => {
       const mockPlugin = new SseMockPlugin({

@@ -4,10 +4,17 @@
  * Wraps MFE components with bridge and metadata.
  * Used by the MFE mounting system.
  *
+ * MfeProvider does not create or own a QueryClient. When the host injects the
+ * same QueryClient into each separately mounted MFE root via HAI3Provider,
+ * overlapping queries (same query key) are deduplicated and cached once across
+ * MFE boundaries. Each MFE still uses its own apiRegistry and service
+ * instances in queryFn.
+ *
  * React Layer: L3 (Depends on @hai3/framework)
  */
 // @cpt-flow:cpt-hai3-flow-react-bindings-mfe-provider:p1
 // @cpt-dod:cpt-hai3-dod-react-bindings-mfe-hooks:p1
+// @cpt-flow:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2
 
 import React from 'react';
 import { MfeContext, type MfeContextValue } from './MfeContext';
@@ -46,7 +53,10 @@ export interface MfeProviderProps {
 // @cpt-begin:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-render-mfe-provider
 // @cpt-begin:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-set-mfe-context
 // @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-render-mfe-provider
+// @cpt-begin:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client
 export const MfeProvider: React.FC<MfeProviderProps> = ({ value, children }) => {
+  // MfeProvider only supplies the bridge context. Shared query cache depends on
+  // the host injecting the same QueryClient into each MFE root's HAI3Provider.
   return (
     <MfeContext.Provider value={value}>
       {children}
@@ -56,3 +66,4 @@ export const MfeProvider: React.FC<MfeProviderProps> = ({ value, children }) => 
 // @cpt-end:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-render-mfe-provider
 // @cpt-end:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-set-mfe-context
 // @cpt-end:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-render-mfe-provider
+// @cpt-end:cpt-hai3-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client

@@ -44,6 +44,7 @@
 - REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
 - REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @hai3/react.
 - REQUIRED: registerSlice() and createSlice() from @hai3/react for slice management.
+- FORBIDDEN: Direct `useQueryClient()` in MFE screen code; use `@hai3/react` query hooks and follow `.ai/targets/REACT.md` for restricted cache access.
 - REQUIRED: Shared init.ts module for idempotent MFE bootstrap (module-level side effect).
 - REQUIRED: init.ts ordering: apiRegistry.register() → apiRegistry.initialize() → createHAI3().build() → registerSlice().
 - REQUIRED: Module augmentation for RootState on @hai3/react (not @hai3/state).

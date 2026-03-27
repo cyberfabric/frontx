@@ -26,17 +26,22 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {},
   "devDependencies": {
+    "@vitest/coverage-v8": "^4.0.18",
     "axios": "^1.6.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
     "axios": ">=1.0.0"
   },
+  "sideEffects": true,
   "publishConfig": {
     "access": "public"
   },

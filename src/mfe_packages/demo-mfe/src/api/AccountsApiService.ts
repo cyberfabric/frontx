@@ -6,9 +6,17 @@
  * services into its own isolated apiRegistry instance.
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
 import type { GetCurrentUserResponse } from './types';
 import { accountsMockMap } from './mocks';
+
+export type UpdateProfileVariables = {
+  firstName: string;
+  lastName: string;
+  department?: string;
+};
 
 /**
  * Accounts API Service for the demo MFE.
@@ -33,10 +41,8 @@ export class AccountsApiService extends BaseApiService {
     );
   }
 
-  /**
-   * Get current authenticated user
-   */
-  async getCurrentUser(): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current');
-  }
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-accounts-descriptors
+  readonly getCurrentUser = this.query<GetCurrentUserResponse>('/user/current');
+  readonly updateProfile = this.mutation<GetCurrentUserResponse, UpdateProfileVariables>('PUT', '/user/profile');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-accounts-descriptors
 }

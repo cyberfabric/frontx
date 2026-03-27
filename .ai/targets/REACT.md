@@ -13,6 +13,8 @@
 ## CRITICAL RULES
 - All apps wrapped with `<HAI3Provider>`.
 - Use provided hooks for state access (not raw react-redux).
+- Use `QueryCache` access via `useQueryCache()` or `useApiMutation()` callback context; do not expose raw `QueryClient` to app or MFE code.
+- `useApiQuery` and `useApiMutation` accept endpoint descriptors from services, NOT TanStack-specific options.
 - Screen translations via `useScreenTranslations()` hook.
 - Wrap translated content with `<TextLoader>` to prevent FOUC.
 - NO layout components here (use the configured UI kit or app code).
@@ -32,10 +34,19 @@ function App() {
 
 // OPTIONAL: With configuration
 <HAI3Provider config={{ devMode: true }}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
 
 // OPTIONAL: With pre-built app
 const app = createHAI3().use(screensets()).build();
 <HAI3Provider app={app}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
+
+// OPTIONAL: Reuse a host-owned QueryClient across separate React roots
+<HAI3Provider app={app} queryClient={sharedQueryClient}>
+  <AppRouter fallback={<Loading />} />
+</HAI3Provider>
 ```
 
 ## AVAILABLE HOOKS
@@ -47,8 +58,10 @@ const app = createHAI3().use(screensets()).build();
 | `useAppSelector()` | Typed selector | Selected state |
 | `useTranslation()` | Translation utilities | `{ t, language, setLanguage, isRTL }` |
 | `useScreenTranslations()` | Load screen translations | `{ isLoaded, error }` |
-| `useNavigation()` | Navigation utilities | `{ navigateToScreen, currentScreen }` |
 | `useTheme()` | Theme utilities | `{ currentTheme, themes, setTheme }` |
+| `useApiQuery()` | Declarative data fetch from endpoint descriptor | `ApiQueryResult<TData>` |
+| `useApiMutation()` | Declarative mutation with optimistic update support | `ApiMutationResult<TData>` |
+| `useQueryCache()` | Restricted query cache access | `QueryCache` |
 
 ## SCREEN TRANSLATIONS
 ```tsx
@@ -75,15 +88,50 @@ function HomeScreen() {
 export default HomeScreen;
 ```
 
+## DATA FETCHING PATTERN
+```tsx
+// REQUIRED: Use endpoint descriptors from services
+const service = apiRegistry.getService(AccountsApiService);
+
+// Read — pass descriptor directly
+const { data, isLoading, error } = useApiQuery(service.getCurrentUser);
+
+// Read with params
+const { data } = useApiQuery(service.getUser({ id: '123' }));
+
+// Write — with optimistic update
+const { mutateAsync } = useApiMutation({
+  endpoint: service.updateProfile,
+  onMutate: async (variables, { queryCache }) => {
+    const snapshot = queryCache.get(service.getCurrentUser);
+    queryCache.set(service.getCurrentUser, (old) => ({ ...old, ...variables }));
+    return { snapshot };
+  },
+  onError: (_err, _vars, context, { queryCache }) => {
+    if (context?.snapshot) queryCache.set(service.getCurrentUser, context.snapshot);
+  },
+});
+
+// Per-endpoint cache override (rare)
+const { data } = useApiQuery(service.getConfig, { staleTime: 0 });
+```
+
 ## STOP CONDITIONS
 - Using hooks outside HAI3Provider.
 - Using raw react-redux instead of provided hooks.
+- Exposing TanStack `useQueryClient()` directly to app or MFE code.
+- Importing `queryOptions` from `@tanstack/react-query` or `@hai3/react` in MFE code.
+- Creating `data/` folders with manual query key factories in MFE packages.
 - Adding layout components to this package.
 - Forgetting TextLoader wrapper for translations.
 
 ## PRE-DIFF CHECKLIST
 - [ ] App wrapped with HAI3Provider.
 - [ ] Using provided hooks (not raw react-redux).
+- [ ] Data fetching uses `useApiQuery(service.endpoint)` with endpoint descriptors, not `queryOptions()`.
+- [ ] No `data/` folder with manual query key factories.
+- [ ] Query cache access uses `useQueryCache()` or `useApiMutation()` callback context, not raw `useQueryClient()`.
+- [ ] QueryCache operations use endpoint descriptors (e.g., `queryCache.get(service.endpoint)`), not raw key arrays.
 - [ ] Screen translations lazy loaded.
 - [ ] TextLoader wraps translated content.
 - [ ] Screen component has default export.

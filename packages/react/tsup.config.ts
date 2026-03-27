@@ -18,6 +18,7 @@ export default defineConfig({
     'react-dom',
     'react/jsx-runtime',
     'react-redux',
+    '@tanstack/react-query',
     'use-sync-external-store',
     'use-sync-external-store/shim',
     /^use-sync-external-store/,

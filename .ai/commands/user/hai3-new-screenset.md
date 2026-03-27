@@ -40,12 +40,13 @@ Present the following to the user for approval:
 - **Data Flow**:
   - Events: {domain events per EVENTS.md}
   - State: slices/, events/, effects/, actions/
-  - API: api/{Name}ApiService.ts with mocks
+  - API: api/{Name}ApiService.ts with mocks and endpoint descriptors
+  - NO data/ folder — endpoint descriptors live on the service class
 - **Tasks**:
   - Create screenset: `hai3 screenset create {name}`
   - Create components per Component Plan (BEFORE screen file)
   - Implement data flow per EVENTS.md (actions emit events, effects update slices)
-  - Add API service with mocks
+  - Add API service with mocks and endpoint descriptors (`this.query()`, `this.mutation()`)
   - Validate: `npm run type-check && npm run arch:check && npm run lint`
   - Test via Chrome DevTools MCP
 
@@ -60,7 +61,11 @@ After approval, follow the plan strictly:
    - Actions emit events via eventBus.emit()
    - Effects subscribe and update slices
    - FORBIDDEN: Direct slice dispatch from components
-4) Add API service with mocks.
+4) Add API service with mocks and endpoint descriptors:
+   - Read endpoints: `readonly prop = this.query<T>('/path')`
+   - Write endpoints: `readonly prop = this.mutation<T, V>('PUT', '/path')`
+   - NO data/ folder, NO queryOptions, NO manual query key factories
+   - Screens use `useApiQuery(service.prop)` and `useApiMutation({ endpoint: service.prop })`
 5) Validate: `npm run type-check && npm run arch:check && npm run lint`.
 6) Test via Chrome DevTools MCP (REQUIRED):
    - Navigate to new screenset

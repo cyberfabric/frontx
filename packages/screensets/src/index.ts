@@ -62,6 +62,8 @@ export type {
   // Handler types
   ParentMfeBridge,
   ChildMfeBridge,
+  QueryClientLike,
+  MfeMountContext,
   MfeEntryLifecycle,
 } from './mfe';
 

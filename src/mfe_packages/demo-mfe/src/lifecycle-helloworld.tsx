@@ -1,9 +1,14 @@
 import React from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
+import { ThemeAwareReactLifecycle } from '@hai3/react';
+import { mfeApp } from './init';
 import { HelloWorldScreen } from './screens/helloworld/HelloWorldScreen';
 
 class HelloWorldLifecycle extends ThemeAwareReactLifecycle {
+  constructor() {
+    super(mfeApp);
+  }
+
   protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
     return <HelloWorldScreen bridge={bridge} />;
   }

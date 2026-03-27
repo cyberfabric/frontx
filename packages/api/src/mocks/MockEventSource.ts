@@ -66,6 +66,7 @@ export class MockEventSource implements EventSourceLike {
   /** Delay between events in milliseconds */
   private delay: number;
 
+  // @cpt-begin:cpt-hai3-state-api-communication-mock-event-source:p2:inst-constructor
   constructor(events: readonly SseMockEvent[], delay = 50) {
     this.events = events;
     this.delay = delay;
@@ -73,26 +74,31 @@ export class MockEventSource implements EventSourceLike {
     // Start emitting events asynchronously
     this.startEmitting();
   }
+  // @cpt-end:cpt-hai3-state-api-communication-mock-event-source:p2:inst-constructor
 
   /**
    * Add event listener
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-add-event-listener
   addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set());
     }
     this.listeners.get(type)!.add(listener);
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-add-event-listener
 
   /**
    * Remove event listener
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-remove-event-listener
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
     const listeners = this.listeners.get(type);
     if (listeners) {
       listeners.delete(listener);
     }
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-remove-event-listener
 
   /**
    * Close the connection
@@ -164,6 +170,7 @@ export class MockEventSource implements EventSourceLike {
   /**
    * Emit an event to registered listeners
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-emit-event
   private emitEvent(type: string, event: Event | MessageEvent): void {
     const listeners = this.listeners.get(type);
     if (listeners) {
@@ -183,10 +190,12 @@ export class MockEventSource implements EventSourceLike {
       this.onerror.call(this as unknown as EventSource, event);
     }
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-emit-event
 
   /**
    * Sleep with abort signal support
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-sleep-abort
   private sleep(ms: number, signal: AbortSignal): Promise<void> {
     return new Promise((resolve, reject) => {
       const timeout = setTimeout(resolve, ms);
@@ -198,4 +207,5 @@ export class MockEventSource implements EventSourceLike {
       });
     });
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-mock-event-source:p2:inst-sleep-abort
 }

@@ -27,7 +27,21 @@ export {
   useScreenTranslations,
   useFormatters,
   useTheme,
+  useApiQuery,
+  useApiMutation,
+  useApiStream,
+  useQueryCache,
 } from './hooks';
+
+export type { ApiQueryOverrides } from './hooks/useApiQuery';
+export type { UseApiMutationOptions } from './hooks/useApiMutation';
+export type { ApiStreamOptions, ApiStreamResult } from './hooks/useApiStream';
+export type {
+  QueryCache,
+  QueryCacheInvalidateFilters,
+  QueryCacheState,
+  MutationCallbackContext,
+} from './hooks/QueryCache';
 
 // ============================================================================
 // MFE Context and Hooks
@@ -38,6 +52,8 @@ export {
   useMfeContext,
   MfeProvider,
   useMfeBridge,
+  executeActionsChainWithMountContext,
+  ThemeAwareReactLifecycle,
   useSharedProperty,
   useHostAction,
   useDomainExtensions,
@@ -45,6 +61,8 @@ export {
   useActivePackage,
   RefContainerProvider,
   ExtensionDomainSlot,
+  bootstrapMfeDomains,
+  DetachedContainerProvider,
 } from './mfe';
 
 export type {
@@ -66,6 +84,8 @@ export type {
   UseScreenTranslationsReturn,
   UseFormattersReturn,
   UseThemeReturn,
+  ApiQueryResult,
+  ApiMutationResult,
 } from './types';
 
 // ============================================================================
@@ -225,6 +245,14 @@ export type {
   HAI3Plugin,
   HAI3AppBuilder,
   HAI3App,
+  // Endpoint descriptors — L3 components import from @hai3/react
+  EndpointOptions,
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  // Stream descriptors
+  StreamDescriptor,
+  StreamStatus,
   PluginFactory,
   PluginProvides,
   PluginLifecycle,
@@ -381,6 +409,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
+  MfeMountContext,
   Extension,
   ScreenExtension,
   ExtensionPresentation,

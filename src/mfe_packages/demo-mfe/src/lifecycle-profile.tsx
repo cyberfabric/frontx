@@ -1,9 +1,14 @@
 import React from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
+import { ThemeAwareReactLifecycle } from '@hai3/react';
+import { mfeApp } from './init';
 import { ProfileScreen } from './screens/profile/ProfileScreen';
 
 class ProfileLifecycle extends ThemeAwareReactLifecycle {
+  constructor() {
+    super(mfeApp);
+  }
+
   protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
     return <ProfileScreen bridge={bridge} />;
   }

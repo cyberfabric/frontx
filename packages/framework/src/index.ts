@@ -29,9 +29,11 @@ export {
   layout,
   i18n,
   effects,
+  queryCache,
   mock,
   microfrontends,
   type MockPluginConfig,
+  type QueryCacheConfig,
 } from './plugins';
 
 // MFE Plugin Exports
@@ -78,6 +80,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
+  MfeMountContext,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -371,6 +374,14 @@ export type {
   RestMockConfig,
   SseMockConfig,
   SseMockEvent,
+  // Endpoint descriptor types (consumed by useApiQuery / useApiMutation at L3)
+  EndpointOptions,
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  // Stream descriptor types (consumed by useApiStream at L3)
+  StreamDescriptor,
+  StreamStatus,
 } from '@hai3/api';
 
 

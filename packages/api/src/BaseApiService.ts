@@ -18,7 +18,15 @@ import type {
   ApiProtocol,
   ApiPluginBase,
   PluginClass,
+  HttpMethod,
+  EndpointDescriptor,
+  EndpointOptions,
+  MutationDescriptor,
+  ParameterizedEndpointDescriptor,
+  StreamDescriptor,
 } from './types';
+import { RestProtocol } from './protocols/RestProtocol';
+import { SseProtocol } from './protocols/SseProtocol';
 
 /**
  * BaseApiService Implementation
@@ -70,6 +78,16 @@ export abstract class BaseApiService {
       );
       this.protocols.set(protocol.constructor.name, protocol);
     });
+
+    // Retain descriptor factory methods on the prototype in Module Federation
+    // shared chunks. These protected methods are only called from subclass
+    // field initializers (in MFE expose chunks), making them invisible to the
+    // shared-chunk dependency graph. Without these anchors, esbuild/Rollup may
+    // strip them and MFE services hit "this.query is not a function".
+    void this.query;
+    void this.queryWith;
+    void this.mutation;
+    void this.stream;
   }
   // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
 
@@ -141,9 +159,11 @@ export abstract class BaseApiService {
      * console.log(`${excluded.length} plugin classes excluded`);
      * ```
      */
+    // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded
     getExcluded: (): readonly PluginClass[] => {
       return Array.from(this.excludedPluginClasses);
     },
+    // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded
 
     /**
      * Get all service-specific plugins.
@@ -157,9 +177,11 @@ export abstract class BaseApiService {
      * console.log(`${plugins.length} service plugins registered`);
      * ```
      */
+    // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-all
     getAll: (): readonly ApiPluginBase[] => {
       return [...this.servicePlugins];
     },
+    // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-all
 
     /**
      * Get a plugin instance by class reference.
@@ -181,6 +203,7 @@ export abstract class BaseApiService {
      * const auth = service.plugins.getPlugin(AuthPlugin);
      * ```
      */
+    // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-plugin
     getPlugin: <T extends ApiPluginBase>(
       pluginClass: new (...args: never[]) => T
     ): T | undefined => {
@@ -192,6 +215,7 @@ export abstract class BaseApiService {
       );
       return servicePlugin as T | undefined;
     },
+    // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-plugins-get-plugin
   };
 
   // ============================================================================
@@ -206,11 +230,13 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-in-order
   protected getMergedPluginsInOrder(): readonly ApiPluginBase[] {
     // Return only service plugins
     // Protocol-level global plugins are now queried directly by protocols via apiRegistry
     return [...this.servicePlugins];
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-in-order
 
   /**
    * Get excluded plugin classes.
@@ -220,9 +246,11 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded-classes
   protected getExcludedPluginClasses(): ReadonlySet<PluginClass> {
     return this.excludedPluginClasses;
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-get-excluded-classes
 
   /**
    * Get merged plugins in reverse order.
@@ -232,9 +260,11 @@ export abstract class BaseApiService {
    *
    * @internal
    */
+  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-reversed
   protected getMergedPluginsReversed(): readonly ApiPluginBase[] {
     return [...this.getMergedPluginsInOrder()].reverse();
   }
+  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-merged-reversed
 
 
   // ============================================================================
@@ -267,7 +297,8 @@ export abstract class BaseApiService {
    */
   // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
   registerPlugin(protocol: ApiProtocol, plugin: ApiPluginBase): void {
-    if (!this.protocols.has(protocol.constructor.name)) {
+    const registered = this.protocols.get(protocol.constructor.name);
+    if (registered !== protocol) {
       throw new Error(
         `Protocol "${protocol.constructor.name}" not registered on this service`
       );
@@ -301,9 +332,11 @@ export abstract class BaseApiService {
    * }
    * ```
    */
+  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-plugins
   getPlugins(): ReadonlyMap<ApiProtocol, ReadonlySet<ApiPluginBase>> {
     return this.registeredPluginsMap;
   }
+  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-get-plugins
 
   // ============================================================================
   // Protocol Access
@@ -317,6 +350,7 @@ export abstract class BaseApiService {
    * @returns The protocol instance
    * @throws Error if protocol not registered
    */
+  // @cpt-begin:cpt-hai3-dod-api-communication-base-service:p1:inst-protocol-accessor
   protected protocol<T extends ApiProtocol>(
     type: new (...args: never[]) => T
   ): T {
@@ -330,6 +364,204 @@ export abstract class BaseApiService {
 
     return protocol as T;
   }
+  // @cpt-end:cpt-hai3-dod-api-communication-base-service:p1:inst-protocol-accessor
+
+  // ============================================================================
+  // Endpoint Descriptor Factory Methods
+  // ============================================================================
+
+  // @cpt-FEATURE:implement-endpoint-descriptors:p1
+
+  /**
+   * Create a static read endpoint descriptor.
+   *
+   * The cache key is derived from `[baseURL, method, path]` — no manual key
+   * factory is needed. The fetch function forwards the AbortSignal so that
+   * query libraries can cancel in-flight requests on unmount or re-fetch.
+   *
+   * @template TData - Response data type
+   * @param path    - Relative path (e.g. '/user/current')
+   * @param options - Optional cache hint overrides (staleTime, gcTime)
+   *
+   * @example
+   * ```typescript
+   * readonly getCurrentUser = this.query<User>('/user/current');
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-query
+  protected query<TData>(
+    path: string,
+    options?: EndpointOptions
+  ): EndpointDescriptor<TData> {
+    const key = [this.config.baseURL, 'GET', path] as const;
+
+    return {
+      key,
+      fetch: ({ signal } = {}) =>
+        this.dispatchRequest<TData>('GET', path, undefined, signal),
+      ...(options?.staleTime !== undefined && { staleTime: options.staleTime }),
+      ...(options?.gcTime !== undefined && { gcTime: options.gcTime }),
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-query
+
+  /**
+   * Create a parameterized read endpoint descriptor factory.
+   *
+   * Returns a function. When called with runtime params, the function returns a
+   * concrete `EndpointDescriptor` whose cache key includes both the resolved
+   * path and the params object: `[baseURL, method, resolvedPath, params]`.
+   *
+   * @template TData   - Response data type
+   * @template TParams - Runtime parameters object type
+   * @param pathFn  - Function that maps params to a relative path string
+   * @param options - Optional cache hint overrides (staleTime, gcTime)
+   *
+   * @example
+   * ```typescript
+   * readonly getUser = this.queryWith<User, { id: string }>(
+   *   (p) => `/user/${p.id}`
+   * );
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-query-with
+  protected queryWith<TData, TParams>(
+    pathFn: (params: TParams) => string,
+    options?: EndpointOptions
+  ): ParameterizedEndpointDescriptor<TData, TParams> {
+    return (params: TParams): EndpointDescriptor<TData> => {
+      const resolvedPath = pathFn(params);
+      const key = [this.config.baseURL, 'GET', resolvedPath, { ...params }] as const;
+
+      return {
+        key,
+        fetch: ({ signal } = {}) =>
+          this.dispatchRequest<TData>('GET', resolvedPath, undefined, signal),
+        ...(options?.staleTime !== undefined && { staleTime: options.staleTime }),
+        ...(options?.gcTime !== undefined && { gcTime: options.gcTime }),
+      };
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-query-with
+
+  /**
+   * Create a write endpoint descriptor.
+   *
+   * The cache key is derived from `[baseURL, method, path]`. The fetch function
+   * passes the variables object as the HTTP request body and forwards an optional
+   * `AbortSignal` (same pattern as `query()` descriptors).
+   *
+   * @template TData      - Response data type
+   * @template TVariables - Mutation variables / request body type
+   * @param method - HTTP method (e.g. 'PUT', 'POST', 'PATCH', 'DELETE')
+   * @param path   - Relative path (e.g. '/user/profile')
+   *
+   * @example
+   * ```typescript
+   * readonly updateProfile = this.mutation<User, ProfileUpdate>('PUT', '/user/profile');
+   * ```
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-mutation
+  protected mutation<TData, TVariables>(
+    method: HttpMethod,
+    path: string
+  ): MutationDescriptor<TData, TVariables> {
+    const key = [this.config.baseURL, method, path] as const;
+
+    return {
+      key,
+      fetch: (variables: TVariables, options?: { signal?: AbortSignal }) =>
+        this.dispatchRequest<TData>(method, path, variables, options?.signal),
+    };
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-mutation
+
+  /**
+   * Create an SSE stream endpoint descriptor.
+   *
+   * The key is derived from `[baseURL, 'SSE', path]`. The connect function
+   * delegates to SseProtocol, running the full plugin chain (including mock
+   * short-circuit). A `parse` option can transform the raw `MessageEvent`
+   * into a typed payload; when omitted, `JSON.parse(event.data)` is used.
+   *
+   * @template TEvent - Shape of each parsed SSE event payload.
+   * @param path    - Relative SSE endpoint path (e.g. '/stream/messages')
+   * @param options - Optional parse function override
+   *
+   * @example
+   * ```typescript
+   * readonly messageStream = this.stream<ChatMessage>('/stream/messages');
+   *
+   * // With custom parser
+   * readonly rawStream = this.stream<string>('/stream/raw', {
+   *   parse: (event) => event.data,
+   * });
+   * ```
+   */
+  // @cpt-begin:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-factory
+  protected stream<TEvent>(
+    path: string,
+    options?: { parse?: (event: MessageEvent) => TEvent }
+  ): StreamDescriptor<TEvent> {
+    const key = [this.config.baseURL, 'SSE', path] as const;
+    const parse = options?.parse ?? ((event: MessageEvent) => JSON.parse(event.data) as TEvent);
+
+    return {
+      key,
+      connect: (onEvent, onComplete) => {
+        const sse = this.protocol(SseProtocol);
+        return sse.connect(
+          path,
+          (event: MessageEvent) => onEvent(parse(event)),
+          onComplete,
+        );
+      },
+      disconnect: (connectionId) => {
+        const sse = this.protocol(SseProtocol);
+        sse.disconnect(connectionId);
+      },
+    };
+  }
+  // @cpt-end:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-factory
+
+  /**
+   * Dispatch an HTTP request through the RestProtocol.
+   * Routes to the correct protocol method based on the HTTP method string.
+   *
+   * **Requires a registered RestProtocol** — calling this on a service that only
+   * registers non-REST protocols (e.g., SseProtocol) will throw at runtime via
+   * `this.protocol(RestProtocol)`. Endpoint descriptors are REST-only by design;
+   * future protocol support (e.g., GraphQL) would add protocol-specific descriptor
+   * factory methods rather than extending this dispatcher.
+   *
+   * DELETE and GET carry no body; POST/PUT/PATCH forward the data argument.
+   */
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-dispatch
+  private dispatchRequest<TData>(
+    method: HttpMethod,
+    path: string,
+    data: unknown,
+    signal: AbortSignal | undefined
+  ): Promise<TData> {
+    const rest = this.protocol(RestProtocol);
+
+    switch (method) {
+      case 'GET':
+        return rest.get<TData>(path, { signal });
+      case 'DELETE':
+        return rest.delete<TData>(path, { signal });
+      case 'POST':
+        return rest.post<TData>(path, data, { signal });
+      case 'PUT':
+        return rest.put<TData>(path, data, { signal });
+      case 'PATCH':
+        return rest.patch<TData>(path, data, { signal });
+      default:
+        // HEAD and OPTIONS are not meaningful for descriptor-based endpoints
+        throw new Error(`HttpMethod "${method}" is not supported by endpoint descriptors`);
+    }
+  }
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-dispatch
 
   // ============================================================================
   // Cleanup

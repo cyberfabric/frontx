@@ -5,6 +5,7 @@
  * Validates API Communication feature acceptance criteria for cross-cutting plugins.
  */
 
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { SseProtocol } from '../protocols/SseProtocol';
 import { apiRegistry } from '../apiRegistry';
@@ -201,6 +202,8 @@ describe('Cross-cutting plugins', () => {
           },
         };
       }
+
+      destroy(): void {}
     }
 
     const authPlugin = new AuthCrossCuttingPlugin();

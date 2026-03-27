@@ -1,12 +1,26 @@
-import React, { useEffect, useRef, useState } from 'react';
+// @cpt-FEATURE:request-cancellation:p2
+// @cpt-FEATURE:implement-endpoint-descriptors:p4
+
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE, useAppSelector } from '@hai3/react';
+import {
+  HAI3_SHARED_PROPERTY_THEME,
+  HAI3_SHARED_PROPERTY_LANGUAGE,
+  useApiQuery,
+  useApiMutation,
+  apiRegistry,
+} from '@hai3/react';
 import { Card, CardContent, CardFooter } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
-import { fetchUser } from '../../actions/profileActions';
-import type { ApiUser } from '../../api/types';
+import { AccountsApiService, type UpdateProfileVariables } from '../../api/AccountsApiService';
+import type { GetCurrentUserResponse } from '../../api/types';
+import { ProfileDetailsCard, type ProfileFormValues } from './components/ProfileDetailsCard';
+
+type UpdateProfileContext = {
+  snapshot: GetCurrentUserResponse | undefined;
+};
 
 /**
  * Props for the ProfileScreen component.
@@ -24,32 +38,91 @@ const languageModules = import.meta.glob('./i18n/*.json') as Record<
 /**
  * Profile Screen for the MFE remote.
  *
- * Displays user profile information with full state management:
+ * Displays user profile information backed by TanStack Query:
  * - Loading state (skeleton placeholders)
  * - Error state (error message + Retry button)
- * - No-data state (message + Load User button)
- * - Data state (full user profile display)
+ * - Data state (full user profile display + editable profile form)
  *
- * Uses local UI components and i18n for all text.
- * State is backed by the MFE-local Redux store (via useAppSelector).
- * Data fetching is triggered via the flux actions/events/effects pattern.
+ * The edit flow demonstrates the full optimistic-update pattern:
+ *   onMutate  -> snapshot + optimistic set via queryCache
+ *   onError   -> rollback via queryCache.set with snapshot
+ *   onSettled -> invalidate to refetch authoritative state
  */
+// @cpt-begin:request-cancellation:p2:inst-profile-screen
+// @cpt-begin:implement-endpoint-descriptors:p4:inst-demo-profile-screen
 export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [theme, setTheme] = useState<string>('default');
   const [language, setLanguage] = useState<string>('en');
 
+  const service = apiRegistry.getService(AccountsApiService);
+
   // Load translations using the shared hook
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
-  // Store-backed state (replaces useState for userData/loading/error)
-  const user = useAppSelector((state) => state['demo/profile'].user);
-  const loading = useAppSelector((state) => state['demo/profile'].loading);
-  const error = useAppSelector((state) => state['demo/profile'].error);
+  // TanStack Query — declarative fetch with automatic AbortSignal threading
+  const { data, isLoading, isError, error, refetch } = useApiQuery(
+    service.getCurrentUser
+  );
+
+  // Mutation: update profile name fields with optimistic update + rollback
+  const {
+    mutateAsync: updateProfile,
+    isPending: isUpdating,
+    error: updateError,
+  } = useApiMutation<GetCurrentUserResponse, Error, UpdateProfileVariables, UpdateProfileContext>({
+    endpoint: service.updateProfile,
+
+    onMutate: async (variables, { queryCache }) => {
+      // Cancel any in-flight refetch so it doesn't overwrite the optimistic value.
+      await queryCache.cancel(service.getCurrentUser);
+
+      const snapshot = queryCache.get<GetCurrentUserResponse>(service.getCurrentUser);
+
+      queryCache.set<GetCurrentUserResponse>(service.getCurrentUser, (old) => {
+        if (!old) {
+          return old;
+        }
+
+        return {
+          user: {
+            ...old.user,
+            firstName: variables.firstName,
+            lastName: variables.lastName,
+            updatedAt: new Date().toISOString(),
+            extra: {
+              ...old.user.extra,
+              department: variables.department,
+            },
+          },
+        };
+      });
+
+      return { snapshot };
+    },
+
+    onError: (_error, _variables, context, { queryCache }) => {
+      if (context?.snapshot !== undefined) {
+        queryCache.set(service.getCurrentUser, context.snapshot);
+      }
+    },
+
+    onSettled: async (_data, _error, _variables, _context, { queryCache: _queryCache }) => {
+      // Experiment mode: keep the shared cached value instead of invalidating,
+      // because the second MFE uses its own mock backend state.
+      void _queryCache;
+    },
+  });
+
+  const handleProfileSave = useCallback(
+    async (values: ProfileFormValues) => {
+      await updateProfile(values);
+    },
+    [updateProfile]
+  );
 
   // Subscribe to theme and language domain properties
   useEffect(() => {
-    // Read initial property values
     const initialTheme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);
     if (initialTheme && typeof initialTheme.value === 'string') {
       setTheme(initialTheme.value);
@@ -59,14 +132,12 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
       setLanguage(initialLang.value);
     }
 
-    // Subscribe to theme domain property
     const themeUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_THEME, (property) => {
       if (typeof property.value === 'string') {
         setTheme(property.value);
       }
     });
 
-    // Subscribe to language domain property
     const languageUnsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
       if (typeof property.value === 'string') {
         setLanguage(property.value);
@@ -79,17 +150,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
       }
     });
 
-    // Cleanup subscriptions on unmount
     return () => {
       themeUnsubscribe();
       languageUnsubscribe();
     };
   }, [bridge]);
-
-  // Fetch user data on mount via flux action
-  useEffect(() => {
-    fetchUser();
-  }, []);
 
   // Show skeleton loader while translations are loading
   if (translationsLoading) {
@@ -110,7 +175,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   }
 
   // LOADING STATE: Show skeleton placeholders
-  if (loading) {
+  if (isLoading) {
     return (
       <div ref={containerRef} className="p-8">
         <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
@@ -134,7 +199,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   }
 
   // ERROR STATE: Show error message + Retry button
-  if (error) {
+  if (isError) {
     return (
       <div ref={containerRef} className="p-8">
         <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
@@ -142,29 +207,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
           <CardContent className="p-6">
             <p className="text-red-600 mb-4">
               {t('error_prefix')}
-              {error}
+              {error?.message ?? 'Unknown error'}
             </p>
           </CardContent>
           <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUser}>{t('retry')}</Button>
-          </CardFooter>
-        </Card>
-      </div>
-    );
-  }
-
-  // NO-DATA STATE: Show message + Load User button
-  if (!user) {
-    return (
-      <div ref={containerRef} className="p-8">
-        <h1 className="text-3xl font-bold mb-4">{t('title')}</h1>
-        <p className="text-muted-foreground mb-6">{t('welcome')}</p>
-        <Card>
-          <CardContent className="p-6">
-            <p className="text-muted-foreground mb-4">{t('no_user_data')}</p>
-          </CardContent>
-          <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUser}>{t('load_user')}</Button>
+            <Button onClick={() => void refetch()}>{t('retry')}</Button>
           </CardFooter>
         </Card>
       </div>
@@ -172,7 +219,11 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
   }
 
   // DATA STATE: Display full user profile
-  const userData: ApiUser = user;
+  const userData = data?.user;
+
+  if (!userData) {
+    return null;
+  }
 
   return (
     <div ref={containerRef} className="p-8">
@@ -180,62 +231,14 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
       <p className="text-muted-foreground mb-6">{t('welcome')}</p>
 
       <div className="max-w-2xl space-y-4">
-        {/* Profile Card */}
-        <Card>
-          <CardContent className="p-6">
-            {/* Avatar */}
-            <div className="mb-6">
-              {userData.avatarUrl && (
-                <img
-                  src={userData.avatarUrl}
-                  alt={`${userData.firstName} ${userData.lastName}`}
-                  className="w-20 h-20 rounded-full"
-                />
-              )}
-            </div>
-
-            {/* User name and email */}
-            <div className="mb-6">
-              <h2 className="text-2xl font-semibold mb-2">
-                {userData.firstName} {userData.lastName}
-              </h2>
-              <p className="text-foreground font-mono text-sm">{userData.email}</p>
-            </div>
-
-            {/* Labeled fields */}
-            <dl className="grid gap-3">
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">{t('role_label')}</dt>
-                <dd className="text-foreground">{userData.role}</dd>
-              </div>
-              {userData.extra?.department !== undefined && (
-                <div>
-                  <dt className="text-sm font-medium text-muted-foreground">{t('department_label')}</dt>
-                  <dd className="text-foreground">{String(userData.extra.department)}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">{t('id_label')}</dt>
-                <dd className="text-foreground font-mono text-sm">{userData.id}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">{t('created_label')}</dt>
-                <dd className="text-foreground text-sm">
-                  {new Date(userData.createdAt).toLocaleString()}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">{t('last_updated_label')}</dt>
-                <dd className="text-foreground text-sm">
-                  {new Date(userData.updatedAt).toLocaleString()}
-                </dd>
-              </div>
-            </dl>
-          </CardContent>
-          <CardFooter className="p-6 pt-0">
-            <Button onClick={fetchUser}>{t('refresh')}</Button>
-          </CardFooter>
-        </Card>
+        <ProfileDetailsCard
+          user={userData}
+          isSaving={isUpdating}
+          saveErrorMessage={updateError?.message}
+          t={t}
+          onRefresh={() => void refetch()}
+          onSubmit={handleProfileSave}
+        />
 
         {/* Bridge Info Card (for debugging) */}
         <Card>
@@ -265,5 +268,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
     </div>
   );
 };
+// @cpt-end:implement-endpoint-descriptors:p4:inst-demo-profile-screen
+// @cpt-end:request-cancellation:p2:inst-profile-screen
 
 ProfileScreen.displayName = 'ProfileScreen';

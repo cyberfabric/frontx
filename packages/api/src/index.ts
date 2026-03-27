@@ -39,11 +39,20 @@ export type {
   SsePluginHooks,
   RestRequestContext,
   RestResponseContext,
+  RestRequestOptions,
   ApiPluginErrorContext,
   SseConnectContext,
   EventSourceLike,
   RestShortCircuitResponse,
   SseShortCircuitResponse,
+  // Endpoint descriptor types
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  EndpointOptions,
+  // Stream descriptor types
+  StreamDescriptor,
+  StreamStatus,
 } from './types';
 
 // Re-export mock config types from plugin files

@@ -1,8 +1,6 @@
 /**
  * Accounts Domain - API Service
  * Service for accounts domain (users, tenants, authentication, permissions)
- *
- * Application-specific service (copied from CLI template)
  */
 
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
@@ -35,14 +33,5 @@ export class AccountsApiService extends BaseApiService {
     );
   }
 
-  /**
-   * Get current authenticated user
-   */
-  async getCurrentUser(): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current');
-  }
+  readonly getCurrentUser = this.query<GetCurrentUserResponse>('/user/current');
 }
-
-// NOTE: With class-based API registration, register services using:
-// import { AccountsApiService, apiRegistry } from '@/api';
-// apiRegistry.register(AccountsApiService);

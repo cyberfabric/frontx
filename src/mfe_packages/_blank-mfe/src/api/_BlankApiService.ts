@@ -3,7 +3,10 @@
  * Replace '_Blank' with your screenset name.
  */
 
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
 import { BaseApiService, RestProtocol, RestMockPlugin } from '@hai3/react';
+import type { GetBlankStatusResponse } from './types';
 import { blankMockMap } from './mocks';
 
 /**
@@ -26,4 +29,8 @@ export class _BlankApiService extends BaseApiService {
       })
     );
   }
+
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-blank-descriptors
+  readonly getStatus = this.query<GetBlankStatusResponse>('/status');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-blank-descriptors
 }

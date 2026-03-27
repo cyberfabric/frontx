@@ -53,7 +53,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-symbol-based-mock-plugin-identification`,
 `cpt-hai3-adr-global-shared-property-broadcast`,
 `cpt-hai3-adr-cli-template-based-code-generation`,
-`cpt-hai3-adr-two-tier-cli-e2e-verification`
+`cpt-hai3-adr-two-tier-cli-e2e-verification`,
+`cpt-hai3-adr-tanstack-query-data-management`
 
 #### Functional Drivers
 
@@ -88,6 +89,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-hai3-fr-sse-mock-mode` | `SseMockPlugin` short-circuits `EventSource` creation; returns `MockEventSource` for dev/test environments |
 | `cpt-hai3-fr-sse-protocol-registry` | `BaseApiService` uses protocol registry; protocols registered by constructor name via type-safe `protocol<T>()` |
 | `cpt-hai3-fr-sse-type-safe-events` | SSE events typed via `EventPayloadMap` module augmentation for compile-time safety |
+| `cpt-hai3-fr-sse-stream-descriptors` | `BaseApiService.stream<TEvent>()` returns `StreamDescriptor` with `connect`/`disconnect`; `useApiStream` hook manages lifecycle |
 | `cpt-hai3-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
 | `cpt-hai3-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
 | `cpt-hai3-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
@@ -335,7 +337,7 @@ All packages output ESM as the primary module format. `package.json` files inclu
 │  │ @hai3/  │  │  @hai3/react │  │  app-owned UI        │ │
 │  │ studio  │  │  HAI3Provider │  │  components          │ │
 │  └─────────┘  │  hooks        │  └──────────────────────┘ │
-│               │  MfeContainer │                           │
+│               │  ExtensionDomainSlot │                   │
 │               └──────┬───────┘                            │
 │                      │ depends on                         │
 │               ┌──────▼───────┐                            │
@@ -414,7 +416,7 @@ Defines the contract between the host application and microfrontend extensions. 
 ##### Related components (by ID)
 
 - `cpt-hai3-component-framework` — depends on: framework's `microfrontends()` plugin orchestrates MFE lifecycle using screensets API
-- `cpt-hai3-component-react` — depends on: `MfeContainer` component renders loaded MFE content
+- `cpt-hai3-component-react` — depends on: `ExtensionDomainSlot` renders loaded MFE content into host-managed domain containers
 
 #### @hai3/api (L1)
 
@@ -430,6 +432,7 @@ Provides a unified API service layer that abstracts protocol differences (REST, 
 - **Protocol registry**: Registers protocol adapters (REST via Axios, SSE via EventSource) that can be switched at runtime
 - **REST adapter**: Standard HTTP operations with Axios; interceptors for auth, retry, error mapping
 - **SSE adapter**: Server-Sent Events connection management with typed event streams
+- **Stream descriptors**: `this.stream<TEvent>(path)` returns `StreamDescriptor` routing through `SseProtocol` plugin chain; consumed by `useApiStream` at L3
 - **Mock mode**: `RestMockPlugin` and `SseMockPlugin` provide mock responses; `toggleMockMode` action switches at runtime
 - **Type-safe events**: SSE event types are generic-parameterized for compile-time safety
 
@@ -515,9 +518,11 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 
 ##### Responsibility scope
 
-- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, and framework context
+- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, framework context, and a `QueryClientProvider` (TanStack Query). It can either create its own `QueryClient` or reuse an injected host-owned client so separately mounted MFE roots share one cache. Subscribes synchronously to `cache/invalidate` events from EventBus for L2 Flux effect integration.
 - **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
-- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation
+- **Query hooks**: `useApiQuery()` for declarative reads with caching/deduplication, `useApiMutation()` for writes with optimistic updates via `QueryCache`, and `useQueryCache()` as the sanctioned imperative cache API. `QueryCache` exposes `get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, and `remove`. `queryClient` is internal — app and MFE code use `QueryCache`, not raw TanStack APIs. `useQueryClient` is NOT exported from `@hai3/react`.
+- **Query key factories**: Per-domain factories in `packages/react/src/queries/` with `@domain` prefix convention (e.g., `['@accounts', 'current-user']`). Use `queryOptions()` with an explicit typed service dependency resolved once per module or injected into the factory.
+- **MFE rendering**: `ExtensionDomainSlot` drives host-side mount/unmount for domain content, while `RefContainerProvider` lets the framework resolve the same DOM node that React renders. Host bootstrap registers domains/extensions/shared properties and returns screen extensions for route selection; the host screen container renders `ExtensionDomainSlot`, and every `mount_ext` path carries the same host-owned `QueryClient` via mount context. MFEs still render inside Shadow DOM and do not inherit host React context directly.
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
 - **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
 
@@ -526,6 +531,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - Does NOT define the store, event bus, or action system — uses `cpt-hai3-component-framework`
 - Does NOT define UI component implementations — uses application/screenset local UI
 - Does NOT manage MFE loading or blob URL creation — uses `cpt-hai3-component-screensets` via framework
+- Does NOT own the caching library — `BaseApiService` (L1) carries endpoint descriptors with transport metadata and cache hints; the `queryCache()` plugin (L2) owns the `QueryClient`; `@hai3/react` (L3) maps descriptors to library-specific hooks.
 
 ##### Related components (by ID)
 
@@ -650,6 +656,16 @@ interface ApiService<T> {
 }
 ```
 
+Stream descriptors extend the service interface to SSE:
+
+```typescript
+interface StreamDescriptor<TEvent> {
+  readonly key: readonly unknown[];   // [baseURL, 'SSE', path]
+  connect(onEvent: (event: TEvent) => void, onComplete?: () => void): Promise<string>;
+  disconnect(connectionId: string): void;
+}
+```
+
 - [x] `p1` - **ID**: `cpt-hai3-interface-shared-property`
 - **Contract**: cpt-hai3-contract-shared-property
 - **Technology**: TypeScript interface
@@ -669,7 +685,7 @@ interface SharedPropertyBridge {
 |-----------|---------|-------------|
 | `cpt-hai3-interface-state` | `@hai3/state` | Event-driven state management with EventBus, Redux-backed store, dynamic slice registration, and type-safe module augmentation |
 | `cpt-hai3-interface-screensets` | `@hai3/screensets` | MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
-| `cpt-hai3-interface-api` | `@hai3/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards |
+| `cpt-hai3-interface-api` | `@hai3/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards, endpoint/stream descriptors |
 | `cpt-hai3-interface-i18n` | `@hai3/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-hai3-interface-framework` | `@hai3/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-hai3-interface-react` | `@hai3/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
@@ -831,10 +847,10 @@ sequenceDiagram
     FW->>FW: propagate theme
     FW->>FW: propagate i18n
     FW->>Host: MFE ready
-    Host->>Host: MfeContainer renders in Shadow DOM
+    Host->>Host: ExtensionDomainSlot renders in host screen container
 ```
 
-**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@hai3/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer renders the MFE content inside a Shadow DOM container for CSS isolation.
+**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@hai3/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer uses `ExtensionDomainSlot` plus a host-managed container provider to render the MFE into a Shadow DOM container for CSS isolation.
 
 #### Shared Property Broadcast
 

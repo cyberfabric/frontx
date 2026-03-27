@@ -128,6 +128,14 @@ export default [
               message:
                 'LAYER VIOLATION: App-layer code must import from @hai3/react, not directly from @hai3/screensets (Layer 1).',
             },
+            // TanStack Query - use HAI3 wrappers instead
+            {
+              group: ['@tanstack/react-query'],
+              message:
+                'QUERY VIOLATION: Do not import from @tanstack/react-query directly. ' +
+                'Use useApiQuery, useApiMutation, useApiStream, or useQueryCache from @hai3/react. ' +
+                'HAI3Provider already includes QueryClientProvider.',
+            },
             // Redux term bans - use HAI3 state terms instead
             {
               group: ['react-redux'],
@@ -190,6 +198,8 @@ export default [
       'local/no-inline-styles': 'error',
       'local/uikit-no-business-logic': 'off',
       'local/screen-inline-components': 'off',
+      'local/no-direct-tanstack-hooks': 'off',
+      'local/no-manual-query-keys': 'off',
 
       // Type safety: Discourage loose types
       'no-restricted-syntax': [
@@ -289,6 +299,20 @@ export default [
     files: ['src/screensets/**/screens/**/*Screen.tsx'],
     rules: {
       'local/screen-inline-components': 'error',
+    },
+  },
+
+  // Data Layer: Enforce HAI3 query wrappers (no direct TanStack hooks or manual cache keys)
+  {
+    files: [
+      'src/screensets/**/*.{ts,tsx}',
+      'src/app/**/*.{ts,tsx}',
+      'src/mfe_packages/*/src/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'local/no-direct-tanstack-hooks': 'error',
+      'local/no-manual-query-keys': 'error',
     },
   },
 

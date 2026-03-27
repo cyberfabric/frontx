@@ -224,6 +224,8 @@ export interface ApiRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -420,7 +422,25 @@ export interface RestRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** AbortSignal for request cancellation */
+  readonly signal?: AbortSignal;
 }
+
+// @cpt-FEATURE:cpt-hai3-dod-request-lifecycle-abort-signal:p1
+// @cpt-begin:cpt-hai3-algo-request-lifecycle-request-options:p1:inst-define-options
+/**
+ * REST Request Options
+ * Per-request options for REST protocol HTTP methods.
+ * Enables request cancellation via AbortSignal and query parameter passing
+ * without mixing concerns into the method signature directly.
+ */
+export interface RestRequestOptions {
+  /** AbortSignal for request cancellation */
+  signal?: AbortSignal;
+  /** Query parameters */
+  params?: Record<string, string>;
+}
+// @cpt-end:cpt-hai3-algo-request-lifecycle-request-options:p1:inst-define-options
 
 /**
  * SSE Connect Context
@@ -625,11 +645,13 @@ export interface SseShortCircuitResponse {
  * @param result - Plugin onRequest result
  * @returns True if result is a REST short-circuit response
  */
+// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-rest-short-circuit
 export function isRestShortCircuit(
   result: RestRequestContext | RestShortCircuitResponse | undefined
 ): result is RestShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as RestShortCircuitResponse).shortCircuit === 'object' && 'status' in (result as RestShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-rest-short-circuit
 
 /**
  * SSE Short Circuit Type Guard
@@ -638,11 +660,13 @@ export function isRestShortCircuit(
  * @param result - Plugin onConnect result
  * @returns True if result is an SSE short-circuit response
  */
+// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-sse-short-circuit
 export function isSseShortCircuit(
   result: SseConnectContext | SseShortCircuitResponse | undefined
 ): result is SseShortCircuitResponse {
   return result !== undefined && 'shortCircuit' in result && typeof (result as SseShortCircuitResponse).shortCircuit === 'object' && 'close' in (result as SseShortCircuitResponse).shortCircuit;
 }
+// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-is-sse-short-circuit
 
 // ============================================================================
 // Protocol-Specific Plugin Convenience Classes
@@ -809,6 +833,109 @@ export type ProtocolPluginType<T extends ApiProtocol> =
  * All services must extend BaseApiService.
  */
 export type ServiceConstructor<T = BaseApiService> = new () => T;
+
+// ============================================================================
+// Endpoint Descriptor Types
+// ============================================================================
+
+/**
+ * Cache hint options for endpoint descriptors.
+ * These map directly to TanStack Query cache settings at the consumer layer (L2+),
+ * but @hai3/api has no dependency on TanStack — descriptors are plain objects.
+ */
+export interface EndpointOptions {
+  /** How long (ms) data is considered fresh before a background refetch. */
+  staleTime?: number;
+  /** How long (ms) unused cache entries are retained after all observers unmount. */
+  gcTime?: number;
+}
+
+/**
+ * Static read endpoint descriptor.
+ * Produced by `BaseApiService.query()`. Carries a stable cache key derived from
+ * `[baseURL, method, path]` and a fetch function that forwards AbortSignal.
+ *
+ * @template TData - Shape of the resolved response data.
+ */
+export interface EndpointDescriptor<TData> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /** Execute the HTTP request. Signal is forwarded to the underlying protocol. */
+  fetch(options?: { signal?: AbortSignal }): Promise<TData>;
+  /** Optional cache freshness override (milliseconds). */
+  readonly staleTime?: number;
+  /** Optional garbage-collection time override (milliseconds). */
+  readonly gcTime?: number;
+}
+
+/**
+ * Parameterized read endpoint descriptor factory.
+ * Produced by `BaseApiService.queryWith()`. When called with params the factory
+ * returns a concrete `EndpointDescriptor` whose cache key includes the resolved
+ * path and the params object: `[baseURL, method, resolvedPath, params]`.
+ *
+ * @template TData   - Shape of the resolved response data.
+ * @template TParams - Shape of the runtime parameters object.
+ */
+export type ParameterizedEndpointDescriptor<TData, TParams> =
+  (params: TParams) => EndpointDescriptor<TData>;
+
+/**
+ * Write endpoint descriptor.
+ * Produced by `BaseApiService.mutation()`. Carries a stable cache key derived
+ * from `[baseURL, method, path]` and a fetch function that passes variables as
+ * the request body.
+ *
+ * @template TData      - Shape of the resolved response data.
+ * @template TVariables - Shape of the mutation variables / request body.
+ */
+export interface MutationDescriptor<TData, TVariables> {
+  /** Stable cache key: `[baseURL, method, path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Execute the mutation. Variables are sent as the request body.
+   * Optional `signal` is forwarded to the underlying REST protocol (axios).
+   */
+  fetch(variables: TVariables, options?: { signal?: AbortSignal }): Promise<TData>;
+}
+
+// ============================================================================
+// Stream Descriptor Types
+// ============================================================================
+
+// @cpt-FEATURE:cpt-hai3-fr-sse-stream-descriptors:p2
+// @cpt-begin:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-types
+/**
+ * Stream connection status.
+ */
+export type StreamStatus = 'idle' | 'connecting' | 'connected' | 'disconnected' | 'error';
+
+/**
+ * SSE stream endpoint descriptor.
+ * Produced by `BaseApiService.stream()`. Carries a stable key derived from
+ * `[baseURL, 'SSE', path]` and connect/disconnect functions that route
+ * through SseProtocol's plugin chain.
+ *
+ * @template TEvent - Shape of each parsed SSE event payload.
+ */
+export interface StreamDescriptor<TEvent> {
+  /** Stable key: `[baseURL, 'SSE', path]`. */
+  readonly key: readonly unknown[];
+  /**
+   * Open the SSE connection. Returns a connectionId for later disconnect.
+   * @param onEvent  - Called for each SSE message with the parsed payload.
+   * @param onComplete - Optional callback when the stream signals completion.
+   */
+  connect(
+    onEvent: (event: TEvent) => void,
+    onComplete?: () => void,
+  ): Promise<string>;
+  /**
+   * Close an active SSE connection by ID.
+   */
+  disconnect(connectionId: string): void;
+}
+// @cpt-end:cpt-hai3-fr-sse-stream-descriptors:p2:inst-stream-types
 
 /**
  * API Registry Interface
