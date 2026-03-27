@@ -64,11 +64,13 @@
 - REQUIRED: Two-tier system: screenset-level and screen-level translations.
 - REQUIRED: Screenset-level: localization: TranslationLoader in config.
 - REQUIRED: Screen-level: useScreenTranslations(screensetId, screenId, loader).
-- REQUIRED: Use I18nRegistry.createLoader with full language map.
+- REQUIRED: Use I18nRegistry.createLoader; include `en` by default. Add other locales only on explicit request.
+- REQUIRED: `en.json` is mandatory (fallback locale). Extra locale files are optional and added on demand.
 - REQUIRED: Namespaces: "screenset.id:key" (screenset), "screen.screenset.screen:key" (screen).
 - REQUIRED: Place translations in local i18n folders for screenset and screen.
 - REQUIRED: Wrap translated text with <TextLoader>.
-- FORBIDDEN: Hardcoded strings or partial language sets.
+- FORBIDDEN: Hardcoded strings in components.
+- FORBIDDEN: Generating all 36 locale files by default (en-only unless explicitly requested).
 - DETECT: grep -R "['\"] [A-Za-z].* " src/screensets
 
 ## MFE LOCALIZATION RULES
