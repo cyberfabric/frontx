@@ -42,7 +42,11 @@ function log(message: string, color: keyof typeof colors = 'reset'): void {
 }
 
 function readPackageJson(packagePath: string): PackageJson | null {
-  const pkgPath = join(packagePath, 'package.json');
+  const pkgPath = path.resolve(packagePath, 'package.json');
+  const relative = path.relative(path.resolve(packagePath), pkgPath);
+  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+    return null;
+  }
   if (!existsSync(pkgPath)) {
     return null;
   }
