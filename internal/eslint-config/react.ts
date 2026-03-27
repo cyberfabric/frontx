@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint React Configuration (L3)
+ * FrontX ESLint React Configuration (L3)
  * Rules for @cyberfabric/react package
  *
  * React package CAN import:

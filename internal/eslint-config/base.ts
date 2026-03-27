@@ -1,6 +1,6 @@
 /**
- * HAI3 ESLint Base Configuration (L0)
- * Universal rules that apply to ALL HAI3 code
+ * FrontX ESLint Base Configuration (L0)
+ * Universal rules that apply to ALL FrontX code
  *
  * This is the foundation layer - all other configs extend this.
  */

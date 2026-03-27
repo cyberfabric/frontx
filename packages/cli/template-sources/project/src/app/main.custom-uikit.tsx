@@ -21,7 +21,7 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance
+// Create FrontX app instance
 const app = createHAI3App({
   microfrontends: {
     typeSystem: gtsPlugin,

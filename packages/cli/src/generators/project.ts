@@ -200,7 +200,7 @@ export const DEFAULT_THEME_ID = '${cssAlias.themes.find((t) => t.default)?.id ??
 `,
     });
 
-    // bridge.css — CSS aliases from library vars to HAI3 vars
+    // bridge.css — CSS aliases from library vars to FrontX vars
     themeFiles.push({
       path: 'src/app/themes/bridge.css',
       content: cssAlias.bridgeCss,

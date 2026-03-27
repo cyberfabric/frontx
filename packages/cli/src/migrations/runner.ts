@@ -88,7 +88,7 @@ export async function getMigrationStatus(
   try {
     const pkgPath = path.join(targetPath, 'package.json');
     const pkg = await fs.readJson(pkgPath);
-    // Check for HAI3 packages
+    // Check for FrontX packages
     const frontxDeps = Object.keys(pkg.dependencies || {}).filter((d) =>
       d.startsWith('@cyberfabric/')
     );

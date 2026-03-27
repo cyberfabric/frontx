@@ -39,7 +39,7 @@ function changeTheme(payload: ChangeThemePayload): void {
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .build();

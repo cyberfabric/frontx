@@ -41,7 +41,7 @@ function setLanguage(payload: SetLanguagePayload): void {
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(i18n())
  *   .build();
  *

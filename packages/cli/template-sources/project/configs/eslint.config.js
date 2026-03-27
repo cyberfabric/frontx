@@ -1,6 +1,6 @@
 /**
- * HAI3 ESLint Configuration (Standalone)
- * Base rules for HAI3 projects - screenset architecture and flux pattern
+ * FrontX ESLint Configuration (Standalone)
+ * Base rules for FrontX projects - screenset architecture and flux pattern
  *
  * This is a SELF-CONTAINED configuration that includes all rules inline.
  * It does NOT depend on @cyberfabric/eslint-config (which is monorepo-only internal tooling).
@@ -128,7 +128,7 @@ export default [
               message:
                 'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/screensets (Layer 1).',
             },
-            // Redux term bans - use HAI3 state terms instead
+            // Redux term bans - use FrontX state terms instead
             {
               group: ['react-redux'],
               importNames: ['useDispatch'],

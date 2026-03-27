@@ -1,10 +1,10 @@
 /**
  * @cyberfabric/screensets
  *
- * Pure TypeScript contracts and registry for HAI3 screenset management.
+ * Pure TypeScript contracts and registry for FrontX screenset management.
  * This package has ZERO dependencies - SDK Layer (L1).
  *
- * Screensets are HAI3's first-class citizen - self-contained vertical slices
+ * Screensets are FrontX's first-class citizen - self-contained vertical slices
  * that can be composed into applications or injected into external platforms.
  *
  * NOTE: Translations are NOT part of this package. Use @cyberfabric/i18n for translations.
@@ -68,7 +68,7 @@ export type {
 // MFE Handler Abstract Classes (concrete implementations are internal)
 export { MfeHandler, MfeBridgeFactory } from './mfe';
 
-// HAI3 Action Constants
+// FrontX Action Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_MFE_ENTRY_MF,
@@ -77,7 +77,7 @@ export {
   HAI3_ACTION_UNMOUNT_EXT,
 } from './mfe';
 
-// HAI3 Shared Property Constants
+// FrontX Shared Property Constants
 export {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,

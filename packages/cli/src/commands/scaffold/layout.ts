@@ -25,7 +25,7 @@ export interface ScaffoldLayoutResult {
  * Scaffold layout command implementation
  *
  * Generates layout components (Layout, Header, Footer, Menu, etc.)
- * in the user's project from HAI3 layout templates.
+ * in the user's project from FrontX layout templates.
  */
 // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout
 export const scaffoldLayoutCommand: CommandDefinition<

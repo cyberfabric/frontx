@@ -1,5 +1,5 @@
 /**
- * HAI3 Context - React context for HAI3 application
+ * FrontX Context - React context for FrontX application
  *
  * React Layer: L3 (Depends on @cyberfabric/framework)
  */
@@ -14,16 +14,16 @@ import type { HAI3App } from '@cyberfabric/framework';
 // ============================================================================
 
 /**
- * HAI3 Context
- * Holds the HAI3 app instance for the application.
+ * FrontX Context
+ * Holds the FrontX app instance for the application.
  */
 export const HAI3Context = createContext<HAI3App | null>(null);
 
 /**
- * Use the HAI3 context.
- * Throws if used outside of HAI3Provider.
+ * Use the FrontX context.
+ * Throws if used outside of FrontXProvider.
  *
- * @returns The HAI3 app instance
+ * @returns The FrontX app instance
  */
 // @cpt-begin:cpt-frontx-flow-react-bindings-use-hai3:p2:inst-call-use-hai3
 // @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-hai3-context

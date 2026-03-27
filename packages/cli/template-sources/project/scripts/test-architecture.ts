@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * HAI3 Architecture Validation Script (Standalone)
- * Tests that the codebase follows HAI3 architectural patterns
+ * FrontX Architecture Validation Script (Standalone)
+ * Tests that the codebase follows FrontX architectural patterns
  *
  * This is the single source of truth for standalone project architecture tests.
  * - Monorepo extends this via presets/monorepo/scripts/test-architecture.ts

@@ -1,7 +1,7 @@
 /**
  * UIKit Elements Screen
  *
- * Comprehensive showcase of all UIKit components available in HAI3.
+ * Comprehensive showcase of all UIKit components available in FrontX.
  * Features:
  * - CategoryMenu with 9 categories
  * - 56 element demos using real UIKit components

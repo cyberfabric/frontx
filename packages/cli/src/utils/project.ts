@@ -84,7 +84,7 @@ async function parseAndValidateConfig(configPath: string): Promise<Hai3Config> {
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-2
 
 /**
- * Load HAI3 config from project root.
+ * Load FrontX config from project root.
  * Returns a discriminated union — callers handle every outcome explicitly.
  */
 // @cpt-algo:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1
@@ -115,7 +115,7 @@ export async function loadConfig(
 }
 
 /**
- * Save HAI3 config to project root
+ * Save FrontX config to project root
  */
 export async function saveConfig(
   projectRoot: string,

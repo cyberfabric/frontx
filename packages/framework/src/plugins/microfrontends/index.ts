@@ -1,7 +1,7 @@
 /**
  * Microfrontends Plugin
  *
- * Enables MFE capabilities in HAI3 applications.
+ * Enables MFE capabilities in FrontX applications.
  * This plugin accepts NO configuration parameters.
  * All MFE registration happens dynamically at runtime.
  *
@@ -58,7 +58,7 @@ export interface MicrofrontendsConfig {
 /**
  * Microfrontends plugin factory.
  *
- * Enables MFE capabilities in HAI3 applications. Optionally accepts MFE handlers
+ * Enables MFE capabilities in FrontX applications. Optionally accepts MFE handlers
  * for registration at plugin initialization.
  *
  * **Key Principles:**
@@ -72,14 +72,14 @@ export interface MicrofrontendsConfig {
  *
  * @example
  * ```typescript
- * import { createHAI3, microfrontends } from '@cyberfabric/framework';
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { createFrontX, microfrontends } from '@cyberfabric/framework';
+ * import { MfeHandlerMF, FrontX_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
  * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(microfrontends({
  *     typeSystem: gtsPlugin,
- *     mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
+ *     mfeHandlers: [new MfeHandlerMF(FrontX_MFE_ENTRY_MF)],
  *   }))
  *   .build();
  *
@@ -208,7 +208,7 @@ export {
   type ExtensionRegistrationState,
 } from './slice';
 
-// Re-export HAI3 layout domain constants and MfeEvents
+// Re-export FrontX layout domain constants and MfeEvents
 export {
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,

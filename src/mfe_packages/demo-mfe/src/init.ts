@@ -1,9 +1,9 @@
 /**
  * MFE Bootstrap
  *
- * Creates the MFE-local HAI3 app instance, registers slices with effects,
+ * Creates the MFE-local FrontX app instance, registers slices with effects,
  * and registers API services. This module is imported once (as a side effect)
- * by ThemeAwareReactLifecycle, which provides the HAI3Provider to all screens.
+ * by ThemeAwareReactLifecycle, which provides the FrontXProvider to all screens.
  *
  * The MFE bundles its own copy of @cyberfabric/react, giving it isolated singletons:
  * - eventBus (no cross-MFE event leakage)
@@ -23,7 +23,7 @@ import { AccountsApiService } from './api/AccountsApiService';
 apiRegistry.register(AccountsApiService);
 apiRegistry.initialize();
 
-// Create HAI3 app with effects + mock plugins (mock auto-enables on localhost)
+// Create FrontX app with effects + mock plugins (mock auto-enables on localhost)
 const mfeApp = createHAI3().use(effects()).use(mock()).build();
 
 // Register slices with effects (needs store from build())

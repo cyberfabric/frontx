@@ -1,7 +1,7 @@
 /**
  * Menu Component (Standalone)
  *
- * Side navigation menu for standalone HAI3 projects.
+ * Side navigation menu for standalone FrontX projects.
  * Uses local shadcn/ui Sidebar components for proper styling and collapsible behavior.
  */
 

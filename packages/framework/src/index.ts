@@ -1,8 +1,8 @@
 /**
- * @cyberfabric/framework - HAI3 Framework Package
+ * @cyberfabric/framework - FrontX Framework Package
  *
  * This package provides:
- * - Plugin architecture for composable HAI3 applications
+ * - Plugin architecture for composable FrontX applications
  * - Registries for screensets, themes, routes
  * - Presets for common configurations
  * - Re-exports from SDK packages for convenience
@@ -191,7 +191,7 @@ export type {
   EffectInitializer,
 } from '@cyberfabric/state';
 
-// Re-export HAI3Store from types (wrapped version)
+// Re-export FrontXStore from types (wrapped version)
 export type { HAI3Store } from './types';
 
 // From @cyberfabric/screensets (contracts only - SDK Layer L1)

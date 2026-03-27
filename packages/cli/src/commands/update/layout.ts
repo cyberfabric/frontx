@@ -25,7 +25,7 @@ export interface UpdateLayoutResult {
 /**
  * Update layout command implementation
  *
- * Updates layout components from HAI3 layout templates.
+ * Updates layout components from FrontX layout templates.
  */
 // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout
 export const updateLayoutCommand: CommandDefinition<

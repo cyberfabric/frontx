@@ -1,5 +1,5 @@
 /**
- * HAI3 Dependency Cruiser Framework Configuration (L2)
+ * FrontX Dependency Cruiser Framework Configuration (L2)
  * Rules for @cyberfabric/framework package
  *
  * Framework package CAN import:

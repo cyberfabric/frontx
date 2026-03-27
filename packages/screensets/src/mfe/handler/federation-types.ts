@@ -41,6 +41,6 @@ export type FederationScope = Record<string, FederationPackageVersions>;
 
 /**
  * The top-level federation shared map stored on globalThis.
- * Keys are scope names — HAI3 always uses 'default'.
+ * Keys are scope names — FrontX always uses 'default'.
  */
 export type FederationSharedMap = Record<string, FederationScope>;

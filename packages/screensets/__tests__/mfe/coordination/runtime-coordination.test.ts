@@ -218,7 +218,7 @@ describe('Runtime Coordination', () => {
 
       coordinator.register(container, connection);
 
-      // Check window object for any HAI3-related globals
+      // Check window object for any FrontX-related globals
       const windowKeys = Object.keys(window);
       const hai3Globals = windowKeys.filter(
         (key) =>

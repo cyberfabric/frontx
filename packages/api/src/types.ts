@@ -1,7 +1,7 @@
 /**
  * @cyberfabric/api - Type Definitions
  *
- * Core types for HAI3 API communication.
+ * Core types for FrontX API communication.
  * Supports REST, SSE, and mock protocols.
  */
 

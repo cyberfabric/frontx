@@ -6,19 +6,19 @@ import type { ThemeConfig } from '../core/types.js';
 /**
  * Bridge for CSS-class-based libraries (e.g., @acronis-platform/shadcn-uikit).
  * The library owns CSS variables via class selectors; bridge.css aliases
- * HAI3 variable names to the library's namespace using var() references.
+ * FrontX variable names to the library's namespace using var() references.
  */
 export type CssAliasBridge = {
   type: 'css-alias';
   /** CSS @import lines for the library's stylesheets */
   cssImports: string[];
-  /** Content of bridge.css — :root aliases from library vars to HAI3 vars */
+  /** Content of bridge.css — :root aliases from library vars to FrontX vars */
   bridgeCss: string;
-  /** Flattened theme definitions mapping HAI3 IDs to library theme+mode */
+  /** Flattened theme definitions mapping FrontX IDs to library theme+mode */
   themes: LibraryThemeMapping[];
   /** Import statement(s) for sync effect in App.tsx */
   syncImport: string;
-  /** useEffect body code for syncing HAI3 theme → library theme */
+  /** useEffect body code for syncing FrontX theme → library theme */
   syncEffect: string;
   /** Additional npm dependencies required by the bridge */
   dependencies: Record<string, string>;
@@ -53,7 +53,7 @@ const KNOWN_BRIDGES: Record<string, UikitBridge> = {
       '@import "@acronis-platform/shadcn-uikit/styles/themes/acronis-ocean";',
     ],
     bridgeCss: `:root {
-  /* Bridge: alias HAI3 variable names to @acronis-platform/shadcn-uikit --av-* tokens.
+  /* Bridge: alias FrontX variable names to @acronis-platform/shadcn-uikit --av-* tokens.
      UIKit tokens store raw HSL triplets (e.g. "0 0% 100%"). We pass them through
      as-is — consumers wrap with hsl(var(--...)) per the shadcn convention. */
   --background: var(--av-background);

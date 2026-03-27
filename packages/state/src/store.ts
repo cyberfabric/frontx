@@ -1,5 +1,5 @@
 /**
- * HAI3 Store - Redux store with dynamic slice registration
+ * FrontX Store - Redux store with dynamic slice registration
  *
  * This package provides:
  * - Configurable Redux store creation
@@ -43,7 +43,7 @@ const effectCleanups: Map<string, () => void> = new Map();
 // ============================================================================
 
 /**
- * Create the HAI3 store with initial static reducers.
+ * Create the FrontX store with initial static reducers.
  *
  * @param initialReducers - Static reducers to include at store creation
  * @returns The configured store instance
@@ -87,7 +87,7 @@ export function createStore(
  * Get the current store instance.
  * Creates a default empty store if none exists.
  *
- * @returns The HAI3 store instance
+ * @returns The FrontX store instance
  */
 export function getStore(): HAI3Store<RootState> {
   if (!storeInstance) {

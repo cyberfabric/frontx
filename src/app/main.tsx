@@ -16,7 +16,7 @@ import { lightTheme } from '@/app/themes/light';
 import { draculaTheme } from '@/app/themes/dracula';
 import { draculaLargeTheme } from '@/app/themes/dracula-large';
 
-// Register application-specific GTS schemas before constructing the HAI3 app.
+// Register application-specific GTS schemas before constructing the FrontX app.
 // These derived schemas encode application-level constraints (valid theme names,
 // supported languages, screen extension shape) and are not part of the core
 // type system in @cyberfabric/screensets.
@@ -30,7 +30,7 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance
+// Create FrontX app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
   microfrontends: {
@@ -63,7 +63,7 @@ app.themeRegistry.apply(DEFAULT_THEME_ID);
  * 4. Components re-render with actual text (translationsReady = true)
  * 5. MFE system loads and mounts extensions via MfeScreenContainer
  *
- * Note: Mock API is controlled via the HAI3 Studio panel.
+ * Note: Mock API is controlled via the FrontX Studio panel.
  * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.
  */
 createRoot(document.getElementById('root')!).render(

@@ -2,7 +2,7 @@
  * Profile Domain - Redux Slice
  *
  * Manages the profile domain state: user, loading, and error.
- * Follows the HAI3 flux architecture: reducers own state, effects dispatch here.
+ * Follows the FrontX flux architecture: reducers own state, effects dispatch here.
  */
 
 import { createSlice, type ReducerPayload } from '@cyberfabric/react';

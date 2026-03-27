@@ -2,7 +2,7 @@
  * Actions Chains Mediator Types
  *
  * Defines the abstract mediator interface for action chain execution.
- * This follows HAI3's SOLID OOP pattern: abstract class (exportable contract)
+ * This follows FrontX's SOLID OOP pattern: abstract class (exportable contract)
  * + concrete implementation (private).
  *
  * @packageDocumentation

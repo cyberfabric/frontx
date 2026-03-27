@@ -1,5 +1,5 @@
 /**
- * HAI3 Provider - Main provider component for HAI3 applications
+ * FrontX Provider - Main provider component for FrontX applications
  *
  * React Layer: L3 (Depends on @cyberfabric/framework)
  */
@@ -17,33 +17,33 @@ import { MfeProvider } from './mfe/MfeProvider';
 import type { HAI3ProviderProps } from './types';
 
 /**
- * HAI3 Provider Component
+ * FrontX Provider Component
  *
- * Provides the HAI3 application context to all child components.
- * Creates the HAI3 app instance with the full preset by default.
+ * Provides the FrontX application context to all child components.
+ * Creates the FrontX app instance with the full preset by default.
  *
  * @example
  * ```tsx
  * // Default - creates app with full preset
- * <HAI3Provider>
+ * <FrontXProvider>
  *   <App />
- * </HAI3Provider>
+ * </FrontXProvider>
  *
  * // With configuration
- * <HAI3Provider config={{ devMode: true }}>
+ * <FrontXProvider config={{ devMode: true }}>
  *   <App />
- * </HAI3Provider>
+ * </FrontXProvider>
  *
  * // With pre-built app
- * const app = createHAI3().use(screensets()).use(microfrontends()).build();
- * <HAI3Provider app={app}>
+ * const app = createFrontX().use(screensets()).use(microfrontends()).build();
+ * <FrontXProvider app={app}>
  *   <App />
- * </HAI3Provider>
+ * </FrontXProvider>
  *
  * // With MFE bridge (for MFE components)
- * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId }}>
+ * <FrontXProvider mfeBridge={{ bridge, extensionId, domainId }}>
  *   <MyMfeApp />
- * </HAI3Provider>
+ * </FrontXProvider>
  * ```
  */
 // @cpt-begin:cpt-frontx-flow-react-bindings-bootstrap-provider:p1:inst-render-provider

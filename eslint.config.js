@@ -1,7 +1,7 @@
 /**
- * HAI3 ESLint Configuration (Monorepo Root)
+ * FrontX ESLint Configuration (Monorepo Root)
  *
- * This file contains the complete ESLint rules for the HAI3 monorepo:
+ * This file contains the complete ESLint rules for the FrontX monorepo:
  * - Standalone rules from packages/cli/template-sources/project/configs/eslint.config.js
  * - Monorepo-specific package boundary rules
  * - SDK/Framework package exceptions (unknown type is required for generic code)
@@ -320,7 +320,7 @@ export default [
               message:
                 'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/screensets (Layer 1).',
             },
-            // Redux term bans - use HAI3 state terms instead
+            // Redux term bans - use FrontX state terms instead
             {
               group: ['react-redux'],
               importNames: ['useDispatch'],
@@ -339,7 +339,7 @@ export default [
     },
   },
 
-  // App: Studio should only be imported via HAI3Provider (auto-detection)
+  // App: Studio should only be imported via FrontXProvider (auto-detection)
   // Only App.tsx variants are allowed to import StudioOverlay directly
   {
     files: ['src/**/*'],

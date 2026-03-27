@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint Framework Configuration (L2)
+ * FrontX ESLint Framework Configuration (L2)
  * Rules for @cyberfabric/framework package
  *
  * Framework package CAN import:

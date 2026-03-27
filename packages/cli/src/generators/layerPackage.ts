@@ -43,7 +43,7 @@ function getLayerDependencies(layer: LayerType): {
 
   switch (layer) {
     case 'sdk':
-      // SDK layer has no HAI3 dependencies
+      // SDK layer has no FrontX dependencies
       return {
         dependencies: {},
         peerDependencies: {},
@@ -378,7 +378,7 @@ export default defineConfig({
     content: `/**
  * ${packageName}
  *
- * A HAI3 ${layer}-layer package.
+ * A FrontX ${layer}-layer package.
  */
 
 export const VERSION = '0.1.0';

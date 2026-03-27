@@ -1,5 +1,5 @@
 /**
- * HAI3 Dependency Cruiser React Configuration (L3)
+ * FrontX Dependency Cruiser React Configuration (L3)
  * Rules for @cyberfabric/react package
  *
  * React package CAN import:

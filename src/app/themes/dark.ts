@@ -1,5 +1,5 @@
 /**
- * Dark theme for HAI3
+ * Dark theme for FrontX
  * CSS custom properties map following shadcn/ui variable naming convention.
  */
 // @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1

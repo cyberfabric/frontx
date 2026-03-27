@@ -1,7 +1,7 @@
 /**
- * createHAI3 - App Builder Factory
+ * createFrontX - App Builder Factory
  *
- * Creates a HAI3 app builder for custom plugin composition.
+ * Creates a FrontX app builder for custom plugin composition.
  * This is the core of the plugin architecture.
  *
  * Framework Layer: L2 (Depends on SDK packages)
@@ -57,7 +57,7 @@ function resolvePlugin(plugin: HAI3Plugin | PluginFactory): HAI3Plugin {
 // ============================================================================
 
 /**
- * HAI3 App Builder Implementation
+ * FrontX App Builder Implementation
  */
 class HAI3AppBuilderImpl implements HAI3AppBuilder {
   private plugins: HAI3Plugin[] = [];
@@ -139,7 +139,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     });
 
     // 6. Build the app object
-    // Cast actions to HAI3Actions - all plugins have contributed their actions
+    // Cast actions to FrontXActions - all plugins have contributed their actions
     // via module augmentation, so the runtime object matches the declared type
     const app: HAI3App = {
       config: this.config,
@@ -229,7 +229,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     const slices: RegisterableSlice[] = [];
     const effects: EffectInitializer[] = [];
     // Actions are typed via module augmentation - each plugin declares its actions
-    // in HAI3Actions interface. At runtime we merge them all together.
+    // in FrontXActions interface. At runtime we merge them all together.
     const actions: Partial<HAI3Actions> = {};
 
     plugins.forEach((plugin) => {
@@ -250,7 +250,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
         effects.push(...plugin.provides.effects);
       }
 
-      // Merge actions (type-safe via HAI3Actions module augmentation)
+      // Merge actions (type-safe via FrontXActions module augmentation)
       if (plugin.provides.actions) {
         Object.assign(actions, plugin.provides.actions);
       }
@@ -265,12 +265,12 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
    *
    * IMPORTANT: This method supports the screenset self-registration pattern.
    * Screensets call registerSlice() as module side effects when imported,
-   * which may auto-create a store before createHAI3App() is called.
+   * which may auto-create a store before createFrontXApp() is called.
    *
    * This method:
    * 1. Uses the existing store if one was auto-created by screensets
    * 2. Registers framework slices to the existing store
-   * 3. Returns the unified store for HAI3App
+   * 3. Returns the unified store for FrontXApp
    */
   private createStoreWithSlices(slices: RegisterableSlice[]): HAI3Store {
     // Get existing store (may have been created by screenset registerSlice calls)
@@ -305,14 +305,14 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
 // ============================================================================
 
 /**
- * Create a HAI3 app builder for custom plugin composition.
+ * Create a FrontX app builder for custom plugin composition.
  *
  * @param config - Optional application configuration
  * @returns App builder for plugin composition
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .build();

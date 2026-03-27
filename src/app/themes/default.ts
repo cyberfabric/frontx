@@ -1,5 +1,5 @@
 /**
- * Default theme for HAI3
+ * Default theme for FrontX
  * Based on original PoC design with light color scheme
  * CSS custom properties map following shadcn/ui variable naming convention.
  */

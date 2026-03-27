@@ -1,6 +1,6 @@
 /**
  * MFE Bootstrap — executed once when any entry first loads.
- * Creates the minimal HAI3 app, registers slices, effects, and API services.
+ * Creates the minimal FrontX app, registers slices, effects, and API services.
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-internal-dataflow:p1
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
@@ -15,7 +15,7 @@ import { _BlankApiService } from './api/_BlankApiService';
 apiRegistry.register(_BlankApiService);
 apiRegistry.initialize();
 
-// Create HAI3 app with effects + mock plugins (mock auto-enables on localhost)
+// Create FrontX app with effects + mock plugins (mock auto-enables on localhost)
 const mfeApp = createHAI3().use(effects()).use(mock()).build();
 
 // Register slices with effects (needs store from build())

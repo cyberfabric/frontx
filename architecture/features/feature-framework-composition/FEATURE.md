@@ -46,7 +46,7 @@
   - [MFE Effects Initialization Exception](#mfe-effects-initialization-exception)
   - [Shared Property Late Registration Limitation](#shared-property-late-registration-limitation)
   - [No `updateDomainProperty` / `updateDomainProperties`](#no-updatedomainproperty--updatedomainproperties)
-  - [FrontXConfig Fields](#frontxconfig-fields)
+  - [HAI3Config Fields](#hai3config-fields)
 
 <!-- /toc -->
 
@@ -273,7 +273,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-base-path`
 
-1. [ ] `p1` - Receive raw `base` string from `FrontXConfig`; **IF** empty or undefined **RETURN** `"/"` - `inst-empty-base`
+1. [ ] `p1` - Receive raw `base` string from `HAI3Config`; **IF** empty or undefined **RETURN** `"/"` - `inst-empty-base`
 2. [ ] `p1` - **IF** `base` does not start with `"/"`: prepend `"/"` - `inst-add-leading-slash`
 3. [ ] `p1` - **IF** normalized value is not `"/"` AND ends with `"/"`: remove trailing slash - `inst-remove-trailing-slash`
 4. [ ] `p1` - **RETURN** normalized base path - `inst-return-base`
@@ -347,7 +347,7 @@ Tracked in `state.tenant`.
 Host applications can compose a FrontX framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
 
 **API surface**:
-- `createHAI3(config?: FrontXConfig): HAI3AppBuilder`
+- `createHAI3(config?: HAI3Config): HAI3AppBuilder`
 - `HAI3AppBuilder.use(plugin): HAI3AppBuilder`
 - `HAI3AppBuilder.useAll(plugins): HAI3AppBuilder`
 - `HAI3AppBuilder.build(): HAI3App`
@@ -402,7 +402,7 @@ The `layout()` plugin registers Redux slices for all seven layout domains (heade
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-app-config`
 
-The framework provides an event-driven API for configuring tenant, language, theme, and navigation. All configuration changes propagate via the event bus rather than direct state mutation. The `Tenant` type has shape `{ id: string }` and tenant state is typed `Tenant | null`. Router mode is configurable via `FrontXConfig.routerMode` (`'browser'` | `'hash'` | `'memory'`). Base path normalization handles leading slash insertion, trailing slash removal, and empty-string-to-root conversion.
+The framework provides an event-driven API for configuring tenant, language, theme, and navigation. All configuration changes propagate via the event bus rather than direct state mutation. The `Tenant` type has shape `{ id: string }` and tenant state is typed `Tenant | null`. Router mode is configurable via `HAI3Config.routerMode` (`'browser'` | `'hash'` | `'memory'`). Base path normalization handles leading slash insertion, trailing slash removal, and empty-string-to-root conversion.
 
 **Events**:
 - `app/tenant/changed` → `setTenant(tenant)` in tenant slice
@@ -460,9 +460,9 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 **Domain constants** (GTS instance IDs):
 - `HAI3_SCREEN_DOMAIN` — main content area
-- `FrontX_SIDEBAR_DOMAIN` — collapsible side panel
-- `FrontX_POPUP_DOMAIN` — modal dialogs
-- `FrontX_OVERLAY_DOMAIN` — full-screen overlay
+- `HAI3_SIDEBAR_DOMAIN` — collapsible side panel
+- `HAI3_POPUP_DOMAIN` — modal dialogs
+- `HAI3_OVERLAY_DOMAIN` — full-screen overlay
 
 **Implements**:
 - `cpt-frontx-flow-framework-composition-mfe-registration`
@@ -508,7 +508,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-presets`
 
-Three presets are provided as functions returning `FrontXPlugin[]`:
+Three presets are provided as functions returning `HAI3Plugin[]`:
 - `full(config?)` — all seven plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends`)
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
@@ -603,7 +603,7 @@ The broadcast model is fire-and-forget: `updateSharedProperty()` propagates only
 
 These methods were removed as part of the global shared property broadcast model (`cpt-frontx-adr-global-shared-property-broadcast`). Shared properties are global — a property ID means the same thing across all domains that declare it, so domain-targeted writes are semantically incorrect. `updateSharedProperty(propertyId, value)` is the only write path.
 
-### FrontXConfig Fields
+### HAI3Config Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|

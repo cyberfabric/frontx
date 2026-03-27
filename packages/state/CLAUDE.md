@@ -119,7 +119,7 @@ declare module '@cyberfabric/state' {
 - `RootState` - Augmentable root state interface
 - `AppDispatch` - Dispatch type for effects
 - `EffectInitializer` - Effect initializer function type
-- `FrontXStore` - Store type
+- `HAI3Store` - Store type
 - `SliceObject<TState>` - Slice interface (name + reducer)
 - `EventBus` - EventBus interface
 - `Subscription` - Subscription with unsubscribe method

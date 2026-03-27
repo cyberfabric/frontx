@@ -1,7 +1,7 @@
 /**
  * @cyberfabric/react - Type Definitions
  *
- * Core types for HAI3 React bindings.
+ * Core types for FrontX React bindings.
  * Provides type-safe hooks and components.
  *
  * Now using real imports from @cyberfabric/framework since packages are built together.
@@ -31,37 +31,37 @@ type Selector<TResult, TState = RootState> = (state: TState) => TResult;
 type TranslationParams = Record<string, string | number | boolean>;
 
 // ============================================================================
-// HAI3 Provider Props
+// FrontX Provider Props
 // ============================================================================
 
 /**
- * HAI3 Provider Props
- * Props for the main HAI3Provider component.
+ * FrontX Provider Props
+ * Props for the main FrontXProvider component.
  *
  * @example
  * ```tsx
- * <HAI3Provider config={{ devMode: true }}>
+ * <FrontXProvider config={{ devMode: true }}>
  *   <App />
- * </HAI3Provider>
+ * </FrontXProvider>
  *
  * // With pre-built app
- * const app = createHAI3().use(screensets()).use(microfrontends()).build();
- * <HAI3Provider app={app}>
+ * const app = createFrontX().use(screensets()).use(microfrontends()).build();
+ * <FrontXProvider app={app}>
  *   <App />
- * </HAI3Provider>
+ * </FrontXProvider>
  *
  * // With MFE bridge (for MFE components)
- * <HAI3Provider mfeBridge={{ bridge, extensionId, domainId }}>
+ * <FrontXProvider mfeBridge={{ bridge, extensionId, domainId }}>
  *   <MyMfeApp />
- * </HAI3Provider>
+ * </FrontXProvider>
  * ```
  */
 export interface HAI3ProviderProps {
   /** Child components */
   children: ReactNode;
-  /** HAI3 configuration */
+  /** FrontX configuration */
   config?: HAI3Config;
-  /** Pre-built HAI3 app instance (optional) */
+  /** Pre-built FrontX app instance (optional) */
   app?: HAI3App;
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
@@ -72,8 +72,8 @@ export interface HAI3ProviderProps {
 // ============================================================================
 
 /**
- * useHAI3 Hook Return Type
- * Returns the HAI3 app instance from context.
+ * useFrontX Hook Return Type
+ * Returns the FrontX app instance from context.
  */
 export type UseHAI3Return = HAI3App;
 

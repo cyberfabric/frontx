@@ -295,7 +295,7 @@ The system MUST provide 4 flat SDK packages (`@cyberfabric/state`, `@cyberfabric
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sdk-state-interface`
 
-`@cyberfabric/state` MUST export EventBus (singleton + interface), `createStore`, `getStore`, `registerSlice`, `unregisterSlice`, `hasSlice`, `getRegisteredSlices`, `resetStore`, `createSlice`, and types `ReducerPayload`, `EventPayloadMap`, `RootState`, `AppDispatch`, `EffectInitializer`, `FrontXStore`, `SliceObject`, `EventHandler`, `Subscription`.
+`@cyberfabric/state` MUST export EventBus (singleton + interface), `createStore`, `getStore`, `registerSlice`, `unregisterSlice`, `hasSlice`, `getRegisteredSlices`, `resetStore`, `createSlice`, and types `ReducerPayload`, `EventPayloadMap`, `RootState`, `AppDispatch`, `EffectInitializer`, `HAI3Store`, `SliceObject`, `EventHandler`, `Subscription`.
 
 **Rationale**: Complete state management foundation for event-driven Flux architecture.
 **Actors**: `cpt-frontx-actor-developer`
@@ -414,7 +414,7 @@ The system MUST support event-driven configuration for tenant, language, theme, 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-appconfig-router-config`
 
-The system MUST provide router mode configuration via `FrontXConfig.routerMode` supporting `'browser'` (default), `'hash'`, and `'memory'` types.
+The system MUST provide router mode configuration via `HAI3Config.routerMode` supporting `'browser'` (default), `'hash'`, and `'memory'` types.
 
 **Rationale**: Different deployment environments require different routing strategies.
 **Actors**: `cpt-frontx-actor-host-app`
@@ -905,7 +905,7 @@ The system MUST provide a `toggleMockMode` action via `mock()` plugin that activ
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-plugin`
 
-The system MUST provide a `microfrontends()` framework plugin with actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) and domain constants (`HAI3_SCREEN_DOMAIN`, `FrontX_SIDEBAR_DOMAIN`, `FrontX_POPUP_DOMAIN`, `FrontX_OVERLAY_DOMAIN`). The plugin MUST orchestrate MFE loading via blob URL isolation, propagate theme and i18n changes to mounted extensions, and bridge shared properties between host and MFE.
+The system MUST provide a `microfrontends()` framework plugin with actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) and domain constants (`HAI3_SCREEN_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_POPUP_DOMAIN`, `HAI3_OVERLAY_DOMAIN`). The plugin MUST orchestrate MFE loading via blob URL isolation, propagate theme and i18n changes to mounted extensions, and bridge shared properties between host and MFE.
 
 **Rationale**: Core orchestration plugin that integrates MFE lifecycle management, theme/i18n propagation, and shared property bridging into the framework's plugin chain.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`

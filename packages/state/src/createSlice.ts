@@ -1,11 +1,11 @@
 /**
- * HAI3 createSlice - Wrapper around Redux Toolkit
+ * FrontX createSlice - Wrapper around Redux Toolkit
  *
  * Returns:
  * - `slice` object for registration (name + reducer only)
  * - Individual reducer functions spread at top level
  *
- * In HAI3, "Action" refers exclusively to event emitters.
+ * In FrontX, "Action" refers exclusively to event emitters.
  */
 
 import {
@@ -21,8 +21,8 @@ import type { SliceObject } from './types';
 // ============================================================================
 
 /**
- * HAI3 Slice Result
- * The return type of HAI3's createSlice wrapper.
+ * FrontX Slice Result
+ * The return type of FrontX's createSlice wrapper.
  *
  * @template TState - The slice state type
  * @template TReducers - The reducer functions type
@@ -42,7 +42,7 @@ export type HAI3SliceResult<
 // ============================================================================
 
 /**
- * Create a HAI3 slice.
+ * Create a FrontX slice.
  *
  * Returns `{ slice, ...reducerFunctions }`:
  * - `slice` object for registration (only name + reducer)

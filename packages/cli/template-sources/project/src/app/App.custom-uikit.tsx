@@ -1,7 +1,7 @@
 /**
- * HAI3 Application Component (custom UI kit, with Studio)
+ * FrontX Application Component (custom UI kit, with Studio)
  *
- * Syncs HAI3 theme changes to the library's imperative theme API.
+ * Syncs FrontX theme changes to the library's imperative theme API.
  * Placeholders in this template are replaced by the project generator
  * with bridge-specific code for the configured UI library.
  */

@@ -1,7 +1,7 @@
 /**
- * HAI3 MFE Type System Initialization
+ * FrontX MFE Type System Initialization
  *
- * This module exports GTS type ID constants for HAI3 MFE core types.
+ * This module exports GTS type ID constants for FrontX MFE core types.
  * These are exported for reference only - the GTS plugin has all first-class
  * citizen schemas built-in, so no registration is needed.
  *
@@ -9,7 +9,7 @@
  */
 
 /**
- * GTS Type IDs for HAI3 MFE core types (8 types)
+ * GTS Type IDs for FrontX MFE core types (8 types)
  *
  * These types define the core MFE contract model and are built into the GTS plugin.
  */
@@ -35,7 +35,7 @@ export const HAI3_CORE_TYPE_IDS = {
 /**
  * GTS Type IDs for default lifecycle stages (4 stages)
  *
- * These are the default lifecycle stages that HAI3 provides.
+ * These are the default lifecycle stages that FrontX provides.
  * Domains and extensions can define additional custom lifecycle stages.
  */
 export const HAI3_LIFECYCLE_STAGE_IDS = {
@@ -65,7 +65,7 @@ export const HAI3_MF_TYPE_IDS = {
  * NOTE: No registerHai3Types() function is needed.
  *
  * The GTS plugin registers all first-class citizen schemas during construction.
- * The gtsPlugin singleton has all HAI3 core types immediately available.
+ * The gtsPlugin singleton has all FrontX core types immediately available.
  *
  * See packages/screensets/src/mfe/plugins/gts/index.ts for implementation.
  */

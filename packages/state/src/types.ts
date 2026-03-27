@@ -1,7 +1,7 @@
 /**
  * @cyberfabric/state - Type Definitions
  *
- * Core types for the HAI3 Flux dataflow pattern.
+ * Core types for the FrontX Flux dataflow pattern.
  * Combines event system and store types into a unified package.
  *
  * SDK Layer: L1 (Only peer dependency on @reduxjs/toolkit)
@@ -14,12 +14,12 @@ import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
 // ============================================================================
 
 /**
- * HAI3 Reducer Payload Type
+ * FrontX Reducer Payload Type
  * Type alias for Redux Toolkit's PayloadAction.
  *
  * TERMINOLOGY: Named "ReducerPayload" (not "PayloadAction") to avoid confusion
- * with HAI3 Actions. In HAI3:
- * - **HAI3 Action**: Function that emits events via eventBus.emit()
+ * with FrontX Actions. In FrontX:
+ * - **FrontX Action**: Function that emits events via eventBus.emit()
  * - **ReducerPayload**: The payload shape received by reducers in createSlice
  *
  * Redux is an internal implementation detail of @cyberfabric/state.
@@ -189,7 +189,7 @@ export interface EventBus<TEvents extends EventPayloadMap = EventPayloadMap> {
 
 /**
  * Template Literal Types for Event Naming Convention
- * Enforces the HAI3 event naming pattern: `${screenset}/${domain}/${action}`
+ * Enforces the FrontX event naming pattern: `${screenset}/${domain}/${action}`
  *
  * @example
  * ```typescript
@@ -262,8 +262,8 @@ export interface RootState {
 
 /**
  * App Dispatch Type
- * The dispatch function type for the HAI3 store.
- * Supports plain actions (not thunks - HAI3 uses event-driven pattern instead).
+ * The dispatch function type for the FrontX store.
+ * Supports plain actions (not thunks - FrontX uses event-driven pattern instead).
  */
 export type AppDispatch = (action: UnknownAction) => UnknownAction;
 
@@ -358,7 +358,7 @@ export type EffectInitializerWithCleanup = (dispatch: AppDispatch) => EffectClea
 // ============================================================================
 
 /**
- * HAI3 Store Interface
+ * FrontX Store Interface
  * The enhanced Redux store with dynamic slice registration.
  *
  * @template TState - The state type (defaults to RootState)

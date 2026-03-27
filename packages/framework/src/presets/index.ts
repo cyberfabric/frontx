@@ -25,7 +25,7 @@ export interface FullPresetConfig {
 }
 
 /**
- * Full preset - All plugins for the complete HAI3 experience.
+ * Full preset - All plugins for the complete FrontX experience.
  * This is the default for `hai3 create` projects.
  *
  * Includes:
@@ -41,12 +41,12 @@ export interface FullPresetConfig {
  *
  * @example
  * ```typescript
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { MfeHandlerMF, FrontX_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
  * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(full({
- *     microfrontends: { typeSystem: gtsPlugin, mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)] }
+ *     microfrontends: { typeSystem: gtsPlugin, mfeHandlers: [new MfeHandlerMF(FrontX_MFE_ENTRY_MF)] }
  *   }))
  *   .build();
  * ```
@@ -71,7 +71,7 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
 
 /**
  * Minimal preset - Screensets + themes only.
- * For users who want basic HAI3 patterns without full layout management.
+ * For users who want basic FrontX patterns without full layout management.
  *
  * Includes:
  * - screensets (screenset registry, screen slice)

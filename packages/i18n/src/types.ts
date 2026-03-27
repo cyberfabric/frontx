@@ -1,7 +1,7 @@
 /**
  * @cyberfabric/i18n - Type Definitions
  *
- * Core types for HAI3 internationalization.
+ * Core types for FrontX internationalization.
  * Supports 36 languages with RTL support.
  */
 

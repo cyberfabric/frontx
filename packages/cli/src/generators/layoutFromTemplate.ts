@@ -2,7 +2,7 @@
 /**
  * Layout Generator from Template
  *
- * Generates layout components in the user's project from HAI3 layout templates.
+ * Generates layout components in the user's project from FrontX layout templates.
  */
 
 import path from 'path';

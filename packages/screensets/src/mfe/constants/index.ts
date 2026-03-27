@@ -1,9 +1,9 @@
 /**
- * HAI3 MFE Constants
+ * FrontX MFE Constants
  *
- * Convenience constants for HAI3 MFE type IDs and action IDs.
+ * Convenience constants for FrontX MFE type IDs and action IDs.
  * These are ADDITIONAL constants beyond the type ID reference constants
- * already defined in init.ts (HAI3_CORE_TYPE_IDS, HAI3_MF_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS).
+ * already defined in init.ts (FrontX_CORE_TYPE_IDS, FrontX_MF_TYPE_IDS, FrontX_LIFECYCLE_STAGE_IDS).
  *
  * @packageDocumentation
  */

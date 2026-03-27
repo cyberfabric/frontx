@@ -1,7 +1,7 @@
 /**
  * Migration System Types
  *
- * Defines interfaces for HAI3's codemod-based migration system.
+ * Defines interfaces for FrontX's codemod-based migration system.
  * Uses ts-morph for TypeScript-native AST manipulation.
  */
 // @cpt-dod:cpt-frontx-dod-cli-tooling-migrations:p1

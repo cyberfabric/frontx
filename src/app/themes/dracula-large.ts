@@ -1,5 +1,5 @@
 /**
- * Dracula Large theme for HAI3
+ * Dracula Large theme for FrontX
  * Based on Dracula theme with larger spacing and typography
  * CSS custom properties map following shadcn/ui variable naming convention.
  */

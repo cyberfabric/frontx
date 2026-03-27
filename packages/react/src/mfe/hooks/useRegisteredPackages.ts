@@ -21,7 +21,7 @@ import { useHAI3 } from '../../HAI3Context';
 /**
  * Hook for observing registered GTS packages.
  *
- * Subscribes to the HAI3 store to detect registration state changes,
+ * Subscribes to the FrontX store to detect registration state changes,
  * and returns the current list of GTS packages extracted from registered
  * extensions.
  *

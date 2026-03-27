@@ -1,6 +1,6 @@
 /**
  * @fileoverview UI components in components/ui/ must be presentational only - no @cyberfabric/react imports
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

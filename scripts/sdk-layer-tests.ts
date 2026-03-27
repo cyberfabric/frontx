@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * HAI3 SDK Layer Architecture Tests
+ * FrontX SDK Layer Architecture Tests
  * Tests that the SDK layer packages follow the 3-layer architecture
  *
  * These tests verify:

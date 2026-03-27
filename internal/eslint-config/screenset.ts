@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint Screenset Configuration (L4)
+ * FrontX ESLint Screenset Configuration (L4)
  * Rules for user code (screensets, components, etc.)
  *
  * This includes ALL existing flux architecture rules, screenset isolation,

@@ -180,9 +180,9 @@ const error = selectExtensionError(state, 'home');
 ```typescript
 import {
   HAI3_SCREEN_DOMAIN,
-  FrontX_SIDEBAR_DOMAIN,
-  FrontX_POPUP_DOMAIN,
-  FrontX_OVERLAY_DOMAIN,
+  HAI3_SIDEBAR_DOMAIN,
+  HAI3_POPUP_DOMAIN,
+  HAI3_OVERLAY_DOMAIN,
   screenDomain,
   sidebarDomain,
   popupDomain,
@@ -191,9 +191,9 @@ import {
 
 // String constants (GTS instance IDs)
 HAI3_SCREEN_DOMAIN   // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1'
-FrontX_SIDEBAR_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1'
-FrontX_POPUP_DOMAIN    // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1'
-FrontX_OVERLAY_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1'
+HAI3_SIDEBAR_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1'
+HAI3_POPUP_DOMAIN    // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1'
+HAI3_OVERLAY_DOMAIN  // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1'
 
 // Domain objects (ExtensionDomain interface: id, actions, extensionsActions,
 // sharedProperties, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages,
@@ -230,9 +230,9 @@ HAI3_SHARED_PROPERTY_LANGUAGE // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfe
 Extend FrontX with custom functionality:
 
 ```typescript
-import type { FrontXPlugin } from '@cyberfabric/framework';
+import type { HAI3Plugin } from '@cyberfabric/framework';
 
-export function myPlugin(): FrontXPlugin {
+export function myPlugin(): HAI3Plugin {
   return {
     name: 'my-plugin',
     dependencies: ['screensets'], // Optional dependencies
@@ -302,7 +302,7 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 - `createThemeRegistry` - Theme registry factory
 
 ### Types
-- `FrontXConfig`, `FrontXPlugin`, `HAI3App`, `HAI3AppBuilder`
+- `HAI3Config`, `HAI3Plugin`, `HAI3App`, `HAI3AppBuilder`
 - `PluginFactory`, `PluginProvides`, `PluginLifecycle`
 - `Preset`, `Presets`, `ScreensetsConfig`
 - All re-exported types from SDK packages

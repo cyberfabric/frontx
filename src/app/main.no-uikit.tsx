@@ -13,7 +13,7 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance (no theme support when using --uikit none)
+// Create FrontX app instance (no theme support when using --uikit none)
 // No UI component library included
 const app = createHAI3App();
 
@@ -29,9 +29,9 @@ registerBootstrapEffects(app.store.dispatch);
  * 2. Components show skeleton loaders (translationsReady = false)
  * 3. User fetched → language set → translations loaded
  * 4. Components re-render with actual text (translationsReady = true)
- * 5. HAI3Provider includes AppRouter for URL-based navigation
+ * 5. FrontXProvider includes AppRouter for URL-based navigation
  *
- * Note: Mock API is controlled via the HAI3 Studio panel.
+ * Note: Mock API is controlled via the FrontX Studio panel.
  * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.
  *
  * This template is for projects created with --uikit none.

@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint SDK Configuration (L1)
+ * FrontX ESLint SDK Configuration (L1)
  * Rules for SDK packages: @cyberfabric/state, @cyberfabric/layout, @cyberfabric/api, @cyberfabric/i18n
  *
  * SDK packages MUST have:

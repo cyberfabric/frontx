@@ -1,5 +1,5 @@
 /**
- * HAI3 Dependency Cruiser SDK Configuration (L1)
+ * FrontX Dependency Cruiser SDK Configuration (L1)
  * Rules for SDK packages: @cyberfabric/state, @cyberfabric/layout, @cyberfabric/api, @cyberfabric/i18n
  *
  * SDK packages MUST have:

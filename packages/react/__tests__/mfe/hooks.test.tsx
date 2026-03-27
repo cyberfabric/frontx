@@ -170,9 +170,9 @@ describe('MfeContext', () => {
     });
   });
 
-  // HAI3Provider MFE detection testing is deferred to integration tests.
+  // FrontXProvider MFE detection testing is deferred to integration tests.
   // The feature (when mfeBridge prop is provided, wrap children with MfeProvider)
-  // requires full HAI3 app instance with store, registries, and plugin initialization.
+  // requires full FrontX app instance with store, registries, and plugin initialization.
   // It will be properly tested when:
   // - Bridge communication layer is complete
   // - Integration tests with Chrome DevTools MCP Runtime are available

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Validate event enum values use ${SCREENSET_ID}/${DOMAIN_ID}/eventName pattern
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

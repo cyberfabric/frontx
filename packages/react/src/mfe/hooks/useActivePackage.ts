@@ -23,7 +23,7 @@ import { extractGtsPackage, HAI3_SCREEN_DOMAIN } from '@cyberfabric/framework';
  * Hook for observing the active GTS package (the package of the currently
  * mounted screen extension).
  *
- * Subscribes to the HAI3 store to detect mount state changes, and returns
+ * Subscribes to the FrontX store to detect mount state changes, and returns
  * the GTS package extracted from the currently mounted screen extension's ID.
  *
  * Returns `undefined` if no screen extension is currently mounted.

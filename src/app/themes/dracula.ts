@@ -1,5 +1,5 @@
 /**
- * Dracula theme for HAI3
+ * Dracula theme for FrontX
  * Based on the classic Dracula color scheme
  * CSS custom properties map following shadcn/ui variable naming convention.
  */

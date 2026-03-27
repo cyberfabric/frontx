@@ -1,5 +1,5 @@
 /**
- * Supported Languages - All 36 HAI3 supported languages
+ * Supported Languages - All 36 FrontX supported languages
  *
  * Based on major platforms (Google, Facebook, Microsoft, Apple).
  * Includes native names, English names, and text direction.

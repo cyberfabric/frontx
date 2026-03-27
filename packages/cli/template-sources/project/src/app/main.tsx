@@ -28,7 +28,7 @@ apiRegistry.register(AccountsApiService);
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance
+// Create FrontX app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
   microfrontends: {

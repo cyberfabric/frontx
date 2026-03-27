@@ -362,12 +362,12 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Scope**:
   - `createHAI3()` builder with `.use(plugin).build()` chaining
-  - `FrontXPlugin` interface and `HAI3PluginContext`
+  - `HAI3Plugin` interface and `HAI3PluginContext`
   - Layout slices (menu, header, footer, sidebars, overlay, popups)
   - `AppConfig` with tenant settings, router config, layout visibility
   - `app/*` event API for configuration propagation
   - `microfrontends()` plugin with MFE lifecycle actions
-  - Domain constants (`HAI3_SCREEN_DOMAIN`, `FrontX_SIDEBAR_DOMAIN`, `FrontX_POPUP_DOMAIN`, `FrontX_OVERLAY_DOMAIN`)
+  - Domain constants (`HAI3_SCREEN_DOMAIN`, `HAI3_SIDEBAR_DOMAIN`, `HAI3_POPUP_DOMAIN`, `HAI3_OVERLAY_DOMAIN`)
   - Theme propagation to MFEs via `themes()` plugin
   - Language propagation to MFEs via `i18n()` plugin
   - `updateSharedProperty()` global broadcast

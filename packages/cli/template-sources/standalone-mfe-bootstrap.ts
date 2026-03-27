@@ -32,7 +32,7 @@ class DetachedContainerProvider extends RefContainerProvider {
  * Registers the four extension domains. Add your own manifest/extension
  * registration and mounting logic after this.
  *
- * @param app - HAI3 application instance
+ * @param app - FrontX application instance
  * @param screenContainerRef - React ref for the screen domain container element
  */
 export async function bootstrapMFE(

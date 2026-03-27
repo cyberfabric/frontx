@@ -1,7 +1,7 @@
 /**
- * HAI3 Dependency Cruiser Configuration (Monorepo Root)
+ * FrontX Dependency Cruiser Configuration (Monorepo Root)
  *
- * This file contains the complete dependency rules for the HAI3 monorepo:
+ * This file contains the complete dependency rules for the FrontX monorepo:
  * - Standalone rules from packages/cli/template-sources/project/configs/.dependency-cruiser.cjs
  * - Monorepo-specific package boundary rules
  *

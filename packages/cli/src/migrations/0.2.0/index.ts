@@ -1,7 +1,7 @@
 /**
  * 0.2.0 Migration: SDK Architecture
  *
- * This migration updates HAI3 projects from the legacy package structure
+ * This migration updates FrontX projects from the legacy package structure
  * to the new SDK architecture:
  *
  * - @cyberfabric/uicore -> @cyberfabric/react

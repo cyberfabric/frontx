@@ -1,6 +1,6 @@
 /**
- * HAI3 Studio Package
- * Development tools overlay for HAI3 applications
+ * FrontX Studio Package
+ * Development tools overlay for FrontX applications
  *
  * This package should ONLY be imported in development mode
  * Use conditional imports to ensure it's tree-shaken in production

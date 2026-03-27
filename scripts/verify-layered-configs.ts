@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * HAI3 Layered Config Verification Script
+ * FrontX Layered Config Verification Script
  * Verifies that layered ESLint and dependency-cruiser configs are correctly structured
  *
  * This script:

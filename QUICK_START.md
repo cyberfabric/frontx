@@ -138,10 +138,10 @@ const MyComponent = () => {
 
 ### Use event-driven actions (recommended)
 ```typescript
-import { useFrontXActions } from '@cyberfabric/react';
+import { useHAI3Actions } from '@cyberfabric/react';
 
 const MyComponent = () => {
-  const { toggleMenu } = useFrontXActions();
+  const { toggleMenu } = useHAI3Actions();
   return <button onClick={toggleMenu}>Toggle Menu</button>;
 };
 ```

@@ -22,7 +22,7 @@ import type { Extension } from '@cyberfabric/framework';
 /**
  * Hook for observing extensions registered for a domain.
  *
- * Subscribes to the HAI3 store to detect registration state changes,
+ * Subscribes to the FrontX store to detect registration state changes,
  * and returns the current list of extensions for the specified domain.
  *
  * @param domainId - Domain ID to query extensions for

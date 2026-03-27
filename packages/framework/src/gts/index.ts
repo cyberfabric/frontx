@@ -2,12 +2,12 @@
  * GTS Derived Schemas - Application Layer
  *
  * Application-specific derived schemas that extend the core GTS type system.
- * These schemas constrain property values to the set of values the HAI3
+ * These schemas constrain property values to the set of values the FrontX
  * application actually supports (e.g. registered themes, supported languages).
  *
  * These are NOT part of @cyberfabric/screensets (L1) because they encode application-
  * level decisions. They belong here at L2 so the application layer registers
- * them before constructing the HAI3 app.
+ * them before constructing the FrontX app.
  *
  * @packageDocumentation
  */
