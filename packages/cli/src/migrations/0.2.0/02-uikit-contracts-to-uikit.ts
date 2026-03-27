@@ -2,22 +2,22 @@
 /**
  * Transform: uikit-contracts-to-react
  *
- * Transforms @hai3/uikit-contracts imports to @hai3/react
+ * Transforms @cyberfabric/uikit-contracts imports to @cyberfabric/react
  *
- * Before: import { ButtonVariant } from '@hai3/uikit-contracts';
- * After:  import { ButtonVariant } from '@hai3/react';
+ * Before: import { ButtonVariant } from '@cyberfabric/uikit-contracts';
+ * After:  import { ButtonVariant } from '@cyberfabric/react';
  */
 
 import type { SourceFile } from 'ts-morph';
 import type { Transform, TransformChange, TransformResult } from '../types.js';
 
-const SOURCE_MODULE = '@hai3/uikit-contracts';
-const TARGET_MODULE = '@hai3/react';
+const SOURCE_MODULE = '@cyberfabric/uikit-contracts';
+const TARGET_MODULE = '@cyberfabric/react';
 
 // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const uikitContractsToUikitTransform: Transform = {
   id: 'uikit-contracts-to-react',
-  name: 'Update @hai3/uikit-contracts to @hai3/react',
+  name: 'Update @cyberfabric/uikit-contracts to @cyberfabric/react',
   description: `Transforms ${SOURCE_MODULE} imports to ${TARGET_MODULE}`,
 
   canApply(sourceFile: SourceFile): boolean {

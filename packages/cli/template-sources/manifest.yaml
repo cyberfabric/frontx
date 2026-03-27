@@ -1,14 +1,14 @@
-# HAI3 CLI Template Assembly Manifest
+# FrontX CLI Template Assembly Manifest
 # This file drives the template assembly process in copy-templates.ts
 # Version: 1.0.0
 
 version: "1.0.0"
-description: "HAI3 project scaffold templates"
+description: "FrontX project scaffold templates"
 
 # Stage 1a: Project scaffold files (static templates within CLI package)
 project:
   source: ./project/
-  description: "Project configuration files for standalone HAI3 projects"
+  description: "Project configuration files for standalone FrontX projects"
   contents:
     - configs/             # ESLint, depcruise, pre-commit configs (flattened to root)
     - eslint-plugin-local/ # Local ESLint plugin with HAI3 rules
@@ -85,9 +85,9 @@ generated:
   files:
     - CLAUDE.md                 # Pointer to .ai/GUIDELINES.md
     - .claude/commands/*.md     # Command adapters
-    - .cursor/rules/hai3.mdc    # Cursor rule pointer
+    - .cursor/rules/frontx.mdc    # Cursor rule pointer
     - .cursor/commands/*.md     # Command adapters
-    - .windsurf/rules/hai3.md   # Windsurf rule pointer
+    - .windsurf/rules/frontx.md   # Windsurf rule pointer
     - .windsurf/workflows/*.md  # Workflow adapters
 
 # Build output

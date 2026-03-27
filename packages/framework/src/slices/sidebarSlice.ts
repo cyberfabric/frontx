@@ -1,4 +1,4 @@
-import { createSlice, type ReducerPayload } from '@hai3/state';
+import { createSlice, type ReducerPayload } from '@cyberfabric/state';
 import type { SidebarState, SidebarPosition } from '../layoutTypes';
 
 /**

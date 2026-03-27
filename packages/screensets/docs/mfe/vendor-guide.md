@@ -61,7 +61,7 @@ For an MFE to mount in a domain, three rules must ALL be true:
 ### 1. Install Dependencies
 
 ```bash
-npm install @hai3/screensets @globaltypesystem/gts-ts
+npm install @cyberfabric/screensets @globaltypesystem/gts-ts
 ```
 
 ### 2. Import Core Types
@@ -76,8 +76,8 @@ import type {
   Action,
   ActionsChain,
   ChildMfeBridge,
-} from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+} from '@cyberfabric/screensets';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 ```
 
 ### 3. Understand the Entry Type Hierarchy
@@ -93,7 +93,7 @@ MfeEntry (abstract base)
 ### Basic MFE Entry (Pure Contract)
 
 ```typescript
-import type { MfeEntry } from '@hai3/screensets';
+import type { MfeEntry } from '@cyberfabric/screensets';
 
 const myEntry: MfeEntry = {
   // Instance ID (does NOT end with ~)
@@ -126,7 +126,7 @@ const myEntry: MfeEntry = {
 For Module Federation deployments, use `MfeEntryMF` which extends `MfeEntry` with manifest info:
 
 ```typescript
-import type { MfeEntryMF, MfManifest } from '@hai3/screensets';
+import type { MfeEntryMF, MfManifest } from '@cyberfabric/screensets';
 
 // Define the manifest (can be inline or referenced)
 const manifest: MfManifest = {
@@ -168,7 +168,7 @@ const mfEntry: MfeEntryMF = {
 An Extension binds an MFE Entry to a Domain:
 
 ```typescript
-import type { Extension } from '@hai3/screensets';
+import type { Extension } from '@cyberfabric/screensets';
 
 const myExtension: Extension = {
   // Instance ID (does NOT end with ~)
@@ -282,7 +282,7 @@ const action: Action = {
 Actions can be chained with success (`next`) and failure (`fallback`) paths:
 
 ```typescript
-import type { ActionsChain } from '@hai3/screensets';
+import type { ActionsChain } from '@cyberfabric/screensets';
 
 const chain: ActionsChain = {
   action: {
@@ -311,7 +311,7 @@ const chain: ActionsChain = {
 MFEs receive a `ChildMfeBridge` for communicating with the host:
 
 ```typescript
-import type { ChildMfeBridge, MfeEntryLifecycle } from '@hai3/screensets';
+import type { ChildMfeBridge, MfeEntryLifecycle } from '@cyberfabric/screensets';
 
 export const ChartWidget: MfeEntryLifecycle = {
   async mount(container: Element, bridge: ChildMfeBridge) {
@@ -421,7 +421,7 @@ const extensionWithHooks: Extension = {
 Extensions can be registered at any time during runtime:
 
 ```typescript
-import { ContainerProvider } from '@hai3/screensets';
+import { ContainerProvider } from '@cyberfabric/screensets';
 
 // Define a ContainerProvider for your domain
 class WidgetContainerProvider extends ContainerProvider {

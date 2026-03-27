@@ -1,13 +1,13 @@
-# @hai3/react
+# @cyberfabric/react
 
 > React bindings, hooks, and components for HAI3 SDK. Provides type-safe integration with React applications including MFE (Microfrontend) support.
 
-Part of the HAI3 React Layer (L3) - depends on @hai3/framework. Peer dependency on react and react-dom.
+Part of the HAI3 React Layer (L3) - depends on @cyberfabric/framework. Peer dependency on react and react-dom.
 
 ## Core API
 
-- [HAI3Provider](https://hai3.dev/docs/react/provider): Root context provider
-- [MFE Components](https://hai3.dev/docs/react/mfe): ExtensionDomainSlot, MfeProvider, RefContainerProvider
+- [HAI3Provider](https://frontx.dev/docs/react/provider): Root context provider
+- [MFE Components](https://frontx.dev/docs/react/mfe): ExtensionDomainSlot, MfeProvider, RefContainerProvider
 
 ## Hooks
 
@@ -32,7 +32,7 @@ Part of the HAI3 React Layer (L3) - depends on @hai3/framework. Peer dependency 
 ## Quick Start
 
 ```tsx
-import { HAI3Provider, ExtensionDomainSlot, useTranslation, useHAI3 } from '@hai3/react';
+import { HAI3Provider, ExtensionDomainSlot, useTranslation, useHAI3 } from '@cyberfabric/react';
 
 // Wrap app with provider
 function App() {
@@ -63,7 +63,7 @@ function MyComponent() {
 ### Using ExtensionDomainSlot
 
 ```tsx
-import { ExtensionDomainSlot } from '@hai3/react';
+import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function LayoutScreen() {
   const screenContainerRef = useRef<HTMLDivElement>(null);
@@ -81,7 +81,7 @@ function LayoutScreen() {
 ### Using MFE Bridge
 
 ```tsx
-import { useMfeBridge, useSharedProperty, HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+import { useMfeBridge, useSharedProperty, HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@cyberfabric/react';
 
 function MyExtension() {
   const bridge = useMfeBridge();
@@ -100,7 +100,7 @@ function MyExtension() {
 ### Subscribing to Domain Extensions
 
 ```tsx
-import { useDomainExtensions } from '@hai3/react';
+import { useDomainExtensions } from '@cyberfabric/react';
 
 function ScreenList() {
   const screenExtensions = useDomainExtensions('screen');
@@ -117,6 +117,6 @@ function ScreenList() {
 
 ## Optional
 
-- [Screen Translations](https://hai3.dev/docs/react/translations): Per-screen lazy loading
-- [Custom Hooks](https://hai3.dev/docs/react/hooks): Building on HAI3 hooks
-- [MFE Bridge Communication](https://hai3.dev/docs/react/mfe-bridge): Parent-child patterns
+- [Screen Translations](https://frontx.dev/docs/react/translations): Per-screen lazy loading
+- [Custom Hooks](https://frontx.dev/docs/react/hooks): Building on HAI3 hooks
+- [MFE Bridge Communication](https://frontx.dev/docs/react/mfe-bridge): Parent-child patterns

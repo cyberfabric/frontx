@@ -1,16 +1,16 @@
-# @hai3/screensets
+# @cyberfabric/screensets
 
 > Pure TypeScript contracts and MFE (Microfrontend) runtime for HAI3 SDK. Manages extension domains, lifecycle, and coordination.
 
-Part of the HAI3 SDK Layer (L1) - ZERO dependencies. Can be used independently without other @hai3 packages.
+Part of the HAI3 SDK Layer (L1) - ZERO dependencies. Can be used independently without other @cyberfabric packages.
 
 ## Core API
 
-- [ScreensetsRegistry](https://hai3.dev/docs/screensets/registry): MFE-enabled registry for domain and extension management
-- [Extension](https://hai3.dev/docs/screensets/extension): Extension definition (screens, popups, sidebars)
-- [ExtensionDomain](https://hai3.dev/docs/screensets/domain): Domain definition (screen, sidebar, popup, overlay)
-- [MFE Handler](https://hai3.dev/docs/screensets/handler): Abstract class for MFE lifecycle
-- [MFE Bridge](https://hai3.dev/docs/screensets/bridge): Parent-child communication
+- [ScreensetsRegistry](https://frontx.dev/docs/screensets/registry): MFE-enabled registry for domain and extension management
+- [Extension](https://frontx.dev/docs/screensets/extension): Extension definition (screens, popups, sidebars)
+- [ExtensionDomain](https://frontx.dev/docs/screensets/domain): Domain definition (screen, sidebar, popup, overlay)
+- [MFE Handler](https://frontx.dev/docs/screensets/handler): Abstract class for MFE lifecycle
+- [MFE Bridge](https://frontx.dev/docs/screensets/bridge): Parent-child communication
 
 ## Key Patterns
 
@@ -31,7 +31,7 @@ import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SHARED_PROPERTY_THEME,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
 // Define domain
 const screenDomain: ExtensionDomain = {
@@ -85,7 +85,7 @@ import {
   HAI3_ACTION_LOAD_EXT,      // 'hai3.action.load_ext'
   HAI3_ACTION_MOUNT_EXT,     // 'hai3.action.mount_ext'
   HAI3_ACTION_UNMOUNT_EXT,   // 'hai3.action.unmount_ext'
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 ```
 
 ## Shared Property Constants
@@ -94,7 +94,7 @@ import {
 import {
   HAI3_SHARED_PROPERTY_THEME,     // 'hai3.shared.theme'
   HAI3_SHARED_PROPERTY_LANGUAGE,  // 'hai3.shared.language'
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 ```
 
 ## GTS Type System
@@ -102,7 +102,7 @@ import {
 HAI3 uses GTS (Global Type System) for runtime type validation. Import from subpath to avoid dependency bloat:
 
 ```typescript
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 
 const registry = screensetsRegistryFactory({
   typeSystemPlugin: gtsPlugin,
@@ -136,7 +136,7 @@ Example type IDs:
 ## LayoutDomain Enum
 
 ```typescript
-import { LayoutDomain } from '@hai3/screensets';
+import { LayoutDomain } from '@cyberfabric/screensets';
 
 LayoutDomain.Header    // 'header'
 LayoutDomain.Footer    // 'footer'
@@ -149,6 +149,6 @@ LayoutDomain.Overlay   // 'overlay'
 
 ## Optional
 
-- [MFE Bridge Communication](https://hai3.dev/docs/screensets/bridge): Parent-child action/property patterns
-- [Lifecycle Hooks](https://hai3.dev/docs/screensets/lifecycle): Custom behavior during transitions
-- [Shadow DOM Utilities](https://hai3.dev/docs/screensets/shadow): Isolated rendering contexts
+- [MFE Bridge Communication](https://frontx.dev/docs/screensets/bridge): Parent-child action/property patterns
+- [Lifecycle Hooks](https://frontx.dev/docs/screensets/lifecycle): Custom behavior during transitions
+- [Shadow DOM Utilities](https://frontx.dev/docs/screensets/shadow): Isolated rendering contexts

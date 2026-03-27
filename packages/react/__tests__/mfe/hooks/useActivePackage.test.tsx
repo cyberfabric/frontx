@@ -11,15 +11,15 @@ import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
 import { HAI3Provider } from '../../../src/HAI3Provider';
 import { useActivePackage } from '../../../src/mfe/hooks/useActivePackage';
-import { createHAI3 } from '@hai3/framework';
-import { screensets } from '@hai3/framework';
-import { effects } from '@hai3/framework';
-import { microfrontends } from '@hai3/framework';
-import { HAI3_SCREEN_DOMAIN } from '@hai3/framework';
-import { gtsPlugin } from '@hai3/framework';
-import type { Extension, ExtensionDomain } from '@hai3/framework';
-import { ContainerProvider } from '@hai3/framework';
-import type { HAI3App } from '@hai3/framework';
+import { createHAI3 } from '@cyberfabric/framework';
+import { screensets } from '@cyberfabric/framework';
+import { effects } from '@cyberfabric/framework';
+import { microfrontends } from '@cyberfabric/framework';
+import { HAI3_SCREEN_DOMAIN } from '@cyberfabric/framework';
+import { gtsPlugin } from '@cyberfabric/framework';
+import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
+import { ContainerProvider } from '@cyberfabric/framework';
+import type { HAI3App } from '@cyberfabric/framework';
 
 // Mock Container Provider for React tests
 class TestContainerProvider extends ContainerProvider {

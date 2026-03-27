@@ -2,7 +2,7 @@ name: Publish Packages
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 permissions:
   contents: read

@@ -143,8 +143,8 @@ export async function runProjectValidation(
   if (allPassed) {
     logger.success('All validations passed!');
   } else {
-    logger.error('Validation failed. Run `hai3 validate` for details.');
-    logger.info('Tip: Use `/hai3-fix-violation` to fix common issues.');
+    logger.error('Validation failed. Run `frontx validate` for details.');
+    logger.info('Tip: Use `/frontx-fix-violation` to fix common issues.');
   }
 
   return {

@@ -1,9 +1,9 @@
 /**
  * HAI3 ESLint SDK Configuration (L1)
- * Rules for SDK packages: @hai3/state, @hai3/layout, @hai3/api, @hai3/i18n
+ * Rules for SDK packages: @cyberfabric/state, @cyberfabric/layout, @cyberfabric/api, @cyberfabric/i18n
  *
  * SDK packages MUST have:
- * - ZERO @hai3/* dependencies (complete isolation)
+ * - ZERO @cyberfabric/* dependencies (complete isolation)
  * - NO React dependencies (framework-agnostic)
  */
 
@@ -22,8 +22,8 @@ export const sdkConfig: ConfigArray = [
         {
           patterns: [
             {
-              group: ['@hai3/*'],
-              message: 'SDK VIOLATION: SDK packages cannot import other @hai3 packages. SDK packages must have ZERO @hai3 dependencies.',
+              group: ['@cyberfabric/*'],
+              message: 'SDK VIOLATION: SDK packages cannot import other @hai3 packages. SDK packages must have ZERO @cyberfabric dependencies.',
             },
             {
               group: ['react', 'react-dom', 'react/*'],

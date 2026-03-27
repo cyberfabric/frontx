@@ -35,7 +35,7 @@ import type { CustomActionHandler } from './extension-lifecycle-action-handler';
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);

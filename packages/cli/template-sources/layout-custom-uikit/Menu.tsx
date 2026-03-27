@@ -9,7 +9,7 @@ import {
   type MenuState,
   type Extension,
   type ScreenExtension,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 import * as lucideIcons from 'lucide-react';
 
 type LucideIcon = React.ComponentType<lucideIcons.LucideProps>;

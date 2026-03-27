@@ -7,9 +7,9 @@
  */
 
 import { useEffect } from 'react';
-import { useTheme } from '@hai3/react';
+import { useTheme } from '@cyberfabric/react';
 import { Layout } from '@/app/layout';
-import { StudioOverlay } from '@hai3/studio';
+import { StudioOverlay } from '@cyberfabric/studio';
 import { MfeScreenContainer } from '@/app/mfe/MfeScreenContainer';
 __LIBRARY_SYNC_IMPORT__
 

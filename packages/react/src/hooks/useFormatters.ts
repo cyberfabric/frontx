@@ -21,7 +21,7 @@ import {
   formatCurrency as formatCurrencyFn,
   compareStrings as compareStringsFn,
   createCollator as createCollatorFn,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 import type { UseFormattersReturn } from '../types';
 import { useTranslation } from './useTranslation';
 

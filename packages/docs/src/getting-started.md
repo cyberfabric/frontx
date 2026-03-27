@@ -6,7 +6,7 @@ Welcome to HAI3! This guide will help you get started with the framework.
 
 ```bash
 # Installation instructions coming soon
-npm install @hai3/framework
+npm install @cyberfabric/framework
 ```
 
 ## Quick Start
@@ -17,5 +17,5 @@ Documentation for getting started with HAI3 is being prepared.
 
 Explore the documentation sections:
 - [AI Product Lifecycle](/lifecycle/)
-- [HAI3 Framework](/hai3/)
+- [HAI3 Framework](/frontx/)
 - [Case Studies](/case-studies/)

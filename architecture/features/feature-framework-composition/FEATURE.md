@@ -59,22 +59,22 @@
 
 ### 1.1 Overview
 
-Framework Composition is the L2 layer that stitches together the four L1 SDK packages (`@hai3/state`, `@hai3/screensets`, `@hai3/api`, `@hai3/i18n`) into a cohesive, production-ready application framework. It does this through a plugin architecture centered on the `createHAI3()` builder: the host application chains `.use(plugin)` calls and calls `.build()` to produce an assembled `HAI3App` instance that owns a Redux store, theme registry, i18n registry, API registry, MFE-enabled screensets registry, and a complete set of typed actions.
+Framework Composition is the L2 layer that stitches together the four L1 SDK packages (`@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`) into a cohesive, production-ready application framework. It does this through a plugin architecture centered on the `createHAI3()` builder: the host application chains `.use(plugin)` calls and calls `.build()` to produce an assembled `HAI3App` instance that owns a Redux store, theme registry, i18n registry, API registry, MFE-enabled screensets registry, and a complete set of typed actions.
 
 **Problem this solves**: Without this layer each application would manually wire state slices, event subscriptions, registries, and lifecycle hooks across four packages — a complex and error-prone process that produces inconsistent patterns across projects.
 
-**Primary value**: A single call to `createHAI3App()` (or a composed `.use()` chain) yields a framework instance that the React layer (`@hai3/react`) can consume directly, with all cross-cutting concerns (theme, language, MFE lifecycle, mock mode, layout state) already coordinated.
+**Primary value**: A single call to `createHAI3App()` (or a composed `.use()` chain) yields a framework instance that the React layer (`@cyberfabric/react`) can consume directly, with all cross-cutting concerns (theme, language, MFE lifecycle, mock mode, layout state) already coordinated.
 
 **Key assumptions**:
 - Applications run in a browser environment; no SSR.
 - Each plugin declares name and optional dependencies; the builder performs topological ordering.
-- The framework has no React dependency — all React integration lives in `@hai3/react` (L3).
+- The framework has no React dependency — all React integration lives in `@cyberfabric/react` (L3).
 
 ### 1.2 Purpose
 
-Enable host applications to compose a fully-wired HAI3 framework instance by assembling plugins via a fluent builder API, with theme/language propagation to MFEs, GTS-validated shared property broadcast, layout state management, and base-path-aware navigation configuration — all without modifying framework source code.
+Enable host applications to compose a fully-wired FrontX framework instance by assembling plugins via a fluent builder API, with theme/language propagation to MFEs, GTS-validated shared property broadcast, layout state management, and base-path-aware navigation configuration — all without modifying framework source code.
 
-**Success criteria**: A host application initializes a complete HAI3 framework instance with one function call; plugins register slices and effects without order dependency; theme and language changes propagate to all registered MFE domains within the same synchronous call chain.
+**Success criteria**: A host application initializes a complete FrontX framework instance with one function call; plugins register slices and effects without order dependency; theme and language changes propagate to all registered MFE domains within the same synchronous call chain.
 
 ### 1.3 Actors
 
@@ -344,7 +344,7 @@ Tracked in `state.tenant`.
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-builder`
 
-Host applications can compose a HAI3 framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
+Host applications can compose a FrontX framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
 
 **API surface**:
 - `createHAI3(config?: HAI3Config): HAI3AppBuilder`
@@ -379,7 +379,7 @@ Host applications can compose a HAI3 framework instance by chaining `.use(plugin
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-layout`
 
-The `layout()` plugin registers Redux slices for all seven layout domains (header, footer, menu, sidebar, screen, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. The `screensets()` plugin registers the screen slice. All layout state types are exported from `@hai3/framework`.
+The `layout()` plugin registers Redux slices for all seven layout domains (header, footer, menu, sidebar, screen, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. The `screensets()` plugin registers the screen slice. All layout state types are exported from `@cyberfabric/framework`.
 
 **Layout domains and their slices**:
 - `header`: `HeaderState` — user info, loading
@@ -456,7 +456,7 @@ When the host changes theme or language, the respective plugin propagates the ne
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-mfe-plugin`
 
-The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.screensetsRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the HAI3 actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
+The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.screensetsRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the FrontX actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
 
 **Domain constants** (GTS instance IDs):
 - `HAI3_SCREEN_DOMAIN` — main content area
@@ -513,7 +513,7 @@ Three presets are provided as functions returning `HAI3Plugin[]`:
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
 
-All presets are exported from `@hai3/framework`. The `presets` object collects all three under named keys.
+All presets are exported from `@cyberfabric/framework`. The `presets` object collects all three under named keys.
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-sdk-plugin-arch`
@@ -527,11 +527,11 @@ All presets are exported from `@hai3/framework`. The `presets` object collects a
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-reexports`
 
-`@hai3/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
-- From `@hai3/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
-- From `@hai3/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
-- From `@hai3/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
-- From `@hai3/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
+`@cyberfabric/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
+- From `@cyberfabric/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
+- From `@cyberfabric/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
+- From `@cyberfabric/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
+- From `@cyberfabric/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.
 
@@ -541,7 +541,7 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 
 - [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-derived-schemas`
 
-`@hai3/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@hai3/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the HAI3 app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
+`@cyberfabric/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@cyberfabric/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the FrontX app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-mfe-shared-property`
@@ -574,8 +574,8 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 - [x] `normalizeBase('/console/')` returns `'/console'`; `normalizeBase('')` returns `'/'`; `normalizeBase('console')` returns `'/console'`
 - [x] `stripBase('/console/dashboard', '/console')` returns `'/dashboard'`; `stripBase('/admin/x', '/console')` returns `null`; `stripBase('/console-admin', '/console')` returns `null`
 - [x] `createHAI3App()` uses the `full()` preset and returns a valid `HAI3App` without configuration
-- [x] `@hai3/framework` has no React import (enforced by `dependency-cruiser`)
-- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `ScreenState`, `PopupState`, `OverlayState`) are exported from `@hai3/framework`
+- [x] `@cyberfabric/framework` has no React import (enforced by `dependency-cruiser`)
+- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `ScreenState`, `PopupState`, `OverlayState`) are exported from `@cyberfabric/framework`
 
 ---
 
@@ -603,7 +603,7 @@ The broadcast model is fire-and-forget: `updateSharedProperty()` propagates only
 
 These methods were removed as part of the global shared property broadcast model (`cpt-hai3-adr-global-shared-property-broadcast`). Shared properties are global — a property ID means the same thing across all domains that declare it, so domain-targeted writes are semantically incorrect. `updateSharedProperty(propertyId, value)` is the only write path.
 
-### HAI3Config Fields
+### FrontXConfig Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|

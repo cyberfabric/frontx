@@ -1,9 +1,9 @@
 /**
- * @hai3/framework Dependency Cruiser Configuration
+ * @cyberfabric/framework Dependency Cruiser Configuration
  * Extends Framework layer config - can import SDK packages, no React
  */
 
-const frameworkConfig = require('@hai3/depcruise-config/framework.cjs');
+const frameworkConfig = require('@cyberfabric/depcruise-config/framework.cjs');
 
 module.exports = {
   forbidden: frameworkConfig.forbidden,

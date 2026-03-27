@@ -50,7 +50,7 @@ export const updateLayoutCommand: CommandDefinition<
     if (!ctx.projectRoot) {
       return validationError(
         'NOT_IN_PROJECT',
-        'Not inside a HAI3 project. Run this command from a project root.'
+        'Not inside a FrontX project. Run this command from a project root.'
       );
     }
 

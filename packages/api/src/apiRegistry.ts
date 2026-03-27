@@ -340,6 +340,6 @@ class ApiRegistryImpl implements IApiRegistry {
  * Use this instance throughout the application.
  *
  * For micro-frontend isolation, each micro-frontend should bundle its own
- * instance of @hai3/api package, which provides natural isolation.
+ * instance of @cyberfabric/api package, which provides natural isolation.
  */
 export const apiRegistry = new ApiRegistryImpl();

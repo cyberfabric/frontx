@@ -28,7 +28,7 @@
 - DELEGATE: command routes to CLI.
 - LAYER: SDK architecture tier (sdk, framework, react, app).
   Commands and targets filtered by layer. Variants: .sdk.md, .framework.md, .react.md.
-  Fallback chain: react -> framework -> sdk -> base. Layer stored in hai3.config.json.
+  Fallback chain: react -> framework -> sdk -> base. Layer stored in frontx.config.json.
 
 ## RULE FORMAT
 Rules must follow one of these forms:
@@ -63,12 +63,12 @@ Stop and ask the user before:
 - Implementing logic directly instead of delegating to CLI.
 
 ## COMMAND NAMESPACES
-- hai3dev-*: internal monorepo commands, NEVER shipped to user projects.
-- hai3-*: user project commands, shipped via CLI templates.
-- Location: internal/ for hai3dev-*, user/ for hai3-*.
+- frontxdev-*: internal monorepo commands, NEVER shipped to user projects.
+- frontx-*: user project commands, shipped via CLI templates.
+- Location: internal/ for frontxdev-*, user/ for frontx-*.
 
 ## CLI DELEGATION
-- REQUIRED: Commands DELEGATE to hai3 CLI for scaffolding.
+- REQUIRED: Commands DELEGATE to frontx CLI for scaffolding.
 - FORBIDDEN: Implementing file generation logic in commands.
 - REQUIRED: Commands run validation after scaffolding.
 - PROTECTION: CLI runs type-check, lint, arch:check automatically.

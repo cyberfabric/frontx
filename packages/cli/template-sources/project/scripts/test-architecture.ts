@@ -100,7 +100,7 @@ function runScriptCommand(packageManager: PackageManager, scriptName: string): s
 
 /**
  * Standalone architecture checks
- * These run in all HAI3 projects (standalone and monorepo)
+ * These run in all FrontX projects (standalone and monorepo)
  */
 function getStandaloneChecks(packageManager: PackageManager = detectPackageManager()): ArchCheck[] {
   return [

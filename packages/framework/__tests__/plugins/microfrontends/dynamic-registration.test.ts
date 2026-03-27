@@ -19,10 +19,10 @@ import {
   selectExtensionState,
   selectRegisteredExtensions,
 } from '../../../src/plugins/microfrontends';
-import { eventBus, resetStore } from '@hai3/state';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-import type { Extension, ExtensionDomain } from '@hai3/framework';
-import { ContainerProvider } from '@hai3/framework';
+import { eventBus, resetStore } from '@cyberfabric/state';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
+import { ContainerProvider } from '@cyberfabric/framework';
 import type { HAI3App } from '../../../src/types';
 
 // Mock Container Provider for framework tests

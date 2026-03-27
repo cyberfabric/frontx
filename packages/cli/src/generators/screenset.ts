@@ -70,8 +70,8 @@ export function applyMfeReplacements(content: string, name: string, namePascal: 
     .replace(/\/api\/blank/g, `/api/${nameKebab}`)
     // Federation name: blankMfe → contactsMfe
     .replace(/blankMfe/g, `${name}Mfe`)
-    // Package name: @hai3/blank-mfe → @hai3/contacts-mfe
-    .replace(/@hai3\/blank-mfe/g, `@hai3/${nameKebab}-mfe`)
+    // Package name: @cyberfabric/blank-mfe → @cyberfabric/contacts-mfe
+    .replace(/@cyberfabric\/blank-mfe/g, `@cyberfabric/${nameKebab}-mfe`)
     // GTS IDs: hai3.blank. → hai3.contacts. (always lowercase)
     .replace(/hai3\.blank\./g, `hai3.${name.toLowerCase()}.`)
     // Remote entry port: localhost:3099 → localhost:{port}
@@ -246,7 +246,7 @@ export function buildMfeManifestsContent(mfePackages: string[]): string {
 // Do not edit manually!
 // Regenerate: npm run generate:mfe-manifests
 ${importBlock}
-import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';
+import type { Extension, JSONSchema, MfeEntry } from '@cyberfabric/react';
 
 export interface MfeManifestConfig {
   manifest: JSONSchema;
@@ -322,7 +322,7 @@ const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind requi
    Uses CSS custom properties from globals.css (theme tokens). */
 
 /* --- Button --- */
-.hai3-btn {
+.frontx-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -337,80 +337,80 @@ const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind requi
   border: none;
   outline: none;
 }
-.hai3-btn:focus-visible {
+.frontx-btn:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-.hai3-btn:disabled {
+.frontx-btn:disabled {
   pointer-events: none;
   opacity: 0.5;
 }
-.hai3-btn-default {
+.frontx-btn-default {
   background-color: var(--primary);
   color: var(--primary-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-default:hover { opacity: 0.9; }
-.hai3-btn-destructive {
+.frontx-btn-default:hover { opacity: 0.9; }
+.frontx-btn-destructive {
   background-color: var(--destructive);
   color: var(--destructive-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-destructive:hover { opacity: 0.9; }
-.hai3-btn-outline {
+.frontx-btn-destructive:hover { opacity: 0.9; }
+.frontx-btn-outline {
   border: 1px solid var(--border);
   background-color: var(--background);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-outline:hover { background-color: var(--accent); }
-.hai3-btn-secondary {
+.frontx-btn-outline:hover { background-color: var(--accent); }
+.frontx-btn-secondary {
   background-color: var(--secondary);
   color: var(--secondary-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-secondary:hover { opacity: 0.8; }
-.hai3-btn-ghost { background: transparent; }
-.hai3-btn-ghost:hover { background-color: var(--accent); }
-.hai3-btn-link {
+.frontx-btn-secondary:hover { opacity: 0.8; }
+.frontx-btn-ghost { background: transparent; }
+.frontx-btn-ghost:hover { background-color: var(--accent); }
+.frontx-btn-link {
   background: transparent;
   color: var(--primary);
   text-underline-offset: 4px;
 }
-.hai3-btn-link:hover { text-decoration: underline; }
+.frontx-btn-link:hover { text-decoration: underline; }
 
-.hai3-btn-size-default { height: 2.25rem; padding: 0.5rem 1rem; }
-.hai3-btn-size-sm { height: 2rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-md, 0.375rem); }
-.hai3-btn-size-lg { height: 2.5rem; padding: 0.5rem 2rem; border-radius: var(--radius-md, 0.375rem); }
-.hai3-btn-size-icon { height: 2.25rem; width: 2.25rem; }
+.frontx-btn-size-default { height: 2.25rem; padding: 0.5rem 1rem; }
+.frontx-btn-size-sm { height: 2rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-md, 0.375rem); }
+.frontx-btn-size-lg { height: 2.5rem; padding: 0.5rem 2rem; border-radius: var(--radius-md, 0.375rem); }
+.frontx-btn-size-icon { height: 2.25rem; width: 2.25rem; }
 
 /* --- Card --- */
-.hai3-card {
+.frontx-card {
   border-radius: var(--radius-lg, 0.75rem);
   border: 1px solid var(--border);
   background-color: var(--card);
   color: var(--card-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-card-header {
+.frontx-card-header {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
   padding: 1.5rem;
 }
-.hai3-card-title {
+.frontx-card-title {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.01em;
 }
-.hai3-card-description {
+.frontx-card-description {
   font-size: 0.875rem;
   color: var(--muted-foreground);
 }
-.hai3-card-content {
+.frontx-card-content {
   padding: 1.5rem;
   padding-top: 0;
 }
-.hai3-card-footer {
+.frontx-card-footer {
   display: flex;
   align-items: center;
   padding: 1.5rem;
@@ -418,16 +418,16 @@ const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind requi
 }
 
 /* --- Skeleton --- */
-.hai3-skeleton {
+.frontx-skeleton {
   border-radius: var(--radius-md, 0.375rem);
   background-color: var(--muted);
-  animation: hai3-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: frontx-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-.hai3-skeleton-inherit {
+.frontx-skeleton-inherit {
   background-color: currentColor;
   opacity: 0.2;
 }
-@keyframes hai3-pulse {
+@keyframes frontx-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
@@ -462,19 +462,19 @@ import { cn } from '../../lib/utils';
 import './components.css';
 
 const VARIANT_CLASSES: Record<string, string> = {
-  default: 'hai3-btn-default',
-  destructive: 'hai3-btn-destructive',
-  outline: 'hai3-btn-outline',
-  secondary: 'hai3-btn-secondary',
-  ghost: 'hai3-btn-ghost',
-  link: 'hai3-btn-link',
+  default: 'frontx-btn-default',
+  destructive: 'frontx-btn-destructive',
+  outline: 'frontx-btn-outline',
+  secondary: 'frontx-btn-secondary',
+  ghost: 'frontx-btn-ghost',
+  link: 'frontx-btn-link',
 };
 
 const SIZE_CLASSES: Record<string, string> = {
-  default: 'hai3-btn-size-default',
-  sm: 'hai3-btn-size-sm',
-  lg: 'hai3-btn-size-lg',
-  icon: 'hai3-btn-size-icon',
+  default: 'frontx-btn-size-default',
+  sm: 'frontx-btn-size-sm',
+  lg: 'frontx-btn-size-lg',
+  icon: 'frontx-btn-size-icon',
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -490,7 +490,7 @@ const Button = ({
   ...props
 }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => (
   <button
-    className={cn('hai3-btn', VARIANT_CLASSES[variant], SIZE_CLASSES[size], className)}
+    className={cn('frontx-btn', VARIANT_CLASSES[variant], SIZE_CLASSES[size], className)}
     ref={ref}
     {...props}
   />
@@ -509,7 +509,7 @@ const Card = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card', className)} {...props} />
 );
 Card.displayName = 'Card';
 
@@ -518,7 +518,7 @@ const CardHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-header', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-header', className)} {...props} />
 );
 CardHeader.displayName = 'CardHeader';
 
@@ -527,7 +527,7 @@ const CardTitle = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-title', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-title', className)} {...props} />
 );
 CardTitle.displayName = 'CardTitle';
 
@@ -536,7 +536,7 @@ const CardDescription = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-description', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-description', className)} {...props} />
 );
 CardDescription.displayName = 'CardDescription';
 
@@ -545,7 +545,7 @@ const CardContent = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-content', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-content', className)} {...props} />
 );
 CardContent.displayName = 'CardContent';
 
@@ -554,7 +554,7 @@ const CardFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-footer', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-footer', className)} {...props} />
 );
 CardFooter.displayName = 'CardFooter';
 
@@ -572,8 +572,8 @@ function Skeleton({ className, inheritColor = false, ...props }: SkeletonProps) 
   return (
     <div
       className={cn(
-        'hai3-skeleton',
-        inheritColor && 'hai3-skeleton-inherit',
+        'frontx-skeleton',
+        inheritColor && 'frontx-skeleton-inherit',
         className
       )}
       {...props}

@@ -1,4 +1,4 @@
-# Decomposition: HAI3 Dev Kit
+# Decomposition: FrontX Dev Kit
 
 <!-- toc -->
 
@@ -170,7 +170,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Scope**:
   - Blob URL creation from fetched source text
-  - Import specifier rewriting (bare `@hai3/*` → blob URLs)
+  - Import specifier rewriting (bare `@cyberfabric/*` → blob URLs)
   - Source text caching after first fetch
   - Recursive chain loading for transitive dependencies
   - Per-load import map management
@@ -532,7 +532,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-hai3-component-studio`
 
 - **API**:
-  - `import('@hai3/studio')` (dev-only dynamic import)
+  - `import('@cyberfabric/studio')` (dev-only dynamic import)
   - Studio panel toggle
 
 - **Sequences**:
@@ -550,7 +550,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Depends On**: None
 
 - **Scope**:
-  - `hai3` binary entry point via Commander.js
+  - `frontx` binary entry point via Commander.js
   - Commands: `create`, `generate`, `dev`, `update`, `validate`
   - Template-based code generation from real project files
   - Plugin-based command registry with `CommandDefinition` interface
@@ -586,11 +586,11 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p2` - `cpt-hai3-component-cli`
 
 - **API**:
-  - `hai3 create [project-name]`
-  - `hai3 generate screenset|mfe|component [name]`
-  - `hai3 update`
-  - `hai3 validate`
-  - `hai3 dev`
+  - `frontx create [project-name]`
+  - `frontx generate screenset|mfe|component [name]`
+  - `frontx update`
+  - `frontx validate`
+  - `frontx dev`
 
 - **Sequences**:
   - None
@@ -662,14 +662,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - [x] `p1` - **ID**: `cpt-hai3-feature-ui-libraries-choice`
 
-- **Purpose**: Provides a per-project UI strategy chosen at creation time. When running `hai3 create`, the developer selects a UI approach for the project: copy-owned shadcn/ui components, a third-party library (MUI, Ant Design, etc.), or fully custom components. The CLI reads `hai3.config.json` to determine the active UI kit and scaffolds accordingly.
+- **Purpose**: Provides a per-project UI strategy chosen at creation time. When running `frontx create`, the developer selects a UI approach for the project: copy-owned shadcn/ui components, a third-party library (MUI, Ant Design, etc.), or fully custom components. The CLI reads `frontx.config.json` to determine the active UI kit and scaffolds accordingly.
 
 - **Depends On**: `cpt-hai3-feature-cli-tooling`
 
 - **Scope**:
-  - `hai3.config.json` `uikit` field supporting `"shadcn"`, `"none"`, or a third-party package name
-  - CLI `hai3 create` scaffolding per UI kit type (shadcn components, bridge file, or empty uikit)
-  - CLI `hai3 screenset` generation respecting the project's configured UI kit
+  - `frontx.config.json` `uikit` field supporting `"shadcn"`, `"none"`, or a third-party package name
+  - CLI `frontx create` scaffolding per UI kit type (shadcn components, bridge file, or empty uikit)
+  - CLI `frontx screenset` generation respecting the project's configured UI kit
   - UIKit bridge generation for third-party libraries
   - CSS variable theme propagation for all UI kit types
   - AI guidelines updated (UIKIT.md, SCREENSETS.md)
@@ -700,9 +700,9 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-hai3-component-cli`
 
 - **API**:
-  - `hai3 create` (UI kit selection prompt)
-  - `hai3 screenset` (UI kit-aware generation)
-  - `hai3.config.json` `uikit` field
+  - `frontx create` (UI kit selection prompt)
+  - `frontx screenset` (UI kit-aware generation)
+  - `frontx.config.json` `uikit` field
 
 - **Sequences**:
   - None
@@ -740,5 +740,5 @@ cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
 - `cpt-hai3-feature-mfe-isolation` requires `cpt-hai3-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
 - `cpt-hai3-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
 - `cpt-hai3-feature-react-bindings` requires `cpt-hai3-feature-framework-composition`: React layer consumes the built framework output
-- `cpt-hai3-feature-ui-libraries-choice` requires `cpt-hai3-feature-cli-tooling`: CLI commands (`hai3 create`, `hai3 screenset`) implement the UI kit scaffolding
+- `cpt-hai3-feature-ui-libraries-choice` requires `cpt-hai3-feature-cli-tooling`: CLI commands (`frontx create`, `frontx screenset`) implement the UI kit scaffolding
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

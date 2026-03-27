@@ -7,10 +7,10 @@ import { isCustomUikit, isValidPackageName, normalizeUikit } from './validation.
 /**
  * Config file name
  */
-export const CONFIG_FILE = 'hai3.config.json';
+export const CONFIG_FILE = 'frontx.config.json';
 
 /**
- * Check if a directory has @hai3/* dependencies in package.json
+ * Check if a directory has @cyberfabric/* dependencies in package.json
  */
 async function hasHai3Dependencies(dir: string): Promise<boolean> {
   const packageJsonPath = path.join(dir, 'package.json');
@@ -23,14 +23,14 @@ async function hasHai3Dependencies(dir: string): Promise<boolean> {
       ...packageJson.dependencies,
       ...packageJson.devDependencies,
     };
-    return Object.keys(allDeps).some((dep) => dep.startsWith('@hai3/'));
+    return Object.keys(allDeps).some((dep) => dep.startsWith('@cyberfabric/'));
   } catch {
     return false;
   }
 }
 
 /**
- * Find HAI3 project root by looking for hai3.config.json or package.json with @hai3/* deps
+ * Find FrontX project root by looking for frontx.config.json or package.json with @cyberfabric/* deps
  * Traverses parent directories until found or reaches filesystem root
  */
 export async function findProjectRoot(
@@ -40,12 +40,12 @@ export async function findProjectRoot(
   const { root } = path.parse(currentDir);
 
   while (currentDir !== root) {
-    // First check for explicit hai3.config.json
+    // First check for explicit frontx.config.json
     const configPath = path.join(currentDir, CONFIG_FILE);
     if (await fs.pathExists(configPath)) {
       return currentDir;
     }
-    // Fallback: check for package.json with @hai3/* dependencies
+    // Fallback: check for package.json with @cyberfabric/* dependencies
     if (await hasHai3Dependencies(currentDir)) {
       return currentDir;
     }
@@ -99,7 +99,7 @@ export async function loadConfig(
     return {
       ok: false,
       error: 'not_found',
-      message: `${CONFIG_FILE} not found in ${projectRoot}. Run this command from a HAI3 project root created with \`hai3 create\`.`,
+      message: `${CONFIG_FILE} not found in ${projectRoot}. Run this command from a FrontX project root created with \`frontx create\`.`,
     };
   }
   try {
@@ -126,7 +126,7 @@ export async function saveConfig(
 }
 
 /**
- * Check if a directory is inside a HAI3 project
+ * Check if a directory is inside a FrontX project
  */
 export async function isInsideProject(dir: string): Promise<boolean> {
   return (await findProjectRoot(dir)) !== null;
@@ -151,14 +151,14 @@ export async function screensetExists(
 }
 
 /**
- * Find HAI3 monorepo root by walking up from a given path.
+ * Find FrontX monorepo root by walking up from a given path.
  * A directory is the monorepo root if it has packages/ and a root package.json
  * with workspaces that include "packages/*".
  * Use when the CLI runs from a linked copy (npm link) so generated projects
  * can reference local packages via file:.
  */
 export async function findMonorepoRoot(fromPath: string): Promise<string | null> {
-  const envRoot = process.env.HAI3_MONOREPO_ROOT;
+  const envRoot = process.env.FRONTX_MONOREPO_ROOT;
   if (envRoot && (await fs.pathExists(path.join(envRoot, 'packages', 'react', 'package.json')))) {
     return path.resolve(envRoot);
   }
@@ -190,8 +190,8 @@ export async function findMonorepoRoot(fromPath: string): Promise<string | null>
 }
 
 /**
- * Resolve a @hai3 package name to a file: URL path relative to projectPath.
- * e.g. '@hai3/react' with monorepoRoot /repo and projectPath /repo/app
+ * Resolve a @cyberfabric package name to a file: URL path relative to projectPath.
+ * e.g. '@cyberfabric/react' with monorepoRoot /repo and projectPath /repo/app
  * returns 'file:../packages/react'.
  */
 export function getLocalPackageRef(
@@ -199,10 +199,10 @@ export function getLocalPackageRef(
   monorepoRoot: string,
   projectPath: string
 ): string {
-  if (!packageName.startsWith('@hai3/')) {
+  if (!packageName.startsWith('@cyberfabric/')) {
     return packageName;
   }
-  const subPackage = packageName.slice('@hai3/'.length);
+  const subPackage = packageName.slice('@cyberfabric/'.length);
   const packageDir = path.join(monorepoRoot, 'packages', subPackage);
   const relativePath = path.relative(projectPath, packageDir);
   const normalized = relativePath.split(path.sep).join('/');

@@ -2,7 +2,7 @@
  * HAI3 Layout Domain Constants (Framework L2)
  *
  * Instance IDs for HAI3 base layout domains.
- * These constants live in @hai3/framework because layout domains
+ * These constants live in @cyberfabric/framework because layout domains
  * are runtime configuration owned by the framework layer.
  *
  * @packageDocumentation

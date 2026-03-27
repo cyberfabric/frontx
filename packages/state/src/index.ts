@@ -1,5 +1,5 @@
 /**
- * @hai3/state - HAI3 State Management
+ * @cyberfabric/state - HAI3 State Management
  *
  * Provides:
  * - Type-safe event bus for pub/sub communication

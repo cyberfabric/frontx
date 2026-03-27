@@ -9,7 +9,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
+import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@cyberfabric/react';
 import {
   screenDomain,
   sidebarDomain,
@@ -19,7 +19,7 @@ import {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   RefContainerProvider,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
 
 interface MfeManifestConfig {

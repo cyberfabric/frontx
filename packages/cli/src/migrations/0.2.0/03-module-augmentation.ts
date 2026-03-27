@@ -2,18 +2,18 @@
 /**
  * Transform: module-augmentation
  *
- * Transforms module augmentation declarations from @hai3/uicore to @hai3/react
+ * Transforms module augmentation declarations from @cyberfabric/uicore to @cyberfabric/react
  *
- * Before: declare module '@hai3/uicore' { interface RootState {...} }
- * After:  declare module '@hai3/react' { interface RootState {...} }
+ * Before: declare module '@cyberfabric/uicore' { interface RootState {...} }
+ * After:  declare module '@cyberfabric/react' { interface RootState {...} }
  */
 
 import { SyntaxKind } from 'ts-morph';
 import type { SourceFile } from 'ts-morph';
 import type { Transform, TransformChange, TransformResult } from '../types.js';
 
-const SOURCE_MODULE = '@hai3/uicore';
-const TARGET_MODULE = '@hai3/react';
+const SOURCE_MODULE = '@cyberfabric/uicore';
+const TARGET_MODULE = '@cyberfabric/react';
 
 // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const moduleAugmentationTransform: Transform = {
@@ -23,7 +23,7 @@ export const moduleAugmentationTransform: Transform = {
 
   canApply(sourceFile: SourceFile): boolean {
     const fileText = sourceFile.getFullText();
-    // Look for declare module '@hai3/uicore' pattern
+    // Look for declare module '@cyberfabric/uicore' pattern
     return fileText.includes(`declare module '${SOURCE_MODULE}'`) ||
            fileText.includes(`declare module "${SOURCE_MODULE}"`);
   },

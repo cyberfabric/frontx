@@ -2,22 +2,22 @@
 /**
  * Transform: uicore-to-react
  *
- * Transforms @hai3/uicore imports to @hai3/react
+ * Transforms @cyberfabric/uicore imports to @cyberfabric/react
  *
- * Before: import { RootState } from '@hai3/uicore';
- * After:  import { RootState } from '@hai3/react';
+ * Before: import { RootState } from '@cyberfabric/uicore';
+ * After:  import { RootState } from '@cyberfabric/react';
  */
 
 import type { SourceFile } from 'ts-morph';
 import type { Transform, TransformChange, TransformResult } from '../types.js';
 
-const SOURCE_MODULE = '@hai3/uicore';
-const TARGET_MODULE = '@hai3/react';
+const SOURCE_MODULE = '@cyberfabric/uicore';
+const TARGET_MODULE = '@cyberfabric/react';
 
 // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 export const uicoreToReactTransform: Transform = {
   id: 'uicore-to-react',
-  name: 'Update @hai3/uicore to @hai3/react',
+  name: 'Update @cyberfabric/uicore to @cyberfabric/react',
   description: `Transforms ${SOURCE_MODULE} imports to ${TARGET_MODULE}`,
 
   canApply(sourceFile: SourceFile): boolean {

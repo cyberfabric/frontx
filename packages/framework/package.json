@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/framework",
-  "version": "0.4.0-alpha.2",
-  "description": "HAI3 framework integrating all SDK packages with plugin architecture",
+  "name": "@cyberfabric/framework",
+  "version": "0.2.0-alpha.0",
+  "description": "FrontX framework integrating all SDK packages with plugin architecture",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -36,22 +36,22 @@
     "typescript": "^5.4.2"
   },
   "peerDependencies": {
-    "@hai3/state": "*",
-    "@hai3/screensets": "*",
-    "@hai3/api": "*",
-    "@hai3/i18n": "*"
+    "@cyberfabric/state": "*",
+    "@cyberfabric/screensets": "*",
+    "@cyberfabric/api": "*",
+    "@cyberfabric/i18n": "*"
   },
   "peerDependenciesMeta": {
-    "@hai3/state": {
+    "@cyberfabric/state": {
       "optional": false
     },
-    "@hai3/screensets": {
+    "@cyberfabric/screensets": {
       "optional": false
     },
-    "@hai3/api": {
+    "@cyberfabric/api": {
       "optional": false
     },
-    "@hai3/i18n": {
+    "@cyberfabric/i18n": {
       "optional": false
     }
   },
@@ -59,12 +59,12 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "framework",
     "plugin",
     "screenset",
     "typescript"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

@@ -9,13 +9,13 @@
 // @cpt-dod:cpt-hai3-dod-framework-composition-propagation:p1
 // @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
 
-import { eventBus } from '@hai3/state';
-import { i18nRegistry as singletonI18nRegistry, Language } from '@hai3/i18n';
-import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/screensets';
+import { eventBus } from '@cyberfabric/state';
+import { i18nRegistry as singletonI18nRegistry, Language } from '@cyberfabric/i18n';
+import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@cyberfabric/screensets';
 import type { HAI3Plugin, SetLanguagePayload, LanguagePropagationFailedPayload } from '../types';
 
 // Define i18n events for module augmentation
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'i18n/language/changed': SetLanguagePayload;
     'i18n/propagation/failed': LanguagePropagationFailedPayload;

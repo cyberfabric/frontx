@@ -365,9 +365,9 @@ Source: ATAM utility tree approach (mapping business goals to quality attribute 
 
 #### 4.6 Questions specific to HAI3 context
 
-Given the HAI3 architecture (4-layer SDK, event-driven, plugin-first composition, microfrontend isolation):
+Given the FrontX architecture (4-layer SDK, event-driven, plugin-first composition, microfrontend isolation):
 
-1. Does this design respect the layer boundary constraints? (No React below L3, SDK packages have zero @hai3 dependencies)
+1. Does this design respect the layer boundary constraints? (No React below L3, SDK packages have zero @cyberfabric dependencies)
 2. Does cross-component communication go through the event bus, or does the design introduce direct coupling?
 3. If this involves a registry, does it follow the Open/Closed principle -- can items be added without modifying registry root files?
 4. How does this interact with the plugin system? Can it be composed via `.use()` and `.build()`?
@@ -395,7 +395,7 @@ The architect tags recommendations as Conjecture, Substantiated, or Corroborated
 **Substantiated (supported by docs/patterns):**
 - The critic should verify the chain of reasoning. "Supported by documentation" does not mean "correct for this context."
 - Key question: "The cited pattern applies in [context A]. Does our context match? What's different?"
-- The critic should check whether the supporting evidence is from the HAI3 codebase/explorations or from generic best practices. Context-specific evidence is stronger.
+- The critic should check whether the supporting evidence is from the FrontX codebase/explorations or from generic best practices. Context-specific evidence is stronger.
 
 **Corroborated (validated by testing/production):**
 - The critic should generally accept these but check scope: "This was validated in [scope X]. Does the current design extend beyond that scope?"

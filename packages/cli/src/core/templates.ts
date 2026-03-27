@@ -1,7 +1,7 @@
 /**
  * Shared template utilities for CLI commands
  *
- * Used by both `hai3 create` and `hai3 update` commands to ensure
+ * Used by both `frontx create` and `frontx update` commands to ensure
  * consistent template handling across project creation and updates.
  *
  * EXTENSIBILITY:
@@ -32,7 +32,7 @@ import {
 const SYNC_EXCLUDE = [
   'manifest.json',
   'screenset-template',
-  'layout', // Layout templates - handled separately by `hai3 update layout`
+  'layout', // Layout templates - handled separately by `frontx update layout`
 ];
 
 /**
@@ -165,14 +165,14 @@ async function syncDirectory(
   }
 
   // Special handling for src/app/layout/ - preserve user layout customizations
-  // Layout is managed by `hai3 update layout` command, skip auto-sync
+  // Layout is managed by `frontx update layout` command, skip auto-sync
   if (
     relativePath === 'src/app/layout' ||
     relativePath === 'src\\app\\layout' ||
     relativePath === 'src/layout' ||
     relativePath === 'src\\layout'
   ) {
-    // Skip - layout updates are handled by `hai3 update layout` command
+    // Skip - layout updates are handled by `frontx update layout` command
     return;
   }
 
@@ -235,7 +235,7 @@ async function syncDirectory(
  *
  * User-created screensets in src/screensets/ are preserved.
  *
- * @param projectRoot - The root directory of the HAI3 project
+ * @param projectRoot - The root directory of the FrontX project
  * @param logger - Logger instance for output
  * @param layer - Optional layer for layer-aware filtering of targets and commands
  * @returns Array of synced paths
@@ -313,14 +313,14 @@ async function syncCommands(
   // Get all command files from bundle
   const bundledFiles = await fs.readdir(commandsBundleDir);
 
-  // Group files by base name (e.g., "hai3-validate" from "hai3-validate.md" and "hai3-validate.sdk.md")
+  // Group files by base name (e.g., "frontx-validate" from "frontx-validate.md" and "frontx-validate.sdk.md")
   const commandGroups = new Map<string, string[]>();
 
   for (const file of bundledFiles) {
     if (!file.endsWith('.md')) continue;
 
-    // Extract base name: hai3-validate.sdk.md -> hai3-validate
-    // hai3-validate.md -> hai3-validate
+    // Extract base name: frontx-validate.sdk.md -> frontx-validate
+    // frontx-validate.md -> frontx-validate
     const baseName = file
       .replace(/\.(sdk|framework|react)\.md$/, '')
       .replace(/\.md$/, '');

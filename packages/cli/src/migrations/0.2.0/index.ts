@@ -4,8 +4,8 @@
  * This migration updates HAI3 projects from the legacy package structure
  * to the new SDK architecture:
  *
- * - @hai3/uicore -> @hai3/react
- * - @hai3/uikit-contracts -> @hai3/react
+ * - @cyberfabric/uicore -> @cyberfabric/react
+ * - @cyberfabric/uikit-contracts -> @cyberfabric/react
  * - Module augmentations updated
  */
 
@@ -20,7 +20,7 @@ export const migration020: Migration = {
   name: 'SDK Architecture Migration',
   description:
     'Updates HAI3 projects from legacy package structure to SDK architecture. ' +
-    'Transforms @hai3/uicore to @hai3/react, @hai3/uikit-contracts to @hai3/react, ' +
+    'Transforms @cyberfabric/uicore to @cyberfabric/react, @cyberfabric/uikit-contracts to @cyberfabric/react, ' +
     'and updates module augmentation targets.',
   transforms: [
     uicoreToReactTransform,

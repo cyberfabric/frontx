@@ -19,8 +19,8 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import type { ChildMfeBridge } from '@cyberfabric/react';
+import { HAI3_SHARED_PROPERTY_LANGUAGE } from '@cyberfabric/react';
 
 interface TranslationJsonModule {
   default: Record<string, string>;

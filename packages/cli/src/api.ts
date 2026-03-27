@@ -1,12 +1,12 @@
 /**
- * HAI3 CLI Programmatic API
+ * FrontX CLI Programmatic API
  *
  * This module exports the CLI functionality for programmatic use by AI agents
  * and other tools that need to invoke CLI commands without interactive prompts.
  *
  * @example
  * ```typescript
- * import { executeCommand, commands } from '@hai3/cli';
+ * import { executeCommand, commands } from '@cyberfabric/cli';
  *
  * // Create a project programmatically
  * const result = await executeCommand(

@@ -1,4 +1,4 @@
-# @hai3/docs
+# @cyberfabric/docs
 
 HAI3 Documentation Site - AI-driven product lifecycle and framework documentation.
 
@@ -58,7 +58,7 @@ packages/docs/
 │   ├── getting-started.md
 │   ├── TERMINOLOGY.md
 │   ├── lifecycle/        # AI product lifecycle docs
-│   ├── hai3/             # HAI3 framework docs
+│   ├── frontx/             # HAI3 framework docs
 │   └── case-studies/     # Case studies
 ├── public/               # Static assets (images, diagrams)
 └── dist/                 # Build output (gitignored)

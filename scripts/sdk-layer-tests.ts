@@ -8,7 +8,7 @@
  * - SDK packages (L1) have ZERO @hai3 dependencies
  * - Framework package (L2) only imports SDK packages
  * - React package (L3) only imports framework
- * - No package depends on deprecated packages (@hai3/uikit-contracts, @hai3/uicore, @hai3/layout)
+ * - No package depends on deprecated packages (@cyberfabric/uikit-contracts, @cyberfabric/uicore, @cyberfabric/layout)
  * - Layer configs include all parent layer rules
  */
 
@@ -54,27 +54,27 @@ function getHai3Dependencies(pkg: PackageJson): string[] {
     ...pkg.dependencies,
     ...pkg.peerDependencies,
   };
-  return Object.keys(allDeps).filter((dep) => dep.startsWith('@hai3/'));
+  return Object.keys(allDeps).filter((dep) => dep.startsWith('@cyberfabric/'));
 }
 
 // SDK packages that should have ZERO @hai3 dependencies
-// Note: @hai3/events + @hai3/store were consolidated into @hai3/state
-// Note: @hai3/layout was deleted, layout slices now in @hai3/framework
+// Note: @cyberfabric/events + @cyberfabric/store were consolidated into @cyberfabric/state
+// Note: @cyberfabric/layout was deleted, layout slices now in @cyberfabric/framework
 const SDK_PACKAGES = ['state', 'api', 'i18n', 'screensets'];
 
 // Framework can only import these SDK packages
 const ALLOWED_SDK_DEPS = [
-  '@hai3/state',      // Consolidated from @hai3/events + @hai3/store
-  '@hai3/api',
-  '@hai3/i18n',
-  '@hai3/screensets', // Screenset contracts and registry
+  '@cyberfabric/state',      // Consolidated from @cyberfabric/events + @cyberfabric/store
+  '@cyberfabric/api',
+  '@cyberfabric/i18n',
+  '@cyberfabric/screensets', // Screenset contracts and registry
 ];
 
 // Deprecated packages that should not be imported
 const DEPRECATED_PACKAGES = [
-  '@hai3/uikit-contracts',  // Theme types now in @hai3/framework
-  '@hai3/uicore',           // Consolidated into @hai3/framework
-  '@hai3/layout',           // Layout slices now in @hai3/framework
+  '@cyberfabric/uikit-contracts',  // Theme types now in @cyberfabric/framework
+  '@cyberfabric/uicore',           // Consolidated into @cyberfabric/framework
+  '@cyberfabric/layout',           // Layout slices now in @cyberfabric/framework
 ];
 
 /**
@@ -89,7 +89,7 @@ function testSdkZeroDependencies(): TestResult[] {
 
     if (!pkg) {
       results.push({
-        name: `SDK @hai3/${pkgName}: Zero @hai3 deps`,
+        name: `SDK @cyberfabric/${pkgName}: Zero @hai3 deps`,
         passed: true,
         message: `Package not yet created (will be created in Phase 3)`,
         skipped: true,
@@ -101,7 +101,7 @@ function testSdkZeroDependencies(): TestResult[] {
     const passed = hai3Deps.length === 0;
 
     results.push({
-      name: `SDK @hai3/${pkgName}: Zero @hai3 deps`,
+      name: `SDK @cyberfabric/${pkgName}: Zero @hai3 deps`,
       passed,
       message: passed
         ? 'No @hai3 dependencies found'
@@ -158,7 +158,7 @@ function testReactOnlyFrameworkDep(): TestResult {
   }
 
   const hai3Deps = getHai3Dependencies(pkg);
-  const invalidDeps = hai3Deps.filter((dep) => dep !== '@hai3/framework');
+  const invalidDeps = hai3Deps.filter((dep) => dep !== '@cyberfabric/framework');
   const passed = invalidDeps.length === 0;
 
   return {
@@ -183,7 +183,7 @@ function testNoDeprecatedDependencies(): TestResult[] {
 
     if (!pkg) {
       results.push({
-        name: `@hai3/${pkgName}: No deprecated deps`,
+        name: `@cyberfabric/${pkgName}: No deprecated deps`,
         passed: true,
         message: 'Package not yet created',
         skipped: true,
@@ -198,7 +198,7 @@ function testNoDeprecatedDependencies(): TestResult[] {
     const passed = deprecatedDeps.length === 0;
 
     results.push({
-      name: `@hai3/${pkgName}: No deprecated deps`,
+      name: `@cyberfabric/${pkgName}: No deprecated deps`,
       passed,
       message: passed
         ? 'No deprecated dependencies'

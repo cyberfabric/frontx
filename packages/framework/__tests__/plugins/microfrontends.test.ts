@@ -14,10 +14,10 @@ import {
   microfrontends,
 } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
-import type { ScreensetsRegistry } from '@hai3/framework';
-import { ContainerProvider } from '@hai3/framework';
+import type { ScreensetsRegistry } from '@cyberfabric/framework';
+import { ContainerProvider } from '@cyberfabric/framework';
 import type { HAI3App } from '../../src/types';
 
 // Mock Container Provider for framework tests

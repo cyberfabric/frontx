@@ -102,7 +102,7 @@ async function readDirRecursive(
 
 /**
  * Inject the concrete UI kit package name into the GUIDELINES.md UI KIT DISCOVERY section
- * so AI agents can immediately identify the library without reading hai3.config.json first.
+ * so AI agents can immediately identify the library without reading frontx.config.json first.
  */
 // @cpt-dod:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1
 // @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-4
@@ -190,7 +190,7 @@ function generateCustomUikitThemes(uikit: string): GeneratedFile[] {
 
     themeFiles.push({
       path: 'src/app/themes/themes.ts',
-      content: `import type { ThemeConfig } from '@hai3/react';
+      content: `import type { ThemeConfig } from '@cyberfabric/react';
 
 export const hai3Themes: ThemeConfig[] = [
   ${themeEntries.join(',\n  ')},
@@ -355,7 +355,7 @@ function shouldTransformForPackageManager(filePath: string): boolean {
 }
 
 /**
- * Generate all files for a new HAI3 project
+ * Generate all files for a new FrontX project
  * Combines template files with dynamically generated config files
  */
 // @cpt-dod:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2
@@ -580,7 +580,7 @@ ${varsBlock}
   }`;
   });
 
-  return `import type { ThemeConfig } from '@hai3/react';
+  return `import type { ThemeConfig } from '@cyberfabric/react';
 
 export const hai3Themes: ThemeConfig[] = [
   ${themeBlocks.join(',\n  ')},
@@ -758,12 +758,12 @@ function buildPackageJson(input: PackageJsonInput): string {
   const resolvedUikit = normalizeUikit(uikit);
 
   const dependencies: Record<string, string> = {
-    '@hai3/react': 'alpha',
-    '@hai3/framework': 'alpha',
-    '@hai3/api': 'alpha',
-    '@hai3/i18n': 'alpha',
-    '@hai3/screensets': 'alpha',
-    '@hai3/state': 'alpha',
+    '@cyberfabric/react': 'alpha',
+    '@cyberfabric/framework': 'alpha',
+    '@cyberfabric/api': 'alpha',
+    '@cyberfabric/i18n': 'alpha',
+    '@cyberfabric/screensets': 'alpha',
+    '@cyberfabric/state': 'alpha',
     '@hookform/resolvers': '5.2.2',
     '@iconify/react': '5.0.2',
     '@radix-ui/react-avatar': '1.1.10',
@@ -787,7 +787,7 @@ function buildPackageJson(input: PackageJsonInput): string {
   };
 
   const devDependencies: Record<string, string> = {
-    '@hai3/cli': 'alpha',
+    '@cyberfabric/cli': 'alpha',
     '@j178/prek': '0.2.25',
     '@types/lodash': '4.17.20',
     '@types/react': '19.0.8',
@@ -811,7 +811,7 @@ function buildPackageJson(input: PackageJsonInput): string {
   };
 
   if (studio) {
-    devDependencies['@hai3/studio'] = 'alpha';
+    devDependencies['@cyberfabric/studio'] = 'alpha';
   }
 
   if (resolvedUikit !== 'shadcn') {
@@ -835,7 +835,7 @@ function buildPackageJson(input: PackageJsonInput): string {
       const out: Record<string, string> = {};
       for (const [name, value] of Object.entries(deps)) {
         out[name] =
-          name.startsWith('@hai3/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
+          name.startsWith('@cyberfabric/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
       }
       return out;
     };
@@ -868,7 +868,7 @@ function buildPackageJson(input: PackageJsonInput): string {
       'type-check': 'tsc --noEmit',
       'arch:check': 'tsx scripts/test-architecture.ts',
       'arch:deps': 'dependency-cruiser src/ --config .dependency-cruiser.cjs --output-type err-long',
-      'ai:sync': 'hai3 ai sync',
+      'ai:sync': 'frontx ai sync',
       'prek:install': 'prek install',
       'prek:run': 'prek run --all-files',
       postinstall: 'prek install',
@@ -908,14 +908,14 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
   files.push(...(await generateAiTargets({ templatesDir, layer, uikit })));
 
   const config: Hai3Config = {
-    hai3: true,
+    frontx: true,
     layer,
     uikit,
     packageManager,
     ...(packageManager === 'yarn' ? { linkerMode: 'node-modules' as const } : {}),
   };
   files.push({
-    path: 'hai3.config.json',
+    path: 'frontx.config.json',
     content: JSON.stringify(config, null, 2) + '\n',
   });
 

@@ -21,7 +21,7 @@ features:
   - icon: 🏗️
     title: HAI3 Framework
     details: Technical framework for building scalable applications.
-    link: /hai3/
+    link: /frontx/
   - icon: 📚
     title: Case Studies
     details: Real-world examples and implementations.
@@ -35,7 +35,7 @@ This documentation site is currently under development. HAI3 (Human-AI Integrate
 ### Documentation Sections
 
 - [**AI Product Lifecycle**](/lifecycle/) - Product development methodology
-- [**HAI3 Framework**](/hai3/) - Technical framework documentation
+- [**HAI3 Framework**](/frontx/) - Technical framework documentation
 - [**Case Studies**](/case-studies/) - Implementation examples
 
 ### Getting Started

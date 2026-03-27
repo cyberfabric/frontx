@@ -9,17 +9,17 @@ The GTS plugin (`gtsPlugin`) is HAI3's default `TypeSystemPlugin` implementation
 ## Installation
 
 ```bash
-npm install @hai3/screensets @globaltypesystem/gts-ts
+npm install @cyberfabric/screensets @globaltypesystem/gts-ts
 ```
 
-The GTS plugin is included with `@hai3/screensets` and requires `@globaltypesystem/gts-ts` as a peer dependency.
+The GTS plugin is included with `@cyberfabric/screensets` and requires `@globaltypesystem/gts-ts` as a peer dependency.
 
 ## Basic Usage
 
 ### Building the Registry
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin, ContainerProvider } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin, ContainerProvider } from '@cyberfabric/screensets';
 
 // Build the registry with GTS plugin at application wiring time
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
@@ -45,7 +45,7 @@ The GTS plugin ships with all HAI3 first-class citizen schemas **built-in**. No 
 
 ```typescript
 // ✅ Correct - Build registry with factory
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 registry.registerDomain(myDomain, containerProvider);
 
@@ -443,7 +443,7 @@ Register vendor schemas once during application initialization:
 
 ```typescript
 // ✅ Good - Register once at startup
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 
 function initializeApp() {
   registerVendorSchemas(gtsPlugin);
@@ -475,7 +475,7 @@ const results = gtsPlugin.query('gts.*.*.*.*.*'); // Expensive!
 
 ```typescript
 // For custom configurations, create a new instance
-import { DefaultScreensetsRegistry, gtsPlugin } from '@hai3/screensets';
+import { DefaultScreensetsRegistry, gtsPlugin } from '@cyberfabric/screensets';
 
 const runtime = new DefaultScreensetsRegistry({
   typeSystem: gtsPlugin,

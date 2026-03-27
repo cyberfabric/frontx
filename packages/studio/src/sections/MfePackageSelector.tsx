@@ -10,7 +10,7 @@ import {
   HAI3_SCREEN_DOMAIN,
   type ScreenExtension,
   type Extension,
-} from '@hai3/react';
+} from '@cyberfabric/react';
 import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
@@ -20,7 +20,7 @@ import {
 } from '../uikit/base/dropdown-menu';
 import { DropdownButton } from '../uikit/composite/DropdownButton';
 import { useStudioContext } from '../StudioProvider';
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 import { StudioEvents } from '../events/studioEvents';
 
 /**

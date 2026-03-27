@@ -61,7 +61,7 @@ HAI3 dev kit is designed for:
 
 ## Overview
 
-The HAI3 Dev Kit introduces a new paradigm in UI development where product management and designers can work with AI to create and polish user interfaces and engineers can take the generated code and turn it into production-ready code.
+The FrontX Dev Kit introduces a new paradigm in UI development where product management and designers can work with AI to create and polish user interfaces and engineers can take the generated code and turn it into production-ready code.
 
 With HAI3, UI development becomes a **three-layer process** where AI and humans co-create interfaces:
 - AI generates **draft** layouts using standardized prompts and patterns.
@@ -74,7 +74,7 @@ HAI3 provides the visual structure (menu, header, footer, sidebars, main view), 
 
 ## Key HAI3 Use-cases and Values
 
-The HAI3 Dev Kit is built on top of the following key values below allowing it to be used for different usecases starting from a single desktop application to multitenant and mulit-user SaaS  control panel development:
+The FrontX Dev Kit is built on top of the following key values below allowing it to be used for different usecases starting from a single desktop application to multitenant and mulit-user SaaS  control panel development:
 
 - **V#1** - Human-Configurable UI-Core - layout, styles, build targets
 - **V#2** - Layout-Safe Screen Generation - AI/Human code separation
@@ -173,11 +173,11 @@ HAI3 defines a **three-stage development workflow** that maximizes AI efficiency
 #### Option 1: Create a new project with CLI (Recommended)
 
 ```bash
-# Install HAI3 CLI globally
-npm install -g @hai3/cli
+# Install FrontX CLI globally
+npm install -g @cyberfabric/cli
 
 # Create a new project (full app with UI)
-hai3 create my-app
+frontx create my-app
 
 # Navigate to project and start development
 cd my-app
@@ -190,13 +190,13 @@ For building SDK packages that integrate with the HAI3 ecosystem:
 
 ```bash
 # Create an SDK-layer package (no HAI3 dependencies, no React)
-hai3 create my-sdk-package --layer sdk
+frontx create my-sdk-package --layer sdk
 
 # Create a framework-layer package (depends on SDK packages only)
-hai3 create my-framework-package --layer framework
+frontx create my-framework-package --layer framework
 
-# Create a React-layer package (depends on @hai3/framework)
-hai3 create my-react-package --layer react
+# Create a React-layer package (depends on @cyberfabric/framework)
+frontx create my-react-package --layer react
 ```
 
 Each layer package includes:
@@ -209,7 +209,7 @@ Each layer package includes:
 
 ```bash
 # Clone the repository
-git clone https://github.com/HAI3org/HAI3.git
+git clone https://github.com/Cyber Fabric/HAI3.git
 cd HAI3
 
 # Install dependencies
@@ -260,13 +260,13 @@ HAI3/                               # Repository root
 HAI3 follows a layered architecture for maximum flexibility:
 
 ```
-L1 (SDK)        @hai3/state, @hai3/api, @hai3/i18n, @hai3/screensets
+L1 (SDK)        @cyberfabric/state, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/screensets
                 Zero cross-dependencies, no React, use anywhere
                     ↓
-L2 (Framework)  @hai3/framework
+L2 (Framework)  @cyberfabric/framework
                 Plugin system, registries, composed from SDK
                     ↓
-L3 (React)      @hai3/react
+L3 (React)      @cyberfabric/react
                 React bindings, hooks, providers
                     ↓
 L4 (App)        User application code
@@ -274,20 +274,20 @@ L4 (App)        User application code
 ```
 
 **Use Cases:**
-- **Full HAI3**: Import `@hai3/react` for complete platform with UI
-- **Headless/External**: Import `@hai3/framework` for screensets-only (no UI)
+- **Full HAI3**: Import `@cyberfabric/react` for complete platform with UI
+- **Headless/External**: Import `@cyberfabric/framework` for screensets-only (no UI)
 - **Custom Integration**: Import SDK packages directly for maximum control
 
 ### Creating a New Screen-Set
 
-Use the HAI3 CLI to create screensets:
+Use the FrontX CLI to create screensets:
 
 ```bash
 # Create a new screenset
-hai3 screenset create my-screenset
+frontx screenset create my-screenset
 
 # Copy an existing screenset with transformed IDs
-hai3 screenset copy demo myDemo
+frontx screenset copy demo myDemo
 ```
 
 After creation:
@@ -301,10 +301,10 @@ When HAI3 updates are released, use the update command to sync your project:
 
 ```bash
 # Update AI configuration and templates
-hai3 update
+frontx update
 ```
 
-For layer packages, the update respects your project's layer (stored in `hai3.config.json`) and only syncs layer-appropriate targets and commands.
+For layer packages, the update respects your project's layer (stored in `frontx.config.json`) and only syncs layer-appropriate targets and commands.
 
 See [GUIDELINES.md](.ai/GUIDELINES.md) for detailed development guidelines.
 

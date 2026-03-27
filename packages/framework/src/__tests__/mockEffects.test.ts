@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { eventBus, createStore, registerSlice } from '@hai3/state';
-import { apiRegistry, BaseApiService, RestProtocol, RestMockPlugin, isMockPlugin } from '@hai3/api';
+import { eventBus, createStore, registerSlice } from '@cyberfabric/state';
+import { apiRegistry, BaseApiService, RestProtocol, RestMockPlugin, isMockPlugin } from '@cyberfabric/api';
 import { mockSlice } from '../slices/mockSlice';
 import { initMockEffects, toggleMockMode, MockEvents } from '../effects/mockEffects';
 

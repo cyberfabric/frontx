@@ -24,13 +24,13 @@ Provide concrete examples of how this feature would be used:
 
 ## Affected Package(s)
 Which HAI3 package(s) would this impact?
-- [ ] @hai3/framework
-- [ ] @hai3/react
-- [ ] @hai3/screensets
-- [ ] @hai3/cli
-- [ ] @hai3/i18n
-- [ ] @hai3/state
-- [ ] @hai3/studio
+- [ ] @cyberfabric/framework
+- [ ] @cyberfabric/react
+- [ ] @cyberfabric/screensets
+- [ ] @cyberfabric/cli
+- [ ] @cyberfabric/i18n
+- [ ] @cyberfabric/state
+- [ ] @cyberfabric/studio
 
 ## Alternative Solutions
 Have you considered any alternative approaches or workarounds?

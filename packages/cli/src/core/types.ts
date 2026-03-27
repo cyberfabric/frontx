@@ -1,5 +1,5 @@
 /**
- * Core type definitions for HAI3 CLI
+ * Core type definitions for FrontX CLI
  */
 // @cpt-dod:cpt-hai3-dod-cli-tooling-command-infra:p1
 // @cpt-dod:cpt-hai3-dod-cli-tooling-layer-variants:p1
@@ -22,12 +22,12 @@ export interface ThemeConfig {
 }
 
 /**
- * HAI3 project configuration stored in hai3.config.json
+ * FrontX project configuration stored in frontx.config.json
  * This file serves as a project marker for CLI detection.
  */
 export interface Hai3Config {
-  /** Marker to identify HAI3 projects */
-  hai3: true;
+  /** Marker to identify FrontX projects */
+  frontx: true;
   /** Project layer (SDK architecture tier) */
   layer?: LayerType;
   /** UI components: 'shadcn' for shadcn/ui, 'none' for no UI components, or an npm package name */
@@ -117,7 +117,7 @@ export interface ExecutionMode {
 }
 
 /**
- * Result of loading a HAI3 config file.
+ * Result of loading a FrontX config file.
  * Discriminated union so callers handle every outcome without surprise throws.
  */
 export type ConfigLoadResult =
