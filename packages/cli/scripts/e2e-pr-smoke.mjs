@@ -113,6 +113,25 @@ try {
   harness.assertPathExists(path.join(projectRoot, 'scripts', 'generate-mfe-manifests.ts'));
   // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-files
 
+  // Assert MFE template generates en-only locale by default
+  const mfeI18nDir = path.join(
+    projectRoot,
+    'src',
+    'mfe_packages',
+    '_blank-mfe',
+    'src',
+    'screens',
+    'home',
+    'i18n'
+  );
+  if (fs.existsSync(mfeI18nDir)) {
+    const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
+    harness.assert(
+      localeFiles.length === 1 && localeFiles[0] === 'en.json',
+      `MFE template must generate only en.json by default, found: ${localeFiles.join(', ')}`
+    );
+  }
+
   // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
   const packageJson = harness.readJson(path.join(projectRoot, 'package.json'));
   harness.assert(
