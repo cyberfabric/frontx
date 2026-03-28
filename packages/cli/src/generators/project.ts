@@ -411,6 +411,9 @@ const ROOT_CONFIG_FILES = [
   '.pre-commit-config.yaml',
   '.npmrc',
   '.nvmrc',
+  // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-include-ci-in-root-configs
+  '.github/workflows/ci.yml',
+  // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-include-ci-in-root-configs
 ];
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-types
 
@@ -965,12 +968,14 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
   files.push(...workspaceFiles);
 
   // Rewrite npm-centric snippets in template-derived text files.
+  // @cpt-begin:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-cache-transform
   for (const file of files) {
     if (!shouldTransformForPackageManager(file.path)) {
       continue;
     }
     file.content = transformPackageManagerText(file.content, packageManager);
   }
+  // @cpt-end:cpt-frontx-algo-cli-scaffolding-quality-generate-ci:p1:inst-ci-cache-transform
 
   return files;
 }

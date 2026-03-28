@@ -83,10 +83,12 @@ function runProjectValidation(projectRoot) {
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-validate-bad
 }
 
+// @cpt-flow:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1
 try {
   const workspace = harness.makeTempDir('workspace');
   const projectRoot = path.join(workspace, 'smoke-app');
 
+  // @cpt-begin:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-create-project
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-app
   harness.runStep({
     name: 'create-app',
@@ -104,6 +106,7 @@ try {
     ],
   });
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-app
+  // @cpt-end:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-create-project
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-files
   harness.assertPathExists(path.join(projectRoot, 'frontx.config.json'));
@@ -150,6 +153,7 @@ try {
   );
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
 
+  // @cpt-begin:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-install-deps
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-git-init-install
   if (!skipInstall) {
     harness.runStep({
@@ -166,6 +170,7 @@ try {
       args: installArgs(),
     });
     // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-git-init-install
+    // @cpt-end:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-install-deps
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-build-typecheck
     harness.runStep({
@@ -186,7 +191,12 @@ try {
     harness.log(`Skipping ${packageManager} install/build/type-check`);
   }
 
+  // @cpt-begin:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-run-arch-check
   runProjectValidation(projectRoot);
+  // @cpt-end:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-run-arch-check
+  // @cpt-begin:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-push-ci
+  // CI push verification is covered by the generated .github/workflows/ci.yml
+  // @cpt-end:cpt-frontx-flow-cli-scaffolding-quality-verify-ootb:p1:inst-push-ci
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-scaffold-layout
   harness.runStep({
