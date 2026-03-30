@@ -461,7 +461,7 @@ export type Preset = () => HAI3Plugin[];
  * Available presets for different use cases.
  */
 export interface Presets {
-  /** All plugins - default for hai3 create */
+  /** All plugins - default for frontx create */
   full: Preset;
   /** Screensets + themes only */
   minimal: Preset;

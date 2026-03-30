@@ -130,6 +130,16 @@ export function getInstallCommand(manager: PackageManager): string {
   return `${manager} install`;
 }
 
+export function getCiInstallCommand(manager: PackageManager): string {
+  if (manager === 'pnpm') {
+    return 'pnpm install --frozen-lockfile';
+  }
+  if (manager === 'yarn') {
+    return 'yarn install --immutable';
+  }
+  return 'npm ci';
+}
+
 export function getRunScriptCommand(manager: PackageManager, scriptName: string): string {
   if (manager === 'yarn') {
     return `yarn ${scriptName}`;
@@ -229,8 +239,12 @@ export function transformPackageManagerText(content: string, manager: PackageMan
     (_match, scriptName: string) => getRunScriptCommand(manager, scriptName)
   );
 
-  transformed = transformed.replace(/\bnpm ci\b/g, getInstallCommand(manager));
+  transformed = transformed.replace(/\bnpm ci\b/g, getCiInstallCommand(manager));
   transformed = transformed.replace(/\bnpm install(?!\s+-g)\b/g, getInstallCommand(manager));
+
+  // CI workflow cache key: cache: 'npm' / cache: npm → cache: 'pnpm' / cache: pnpm
+  transformed = transformed.replace(/^([ \t]+cache:[ \t]*)'npm'/gm, `$1'${manager}'`);
+  transformed = transformed.replace(/^([ \t]+cache:[ \t]*)npm[ \t]*$/gm, `$1${manager}`);
 
   return transformed;
 }

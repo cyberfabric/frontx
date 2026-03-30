@@ -517,7 +517,11 @@ async function copyTemplates() {
       const srcPath = path.join(configsSrc, file);
       // Rename _pre-commit-config.yaml to .pre-commit-config.yaml
       // (stored with underscore to prevent prek from detecting it during monorepo commits)
-      const destFileName = file === '_pre-commit-config.yaml' ? '.pre-commit-config.yaml' : file;
+      // Rename _github/ to .github/
+      // (stored with underscore to prevent GitHub from picking up template workflows)
+      const destFileName = file === '_pre-commit-config.yaml' ? '.pre-commit-config.yaml'
+        : file === '_github' ? '.github'
+        : file;
       const destPath = path.join(TEMPLATES_DIR, destFileName);
 
       // Transform eslint.config.js path for standalone projects

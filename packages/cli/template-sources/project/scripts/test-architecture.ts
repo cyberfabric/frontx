@@ -103,15 +103,22 @@ function runScriptCommand(packageManager: PackageManager, scriptName: string): s
  * These run in all FrontX projects (standalone and monorepo)
  */
 function getStandaloneChecks(packageManager: PackageManager = detectPackageManager()): ArchCheck[] {
-  return [
-    { command: runScriptCommand(packageManager, 'generate:colors'), description: 'Generate theme colors' },
+  const checks: ArchCheck[] = [
     {
       command: runScriptCommand(packageManager, 'lint'),
       description: 'ESLint rules'
     },
     { command: runScriptCommand(packageManager, 'type-check'), description: 'TypeScript type check' },
-    { command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' },
   ];
+
+  const nodeVersion = Number.parseInt(process.versions.node.split('.')[0], 10);
+  if (nodeVersion >= 24) {
+    checks.push({ command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' });
+  } else {
+    log(`⚠️  Dependency rules - SKIPPED (requires Node >= 24, current: ${process.versions.node})`, 'yellow');
+  }
+
+  return checks;
 }
 
 /**
@@ -141,7 +148,7 @@ function validateArchitecture(): ValidationResult {
   const packageManager = detectPackageManager();
   return runValidation(
     getStandaloneChecks(packageManager),
-    `HAI3 Architecture Validation (${packageManager})`
+    `FrontX Architecture Validation (${packageManager})`
   );
 }
 

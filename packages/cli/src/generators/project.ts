@@ -411,6 +411,7 @@ const ROOT_CONFIG_FILES = [
   '.pre-commit-config.yaml',
   '.npmrc',
   '.nvmrc',
+  '.github/workflows/ci.yml',
 ];
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-types
 

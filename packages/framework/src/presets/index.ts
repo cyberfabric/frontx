@@ -26,7 +26,7 @@ export interface FullPresetConfig {
 
 /**
  * Full preset - All plugins for the complete FrontX experience.
- * This is the default for `hai3 create` projects.
+ * This is the default for `frontx create` projects.
  *
  * Includes:
  * - screensets (screenset registry, screen slice)
