@@ -31,7 +31,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "@cyberfabric/auth": "*",
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
@@ -46,9 +45,13 @@
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
     "@cyberfabric/i18n": "*",
+    "@cyberfabric/auth": "*",
     "@reduxjs/toolkit": ">=2.0.0"
   },
   "peerDependenciesMeta": {
+    "@cyberfabric/auth": {
+      "optional": true
+    },
     "@cyberfabric/state": {
       "optional": false
     },

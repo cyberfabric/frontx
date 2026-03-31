@@ -20,6 +20,10 @@ patterns = ["*/tsup.config.*", "*/vite.config.*", "*/vitest.config.*", "*/postcs
 reason = "Documentation site infrastructure has no CDSL backing"
 patterns = ["packages/docs/*"]
 
+[[ignore]]
+reason = "Auth package is types-only contract, no runtime logic to trace"
+patterns = ["packages/auth/*"]
+
 [[systems]]
 name = "FrontX Dev Kit"
 slug = "frontx"
