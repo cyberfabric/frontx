@@ -50,6 +50,7 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
           'local/no-inline-styles': 'error',
           'local/uikit-no-business-logic': 'off',
           'local/screen-inline-components': 'off',
+          'local/no-hardcoded-strings': 'off',
         } : {}),
 
         // Flux Architecture: No direct store.dispatch + Lodash enforcement
@@ -115,6 +116,15 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
       files: ['src/screensets/**/screens/**/*Screen.tsx'],
       rules: {
         'local/screen-inline-components': 'error',
+      },
+    }] : []),
+
+    // Components + Screens: Enforce i18n — no hardcoded user-visible strings
+    ...(localPlugin ? [{
+      files: ['src/screensets/**/*.tsx', 'src/components/**/*.tsx', 'src/app/**/*.tsx'],
+      ignores: ['**/*.test.*', '**/*.spec.*'],
+      rules: {
+        'local/no-hardcoded-strings': 'warn',
       },
     }] : []),
 

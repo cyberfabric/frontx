@@ -10,6 +10,7 @@ import domainEventFormat = require('./rules/domain-event-format');
 import noInlineStyles = require('./rules/no-inline-styles');
 import uikitNoBusinessLogic = require('./rules/uikit-no-business-logic');
 import screenInlineComponents = require('./rules/screen-inline-components');
+import noHardcodedStrings = require('./rules/no-hardcoded-strings');
 
 export = {
   rules: {
@@ -20,5 +21,6 @@ export = {
     'no-inline-styles': noInlineStyles,
     'uikit-no-business-logic': uikitNoBusinessLogic,
     'screen-inline-components': screenInlineComponents,
+    'no-hardcoded-strings': noHardcodedStrings,
   },
 };
