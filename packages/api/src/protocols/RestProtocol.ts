@@ -19,18 +19,61 @@ import {
   ApiProtocol,
   type ApiServiceConfig,
   type RestProtocolConfig,
-  type ApiRequestContext,
-  type ApiResponseContext,
-  type ShortCircuitResponse,
   type RestPluginHooks,
   type HttpMethod,
   type PluginClass,
   type ApiPluginErrorContext,
   type RestResponseContext,
   type RestRequestContext,
+  type RestShortCircuitResponse,
+  type RestRequestOptions,
 } from '../types';
 import { isRestShortCircuit } from '../types';
 import { apiRegistry } from '../apiRegistry';
+
+function isAbortSignalLike(value: unknown): value is AbortSignal {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as { aborted?: unknown; addEventListener?: unknown };
+  return typeof candidate.aborted === 'boolean' && typeof candidate.addEventListener === 'function';
+}
+
+/**
+ * Detects RestRequestOptions by presence of known option keys.
+ * A plain query-params dict has arbitrary string keys with string values.
+ * @internal
+ */
+function isRestRequestOptions(value: Record<string, unknown>): value is RestRequestOptions {
+  if ('params' in value || 'withCredentials' in value) return true;
+  if (!('signal' in value)) return false;
+  return isAbortSignalLike(value.signal);
+}
+
+function normalizeGetRequestOptions(
+  paramsOrOptions?: Record<string, string> | RestRequestOptions,
+  signal?: AbortSignal
+): RestRequestOptions {
+  if (!paramsOrOptions) {
+    return signal ? { signal } : {};
+  }
+  if (isRestRequestOptions(paramsOrOptions)) {
+    return {
+      ...paramsOrOptions,
+      signal: paramsOrOptions.signal ?? signal,
+    };
+  }
+  return {
+    params: paramsOrOptions,
+    signal,
+  };
+}
+
+function normalizeSignalOrOptions(signalOrOptions?: AbortSignal | RestRequestOptions): RestRequestOptions {
+  if (!signalOrOptions) return {};
+  if (isAbortSignalLike(signalOrOptions)) {
+    return { signal: signalOrOptions };
+  }
+  return signalOrOptions;
+}
 
 /**
  * Default REST protocol configuration.
@@ -197,8 +240,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Perform GET request.
    * @template TResponse - Response type
    */
-  async get<TResponse>(url: string, params?: Record<string, string>): Promise<TResponse> {
-    return this.request<TResponse>('GET', url, undefined, params);
+  async get<TResponse>(url: string, params?: Record<string, string>, signal?: AbortSignal): Promise<TResponse>;
+  async get<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse>;
+  async get<TResponse>(url: string, paramsOrOptions?: Record<string, string> | RestRequestOptions, signal?: AbortSignal): Promise<TResponse> {
+    return this.request<TResponse>('GET', url, undefined, normalizeGetRequestOptions(paramsOrOptions, signal));
   }
 
   /**
@@ -206,8 +251,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('POST', url, data);
+  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
+  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
+  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('POST', url, data, normalizeSignalOrOptions(signalOrOptions));
   }
 
   /**
@@ -215,8 +262,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('PUT', url, data);
+  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
+  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
+  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PUT', url, data, normalizeSignalOrOptions(signalOrOptions));
   }
 
   /**
@@ -224,16 +273,20 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest): Promise<TResponse> {
-    return this.request<TResponse>('PATCH', url, data);
+  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
+  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
+  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PATCH', url, data, normalizeSignalOrOptions(signalOrOptions));
   }
 
   /**
    * Perform DELETE request.
    * @template TResponse - Response type
    */
-  async delete<TResponse>(url: string): Promise<TResponse> {
-    return this.request<TResponse>('DELETE', url);
+  async delete<TResponse>(url: string, signal?: AbortSignal): Promise<TResponse>;
+  async delete<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse>;
+  async delete<TResponse>(url: string, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('DELETE', url, undefined, normalizeSignalOrOptions(signalOrOptions));
   }
 
   // ============================================================================
@@ -248,14 +301,18 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     method: HttpMethod,
     url: string,
     data?: unknown,
-    params?: Record<string, string>
+    options?: RestRequestOptions
   ): Promise<T> {
-    return this.requestInternal<T>(method, url, data, params, 0);
+    return this.requestInternal<T>(method, url, data, 0, options);
   }
 
   /**
    * Internal request execution with retry support.
    * Can be called for initial request or retry.
+   *
+   * @param contextOverride - When retrying with modified context, pass the full merged
+   *   RestRequestContext here so plugin-supplied headers/body/signal are preserved.
+   *   On the initial call this is undefined and the context is built from method+url+data.
    */
   // @cpt-begin:cpt-hai3-flow-api-communication-rest-request:p1:inst-1
   // @cpt-begin:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1:inst-1
@@ -264,8 +321,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     method: HttpMethod,
     url: string,
     data?: unknown,
-    params?: Record<string, string>,
-    retryCount: number = 0
+    retryCount: number = 0,
+    options?: RestRequestOptions,
+    contextOverride?: RestRequestContext
   ): Promise<T> {
     if (!this.client) {
       throw new Error('RestProtocol not initialized. Call initialize() first.');
@@ -282,12 +340,15 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       ? `${this.config.baseURL}${url}`.replace(/\/+/g, '/').replace(':/', '://')
       : url;
 
-    // Build request context for plugins (pure request data - no serviceName)
-    const requestContext: ApiRequestContext = {
+    // When retrying with a modified context (e.g. refreshed auth headers), use it directly
+    // so that plugin-supplied modifications are not discarded by rebuilding from scratch.
+    const requestContext: RestRequestContext = contextOverride ?? {
       method,
       url: fullUrl,
       headers: { ...this.config?.headers },
       body: data,
+      withCredentials: options?.withCredentials ?? this.restConfig.withCredentials,
+      signal: options?.signal,
     };
 
     try {
@@ -318,14 +379,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         url,  // Use original relative URL, not processedContext.url which includes baseURL
         headers: processedContext.headers,
         data: processedContext.body,
-        params,
+        params: options?.params,
+        withCredentials: processedContext.withCredentials,
+        signal: processedContext.signal,
       };
 
       // Execute actual HTTP request
       const response = await this.client.request(axiosConfig);
 
       // Build response context
-      const responseContext: ApiResponseContext = {
+      const responseContext: RestResponseContext = {
         status: response.status,
         headers: response.headers as Record<string, string>,
         data: response.data,
@@ -339,20 +402,35 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
       return finalResponse.data as T;
     } catch (error) {
+      // Bypass plugin onError chain for axios cancellations - rethrow directly
+      if (axios.isCancel(error)) {
+        throw error;
+      }
+
       const err = error instanceof Error ? error : new Error(String(error));
+
+      const responseContext: RestResponseContext | undefined =
+        axios.isAxiosError(error) && error.response
+          ? {
+              status: error.response.status,
+              headers: error.response.headers as Record<string, string>,
+              data: error.response.data,
+            }
+          : undefined;
 
       // Execute onError plugin chain with retry support
       const finalResult = await this.executePluginOnError(
         err,
         requestContext,
         url,
-        params,
-        retryCount
+        retryCount,
+        options,
+        responseContext
       );
 
-      // Check if error was recovered (plugin returned ApiResponseContext)
+      // Check if error was recovered (plugin returned RestResponseContext)
       if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
-        return (finalResult as ApiResponseContext).data as T;
+        return (finalResult as RestResponseContext).data as T;
       }
 
       throw finalResult;
@@ -372,9 +450,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Any plugin can short-circuit by returning { shortCircuit: response }.
    */
   private async executePluginOnRequest(
-    context: ApiRequestContext
-  ): Promise<ApiRequestContext | ShortCircuitResponse> {
-    let currentContext: ApiRequestContext = { ...context };
+    context: RestRequestContext
+  ): Promise<RestRequestContext | RestShortCircuitResponse> {
+    let currentContext: RestRequestContext = { ...context };
 
     // Use protocol-level plugins (global + instance)
     for (const plugin of this.getPluginsInOrder()) {
@@ -404,10 +482,10 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Plugins execute in reverse order (LIFO - onion model).
    */
   private async executePluginOnResponse(
-    context: ApiResponseContext,
-    _requestContext: ApiRequestContext
-  ): Promise<ApiResponseContext> {
-    let currentContext: ApiResponseContext = { ...context };
+    context: RestResponseContext,
+    _requestContext: RestRequestContext
+  ): Promise<RestResponseContext> {
+    let currentContext: RestResponseContext = { ...context };
     // Use protocol-level plugins (global + instance) in reverse order
     const plugins = [...this.getPluginsInOrder()].reverse();
 
@@ -427,12 +505,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    */
   private async executePluginOnError(
     error: Error,
-    context: ApiRequestContext,
+    context: RestRequestContext,
     originalUrl: string,
-    params: Record<string, string> | undefined,
-    retryCount: number
-  ): Promise<Error | ApiResponseContext> {
-    // Create retry function that calls requestInternal with incremented retryCount
+    retryCount: number,
+    options: RestRequestOptions | undefined,
+    responseContext?: RestResponseContext
+  ): Promise<Error | RestResponseContext> {
+    // Create retry function that calls requestInternal with incremented retryCount.
+    // The merged retryContext is passed as contextOverride so that header/body/signal
+    // modifications supplied by the plugin are not thrown away when requestInternal
+    // rebuilds its base context from method+url+data.
     const retry = async (modifiedRequest?: Partial<RestRequestContext>): Promise<RestResponseContext> => {
       const retryContext: RestRequestContext = {
         ...context,
@@ -445,8 +527,13 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         retryContext.method,
         originalUrl,
         retryContext.body,
-        params,
-        retryCount + 1
+        retryCount + 1,
+        {
+          params: options?.params,
+          signal: retryContext.signal,
+          withCredentials: retryContext.withCredentials,
+        },
+        retryContext
       );
 
       // Wrap result in response context format
@@ -459,12 +546,13 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     const errorContext: ApiPluginErrorContext = {
       error,
-      request: context as RestRequestContext,
+      request: context,
+      response: responseContext,
       retryCount,
       retry,
     };
 
-    let currentResult: Error | ApiResponseContext = error;
+    let currentResult: Error | RestResponseContext = error;
     // Use protocol-level plugins (global + instance) in reverse order
     const plugins = [...this.getPluginsInOrder()].reverse();
 
@@ -472,9 +560,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       if (plugin.onError) {
         const result = await plugin.onError(errorContext);
 
-        // If plugin returns ApiResponseContext, it's a recovery - stop chain
+        // If plugin returns RestResponseContext, it's a recovery - stop chain
         if (result && typeof result === 'object' && 'status' in result && 'data' in result) {
-          return result as ApiResponseContext;
+          return result as RestResponseContext;
         }
 
         // If plugin returns Error, continue chain

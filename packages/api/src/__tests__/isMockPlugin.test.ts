@@ -68,14 +68,13 @@ describe('isMockPlugin', () => {
       }
       class DerivedMockPlugin extends BaseMockPlugin {}
 
-      // Note: Static properties are not inherited in JavaScript
-      // Each class needs to declare its own MOCK_PLUGIN symbol
+      // Note: In JS, classes have a prototype chain (`Derived.__proto__ === Base`).
+      // `isMockPlugin` uses `MOCK_PLUGIN in constructor`, so the marker is inherited.
       const basePlugin = new BaseMockPlugin();
       const derivedPlugin = new DerivedMockPlugin();
 
       expect(isMockPlugin(basePlugin)).toBe(true);
-      // Derived class doesn't inherit static symbol
-      expect(isMockPlugin(derivedPlugin)).toBe(false);
+      expect(isMockPlugin(derivedPlugin)).toBe(true);
     });
   });
 

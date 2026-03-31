@@ -71,7 +71,7 @@ export class MockEventSource implements EventSourceLike {
     this.delay = delay;
 
     // Start emitting events asynchronously
-    this.startEmitting();
+    void this.startEmitting();
   }
 
   /**
@@ -118,10 +118,12 @@ export class MockEventSource implements EventSourceLike {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
-    // Transition to OPEN
-    this.readyState = 1; // OPEN
+    // Yield once so callers can register handlers before 'open' fires.
+    await Promise.resolve();
+    if (signal.aborted) return;
 
-    // Emit open event
+    // Transition to OPEN and emit open event
+    this.readyState = 1; // OPEN
     this.emitEvent('open', new Event('open'));
 
     // Emit events with delay
@@ -132,7 +134,8 @@ export class MockEventSource implements EventSourceLike {
       }
 
       // Wait for delay
-      await this.sleep(this.delay, signal);
+      const didSleep = await this.sleep(this.delay, signal);
+      if (!didSleep) return;
 
       // Check if aborted after delay
       if (signal.aborted) {
@@ -187,15 +190,19 @@ export class MockEventSource implements EventSourceLike {
   /**
    * Sleep with abort signal support
    */
-  private sleep(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(resolve, ms);
+  private sleep(ms: number, signal: AbortSignal): Promise<boolean> {
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => resolve(true), ms);
 
-      // Handle abort
-      signal.addEventListener('abort', () => {
-        clearTimeout(timeout);
-        reject(new Error('Aborted'));
-      });
+      // Resolve false on abort (do not reject) to avoid unhandled rejections.
+      signal.addEventListener(
+        'abort',
+        () => {
+          clearTimeout(timeout);
+          resolve(false);
+        },
+        { once: true }
+      );
     });
   }
 }

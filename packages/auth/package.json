@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/api",
+  "name": "@hai3/auth",
   "version": "0.4.0-alpha.0",
-  "description": "API communication protocols and service registry for HAI3 SDK",
+  "description": "Headless authentication contract and types for HAI3 SDK",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,33 +21,26 @@
   "files": [
     "dist",
     "CLAUDE.md",
-    "llms.txt",
-    "commands"
+    "llms.txt"
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
-    "axios": "^1.6.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2",
-    "vitest": "^4.0.18"
+    "typescript": "^5.4.2"
   },
-  "peerDependencies": {
-    "axios": ">=1.0.0"
-  },
+  "peerDependencies": {},
   "publishConfig": {
     "access": "public"
   },
   "keywords": [
     "hai3",
-    "api",
-    "rest",
-    "sse",
+    "auth",
+    "authentication",
+    "authorization",
     "typescript"
   ],
   "author": "HAI3",

@@ -182,6 +182,10 @@ export {
   toggleMockMode,
   MockEvents,
 
+  // Auth
+  auth,
+  hai3ApiTransport,
+
   // API
   apiRegistry,
   BaseApiService,
@@ -236,6 +240,8 @@ export type {
   ShowPopupPayload,
   ChangeThemePayload,
   SetLanguagePayload,
+  AuthPluginConfig,
+  AuthRuntime,
 
   // Flux (Events + Store)
   EventHandler,

@@ -152,6 +152,9 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       destroy: () => this.destroyApp(orderedPlugins, app),
     };
 
+    // Merge plugin-provided runtime app extensions onto the built app object.
+    Object.assign(app as object, aggregated.app);
+
     // 7. Call onInit for each plugin
     orderedPlugins.forEach((plugin) => {
       if (plugin.onInit) {
@@ -226,6 +229,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
   // @cpt-begin:cpt-hai3-algo-framework-composition-provides-aggregation:p1:inst-1
   private aggregateProvides(plugins: HAI3Plugin[]) {
     const registries: Record<string, unknown> = {};
+    const app: Record<string, unknown> = {};
     const slices: RegisterableSlice[] = [];
     const effects: EffectInitializer[] = [];
     // Actions are typed via module augmentation - each plugin declares its actions
@@ -238,6 +242,11 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       // Merge registries
       if (plugin.provides.registries) {
         Object.assign(registries, plugin.provides.registries);
+      }
+
+      // Merge runtime app extensions (plugin-defined surface on built `app`)
+      if (plugin.provides.app) {
+        Object.assign(app, plugin.provides.app);
       }
 
       // Collect slices
@@ -256,7 +265,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       }
     });
 
-    return { registries, slices, effects, actions };
+    return { registries, app, slices, effects, actions };
   }
   // @cpt-end:cpt-hai3-algo-framework-composition-provides-aggregation:p1:inst-1
 
