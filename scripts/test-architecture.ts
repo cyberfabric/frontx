@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 /**
- * HAI3 Architecture Validation Script (Monorepo)
+ * FrontX Architecture Validation Script (Monorepo)
  * Extends standalone checks with monorepo-specific validations
  *
  * This extends packages/cli/template-sources/project/scripts/test-architecture.ts

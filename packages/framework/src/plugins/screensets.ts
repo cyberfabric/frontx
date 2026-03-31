@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-full-preset:p1
 
 /**
  * Screensets Plugin - Provides screenset registry and screen slice
@@ -10,7 +10,7 @@
  *
  * NOTE: Translations are NOT handled by this plugin. Screensets register
  * their translations directly with i18nRegistry via framework re-exports.
- * This maintains clean separation: @hai3/screensets has zero knowledge of i18n.
+ * This maintains clean separation: @cyberfabric/screensets has zero knowledge of i18n.
  */
 
 import { screenSlice, screenActions } from '../slices';
@@ -29,7 +29,7 @@ import type { HAI3Plugin, ScreensetsConfig } from '../types';
  *   .build();
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-full-preset:p1:inst-1
 export function screensets(_config?: ScreensetsConfig): HAI3Plugin<ScreensetsConfig> {
   return {
     name: 'screensets',
@@ -49,8 +49,8 @@ export function screensets(_config?: ScreensetsConfig): HAI3Plugin<ScreensetsCon
       // Note: In Vite apps, this is handled by glob imports in user code
       // Translation wiring is NOT done here.
       // Screensets register translations directly with i18nRegistry.
-      // This keeps @hai3/screensets free of i18n dependencies.
+      // This keeps @cyberfabric/screensets free of i18n dependencies.
     },
   };
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-full-preset:p1:inst-1

@@ -8,12 +8,12 @@
  * for runtime registration operations.
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-registration:p1
-// @cpt-state:cpt-hai3-state-framework-composition-mfe-registration:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-teardown:p2
-// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-mfe-registration:p1
+// @cpt-state:cpt-frontx-state-framework-composition-mfe-registration:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-teardown:p2
+// @cpt-dod:cpt-frontx-dod-framework-composition-mfe-plugin:p1
 
-import { eventBus, getStore } from '@hai3/state';
+import { eventBus, getStore } from '@cyberfabric/state';
 import { MfeEvents } from './constants';
 import {
   setExtensionRegistering,
@@ -21,7 +21,7 @@ import {
   setExtensionUnregistered,
   setExtensionError,
 } from './slice';
-import type { ScreensetsRegistry } from '@hai3/screensets';
+import type { ScreensetsRegistry } from '@cyberfabric/screensets';
 
 // ============================================================================
 // Effect Initialization
@@ -34,9 +34,9 @@ import type { ScreensetsRegistry } from '@hai3/screensets';
  * @param screensetsRegistry - MFE-enabled registry from microfrontends plugin
  * @returns Cleanup function to unsubscribe all effects
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-mfe-registration:p1:inst-1
-// @cpt-begin:cpt-hai3-state-framework-composition-mfe-registration:p1:inst-1
-// @cpt-begin:cpt-hai3-flow-framework-composition-teardown:p2:inst-2
+// @cpt-begin:cpt-frontx-flow-framework-composition-mfe-registration:p1:inst-1
+// @cpt-begin:cpt-frontx-state-framework-composition-mfe-registration:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-teardown:p2:inst-2
 export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => void {
   const store = getStore();
   const unsubscribers: Array<{ unsubscribe: () => void }> = [];
@@ -94,6 +94,6 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
     unsubscribers.forEach((unsub) => unsub.unsubscribe());
   };
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-mfe-registration:p1:inst-1
-// @cpt-end:cpt-hai3-state-framework-composition-mfe-registration:p1:inst-1
-// @cpt-end:cpt-hai3-flow-framework-composition-teardown:p2:inst-2
+// @cpt-end:cpt-frontx-flow-framework-composition-mfe-registration:p1:inst-1
+// @cpt-end:cpt-frontx-state-framework-composition-mfe-registration:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-teardown:p2:inst-2

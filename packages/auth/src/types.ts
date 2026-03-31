@@ -97,7 +97,7 @@ export interface AuthPermissions {
 }
 
 // ---------------------------------------------------------------------------
-// Transport adapter (interfaces only — for future @hai3/api binding)
+// Transport adapter (interfaces only — for future @cyberfabric/api binding)
 // ---------------------------------------------------------------------------
 
 export interface AuthTransportRequest {

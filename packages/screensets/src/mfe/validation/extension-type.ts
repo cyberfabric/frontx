@@ -17,7 +17,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-algo:cpt-hai3-algo-screenset-registry-extension-type-validation:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-extension-type-validation:p1
 
 import type { TypeSystemPlugin, ValidationResult } from '../plugins/types';
 import type { Extension } from '../types/extension';
@@ -45,7 +45,7 @@ import type { ExtensionDomain } from '../types/extension-domain';
  * @param extension - Extension to validate
  * @returns Validation result with errors if validation fails
  */
-// @cpt-begin:cpt-hai3-algo-screenset-registry-extension-type-validation:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-screenset-registry-extension-type-validation:p1:inst-1
 export function validateExtensionType(
   plugin: TypeSystemPlugin,
   domain: ExtensionDomain,
@@ -115,4 +115,4 @@ export function validateExtensionType(
     };
   }
 }
-// @cpt-end:cpt-hai3-algo-screenset-registry-extension-type-validation:p1:inst-1
+// @cpt-end:cpt-frontx-algo-screenset-registry-extension-type-validation:p1:inst-1

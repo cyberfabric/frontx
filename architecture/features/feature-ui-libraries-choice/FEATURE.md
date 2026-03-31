@@ -1,6 +1,6 @@
 # Feature: UI Libraries Choice
 
-- [x] `p1` - **ID**: `cpt-hai3-featstatus-ui-libraries-choice`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-ui-libraries-choice`
 
 <!-- toc -->
 
@@ -16,7 +16,7 @@
   - [Generate Screenset Respecting the Active UI Kit](#generate-screenset-respecting-the-active-ui-kit)
   - [Add Shadcn Component to an Existing MFE (Manual Process)](#add-shadcn-component-to-an-existing-mfe-manual-process)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
-  - [UI Kit Type Resolution from hai3.config.json](#ui-kit-type-resolution-from-hai3configjson)
+  - [UI Kit Type Resolution from frontx.config.json](#ui-kit-type-resolution-from-frontxconfigjson)
   - [CLI Template Selection Based on UI Kit Type](#cli-template-selection-based-on-ui-kit-type)
   - [UIKit Bridge Generation for Third-Party Libraries](#uikit-bridge-generation-for-third-party-libraries)
   - [CSS Variable Theme Propagation for All UI Kit Types](#css-variable-theme-propagation-for-all-ui-kit-types)
@@ -37,7 +37,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-hai3-feature-ui-libraries-choice`
+- [x] `p2` - `cpt-frontx-feature-ui-libraries-choice`
 
 ---
 
@@ -45,31 +45,31 @@
 
 ### 1.1 Overview
 
-The UI Libraries Choice feature provides per-project UI component strategy for newly created projects. At project creation time (`hai3 create`), the developer selects a UI strategy for the project: copy-owned shadcn/ui components scaffolded locally into `components/ui/`, a declared third-party library such as MUI or Ant Design, or fully custom components with no library dependency. This is a project-level decision recorded in `hai3.config.json` and fixed for the project's lifetime. The CLI (`hai3 create`, `hai3 screenset`) reads `hai3.config.json` to determine the active UI kit and scaffolds accordingly. Theme propagation via CSS variables remains consistent across all UI kit choices.
+The UI Libraries Choice feature provides per-project UI component strategy for newly created projects. At project creation time (`frontx create`), the developer selects a UI strategy for the project: copy-owned shadcn/ui components scaffolded locally into `components/ui/`, a declared third-party library such as MUI or Ant Design, or fully custom components with no library dependency. This is a project-level decision recorded in `frontx.config.json` and fixed for the project's lifetime. The CLI (`frontx create`, `frontx screenset`) reads `frontx.config.json` to determine the active UI kit and scaffolds accordingly. Theme propagation via CSS variables remains consistent across all UI kit choices.
 
 ### 1.2 Purpose
 
 - Decouple project UI stacks from a shared centralized package that created cross-package coupling and versioning friction
-- Establish `hai3.config.json` as the authoritative configuration point for UI kit choice per project
+- Establish `frontx.config.json` as the authoritative configuration point for UI kit choice per project
 - Enable developers to use mature third-party component libraries (MUI, Ant Design, etc.) without framework-imposed constraints
 - Preserve theme consistency across all UI kit choices through CSS variable inheritance
 - Align CLI scaffolding (project creation and screenset generation) with the selected UI kit
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-developer` — creates MFE projects, generates screensets, selects and configures UI kit, authors UI components
+- `cpt-frontx-actor-developer` — creates MFE projects, generates screensets, selects and configures UI kit, authors UI components
 
 ### 1.4 References
 
 - **PRD**: [PRD.md](../../PRD.md)
 - **Design**: [DESIGN.md](../../DESIGN.md)
-- **DECOMPOSITION**: `cpt-hai3-feature-ui-libraries-choice`
-- **PRD requirements**: `cpt-hai3-fr-cli-commands`, `cpt-hai3-fr-cli-templates`, `cpt-hai3-nfr-maint-zero-crossdeps`
-- **Design components**: `cpt-hai3-component-cli`
-- **Design constraints**: `cpt-hai3-constraint-typescript-strict-mode`
-- **Design ADRs**: `cpt-hai3-adr-react-19-ref-as-prop`
-- **Design principles**: `cpt-hai3-principle-mfe-isolation`, `cpt-hai3-principle-self-registering-registries`
-- **Related features**: `cpt-hai3-feature-cli-tooling` (CLI commands), `cpt-hai3-feature-react-bindings` (theme propagation)
+- **DECOMPOSITION**: `cpt-frontx-feature-ui-libraries-choice`
+- **PRD requirements**: `cpt-frontx-fr-cli-commands`, `cpt-frontx-fr-cli-templates`, `cpt-frontx-nfr-maint-zero-crossdeps`
+- **Design components**: `cpt-frontx-component-cli`
+- **Design constraints**: `cpt-frontx-constraint-typescript-strict-mode`
+- **Design ADRs**: `cpt-frontx-adr-react-19-ref-as-prop`
+- **Design principles**: `cpt-frontx-principle-mfe-isolation`, `cpt-frontx-principle-self-registering-registries`
+- **Related features**: `cpt-frontx-feature-cli-tooling` (CLI commands), `cpt-frontx-feature-react-bindings` (theme propagation)
 
 ---
 
@@ -77,9 +77,9 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 ### Create MFE Project with Shadcn UI Kit
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-ui-libraries-choice-create-shadcn`
+- [x] `p2` - **ID**: `cpt-frontx-flow-ui-libraries-choice-create-shadcn`
 
-**Actor**: `cpt-hai3-actor-developer`
+**Actor**: `cpt-frontx-actor-developer`
 
 **Success Scenarios**:
 - Project scaffolded with local shadcn components in `components/ui/`
@@ -88,20 +88,20 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 - Template entry missing from `manifest.yaml`; CLI surfaces fatal error
 
 **Steps**:
-1. [x] - `p2` - Developer invokes `hai3 create` and specifies project name and target directory - `inst-create-shadcn-1`
+1. [x] - `p2` - Developer invokes `frontx create` and specifies project name and target directory - `inst-create-shadcn-1`
 2. [x] - `p2` - CLI presents UI kit selection prompt with options: `shadcn`, `none`, or a custom package name - `inst-create-shadcn-2`
 3. [x] - `p2` - Developer selects `shadcn` - `inst-create-shadcn-3`
-4. [x] - `p2` - CLI writes `"uikit": "shadcn"` into the generated `hai3.config.json`
+4. [x] - `p2` - CLI writes `"uikit": "shadcn"` into the generated `frontx.config.json`
 5. [x] - `p2` - CLI resolves the shadcn layout template from `manifest.yaml` and scaffolds project files including `components/ui/` directory
-6. [x] - `p2` - CLI copies the base set of shadcn/ui components (button, input, card, dialog, form, toast) into `components/ui/` with React 19 ref-as-prop compatibility applied per `cpt-hai3-adr-react-19-ref-as-prop`
+6. [x] - `p2` - CLI copies the base set of shadcn/ui components (button, input, card, dialog, form, toast) into `components/ui/` with React 19 ref-as-prop compatibility applied per `cpt-frontx-adr-react-19-ref-as-prop`
 7. [x] - `p2` - CLI generates `components/ui/index.ts` barrel export for all scaffolded components
 8. [x] - `p2` - **RETURN** project scaffold with locally owned shadcn components - `inst-create-shadcn-8`
 
 ### Create MFE Project with a Third-Party UI Library
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-ui-libraries-choice-create-thirdparty`
+- [x] `p2` - **ID**: `cpt-frontx-flow-ui-libraries-choice-create-thirdparty`
 
-**Actor**: `cpt-hai3-actor-developer`
+**Actor**: `cpt-frontx-actor-developer`
 
 **Success Scenarios**:
 - Project scaffolded with third-party library wired up via UIKit bridge
@@ -110,10 +110,10 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 - Template entry missing from `manifest.yaml`; CLI surfaces fatal error
 
 **Steps**:
-1. [x] - `p2` - Developer invokes `hai3 create` and specifies project name and target directory - `inst-create-thirdparty-1`
+1. [x] - `p2` - Developer invokes `frontx create` and specifies project name and target directory - `inst-create-thirdparty-1`
 2. [x] - `p2` - CLI presents UI kit selection prompt - `inst-create-thirdparty-2`
 3. [x] - `p2` - Developer enters a third-party package name (e.g., `@mui/material`, `antd`) - `inst-create-thirdparty-3`
-4. [x] - `p2` - CLI validates that the entered value is not `shadcn` or `none`, treats it as a third-party library identifier, and writes it to `hai3.config.json` as `"uikit"` - `inst-create-thirdparty-4`
+4. [x] - `p2` - CLI validates that the entered value is not `shadcn` or `none`, treats it as a third-party library identifier, and writes it to `frontx.config.json` as `"uikit"` - `inst-create-thirdparty-4`
 5. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml`
 6. [x] - `p2` - CLI scaffolds the project with the custom layout template and generates a UIKit bridge file that re-exports primitives from the declared third-party package under normalized names
 7. [x] - `p2` - CLI adds the third-party package to `package.json` dependencies
@@ -122,9 +122,9 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 ### Create MFE Project with No UI Library
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-ui-libraries-choice-create-none`
+- [x] `p2` - **ID**: `cpt-frontx-flow-ui-libraries-choice-create-none`
 
-**Actor**: `cpt-hai3-actor-developer`
+**Actor**: `cpt-frontx-actor-developer`
 
 **Success Scenarios**:
 - Minimal project scaffolded with empty `uikit/` directory for manual component authoring
@@ -133,8 +133,8 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 - Template entry missing from `manifest.yaml`; CLI surfaces fatal error
 
 **Steps**:
-1. [x] - `p2` - Developer invokes `hai3 create` and selects `none` as the UI kit option - `inst-create-none-1`
-2. [x] - `p2` - CLI writes `"uikit": "none"` into `hai3.config.json`
+1. [x] - `p2` - Developer invokes `frontx create` and selects `none` as the UI kit option - `inst-create-none-1`
+2. [x] - `p2` - CLI writes `"uikit": "none"` into `frontx.config.json`
 3. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml`
 4. [x] - `p2` - CLI scaffolds the project with the custom layout template and creates an empty `uikit/` directory containing a placeholder `index.ts`
 5. [x] - `p2` - No UI library is added to `package.json` dependencies
@@ -142,15 +142,15 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 ### Generate Screenset Respecting the Active UI Kit
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-ui-libraries-choice-screenset-generate`
+- [x] `p2` - **ID**: `cpt-frontx-flow-ui-libraries-choice-screenset-generate`
 
-**Actor**: `cpt-hai3-actor-developer`
+**Actor**: `cpt-frontx-actor-developer`
 
 **Success Scenarios**:
 - Screenset generated with imports matching the project's configured UI kit
 
 **Error Scenarios**:
-- `hai3.config.json` absent or `uikit` field missing; CLI surfaces actionable error
+- `frontx.config.json` absent or `uikit` field missing; CLI surfaces actionable error
 
 **Steps**:
 1. [x] - `p2` - Provide template string replacement functions (`applyMfeReplacements`) that substitute blank-MFE placeholders (name, PascalCase name, port) into generated file contents - `inst-screenset-mfe-replacements`
@@ -162,12 +162,12 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 7. [x] - `p2` - Provide `buildMfeManifestsContent` utility that assembles the content of `generated-mfe-manifests.ts` from a list of MFE package directory names - `inst-screenset-build-manifests`
 8. [x] - `p2` - Provide `isReservedScreensetName` predicate and `RESERVED_SCREENSET_NAMES` list that prevents using system-reserved names (`screenset`, `screen`, `index`, `api`, `core`) as screenset identifiers - `inst-screenset-reserved-names`
 9. [x] - `p2` - Provide `validateNameAndLoadConfig` validation function that checks name validity and loads project config; define TypeScript types for command args and result - `inst-screenset-name-validation`
-10. [x] - `p2` - Developer invokes `hai3 screenset` with a screenset name from within an MFE project directory; CLI defines command schema (name, port, project root options) - `inst-screenset-cmd-types`
+10. [x] - `p2` - Developer invokes `frontx screenset` with a screenset name from within an MFE project directory; CLI defines command schema (name, port, project root options) - `inst-screenset-cmd-types`
 11. [x] - `p2` - CLI registers the `screenset` command definition with validation and execute callbacks - `inst-screenset-cmd-definition`
-12. [x] - `p2` - CLI execute handler reads `hai3.config.json`, resolves the screenset name, determines the next available port, resolves uikit type, then delegates to the screenset generator - `inst-screenset-cmd-execute`
-13. [x] - `p2` - CLI validates the screenset name; reads `hai3.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-setup`
-14. [x] - `p2` - Developer invokes `hai3 screenset` with a screenset name from within an MFE project directory - `inst-screenset-generate-1`
-15. [x] - `p2` - CLI reads `hai3.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-2`
+12. [x] - `p2` - CLI execute handler reads `frontx.config.json`, resolves the screenset name, determines the next available port, resolves uikit type, then delegates to the screenset generator - `inst-screenset-cmd-execute`
+13. [x] - `p2` - CLI validates the screenset name; reads `frontx.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-setup`
+14. [x] - `p2` - Developer invokes `frontx screenset` with a screenset name from within an MFE project directory - `inst-screenset-generate-1`
+15. [x] - `p2` - CLI reads `frontx.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-2`
 16. [x] - `p2` - **IF** `uikit` is `"shadcn"`: CLI selects the shadcn screenset template, imports from `components/ui/` - `inst-screenset-generate-3`
 17. [x] - `p2` - **IF** `uikit` is `"none"`: CLI selects the custom screenset template, imports from `uikit/` - `inst-screenset-generate-4`
 18. [x] - `p2` - **IF** `uikit` is a third-party identifier: CLI selects the custom-uikit screenset template, imports from the declared package - `inst-screenset-generate-5`
@@ -178,13 +178,13 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 ### Add Shadcn Component to an Existing MFE (Manual Process)
 
-This is a manual developer process using the external shadcn CLI — not implemented by HAI3 code.
+This is a manual developer process using the external shadcn CLI — not implemented by FrontX code.
 
-**Actor**: `cpt-hai3-actor-developer`
+**Actor**: `cpt-frontx-actor-developer`
 
 **Steps**:
 1. Developer runs a shadcn CLI command (e.g., `npx shadcn add <component>`) within the MFE project directory
-2. shadcn CLI reads the project's `components.json` configuration (generated by `hai3 create` for shadcn projects) and resolves the output path to `components/ui/`
+2. shadcn CLI reads the project's `components.json` configuration (generated by `frontx create` for shadcn projects) and resolves the output path to `components/ui/`
 3. shadcn CLI writes the new component source file into `components/ui/`
 4. Developer updates the `components/ui/index.ts` barrel export to include the new component
 5. **Result**: new component locally owned by the MFE and not shared with other packages
@@ -193,18 +193,18 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 ## 3. Processes / Business Logic (CDSL)
 
-### UI Kit Type Resolution from hai3.config.json
+### UI Kit Type Resolution from frontx.config.json
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-ui-libraries-choice-uikit-resolution`
+- [x] `p1` - **ID**: `cpt-frontx-algo-ui-libraries-choice-uikit-resolution`
 
 **Input**: Project root directory path
 
 **Output**: Discriminated union — `shadcn | none | third-party(packageId) | unknown(error)`
 
 **Steps**:
-1. [x] - `p1` - Provide project utility module with `CONFIG_FILE` constant, `loadConfig()` helper that reads and parses `hai3.config.json`, and `findProjectRoot()` helper that walks directories upward; export `isCustomUikit` and related predicates — implementation foundation for all config-based UI kit resolution - `inst-uikit-project-utils`
-2. [x] - `p1` - Provide `normalizeUikit()` function that maps legacy uikit aliases (e.g., `hai3` → `shadcn`) to current canonical values, and exports the npm package name validation regex and `isValidPackageName` predicate - `inst-uikit-resolution-normalize`
-3. [x] - `p1` - Read `hai3.config.json` from the MFE project root - `inst-uikit-resolution-1`
+1. [x] - `p1` - Provide project utility module with `CONFIG_FILE` constant, `loadConfig()` helper that reads and parses `frontx.config.json`, and `findProjectRoot()` helper that walks directories upward; export `isCustomUikit` and related predicates — implementation foundation for all config-based UI kit resolution - `inst-uikit-project-utils`
+2. [x] - `p1` - Provide `normalizeUikit()` function that maps legacy uikit aliases (e.g., `frontx` → `shadcn`) to current canonical values, and exports the npm package name validation regex and `isValidPackageName` predicate - `inst-uikit-resolution-normalize`
+3. [x] - `p1` - Read `frontx.config.json` from the MFE project root - `inst-uikit-resolution-1`
 4. [x] - `p1` - Extract the `uikit` string field - `inst-uikit-resolution-2`
 5. [x] - `p1` - **IF** the field is absent or the file does not exist: **RETURN** type `unknown`, surface a configuration error to the caller
 6. [x] - `p1` - **IF** the value is exactly `"shadcn"`: **RETURN** type `shadcn` - `inst-uikit-resolution-4`
@@ -214,7 +214,7 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 ### CLI Template Selection Based on UI Kit Type
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-ui-libraries-choice-template-selection`
+- [x] `p1` - **ID**: `cpt-frontx-algo-ui-libraries-choice-template-selection`
 
 **Input**: Resolved UI kit type from UI Kit Type Resolution
 
@@ -234,7 +234,7 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 ### UIKit Bridge Generation for Third-Party Libraries
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-ui-libraries-choice-bridge-generation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-ui-libraries-choice-bridge-generation`
 
 **Input**: Third-party package identifier string
 
@@ -253,7 +253,7 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 ### CSS Variable Theme Propagation for All UI Kit Types
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-ui-libraries-choice-theme-propagation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-ui-libraries-choice-theme-propagation`
 
 **Input**: Active theme object and UI kit type
 
@@ -261,7 +261,7 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 **Steps**:
 1. [x] - `p1` - At MFE bootstrap, the host sets shadcn CSS variables (`--background`, `--foreground`, `--primary`, `--primary-foreground`, `--muted`, `--accent`, `--destructive`, `--border`, `--radius`, and related tokens) on `document.documentElement` - `inst-theme-propagation-1`
-2. [x] - `p1` - **FOR EACH** shadow root created by the MFE: inherit CSS variables by including a `:host { ... }` block that forwards the same token set from the shadow root's outer context - `inst-theme-propagation-2` <!-- N/A for CLI: runtime behavior in @hai3/react MFE bootstrap -->
+2. [x] - `p1` - **FOR EACH** shadow root created by the MFE: inherit CSS variables by including a `:host { ... }` block that forwards the same token set from the shadow root's outer context - `inst-theme-propagation-2` <!-- N/A for CLI: runtime behavior in @cyberfabric/react MFE bootstrap -->
 3. [x] - `p1` - **IF** UI kit type is `shadcn`: components consume variables directly; no additional mapping required - `inst-theme-propagation-3` <!-- N/A for CLI: inherent behavior, no code needed -->
 4. [x] - `p1` - **IF** UI kit type is `third-party`: the UIKit bridge file is responsible for mapping shadcn CSS variable values to the third-party library's theming API (e.g., MUI `createTheme`, Ant Design `ConfigProvider`) — this mapping is defined in the bridge template - `inst-theme-propagation-4`
 5. [x] - `p1` - **IF** UI kit type is `none`: the MFE developer is responsible for consuming the CSS variables in custom components; the scaffolded `uikit/` directory includes a `theme.css` file with variable forwarding - `inst-theme-propagation-5`
@@ -275,7 +275,7 @@ This is a manual developer process using the external shadcn CLI — not impleme
 
 ### Not Applicable
 
-Not applicable to this feature. UI Libraries Choice is a configuration and scaffolding concern: it defines what gets generated at project creation and screenset generation time, and what the active UI kit choice is at build time. There is no runtime state machine governing UI kit transitions — the `uikit` field in `hai3.config.json` is fixed for the lifetime of a project and does not change during execution.
+Not applicable to this feature. UI Libraries Choice is a configuration and scaffolding concern: it defines what gets generated at project creation and screenset generation time, and what the active UI kit choice is at build time. There is no runtime state machine governing UI kit transitions — the `uikit` field in `frontx.config.json` is fixed for the lifetime of a project and does not change during execution.
 
 ---
 
@@ -283,141 +283,141 @@ Not applicable to this feature. UI Libraries Choice is a configuration and scaff
 
 ### UI Kit Type Resolution
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-ui-libraries-choice-uikit-resolution-impl`
+- [x] `p1` - **ID**: `cpt-frontx-dod-ui-libraries-choice-uikit-resolution-impl`
 
-The CLI exports a pure function that reads `hai3.config.json` from a given project root, parses the `uikit` field, and returns a discriminated union type (`shadcn | none | third-party | unknown`). Unit tests cover: missing file, absent field, empty string, `"shadcn"`, `"none"`, and an arbitrary third-party identifier. All type branches are exercised. The function is strict-TypeScript compliant per `cpt-hai3-constraint-typescript-strict-mode`.
+The CLI exports a pure function that reads `frontx.config.json` from a given project root, parses the `uikit` field, and returns a discriminated union type (`shadcn | none | third-party | unknown`). Unit tests cover: missing file, absent field, empty string, `"shadcn"`, `"none"`, and an arbitrary third-party identifier. All type branches are exercised. The function is strict-TypeScript compliant per `cpt-frontx-constraint-typescript-strict-mode`.
 
 **Implements**:
-- `cpt-hai3-algo-ui-libraries-choice-uikit-resolution`
+- `cpt-frontx-algo-ui-libraries-choice-uikit-resolution`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-constraint-typescript-strict-mode`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-constraint-typescript-strict-mode`
 
 ---
 
 ### CLI Template Selection
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-ui-libraries-choice-template-selection-impl`
+- [x] `p1` - **ID**: `cpt-frontx-dod-ui-libraries-choice-template-selection-impl`
 
 `manifest.yaml` contains distinct template entries for `shadcn` and `layout-custom-uikit/` types. The CLI template selection function maps each resolved UI kit type to the correct template entry and surfaces a fatal error for missing entries. Tests verify that `shadcn` maps to the standard template, and both `none` and a third-party identifier map to `layout-custom-uikit/`.
 
 **Implements**:
-- `cpt-hai3-algo-ui-libraries-choice-template-selection`
+- `cpt-frontx-algo-ui-libraries-choice-template-selection`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-templates`
+- `cpt-frontx-fr-cli-templates`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ---
 
 ### Project Scaffolding for All Three UI Kit Types
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-ui-libraries-choice-create-scaffolding`
+- [x] `p2` - **ID**: `cpt-frontx-dod-ui-libraries-choice-create-scaffolding`
 
-Running `hai3 create` for each of the three UI kit types produces a project with the correct directory structure: `components/ui/` with scaffolded shadcn components for `shadcn`; `uikit/` placeholder for `none`; bridge file for third-party. In all cases, `hai3.config.json` contains the correct `uikit` value. Integration tests cover all three paths end-to-end in a temp directory.
+Running `frontx create` for each of the three UI kit types produces a project with the correct directory structure: `components/ui/` with scaffolded shadcn components for `shadcn`; `uikit/` placeholder for `none`; bridge file for third-party. In all cases, `frontx.config.json` contains the correct `uikit` value. Integration tests cover all three paths end-to-end in a temp directory.
 
 **Implements**:
-- `cpt-hai3-flow-ui-libraries-choice-create-shadcn`
-- `cpt-hai3-flow-ui-libraries-choice-create-thirdparty`
-- `cpt-hai3-flow-ui-libraries-choice-create-none`
+- `cpt-frontx-flow-ui-libraries-choice-create-shadcn`
+- `cpt-frontx-flow-ui-libraries-choice-create-thirdparty`
+- `cpt-frontx-flow-ui-libraries-choice-create-none`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
-- `cpt-hai3-fr-cli-templates`
+- `cpt-frontx-fr-cli-commands`
+- `cpt-frontx-fr-cli-templates`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-principle-mfe-isolation`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-principle-mfe-isolation`
 
 ---
 
 ### Screenset Generation Consistent with UI Kit
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-ui-libraries-choice-screenset-generation`
+- [x] `p2` - **ID**: `cpt-frontx-dod-ui-libraries-choice-screenset-generation`
 
-`hai3 screenset` reads `hai3.config.json` before generating any files. Generated screens import from `components/ui/` for shadcn projects, from `uikit/` for none projects, and from the third-party package identifier for third-party projects. Tests assert that import paths in generated files match the active UI kit and that screenset registry entries are valid for all three UI kit types.
+`frontx screenset` reads `frontx.config.json` before generating any files. Generated screens import from `components/ui/` for shadcn projects, from `uikit/` for none projects, and from the third-party package identifier for third-party projects. Tests assert that import paths in generated files match the active UI kit and that screenset registry entries are valid for all three UI kit types.
 
 **Implements**:
-- `cpt-hai3-flow-ui-libraries-choice-screenset-generate`
+- `cpt-frontx-flow-ui-libraries-choice-screenset-generate`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-principle-self-registering-registries`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-principle-self-registering-registries`
 
 ---
 
 ### UIKit Bridge Generation for Third-Party Libraries
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-ui-libraries-choice-bridge-generation`
+- [x] `p1` - **ID**: `cpt-frontx-dod-ui-libraries-choice-bridge-generation`
 
 The bridge generation algorithm produces a valid TypeScript file when given a third-party package identifier. The file contains re-exports for all six normalized primitives. For any primitive that cannot be automatically mapped, a warning comment is emitted rather than the export being silently dropped. Tests verify: correct import source, all six primitive re-exports present, warning comment emitted for an unknown package.
 
 **Implements**:
-- `cpt-hai3-algo-ui-libraries-choice-bridge-generation`
+- `cpt-frontx-algo-ui-libraries-choice-bridge-generation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
-- `cpt-hai3-fr-cli-templates`
+- `cpt-frontx-fr-cli-commands`
+- `cpt-frontx-fr-cli-templates`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ---
 
 ### Theme CSS Variable Propagation Across All UI Kit Types
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-ui-libraries-choice-theme-propagation`
+- [x] `p1` - **ID**: `cpt-frontx-dod-ui-libraries-choice-theme-propagation`
 
 For shadcn projects: scaffolded components consume shadcn CSS variables directly without additional configuration. For third-party projects: the bridge template includes a theme mapping block that reads shadcn CSS variables from `document.documentElement` and passes them to the third-party theming API. For none projects: `uikit/theme.css` forwards all standard shadcn CSS variables. Tests verify that the token set (`--background`, `--foreground`, `--primary`, `--primary-foreground`, `--muted`, `--accent`, `--destructive`, `--border`, `--radius`) is present in all scaffolded outputs.
 
 **Implements**:
-- `cpt-hai3-algo-ui-libraries-choice-theme-propagation`
+- `cpt-frontx-algo-ui-libraries-choice-theme-propagation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-templates`
+- `cpt-frontx-fr-cli-templates`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-mfe-isolation`
+- `cpt-frontx-principle-mfe-isolation`
 
 ---
 
 ### AI Guidelines Updated with UI Kit Discovery
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-ui-libraries-choice-ai-guidelines`
+- [x] `p1` - **ID**: `cpt-frontx-dod-ui-libraries-choice-ai-guidelines`
 
-`UIKIT.md` in the AI guidelines directory instructs AI agents to use local UI components. `SCREENSETS.md` contains a "UI KIT DISCOVERY" section that instructs AI agents to read `hai3.config.json` before generating any screenset code. For projects using a third-party UI kit, the CLI generates an extended `UIKIT.md` with library-specific discovery instructions. These files are reviewed and accepted before this feature is closed.
+`UIKIT.md` in the AI guidelines directory instructs AI agents to use local UI components. `SCREENSETS.md` contains a "UI KIT DISCOVERY" section that instructs AI agents to read `frontx.config.json` before generating any screenset code. For projects using a third-party UI kit, the CLI generates an extended `UIKIT.md` with library-specific discovery instructions. These files are reviewed and accepted before this feature is closed.
 
 **Implements**:
-- `cpt-hai3-algo-ui-libraries-choice-uikit-resolution`
+- `cpt-frontx-algo-ui-libraries-choice-uikit-resolution`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ---
 
 ## 6. Acceptance Criteria
 
-- [x] `hai3 create` prompts for UI kit choice and writes the selection to `hai3.config.json` as the `uikit` field
-- [x] A project created with `"uikit": "shadcn"` contains `components/ui/` with at minimum: button, input, card, dialog, form, and toast components, each compliant with `cpt-hai3-adr-react-19-ref-as-prop`
+- [x] `frontx create` prompts for UI kit choice and writes the selection to `frontx.config.json` as the `uikit` field
+- [x] A project created with `"uikit": "shadcn"` contains `components/ui/` with at minimum: button, input, card, dialog, form, and toast components, each compliant with `cpt-frontx-adr-react-19-ref-as-prop`
 - [x] A project created with `"uikit": "none"` contains `uikit/` with a placeholder `index.ts` and `theme.css` forwarding all standard shadcn CSS variable tokens
 - [x] A project created with a third-party package identifier contains a UIKit bridge file that re-exports all six normalized primitives from the declared package; the package is listed in `package.json` dependencies
-- [x] `hai3 screenset` fails with an actionable error message when `hai3.config.json` is absent or the `uikit` field is missing or empty
+- [x] `frontx screenset` fails with an actionable error message when `frontx.config.json` is absent or the `uikit` field is missing or empty
 - [x] Generated screenset files import from the correct source path for each UI kit type: `components/ui/` for shadcn, `uikit/` for none, the declared package identifier for third-party
 - [x] The full set of shadcn CSS variable tokens is present in all scaffolded output regardless of UI kit type, either directly consumed, forwarded via `theme.css`, or mapped via the UIKit bridge
-- [x] No MFE scaffolded by this feature imports from another MFE's `components/ui/` or `uikit/` directory, satisfying `cpt-hai3-principle-mfe-isolation`
-- [x] All CLI commands introduced or modified by this feature produce TypeScript output that passes `tsc --noEmit` under strict mode per `cpt-hai3-constraint-typescript-strict-mode`
+- [x] No MFE scaffolded by this feature imports from another MFE's `components/ui/` or `uikit/` directory, satisfying `cpt-frontx-principle-mfe-isolation`
+- [x] All CLI commands introduced or modified by this feature produce TypeScript output that passes `tsc --noEmit` under strict mode per `cpt-frontx-constraint-typescript-strict-mode`
 - [x] The `manifest.yaml` for CLI templates is the single authoritative source for template-to-UI-kit-type mapping; no hardcoded template paths exist in CLI business logic
 
 ---
@@ -435,8 +435,8 @@ For shadcn projects: scaffolded components consume shadcn CSS variables directly
 - **PERF**: Not applicable because this feature is a configuration and scaffolding concern; no hot paths, caching strategies, or resource management are introduced. Runtime performance characteristics of UI components are owned by the chosen UI library, not by this feature.
 - **SEC**: Not applicable for authentication, authorization, or sensitive data handling. However, the bridge generation algorithm (`inst-bridge-generation-1b`) validates user-supplied package names against npm naming rules before interpolating them into generated code, preventing code injection in scaffolded files. Security of generated code is otherwise inherited from the template sources.
 - **REL**: Not applicable because this feature does not introduce error-prone runtime operations, external dependency calls, or data integrity concerns. Scaffolding failures are handled by the CLI's existing error model.
-- **DATA**: Not applicable because this feature does not introduce data access patterns, data validation, or data lifecycle management. The `hai3.config.json` file is a static configuration artifact.
+- **DATA**: Not applicable because this feature does not introduce data access patterns, data validation, or data lifecycle management. The `frontx.config.json` file is a static configuration artifact.
 - **INT**: Not applicable because this feature does not introduce API interactions, database operations, or external integrations beyond reading a local config file.
-- **OPS**: Not applicable because this feature does not introduce observability, configuration management beyond `hai3.config.json`, or health diagnostics.
+- **OPS**: Not applicable because this feature does not introduce observability, configuration management beyond `frontx.config.json`, or health diagnostics.
 - **COMPL**: Not applicable because this feature does not handle regulated data, privacy concerns, or audit requirements.
-- **UX**: Not applicable because the developer experience of the CLI prompts is inherited from the existing CLI architecture (`cpt-hai3-feature-cli-tooling`). Individual UI component usability is owned by the chosen library.
+- **UX**: Not applicable because the developer experience of the CLI prompts is inherited from the existing CLI architecture (`cpt-frontx-feature-cli-tooling`). Individual UI component usability is owned by the chosen library.

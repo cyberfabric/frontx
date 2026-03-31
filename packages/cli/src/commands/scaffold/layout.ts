@@ -1,5 +1,5 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
-// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-scaffold-layout:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-package:p1
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
 import { validationOk, validationError } from '../../core/types.js';
@@ -25,9 +25,9 @@ export interface ScaffoldLayoutResult {
  * Scaffold layout command implementation
  *
  * Generates layout components (Layout, Header, Footer, Menu, etc.)
- * in the user's project from HAI3 layout templates.
+ * in the user's project from FrontX layout templates.
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout
+// @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout
 export const scaffoldLayoutCommand: CommandDefinition<
   ScaffoldLayoutArgs,
   ScaffoldLayoutResult
@@ -45,19 +45,19 @@ export const scaffoldLayoutCommand: CommandDefinition<
     },
   ],
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-check-project-root-scaffold
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-check-project-root-scaffold
   validate(_args, ctx) {
     // Must be inside a project
     if (!ctx.projectRoot) {
       return validationError(
         'NOT_IN_PROJECT',
-        'Not inside a HAI3 project. Run this command from a project root.'
+        'Not inside a FrontX project. Run this command from a project root.'
       );
     }
 
     return validationOk();
   },
-  // @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-check-project-root-scaffold
+  // @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-check-project-root-scaffold
 
   async execute(args, ctx): Promise<ScaffoldLayoutResult> {
     const { logger, projectRoot } = ctx;
@@ -66,22 +66,22 @@ export const scaffoldLayoutCommand: CommandDefinition<
     logger.info('Scaffolding layout components...');
     logger.newline();
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
     // Generate files from template
     const files = await copyLayoutTemplates({
       projectRoot: projectRoot!,
       force,
     });
-    // @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
+    // @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-check-force-flag
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-check-force-flag
     // Write files (force flag already applied in copyLayoutTemplates)
-    // @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-check-force-flag
+    // @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-check-force-flag
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectRoot!, files);
-    // @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+    // @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 
     logger.success(`Generated ${writtenFiles.length} layout files`);
     logger.newline();
@@ -96,12 +96,12 @@ export const scaffoldLayoutCommand: CommandDefinition<
 
     const layoutPath = path.join(projectRoot!, 'src', 'app', 'layout');
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-return-scaffold-layout
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-return-scaffold-layout
     return {
       layoutPath,
       files: writtenFiles,
     };
-    // @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-return-scaffold-layout
+    // @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-return-scaffold-layout
   },
 };
-// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout
+// @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-invoke-scaffold-layout

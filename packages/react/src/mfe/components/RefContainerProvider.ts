@@ -7,10 +7,10 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-react-bindings-ref-container-provider:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-ref-container-provider:p1
 
 import type { RefObject } from 'react';
-import { ContainerProvider } from '@hai3/framework';
+import { ContainerProvider } from '@cyberfabric/framework';
 
 /**
  * Concrete ContainerProvider that wraps a React ref.
@@ -25,7 +25,7 @@ import { ContainerProvider } from '@hai3/framework';
  * 3. Framework-level code passes the provider to `registerDomain(domain, provider)`
  * 4. When mount_ext is dispatched, the provider returns `ref.current`
  */
-// @cpt-begin:cpt-hai3-dod-react-bindings-ref-container-provider:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-react-bindings-ref-container-provider:p1:inst-1
 export class RefContainerProvider extends ContainerProvider {
   constructor(private readonly containerRef: RefObject<HTMLDivElement>) {
     super();
@@ -43,4 +43,4 @@ export class RefContainerProvider extends ContainerProvider {
     // Container cleanup happens when the component unmounts.
   }
 }
-// @cpt-end:cpt-hai3-dod-react-bindings-ref-container-provider:p1:inst-1
+// @cpt-end:cpt-frontx-dod-react-bindings-ref-container-provider:p1:inst-1

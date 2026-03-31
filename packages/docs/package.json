@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/docs",
-  "version": "0.4.0-alpha.0",
-  "description": "HAI3 documentation site - AI-driven product lifecycle and framework docs",
+  "name": "@cyberfabric/docs",
+  "version": "0.2.0-alpha.0",
+  "description": "FrontX documentation site - AI-driven product lifecycle and framework docs",
   "type": "module",
   "private": true,
   "scripts": {
@@ -16,11 +16,11 @@
     "ts-node": "10.9.2"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "documentation",
     "ai-driven",
     "lifecycle"
   ],
-  "author": "HAI3org",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

@@ -12,7 +12,7 @@ export interface HeaderProps {
 /**
  * Header Component
  * Base layout primitive for app header
- * HAI3 custom component (not from shadcn)
+ * FrontX custom component (not from shadcn)
  * Accepts children for flexible content (user info, actions, etc.)
  */
 export const Header = (

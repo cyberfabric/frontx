@@ -1,4 +1,4 @@
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-replacements
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-replacements
 import path from 'path';
 import fs from 'fs-extra';
 import { getTemplatesDir } from '../core/templates.js';
@@ -47,7 +47,7 @@ function toPascalCase(str: string): string {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-// @cpt-flow:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2
+// @cpt-flow:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2
 /**
  * Apply placeholder replacements to file content
  * Exported for use by project generator (demo MFE scaffolding)
@@ -70,8 +70,8 @@ export function applyMfeReplacements(content: string, name: string, namePascal: 
     .replace(/\/api\/blank/g, `/api/${nameKebab}`)
     // Federation name: blankMfe → contactsMfe
     .replace(/blankMfe/g, `${name}Mfe`)
-    // Package name: @hai3/blank-mfe → @hai3/contacts-mfe
-    .replace(/@hai3\/blank-mfe/g, `@hai3/${nameKebab}-mfe`)
+    // Package name: @cyberfabric/blank-mfe → @cyberfabric/contacts-mfe
+    .replace(/@cyberfabric\/blank-mfe/g, `@cyberfabric/${nameKebab}-mfe`)
     // GTS IDs: hai3.blank. → hai3.contacts. (always lowercase)
     .replace(/hai3\.blank\./g, `hai3.${name.toLowerCase()}.`)
     // Remote entry port: localhost:3099 → localhost:{port}
@@ -96,9 +96,9 @@ export function applyMfeReplacements(content: string, name: string, namePascal: 
     // Replace monorepo file: refs with npm versions (standalone projects can't resolve file: paths)
     .replace(/"file:\.\.\/\.\.\/\.\.\/packages\/[a-z0-9-]+"/g, `"alpha"`);
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-replacements
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-replacements
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-rename
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-rename
 /**
  * Rename a file if it contains blank placeholders
  * Exported for use by project generator (demo MFE scaffolding)
@@ -108,9 +108,9 @@ export function applyMfeFileRename(fileName: string, name: string): string {
   return fileName
     .replace(/_BlankApiService/g, `_${namePascal}ApiService`);
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-rename
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-rename
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
 /**
  * Recursively read all files from a directory
  */
@@ -140,9 +140,9 @@ async function readDirRecursive(
 
   return files;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
 /**
  * Scan existing mfe_packages to find used ports
  */
@@ -175,9 +175,9 @@ export async function getUsedMfePorts(projectRoot: string): Promise<Set<number>>
 
   return usedPorts;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-assign
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-assign
 /**
  * Find next available MFE port starting from startPort
  */
@@ -189,9 +189,9 @@ export async function assignMfePort(projectRoot: string, startPort = 3001): Prom
   }
   return port;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-assign
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-assign
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-regenerate-manifests
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-regenerate-manifests
 /**
  * Regenerate generated-mfe-manifests.ts by scanning all MFE packages.
  *
@@ -223,9 +223,9 @@ async function regenerateMfeManifests(projectRoot: string): Promise<void> {
   await fs.ensureDir(path.dirname(outputFile));
   await fs.writeFile(outputFile, content, 'utf-8');
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-regenerate-manifests
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-regenerate-manifests
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-build-manifests
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-build-manifests
 /**
  * Build the content of generated-mfe-manifests.ts from a list of MFE package directory names.
  * Shared by both the screenset generator (writes to disk) and the project generator (in-memory).
@@ -246,7 +246,7 @@ export function buildMfeManifestsContent(mfePackages: string[]): string {
 // Do not edit manually!
 // Regenerate: npm run generate:mfe-manifests
 ${importBlock}
-import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';
+import type { Extension, JSONSchema, MfeEntry } from '@cyberfabric/react';
 
 export interface MfeManifestConfig {
   manifest: JSONSchema;
@@ -263,7 +263,7 @@ export function getMfeManifests() {
 }
 `;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-build-manifests
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-build-manifests
 
 const COMPONENTS_UI_PREFIX = path.join('src', 'components', 'ui') + path.sep;
 const COMPONENTS_UI_IMPORT_PATTERN = /(from\s+)(['"])([^'"]*?components\/ui)\/[^'"]+\2/g;
@@ -275,8 +275,8 @@ const COMPONENTS_UI_IMPORT_PATTERN = /(from\s+)(['"])([^'"]*?components\/ui)\/[^
  * from the library and updates screen imports to use the barrel. This ensures
  * AI agents see imports from the library, not local shadcn patterns.
  */
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-5
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-5
 export function adaptMfeForCustomUikit(files: GeneratedFile[], uikit: string): GeneratedFile[] {
   assertValidUikitForCodegen(uikit);
 
@@ -313,16 +313,16 @@ export function adaptMfeForCustomUikit(files: GeneratedFile[], uikit: string): G
 
   return result;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-5
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-5
 
 /* ---------- Plain-CSS templates for uikit === 'none' ---------- */
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-none-css-templates
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-none-css-templates
 const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind required.
    Uses CSS custom properties from globals.css (theme tokens). */
 
 /* --- Button --- */
-.hai3-btn {
+.frontx-btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -337,80 +337,80 @@ const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind requi
   border: none;
   outline: none;
 }
-.hai3-btn:focus-visible {
+.frontx-btn:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
 }
-.hai3-btn:disabled {
+.frontx-btn:disabled {
   pointer-events: none;
   opacity: 0.5;
 }
-.hai3-btn-default {
+.frontx-btn-default {
   background-color: var(--primary);
   color: var(--primary-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-default:hover { opacity: 0.9; }
-.hai3-btn-destructive {
+.frontx-btn-default:hover { opacity: 0.9; }
+.frontx-btn-destructive {
   background-color: var(--destructive);
   color: var(--destructive-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-destructive:hover { opacity: 0.9; }
-.hai3-btn-outline {
+.frontx-btn-destructive:hover { opacity: 0.9; }
+.frontx-btn-outline {
   border: 1px solid var(--border);
   background-color: var(--background);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-outline:hover { background-color: var(--accent); }
-.hai3-btn-secondary {
+.frontx-btn-outline:hover { background-color: var(--accent); }
+.frontx-btn-secondary {
   background-color: var(--secondary);
   color: var(--secondary-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-btn-secondary:hover { opacity: 0.8; }
-.hai3-btn-ghost { background: transparent; }
-.hai3-btn-ghost:hover { background-color: var(--accent); }
-.hai3-btn-link {
+.frontx-btn-secondary:hover { opacity: 0.8; }
+.frontx-btn-ghost { background: transparent; }
+.frontx-btn-ghost:hover { background-color: var(--accent); }
+.frontx-btn-link {
   background: transparent;
   color: var(--primary);
   text-underline-offset: 4px;
 }
-.hai3-btn-link:hover { text-decoration: underline; }
+.frontx-btn-link:hover { text-decoration: underline; }
 
-.hai3-btn-size-default { height: 2.25rem; padding: 0.5rem 1rem; }
-.hai3-btn-size-sm { height: 2rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-md, 0.375rem); }
-.hai3-btn-size-lg { height: 2.5rem; padding: 0.5rem 2rem; border-radius: var(--radius-md, 0.375rem); }
-.hai3-btn-size-icon { height: 2.25rem; width: 2.25rem; }
+.frontx-btn-size-default { height: 2.25rem; padding: 0.5rem 1rem; }
+.frontx-btn-size-sm { height: 2rem; padding: 0.25rem 0.75rem; font-size: 0.75rem; border-radius: var(--radius-md, 0.375rem); }
+.frontx-btn-size-lg { height: 2.5rem; padding: 0.5rem 2rem; border-radius: var(--radius-md, 0.375rem); }
+.frontx-btn-size-icon { height: 2.25rem; width: 2.25rem; }
 
 /* --- Card --- */
-.hai3-card {
+.frontx-card {
   border-radius: var(--radius-lg, 0.75rem);
   border: 1px solid var(--border);
   background-color: var(--card);
   color: var(--card-foreground);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
-.hai3-card-header {
+.frontx-card-header {
   display: flex;
   flex-direction: column;
   gap: 0.375rem;
   padding: 1.5rem;
 }
-.hai3-card-title {
+.frontx-card-title {
   font-weight: 600;
   line-height: 1;
   letter-spacing: -0.01em;
 }
-.hai3-card-description {
+.frontx-card-description {
   font-size: 0.875rem;
   color: var(--muted-foreground);
 }
-.hai3-card-content {
+.frontx-card-content {
   padding: 1.5rem;
   padding-top: 0;
 }
-.hai3-card-footer {
+.frontx-card-footer {
   display: flex;
   align-items: center;
   padding: 1.5rem;
@@ -418,16 +418,16 @@ const NONE_COMPONENTS_CSS = `/* Plain-CSS component styles — no Tailwind requi
 }
 
 /* --- Skeleton --- */
-.hai3-skeleton {
+.frontx-skeleton {
   border-radius: var(--radius-md, 0.375rem);
   background-color: var(--muted);
-  animation: hai3-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  animation: frontx-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }
-.hai3-skeleton-inherit {
+.frontx-skeleton-inherit {
   background-color: currentColor;
   opacity: 0.2;
 }
-@keyframes hai3-pulse {
+@keyframes frontx-pulse {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.5; }
 }
@@ -462,19 +462,19 @@ import { cn } from '../../lib/utils';
 import './components.css';
 
 const VARIANT_CLASSES: Record<string, string> = {
-  default: 'hai3-btn-default',
-  destructive: 'hai3-btn-destructive',
-  outline: 'hai3-btn-outline',
-  secondary: 'hai3-btn-secondary',
-  ghost: 'hai3-btn-ghost',
-  link: 'hai3-btn-link',
+  default: 'frontx-btn-default',
+  destructive: 'frontx-btn-destructive',
+  outline: 'frontx-btn-outline',
+  secondary: 'frontx-btn-secondary',
+  ghost: 'frontx-btn-ghost',
+  link: 'frontx-btn-link',
 };
 
 const SIZE_CLASSES: Record<string, string> = {
-  default: 'hai3-btn-size-default',
-  sm: 'hai3-btn-size-sm',
-  lg: 'hai3-btn-size-lg',
-  icon: 'hai3-btn-size-icon',
+  default: 'frontx-btn-size-default',
+  sm: 'frontx-btn-size-sm',
+  lg: 'frontx-btn-size-lg',
+  icon: 'frontx-btn-size-icon',
 };
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
@@ -490,7 +490,7 @@ const Button = ({
   ...props
 }: ButtonProps & { ref?: React.Ref<HTMLButtonElement> }) => (
   <button
-    className={cn('hai3-btn', VARIANT_CLASSES[variant], SIZE_CLASSES[size], className)}
+    className={cn('frontx-btn', VARIANT_CLASSES[variant], SIZE_CLASSES[size], className)}
     ref={ref}
     {...props}
   />
@@ -509,7 +509,7 @@ const Card = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card', className)} {...props} />
 );
 Card.displayName = 'Card';
 
@@ -518,7 +518,7 @@ const CardHeader = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-header', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-header', className)} {...props} />
 );
 CardHeader.displayName = 'CardHeader';
 
@@ -527,7 +527,7 @@ const CardTitle = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-title', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-title', className)} {...props} />
 );
 CardTitle.displayName = 'CardTitle';
 
@@ -536,7 +536,7 @@ const CardDescription = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-description', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-description', className)} {...props} />
 );
 CardDescription.displayName = 'CardDescription';
 
@@ -545,7 +545,7 @@ const CardContent = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-content', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-content', className)} {...props} />
 );
 CardContent.displayName = 'CardContent';
 
@@ -554,7 +554,7 @@ const CardFooter = ({
   className,
   ...props
 }: React.HTMLAttributes<HTMLDivElement> & { ref?: React.Ref<HTMLDivElement> }) => (
-  <div ref={ref} className={cn('hai3-card-footer', className)} {...props} />
+  <div ref={ref} className={cn('frontx-card-footer', className)} {...props} />
 );
 CardFooter.displayName = 'CardFooter';
 
@@ -572,8 +572,8 @@ function Skeleton({ className, inheritColor = false, ...props }: SkeletonProps) 
   return (
     <div
       className={cn(
-        'hai3-skeleton',
-        inheritColor && 'hai3-skeleton-inherit',
+        'frontx-skeleton',
+        inheritColor && 'frontx-skeleton-inherit',
         className
       )}
       {...props}
@@ -590,9 +590,9 @@ export function cn(...inputs: ClassInput[]) {
   return inputs.filter(Boolean).join(' ');
 }
 `;
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-none-css-templates
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-none-css-templates
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-adapt-none
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-adapt-none
 /**
  * Adapt MFE template files for uikit === 'none' (no UI library).
  *
@@ -623,9 +623,9 @@ function adaptMfeForNoneUikit(files: GeneratedFile[]): GeneratedFile[] {
 
   return result;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-adapt-none
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2:inst-screenset-adapt-none
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-strip-shadcn-deps
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-strip-shadcn-deps
 /** Shadcn-specific dependency keys to strip from MFE package.json for non-shadcn projects. */
 const SHADCN_ONLY_PKG_KEYS = [
   'tailwindcss',
@@ -679,21 +679,21 @@ function stripShadcnDepsFromMfe(files: GeneratedFile[], uikit: string): Generate
     }
   });
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-strip-shadcn-deps
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-strip-shadcn-deps
 
 /**
  * Generate a new MFE screenset package from the _blank-mfe template
  */
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-setup
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-setup
 export async function generateScreenset(
   input: ScreensetGeneratorInput
 ): Promise<ScreensetGeneratorOutput> {
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
   const { name, port, projectRoot } = input;
   const nameKebab = toKebabCase(name);
   const mfeDirName = `${nameKebab}-mfe`;
   const mfePath = path.join(projectRoot, 'src', 'mfe_packages', mfeDirName);
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
 
   const templatesDir = getTemplatesDir();
   const mfeTemplateDir = path.join(templatesDir, 'mfe-template');
@@ -703,9 +703,9 @@ export async function generateScreenset(
       'MFE template not found. Run `npm run build` in packages/cli first.'
     );
   }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-setup
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-setup
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
   // Read all template files
   const templateFiles = await readDirRecursive(mfeTemplateDir);
 
@@ -722,9 +722,9 @@ export async function generateScreenset(
 
     return { path: renamedPath, content: transformedContent };
   });
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
   // For custom uikit projects, replace shadcn component files with a barrel re-export
   // so AI agents discover and use the library's components instead of creating new ones.
   const configResult = await loadConfig(projectRoot);
@@ -732,8 +732,8 @@ export async function generateScreenset(
     throw new Error(configResult.message);
   }
   const uikit = normalizeUikit(configResult.config.uikit ?? 'shadcn');
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-3
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-4
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-3
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-4
   // For shadcn: outputFiles are used as-is (base template already includes shadcn imports).
   // For none: replace shadcn components with plain-CSS equivalents (no Tailwind compilation
   //   exists in none projects, so shadcn components would render unstyled).
@@ -746,11 +746,11 @@ export async function generateScreenset(
   }
   // Non-shadcn: remove shadcn-specific deps from MFE package.json.
   outputFiles = stripShadcnDepsFromMfe(outputFiles, uikit);
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-4
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-3
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-4
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-3
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
   // Ensure mfe_packages/shared/ exists (may be missing in projects created before shared was universal)
   const sharedDir = path.join(projectRoot, 'src', 'mfe_packages', 'shared');
   if (!(await fs.pathExists(sharedDir))) {
@@ -765,12 +765,12 @@ export async function generateScreenset(
 
   // Regenerate generated-mfe-manifests.ts so bootstrap picks up the new MFE
   await regenerateMfeManifests(projectRoot);
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-7
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-7
   return {
     mfePath,
     files: writtenFiles,
   };
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-7
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-7
 }

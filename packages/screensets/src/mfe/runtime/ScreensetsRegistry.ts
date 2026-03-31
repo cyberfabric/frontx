@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-screenset-registry-registry-contract:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ParentMfeBridge } from '../handler/types';
@@ -35,7 +35,7 @@ import type { CustomActionHandler } from './extension-lifecycle-action-handler';
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);

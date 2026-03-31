@@ -1,15 +1,15 @@
 /**
- * Supported Languages - All 36 HAI3 supported languages
+ * Supported Languages - All 36 FrontX supported languages
  *
  * Based on major platforms (Google, Facebook, Microsoft, Apple).
  * Includes native names, English names, and text direction.
  */
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-language-support:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-language-support:p1
 
 import { Language, TextDirection } from './types';
 import type { LanguageMetadata } from './types';
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-1
 /**
  * All supported languages with metadata.
  * This list defines what languages the application can use.
@@ -246,7 +246,7 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     direction: TextDirection.LeftToRight,
   },
 ];
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-1
 
 /**
  * Get language metadata by code.
@@ -258,7 +258,7 @@ export function getLanguageMetadata(code: Language): LanguageMetadata | undefine
   return SUPPORTED_LANGUAGES.find((lang) => lang.code === code);
 }
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-2
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-2
 /**
  * Get RTL language codes.
  *
@@ -269,7 +269,7 @@ export function getRTLLanguages(): Language[] {
     .filter((lang) => lang.direction === TextDirection.RightToLeft)
     .map((lang) => lang.code);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-2
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-2
 
 /**
  * Check if a language code is valid.

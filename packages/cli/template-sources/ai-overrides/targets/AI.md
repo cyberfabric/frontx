@@ -26,15 +26,15 @@
 - DELEGATE: command routes to CLI.
 - LAYER: SDK architecture tier (sdk, framework, react, app).
   Commands and targets filtered by layer. Variants: .sdk.md, .framework.md, .react.md.
-  Fallback chain: react -> framework -> sdk -> base. Layer stored in hai3.config.json.
+  Fallback chain: react -> framework -> sdk -> base. Layer stored in frontx.config.json.
 
 ## THREE-LEVEL GUIDELINES HIERARCHY
-HAI3 projects support a 3-level guidelines hierarchy:
-- Level 1 (HAI3): .ai/GUIDELINES.md and .ai/targets/ - managed by CLI, updated via hai3 update.
+FrontX projects support a 3-level guidelines hierarchy:
+- Level 1 (FrontX): .ai/GUIDELINES.md and .ai/targets/ - managed by CLI, updated via frontx update.
 - Level 2 (Company): .ai/company/GUIDELINES.md and .ai/company/targets/ - preserved on update.
 - Level 3 (Project): .ai/project/GUIDELINES.md and .ai/project/targets/ - preserved on update.
 Routing: GUIDELINES.md routes to company/ and project/ when relevant to context.
-Preservation: hai3 update NEVER modifies company/ or project/ directories.
+Preservation: frontx update NEVER modifies company/ or project/ directories.
 Commands: See .ai/targets/AI_COMMANDS.md for command hierarchy.
 
 ## RULE FORMAT
@@ -70,7 +70,7 @@ Stop and ask the user before:
 - Implementing logic directly instead of delegating to CLI.
 
 ## CLI DELEGATION
-- REQUIRED: Commands DELEGATE to hai3 CLI for scaffolding.
+- REQUIRED: Commands DELEGATE to FrontX CLI for scaffolding.
 - FORBIDDEN: Implementing file generation logic in commands.
 - REQUIRED: Commands run validation after scaffolding.
 - PROTECTION: CLI runs type-check, lint, arch:check automatically.

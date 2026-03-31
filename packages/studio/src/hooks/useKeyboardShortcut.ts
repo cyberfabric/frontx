@@ -1,13 +1,13 @@
-// @cpt-flow:cpt-hai3-flow-studio-devtools-panel-toggle:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-keyboard:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-panel-toggle:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-keyboard:p1
 import { useEffect } from 'react';
 
 /**
  * Hook to register a keyboard shortcut (Shift+`)
  * Uses physical key location for reliable cross-browser/keyboard detection
  */
-// @cpt-begin:cpt-hai3-flow-studio-devtools-panel-toggle:p1:inst-1
-// @cpt-begin:cpt-hai3-dod-studio-devtools-keyboard:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-panel-toggle:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-studio-devtools-keyboard:p1:inst-1
 export const useKeyboardShortcut = (handler: () => void) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -25,5 +25,5 @@ export const useKeyboardShortcut = (handler: () => void) => {
     };
   }, [handler]);
 };
-// @cpt-end:cpt-hai3-flow-studio-devtools-panel-toggle:p1:inst-1
-// @cpt-end:cpt-hai3-dod-studio-devtools-keyboard:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-panel-toggle:p1:inst-1
+// @cpt-end:cpt-frontx-dod-studio-devtools-keyboard:p1:inst-1

@@ -10,17 +10,17 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-flow:cpt-hai3-flow-screenset-registry-register-domain:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-register-extension:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-unregister-extension:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-unregister-domain:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-update-shared-property:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-query:p2
-// @cpt-algo:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1
-// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
-// @cpt-algo:cpt-hai3-algo-screenset-registry-domain-semantics:p1
-// @cpt-dod:cpt-hai3-dod-screenset-registry-handler-injection:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-register-domain:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-register-extension:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-unregister-extension:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-unregister-domain:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-update-shared-property:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-query:p2
+// @cpt-algo:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-domain-semantics:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ScreensetsRegistryConfig } from './config';
@@ -217,7 +217,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param entryTypeId - Type ID of the entry to validate
    * @throws {EntryTypeNotHandledError} if handlers are registered but none can handle the entry type
    */
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-handler-resolution:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
   private validateEntryType(entryTypeId: string): void {
     if (this.handlers.length === 0) {
       // No handlers registered -- skip validation.
@@ -236,7 +236,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       );
     }
   }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-handler-resolution:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
 
   /**
    * Resolve the appropriate handler for a given entry type ID.
@@ -264,8 +264,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-register-domain:p1:inst-1
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-domain-semantics:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-register-domain:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
   registerDomain(
     domain: ExtensionDomain,
     containerProvider: ContainerProvider,
@@ -305,8 +305,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     );
     this.registerDomainActionHandler(domain.id, actionHandler);
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-register-domain:p1:inst-1
-  // @cpt-end:cpt-hai3-algo-screenset-registry-domain-semantics:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-register-domain:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
 
   /**
    * Execute an actions chain.
@@ -315,7 +315,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param chain - Actions chain to execute
    * @returns Promise resolving when execution is complete
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async executeActionsChain(chain: ActionsChain): Promise<void> {
     const result = await this.mediator.executeActionsChain(chain);
     if (!result.completed) {
@@ -326,7 +326,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       );
     }
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
 
   /**
    * INTERNAL: Register a domain's action handler.
@@ -358,11 +358,11 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param value - New property value
    * @throws if GTS validation fails
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-update-shared-property:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-update-shared-property:p1:inst-1
   updateSharedProperty(propertyId: string, value: unknown): void {
     this.extensionManager.updateSharedProperty(propertyId, value);
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-update-shared-property:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-update-shared-property:p1:inst-1
 
   /**
    * Get a domain property value.
@@ -422,8 +422,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @throws {ExtensionTypeError} if extension type validation fails
    * @throws {EntryTypeNotHandledError} if no registered handler can handle the entry type
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-register-extension:p1:inst-1
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-register-extension:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1:inst-1
   async registerExtension(extension: Extension): Promise<void> {
     return this.operationSerializer.serializeOperation(extension.id, async () => {
       // Step 1: Register the extension
@@ -441,8 +441,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       }
     });
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-register-extension:p1:inst-1
-  // @cpt-end:cpt-hai3-algo-screenset-registry-gts-package-discovery:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-register-extension:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1:inst-1
 
   /**
    * Unregister an extension from the registry.
@@ -452,7 +452,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param extensionId - ID of the extension to unregister
    * @returns Promise resolving when unregistration is complete
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-unregister-extension:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-unregister-extension:p1:inst-1
   async unregisterExtension(extensionId: string): Promise<void> {
     return this.operationSerializer.serializeOperation(extensionId, async () => {
       // Step 1: Unregister the extension
@@ -473,7 +473,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       }
     });
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-unregister-extension:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-unregister-extension:p1:inst-1
 
   /**
    * Unregister a domain from the registry.
@@ -483,7 +483,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param domainId - ID of the domain to unregister
    * @returns Promise resolving when unregistration is complete
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-unregister-domain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-unregister-domain:p1:inst-1
   async unregisterDomain(domainId: string): Promise<void> {
     return this.operationSerializer.serializeOperation(domainId, async () => {
       // Step 1: Unregister domain action handler
@@ -493,7 +493,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       return this.extensionManager.unregisterDomain(domainId);
     });
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-unregister-domain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-unregister-domain:p1:inst-1
 
   /**
    * Get a registered extension by its ID.
@@ -502,7 +502,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * @param extensionId - ID of the extension to get
    * @returns Extension if registered, undefined otherwise
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-query:p2:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-query:p2:inst-1
   getExtension(extensionId: string): Extension | undefined {
     return this.extensionManager.getExtensionState(extensionId)?.extension;
   }
@@ -610,7 +610,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     }
     return extensions;
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-query:p2:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-query:p2:inst-1
 
   /**
    * Delegate theme CSS variable delivery to the mount manager.

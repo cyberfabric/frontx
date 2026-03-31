@@ -23,7 +23,7 @@ date: 2025-11-19
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-screenset-vertical-slice-isolation`
+**ID**: `cpt-frontx-adr-screenset-vertical-slice-isolation`
 ## Context and Problem Statement
 
 Centralized API services and shared state created implicit coupling between screensets. When one screenset needed API changes, it risked breaking others. Screensets should be independently deployable vertical slices — owning their own screens, translations, API services, state slices, and effects.
@@ -80,6 +80,6 @@ Namespacing conventions — slice name = state key = screenset ID — are enforc
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-sdk-screensets-package` — screensets package structure and registration contract
-* `cpt-hai3-component-screensets` — screenset component boundary and ownership model
-* `cpt-hai3-principle-self-registering-registries` — self-registering registry pattern enforced at slice registration
+* `cpt-frontx-fr-sdk-screensets-package` — screensets package structure and registration contract
+* `cpt-frontx-component-screensets` — screenset component boundary and ownership model
+* `cpt-frontx-principle-self-registering-registries` — self-registering registry pattern enforced at slice registration

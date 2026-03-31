@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
 /**
  * Child Domain Forwarding Handler
  *
@@ -41,7 +41,7 @@ export class ChildDomainForwardingHandler implements ActionHandler {
    * @returns Promise that resolves when action is handled
    * @throws Error if chain execution fails in child domain
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async handleAction(
     actionTypeId: string,
     payload: Record<string, unknown> | undefined
@@ -60,5 +60,5 @@ export class ChildDomainForwardingHandler implements ActionHandler {
     // Errors are propagated via rejection.
     await this.parentBridgeImpl.sendActionsChain(chain);
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
 }

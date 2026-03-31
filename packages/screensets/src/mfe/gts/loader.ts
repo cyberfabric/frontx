@@ -38,7 +38,7 @@ import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.j
  * These are the 10 core schemas (8 core + 2 MF-specific).
  *
  * Application-specific derived schemas (theme, language, extension_screen) are
- * registered at the application layer via @hai3/framework.
+ * registered at the application layer via @cyberfabric/framework.
  *
  * @returns Array of JSON schemas for core MFE types
  */

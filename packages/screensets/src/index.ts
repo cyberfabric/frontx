@@ -1,18 +1,18 @@
 /**
- * @hai3/screensets
+ * @cyberfabric/screensets
  *
- * Pure TypeScript contracts and registry for HAI3 screenset management.
+ * Pure TypeScript contracts and registry for FrontX screenset management.
  * This package has ZERO dependencies - SDK Layer (L1).
  *
- * Screensets are HAI3's first-class citizen - self-contained vertical slices
+ * Screensets are FrontX's first-class citizen - self-contained vertical slices
  * that can be composed into applications or injected into external platforms.
  *
- * NOTE: Translations are NOT part of this package. Use @hai3/i18n for translations.
+ * NOTE: Translations are NOT part of this package. Use @cyberfabric/i18n for translations.
  * Screensets register translations directly with i18nRegistry via framework.
  *
  * @example
  * ```typescript
- * import { LayoutDomain } from '@hai3/screensets';
+ * import { LayoutDomain } from '@cyberfabric/screensets';
  *
  * // LayoutDomain is used by framework layout slices
  * const visibleDomains = [
@@ -22,7 +22,7 @@
  * ];
  * ```
  */
-// @cpt-dod:cpt-hai3-dod-screenset-registry-layer-constraints:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-layer-constraints:p1
 
 // ============================================================================
 // Layout Domain Enum
@@ -68,7 +68,7 @@ export type {
 // MFE Handler Abstract Classes (concrete implementations are internal)
 export { MfeHandler, MfeBridgeFactory } from './mfe';
 
-// HAI3 Action Constants
+// FrontX Action Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_MFE_ENTRY_MF,
@@ -77,7 +77,7 @@ export {
   HAI3_ACTION_UNMOUNT_EXT,
 } from './mfe';
 
-// HAI3 Shared Property Constants
+// FrontX Shared Property Constants
 export {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
@@ -94,4 +94,4 @@ export { createShadowRoot, injectCssVariables } from './mfe';
 export { extractGtsPackage } from './mfe';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
-// for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'
+// for consumers who don't need it. Import directly from '@cyberfabric/screensets/plugins/gts'

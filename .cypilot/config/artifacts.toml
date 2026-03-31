@@ -21,8 +21,8 @@ reason = "Documentation site infrastructure has no CDSL backing"
 patterns = ["packages/docs/*"]
 
 [[systems]]
-name = "HAI3 Dev Kit"
-slug = "hai3"
+name = "FrontX Dev Kit"
+slug = "frontx"
 kit = "sdlc"
 artifacts_dir = "architecture"
 

@@ -1,7 +1,7 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
-// @cpt-algo:cpt-hai3-algo-studio-devtools-portal-management:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-panel-overlay:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-portal-management:p1
 import React from 'react';
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 import { Card } from './uikit/base/card';
 import { Button } from './uikit/base/button';
 import { ButtonVariant, ButtonSize } from './uikit/types';
@@ -11,8 +11,8 @@ import { useStudioContext } from './StudioProvider';
 import { ControlPanel } from './sections/ControlPanel';
 import { STORAGE_KEYS } from './types';
 
-// @cpt-begin:cpt-hai3-dod-studio-devtools-panel-overlay:p1:inst-1
-// @cpt-begin:cpt-hai3-algo-studio-devtools-portal-management:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-studio-devtools-panel-overlay:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-studio-devtools-portal-management:p1:inst-1
 export const StudioPanel: React.FC = () => {
   const { toggleCollapsed, setPortalContainer } = useStudioContext();
   const { t } = useTranslation();
@@ -110,5 +110,5 @@ export const StudioPanel: React.FC = () => {
 };
 
 StudioPanel.displayName = 'StudioPanel';
-// @cpt-end:cpt-hai3-dod-studio-devtools-panel-overlay:p1:inst-1
-// @cpt-end:cpt-hai3-algo-studio-devtools-portal-management:p1:inst-1
+// @cpt-end:cpt-frontx-dod-studio-devtools-panel-overlay:p1:inst-1
+// @cpt-end:cpt-frontx-algo-studio-devtools-portal-management:p1:inst-1

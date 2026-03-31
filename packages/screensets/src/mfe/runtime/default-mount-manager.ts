@@ -7,8 +7,8 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-state:cpt-hai3-state-screenset-registry-extension-load:p1
-// @cpt-state:cpt-hai3-state-screenset-registry-extension-mount:p1
+// @cpt-state:cpt-frontx-state-screenset-registry-extension-load:p1
+// @cpt-state:cpt-frontx-state-screenset-registry-extension-mount:p1
 
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
@@ -25,7 +25,7 @@ import { createShadowRoot } from '../shadow';
  * Callback type for resolving the appropriate handler for an entry type.
  * The registry provides this callback, encapsulating typeSystem.isTypeOf() logic.
  */
-// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
 export type HandlerResolver = (entryTypeId: string) => MfeHandler | undefined;
 
 /**
@@ -110,7 +110,7 @@ export class DefaultMountManager extends MountManager {
    * @param extensionId - ID of the extension to load
    * @returns Promise resolving when bundle is loaded
    */
-  // @cpt-begin:cpt-hai3-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
   async loadExtension(extensionId: string): Promise<void> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
@@ -156,7 +156,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-hai3-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-end:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
 
   /**
    * Preload an extension bundle without mounting.
@@ -175,7 +175,7 @@ export class DefaultMountManager extends MountManager {
    * @param container - DOM element to mount into
    * @returns Promise resolving to the parent bridge
    */
-  // @cpt-begin:cpt-hai3-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
   async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
@@ -274,7 +274,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-hai3-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-end:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
 
   /**
    * Unmount an extension from its container.

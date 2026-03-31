@@ -1,19 +1,19 @@
 /**
  * Microfrontends Plugin
  *
- * Enables MFE capabilities in HAI3 applications.
+ * Enables MFE capabilities in FrontX applications.
  * This plugin accepts NO configuration parameters.
  * All MFE registration happens dynamically at runtime.
  *
  * @packageDocumentation
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
-// @cpt-algo:cpt-hai3-algo-framework-composition-gts-validation:p1
-// @cpt-state:cpt-hai3-state-framework-composition-mfe-mount:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-mfe-lifecycle:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-shared-property-broadcast:p1
+// @cpt-algo:cpt-frontx-algo-framework-composition-gts-validation:p1
+// @cpt-state:cpt-frontx-state-framework-composition-mfe-mount:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-mfe-plugin:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-shared-property:p1
 
 import {
   screensetsRegistryFactory,
@@ -21,8 +21,8 @@ import {
   type TypeSystemPlugin,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/screensets';
-import { getStore } from '@hai3/state';
+} from '@cyberfabric/screensets';
+import { getStore } from '@cyberfabric/state';
 import type { HAI3Plugin } from '../../types';
 import { mfeSlice, setExtensionMounted, setExtensionUnmounted } from './slice';
 import { initMfeEffects } from './effects';
@@ -58,7 +58,7 @@ export interface MicrofrontendsConfig {
 /**
  * Microfrontends plugin factory.
  *
- * Enables MFE capabilities in HAI3 applications. Optionally accepts MFE handlers
+ * Enables MFE capabilities in FrontX applications. Optionally accepts MFE handlers
  * for registration at plugin initialization.
  *
  * **Key Principles:**
@@ -72,14 +72,14 @@ export interface MicrofrontendsConfig {
  *
  * @example
  * ```typescript
- * import { createHAI3, microfrontends } from '@hai3/framework';
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { createFrontX, microfrontends } from '@cyberfabric/framework';
+ * import { MfeHandlerMF, FrontX_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(microfrontends({
  *     typeSystem: gtsPlugin,
- *     mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
+ *     mfeHandlers: [new MfeHandlerMF(FrontX_MFE_ENTRY_MF)],
  *   }))
  *   .build();
  *
@@ -91,9 +91,9 @@ export interface MicrofrontendsConfig {
  * app.actions.mountExtension('my.extension.v1');
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1:inst-1
-// @cpt-begin:cpt-hai3-state-framework-composition-mfe-mount:p1:inst-1
-// @cpt-begin:cpt-hai3-dod-framework-composition-mfe-plugin:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-mfe-lifecycle:p1:inst-1
+// @cpt-begin:cpt-frontx-state-framework-composition-mfe-mount:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-mfe-plugin:p1:inst-1
 export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
   // Build the ScreensetsRegistry instance with provided TypeSystemPlugin and optional handlers
   // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
@@ -179,9 +179,9 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
     },
   };
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-mfe-lifecycle:p1:inst-1
-// @cpt-end:cpt-hai3-state-framework-composition-mfe-mount:p1:inst-1
-// @cpt-end:cpt-hai3-dod-framework-composition-mfe-plugin:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-mfe-lifecycle:p1:inst-1
+// @cpt-end:cpt-frontx-state-framework-composition-mfe-mount:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-mfe-plugin:p1:inst-1
 
 // Re-export MFE actions for direct usage
 export {
@@ -208,7 +208,7 @@ export {
   type ExtensionRegistrationState,
 } from './slice';
 
-// Re-export HAI3 layout domain constants and MfeEvents
+// Re-export FrontX layout domain constants and MfeEvents
 export {
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,

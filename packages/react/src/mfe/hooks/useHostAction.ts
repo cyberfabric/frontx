@@ -5,9 +5,9 @@
  *
  * React Layer: L3
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-use-host-action:p1
-// @cpt-algo:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-mfe-hooks:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-use-host-action:p1
+// @cpt-algo:cpt-frontx-algo-react-bindings-mfe-context-guard:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-mfe-hooks:p1
 
 import { useCallback } from 'react';
 import { useMfeContext } from '../MfeContext';
@@ -40,19 +40,19 @@ import { useMfeContext } from '../MfeContext';
  * }
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-call-host-action
-// @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-call-host-action
+// @cpt-begin:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-call-host-action
+// @cpt-begin:cpt-frontx-dod-react-bindings-mfe-hooks:p1:inst-call-host-action
 export function useHostAction<TPayload extends Record<string, unknown> = Record<string, unknown>>(
   actionTypeId: string
 ): (payload?: TPayload) => void {
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-read-bridge-for-action
-  // @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-read-bridge-for-action
+  // @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
   // Enforce MfeProvider context requirement
   const { bridge } = useMfeContext(); // Throws if not in MfeProvider
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-read-bridge-for-action
-  // @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-read-bridge-for-action
+  // @cpt-end:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-return-action-callback
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-return-action-callback
   return useCallback((payload?: TPayload) => {
     // Construct an ActionsChain with the action
     // With the constraint, TPayload extends Record<string, unknown>,
@@ -65,7 +65,7 @@ export function useHostAction<TPayload extends Record<string, unknown> = Record<
       },
     };
 
-    // @cpt-begin:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-log-action-error
+    // @cpt-begin:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-log-action-error
     // Send the chain to the host
     bridge.executeActionsChain(chain).catch((error: Error) => {
       console.error(
@@ -73,9 +73,9 @@ export function useHostAction<TPayload extends Record<string, unknown> = Record<
         error
       );
     });
-    // @cpt-end:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-log-action-error
+    // @cpt-end:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-log-action-error
   }, [actionTypeId, bridge]);
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-return-action-callback
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-return-action-callback
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-host-action:p1:inst-call-host-action
-// @cpt-end:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-call-host-action
+// @cpt-end:cpt-frontx-flow-react-bindings-use-host-action:p1:inst-call-host-action
+// @cpt-end:cpt-frontx-dod-react-bindings-mfe-hooks:p1:inst-call-host-action

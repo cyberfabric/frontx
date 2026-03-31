@@ -1,5 +1,5 @@
-// @cpt-algo:cpt-hai3-algo-framework-composition-base-path:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-app-config:p1
+// @cpt-algo:cpt-frontx-algo-framework-composition-base-path:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-app-config:p1
 
 /**
  * Normalizes a base path to ensure consistent format.
@@ -22,7 +22,7 @@
  * normalizeBase(undefined)      // '/'
  * ```
  */
-// @cpt-begin:cpt-hai3-algo-framework-composition-base-path:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-framework-composition-base-path:p1:inst-1
 export function normalizeBase(base?: string): string {
   if (!base) {
     return '/';
@@ -38,7 +38,7 @@ export function normalizeBase(base?: string): string {
 
   return normalized;
 }
-// @cpt-end:cpt-hai3-algo-framework-composition-base-path:p1:inst-1
+// @cpt-end:cpt-frontx-algo-framework-composition-base-path:p1:inst-1
 
 /**
  * Strips the base path from a URL pathname to get the internal path.
@@ -59,7 +59,7 @@ export function normalizeBase(base?: string): string {
  * stripBase('/dashboard', '/')                 // '/dashboard' (root base)
  * ```
  */
-// @cpt-begin:cpt-hai3-algo-framework-composition-base-path:p1:inst-2
+// @cpt-begin:cpt-frontx-algo-framework-composition-base-path:p1:inst-2
 export function stripBase(pathname: string, base: string): string | null {
   // Root base matches all paths
   if (base === '/') {
@@ -81,7 +81,7 @@ export function stripBase(pathname: string, base: string): string | null {
   // Return path without base, or '/' if exact match
   return pathname.slice(base.length) || '/';
 }
-// @cpt-end:cpt-hai3-algo-framework-composition-base-path:p1:inst-2
+// @cpt-end:cpt-frontx-algo-framework-composition-base-path:p1:inst-2
 
 /**
  * Prepends the base path to an internal path for URL construction.

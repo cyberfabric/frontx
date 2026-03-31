@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 export { Button, type ButtonProps } from './base/button';
 export { Card } from './base/card';
 export { Switch } from './base/switch';

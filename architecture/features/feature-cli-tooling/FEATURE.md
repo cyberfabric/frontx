@@ -1,6 +1,6 @@
 # Feature: CLI Tooling
 
-- [x] `p1` - **ID**: `cpt-hai3-featstatus-cli-tooling`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-cli-tooling`
 
 <!-- toc -->
 
@@ -50,7 +50,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-hai3-feature-cli-tooling`
+- [x] `p2` - `cpt-frontx-feature-cli-tooling`
 
 ---
 
@@ -58,33 +58,33 @@
 
 ### 1.1 Overview
 
-The CLI Tooling feature provides the `@hai3/cli` package — a standalone scaffolding tool that reduces boilerplate and enforces HAI3 architectural conventions across all project layers. It generates complete project structures, layout components, and AI assistant configurations from real project files used as build-time templates.
+The CLI Tooling feature provides the `@cyberfabric/cli` package — a standalone scaffolding tool that reduces boilerplate and enforces FrontX architectural conventions across all project layers. It generates complete project structures, layout components, and AI assistant configurations from real project files used as build-time templates.
 
 Problem: Without tooling, developers must manually assemble multi-file project structures, navigate layer-specific package.json configurations, and keep AI assistant integration files in sync across Claude, Cursor, Windsurf, and GitHub Copilot. Inconsistencies accumulate quickly across teams.
 
-Primary value: A single `hai3 create` command produces a complete, layered HAI3 project with correct dependencies, IDE configs, and AI skill integrations in under a minute.
+Primary value: A single `frontx create` command produces a complete, layered FrontX project with correct dependencies, IDE configs, and AI skill integrations in under a minute.
 
 Key assumptions: The CLI runs in Node.js 18+ environments. It may be installed globally via a supported package manager (`npm` or `pnpm`; `yarn` global install is not managed by the CLI update flow). Templates are packaged into the CLI build and are not loaded from the network at runtime.
 
 ### 1.2 Purpose
 
-Enable `cpt-hai3-actor-developer` and `cpt-hai3-actor-cli` to scaffold new HAI3 projects and layer packages, generate layout components on demand, keep AI assistant configurations current, apply codemod migrations across major version upgrades, and validate component structure rules — all through a consistent programmatic interface usable by both humans and AI agents.
+Enable `cpt-frontx-actor-developer` and `cpt-frontx-actor-cli` to scaffold new FrontX projects and layer packages, generate layout components on demand, keep AI assistant configurations current, apply codemod migrations across major version upgrades, and validate component structure rules — all through a consistent programmatic interface usable by both humans and AI agents.
 
-Success criteria: A developer runs `hai3 create my-app`, selects or passes a supported package manager (`npm`, `pnpm`, or `yarn`), changes into the directory, runs the generated manager-appropriate install and dev commands, and has a working HAI3 application with all AI configurations set up correctly.
+Success criteria: A developer runs `frontx create my-app`, selects or passes a supported package manager (`npm`, `pnpm`, or `yarn`), changes into the directory, runs the generated manager-appropriate install and dev commands, and has a working FrontX application with all AI configurations set up correctly.
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-developer`
-- `cpt-hai3-actor-cli`
-- `cpt-hai3-actor-build-system`
+- `cpt-frontx-actor-developer`
+- `cpt-frontx-actor-cli`
+- `cpt-frontx-actor-build-system`
 
 ### 1.4 References
 
-- Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-hai3-component-cli`
-- DECOMPOSITION: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-cli-tooling`
-- ADR: `cpt-hai3-adr-cli-template-based-code-generation`
-- ADR: `cpt-hai3-adr-two-tier-cli-e2e-verification`
-- Related constraint: `cpt-hai3-constraint-esm-first-module-format`
+- Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-frontx-component-cli`
+- DECOMPOSITION: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-frontx-feature-cli-tooling`
+- ADR: `cpt-frontx-adr-cli-template-based-code-generation`
+- ADR: `cpt-frontx-adr-two-tier-cli-e2e-verification`
+- Related constraint: `cpt-frontx-constraint-esm-first-module-format`
 
 ---
 
@@ -92,18 +92,18 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Create Project
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-create-project`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-create-project`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `hai3 create <project-name>` with optional flags (`--layer`, `--uikit`, `--studio`, `--no-studio`, `--package-manager`) - `inst-invoke-create`
-2. [x] - `p1` - Algorithm: validate project name using `cpt-hai3-algo-cli-tooling-validate-project-name` - `inst-run-name-validation`
+1. [x] - `p1` - Developer invokes `frontx create <project-name>` with optional flags (`--layer`, `--uikit`, `--studio`, `--no-studio`, `--package-manager`) - `inst-invoke-create`
+2. [x] - `p1` - Algorithm: validate project name using `cpt-frontx-algo-cli-tooling-validate-project-name` - `inst-run-name-validation`
 3. [x] - `p1` - **IF** target directory already exists **THEN** prompt developer to confirm overwrite; **IF** developer declines **RETURN** with abort message - `inst-check-dir-exists`
 4. [x] - `p1` - **IF** `--layer` flag is not `app` **THEN** skip uikit/studio prompts and proceed to layer package generation - `inst-branch-layer`
 5. [x] - `p1` - **IF** `--studio` flag is absent **THEN** prompt developer: "Include Studio (development overlay)?" - `inst-prompt-studio`
 6. [x] - `p1` - **IF** `--uikit` flag is absent **THEN** prompt developer to select UIKit option from `['shadcn', 'none']` or enter a third-party package name - `inst-prompt-uikit`
 7. [x] - `p1` - **IF** `--package-manager` flag is absent **THEN** prompt developer to select one of `npm`, `pnpm`, or `yarn` - `inst-prompt-package-manager`
-8. [x] - `p1` - Algorithm: generate project files using `cpt-hai3-algo-cli-tooling-generate-project` - `inst-run-generate-project`
+8. [x] - `p1` - Algorithm: generate project files using `cpt-frontx-algo-cli-tooling-generate-project` - `inst-run-generate-project`
 9. [x] - `p1` - Write all generated files to the target directory on disk - `inst-write-files`
 10. [x] - `p1` - Execute `aiSyncCommand` against the newly created project root to generate IDE configuration files - `inst-run-ai-sync-after-create`
 11. [x] - `p1` - Log success message and next-step instructions (`cd <name>`, manager-appropriate install command, manager-appropriate dev/build command) to the developer - `inst-log-success-create`
@@ -111,12 +111,12 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Scaffold Layout
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-scaffold-layout`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-scaffold-layout`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `hai3 scaffold layout` from a HAI3 project directory, optionally with `--force` - `inst-invoke-scaffold-layout`
-2. [x] - `p1` - **IF** not inside a HAI3 project root (no `hai3.config.json`) **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-scaffold`
+1. [x] - `p1` - Developer invokes `frontx scaffold layout` from a FrontX project directory, optionally with `--force` - `inst-invoke-scaffold-layout`
+2. [x] - `p1` - **IF** not inside a FrontX project root (no `frontx.config.json`) **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-scaffold`
 3. [x] - `p1` - Read layout templates from the bundled CLI templates directory - `inst-read-layout-templates`
 4. [x] - `p1` - **IF** `--force` is false **AND** any target layout file already exists **THEN** skip existing files - `inst-check-force-flag`
 5. [x] - `p1` - Write layout component files to `src/app/layout/` inside the project root - `inst-write-layout-files`
@@ -124,27 +124,27 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Update Project
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-update-project`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-update-project`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `hai3 update` with optional flags (`--alpha`, `--stable`, `--templates-only`, `--skip-ai-sync`) - `inst-invoke-update`
+1. [x] - `p1` - Developer invokes `frontx update` with optional flags (`--alpha`, `--stable`, `--templates-only`, `--skip-ai-sync`) - `inst-invoke-update`
 2. [x] - `p1` - **IF** both `--alpha` and `--stable` are specified **RETURN** validation error `CONFLICTING_OPTIONS` - `inst-check-conflicting-update-flags`
-3. [x] - `p1` - Algorithm: resolve release channel using `cpt-hai3-algo-cli-tooling-detect-release-channel` - `inst-run-detect-channel`
-4. [x] - `p1` - **IF** `--templates-only` is not set **THEN** install `@hai3/cli@<tag>` globally using the detected project package manager; **IF** the manager is `yarn` **THEN** skip global CLI update with a warning because yarn global install is not managed by the command - `inst-update-cli-global`
-5. [x] - `p1` - **IF** `--templates-only` is not set **AND** inside a HAI3 project **THEN** locate all `@hai3/*` entries in project `package.json` and install each with the resolved tag - `inst-update-project-packages`
-6. [x] - `p1` - **IF** inside a HAI3 project **THEN** sync templates using `cpt-hai3-algo-cli-tooling-sync-templates` - `inst-run-sync-templates`
-7. [x] - `p1` - **IF** inside a HAI3 project **AND** `--skip-ai-sync` is not set **THEN** execute `aiSyncCommand` with `detectPackages: true` - `inst-run-ai-sync-after-update`
+3. [x] - `p1` - Algorithm: resolve release channel using `cpt-frontx-algo-cli-tooling-detect-release-channel` - `inst-run-detect-channel`
+4. [x] - `p1` - **IF** `--templates-only` is not set **THEN** install `@cyberfabric/cli@<tag>` globally using the detected project package manager; **IF** the manager is `yarn` **THEN** skip global CLI update with a warning because yarn global install is not managed by the command - `inst-update-cli-global`
+5. [x] - `p1` - **IF** `--templates-only` is not set **AND** inside a FrontX project **THEN** locate all `@cyberfabric/*` entries in project `package.json` and install each with the resolved tag - `inst-update-project-packages`
+6. [x] - `p1` - **IF** inside a FrontX project **THEN** sync templates using `cpt-frontx-algo-cli-tooling-sync-templates` - `inst-run-sync-templates`
+7. [x] - `p1` - **IF** inside a FrontX project **AND** `--skip-ai-sync` is not set **THEN** execute `aiSyncCommand` with `detectPackages: true` - `inst-run-ai-sync-after-update`
 8. [x] - `p1` - **RETURN** `UpdateCommandResult` with flags for each step completed - `inst-return-update`
 
 ### Update Layout
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-cli-tooling-update-layout`
+- [x] `p2` - **ID**: `cpt-frontx-flow-cli-tooling-update-layout`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p2` - Developer invokes `hai3 update layout` with optional `--force` flag - `inst-invoke-update-layout`
-2. [x] - `p2` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-update-layout`
+1. [x] - `p2` - Developer invokes `frontx update layout` with optional `--force` flag - `inst-invoke-update-layout`
+2. [x] - `p2` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-update-layout`
 3. [x] - `p2` - Read current layout files from `src/app/layout/` and compare against bundled templates - `inst-compare-layout-files`
 4. [x] - `p2` - **IF** `--force` is false **THEN** prompt developer to confirm each modified file - `inst-prompt-confirm-layout-overwrite`
 5. [x] - `p2` - Write updated layout files to `src/app/layout/` - `inst-write-updated-layout`
@@ -152,85 +152,85 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Sync AI Configurations
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-ai-sync`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-ai-sync`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `hai3 ai sync` with optional `--tool` (default `all`), `--detect-packages`, `--diff` - `inst-invoke-ai-sync`
-2. [x] - `p1` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-ai-sync`
+1. [x] - `p1` - Developer invokes `frontx ai sync` with optional `--tool` (default `all`), `--detect-packages`, `--diff` - `inst-invoke-ai-sync`
+2. [x] - `p1` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-ai-sync`
 3. [x] - `p1` - **IF** `.ai/` directory does not exist **AND** not in `--diff` mode **THEN** create minimal `.ai/GUIDELINES.md` stub - `inst-create-ai-dir`
 4. [x] - `p1` - Read user custom rules from `.ai/rules/app.md` if the file exists - `inst-read-user-rules`
-5. [x] - `p1` - **IF** `--detect-packages` is set **THEN** scan `node_modules/@hai3/*/commands/*.md` for package command files, skipping `hai3dev-*` prefixed files - `inst-scan-package-commands`
-6. [x] - `p1` - **FOR EACH** target tool in resolved tool list: generate tool-specific configuration files using `cpt-hai3-algo-cli-tooling-generate-ai-config` - `inst-generate-per-tool`
+5. [x] - `p1` - **IF** `--detect-packages` is set **THEN** scan `node_modules/@cyberfabric/*/commands/*.md` for package command files, skipping `hai3dev-*` prefixed files - `inst-scan-package-commands`
+6. [x] - `p1` - **FOR EACH** target tool in resolved tool list: generate tool-specific configuration files using `cpt-frontx-algo-cli-tooling-generate-ai-config` - `inst-generate-per-tool`
 7. [x] - `p1` - **IF** `--diff` is set **THEN** print file-level diff summary to logger and **RETURN** without writing files - `inst-diff-mode`
 8. [x] - `p1` - Write generated configuration files to the project root - `inst-write-ai-configs`
 9. [x] - `p1` - **RETURN** `AiSyncResult` with list of changed files, command count, and tool names - `inst-return-ai-sync`
 
 ### Validate Components
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-validate-components`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-validate-components`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p1` - Developer invokes `hai3 validate components [path]` - `inst-invoke-validate`
-2. [x] - `p1` - **IF** not inside a HAI3 project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-validate`
+1. [x] - `p1` - Developer invokes `frontx validate components [path]` - `inst-invoke-validate`
+2. [x] - `p1` - **IF** not inside a FrontX project root **RETURN** validation error `NOT_IN_PROJECT` - `inst-check-project-root-validate`
 3. [x] - `p1` - Determine scan path: use provided path argument if given, otherwise default to `src/screensets/` - `inst-resolve-scan-path`
-4. [x] - `p1` - Algorithm: scan all `.ts` and `.tsx` files recursively using `cpt-hai3-algo-cli-tooling-scan-component-violations` - `inst-run-scan`
+4. [x] - `p1` - Algorithm: scan all `.ts` and `.tsx` files recursively using `cpt-frontx-algo-cli-tooling-scan-component-violations` - `inst-run-scan`
 5. [x] - `p1` - **IF** any `error`-severity violations exist **THEN** print violation report grouped by file and **RETURN** `passed: false` - `inst-report-violations`
 6. [x] - `p1` - **IF** no violations **THEN** log success and **RETURN** `passed: true` - `inst-return-clean`
 7. [x] - `p1` - **RETURN** `ValidateComponentsResult` with full violation list, scanned file count, and pass/fail flag - `inst-return-validate`
 
 ### Apply Code Migrations
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-cli-tooling-migrate`
+- [x] `p2` - **ID**: `cpt-frontx-flow-cli-tooling-migrate`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
 
-1. [x] - `p2` - Developer invokes `hai3 migrate [targetVersion]` with optional flags (`--dry-run`, `--list`, `--status`, `--path`, `--include`, `--exclude`) - `inst-invoke-migrate`
+1. [x] - `p2` - Developer invokes `frontx migrate [targetVersion]` with optional flags (`--dry-run`, `--list`, `--status`, `--path`, `--include`, `--exclude`) - `inst-invoke-migrate`
 2. [x] - `p2` - **IF** `--list` is set **THEN** print all registered migrations and **RETURN** - `inst-handle-list`
 3. [x] - `p2` - **IF** `--status` is set **THEN** load `.hai3/migrations.json` and print applied and pending migrations, **RETURN** - `inst-handle-status`
-4. [x] - `p2` - Algorithm: resolve pending migrations using `cpt-hai3-algo-cli-tooling-resolve-pending-migrations` - `inst-run-resolve-pending`
+4. [x] - `p2` - Algorithm: resolve pending migrations using `cpt-frontx-algo-cli-tooling-resolve-pending-migrations` - `inst-run-resolve-pending`
 5. [x] - `p2` - **IF** `--dry-run` is set **THEN** preview each pending migration via `previewMigration()` and print report without writing files - `inst-dry-run-preview`
-6. [x] - `p2` - **IF** not dry-run **THEN** apply each pending migration in version order using `cpt-hai3-algo-cli-tooling-apply-migration`; stop on first failure - `inst-apply-migrations`
+6. [x] - `p2` - **IF** not dry-run **THEN** apply each pending migration in version order using `cpt-frontx-algo-cli-tooling-apply-migration`; stop on first failure - `inst-apply-migrations`
 7. [x] - `p2` - **RETURN** array of `MigrationResult` objects - `inst-return-migrate`
 
 ### Run PR E2E Scenario
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-cli-tooling-e2e-pr`
+- [x] `p1` - **ID**: `cpt-frontx-flow-cli-tooling-e2e-pr`
 
-**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-cli`
 
 1. [x] - `p1` - CI triggers `.github/workflows/cli-pr.yml` on pull request to `main`; job `cli-pr-e2e` starts on `ubuntu-latest` with Node 24.14.x and a matrix over `package-manager in [npm, pnpm, yarn]` - `inst-e2e-pr-trigger`
-2. [x] - `p1` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-pr-build-cli`
-3. [x] - `p1` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `pr` - `inst-e2e-pr-create-harness`
-4. [x] - `p1` - Run `hai3 create smoke-app --no-studio --uikit shadcn --package-manager <matrix package-manager>` in a temporary workspace - `inst-e2e-pr-create-app`
-5. [x] - `p1` - Assert scaffolded files exist: `hai3.config.json`, `package.json`, `.ai/GUIDELINES.md`, `src/app/layout/Layout.tsx`, `scripts/generate-mfe-manifests.ts` - `inst-e2e-pr-assert-files`
-6. [x] - `p1` - Assert generated `package.json` declares `packageManager`, manager-specific `engines`, manager-specific workspace/config files when applicable, and `hai3.config.json.packageManager` equals the selected manager - `inst-e2e-pr-assert-engines`
+2. [x] - `p1` - Build `@cyberfabric/cli` via `npm run build --workspace=@cyberfabric/cli` - `inst-e2e-pr-build-cli`
+3. [x] - `p1` - Algorithm: create harness using `cpt-frontx-algo-cli-tooling-e2e-harness-step` with suite name `pr` - `inst-e2e-pr-create-harness`
+4. [x] - `p1` - Run `frontx create smoke-app --no-studio --uikit shadcn --package-manager <matrix package-manager>` in a temporary workspace - `inst-e2e-pr-create-app`
+5. [x] - `p1` - Assert scaffolded files exist: `frontx.config.json`, `package.json`, `.ai/GUIDELINES.md`, `src/app/layout/Layout.tsx`, `scripts/generate-mfe-manifests.ts` - `inst-e2e-pr-assert-files`
+6. [x] - `p1` - Assert generated `package.json` declares `packageManager`, manager-specific `engines`, manager-specific workspace/config files when applicable, and `frontx.config.json.packageManager` equals the selected manager - `inst-e2e-pr-assert-engines`
 7. [x] - `p1` - Run `git init` in generated project, then the manager-appropriate install command (`npm install --no-audit --no-fund`, `pnpm install --no-frozen-lockfile`, or `yarn install --no-immutable`) - `inst-e2e-pr-git-init-install`
 8. [x] - `p1` - Run manager-appropriate build and type-check commands on the generated project - `inst-e2e-pr-build-typecheck`
-9. [x] - `p1` - Run `hai3 validate components` on clean scaffold and assert exit code 0 - `inst-e2e-pr-validate-clean`
-10. [x] - `p1` - Inject invalid screen file with inline style and hex color, run `hai3 validate components` and assert exit code 1 - `inst-e2e-pr-validate-bad`
-11. [x] - `p1` - Run `hai3 scaffold layout -f` and assert success - `inst-e2e-pr-scaffold-layout`
-12. [x] - `p1` - Run `hai3 ai sync --tool all --diff` and assert success - `inst-e2e-pr-ai-sync`
+9. [x] - `p1` - Run `frontx validate components` on clean scaffold and assert exit code 0 - `inst-e2e-pr-validate-clean`
+10. [x] - `p1` - Inject invalid screen file with inline style and hex color, run `frontx validate components` and assert exit code 1 - `inst-e2e-pr-validate-bad`
+11. [x] - `p1` - Run `frontx scaffold layout -f` and assert success - `inst-e2e-pr-scaffold-layout`
+12. [x] - `p1` - Run `frontx ai sync --tool all --diff` and assert success - `inst-e2e-pr-ai-sync`
 13. [x] - `p1` - Upload step logs and JSON summary as CI artifacts (runs even on failure) - `inst-e2e-pr-upload-artifacts`
 14. [x] - `p1` - **RETURN** harness completion status `passed` or `failed` - `inst-e2e-pr-return`
 
 ### Run Nightly E2E Scenario
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-cli-tooling-e2e-nightly`
+- [x] `p2` - **ID**: `cpt-frontx-flow-cli-tooling-e2e-nightly`
 
-**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-cli`
+**Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-cli`
 
 1. [x] - `p2` - CI triggers `.github/workflows/cli-nightly.yml` on schedule (daily 03:00 UTC) or manual dispatch - `inst-e2e-nightly-trigger`
-2. [x] - `p2` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-nightly-build-cli`
-3. [x] - `p2` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `nightly` - `inst-e2e-nightly-create-harness`
-4. [x] - `p2` - Run `hai3 create nightly-app --no-studio --uikit shadcn --package-manager npm`, then install, build, and type-check - `inst-e2e-nightly-create-default`
-5. [x] - `p2` - Run `hai3 create nightly-pnpm --no-studio --uikit shadcn --package-manager pnpm` and `hai3 create nightly-yarn --no-studio --uikit shadcn --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands
-6. [x] - `p2` - Run `hai3 migrate --list` and `hai3 migrate --status` on the default app - `inst-e2e-nightly-migrate-commands`
-7. [x] - `p2` - Run `hai3 ai sync --tool all --diff` twice and assert both succeed (idempotency) - `inst-e2e-nightly-ai-sync-idempotent`
-8. [x] - `p2` - Run `hai3 create nightly-custom --no-studio --uikit none`, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
-9. [x] - `p2` - **FOR EACH** layer in `[sdk, framework, react]`: run `hai3 create nightly-{layer} --layer {layer}`, assert README install snippet includes the generated package name, then install, build, and type-check - `inst-e2e-nightly-layer-scaffolds`
-10. [x] - `p2` - Run `hai3 create "Invalid Name"` and assert exit code 1 - `inst-e2e-nightly-invalid-name`
+2. [x] - `p2` - Build `@cyberfabric/cli` via `npm run build --workspace=@cyberfabric/cli` - `inst-e2e-nightly-build-cli`
+3. [x] - `p2` - Algorithm: create harness using `cpt-frontx-algo-cli-tooling-e2e-harness-step` with suite name `nightly` - `inst-e2e-nightly-create-harness`
+4. [x] - `p2` - Run `frontx create nightly-app --no-studio --uikit shadcn --package-manager npm`, then install, build, and type-check - `inst-e2e-nightly-create-default`
+5. [x] - `p2` - Run `frontx create nightly-pnpm --no-studio --uikit shadcn --package-manager pnpm` and `frontx create nightly-yarn --no-studio --uikit shadcn --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands
+6. [x] - `p2` - Run `frontx migrate --list` and `frontx migrate --status` on the default app - `inst-e2e-nightly-migrate-commands`
+7. [x] - `p2` - Run `frontx ai sync --tool all --diff` twice and assert both succeed (idempotency) - `inst-e2e-nightly-ai-sync-idempotent`
+8. [x] - `p2` - Run `frontx create nightly-custom --no-studio --uikit none`, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
+9. [x] - `p2` - **FOR EACH** layer in `[sdk, framework, react]`: run `frontx create nightly-{layer} --layer {layer}`, assert README install snippet includes the generated package name, then install, build, and type-check - `inst-e2e-nightly-layer-scaffolds`
+10. [x] - `p2` - Run `frontx create "Invalid Name"` and assert exit code 1 - `inst-e2e-nightly-invalid-name`
 11. [x] - `p2` - Upload step logs and JSON summary as CI artifacts (runs even on failure) - `inst-e2e-nightly-upload-artifacts`
 12. [x] - `p2` - **RETURN** harness completion status `passed` or `failed` - `inst-e2e-nightly-return`
 
@@ -240,7 +240,7 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Validate Project Name
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-validate-project-name`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-validate-project-name`
 
 1. [x] - `p1` - **IF** `projectName` is empty or missing **RETURN** error `MISSING_NAME` - `inst-check-empty-name`
 2. [x] - `p1` - **IF** `projectName` does not match a valid npm package name pattern (lowercase, hyphens, no leading dots or underscores, no uppercase) **RETURN** error `INVALID_NAME` - `inst-check-npm-name-pattern`
@@ -249,9 +249,9 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 ### Generate Project Files
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-generate-project`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-generate-project`
 
-Constructs the complete set of `GeneratedFile` entries for a new HAI3 project from bundled templates and dynamic content.
+Constructs the complete set of `GeneratedFile` entries for a new FrontX project from bundled templates and dynamic content.
 
 1. [x] - `p1` - Load `templates/manifest.json` from the CLI package; **IF** manifest is not found **RETURN** error indicating CLI needs rebuild
 2. [x] - `p1` - **FOR EACH** file in `manifest.stage1b.rootFiles`: copy from the templates directory to the file list; apply variant selection for `src/app/main.tsx` (uikit variant) and `src/app/App.tsx` (uikit + studio variant)
@@ -266,20 +266,20 @@ Constructs the complete set of `GeneratedFile` entries for a new HAI3 project fr
 11. [x] - `p1` - Copy user command stubs from `templates/.ai/commands/user/`
 12. [x] - `p1` - Copy `eslint-plugin-local/` and `scripts/` directories; **IF** `uikit === 'none'` exclude `scripts/generate-colors.ts`
 13. [x] - `p1` - Copy root config files: `CLAUDE.md`, `README.md`, `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `.dependency-cruiser.cjs`, `.pre-commit-config.yaml`, `.npmrc`, `.nvmrc`; **IF** `uikit === 'shadcn'` also include `postcss.config.js`
-14. [x] - `p1` - Generate `hai3.config.json` dynamically with `{ hai3: true, layer, uikit, packageManager }`; include `linkerMode: "node-modules"` when the selected manager is `yarn`
-15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@hai3/*` packages at `alpha` tag; include `@hai3/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]`
+14. [x] - `p1` - Generate `frontx.config.json` dynamically with `{ hai3: true, layer, uikit, packageManager }`; include `linkerMode: "node-modules"` when the selected manager is `yarn`
+15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@cyberfabric/*` packages at `alpha` tag; include `@cyberfabric/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]`
 16. [x] - `p1` - Generate manager-specific workspace/config files (`pnpm-workspace.yaml` for pnpm, `.yarnrc.yml` for yarn)
-17. [x] - `p1` - Rewrite npm-centric command snippets in generated text files to manager-specific commands using `cpt-hai3-algo-cli-tooling-package-manager-policy`
+17. [x] - `p1` - Rewrite npm-centric command snippets in generated text files to manager-specific commands using `cpt-frontx-algo-cli-tooling-package-manager-policy`
 18. [x] - `p1` - **RETURN** complete `GeneratedFile[]` array
 
 ### Resolve Package Manager Policy
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-package-manager-policy`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-package-manager-policy`
 
 Provides package-manager-aware command generation, metadata parsing, engine policy, workspace-file generation, and npm-to-target-manager text transformation.
 
 1. [x] - `p1` - Parse `package.json.packageManager` values into `{ manager, version }`; reject unsupported manager identifiers - `inst-parse-package-manager-field`
-2. [x] - `p1` - Resolve package manager context with priority: explicit HAI3 config manager -> `package.json.packageManager` -> default `npm`; preserve legacy `hai3.config.json.packageManagerVersion` only as backwards-compatible fallback - `inst-detect-package-manager`
+2. [x] - `p1` - Resolve package manager context with priority: explicit FrontX config manager -> `package.json.packageManager` -> default `npm`; preserve legacy `frontx.config.json.packageManagerVersion` only as backwards-compatible fallback - `inst-detect-package-manager`
 3. [x] - `p1` - Build `package.json.packageManager` values from a centralized policy that defines exact default versions per supported manager - `inst-build-package-manager-field`
 4. [x] - `p1` - Build manager-specific `engines` entries from the same centralized policy while keeping the Node engine range separate - `inst-build-package-manager-engines`
 5. [x] - `p1` - Build manager-specific shell commands for install, script execution, workspace script execution, package add/update, and global install where supported - `inst-build-package-manager-commands`
@@ -288,9 +288,9 @@ Provides package-manager-aware command generation, metadata parsing, engine poli
 
 ### Layer Command Variant Selection
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-select-command-variant`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-select-command-variant`
 
-Selects the most specific command file variant for a given HAI3 architecture layer. Implements cascade fallback so higher layers inherit lower-layer commands when no specific override exists.
+Selects the most specific command file variant for a given FrontX architecture layer. Implements cascade fallback so higher layers inherit lower-layer commands when no specific override exists.
 
 1. [x] - `p1` - Determine fallback priority chain for the given layer: `sdk` → `['.sdk.md', '.md']`; `framework` → `['.framework.md', '.sdk.md', '.md']`; `react` / `app` → `['.react.md', '.framework.md', '.sdk.md', '.md']` - `inst-build-priority-chain`
 2. [x] - `p1` - Strip the `.md` extension from the base command name to produce the base stem - `inst-strip-ext`
@@ -300,11 +300,11 @@ Selects the most specific command file variant for a given HAI3 architecture lay
 
 ### Detect Release Channel
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-detect-release-channel`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-detect-release-channel`
 
-Determines whether the globally installed `@hai3/cli` is on the `alpha` or `stable` channel.
+Determines whether the globally installed `@cyberfabric/cli` is on the `alpha` or `stable` channel.
 
-1. [x] - `p1` - **TRY** locate the current `@hai3/cli` `package.json` by walking upward from the executing module path until a package with `name: "@hai3/cli"` is found - `inst-read-cli-package-version`
+1. [x] - `p1` - **TRY** locate the current `@cyberfabric/cli` `package.json` by walking upward from the executing module path until a package with `name: "@cyberfabric/cli"` is found - `inst-read-cli-package-version`
 2. [x] - `p1` - Read the current CLI version string from that `package.json` - `inst-read-cli-version-string`
 3. [x] - `p1` - **IF** version string contains `-alpha`, `-beta`, or `-rc` **RETURN** `'alpha'` - `inst-check-prerelease-tag`
 4. [x] - `p1` - **RETURN** `'stable'` - `inst-return-stable`
@@ -312,24 +312,24 @@ Determines whether the globally installed `@hai3/cli` is on the `alpha` or `stab
 
 ### Sync Templates
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-cli-tooling-sync-templates`
+- [x] `p2` - **ID**: `cpt-frontx-algo-cli-tooling-sync-templates`
 
 Updates project template-derived files (AI target docs, IDE configs, command adapters) from the currently installed CLI templates without overwriting user-owned source files.
 
-1. [x] - `p2` - Determine project layer from `hai3.config.json`; default to `'app'` if not present - `inst-read-project-layer`
+1. [x] - `p2` - Determine project layer from `frontx.config.json`; default to `'app'` if not present - `inst-read-project-layer`
 2. [x] - `p2` - **FOR EACH** `.ai/targets/*.md` file in the bundled templates: apply layer-aware filtering and overwrite the project file if applicable - `inst-sync-ai-targets`
 3. [x] - `p2` - **FOR EACH** IDE config directory (`.claude/`, `.cursor/`, `.windsurf/`): overwrite IDE config files from templates - `inst-sync-ide-configs`
 4. [x] - `p2` - Skip generation-only `src/app/App.no-*` and `src/app/main.no-uikit.tsx` template variants when syncing into existing projects, and remove stale copies if they exist - `inst-skip-variant-app-files`
-5. [x] - `p2` - After syncing, detect the project package manager and rewrite npm-centric text snippets in synced files to the active manager using `cpt-hai3-algo-cli-tooling-package-manager-policy` - `inst-transform-synced-files`
+5. [x] - `p2` - After syncing, detect the project package manager and rewrite npm-centric text snippets in synced files to the active manager using `cpt-frontx-algo-cli-tooling-package-manager-policy` - `inst-transform-synced-files`
 6. [x] - `p2` - **RETURN** list of directories that were updated - `inst-return-synced-dirs`
 
 ### Generate AI Configuration for Tool
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-generate-ai-config`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-generate-ai-config`
 
 Generates the IDE/AI-tool-specific configuration file and command adapter files for a single target tool.
 
-1. [x] - `p1` - For `claude`: write `CLAUDE.md` with a reference to `.ai/GUIDELINES.md`; append user rules section if `.ai/rules/app.md` exists; generate command adapter files in `.claude/commands/` using `cpt-hai3-algo-cli-tooling-generate-command-adapters` - `inst-generate-claude`
+1. [x] - `p1` - For `claude`: write `CLAUDE.md` with a reference to `.ai/GUIDELINES.md`; append user rules section if `.ai/rules/app.md` exists; generate command adapter files in `.claude/commands/` using `cpt-frontx-algo-cli-tooling-generate-command-adapters` - `inst-generate-claude`
 2. [x] - `p1` - For `copilot`: write `.github/copilot-instructions.md` with architecture quick-reference and available commands section; append user rules if present; generate command adapters in `.github/copilot-commands/` - `inst-generate-copilot`
 3. [x] - `p1` - For `cursor`: write `.cursor/rules/hai3.mdc` with frontmatter `alwaysApply: true`; append user rules if present; generate command adapters in `.cursor/commands/` - `inst-generate-cursor`
 4. [x] - `p1` - For `windsurf`: write `.windsurf/rules/hai3.md` with frontmatter `trigger: always_on`; append user rules if present; generate workflow adapters in `.windsurf/workflows/` - `inst-generate-windsurf`
@@ -337,11 +337,11 @@ Generates the IDE/AI-tool-specific configuration file and command adapter files 
 
 ### Generate Command Adapters
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-generate-command-adapters`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-generate-command-adapters`
 
 Writes adapter stub files for each discovered command into the target IDE commands directory. Implements a four-tier precedence hierarchy so project-level overrides take priority over framework defaults.
 
-1. [x] - `p1` - Scan command files from four sources: `hai3` level (`.ai/commands/`), `company` level (`.ai/company/commands/`), `project` level (`.ai/project/commands/`), and package level (from installed `@hai3/*` packages); skip filenames with `hai3dev-` prefix - `inst-scan-four-tiers`
+1. [x] - `p1` - Scan command files from four sources: `frontx` level (`.ai/commands/`), `company` level (`.ai/company/commands/`), `project` level (`.ai/project/commands/`), and package level (from installed `@cyberfabric/*` packages); skip filenames with `hai3dev-` prefix - `inst-scan-four-tiers`
 2. [x] - `p1` - Collect the union of all unique command base names across all tiers - `inst-collect-command-names`
 3. [x] - `p1` - **FOR EACH** command base name: resolve the source file by checking tiers in order `project → company → hai3 → package`; use the first match found - `inst-resolve-precedence`
 4. [x] - `p1` - Extract the command description from the resolved source file by matching the pattern `# hai3:<name> - <description>`; fall back to a name-derived description if the pattern is absent - `inst-extract-description`
@@ -350,20 +350,20 @@ Writes adapter stub files for each discovered command into the target IDE comman
 
 ### Scan Component Violations
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-scan-component-violations`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-scan-component-violations`
 
 Inspects TypeScript and TSX source files for four categories of architectural violations.
 
 1. [x] - `p1` - **FOR EACH** `.ts` or `.tsx` file in the scan directory (excluding `node_modules/` and `dist/`): read file contents and determine file type (`Screen`, `UI component`, or general) - `inst-iterate-source-files`
 2. [x] - `p1` - **IF** file is a Screen file (ends with `Screen.tsx`): scan for `const <Name>: FC` declarations that are not the file's default export; **FOR EACH** match emit a violation of rule `inline-component` at the matched line - `inst-detect-inline-components`
 3. [x] - `p1` - **IF** file is a Screen file: scan for inline data arrays (variable declarations initialized to array literals containing 3 or more nested object literals); skip variables named `columns`, `options`, `items`, `routes`, `menu`, `tabs`, `steps`, `fields`; **FOR EACH** match emit a violation of rule `inline-data` - `inst-detect-inline-data`
-4. [x] - `p1` - **IF** file is a UI component file (path contains `/components/ui/`): scan for non-type imports from `@hai3/react` or `@hai3/framework`; **IF** found emit a violation of rule `ui-component-impurity` - `inst-detect-ui-component-impurity`
+4. [x] - `p1` - **IF** file is a UI component file (path contains `/components/ui/`): scan for non-type imports from `@cyberfabric/react` or `@cyberfabric/framework`; **IF** found emit a violation of rule `ui-component-impurity` - `inst-detect-ui-component-impurity`
 5. [x] - `p1` - **IF** file is NOT inside `components/ui/`: scan for `style={{` occurrences and emit a violation of rule `inline-style` for each; scan for hex color literals and emit a violation of rule `inline-style` for each - `inst-detect-inline-styles`
 6. [x] - `p1` - **RETURN** all collected `ComponentViolation` objects with file path, line number, rule name, message, severity, and suggestion - `inst-return-violations`
 
 ### Resolve Pending Migrations
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-cli-tooling-resolve-pending-migrations`
+- [x] `p2` - **ID**: `cpt-frontx-algo-cli-tooling-resolve-pending-migrations`
 
 Determines which registered migrations have not yet been applied to the project.
 
@@ -376,7 +376,7 @@ Determines which registered migrations have not yet been applied to the project.
 
 ### Apply Migration
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-cli-tooling-apply-migration`
+- [x] `p2` - **ID**: `cpt-frontx-algo-cli-tooling-apply-migration`
 
 Applies a single versioned migration to the target project using ts-morph AST transformations.
 
@@ -389,7 +389,7 @@ Applies a single versioned migration to the target project using ts-morph AST tr
 
 ### Build CLI Templates at Build Time
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-build-templates`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-build-templates`
 
 The `copy-templates.ts` script assembles the complete templates directory inside `packages/cli/templates/` during the CLI package build (`npm run build` in `packages/cli`).
 
@@ -404,7 +404,7 @@ The `copy-templates.ts` script assembles the complete templates directory inside
 
 ### Execute E2E Harness Step
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+- [x] `p1` - **ID**: `cpt-frontx-algo-cli-tooling-e2e-harness-step`
 
 Shared e2e harness (`packages/cli/scripts/e2e-lib.mjs`) that provides isolated step execution with logging, assertions, and structured summaries for both PR and nightly scenarios.
 
@@ -425,7 +425,7 @@ Shared e2e harness (`packages/cli/scripts/e2e-lib.mjs`) that provides isolated s
 
 ### Command Execution Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-state-cli-tooling-command-lifecycle`
+- [x] `p1` - **ID**: `cpt-frontx-state-cli-tooling-command-lifecycle`
 
 Represents the runtime state of any CLI command from invocation through completion, governing the behavior of `executeCommand()`.
 
@@ -438,7 +438,7 @@ Represents the runtime state of any CLI command from invocation through completi
 
 ### Migration Tracker State
 
-- [x] `p2` - **ID**: `cpt-hai3-state-cli-tooling-migration-tracker`
+- [x] `p2` - **ID**: `cpt-frontx-state-cli-tooling-migration-tracker`
 
 Tracks which migrations have been applied to a project, persisted in `.hai3/migrations.json`.
 
@@ -453,35 +453,35 @@ Tracks which migrations have been applied to a project, persisted in `.hai3/migr
 
 ### CLI Package and Binary
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-package`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-package`
 
-`@hai3/cli` is published as a workspace package with a `hai3` binary entry point. The package supports ESM environments (Node.js 18+) and exposes a dual programmatic API via `api.ts` for use by AI agents without interactive prompts.
+`@cyberfabric/cli` is published as a workspace package with a `frontx` binary entry point. The package supports ESM environments (Node.js 18+) and exposes a dual programmatic API via `api.ts` for use by AI agents without interactive prompts.
 
 **Implementation details**:
-- Package: `packages/cli/package.json` — `name: @hai3/cli`, `type: module`, `bin: { hai3: ./dist/index.js }`, `engines: { node: ">=18" }`
+- Package: `packages/cli/package.json` — `name: @cyberfabric/cli`, `type: module`, `bin: { hai3: ./dist/index.js }`, `engines: { node: ">=18" }`
 - Entry: `src/index.ts` — Commander.js program with all commands registered
 - Programmatic API: `src/api.ts` — exports `executeCommand`, `buildCommandContext`, `registry`, core types, `createCommand`, `updateCommand`, generator functions, and utility functions
 - Build: `tsup.config.ts` — ESM primary output; dual CJS/ESM exports for `api.ts`
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-create-project`
-- `cpt-hai3-flow-cli-tooling-update-project`
-- `cpt-hai3-flow-cli-tooling-ai-sync`
-- `cpt-hai3-flow-cli-tooling-validate-components`
-- `cpt-hai3-flow-cli-tooling-scaffold-layout`
-- `cpt-hai3-flow-cli-tooling-migrate`
+- `cpt-frontx-flow-cli-tooling-create-project`
+- `cpt-frontx-flow-cli-tooling-update-project`
+- `cpt-frontx-flow-cli-tooling-ai-sync`
+- `cpt-frontx-flow-cli-tooling-validate-components`
+- `cpt-frontx-flow-cli-tooling-scaffold-layout`
+- `cpt-frontx-flow-cli-tooling-migrate`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-package`
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-package`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-constraint-esm-first-module-format`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-constraint-esm-first-module-format`
 
 ### Command Registry and Executor
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-command-infra`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-command-infra`
 
 `CommandRegistry` manages command registration and lookup by name. `executeCommand()` builds context, runs validation, executes the command, and returns a type-safe `CommandResult<T>`. Dual-mode execution is controlled through `ExecutionMode`: interactive mode uses `@inquirer/prompts`; programmatic mode uses pre-filled answers supplied as `Record<string, unknown>`.
 
@@ -492,17 +492,17 @@ Tracks which migrations have been applied to a project, persisted in `.hai3/migr
 - Types: `src/core/types.ts` — `CommandResult`, `ExecutionMode`, `ValidationResult`, `GeneratedFile`, `Hai3Config`, `LayerType`
 
 **Implements**:
-- `cpt-hai3-state-cli-tooling-command-lifecycle`
+- `cpt-frontx-state-cli-tooling-command-lifecycle`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-package`
+- `cpt-frontx-fr-cli-package`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ### Template-Based Project Generation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-templates`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-templates`
 
 The `copy-templates.ts` build script assembles the full template set into `packages/cli/templates/` at build time. The project generator reads from this bundled directory at runtime — no network access required. Templates cover project scaffolding, AI target docs, IDE configs, command adapters, and generated IDE rule files for all four supported AI tools.
 
@@ -515,21 +515,21 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - IDE rule outputs: `CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and `.github/copilot-instructions.md`
 
 **Implements**:
-- `cpt-hai3-algo-cli-tooling-generate-project`
-- `cpt-hai3-algo-cli-tooling-package-manager-policy`
-- `cpt-hai3-algo-cli-tooling-build-templates`
+- `cpt-frontx-algo-cli-tooling-generate-project`
+- `cpt-frontx-algo-cli-tooling-package-manager-policy`
+- `cpt-frontx-algo-cli-tooling-build-templates`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-templates`
-- `cpt-hai3-fr-cli-skills`
+- `cpt-frontx-fr-cli-templates`
+- `cpt-frontx-fr-cli-skills`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-adr-cli-template-based-code-generation`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-adr-cli-template-based-code-generation`
 
 ### Layer-Aware Command Variant Selection
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-layer-variants`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-layer-variants`
 
 `selectCommandVariant()` and `isTargetApplicableToLayer()` in `src/core/layers.ts` implement the cascade fallback so that sdk-layer projects receive only sdk-applicable commands and target files, while app-layer projects inherit the full hierarchy.
 
@@ -539,17 +539,17 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - Test: `src/core/layers.test.ts`
 
 **Implements**:
-- `cpt-hai3-algo-cli-tooling-select-command-variant`
+- `cpt-frontx-algo-cli-tooling-select-command-variant`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-templates`
+- `cpt-frontx-fr-cli-templates`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ### AI Configuration Sync
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-ai-sync`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-ai-sync`
 
 `aiSyncCommand` generates IDE-specific rule files and command adapter stubs for Claude Code, GitHub Copilot, Cursor, and Windsurf. Supports four-tier command precedence (project > company > hai3 > packages). Preserves user custom rules from `.ai/rules/app.md` across syncs. Supports `--diff` preview mode. Emits package-manager-aware architecture-check command hints in generated tool instructions.
 
@@ -557,25 +557,25 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - Command: `src/commands/ai/sync.ts` — `aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult>`
 - Tool outputs: `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`
 - Command adapters written to: `.claude/commands/`, `.github/copilot-commands/`, `.cursor/commands/`, `.windsurf/workflows/`
-- Package scanning: reads `node_modules/@hai3/*/commands/*.md` when `--detect-packages` is set
+- Package scanning: reads `node_modules/@cyberfabric/*/commands/*.md` when `--detect-packages` is set
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-ai-sync`
-- `cpt-hai3-algo-cli-tooling-generate-ai-config`
-- `cpt-hai3-algo-cli-tooling-generate-command-adapters`
+- `cpt-frontx-flow-cli-tooling-ai-sync`
+- `cpt-frontx-algo-cli-tooling-generate-ai-config`
+- `cpt-frontx-algo-cli-tooling-generate-command-adapters`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
-- `cpt-hai3-fr-cli-skills`
+- `cpt-frontx-fr-cli-commands`
+- `cpt-frontx-fr-cli-skills`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ### Component Structure Validation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-validate`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-validate`
 
-`validateComponentsCommand` scans `.ts` / `.tsx` files and enforces four architectural rules: no inline FC components in Screen files, no inline data arrays in Screen files, no `@hai3/react` / `@hai3/framework` imports in `components/ui/` files, no `style={{}}` or hex color literals outside `components/ui/` folders. Violations carry file path, line number, rule name, message, severity, and a suggestion.
+`validateComponentsCommand` scans `.ts` / `.tsx` files and enforces four architectural rules: no inline FC components in Screen files, no inline data arrays in Screen files, no `@cyberfabric/react` / `@cyberfabric/framework` imports in `components/ui/` files, no `style={{}}` or hex color literals outside `components/ui/` folders. Violations carry file path, line number, rule name, message, severity, and a suggestion.
 
 **Implementation details**:
 - Command: `src/commands/validate/components.ts` — `validateComponentsCommand: CommandDefinition<ValidateComponentsArgs, ValidateComponentsResult>`
@@ -584,18 +584,18 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - Exit code: process exits with code 1 when any error-severity violation is found
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-validate-components`
-- `cpt-hai3-algo-cli-tooling-scan-component-violations`
+- `cpt-frontx-flow-cli-tooling-validate-components`
+- `cpt-frontx-algo-cli-tooling-scan-component-violations`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ### Codemod Migration System
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-cli-tooling-migrations`
+- [x] `p2` - **ID**: `cpt-frontx-dod-cli-tooling-migrations`
 
 `migrateCommand` applies versioned codemods using ts-morph AST transforms. Migrations are idempotent — a migration already recorded in `.hai3/migrations.json` is skipped. Supports dry-run mode, status listing, version-targeted runs, and configurable glob patterns.
 
@@ -608,20 +608,20 @@ The `copy-templates.ts` build script assembles the full template set into `packa
 - Types: `src/migrations/types.ts` — `Migration`, `Transform`, `MigrationResult`, `MigrationTracker`, `AppliedMigration`
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-migrate`
-- `cpt-hai3-algo-cli-tooling-resolve-pending-migrations`
-- `cpt-hai3-algo-cli-tooling-apply-migration`
-- `cpt-hai3-state-cli-tooling-migration-tracker`
+- `cpt-frontx-flow-cli-tooling-migrate`
+- `cpt-frontx-algo-cli-tooling-resolve-pending-migrations`
+- `cpt-frontx-algo-cli-tooling-apply-migration`
+- `cpt-frontx-state-cli-tooling-migration-tracker`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-commands`
+- `cpt-frontx-fr-cli-commands`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
+- `cpt-frontx-component-cli`
 
 ### CLI PR E2E Workflow
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-cli-tooling-e2e-pr`
+- [x] `p1` - **ID**: `cpt-frontx-dod-cli-tooling-e2e-pr`
 
 A required GitHub Actions workflow (`cli-pr-e2e`) verifies the critical CLI scaffold path on every pull request to `main`. The workflow runs on `ubuntu-latest` with Node 24.14.x, builds the CLI, then exercises the scaffold through create, install, build, type-check, validate (positive + negative), scaffold layout, and ai sync across a matrix of `npm`, `pnpm`, and `yarn`. Step-level logs and a JSON summary are uploaded as CI artifacts unconditionally.
 
@@ -632,19 +632,19 @@ A required GitHub Actions workflow (`cli-pr-e2e`) verifies the critical CLI scaf
 - Artifact upload: `actions/upload-artifact@v4` with `if: always()`, retention 14 days
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-e2e-pr`
-- `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+- `cpt-frontx-flow-cli-tooling-e2e-pr`
+- `cpt-frontx-algo-cli-tooling-e2e-harness-step`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-e2e-verification`
+- `cpt-frontx-fr-cli-e2e-verification`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-adr-two-tier-cli-e2e-verification`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-adr-two-tier-cli-e2e-verification`
 
 ### CLI Nightly E2E Workflow
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-cli-tooling-e2e-nightly`
+- [x] `p2` - **ID**: `cpt-frontx-dod-cli-tooling-e2e-nightly`
 
 A non-required nightly/manual GitHub Actions workflow covers broader CLI scenarios beyond the PR gate: alternate package managers (`pnpm`, `yarn`), custom UIKit (`--uikit none`), layer scaffolds (`sdk`, `framework`, `react`), migrate commands (`--list`, `--status`), invalid-name rejection, and ai sync idempotency. Runs on the same harness infrastructure as the PR workflow.
 
@@ -655,32 +655,32 @@ A non-required nightly/manual GitHub Actions workflow covers broader CLI scenari
 - Artifact upload: `actions/upload-artifact@v4` with `if: always()`, retention 14 days
 
 **Implements**:
-- `cpt-hai3-flow-cli-tooling-e2e-nightly`
-- `cpt-hai3-algo-cli-tooling-e2e-harness-step`
+- `cpt-frontx-flow-cli-tooling-e2e-nightly`
+- `cpt-frontx-algo-cli-tooling-e2e-harness-step`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-cli-e2e-verification`
+- `cpt-frontx-fr-cli-e2e-verification`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-cli`
-- `cpt-hai3-adr-two-tier-cli-e2e-verification`
+- `cpt-frontx-component-cli`
+- `cpt-frontx-adr-two-tier-cli-e2e-verification`
 
 ---
 
 ## 6. Acceptance Criteria
 
-- [x] `hai3 create my-app` scaffolds a complete HAI3 application with correct `package.json`, `hai3.config.json`, `CLAUDE.md`, and all four AI tool configuration files
-- [x] `hai3 create my-app --package-manager <npm|pnpm|yarn>` records the selected manager in generated metadata, emits manager-specific next-step commands, and generates required workspace/config files for the selected manager
-- [x] `hai3 create my-sdk --layer sdk` generates a minimal SDK-layer package with only sdk-applicable target files and command variants
-- [x] `hai3 scaffold layout` writes layout components to `src/app/layout/` inside an existing project; skips existing files unless `--force` is passed
-- [x] `hai3 ai sync` regenerates `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and command adapters; preserves `.ai/rules/app.md` content across runs
-- [x] `hai3 ai sync --diff` prints a change summary without writing files
-- [x] `hai3 validate components` exits with code 0 when no violations are found and code 1 when any `error`-severity violation is present
-- [x] `hai3 migrate --dry-run` previews changes without modifying source files and without updating `.hai3/migrations.json`
-- [x] `hai3 migrate` is idempotent: running it twice does not re-apply an already applied migration
-- [x] `hai3 update --alpha` and `hai3 update --stable` cannot be combined; the command exits with `CONFLICTING_OPTIONS` when both flags are present
-- [x] `hai3 update` auto-detects the current release channel from the currently running CLI package version, not from an npm-specific global listing
-- [x] Template-derived docs and scripts emitted by `hai3 create` or `hai3 update --templates-only` contain concrete manager-specific commands for npm, pnpm, and yarn
+- [x] `frontx create my-app` scaffolds a complete FrontX application with correct `package.json`, `frontx.config.json`, `CLAUDE.md`, and all four AI tool configuration files
+- [x] `frontx create my-app --package-manager <npm|pnpm|yarn>` records the selected manager in generated metadata, emits manager-specific next-step commands, and generates required workspace/config files for the selected manager
+- [x] `frontx create my-sdk --layer sdk` generates a minimal SDK-layer package with only sdk-applicable target files and command variants
+- [x] `frontx scaffold layout` writes layout components to `src/app/layout/` inside an existing project; skips existing files unless `--force` is passed
+- [x] `frontx ai sync` regenerates `CLAUDE.md`, `.github/copilot-instructions.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, and command adapters; preserves `.ai/rules/app.md` content across runs
+- [x] `frontx ai sync --diff` prints a change summary without writing files
+- [x] `frontx validate components` exits with code 0 when no violations are found and code 1 when any `error`-severity violation is present
+- [x] `frontx migrate --dry-run` previews changes without modifying source files and without updating `.hai3/migrations.json`
+- [x] `frontx migrate` is idempotent: running it twice does not re-apply an already applied migration
+- [x] `frontx update --alpha` and `frontx update --stable` cannot be combined; the command exits with `CONFLICTING_OPTIONS` when both flags are present
+- [x] `frontx update` auto-detects the current release channel from the currently running CLI package version, not from an npm-specific global listing
+- [x] Template-derived docs and scripts emitted by `frontx create` or `frontx update --templates-only` contain concrete manager-specific commands for npm, pnpm, and yarn
 - [x] CLI build generates IDE rules files (`CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, `.github/copilot-instructions.md`) and command adapters in `packages/cli/templates/`
 - [x] `executeCommand(createCommand, args, { interactive: false, answers })` returns `{ success: true, data }` without prompts — programmatic API is fully functional
 - [x] `selectCommandVariant` returns `null` for any command that has no applicable variant for the given layer, ensuring layer packages do not receive irrelevant commands

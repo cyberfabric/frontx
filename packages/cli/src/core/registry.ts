@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-cli-tooling-command-infra:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-command-infra:p1
 import type { CommandDefinition } from './command.js';
 
 /**

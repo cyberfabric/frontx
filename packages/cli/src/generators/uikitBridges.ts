@@ -1,24 +1,24 @@
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-bridge-generation:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-bridge-generation:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1
 import type { ThemeConfig } from '../core/types.js';
 
 /**
  * Bridge for CSS-class-based libraries (e.g., @acronis-platform/shadcn-uikit).
  * The library owns CSS variables via class selectors; bridge.css aliases
- * HAI3 variable names to the library's namespace using var() references.
+ * FrontX variable names to the library's namespace using var() references.
  */
 export type CssAliasBridge = {
   type: 'css-alias';
   /** CSS @import lines for the library's stylesheets */
   cssImports: string[];
-  /** Content of bridge.css — :root aliases from library vars to HAI3 vars */
+  /** Content of bridge.css — :root aliases from library vars to FrontX vars */
   bridgeCss: string;
-  /** Flattened theme definitions mapping HAI3 IDs to library theme+mode */
+  /** Flattened theme definitions mapping FrontX IDs to library theme+mode */
   themes: LibraryThemeMapping[];
   /** Import statement(s) for sync effect in App.tsx */
   syncImport: string;
-  /** useEffect body code for syncing HAI3 theme → library theme */
+  /** useEffect body code for syncing FrontX theme → library theme */
   syncEffect: string;
   /** Additional npm dependencies required by the bridge */
   dependencies: Record<string, string>;
@@ -53,7 +53,7 @@ const KNOWN_BRIDGES: Record<string, UikitBridge> = {
       '@import "@acronis-platform/shadcn-uikit/styles/themes/acronis-ocean";',
     ],
     bridgeCss: `:root {
-  /* Bridge: alias HAI3 variable names to @acronis-platform/shadcn-uikit --av-* tokens.
+  /* Bridge: alias FrontX variable names to @acronis-platform/shadcn-uikit --av-* tokens.
      UIKit tokens store raw HSL triplets (e.g. "0 0% 100%"). We pass them through
      as-is — consumers wrap with hsl(var(--...)) per the shadcn convention. */
   --background: var(--av-background);
@@ -108,26 +108,26 @@ const KNOWN_BRIDGES: Record<string, UikitBridge> = {
     },
   },
 };
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1
 
 /**
  * Look up a known bridge for the given npm package name.
  * Returns null if the package is not recognized.
  */
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-2
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-2
 export function getUikitBridge(packageName: string): UikitBridge | null {
   return KNOWN_BRIDGES[packageName] ?? null;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-2
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-2
 
 /**
  * Generate generic themes for unknown UI libraries.
  * Produces default (light) and dark ThemeConfig objects with inline HSL values
  * so the Studio theme selector works out of the box.
  */
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-theme-propagation:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-1
 export function generateGenericThemes(): { themes: ThemeConfig[]; defaultId: string } {
   const defaultTheme: ThemeConfig = {
     id: 'default',
@@ -200,14 +200,14 @@ export function generateGenericThemes(): { themes: ThemeConfig[]; defaultId: str
 
   return { themes: [defaultTheme, darkTheme], defaultId: 'default' };
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-1
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-1
 
 /**
  * Generate generic globals.css for unknown UI libraries.
  * Provides :root fallback CSS variables and base body styling
  * so the Studio panel renders correctly.
  */
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-5
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-5
 export function generateGenericGlobalsCss(): string {
   const { themes } = generateGenericThemes();
   const defaultTheme = themes[0];
@@ -234,4 +234,4 @@ body {
 }
 `;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-5
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-5

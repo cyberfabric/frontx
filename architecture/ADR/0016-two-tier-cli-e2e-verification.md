@@ -22,11 +22,11 @@ date: 2026-03-10
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-two-tier-cli-e2e-verification`
+**ID**: `cpt-frontx-adr-two-tier-cli-e2e-verification`
 
 ## Context and Problem Statement
 
-The CLI package generates complete HAI3 projects, but existing CI only validated the CLI package build itself — not the generated project. A freshly scaffolded app could fail during `npm install`, `npm run build`, or `npm run type-check` without triggering any required PR check. The generated project now includes MFE bootstrap and manifest-generation scripts, making a package-level build check insufficient. The CI must prove the real scaffold path works, but running every CLI scenario as a required PR gate would increase merge latency unacceptably.
+The CLI package generates complete FrontX projects, but existing CI only validated the CLI package build itself — not the generated project. A freshly scaffolded app could fail during `npm install`, `npm run build`, or `npm run type-check` without triggering any required PR check. The generated project now includes MFE bootstrap and manifest-generation scripts, making a package-level build check insufficient. The CI must prove the real scaffold path works, but running every CLI scenario as a required PR gate would increase merge latency unacceptably.
 
 ## Decision Drivers
 
@@ -87,5 +87,5 @@ Both tiers share the same scripted e2e harness (`packages/cli/scripts/e2e-lib.mj
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-cli-e2e-verification` — required PR gate and nightly coverage for CLI scaffold path
-* `cpt-hai3-component-cli` — CLI package scope
+* `cpt-frontx-fr-cli-e2e-verification` — required PR gate and nightly coverage for CLI scaffold path
+* `cpt-frontx-component-cli` — CLI package scope

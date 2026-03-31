@@ -1,7 +1,7 @@
 {
   "title": "Hei verden",
-  "welcome": "Velkommen til HAI3 demo-skjermsett",
-  "description": "Dette er en enkel demoskjerm som viser HAI3-rammeverket i aksjon. Naviger gjennom menyen for å utforske ulike funksjoner.",
+  "welcome": "Velkommen til FrontX demo-skjermsett",
+  "description": "Dette er en enkel demoskjerm som viser FrontX-rammeverket i aksjon. Naviger gjennom menyen for å utforske ulike funksjoner.",
   "navigation_title": "Navigasjonseksempel",
   "navigation_description": "Klikk på knappen nedenfor for å navigere til temasiden programmatisk.",
   "go_to_theme": "Gå til temasiden",

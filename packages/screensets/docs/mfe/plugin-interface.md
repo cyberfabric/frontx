@@ -1,10 +1,10 @@
 # TypeSystemPlugin Interface Documentation
 
-This document describes the `TypeSystemPlugin` interface, which abstracts type system operations for MFE contracts in HAI3.
+This document describes the `TypeSystemPlugin` interface, which abstracts type system operations for MFE contracts in FrontX.
 
 ## Overview
 
-The `TypeSystemPlugin` interface enables HAI3 to work with different type system implementations while shipping GTS (`@globaltypesystem/gts-ts`) as the default. The screensets package treats type IDs as **opaque strings** - all type ID understanding is delegated to the plugin.
+The `TypeSystemPlugin` interface enables FrontX to work with different type system implementations while shipping GTS (`@globaltypesystem/gts-ts`) as the default. The screensets package treats type IDs as **opaque strings** - all type ID understanding is delegated to the plugin.
 
 **Key Principle**: When you need metadata about a type ID, call plugin methods (`parseTypeId()`, `getAttribute()`, etc.) directly. Never attempt to parse type IDs yourself.
 
@@ -225,7 +225,7 @@ Used for dynamic schema resolution. This method is **REQUIRED** - all plugins mu
 ### Building the Registry
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 
 // Build the registry with GTS plugin at application wiring time
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
@@ -237,7 +237,7 @@ registry.registerDomain(myDomain, containerProvider);
 ### Registering and Validating Entities
 
 ```typescript
-import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
 
 const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
 
@@ -404,7 +404,7 @@ All `TypeSystemPlugin` implementations **must** implement `getAttribute()`. This
 
 ### First-Class Schemas Are Built-In
 
-The GTS plugin ships with all HAI3 first-class citizen schemas built-in. You never need to call `registerSchema()` for core types. This method is only for vendor/dynamic schemas.
+The GTS plugin ships with all FrontX first-class citizen schemas built-in. You never need to call `registerSchema()` for core types. This method is only for vendor/dynamic schemas.
 
 ### Instance ID Convention
 

@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 export enum ButtonVariant {
   Default = 'default',
   Destructive = 'destructive',

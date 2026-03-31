@@ -1,4 +1,4 @@
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
 /**
  * Normalize a color value for use as a CSS variable value.
  * Strips the hsl() wrapper so shadcn components can use it as `hsl(var(--primary))`.

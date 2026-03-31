@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-scaffold-layout:p1
 import type { GeneratedFile } from '../core/types.js';
 import { ALL_LANGUAGES, LANGUAGE_ENUM_MAP } from './utils.js';
 
@@ -15,7 +15,7 @@ export interface I18nGeneratorInput {
 /**
  * Generate i18n stub files for all 36 languages
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+// @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 export function generateI18nStubs(input: I18nGeneratorInput): GeneratedFile[] {
   const { basePath, translations } = input;
 
@@ -24,7 +24,7 @@ export function generateI18nStubs(input: I18nGeneratorInput): GeneratedFile[] {
     content: JSON.stringify(translations, null, 2) + '\n',
   }));
 }
-// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+// @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 
 /**
  * Generate translation loader code

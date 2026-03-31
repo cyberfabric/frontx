@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-mfe-isolation-blob-core:p1
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-blob-core:p1
 
 import type { MfeEntryMF, MfManifest } from '../types';
 import {
@@ -36,7 +36,7 @@ type ShareScope = Record<string, FederationPackageVersions>;
  * common transitive dependencies (e.g., the bundled React CJS module) are
  * blob-URL'd once and reused by all modules within the same load.
  */
-// @cpt-state:cpt-hai3-state-mfe-isolation-load-blob-state:p1
+// @cpt-state:cpt-frontx-state-mfe-isolation-load-blob-state:p1
 interface LoadBlobState {
   readonly blobUrlMap: Map<string, string>;
   readonly inFlight: Map<string, Promise<void>>;
@@ -85,7 +85,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly manifestCache: ManifestCache;
   private readonly config: MfeLoaderConfig;
   private readonly retryHandler: RetryHandler;
-  // @cpt-state:cpt-hai3-state-mfe-isolation-source-cache:p1
+  // @cpt-state:cpt-frontx-state-mfe-isolation-source-cache:p1
   private readonly sourceTextCache = new Map<string, Promise<string>>();
 
   constructor(
@@ -105,7 +105,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Load an MFE bundle using Module Federation.
    */
-  // @cpt-flow:cpt-hai3-flow-mfe-isolation-load:p1
+  // @cpt-flow:cpt-frontx-flow-mfe-isolation-load:p1
   async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
     return this.retryHandler.retry(
       () => this.loadInternal(entry),
@@ -277,7 +277,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Dependencies without chunkPath are omitted — the MFE falls back to its
    * own bundled copy via the federation runtime's getSharedFromLocal().
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-build-share-scope:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-build-share-scope:p1
   private buildShareScope(
     manifest: MfManifest,
     loadState: LoadBlobState
@@ -305,7 +305,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Write share scope entries to globalThis.__federation_shared__.
    * Replicates the behavior of container.init(shareScope).
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-write-share-scope:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-write-share-scope:p1
   private writeShareScope(shareScope: ShareScope): void {
     const g = globalThis as Record<string, unknown>;
     const globalShared = (g.__federation_shared__ ?? {}) as Record<
@@ -342,7 +342,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * result. This prevents a race where sibling ESM modules with top-level
    * await trigger overlapping importShared() calls for the same dependency.
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-blob-url-chain:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-blob-url-chain:p1
   private createBlobUrlChain(
     loadState: LoadBlobState,
     filename: string
@@ -390,7 +390,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * dependencies are blob-URL'd once. Each call to get() within the same
    * load reuses existing blob URLs for already-processed modules.
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-blob-url-get:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-blob-url-get:p1
   private createBlobUrlGet(
     chunkPath: string,
     loadState: LoadBlobState
@@ -417,7 +417,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Fetch the source text of a chunk. Uses an in-memory cache so each URL
    * is fetched at most once across all loads.
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-fetch-source:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-fetch-source:p1
   private fetchSourceText(absoluteChunkUrl: string): Promise<string> {
     const cached = this.sourceTextCache.get(absoluteChunkUrl);
     if (cached !== undefined) {
@@ -459,7 +459,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *     return __federation_import('./__federation_expose_Lifecycle-helloworld-CeX0Lwd2.js')...
    *   }
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-parse-expose-chunk:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
   private parseExposeChunkFilename(
     remoteEntrySource: string,
     exposedModule: string
@@ -477,10 +477,10 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *
    * Matches all relative imports (both './' and '../' prefixed) and resolves
    * them relative to the importing chunk's path. For example, a chunk at
-   * '__federation_shared_@hai3/react.js' importing '../runtime.js' resolves
+   * '__federation_shared_@cyberfabric/react.js' importing '../runtime.js' resolves
    * to 'runtime.js' (relative to baseUrl).
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-parse-imports:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-imports:p1
   private parseStaticImportFilenames(
     source: string,
     chunkFilename: string
@@ -510,7 +510,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * is resolved against the chunk's own path to produce a normalized key
    * for the blobUrlMap lookup. Unmatched imports fall back to absolute URLs.
    */
-  // @cpt-algo:cpt-hai3-algo-mfe-isolation-rewrite-module-imports:p1
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-rewrite-module-imports:p1
   private rewriteModuleImports(
     source: string,
     baseUrl: string,
@@ -560,7 +560,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Resolve a relative import path against the importing chunk's filename.
    *
    * Uses URL resolution to correctly handle '../' traversals. For example:
-   *  - resolveRelativePath('__federation_shared_@hai3/react.js', '../runtime.js')
+   *  - resolveRelativePath('__federation_shared_@cyberfabric/react.js', '../runtime.js')
    *    → 'runtime.js'
    *  - resolveRelativePath('expose-Widget1.js', './dep.js')
    *    → 'dep.js'

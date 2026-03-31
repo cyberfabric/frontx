@@ -34,8 +34,8 @@ import type {
  * subscription.unsubscribe();
  * ```
  */
-// @cpt-dod:cpt-hai3-dod-state-management-eventbus:p1
-// @cpt-state:cpt-hai3-state-state-management-handler-registration:p1
+// @cpt-dod:cpt-frontx-dod-state-management-eventbus:p1
+// @cpt-state:cpt-frontx-state-state-management-handler-registration:p1
 class EventBusImpl implements IEventBus<EventPayloadMap> {
   private handlers: Map<string, Set<EventHandler<unknown>>> = new Map();
 
@@ -44,7 +44,7 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    * Type-safe: payload must match event type in EventPayloadMap.
    * Payload is optional for void events.
    */
-  // @cpt-algo:cpt-hai3-algo-state-management-eventbus-emit:p1
+  // @cpt-algo:cpt-frontx-algo-state-management-eventbus-emit:p1
   emit<K extends keyof EventPayloadMap>(
     eventType: K,
     ...args: EventPayloadMap[K] extends void ? [] : [EventPayloadMap[K]]
@@ -61,8 +61,8 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    * Type-safe: handler receives correct payload type for event.
    * Returns subscription object with unsubscribe method.
    */
-  // @cpt-algo:cpt-hai3-algo-state-management-eventbus-subscribe:p1
-  // @cpt-flow:cpt-hai3-flow-state-management-type-augmentation:p1
+  // @cpt-algo:cpt-frontx-algo-state-management-eventbus-subscribe:p1
+  // @cpt-flow:cpt-frontx-flow-state-management-type-augmentation:p1
   on<K extends keyof EventPayloadMap>(
     eventType: K,
     handler: EventHandler<EventPayloadMap[K]>
@@ -92,7 +92,7 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    * Subscribe to event, but only fire once then auto-unsubscribe.
    * Type-safe: handler receives correct payload type for event.
    */
-  // @cpt-algo:cpt-hai3-algo-state-management-eventbus-subscribe-once:p2
+  // @cpt-algo:cpt-frontx-algo-state-management-eventbus-subscribe-once:p2
   once<K extends keyof EventPayloadMap>(
     eventType: K,
     handler: EventHandler<EventPayloadMap[K]>

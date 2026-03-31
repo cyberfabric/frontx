@@ -1,11 +1,11 @@
 /**
  * Migration System Types
  *
- * Defines interfaces for HAI3's codemod-based migration system.
+ * Defines interfaces for FrontX's codemod-based migration system.
  * Uses ts-morph for TypeScript-native AST manipulation.
  */
-// @cpt-dod:cpt-hai3-dod-cli-tooling-migrations:p1
-// @cpt-state:cpt-hai3-state-cli-tooling-migration-tracker:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-migrations:p1
+// @cpt-state:cpt-frontx-state-cli-tooling-migration-tracker:p1
 
 import type { SourceFile } from 'ts-morph';
 
@@ -145,7 +145,7 @@ export interface FileResult {
 }
 
 /**
- * Record of an applied migration (stored in .hai3/migrations.json)
+ * Record of an applied migration (stored in .frontx/migrations.json)
  */
 export interface AppliedMigration {
   /** Migration ID */
@@ -171,7 +171,7 @@ export interface AppliedTransformRecord {
 }
 
 /**
- * Migration tracker stored in .hai3/migrations.json
+ * Migration tracker stored in .frontx/migrations.json
  */
 export interface MigrationTracker {
   /** Schema version for the tracker file */

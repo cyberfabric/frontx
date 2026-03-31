@@ -1,5 +1,5 @@
 /**
- * MFE Module - MFE context and hooks for @hai3/react
+ * MFE Module - MFE context and hooks for @cyberfabric/react
  *
  * Provides React integration for MFE components.
  */

@@ -1,6 +1,6 @@
 /**
  * ESLint Local Plugin
- * Custom rules for HAI3 screenset architecture enforcement
+ * Custom rules for FrontX screenset architecture enforcement
  */
 
 import noBarrelExportsEventsEffects = require('./rules/no-barrel-exports-events-effects');

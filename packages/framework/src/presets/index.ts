@@ -4,8 +4,8 @@
  * Framework Layer: L2
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-full-preset:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-presets:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-full-preset:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-presets:p1
 
 import type { HAI3Plugin, Presets } from '../types';
 import { screensets } from '../plugins/screensets';
@@ -28,8 +28,8 @@ export interface FullPresetConfig {
 }
 
 /**
- * Full preset - All plugins for the complete HAI3 experience.
- * This is the default for `hai3 create` projects.
+ * Full preset - All plugins for the complete FrontX experience.
+ * This is the default for `frontx create` projects.
  *
  * Includes:
  * - screensets (screenset registry, screen slice)
@@ -44,18 +44,18 @@ export interface FullPresetConfig {
  *
  * @example
  * ```typescript
- * import { MfeHandlerMF, HAI3_MFE_ENTRY_MF } from '@hai3/screensets/mfe/handler';
- * import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+ * import { MfeHandlerMF, FrontX_MFE_ENTRY_MF } from '@cyberfabric/screensets/mfe/handler';
+ * import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
  *
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(full({
- *     microfrontends: { typeSystem: gtsPlugin, mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)] }
+ *     microfrontends: { typeSystem: gtsPlugin, mfeHandlers: [new MfeHandlerMF(FrontX_MFE_ENTRY_MF)] }
  *   }))
  *   .build();
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
-// @cpt-begin:cpt-hai3-dod-framework-composition-presets:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-full-preset:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-presets:p1:inst-1
 export function full(config?: FullPresetConfig): HAI3Plugin[] {
   const plugins: HAI3Plugin[] = [
     effects(),
@@ -73,11 +73,11 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
   }
   return plugins;
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-full-preset:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-full-preset:p1:inst-1
 
 /**
  * Minimal preset - Screensets + themes only.
- * For users who want basic HAI3 patterns without full layout management.
+ * For users who want basic FrontX patterns without full layout management.
  *
  * Includes:
  * - screensets (screenset registry, screen slice)
@@ -89,7 +89,7 @@ export function minimal(): HAI3Plugin[] {
     themes(),
   ];
 }
-// @cpt-end:cpt-hai3-dod-framework-composition-presets:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-presets:p1:inst-1
 
 /**
  * Headless preset - Screensets only.

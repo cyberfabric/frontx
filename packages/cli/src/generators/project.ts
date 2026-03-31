@@ -1,6 +1,6 @@
-// @cpt-algo:cpt-hai3-algo-cli-tooling-generate-project:p1
-// @cpt-dod:cpt-hai3-dod-cli-tooling-templates:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-no-uikit-utils
+// @cpt-algo:cpt-frontx-algo-cli-tooling-generate-project:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-templates:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-no-uikit-utils
 import path from 'path';
 import { createRequire } from 'module';
 import fs from 'fs-extra';
@@ -59,19 +59,19 @@ export function cn(...inputs: ClassInput[]) {
   return inputs.filter(Boolean).join(' ');
 }
 `;
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-no-uikit-utils
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-no-uikit-utils
 
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-template-selection:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-utils
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-template-selection:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-utils
 export function getProjectUtilsTemplate(uikit: string): string {
   return uikit === 'shadcn' ? 'src/app/lib/utils.ts' : NO_UIKIT_UTILS_TEMPLATE;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-utils
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-utils
 
 /**
  * Read all files from a directory recursively
  */
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-read-dir
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-read-dir
 async function readDirRecursive(
   dir: string,
   basePath: string = ''
@@ -98,14 +98,14 @@ async function readDirRecursive(
 
   return files;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-read-dir
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-read-dir
 
 /**
  * Inject the concrete UI kit package name into the GUIDELINES.md UI KIT DISCOVERY section
- * so AI agents can immediately identify the library without reading hai3.config.json first.
+ * so AI agents can immediately identify the library without reading frontx.config.json first.
  */
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-4
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-4
 function injectUikitDiscovery(content: string, uikit: string): string {
   if (!isCustomUikit(uikit)) return content;
 
@@ -122,13 +122,13 @@ function injectUikitDiscovery(content: string, uikit: string): string {
 
   return content;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-4
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-4
 
 /**
  * Generate a .ai/targets/UIKIT.md for custom uikit projects.
  * Gives AI agents concrete, actionable instructions about the third-party library.
  */
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-guidelines-uikit-target
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-guidelines-uikit-target
 function generateUikitTarget(uikit: string): string {
   return `# UI Kit: \`${uikit}\`
 
@@ -160,7 +160,7 @@ When \`${uikit}\` does not provide a needed component:
 - App-wide shared components -> \`src/app/components/\`
 `;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-guidelines-uikit-target
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-guidelines-uikit-target
 
 
 /**
@@ -168,9 +168,9 @@ When \`${uikit}\` does not provide a needed component:
  * For known bridges: library-specific themes.ts, bridge.css, index.ts.
  * For unknown libraries: generic themes with inline HSL values.
  */
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-bridge-generation:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-3
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-bridge-generation:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-3
 function generateCustomUikitThemes(uikit: string): GeneratedFile[] {
   const bridge = getUikitBridge(uikit);
   const themeFiles: GeneratedFile[] = [];
@@ -190,7 +190,7 @@ function generateCustomUikitThemes(uikit: string): GeneratedFile[] {
 
     themeFiles.push({
       path: 'src/app/themes/themes.ts',
-      content: `import type { ThemeConfig } from '@hai3/react';
+      content: `import type { ThemeConfig } from '@cyberfabric/react';
 
 export const hai3Themes: ThemeConfig[] = [
   ${themeEntries.join(',\n  ')},
@@ -200,7 +200,7 @@ export const DEFAULT_THEME_ID = '${cssAlias.themes.find((t) => t.default)?.id ??
 `,
     });
 
-    // bridge.css — CSS aliases from library vars to HAI3 vars
+    // bridge.css — CSS aliases from library vars to FrontX vars
     themeFiles.push({
       path: 'src/app/themes/bridge.css',
       content: cssAlias.bridgeCss,
@@ -228,7 +228,7 @@ export const DEFAULT_THEME_ID = '${cssAlias.themes.find((t) => t.default)?.id ??
 
   return themeFiles;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-3
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-3
 
 /**
  * Check whether a CSS import path references a file that exists in the installed package.
@@ -237,7 +237,7 @@ export const DEFAULT_THEME_ID = '${cssAlias.themes.find((t) => t.default)?.id ??
  * Returns true when the package is not resolvable (to avoid silently dropping imports
  * for packages that simply aren't installed yet in the CLI's environment).
  */
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-css-import-check
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-css-import-check
 async function cssImportFileExists(modulePath: string): Promise<boolean> {
   try {
     const require = createRequire(import.meta.url);
@@ -258,16 +258,16 @@ async function cssImportFileExists(modulePath: string): Promise<boolean> {
     return true;
   }
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-css-import-check
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-css-import-check
 
 /**
  * Generate globals.css for a custom UI kit project.
  * For known bridges: library CSS imports + bridge.css import.
  * For unknown libraries: :root fallback variables and base styling.
  */
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-custom-globals-css
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-theme-propagation:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-custom-globals-css
 async function generateCustomGlobalsCss(uikit: string): Promise<string> {
   const bridge = getUikitBridge(uikit);
 
@@ -305,13 +305,13 @@ body {
 
   return generateGenericGlobalsCss();
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-custom-globals-css
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-custom-globals-css
 
 /**
  * Replace __LIBRARY_SYNC_IMPORT__ and __LIBRARY_SYNC_EFFECT__ placeholders
  * in App.tsx with bridge-specific or generic fallback code.
  */
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-4
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-4
 function applyAppPlaceholders(content: string, uikit: string): string {
   const bridge = getUikitBridge(uikit);
 
@@ -336,7 +336,7 @@ function applyAppPlaceholders(content: string, uikit: string): string {
 
   return content;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-4
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-propagation-4
 
 function shouldTransformForPackageManager(filePath: string): boolean {
   const textExtensions = new Set([
@@ -355,12 +355,12 @@ function shouldTransformForPackageManager(filePath: string): boolean {
 }
 
 /**
- * Generate all files for a new HAI3 project
+ * Generate all files for a new FrontX project
  * Combines template files with dynamically generated config files
  */
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-template-selection-impl:p1
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-types
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-template-selection-impl:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-types
 type TemplateCopyInput = {
   templatesDir: string;
   studio: boolean;
@@ -411,10 +411,11 @@ const ROOT_CONFIG_FILES = [
   '.pre-commit-config.yaml',
   '.npmrc',
   '.nvmrc',
+  '.github/workflows/ci.yml',
 ];
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-types
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-types
 
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-manifest-load
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-manifest-load
 async function loadTemplateManifest(templatesDir: string): Promise<{
   rootFiles: string[];
   directories: string[];
@@ -430,10 +431,10 @@ async function loadTemplateManifest(templatesDir: string): Promise<{
     directories: manifest.stage1b?.directories || manifest.directories || [],
   };
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-manifest-load
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-manifest-load
 
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-3
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-4
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-3
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-4
 function getMainTemplateName(uikit: string): string {
   if (uikit === 'shadcn') return 'src/app/main.tsx';
   if (isCustomUikit(uikit)) return 'src/app/main.custom-uikit.tsx';
@@ -447,10 +448,10 @@ function getAppTemplateName(uikit: string, studio: boolean): string {
   }
   return studio ? 'src/app/App.no-uikit.tsx' : 'src/app/App.no-uikit.no-studio.tsx';
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-4
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-3
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-4
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-3
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-template-selection-impl:p1:inst-template-copy
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-template-selection-impl:p1:inst-template-copy
 async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFile[]> {
   const { templatesDir, studio, uikit } = input;
   const files: GeneratedFile[] = [];
@@ -562,9 +563,9 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
 
   return files;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-template-selection-impl:p1:inst-template-copy
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-template-selection-impl:p1:inst-template-copy
 
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-adapter-build
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-adapter-build
 function buildThemeAdapterFile(themes: ReturnType<typeof generateGenericThemes>['themes'], defaultId: string): string {
   const themeBlocks = themes.map((theme) => {
     const varsBlock = Object.entries(theme.variables)
@@ -580,7 +581,7 @@ ${varsBlock}
   }`;
   });
 
-  return `import type { ThemeConfig } from '@hai3/react';
+  return `import type { ThemeConfig } from '@cyberfabric/react';
 
 export const hai3Themes: ThemeConfig[] = [
   ${themeBlocks.join(',\n  ')},
@@ -589,9 +590,9 @@ export const hai3Themes: ThemeConfig[] = [
 export const DEFAULT_THEME_ID = '${defaultId}';
 `;
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-adapter-build
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1:inst-theme-adapter-build
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1:inst-theme-files-generate
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-theme-propagation:p1:inst-theme-files-generate
 async function generateThemeFiles(uikit: string): Promise<GeneratedFile[]> {
   const resolvedUikit = normalizeUikit(uikit);
   const files: GeneratedFile[] = [];
@@ -638,9 +639,9 @@ async function generateThemeFiles(uikit: string): Promise<GeneratedFile[]> {
 
   return files;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1:inst-theme-files-generate
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-theme-propagation:p1:inst-theme-files-generate
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-mfe-bootstrap
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-mfe-bootstrap
 function generateMfeBootstrap(uikit: string): GeneratedFile[] {
   const initialMfePackages = uikit === 'shadcn' ? ['demo-mfe'] : [];
   return [
@@ -650,9 +651,9 @@ function generateMfeBootstrap(uikit: string): GeneratedFile[] {
     },
   ];
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-mfe-bootstrap
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-mfe-bootstrap
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-targets-generate
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-targets-generate
 async function generateAiTargets(input: AiTargetsInput): Promise<GeneratedFile[]> {
   const { templatesDir, layer, uikit } = input;
   const files: GeneratedFile[] = [];
@@ -742,9 +743,9 @@ async function generateAiTargets(input: AiTargetsInput): Promise<GeneratedFile[]
 
   return files;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-targets-generate
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-targets-generate
 
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
 function buildPackageJson(input: PackageJsonInput): string {
   const {
     projectName,
@@ -758,12 +759,12 @@ function buildPackageJson(input: PackageJsonInput): string {
   const resolvedUikit = normalizeUikit(uikit);
 
   const dependencies: Record<string, string> = {
-    '@hai3/react': 'alpha',
-    '@hai3/framework': 'alpha',
-    '@hai3/api': 'alpha',
-    '@hai3/i18n': 'alpha',
-    '@hai3/screensets': 'alpha',
-    '@hai3/state': 'alpha',
+    '@cyberfabric/react': 'alpha',
+    '@cyberfabric/framework': 'alpha',
+    '@cyberfabric/api': 'alpha',
+    '@cyberfabric/i18n': 'alpha',
+    '@cyberfabric/screensets': 'alpha',
+    '@cyberfabric/state': 'alpha',
     '@hookform/resolvers': '5.2.2',
     '@iconify/react': '5.0.2',
     '@radix-ui/react-avatar': '1.1.10',
@@ -787,7 +788,7 @@ function buildPackageJson(input: PackageJsonInput): string {
   };
 
   const devDependencies: Record<string, string> = {
-    '@hai3/cli': 'alpha',
+    '@cyberfabric/cli': 'alpha',
     '@j178/prek': '0.2.25',
     '@types/lodash': '4.17.20',
     '@types/react': '19.0.8',
@@ -811,7 +812,7 @@ function buildPackageJson(input: PackageJsonInput): string {
   };
 
   if (studio) {
-    devDependencies['@hai3/studio'] = 'alpha';
+    devDependencies['@cyberfabric/studio'] = 'alpha';
   }
 
   if (resolvedUikit !== 'shadcn') {
@@ -835,7 +836,7 @@ function buildPackageJson(input: PackageJsonInput): string {
       const out: Record<string, string> = {};
       for (const [name, value] of Object.entries(deps)) {
         out[name] =
-          name.startsWith('@hai3/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
+          name.startsWith('@cyberfabric/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
       }
       return out;
     };
@@ -868,7 +869,7 @@ function buildPackageJson(input: PackageJsonInput): string {
       'type-check': 'tsc --noEmit',
       'arch:check': 'tsx scripts/test-architecture.ts',
       'arch:deps': 'dependency-cruiser src/ --config .dependency-cruiser.cjs --output-type err-long',
-      'ai:sync': 'hai3 ai sync',
+      'ai:sync': 'frontx ai sync',
       'prek:install': 'prek install',
       'prek:run': 'prek run --all-files',
       postinstall: 'prek install',
@@ -883,10 +884,10 @@ function buildPackageJson(input: PackageJsonInput): string {
 
   return JSON.stringify(packageJson, null, 2) + '\n';
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
 
-// @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2
-// @cpt-begin:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate
+// @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2
+// @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate
 export async function generateProject(input: ProjectGeneratorInput): Promise<GeneratedFile[]> {
   const {
     projectName,
@@ -908,14 +909,14 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
   files.push(...(await generateAiTargets({ templatesDir, layer, uikit })));
 
   const config: Hai3Config = {
-    hai3: true,
+    frontx: true,
     layer,
     uikit,
     packageManager,
     ...(packageManager === 'yarn' ? { linkerMode: 'node-modules' as const } : {}),
   };
   files.push({
-    path: 'hai3.config.json',
+    path: 'frontx.config.json',
     content: JSON.stringify(config, null, 2) + '\n',
   });
 
@@ -974,4 +975,4 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
 
   return files;
 }
-// @cpt-end:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate
+// @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate

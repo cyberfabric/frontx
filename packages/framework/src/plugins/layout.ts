@@ -3,14 +3,14 @@
  *
  * Framework Layer: L2
  *
- * NOTE: Layout slices are owned by @hai3/framework (not @hai3/uicore which is deprecated)
+ * NOTE: Layout slices are owned by @cyberfabric/framework (not @cyberfabric/uicore which is deprecated)
  */
 
-// @cpt-dod:cpt-hai3-dod-framework-composition-layout:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-layout:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-config:p1
 
 import type { Dispatch, UnknownAction } from '@reduxjs/toolkit';
-import { eventBus } from '@hai3/state';
+import { eventBus } from '@cyberfabric/state';
 import type { HAI3Plugin, ShowPopupPayload } from '../types';
 import {
   headerSlice,
@@ -27,7 +27,7 @@ import {
 } from '../slices';
 
 // Define layout events for module augmentation
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'layout/popup/requested': ShowPopupPayload;
     'layout/popup/hidden': void;
@@ -101,7 +101,7 @@ function setHeaderVisible(_visible: boolean): void {
  *   .build();
  * ```
  */
-// @cpt-begin:cpt-hai3-dod-framework-composition-layout:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-layout:p1:inst-1
 export function layout(): HAI3Plugin {
 
   return {
@@ -169,4 +169,4 @@ export function layout(): HAI3Plugin {
     },
   };
 }
-// @cpt-end:cpt-hai3-dod-framework-composition-layout:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-layout:p1:inst-1

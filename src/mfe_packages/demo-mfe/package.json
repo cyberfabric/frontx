@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/demo-mfe",
+  "name": "@cyberfabric/demo-mfe",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.0",
   "type": "module",
   "scripts": {
     "dev": "vite build && vite preview --port 3001",
@@ -11,7 +11,7 @@
   "dependencies": {
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@hai3/react": "file:../../../packages/react",
+    "@cyberfabric/react": "file:../../../packages/react",
     "tailwindcss": "^3.4.17",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.6.0",

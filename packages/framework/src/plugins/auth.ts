@@ -13,14 +13,14 @@ import type {
   AuthStateListener,
   AuthUnsubscribe,
   AuthTransition,
-} from '@hai3/auth';
+} from '@cyberfabric/auth';
 import {
   RestPlugin,
   RestProtocol,
   type ApiPluginErrorContext,
   type RestRequestContext,
   type RestResponseContext,
-} from '@hai3/api';
+} from '@cyberfabric/api';
 import type { HAI3Plugin } from '../types';
 
 export type AuthRuntime = {
@@ -62,7 +62,7 @@ export type AuthPluginConfig = {
    */
   transport?: AuthTransportBinder;
   /**
-   * Configuration for the default @hai3/api binding.
+   * Configuration for the default @cyberfabric/api binding.
    * Ignored when `transport` is provided.
    */
   hai3Api?: Hai3ApiAuthTransportConfig;
@@ -237,7 +237,7 @@ export function hai3ApiTransport(): AuthTransportBinder {
 /**
  * Auth plugin.
  *
- * Wires a headless AuthProvider into @hai3/api protocol plugins and exposes `app.auth`.
+ * Wires a headless AuthProvider into @cyberfabric/api protocol plugins and exposes `app.auth`.
  */
 export function auth(config: AuthPluginConfig): HAI3Plugin {
   const transport = config.transport ?? hai3ApiTransport();

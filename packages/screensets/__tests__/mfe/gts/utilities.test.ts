@@ -1,7 +1,7 @@
 /**
  * GTS Utilities Tests
  *
- * Tests for HAI3 constants.
+ * Tests for FrontX constants.
  */
 
 import { describe, it, expect } from 'vitest';

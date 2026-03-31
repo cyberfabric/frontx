@@ -1,5 +1,5 @@
 /**
- * @hai3/i18n - Internationalization
+ * @cyberfabric/i18n - Internationalization
  *
  * This package provides:
  * - Language enum with 36 supported languages

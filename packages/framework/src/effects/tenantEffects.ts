@@ -5,11 +5,11 @@
  * Event-driven architecture: consuming apps emit events, effects handle state updates.
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
-// @cpt-state:cpt-hai3-state-framework-composition-tenant:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-app-config:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-config:p1
+// @cpt-state:cpt-frontx-state-framework-composition-tenant:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-app-config:p1
 
-import { eventBus, getStore } from '@hai3/state';
+import { eventBus, getStore } from '@cyberfabric/state';
 import { setTenant, clearTenant } from '../slices/tenantSlice';
 import type { Tenant } from '../layoutTypes';
 
@@ -37,7 +37,7 @@ export interface TenantClearedPayload {
 // Module Augmentation for Type-Safe Events
 // ============================================================================
 
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'app/tenant/changed': TenantChangedPayload;
     'app/tenant/cleared': TenantClearedPayload;
@@ -52,8 +52,8 @@ declare module '@hai3/state' {
  * Initialize tenant effects
  * Call this once during app bootstrap to start listening for tenant events.
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-app-config:p1:inst-1
-// @cpt-begin:cpt-hai3-state-framework-composition-tenant:p1:inst-2
+// @cpt-begin:cpt-frontx-flow-framework-composition-app-config:p1:inst-1
+// @cpt-begin:cpt-frontx-state-framework-composition-tenant:p1:inst-2
 export function initTenantEffects(): () => void {
   const store = getStore();
 
@@ -73,5 +73,5 @@ export function initTenantEffects(): () => void {
     subCleared.unsubscribe();
   };
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-app-config:p1:inst-1
-// @cpt-end:cpt-hai3-state-framework-composition-tenant:p1:inst-2
+// @cpt-end:cpt-frontx-flow-framework-composition-app-config:p1:inst-1
+// @cpt-end:cpt-frontx-state-framework-composition-tenant:p1:inst-2

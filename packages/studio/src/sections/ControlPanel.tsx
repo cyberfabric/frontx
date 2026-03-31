@@ -1,12 +1,12 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 import React from 'react';
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 import { MfePackageSelector } from './MfePackageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { LanguageSelector } from './LanguageSelector';
 import { ApiModeToggle } from './ApiModeToggle';
 
-// @cpt-begin:cpt-hai3-dod-studio-devtools-control-panel:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-studio-devtools-control-panel:p1:inst-1
 export const ControlPanel: React.FC = () => {
   const { t } = useTranslation();
 
@@ -29,4 +29,4 @@ export const ControlPanel: React.FC = () => {
 };
 
  ControlPanel.displayName = 'ControlPanel';
-// @cpt-end:cpt-hai3-dod-studio-devtools-control-panel:p1:inst-1
+// @cpt-end:cpt-frontx-dod-studio-devtools-control-panel:p1:inst-1

@@ -1,7 +1,7 @@
 /**
  * MFE Hooks Tests
  *
- * Tests for MFE context and hooks in @hai3/react.
+ * Tests for MFE context and hooks in @cyberfabric/react.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -17,7 +17,7 @@ import {
   useHostAction,
   type MfeContextValue,
 } from '../../src/mfe';
-import type { ChildMfeBridge } from '@hai3/framework';
+import type { ChildMfeBridge } from '@cyberfabric/framework';
 
 // ============================================================================
 // Mock Data
@@ -170,9 +170,9 @@ describe('MfeContext', () => {
     });
   });
 
-  // HAI3Provider MFE detection testing is deferred to integration tests.
+  // FrontXProvider MFE detection testing is deferred to integration tests.
   // The feature (when mfeBridge prop is provided, wrap children with MfeProvider)
-  // requires full HAI3 app instance with store, registries, and plugin initialization.
+  // requires full FrontX app instance with store, registries, and plugin initialization.
   // It will be properly tested when:
   // - Bridge communication layer is complete
   // - Integration tests with Chrome DevTools MCP Runtime are available

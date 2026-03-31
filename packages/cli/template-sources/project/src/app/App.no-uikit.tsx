@@ -1,5 +1,5 @@
 /**
- * HAI3 Application Component (no UIKit, with Studio)
+ * FrontX Application Component (no UIKit, with Studio)
  *
  * Layout + MfeScreenContainer + StudioOverlay.
  * Used for projects created with --uikit none and studio enabled.
@@ -7,7 +7,7 @@
  */
 
 import { Layout } from '@/app/layout';
-import { StudioOverlay } from '@hai3/studio';
+import { StudioOverlay } from '@cyberfabric/studio';
 import { MfeScreenContainer } from '@/app/mfe/MfeScreenContainer';
 
 function App() {

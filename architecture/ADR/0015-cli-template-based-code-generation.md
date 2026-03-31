@@ -24,7 +24,7 @@ date: 2025-11-24
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-cli-template-based-code-generation`
+**ID**: `cpt-frontx-adr-cli-template-based-code-generation`
 ## Context and Problem Statement
 
 CLI code generation must produce code that follows current framework patterns and passes architecture checks. Programmatic string generation drifts from actual patterns when the framework evolves, because the generator and the framework evolve independently. Template languages add parsing complexity and a new authoring surface that contributors must learn. Generated code must always be valid TypeScript that satisfies the project's architecture rules.
@@ -89,8 +89,8 @@ Chosen option: "Copy real project files at build time as templates, apply ID tra
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-cli-package` — CLI package structure and build step for template copying
-* `cpt-hai3-fr-cli-commands` — `CommandDefinition<TArgs, TResult>` plugin registry interface
-* `cpt-hai3-fr-cli-templates` — real project files used as code generation templates
-* `cpt-hai3-fr-cli-skills` — AI agent skill invocation via `ExecutionMode` programmatic path
-* `cpt-hai3-component-cli` — CLI package scope
+* `cpt-frontx-fr-cli-package` — CLI package structure and build step for template copying
+* `cpt-frontx-fr-cli-commands` — `CommandDefinition<TArgs, TResult>` plugin registry interface
+* `cpt-frontx-fr-cli-templates` — real project files used as code generation templates
+* `cpt-frontx-fr-cli-skills` — AI agent skill invocation via `ExecutionMode` programmatic path
+* `cpt-frontx-component-cli` — CLI package scope

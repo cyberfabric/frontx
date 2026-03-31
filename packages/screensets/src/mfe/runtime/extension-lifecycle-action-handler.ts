@@ -1,5 +1,5 @@
-// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
-// @cpt-algo:cpt-hai3-algo-screenset-registry-domain-semantics:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-domain-semantics:p1
 /**
  * Extension Lifecycle Action Handler
  *
@@ -106,7 +106,7 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
     private readonly customActionHandler?: CustomActionHandler
   ) {}
 
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async handleAction(
     actionTypeId: string,
     payload: Record<string, unknown> | undefined
@@ -149,7 +149,7 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
         break;
     }
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
 
   private requirePayload(
     actionTypeId: string,
@@ -174,7 +174,7 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
     return extensionId;
   }
 
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-domain-semantics:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
   private async handleScreenSwap(newExtensionId: string): Promise<void> {
     await this.callbacks.serializeOnDomain(this.domainId, async () => {
       const currentExtId = this.callbacks.getMountedExtension(this.domainId);
@@ -192,5 +192,5 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
       await this.callbacks.mountExtension(newExtensionId, container);
     });
   }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-domain-semantics:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
 }

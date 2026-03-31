@@ -1,13 +1,13 @@
 /**
- * @hai3/api - Type Definitions
+ * @cyberfabric/api - Type Definitions
  *
- * Core types for HAI3 API communication.
+ * Core types for FrontX API communication.
  * Supports REST, SSE, and mock protocols.
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-plugin-types:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-is-mock-plugin:p2
-// @cpt-state:cpt-hai3-state-api-communication-mock-mode:p2
+// @cpt-dod:cpt-frontx-dod-api-communication-plugin-types:p1
+// @cpt-algo:cpt-frontx-algo-api-communication-is-mock-plugin:p2
+// @cpt-state:cpt-frontx-state-api-communication-mock-mode:p2
 
 import type { BaseApiService } from './BaseApiService';
 
@@ -74,13 +74,13 @@ export const MOCK_PLUGIN = Symbol.for('hai3:plugin:mock');
  * }
  * ```
  */
-// @cpt-begin:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-1
+// @cpt-begin:cpt-frontx-algo-api-communication-is-mock-plugin:p2:inst-1
 export function isMockPlugin(plugin: unknown): boolean {
   if (!plugin || typeof plugin !== 'object') return false;
   const constructor = (plugin as object).constructor;
   return MOCK_PLUGIN in constructor;
 }
-// @cpt-end:cpt-hai3-algo-api-communication-is-mock-plugin:p2:inst-1
+// @cpt-end:cpt-frontx-algo-api-communication-is-mock-plugin:p2:inst-1
 
 /**
  * Mock Response Factory Function
@@ -798,7 +798,7 @@ export abstract class SsePluginWithConfig<TConfig> implements SsePluginHooks {
  *
  * @example
  * ```typescript
- * import { RestProtocol, SseProtocol } from '@hai3/api';
+ * import { RestProtocol, SseProtocol } from '@cyberfabric/api';
  * const protocolClass: ProtocolClass = RestProtocol;
  * apiRegistry.plugins.add(RestProtocol, plugin);
  * ```

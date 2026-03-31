@@ -23,10 +23,10 @@ date: 2025-11-14
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-mandatory-screen-lazy-loading`
+**ID**: `cpt-frontx-adr-mandatory-screen-lazy-loading`
 ## Context and Problem Statement
 
-HAI3 loaded all screen components eagerly, creating larger bundles and slower startup times. With multiple screensets, the initial bundle included all screens regardless of whether they would be viewed. Lazy loading must be enforced uniformly to deliver consistent performance guarantees.
+FrontX loaded all screen components eagerly, creating larger bundles and slower startup times. With multiple screensets, the initial bundle included all screens regardless of whether they would be viewed. Lazy loading must be enforced uniformly to deliver consistent performance guarantees.
 
 ## Decision Drivers
 
@@ -80,6 +80,6 @@ The Suspense fallback is intentionally minimal to avoid over-engineering. Per-sc
 
 This decision directly addresses:
 
-* `cpt-hai3-nfr-perf-lazy-loading` — performance non-functional requirement for lazy screen loading
-* `cpt-hai3-component-screensets` — screen registry type contract
-* `cpt-hai3-component-react` — Screen rendering component and Suspense boundary
+* `cpt-frontx-nfr-perf-lazy-loading` — performance non-functional requirement for lazy screen loading
+* `cpt-frontx-component-screensets` — screen registry type contract
+* `cpt-frontx-component-react` — Screen rendering component and Suspense boundary

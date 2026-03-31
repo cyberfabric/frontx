@@ -4,11 +4,11 @@
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
  * null, undefined, and NaN return ''.
  */
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-formatters:p1
 
 import { getLocale, toNumber } from './utils';
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-5
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-5
 /**
  * Format a number according to the current locale.
  *
@@ -25,9 +25,9 @@ export function formatNumber(
   const locale = getLocale();
   return new Intl.NumberFormat(locale, options).format(n);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-5
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-5
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-6
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-6
 /**
  * Format a value as a percentage (0.15 -> "15%").
  *
@@ -48,9 +48,9 @@ export function formatPercent(
   };
   return new Intl.NumberFormat(locale, opts).format(n);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-6
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-6
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-7
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-7
 /**
  * Format a number in compact notation (e.g. "1.2K", "3.4M").
  *
@@ -63,4 +63,4 @@ export function formatCompact(value: number | null | undefined): string {
   const locale = getLocale();
   return new Intl.NumberFormat(locale, { notation: 'compact' }).format(n);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-7
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-7

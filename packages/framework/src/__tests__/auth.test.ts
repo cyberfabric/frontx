@@ -15,10 +15,10 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { apiRegistry, RestProtocol } from '@hai3/api';
-import { createStore } from '@hai3/state';
-import type { RestPlugin, RestRequestContext } from '@hai3/api';
-import type { AuthProvider, AuthSession } from '@hai3/auth';
+import { apiRegistry, RestProtocol } from '@cyberfabric/api';
+import { createStore } from '@cyberfabric/state';
+import type { RestPlugin, RestRequestContext } from '@cyberfabric/api';
+import type { AuthProvider, AuthSession } from '@cyberfabric/auth';
 import { createHAI3 } from '../createHAI3';
 import { auth, hai3ApiTransport } from '../plugins/auth';
 import type { AuthTransportBinder } from '../plugins/auth';

@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 import React from 'react';
 
 export const ChevronDownIcon: React.FC<{ className?: string }> = ({ className = '' }) => (

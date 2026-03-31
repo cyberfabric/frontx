@@ -2,7 +2,7 @@
  * Runtime Coordinator Types
  *
  * Defines the abstract coordinator interface for managing runtime connections
- * between parent and MFE runtimes. This follows HAI3's SOLID OOP pattern:
+ * between parent and MFE runtimes. This follows FrontX's SOLID OOP pattern:
  * abstract class (exportable contract) + concrete implementation (private).
  *
  * @packageDocumentation

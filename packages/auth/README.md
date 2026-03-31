@@ -1,4 +1,4 @@
-# @hai3/auth
+# @cyberfabric/auth
 
 Headless authentication contract for HAI3.
 
@@ -19,12 +19,12 @@ Optional surface:
 
 ## HAI3 Integration
 
-Use the framework `auth()` plugin to bind your `AuthProvider` into `@hai3/api` REST requests (bearer tokens and cookie-session).
+Use the framework `auth()` plugin to bind your `AuthProvider` into `@cyberfabric/api` REST requests (bearer tokens and cookie-session).
 
 ```ts
-import { createHAI3 } from '@hai3/framework';
-import { auth } from '@hai3/framework';
-import type { AuthProvider } from '@hai3/auth';
+import { createHAI3 } from '@cyberfabric/framework';
+import { auth } from '@cyberfabric/framework';
+import type { AuthProvider } from '@cyberfabric/auth';
 
 const provider: AuthProvider = {
   async getSession() {
@@ -60,9 +60,9 @@ npm run build:packages:framework
 ```json
 {
   "dependencies": {
-    "@hai3/auth": "file:/path/to/frontx/packages/auth",
-    "@hai3/api": "file:/path/to/frontx/packages/api",
-    "@hai3/framework": "file:/path/to/frontx/packages/framework"
+    "@cyberfabric/auth": "file:/path/to/frontx/packages/auth",
+    "@cyberfabric/api": "file:/path/to/frontx/packages/api",
+    "@cyberfabric/framework": "file:/path/to/frontx/packages/framework"
   }
 }
 ```
@@ -72,14 +72,14 @@ If you use pnpm, prefer `link:` for symlinks:
 ```json
 {
   "dependencies": {
-    "@hai3/auth": "link:/path/to/frontx/packages/auth",
-    "@hai3/api": "link:/path/to/frontx/packages/api",
-    "@hai3/framework": "link:/path/to/frontx/packages/framework"
+    "@cyberfabric/auth": "link:/path/to/frontx/packages/auth",
+    "@cyberfabric/api": "link:/path/to/frontx/packages/api",
+    "@cyberfabric/framework": "link:/path/to/frontx/packages/framework"
   }
 }
 ```
 
-Note: `@hai3/api` expects `axios` as a peer dependency. Install it in your consumer app:
+Note: `@cyberfabric/api` expects `axios` as a peer dependency. Install it in your consumer app:
 
 ```bash
 pnpm add axios
