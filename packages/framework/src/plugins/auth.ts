@@ -1,8 +1,3 @@
-// @cpt-flow:cpt-frontx-flow-framework-auth-transport-binding:p1
-// @cpt-algo:cpt-frontx-algo-framework-auth-bearer-attach:p1
-// @cpt-algo:cpt-frontx-algo-framework-auth-refresh-retry:p1
-// @cpt-state:cpt-frontx-state-framework-auth-plugin-lifecycle:p1
-
 import type {
   AuthCallbackInput,
   AuthCheckResult,
@@ -137,7 +132,6 @@ function shouldIncludeCredentials(url: string, allowedOrigins: readonly string[]
   return allowedOrigins.includes(origin);
 }
 
-// @cpt-begin:cpt-frontx-algo-framework-auth-bearer-attach:p1:inst-1
 class AuthRestPlugin extends RestPlugin {
   /** Shared in-flight refresh promise — deduplicates concurrent 401 refresh calls. */
   private refreshPromise: Promise<AuthSession | null> | null = null;
@@ -223,9 +217,7 @@ class AuthRestPlugin extends RestPlugin {
     return ctx.error;
   }
 }
-// @cpt-end:cpt-frontx-algo-framework-auth-bearer-attach:p1:inst-1
 
-// @cpt-begin:cpt-frontx-flow-framework-auth-transport-binding:p1:inst-1
 export function hai3ApiTransport(): AuthTransportBinder {
   return (args) => {
     const restPlugin = new AuthRestPlugin({
@@ -241,9 +233,7 @@ export function hai3ApiTransport(): AuthTransportBinder {
     };
   };
 }
-// @cpt-end:cpt-frontx-flow-framework-auth-transport-binding:p1:inst-1
 
-// @cpt-begin:cpt-frontx-state-framework-auth-plugin-lifecycle:p1:inst-1
 /**
  * Auth plugin.
  *
@@ -291,7 +281,6 @@ export function auth(config: AuthPluginConfig): HAI3Plugin {
     },
   };
 }
-// @cpt-end:cpt-frontx-state-framework-auth-plugin-lifecycle:p1:inst-1
 
 declare module '../types' {
   interface HAI3AppRuntimeExtensions {

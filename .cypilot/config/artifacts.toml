@@ -21,8 +21,8 @@ reason = "Documentation site infrastructure has no CDSL backing"
 patterns = ["packages/docs/*"]
 
 [[ignore]]
-reason = "Auth package is types-only contract, no runtime logic to trace"
-patterns = ["packages/auth/*"]
+reason = "Auth package and plugin have no backing CDSL artifact yet"
+patterns = ["packages/auth/*", "packages/framework/src/plugins/auth.ts"]
 
 [[systems]]
 name = "FrontX Dev Kit"
