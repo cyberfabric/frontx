@@ -8,4 +8,4 @@ git diff --cached --name-only -z | grep -z -v 'package-lock\.json' | while IFS= 
   fi
 done || exit 1
 
-npx lint-staged && npm run arch:check
+npm audit --audit-level=high --omit=dev && npx lint-staged && npm run arch:check
