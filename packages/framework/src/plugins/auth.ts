@@ -75,7 +75,9 @@ function isSupportedAuthTransportMethod(
     || method === 'POST'
     || method === 'PUT'
     || method === 'DELETE'
-    || method === 'PATCH';
+    || method === 'PATCH'
+    || method === 'HEAD'
+    || method === 'OPTIONS';
 }
 
 function toAuthTransportRequest(request: RestRequestContext): AuthTransportRequest | null {
@@ -102,7 +104,7 @@ function toAuthTransportRequest(request: RestRequestContext): AuthTransportReque
 }
 
 function isRelativeUrl(url: string): boolean {
-  return url.startsWith('/');
+  return url.startsWith('/') && !url.startsWith('//');
 }
 
 function getOrigin(url: string): string | null {
@@ -115,7 +117,7 @@ function getOrigin(url: string): string | null {
 
 function getRuntimeOrigin(): string | null {
   const maybeLocation = (globalThis as { location?: { origin?: string } }).location;
-  if (!maybeLocation?.origin) return null;
+  if (!maybeLocation?.origin || maybeLocation.origin === 'null') return null;
   return maybeLocation.origin;
 }
 
@@ -171,6 +173,7 @@ class AuthRestPlugin extends RestPlugin {
       };
     }
 
+    // Custom sessions: no standard transport mechanism — use a custom transport binder for retry.
     return ctx;
   }
 
@@ -198,7 +201,12 @@ class AuthRestPlugin extends RestPlugin {
         });
     }
 
-    const refreshed = await this.refreshPromise;
+    let refreshed: AuthSession | null;
+    try {
+      refreshed = await this.refreshPromise;
+    } catch {
+      return ctx.error;
+    }
     if (!refreshed) return ctx.error;
 
     if (refreshed.kind === 'bearer') {
@@ -214,6 +222,7 @@ class AuthRestPlugin extends RestPlugin {
       return ctx.retry();
     }
 
+    // Custom sessions: no standard retry mechanism — use a custom transport binder.
     return ctx.error;
   }
 }
@@ -238,6 +247,10 @@ export function hai3ApiTransport(): AuthTransportBinder {
  * Auth plugin.
  *
  * Wires a headless AuthProvider into @cyberfabric/api protocol plugins and exposes `app.auth`.
+ *
+ * **Scope:** REST transport only. SSE (Server-Sent Events) auth is out-of-scope for the
+ * default `hai3ApiTransport()` binding. SSE connections requiring auth should use a custom
+ * transport binder via the `transport` option.
  */
 export function auth(config: AuthPluginConfig): HAI3Plugin {
   const transport = config.transport ?? hai3ApiTransport();

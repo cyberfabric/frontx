@@ -102,7 +102,7 @@ export interface AuthPermissions {
 
 export interface AuthTransportRequest {
   url: string;
-  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH' | 'HEAD' | 'OPTIONS';
   headers?: Record<string, string>;
   body?: string;
   signal?: AbortSignal;

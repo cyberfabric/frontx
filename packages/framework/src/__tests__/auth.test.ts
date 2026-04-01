@@ -519,4 +519,116 @@ describe('auth plugin', () => {
       await expect(plugin.onError!(errCtx)).resolves.not.toThrow();
     });
   });
+
+  // -------------------------------------------------------------------------
+  // 11. Protocol-relative URL credential leak
+  // -------------------------------------------------------------------------
+  describe('protocol-relative URL', () => {
+    it('does NOT set withCredentials for protocol-relative URLs', async () => {
+      const plugin = capturePlugin(makeCookieProvider());
+
+      const result = (await plugin.onRequest!(makeReqCtx('//cdn.example.com/asset'))) as RestRequestContext;
+
+      expect(result.withCredentials).toBeUndefined();
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 12. Opaque origin "null" (sandboxed iframe / file://)
+  // -------------------------------------------------------------------------
+  describe('opaque origin', () => {
+    it('does NOT match opaque "null" origin against URL origins', async () => {
+      const saved = (globalThis as Record<string, unknown>).location;
+      (globalThis as Record<string, unknown>).location = { origin: 'null' };
+
+      try {
+        const plugin = capturePlugin(makeCookieProvider());
+
+        // An absolute URL whose origin happens to be 'https://null' should NOT get credentials
+        const result = (await plugin.onRequest!(makeReqCtx('https://null/api'))) as RestRequestContext;
+
+        expect(result.withCredentials).toBeUndefined();
+      } finally {
+        (globalThis as Record<string, unknown>).location = saved;
+      }
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 13. Custom session kind (pass-through)
+  // -------------------------------------------------------------------------
+  describe('custom session kind', () => {
+    it('does not modify request for custom sessions', async () => {
+      const provider: AuthProvider = {
+        getSession: vi.fn().mockResolvedValue({ kind: 'custom' } satisfies AuthSession),
+        checkAuth: vi.fn().mockResolvedValue({ authenticated: true }),
+        logout: vi.fn().mockResolvedValue({ type: 'none' }),
+      };
+      const plugin = capturePlugin(provider);
+
+      const original = makeReqCtx('/api');
+      const result = (await plugin.onRequest!(original)) as RestRequestContext;
+
+      expect(result.headers['Authorization']).toBeUndefined();
+      expect(result.withCredentials).toBeUndefined();
+    });
+
+    it('returns error without retry for refreshed custom sessions', async () => {
+      const refreshFn = vi.fn().mockResolvedValue({ kind: 'custom' } satisfies AuthSession);
+      const provider: AuthProvider = {
+        getSession: vi.fn().mockResolvedValue({ kind: 'custom' } satisfies AuthSession),
+        checkAuth: vi.fn().mockResolvedValue({ authenticated: true }),
+        logout: vi.fn().mockResolvedValue({ type: 'none' }),
+        refresh: refreshFn,
+      };
+      const plugin = capturePlugin(provider);
+
+      const errCtx = {
+        error: new Error('HTTP 401'),
+        request: makeReqCtx('/api'),
+        response: { status: 401, headers: {}, data: null },
+        retryCount: 0,
+        retry: vi.fn(),
+      };
+
+      const result = await plugin.onError!(errCtx);
+
+      expect(refreshFn).toHaveBeenCalledTimes(1);
+      expect(errCtx.retry).not.toHaveBeenCalled();
+      expect(result).toBe(errCtx.error);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 14. Refresh rejection safety (concurrent waiters)
+  // -------------------------------------------------------------------------
+  describe('refresh rejection safety', () => {
+    it('returns error for all concurrent waiters when refresh rejects', async () => {
+      const refreshFn = vi.fn().mockRejectedValue(new Error('refresh failed'));
+      const plugin = capturePlugin(makeBearerProvider('tok', refreshFn));
+
+      const makeErrCtx = () => ({
+        error: new Error('HTTP 401'),
+        request: makeReqCtx('/api'),
+        response: { status: 401, headers: {}, data: null },
+        retryCount: 0,
+        retry: vi.fn(),
+      });
+
+      const ctx1 = makeErrCtx();
+      const ctx2 = makeErrCtx();
+
+      const [result1, result2] = await Promise.all([
+        plugin.onError!(ctx1),
+        plugin.onError!(ctx2),
+      ]);
+
+      expect(result1).toBe(ctx1.error);
+      expect(result2).toBe(ctx2.error);
+      expect(ctx1.retry).not.toHaveBeenCalled();
+      expect(ctx2.retry).not.toHaveBeenCalled();
+      // Single refresh call (deduped)
+      expect(refreshFn).toHaveBeenCalledTimes(1);
+    });
+  });
 });
