@@ -376,7 +376,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
       // Check if error was recovered (plugin returned RestResponseContext)
       if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
-        return (finalResult as RestResponseContext).data as T;
+        return (finalResult as { data: T }).data;
       }
 
       throw finalResult;
@@ -508,7 +508,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
         // If plugin returns RestResponseContext, it's a recovery - stop chain
         if (result && typeof result === 'object' && 'status' in result && 'data' in result) {
-          return result as RestResponseContext;
+          return result;
         }
 
         // If plugin returns Error, continue chain

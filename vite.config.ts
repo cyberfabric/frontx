@@ -20,7 +20,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
-    dedupe: ['@hai3/api', '@hai3/framework', '@hai3/react'],
+    dedupe: ['@cyberfabric/api', '@cyberfabric/framework', '@cyberfabric/react'],
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react/jsx-runtime', '@globaltypesystem/gts-ts'],

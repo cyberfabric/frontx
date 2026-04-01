@@ -11,26 +11,38 @@ export interface AuthIdentity {
   attributes?: Record<string, string | number | boolean | null>;
 }
 
-export interface AuthSession {
-  /**
-   * Session mechanism.
-   * - bearer: Authorization header
-   * - cookie: cookie-session (credentials)
-   * - custom: provider-defined
-   */
-  kind: 'bearer' | 'cookie' | 'custom';
-  /**
-   * Bearer access token.
-   * FORBIDDEN: assume this exists for cookie-session.
-   */
-  token?: string;
-  /** Bearer refresh token (if applicable) */
+/** Bearer token session — Authorization header transport */
+export interface BearerAuthSession {
+  kind: 'bearer';
+  /** Access token (required for bearer) */
+  token: string;
+  /** Refresh token (if applicable) */
   refreshToken?: string;
   /** Expiry as Unix ms */
   expiresAt?: number;
-  /** CSRF token for cookie-session (if server requires it) */
-  csrfToken?: string;
 }
+
+/** Cookie session — withCredentials transport */
+export interface CookieAuthSession {
+  kind: 'cookie';
+  /** CSRF token (if server requires it) */
+  csrfToken?: string;
+  /** Expiry as Unix ms */
+  expiresAt?: number;
+}
+
+/** Custom session — provider-defined, no standard transport */
+export interface CustomAuthSession {
+  kind: 'custom';
+  /** Provider-specific data */
+  [key: string]: string | number | boolean | null | undefined;
+}
+
+/**
+ * Discriminated union of session types.
+ * Narrow by `session.kind` to access kind-specific fields.
+ */
+export type AuthSession = BearerAuthSession | CookieAuthSession | CustomAuthSession;
 
 // ---------------------------------------------------------------------------
 // Context (carries cancellation signal into every provider call)

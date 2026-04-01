@@ -1,6 +1,9 @@
 export type {
   AuthContext,
   AuthSession,
+  BearerAuthSession,
+  CookieAuthSession,
+  CustomAuthSession,
   AuthIdentity,
   AccessQuery,
   AccessDecision,

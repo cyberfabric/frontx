@@ -516,7 +516,8 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      await expect(plugin.onError!(errCtx)).resolves.not.toThrow();
+      const result = await plugin.onError!(errCtx);
+      expect(result).toBe(errCtx.error);
     });
   });
 

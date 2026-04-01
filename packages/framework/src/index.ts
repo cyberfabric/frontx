@@ -38,6 +38,26 @@ export {
   type MockPluginConfig,
 } from './plugins';
 
+// Auth contract types (re-exported from @cyberfabric/auth)
+export type {
+  AuthProvider,
+  AuthSession,
+  AuthContext,
+  AuthIdentity,
+  AuthCheckResult,
+  AuthLoginInput,
+  AuthCallbackInput,
+  AuthTransition,
+  AuthPermissions,
+  AccessQuery,
+  AccessDecision,
+  AuthCapabilities,
+  AuthState,
+  AuthStateEvent,
+  AuthStateListener,
+  AuthUnsubscribe,
+} from '@cyberfabric/auth';
+
 // MFE Plugin Exports
 export {
   loadExtension,

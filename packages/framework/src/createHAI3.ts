@@ -153,6 +153,14 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     };
 
     // Merge plugin-provided runtime app extensions onto the built app object.
+    // Guard against plugins silently overwriting core app properties.
+    for (const key of Object.keys(aggregated.app)) {
+      if (key in app) {
+        throw new Error(
+          `Plugin app extension "${key}" conflicts with an existing app property.`
+        );
+      }
+    }
     Object.assign(app as object, aggregated.app);
 
     // 7. Call onInit for each plugin

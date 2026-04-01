@@ -71,11 +71,11 @@
 - Retry: `context.retry(overrides?)` preserves plugin-modified context. Override only what changed.
 
 ```typescript
-// GOOD: Options bag with signal
+// GOOD: Options bag with signal and params
 const data = await svc.protocol(RestProtocol).get('/users', { signal, params: { page: '1' } });
 
-// BAD: Positional signal (legacy, still works but deprecated for new code)
-const data = await svc.protocol(RestProtocol).get('/users', params, signal);
+// GOOD: Options bag with signal only
+const data = await svc.protocol(RestProtocol).post('/users', body, { signal });
 ```
 
 ## PROTOCOL-SPECIFIC PLUGINS

@@ -243,6 +243,24 @@ export type {
   AuthPluginConfig,
   AuthRuntime,
 
+  // Auth contract types
+  AuthProvider,
+  AuthSession,
+  AuthContext,
+  AuthIdentity,
+  AuthCheckResult,
+  AuthLoginInput,
+  AuthCallbackInput,
+  AuthTransition,
+  AuthPermissions,
+  AccessQuery,
+  AccessDecision,
+  AuthCapabilities,
+  AuthState,
+  AuthStateEvent,
+  AuthStateListener,
+  AuthUnsubscribe,
+
   // Flux (Events + Store)
   EventHandler,
   Subscription,
