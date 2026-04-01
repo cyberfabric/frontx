@@ -31,50 +31,6 @@ import {
 import { isRestShortCircuit } from '../types';
 import { apiRegistry } from '../apiRegistry';
 
-function isAbortSignalLike(value: unknown): value is AbortSignal {
-  if (!value || typeof value !== 'object') return false;
-  const candidate = value as { aborted?: unknown; addEventListener?: unknown };
-  return typeof candidate.aborted === 'boolean' && typeof candidate.addEventListener === 'function';
-}
-
-/**
- * Detects RestRequestOptions by presence of known option keys.
- * A plain query-params dict has arbitrary string keys with string values.
- * @internal
- */
-function isRestRequestOptions(value: Record<string, unknown>): value is RestRequestOptions {
-  if ('params' in value || 'withCredentials' in value) return true;
-  if (!('signal' in value)) return false;
-  return isAbortSignalLike(value.signal);
-}
-
-function normalizeGetRequestOptions(
-  paramsOrOptions?: Record<string, string> | RestRequestOptions,
-  signal?: AbortSignal
-): RestRequestOptions {
-  if (!paramsOrOptions) {
-    return signal ? { signal } : {};
-  }
-  if (isRestRequestOptions(paramsOrOptions)) {
-    return {
-      ...paramsOrOptions,
-      signal: paramsOrOptions.signal ?? signal,
-    };
-  }
-  return {
-    params: paramsOrOptions,
-    signal,
-  };
-}
-
-function normalizeSignalOrOptions(signalOrOptions?: AbortSignal | RestRequestOptions): RestRequestOptions {
-  if (!signalOrOptions) return {};
-  if (isAbortSignalLike(signalOrOptions)) {
-    return { signal: signalOrOptions };
-  }
-  return signalOrOptions;
-}
-
 /**
  * Default REST protocol configuration.
  */
@@ -240,10 +196,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Perform GET request.
    * @template TResponse - Response type
    */
-  async get<TResponse>(url: string, params?: Record<string, string>, signal?: AbortSignal): Promise<TResponse>;
-  async get<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse>;
-  async get<TResponse>(url: string, paramsOrOptions?: Record<string, string> | RestRequestOptions, signal?: AbortSignal): Promise<TResponse> {
-    return this.request<TResponse>('GET', url, undefined, normalizeGetRequestOptions(paramsOrOptions, signal));
+  async get<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('GET', url, undefined, options ?? {});
   }
 
   /**
@@ -251,10 +205,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
-  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
-  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
-    return this.request<TResponse>('POST', url, data, normalizeSignalOrOptions(signalOrOptions));
+  async post<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('POST', url, data, options ?? {});
   }
 
   /**
@@ -262,10 +214,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
-  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
-  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
-    return this.request<TResponse>('PUT', url, data, normalizeSignalOrOptions(signalOrOptions));
+  async put<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PUT', url, data, options ?? {});
   }
 
   /**
@@ -273,20 +223,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * @template TResponse - Response type
    * @template TRequest - Request body type (optional, for type-safe requests)
    */
-  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, signal?: AbortSignal): Promise<TResponse>;
-  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse>;
-  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
-    return this.request<TResponse>('PATCH', url, data, normalizeSignalOrOptions(signalOrOptions));
+  async patch<TResponse, TRequest = unknown>(url: string, data?: TRequest, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('PATCH', url, data, options ?? {});
   }
 
   /**
    * Perform DELETE request.
    * @template TResponse - Response type
    */
-  async delete<TResponse>(url: string, signal?: AbortSignal): Promise<TResponse>;
-  async delete<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse>;
-  async delete<TResponse>(url: string, signalOrOptions?: AbortSignal | RestRequestOptions): Promise<TResponse> {
-    return this.request<TResponse>('DELETE', url, undefined, normalizeSignalOrOptions(signalOrOptions));
+  async delete<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse> {
+    return this.request<TResponse>('DELETE', url, undefined, options ?? {});
   }
 
   // ============================================================================

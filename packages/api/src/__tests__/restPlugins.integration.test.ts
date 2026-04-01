@@ -308,7 +308,7 @@ describe('RestProtocol plugins', () => {
       };
 
       restProtocol.plugins.add(plugin);
-      await restProtocol.get('/test', undefined, controller.signal);
+      await restProtocol.get('/test', { signal: controller.signal });
 
       expect(capturedSignal).toBe(controller.signal);
     });
@@ -329,7 +329,7 @@ describe('RestProtocol plugins', () => {
       };
 
       restProtocol.plugins.add(plugin);
-      await restProtocol.post('/items', { name: 'test' }, controller.signal);
+      await restProtocol.post('/items', { name: 'test' }, { signal: controller.signal });
 
       expect(capturedSignal).toBe(controller.signal);
     });
@@ -350,7 +350,7 @@ describe('RestProtocol plugins', () => {
       };
 
       restProtocol.plugins.add(plugin);
-      await restProtocol.delete('/items/1', controller.signal);
+      await restProtocol.delete('/items/1', { signal: controller.signal });
 
       expect(capturedSignal).toBe(controller.signal);
     });
@@ -396,7 +396,7 @@ describe('RestProtocol plugins', () => {
 
       // Assert on the error name (AbortError) rather than its message, because the
       // DOMException message varies across runtimes ('The operation was aborted', etc.)
-      await expect(restProtocol.get('/test', undefined, controller.signal)).rejects.toMatchObject({
+      await expect(restProtocol.get('/test', { signal: controller.signal })).rejects.toMatchObject({
         name: 'AbortError',
       });
     });
@@ -463,7 +463,7 @@ describe('RestProtocol plugins', () => {
       };
 
       restProtocol.plugins.add(plugin);
-      await restProtocol.get('/test', undefined, controller.signal);
+      await restProtocol.get('/test', { signal: controller.signal });
 
       expect(attemptCount).toBe(2);
       expect(retrySignal).toBe(controller.signal);
@@ -534,7 +534,7 @@ describe('RestProtocol plugins', () => {
       expect(capturedSignal).toBe(controller.signal);
     });
 
-    it('should be backwards-compatible with positional params + signal for get()', async () => {
+    it('should accept options bag with params and signal for get()', async () => {
       const restProtocol = new RestProtocol();
       restProtocol.initialize({ baseURL: '/api' });
 
@@ -550,8 +550,7 @@ describe('RestProtocol plugins', () => {
       };
 
       restProtocol.plugins.add(plugin);
-      // Old-style positional args must still work
-      await restProtocol.get('/test', { key: 'value' }, controller.signal);
+      await restProtocol.get('/test', { params: { key: 'value' }, signal: controller.signal });
 
       expect(capturedSignal).toBe(controller.signal);
     });
