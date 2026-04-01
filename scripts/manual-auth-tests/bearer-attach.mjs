@@ -1,6 +1,6 @@
-import { apiRegistry } from '@hai3/api';
-import { createHAI3 } from '@hai3/framework';
-import { auth } from '@hai3/framework';
+import { apiRegistry } from '@cyberfabric/api';
+import { createHAI3 } from '@cyberfabric/framework';
+import { auth } from '@cyberfabric/framework';
 
 import { DummyJsonService } from './dummyjson-service.mjs';
 

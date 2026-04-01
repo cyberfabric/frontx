@@ -1,6 +1,6 @@
-import { apiRegistry } from '@hai3/api';
-import { createHAI3 } from '@hai3/framework';
-import { auth } from '@hai3/framework';
+import { apiRegistry } from '@cyberfabric/api';
+import { createHAI3 } from '@cyberfabric/framework';
+import { auth } from '@cyberfabric/framework';
 
 import { DummyJsonService } from './dummyjson-service.mjs';
 
@@ -15,7 +15,7 @@ import { DummyJsonService } from './dummyjson-service.mjs';
  *
  * Note:
  * - DummyJSON refresh expects refreshToken in JSON body, not in Authorization header.
- * - provider.refresh uses fetch directly to avoid recursion through @hai3/api + auth plugin.
+ * - provider.refresh uses fetch directly to avoid recursion through @cyberfabric/api + auth plugin.
  */
 
 apiRegistry.reset?.();

@@ -1,4 +1,4 @@
-import { BaseApiService, RestProtocol } from '@hai3/api';
+import { BaseApiService, RestProtocol } from '@cyberfabric/api';
 
 export class DummyJsonService extends BaseApiService {
   constructor() {
