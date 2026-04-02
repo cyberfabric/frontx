@@ -8,6 +8,12 @@ import { loadStudioState } from '../utils/persistence';
 import { STORAGE_KEYS, PANEL_CONSTRAINTS } from '../types';
 import { StudioEvents } from '../events/studioEvents';
 
+type ResizeStartEvent = {
+  clientX: number;
+  clientY: number;
+  stopPropagation: () => void;
+};
+
 // @cpt-begin:cpt-frontx-flow-studio-devtools-resize-panel:p1:inst-1
 // @cpt-begin:cpt-frontx-state-studio-devtools-resize:p1:inst-1
 export const useResizable = () => {
@@ -20,7 +26,7 @@ export const useResizable = () => {
   const [isResizing, setIsResizing] = useState(false);
   const resizeStartRef = useRef<{ mouseX: number; mouseY: number; width: number; height: number } | null>(null);
 
-  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+  const handleMouseDown = useCallback((e: ResizeStartEvent) => {
     e.stopPropagation(); // Don't trigger drag
 
     // Store initial mouse position and current size

@@ -1,0 +1,15 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true,
+    "rootDir": ".",
+    // `react` is needed because src/types.ts declares
+    // `ShowPopupPayload.content: () => Promise<{ default: React.ComponentType }>`
+    // — the framework exposes React-component-shaped payloads to consumers even
+    // though the package itself is mostly non-React at runtime. Dropping it
+    // breaks `tsc -p tsconfig.test.json`.
+    "types": ["vitest/globals", "node", "react"]
+  },
+  "include": ["src/**/*", "__tests__/**/*"],
+  "exclude": ["node_modules", "dist"]
+}

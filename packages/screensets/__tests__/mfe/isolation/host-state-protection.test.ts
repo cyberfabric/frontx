@@ -1,402 +1,227 @@
 /**
- * Integration Tests for Host State Protection
+ * Host State Protection Integration Tests
  *
- * Verifies:
- * - MFE cannot access host store directly
- * - Boundary enforcement
- * - State isolation between host and MFE
+ * Verifies host/MFE isolation through the real load -> mount -> unmount path.
+ * These tests assert the public runtime boundary instead of reconstructing
+ * coordinator state or bridge pairs by hand.
+ *
+ * @vitest-environment jsdom
  */
 
-import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import { DefaultMfeStateContainer } from '../../../src/mfe/state';
-import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
-import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
-import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
-import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
-import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../../../src/mfe/constants';
+import type { Extension, ExtensionDomain, MfeEntry } from '../../../src/mfe/types';
+import type {
+  ChildMfeBridge,
+  MfeEntryLifecycle,
+  MfeMountContext,
+} from '../../../src/mfe/handler/types';
+import type { JSONSchema } from '../../../src/mfe/plugins/types';
+import { TestContainerProvider, makeMfeHandlerDouble } from '../../../__test-utils__';
 
-interface HostState {
-  currentScreenset: string;
-  layoutConfig: Record<string, unknown>;
-  internalData: { sensitiveToken: string };
-}
+const DOMAIN_ID =
+  'gts.hai3.mfes.ext.domain.v1~hai3.test.host_state_protection.domain.v1';
+const ENTRY_ID =
+  'gts.hai3.mfes.mfe.entry.v1~hai3.test.host_state_protection.entry.v1';
+const EXTENSION_ID =
+  'gts.hai3.mfes.ext.extension.v1~hai3.test.host_state_protection.ext.v1';
+const TEST_PROPERTY_TYPE_ID =
+  'gts.hai3.mfes.comm.shared_property.v1~hai3.test.host_state_protection.theme.v1~';
+const THEME_DARK = 'dark';
 
-interface MfeState {
-  widgetData: unknown;
-  localState: unknown;
-}
+const testPropertySchema: JSONSchema = {
+  $id: `gts://${TEST_PROPERTY_TYPE_ID}`,
+  $schema: 'https://json-schema.org/draft/2020-12/schema',
+  allOf: [{ $ref: 'gts://gts.hai3.mfes.comm.shared_property.v1~' }],
+  properties: {
+    value: { type: 'string', enum: [THEME_DARK, 'light'] },
+  },
+};
+
+const testDomain: ExtensionDomain = {
+  id: DOMAIN_ID,
+  sharedProperties: [TEST_PROPERTY_TYPE_ID],
+  actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+  extensionsActions: [],
+  defaultActionTimeout: 5000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+};
+
+const testEntry: MfeEntry = {
+  id: ENTRY_ID,
+  requiredProperties: [],
+  optionalProperties: [],
+  actions: [],
+  domainActions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+};
+
+const testExtension: Extension = {
+  id: EXTENSION_ID,
+  domain: DOMAIN_ID,
+  entry: ENTRY_ID,
+};
 
 describe('Host State Protection', () => {
-  let hostRuntime: ScreensetsRegistry;
-  let _hostStateContainer: DefaultMfeStateContainer<HostState>;
-  let _container: HTMLDivElement;
-  let coordinator: WeakMapRuntimeCoordinator;
+  let registry: DefaultScreensetsRegistry;
+  let mockContainerProvider: TestContainerProvider;
+  let mockLifecycle: MfeEntryLifecycle<ChildMfeBridge>;
+  let capturedBridge: ChildMfeBridge | undefined;
+  let capturedMountContext: MfeMountContext | undefined;
+  let typeSystem: GtsPlugin;
 
   beforeEach(() => {
-    // Create host runtime
-    hostRuntime = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+    typeSystem = new GtsPlugin();
+    typeSystem.registerSchema(testPropertySchema);
+    typeSystem.register(testEntry);
+
+    capturedBridge = undefined;
+    capturedMountContext = undefined;
+    mockContainerProvider = new TestContainerProvider();
+    mockLifecycle = {
+      mount: vi.fn(
+        async (
+          _container: Element | ShadowRoot,
+          bridge: ChildMfeBridge,
+          mountContext?: MfeMountContext
+        ) => {
+          capturedBridge = bridge;
+          capturedMountContext = mountContext;
+        }
+      ),
+      unmount: vi.fn().mockResolvedValue(undefined),
+    };
+
+    const loadMock = vi
+      .fn<(entry: MfeEntry) => Promise<MfeEntryLifecycle<ChildMfeBridge>>>()
+      .mockResolvedValue(mockLifecycle);
+    const mockHandler = makeMfeHandlerDouble({
+      handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+      priority: 100,
+      load: loadMock,
     });
 
-    // Create coordinator for testing
-    coordinator = new WeakMapRuntimeCoordinator();
+    registry = new DefaultScreensetsRegistry({
+      typeSystem,
+      mfeHandlers: [mockHandler],
+    });
+    registry.registerDomain(testDomain, mockContainerProvider);
+  });
 
-    // Create host state (should be inaccessible to MFE)
-    _hostStateContainer = new DefaultMfeStateContainer<HostState>({
-      initialState: {
-        currentScreenset: 'dashboard',
-        layoutConfig: { theme: 'dark' },
-        internalData: { sensitiveToken: 'secret-host-token' },
+  async function mountExtensionThroughPublicApi(): Promise<ChildMfeBridge> {
+    await registry.registerExtension(testExtension);
+
+    await registry.executeActionsChain({
+      action: {
+        type: HAI3_ACTION_LOAD_EXT,
+        target: DOMAIN_ID,
+        payload: { subject: EXTENSION_ID },
       },
     });
 
-    // Create container element
-    _container = document.createElement('div');
+    await registry.executeActionsChain({
+      action: {
+        type: HAI3_ACTION_MOUNT_EXT,
+        target: DOMAIN_ID,
+        payload: { subject: EXTENSION_ID },
+      },
+    });
+
+    expect(capturedBridge).toBeDefined();
+    return capturedBridge!;
+  }
+
+  it('mounts the MFE with only the public child-bridge boundary', async () => {
+    const bridge = await mountExtensionThroughPublicApi();
+
+    expect(mockLifecycle.mount).toHaveBeenCalledOnce();
+
+    const [mountTarget, mountedBridge, mountContext] = vi.mocked(
+      mockLifecycle.mount
+    ).mock.calls[0];
+
+    expect(mountTarget).toBe(mockContainerProvider.mockContainer.shadowRoot);
+    expect(mountTarget).not.toBe(mockContainerProvider.mockContainer);
+    expect(mountedBridge).toBe(bridge);
+    expect(capturedMountContext).toEqual(mountContext);
+    expect(mountContext).toMatchObject({
+      extensionId: EXTENSION_ID,
+      domainId: DOMAIN_ID,
+    });
+
+    const parentBridge = registry.getParentBridge(EXTENSION_ID);
+    expect(parentBridge).not.toBeNull();
+    expect(bridge).not.toBe(parentBridge);
+    expect(parentBridge?.instanceId).toBe(bridge.instanceId);
+
+    expect(typeof bridge.executeActionsChain).toBe('function');
+    expect(typeof bridge.subscribeToProperty).toBe('function');
+    expect(typeof bridge.getProperty).toBe('function');
+    expect(typeof bridge.registerActionHandler).toBe('function');
+
+    expect('hostRuntime' in bridge).toBe(false);
+    expect('coordinator' in bridge).toBe(false);
+    expect('getParentBridge' in bridge).toBe(false);
   });
 
-  describe('MFE cannot access host store directly', () => {
-    it('should not expose host state _container to MFE', () => {
-      const mfeStateContainer = new DefaultMfeStateContainer<MfeState>({
-        initialState: {
-          widgetData: null,
-          localState: null,
-        },
-      });
+  it('delivers host shared state through the mounted bridge contract', async () => {
+    const bridge = await mountExtensionThroughPublicApi();
+    const onTheme = vi.fn();
 
-      // MFE has its own state
-      expect(mfeStateContainer.getState()).toEqual({
-        widgetData: null,
-        localState: null,
-      });
+    const unsubscribe = bridge.subscribeToProperty(TEST_PROPERTY_TYPE_ID, onTheme);
 
-      // MFE should NOT be able to access host state
-      // (there's no reference passed to it)
-      expect(mfeStateContainer.getState()).not.toHaveProperty('currentScreenset');
-      expect(mfeStateContainer.getState()).not.toHaveProperty('internalData');
+    expect(bridge.getProperty(TEST_PROPERTY_TYPE_ID)).toBeUndefined();
+
+    registry.updateSharedProperty(TEST_PROPERTY_TYPE_ID, THEME_DARK);
+
+    expect(bridge.getProperty(TEST_PROPERTY_TYPE_ID)).toEqual({
+      id: TEST_PROPERTY_TYPE_ID,
+      value: THEME_DARK,
     });
-
-    it('should not expose host runtime to MFE code', () => {
-      // Register runtime connection
-      const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
-      const mockBridge: ParentMfeBridge = {
-        instanceId: 'test-instance-1',
-        dispose: () => {},
-      };
-
-      const connection: RuntimeConnection = {
-        hostRuntime,
-        bridges: new Map([[entryTypeId, mockBridge]]),
-      };
-
-      coordinator.register(_container, connection);
-
-      // The MFE code should NOT have direct access to hostRuntime
-      // It can only access via the bridge interface
-      const retrievedConnection = coordinator.get(_container);
-      expect(retrievedConnection?.hostRuntime).toBe(hostRuntime);
-
-      // But MFE code never receives the RuntimeConnection object
-      // It only receives the ChildMfeBridge interface
-      // which is a controlled boundary
+    expect(onTheme).toHaveBeenCalledWith({
+      id: TEST_PROPERTY_TYPE_ID,
+      value: THEME_DARK,
     });
+    expect(registry.getDomainProperty(DOMAIN_ID, TEST_PROPERTY_TYPE_ID)).toBe(
+      THEME_DARK
+    );
 
-    it('should verify MFE only receives ChildMfeBridge interface', () => {
-      // This test documents the intended boundary
-      // MFE receives: ChildMfeBridge (controlled interface)
-      // MFE does NOT receive: ScreensetsRegistry, RuntimeConnection, etc.
-
-      const mfeReceivedProps = {
-        // This is what the MFE mount() function receives
-        bridge: {
-          // ChildMfeBridge interface (defined in later phases)
-          entryTypeId: 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1',
-          executeActionsChain: () => {},
-          subscribeToProperty: () => () => {},
-          // NO access to: hostRuntime, hostState, etc.
-        },
-      };
-
-      // Verify the bridge interface does not expose host internals
-      expect(mfeReceivedProps.bridge).not.toHaveProperty('hostRuntime');
-      expect(mfeReceivedProps.bridge).not.toHaveProperty('hostState');
-      expect(mfeReceivedProps.bridge).not.toHaveProperty('typeSystem');
-    });
+    unsubscribe();
   });
 
-  describe('Boundary enforcement', () => {
-    it('should enforce state isolation via separate _containers', () => {
-      // Host state
-      const hostState = new DefaultMfeStateContainer<HostState>({
-        initialState: {
-          currentScreenset: 'dashboard',
-          layoutConfig: {},
-          internalData: { sensitiveToken: 'host-secret' },
-        },
-      });
+  it('cleans up bridge state through the public unmount flow', async () => {
+    const bridge = await mountExtensionThroughPublicApi();
 
-      // MFE state (completely separate)
-      const mfeState = new DefaultMfeStateContainer<MfeState>({
-        initialState: {
-          widgetData: null,
-          localState: null,
-        },
-      });
-
-      // Update host state
-      hostState.setState((state) => ({
-        ...state,
-        currentScreenset: 'analytics',
-      }));
-
-      // MFE state should be unchanged
-      expect(mfeState.getState()).toEqual({
-        widgetData: null,
-        localState: null,
-      });
-
-      // Update MFE state
-      mfeState.setState((state) => ({
-        ...state,
-        widgetData: { count: 5 },
-      }));
-
-      // Host state should be unchanged
-      expect(hostState.getState().currentScreenset).toBe('analytics');
-      expect(hostState.getState().internalData.sensitiveToken).toBe(
-        'host-secret'
-      );
+    registry.updateSharedProperty(TEST_PROPERTY_TYPE_ID, THEME_DARK);
+    expect(bridge.getProperty(TEST_PROPERTY_TYPE_ID)).toEqual({
+      id: TEST_PROPERTY_TYPE_ID,
+      value: THEME_DARK,
     });
 
-    it('should enforce property flow boundary via bridge API', () => {
-      // Use bridge-based property management (the production approach)
-      const childBridge = new ChildMfeBridgeImpl('domain', 'instance-1');
-      const parentBridge = new ParentMfeBridgeImpl(childBridge);
-      childBridge.setParentBridge(parentBridge);
-
-      // Host (parent) updates property via ParentMfeBridge (the production boundary)
-      parentBridge.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'dark'
-      );
-
-      // MFE can READ property via ChildMfeBridge (controlled interface)
-      const theme = childBridge.getProperty(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
-      );
-      expect(theme).toEqual({
-        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        value: 'dark',
-      });
-
-      // MFE CANNOT call receivePropertyUpdate directly
-      // (receivePropertyUpdate is INTERNAL and not exposed via ChildMfeBridge interface)
-      // This boundary is enforced at the type level
+    await registry.executeActionsChain({
+      action: {
+        type: HAI3_ACTION_UNMOUNT_EXT,
+        target: DOMAIN_ID,
+        payload: { subject: EXTENSION_ID },
+      },
     });
 
-    it('should verify coordination is module-private', () => {
-      const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
-      const mockBridge: ParentMfeBridge = {
-        instanceId: 'test-instance-2',
-        dispose: () => {},
-      };
-
-      const connection: RuntimeConnection = {
-        hostRuntime,
-        bridges: new Map([[entryTypeId, mockBridge]]),
-      };
-
-      coordinator.register(_container, connection);
-
-      // Coordination methods (coordinator.register, coordinator.get) are module-level
-      // They are NOT exposed to MFE code
-      // MFE code cannot call coordinator methods
-
-      // Only the internal mounting logic uses these methods
-      const retrieved = coordinator.get(_container);
-      expect(retrieved).toBeDefined();
-
-      // MFE code has NO WAY to access this
-      // (not on window, not passed as props, not accessible via any API)
-    });
-  });
-
-  describe('Integration: Complete isolation scenario', () => {
-    it('should demonstrate complete host-MFE isolation', () => {
-      // === HOST SIDE ===
-
-      // Host has its own state
-      const hostState = new DefaultMfeStateContainer<HostState>({
-        initialState: {
-          currentScreenset: 'dashboard',
-          layoutConfig: { sidebar: 'collapsed' },
-          internalData: { sensitiveToken: 'host-only-secret' },
-        },
-      });
-
-      // Host creates bridge pair for MFE communication
-      const childBridgeA = new ChildMfeBridgeImpl('domain', 'instance-a');
-      const parentBridgeA = new ParentMfeBridgeImpl(childBridgeA);
-      childBridgeA.setParentBridge(parentBridgeA);
-
-      // Host sends property to MFE via parent bridge
-      parentBridgeA.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'dark'
-      );
-
-      // === MFE SIDE ===
-
-      // MFE has its own state (completely isolated)
-      const mfeState = new DefaultMfeStateContainer<MfeState>({
-        initialState: {
-          widgetData: { items: [] },
-          localState: { filter: 'all' },
-        },
-      });
-
-      // MFE can only access shared properties via child bridge (read-only)
-      const theme = childBridgeA.getProperty(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
-      );
-      expect(theme).toEqual({
-        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        value: 'dark',
-      });
-
-      // === VERIFY ISOLATION ===
-
-      // MFE cannot access host state
-      expect(() => {
-        // This would not even compile in TypeScript
-        // because MFE code doesn't have reference to hostState
-        const _ = hostState; // Just to use the variable
-      }).not.toThrow();
-
-      // MFE cannot modify shared properties
-      // (receivePropertyUpdate is @internal, not exposed via ChildMfeBridge)
-
-      // Host and MFE states are completely independent
-      hostState.setState((state) => ({
-        ...state,
-        currentScreenset: 'analytics',
-      }));
-
-      mfeState.setState((state) => ({
-        ...state,
-        widgetData: { items: [1, 2, 3] },
-      }));
-
-      expect(hostState.getState().currentScreenset).toBe('analytics');
-      expect(mfeState.getState().widgetData).toEqual({ items: [1, 2, 3] });
-
-      // Cleanup
-      hostState.dispose();
-      mfeState.dispose();
-      parentBridgeA.dispose();
-    });
-
-    it('should demonstrate multiple MFE instances cannot access each other', () => {
-      // MFE Instance A
-      const mfeStateA = new DefaultMfeStateContainer({
-        initialState: { data: 'A' },
-      });
-
-      const childBridgeA = new ChildMfeBridgeImpl('domain', 'instance-a');
-      const parentBridgeA = new ParentMfeBridgeImpl(childBridgeA);
-      childBridgeA.setParentBridge(parentBridgeA);
-      parentBridgeA.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'dark'
-      );
-
-      // MFE Instance B (same entry, different instance)
-      const mfeStateB = new DefaultMfeStateContainer({
-        initialState: { data: 'B' },
-      });
-
-      const childBridgeB = new ChildMfeBridgeImpl('domain', 'instance-b');
-      const parentBridgeB = new ParentMfeBridgeImpl(childBridgeB);
-      childBridgeB.setParentBridge(parentBridgeB);
-      parentBridgeB.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'light'
-      );
-
-      // Update A
-      mfeStateA.setState((state) => ({ ...state, data: 'A-modified' }));
-      parentBridgeA.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'auto'
-      );
-
-      // B should be unchanged
-      expect(mfeStateB.getState().data).toBe('B');
-      expect(
-        childBridgeB.getProperty(
-          'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1'
-        )
-      ).toEqual({
-        id: 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        value: 'light',
-      });
-
-      // Update B
-      mfeStateB.setState((state) => ({ ...state, data: 'B-modified' }));
-
-      // A should be unchanged (from B's update)
-      expect(mfeStateA.getState().data).toBe('A-modified');
-
-      // Complete isolation verified
-      mfeStateA.dispose();
-      mfeStateB.dispose();
-      parentBridgeA.dispose();
-      parentBridgeB.dispose();
-    });
-  });
-
-  describe('Cleanup on unmount', () => {
-    it('should cleanup all MFE resources on unmount', () => {
-      const mfeState = new DefaultMfeStateContainer({
-        initialState: { data: 'test' },
-      });
-
-      const childBridge = new ChildMfeBridgeImpl('domain', 'instance-cleanup');
-      const parentBridge = new ParentMfeBridgeImpl(childBridge);
-      childBridge.setParentBridge(parentBridge);
-
-      parentBridge.receivePropertyUpdate(
-        'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1',
-        'dark'
-      );
-
-      const entryTypeId = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1';
-      const mockBridge: ParentMfeBridge = {
-        instanceId: 'test-instance-3',
-        dispose: () => {
-          mfeState.dispose();
-          parentBridge.dispose();
-        },
-      };
-
-      const connection: RuntimeConnection = {
-        hostRuntime,
-        bridges: new Map([[entryTypeId, mockBridge]]),
-      };
-
-      coordinator.register(_container, connection);
-
-      // Simulate unmount
-      mockBridge.dispose();
-      coordinator.unregister(_container);
-
-      // All resources should be cleaned up
-      expect(mfeState.disposed).toBe(true);
-      // After parentBridge.dispose(), child bridge is cleaned — getProperty returns undefined
-      expect(childBridge.getProperty('gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1')).toBeUndefined();
-      expect(coordinator.get(_container)).toBeUndefined();
-    });
+    expect(mockLifecycle.unmount).toHaveBeenCalledOnce();
+    expect(registry.getParentBridge(EXTENSION_ID)).toBeNull();
+    expect(bridge.getProperty(TEST_PROPERTY_TYPE_ID)).toBeUndefined();
   });
 });

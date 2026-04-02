@@ -5,7 +5,7 @@
  * and formatRelative. Uses Language.German and UTC for deterministic results (matches production type).
  */
 
-import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { i18nRegistry } from '../../I18nRegistry';
 import { Language } from '../../types';
 import { formatDate, formatTime, formatDateTime, formatRelative } from '../dateFormatter';
@@ -15,9 +15,19 @@ const validDate = new Date('2025-06-15T14:30:00.000Z');
 
 describe('dateFormatter', () => {
   let getLanguageSpy: ReturnType<typeof vi.spyOn>;
+  let originalTZ: string | undefined;
 
   beforeAll(() => {
+    originalTZ = process.env.TZ;
     process.env.TZ = 'UTC';
+  });
+
+  afterAll(() => {
+    if (originalTZ === undefined) {
+      delete process.env.TZ;
+    } else {
+      process.env.TZ = originalTZ;
+    }
   });
 
   beforeEach(() => {

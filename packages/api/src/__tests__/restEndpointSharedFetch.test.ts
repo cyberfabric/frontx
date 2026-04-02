@@ -1,15 +1,22 @@
+import type { AxiosRequestConfig } from 'axios';
 import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import { BaseApiService } from '../BaseApiService';
 import { RestEndpointProtocol } from '../protocols/RestEndpointProtocol';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { getSharedFetchCache, resetSharedFetchCache } from '../sharedFetchCache';
 import {
-  ApiPlugin,
-  ApiPluginBase,
+  type ApiProtocol,
   type ApiPluginErrorContext,
-  type ApiRequestContext,
-  type ApiResponseContext,
+  RestPlugin,
+  RestPluginWithConfig,
+  type RestRequestContext,
+  type RestResponseContext,
 } from '../types';
+
+/** Access protocol instance from a service (tests sit outside BaseApiService subclasses). */
+function getServiceProtocol<T extends ApiProtocol>(service: BaseApiService, Protocol: new (...args: never[]) => T): T {
+  return (service as unknown as { protocol(p: new (...args: never[]) => T): T }).protocol(Protocol);
+}
 
 function createDeferred<T>() {
   let resolve!: (value: T | PromiseLike<T>) => void;
@@ -22,8 +29,8 @@ function createDeferred<T>() {
   return { promise, reject, resolve };
 }
 
-class AuthHeaderPlugin extends ApiPlugin<{ token: string }> {
-  async onRequest(context: ApiRequestContext): Promise<ApiRequestContext> {
+class AuthHeaderPlugin extends RestPluginWithConfig<{ token: string }> {
+  async onRequest(context: RestRequestContext): Promise<RestRequestContext> {
     return {
       ...context,
       headers: {
@@ -34,8 +41,8 @@ class AuthHeaderPlugin extends ApiPlugin<{ token: string }> {
   }
 }
 
-class HeaderEchoPlugin extends ApiPluginBase {
-  async onRequest(context: ApiRequestContext): Promise<{ shortCircuit: ApiResponseContext }> {
+class HeaderEchoPlugin extends RestPlugin {
+  async onRequest(context: RestRequestContext): Promise<{ shortCircuit: RestResponseContext }> {
     return {
       shortCircuit: {
         status: 200,
@@ -49,28 +56,28 @@ class HeaderEchoPlugin extends ApiPluginBase {
   }
 }
 
-class BlockingResponsePlugin extends ApiPluginBase {
+class BlockingResponsePlugin extends RestPlugin {
   entered = createDeferred<void>();
 
   constructor(private readonly release: Promise<void>) {
     super();
   }
 
-  async onResponse(response: ApiResponseContext): Promise<ApiResponseContext> {
+  async onResponse(response: RestResponseContext): Promise<RestResponseContext> {
     this.entered.resolve();
     await this.release;
     return response;
   }
 }
 
-class BlockingRequestPlugin extends ApiPluginBase {
+class BlockingRequestPlugin extends RestPlugin {
   entered = createDeferred<void>();
 
   constructor(private readonly release: Promise<void>) {
     super();
   }
 
-  async onRequest(context: ApiRequestContext): Promise<ApiRequestContext> {
+  async onRequest(context: RestRequestContext): Promise<RestRequestContext> {
     this.entered.resolve();
 
     if (context.signal?.aborted) {
@@ -92,8 +99,8 @@ class BlockingRequestPlugin extends ApiPluginBase {
   }
 }
 
-class ResponseTagPlugin extends ApiPlugin<{ tag: string }> {
-  async onResponse(response: ApiResponseContext): Promise<ApiResponseContext> {
+class ResponseTagPlugin extends RestPluginWithConfig<{ tag: string }> {
+  async onResponse(response: RestResponseContext): Promise<RestResponseContext> {
     return {
       ...response,
       data: {
@@ -104,12 +111,12 @@ class ResponseTagPlugin extends ApiPlugin<{ tag: string }> {
   }
 }
 
-class RecoveryPlugin extends ApiPluginBase {
+class RecoveryPlugin extends RestPlugin {
   constructor(private readonly recoveredData: Record<string, unknown>) {
     super();
   }
 
-  async onError(_context: ApiPluginErrorContext): Promise<ApiResponseContext> {
+  async onError(_context: ApiPluginErrorContext): Promise<RestResponseContext> {
     return {
       status: 200,
       headers: {},
@@ -118,19 +125,19 @@ class RecoveryPlugin extends ApiPluginBase {
   }
 }
 
-class RequestCountPlugin extends ApiPluginBase {
+class RequestCountPlugin extends RestPlugin {
   calls = 0;
 
-  async onRequest(context: ApiRequestContext): Promise<ApiRequestContext> {
+  async onRequest(context: RestRequestContext): Promise<RestRequestContext> {
     this.calls += 1;
     return context;
   }
 }
 
-class RequestNoncePlugin extends ApiPluginBase {
+class RequestNoncePlugin extends RestPlugin {
   calls = 0;
 
-  async onRequest(context: ApiRequestContext): Promise<ApiRequestContext> {
+  async onRequest(context: RestRequestContext): Promise<RestRequestContext> {
     this.calls += 1;
 
     return {
@@ -144,7 +151,7 @@ class RequestNoncePlugin extends ApiPluginBase {
 }
 
 class SharedHeaderApiService extends BaseApiService {
-  constructor(token: string, requestPlugin?: ApiPluginBase) {
+  constructor(token: string, requestPlugin?: RestPlugin) {
     const rest = new RestProtocol();
     const endpoints = new RestEndpointProtocol(rest);
     super({ baseURL: '/api/shared' }, rest, endpoints);
@@ -164,21 +171,20 @@ class SharedHeaderApiService extends BaseApiService {
 }
 
 class CredentialModeApiService extends BaseApiService {
-  readonly requestSpy: ReturnType<typeof vi.fn>;
+  readonly requestSpy: ReturnType<typeof vi.fn<(config: AxiosRequestConfig) => Promise<unknown>>>;
 
   constructor(withCredentials: boolean, credentialMode: string) {
     const rest = new RestProtocol({ withCredentials });
     const endpoints = new RestEndpointProtocol(rest);
     super({ baseURL: '/api/shared' }, rest, endpoints);
 
-    this.requestSpy = vi.fn().mockResolvedValue({
+    this.requestSpy = vi.fn(async (_config: AxiosRequestConfig) => ({
       status: 200,
       headers: {},
       data: { credentialMode },
-    });
+    }));
 
-    (rest as unknown as { client: { request: (...args: unknown[]) => unknown } }).client.request =
-      this.requestSpy;
+    rest.setRequestDispatcherForTest(this.requestSpy);
   }
 
   readonly getCurrentUser = this.protocol(RestEndpointProtocol).query<{
@@ -187,7 +193,7 @@ class CredentialModeApiService extends BaseApiService {
 }
 
 class RecoveringSharedHeaderApiService extends BaseApiService {
-  readonly requestSpy: ReturnType<typeof vi.fn>;
+  readonly requestSpy: ReturnType<typeof vi.fn<(config: AxiosRequestConfig) => Promise<unknown>>>;
 
   constructor(token: string, recoveredData: Record<string, unknown>) {
     const rest = new RestProtocol();
@@ -197,9 +203,10 @@ class RecoveringSharedHeaderApiService extends BaseApiService {
     rest.plugins.add(new AuthHeaderPlugin({ token }));
     rest.plugins.add(new RecoveryPlugin(recoveredData));
 
-    this.requestSpy = vi.fn().mockRejectedValue(new Error('network-down'));
-    (rest as RestProtocol & { client: { request: (...args: unknown[]) => unknown } }).client.request =
-      this.requestSpy;
+    this.requestSpy = vi.fn(async (_config: AxiosRequestConfig) => {
+      throw new Error('network-down');
+    });
+    rest.setRequestDispatcherForTest(this.requestSpy);
   }
 
   readonly getCurrentUser = this.protocol(RestEndpointProtocol).query<{
@@ -296,7 +303,7 @@ describe('RestEndpointProtocol shared fetch identity', () => {
     const releaseResponse = createDeferred<void>();
     const blockingResponsePlugin = new BlockingResponsePlugin(releaseResponse.promise);
     const service = new SharedHeaderApiService('tenant-a', noncePlugin);
-    service.protocol(RestProtocol).plugins.add(blockingResponsePlugin);
+    getServiceProtocol(service, RestProtocol).plugins.add(blockingResponsePlugin);
 
     const firstFetch = service.getCurrentUser.fetch({ staleTime: 1_000 });
     await blockingResponsePlugin.entered.promise;
@@ -347,8 +354,8 @@ describe('RestEndpointProtocol shared fetch identity', () => {
     getSharedFetchCache();
     const firstService = new SharedHeaderApiService('tenant-a');
     const secondService = new SharedHeaderApiService('tenant-a');
-    firstService.protocol(RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'first' }));
-    secondService.protocol(RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'second' }));
+    getServiceProtocol(firstService, RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'first' }));
+    getServiceProtocol(secondService, RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'second' }));
 
     await expect(firstService.getCurrentUser.fetch({ staleTime: 1_000 })).resolves.toEqual({
       authorization: 'Bearer tenant-a',
@@ -371,8 +378,8 @@ describe('RestEndpointProtocol shared fetch identity', () => {
     };
     const firstService = new RecoveringSharedHeaderApiService('tenant-a', recoveredEnvelope);
     const secondService = new RecoveringSharedHeaderApiService('tenant-a', recoveredEnvelope);
-    firstService.protocol(RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'first' }));
-    secondService.protocol(RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'second' }));
+    getServiceProtocol(firstService, RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'first' }));
+    getServiceProtocol(secondService, RestProtocol).plugins.add(new ResponseTagPlugin({ tag: 'second' }));
 
     await expect(firstService.getCurrentUser.fetch({ staleTime: 1_000 })).resolves.toEqual({
       authorization: 'Bearer tenant-a',

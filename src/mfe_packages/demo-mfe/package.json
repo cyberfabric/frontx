@@ -6,7 +6,11 @@
   "scripts": {
     "dev": "vite build && concurrently \"vite build --watch\" \"vite preview --port 3001\"",
     "build": "vite build",
-    "preview": "vite preview --port 3001"
+    "type-check": "tsc --noEmit",
+    "preview": "vite preview --port 3001",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
   "dependencies": {
     "@cyberfabric/react": "file:../../../packages/react",
@@ -51,8 +55,11 @@
     "@module-federation/vite": "^1.14.2",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
+    "@testing-library/react": "16.3.2",
     "@vitejs/plugin-react": "4.3.4",
+    "jsdom": "26.1.0",
     "typescript": "5.4.2",
-    "vite": "6.4.2"
+    "vite": "6.4.2",
+    "vitest": "4.1.4"
   }
 }

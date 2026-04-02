@@ -27,7 +27,13 @@ import {
   createExposeChunkSource,
   createSharedDepSource,
   TEST_BASE_URL,
-} from '../test-utils/mock-blob-url-loader';
+} from '../../../__test-utils__/mock-blob-url-loader';
+
+const MFE_ENTRY_CONTRACT: Pick<MfeEntryMF, 'requiredProperties' | 'actions' | 'domainActions'> = {
+  requiredProperties: [],
+  actions: [],
+  domainActions: [],
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -76,12 +82,13 @@ function sharedDep(
  * Build a test MfeEntryMF.
  */
 function buildEntry(
-  remoteName: string,
+  _remoteName: string,
   suffix: string,
   exposeChunk: string,
   manifest: MfManifest
 ): MfeEntryMF {
   return {
+    ...MFE_ENTRY_CONTRACT,
     id: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.${suffix}.v1`,
     manifest,
     exposedModule: './Widget1',
@@ -159,8 +166,8 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
 
       await handler.load(entry);
 
-      const fetchedUrls = mocks.mockFetch.mock.calls.map((c: unknown[]) => c[0]);
-      const sharedFetches = fetchedUrls.filter((u: string) => u.includes('/shared/'));
+      const fetchedUrls = mocks.mockFetch.mock.calls.map((c: unknown[]) => c[0] as string);
+      const sharedFetches = fetchedUrls.filter((u) => u.includes('/shared/'));
       expect(sharedFetches).toHaveLength(0);
     });
   });
@@ -190,17 +197,18 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const lifecycle = await handler.load(entry);
       const host = document.createElement('div');
       const shadowRoot = host.attachShadow({ mode: 'open' });
-      const result = await lifecycle.mount(shadowRoot, {
+      const result = (await lifecycle.mount(shadowRoot, {
         domainId: 'domain',
         instanceId: 'instance',
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
-      });
+        registerActionHandler: () => {},
+      })) as unknown as { version: string };
 
       // The mount returned the React module (rewrite worked)
       expect(result).toBeDefined();
-      expect((result as { version: string }).version).toBe('19.2.4');
+      expect(result.version).toBe('19.2.4');
     });
 
     it('rewriting from "react" does NOT affect from "react-dom" (exact match)', async () => {
@@ -227,13 +235,14 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const lifecycle = await handler.load(entry);
       const host = document.createElement('div');
       const shadowRoot = host.attachShadow({ mode: 'open' });
-      const result = await lifecycle.mount(shadowRoot, {
+      const result = (await lifecycle.mount(shadowRoot, {
         domainId: 'domain',
         instanceId: 'instance',
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
-      }) as { react: { name: string }; reactDom: { name: string } };
+        registerActionHandler: () => {},
+      })) as unknown as { react: { name: string }; reactDom: { name: string } };
 
       // Both got resolved independently — react's rewrite didn't corrupt react-dom
       expect(result.react.name).toBe('react');
@@ -289,15 +298,16 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const lifecycle = await handler.load(entry);
       const host = document.createElement('div');
       const shadowRoot = host.attachShadow({ mode: 'open' });
-      const result = await lifecycle.mount(shadowRoot, {
+      const result = (await lifecycle.mount(shadowRoot, {
         domainId: 'domain',
         instanceId: 'instance',
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
-      });
+        registerActionHandler: () => {},
+      })) as unknown as { version: string };
 
-      expect((result as { version: string }).version).toBe('19.2.4');
+      expect(result.version).toBe('19.2.4');
     });
 
     it('handles CJS shared dep import: import __ext from "dep"', async () => {
@@ -319,15 +329,16 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const lifecycle = await handler.load(entry);
       const host = document.createElement('div');
       const shadowRoot = host.attachShadow({ mode: 'open' });
-      const result = await lifecycle.mount(shadowRoot, {
+      const result = (await lifecycle.mount(shadowRoot, {
         domainId: 'domain',
         instanceId: 'instance',
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
-      });
+        registerActionHandler: () => {},
+      })) as unknown as { name: string };
 
-      expect((result as { name: string }).name).toBe('lodash');
+      expect(result.name).toBe('lodash');
     });
   });
 
@@ -508,13 +519,14 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const lifecycle = await handler.load(entry);
       const host = document.createElement('div');
       const shadowRoot = host.attachShadow({ mode: 'open' });
-      const result = await lifecycle.mount(shadowRoot, {
+      const result = (await lifecycle.mount(shadowRoot, {
         domainId: 'domain',
         instanceId: 'instance',
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
-      }) as { name: string };
+        registerActionHandler: () => {},
+      })) as unknown as { name: string };
 
       expect(result.name).toBe('react-dom');
     });
@@ -536,12 +548,14 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       const manifest = buildManifest(remoteName, [sharedDep(remoteName, 'react', '19.2.4')]);
 
       const entry1: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.iso1.v1',
         manifest,
         exposedModule: './Widget1',
         exposeAssets: { js: { sync: ['expose-Widget1.js'], async: [] }, css: { sync: [], async: [] } },
       };
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.iso2.v1',
         manifest,
         exposedModule: './Widget2',
@@ -612,6 +626,7 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
     it('throws MfeLoadError when exposeAssets.js.sync is empty (no chunk to load)', async () => {
       const manifest = buildManifest('missingExposeRemote');
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.missingexpose.v1',
         manifest,
         exposedModule: './NonExistent',

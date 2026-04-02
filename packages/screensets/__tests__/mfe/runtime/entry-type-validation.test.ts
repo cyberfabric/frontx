@@ -17,11 +17,11 @@ import {
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
 import { EntryTypeNotHandledError } from '../../../src/mfe/errors';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 describe('Entry Type Validation (Phase 32.3)', () => {
   let gtsPlugin: GtsPlugin;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.entryval.reg.domain.v1',
@@ -63,6 +63,7 @@ describe('Entry Type Validation (Phase 32.3)', () => {
     id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.entryval.reg.mfentry.v1',
     manifest: {
       id: 'gts.hai3.mfes.mfe.mf_manifest.v1~test.entryval.reg.manifest.v1',
+      name: 'testRemote',
       metaData: {
         name: 'testRemote',
         type: 'app',
@@ -72,7 +73,6 @@ describe('Entry Type Validation (Phase 32.3)', () => {
         publicPath: 'https://cdn.example.com/',
       },
       shared: [],
-      mfInitKey: '',
     },
     exposedModule: './TestComponent',
     exposeAssets: {
@@ -92,7 +92,7 @@ describe('Entry Type Validation (Phase 32.3)', () => {
   beforeEach(() => {
     gtsPlugin = new GtsPlugin();
 
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register entries in GTS before using them
     gtsPlugin.register(nonMfEntry);

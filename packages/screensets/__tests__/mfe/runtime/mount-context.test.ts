@@ -12,12 +12,15 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultMountManager } from '../../../src/mfe/runtime/default-mount-manager';
 import { DefaultExtensionManager } from '../../../src/mfe/runtime/default-extension-manager';
 import { DefaultRuntimeBridgeFactory } from '../../../src/mfe/runtime/default-runtime-bridge-factory';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeEntryLifecycle } from '../../../src/mfe/handler/types';
+import type { ChildMfeBridge, MfeEntryLifecycle } from '../../../src/mfe/handler/types';
 import type { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
-import type { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
-import { MockContainerProvider } from '../test-utils';
+import {
+  TestContainerProvider,
+  createMinimalScreensetsRegistryStub,
+  makeMfeHandlerDouble,
+} from '../../../__test-utils__';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
@@ -67,20 +70,22 @@ const testExtension: Extension = {
 describe('DefaultMountManager — mount context forwarding', () => {
   let mountManager: DefaultMountManager;
   let extensionManager: DefaultExtensionManager;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
   let mockLifecycle: MfeEntryLifecycle;
+  let typeSystem: GtsPlugin;
   beforeEach(() => {
-    gtsPlugin.register(testEntry);
+    typeSystem = new GtsPlugin();
+    typeSystem.register(testEntry);
 
     extensionManager = new DefaultExtensionManager({
-      typeSystem: gtsPlugin,
+      typeSystem,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       triggerDomainOwnLifecycle: vi.fn().mockResolvedValue(undefined),
       unmountExtension: vi.fn().mockResolvedValue(undefined),
       validateEntryType: vi.fn(),
     });
 
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
     mockLifecycle = {
       mount: vi.fn().mockResolvedValue(undefined),
       unmount: vi.fn().mockResolvedValue(undefined),
@@ -93,24 +98,29 @@ describe('DefaultMountManager — mount context forwarding', () => {
     };
 
     const bridgeFactory = new DefaultRuntimeBridgeFactory();
+    const loadMock = vi
+      .fn<(entry: MfeEntry) => Promise<MfeEntryLifecycle<ChildMfeBridge>>>()
+      .mockResolvedValue(mockLifecycle);
+    const testHandler = makeMfeHandlerDouble({
+      handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+      priority: 0,
+      load: loadMock,
+    });
     mountManager = new DefaultMountManager({
       extensionManager,
-      resolveHandler: (_entryTypeId: string) => ({
-        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
-        priority: 0,
-        load: vi.fn().mockResolvedValue(mockLifecycle),
-        bridgeFactory: undefined,
-      }),
+      resolveHandler: () => testHandler,
       coordinator,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       executeActionsChain: vi.fn().mockResolvedValue(undefined),
-      hostRuntime: {} as ScreensetsRegistry,
-      registerDomainActionHandler: vi.fn(),
-      unregisterDomainActionHandler: vi.fn(),
+      hostRuntime: createMinimalScreensetsRegistryStub(),
+      registerCatchAllActionHandler: vi.fn(),
+      unregisterCatchAllActionHandler: vi.fn(),
+      registerExtensionActionHandler: vi.fn(),
+      unregisterExtensionActionHandler: vi.fn(),
       bridgeFactory,
     });
 
-    extensionManager.registerDomain(testDomain, mockContainerProvider);
+    extensionManager.registerDomain(testDomain);
   });
 
   it('passes runtime identity metadata to lifecycle.mount()', async () => {
@@ -120,7 +130,7 @@ describe('DefaultMountManager — mount context forwarding', () => {
     await mountManager.mountExtension(EXT_ID, container);
 
     expect(mockLifecycle.mount).toHaveBeenCalledOnce();
-    const callArgs = (mockLifecycle.mount as ReturnType<typeof vi.fn>).mock.calls[0];
+    const callArgs = vi.mocked(mockLifecycle.mount).mock.calls[0];
     expect(callArgs[2]).toMatchObject({
       extensionId: EXT_ID,
       domainId: DOMAIN_ID,

@@ -1,14 +1,14 @@
 /**
  * Tests for queryCache() plugin lifecycle — Phase 5 (implement-endpoint-descriptors)
  *
- * Covers:
- *   - Plugin shape: name and shared QueryClient lifecycle
- *   - Runtime default options (staleTime, gcTime, retry, refetchOnWindowFocus)
- *   - Custom config overrides defaults
- *   - onInit subscribes to MockEvents.Toggle and cache/invalidate events
- *   - onDestroy clears the runtime and unsubscribes from events
- *   - MockEvents.Toggle clears the cache
- *   - cache/invalidate marks specific query keys stale
+ * Scope: narrow unit tests that exercise the queryCache() / queryCacheShared()
+ * lifecycle, event contract, and shared-retainer invariants. Cross-package
+ * integration via full service / RestEndpointProtocol descriptors is
+ * intentionally out of scope for this feature (see
+ * `architecture/features/feature-request-lifecycle/FEATURE.md` — Non-Applicable
+ * Domains). Plugin wiring with L1 `sharedFetchCache` is asserted only through
+ * the plugin's own public bridge (cache/set/remove/invalidate + mock toggle),
+ * never through real API services.
  *
  * @packageDocumentation
  * @vitest-environment jsdom
@@ -22,61 +22,58 @@
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { QueryClient } from '@tanstack/query-core';
-import {
-  BaseApiService,
-  getSharedFetchCache,
-  resetSharedFetchCache,
-  RestEndpointProtocol,
-  RestProtocol,
-  type ApiRequestContext,
-  type ApiResponseContext,
-} from '@cyberfabric/api';
+import { getSharedFetchCache, resetSharedFetchCache } from '@cyberfabric/api';
 import { createHAI3 } from '../src/createHAI3';
 import { queryCache, queryCacheShared } from '../src/plugins/queryCache';
-import { resetSharedQueryClient } from '../src/testing';
+import {
+  resetSharedQueryClient,
+  peekSharedQueryClient,
+  peekSharedQueryClientRetainers,
+  peekQueryClientBroadcastTarget,
+  peekAppQueryClient,
+  peekAppQueryClientResolver,
+  peekAppQueryClientActivator,
+} from '../src/testing';
 import { eventBus, resetStore } from '@cyberfabric/state';
 import { MockEvents } from '../src/effects/mockEffects';
 import type { HAI3App, HAI3Plugin } from '../src/types';
-
-const SHARED_QUERY_CLIENT_SYMBOL = Symbol.for('hai3:query-cache:shared-client');
-const SHARED_QUERY_CLIENT_RETAINERS_SYMBOL = Symbol.for('hai3:query-cache:shared-client-retainers');
-const QUERY_CLIENT_BROADCAST_TARGET = Symbol.for('hai3:query-cache:broadcast-target');
-const APP_QUERY_CLIENT_SYMBOL = Symbol.for('hai3:query-cache:app-client');
-const APP_QUERY_CLIENT_RESOLVER_SYMBOL = Symbol.for('hai3:query-cache:app-client-resolver');
-const APP_QUERY_CLIENT_ACTIVATOR_SYMBOL = Symbol.for('hai3:query-cache:app-client-activator');
-
-type SharedQueryClientHost = typeof globalThis & {
-  [SHARED_QUERY_CLIENT_SYMBOL]?: QueryClient;
-  [SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]?: number;
-};
-
-type QueryClientWithMetadata = QueryClient & {
-  [QUERY_CLIENT_BROADCAST_TARGET]?: string;
-};
-
-type QueryClientApp = HAI3App & {
-  [APP_QUERY_CLIENT_SYMBOL]?: QueryClient;
-  [APP_QUERY_CLIENT_RESOLVER_SYMBOL]?: () => QueryClient | undefined;
-  [APP_QUERY_CLIENT_ACTIVATOR_SYMBOL]?: () => QueryClient | undefined;
-};
 
 // ============================================================================
 // Test helpers
 // ============================================================================
 
 /**
- * Minimal stub for the HAI3App parameter consumed by onInit/onDestroy.
- * queryCache's lifecycle hooks don't read app properties — they only subscribe
- * to the event bus, so a cast is safe here.
+ * Real minimal app from the builder — queryCache onInit/onDestroy only attach
+ * symbol metadata; no package plugins are registered.
  */
-function stubApp() {
-  return {} as HAI3App;
+function stubApp(): HAI3App {
+  return createHAI3().build();
 }
 
-/** Mock toggle / destroy clear the cache after await cancelQueries(); flush before asserting. */
+/**
+ * Drain the queryCache teardown async chain (cancelQueries().then(() => clear())).
+ * Tied to the plugin's async API surface: after emitting a toggle/destroy,
+ * the listener awaits cancelQueries() before clear(); yield microtasks + one
+ * macrotask so the `.then(() => clear())` continuation runs.
+ *
+ * Prefer `waitForQueryData(client, key)` (vi.waitFor) for assertions on
+ * observable cache state.
+ */
 async function flushQueryCacheClear(): Promise<void> {
+  await Promise.resolve();
+  await Promise.resolve();
   await new Promise<void>((resolve) => {
-    setImmediate(resolve);
+    setTimeout(resolve, 0);
+  });
+}
+
+/** Wait until `client.getQueryData(key)` matches a predicate. */
+async function waitForQueryDataGone(
+  client: QueryClient,
+  key: readonly unknown[]
+): Promise<void> {
+  await vi.waitFor(() => {
+    expect(client.getQueryData(key)).toBeUndefined();
   });
 }
 
@@ -89,69 +86,63 @@ function createDeferred() {
   return { promise, resolve };
 }
 
-class SharedFetchCountPlugin {
-  calls = 0;
+/**
+ * Typed stand-in for malformed cache event payloads. Matches the production
+ * event-map key set (`queryKey`, `exact`, `dataOrUpdater`) with every field
+ * optional so tests can deliberately omit required fields without resorting to
+ * `as unknown` double-casts. The queryCache plugin declares strict payload
+ * interfaces on `EventPayloadMap`; this helper narrows the emit surface used
+ * by validation tests.
+ */
+type MalformedCachePayload = {
+  queryKey?: unknown;
+  exact?: boolean;
+  dataOrUpdater?: unknown;
+};
 
-  destroy(): void {
-    return;
-  }
+type MalformedCacheEvent = 'cache/invalidate' | 'cache/set' | 'cache/remove';
 
-  async onRequest(context: ApiRequestContext): Promise<ApiRequestContext> {
-    this.calls += 1;
-    return context;
+function emitMalformedCacheEvent(
+  eventType: MalformedCacheEvent,
+  payload: MalformedCachePayload
+): void {
+  // eventBus.emit is typed against EventPayloadMap; the whole point of this
+  // helper is to feed deliberately-wrong shapes through the same runtime path.
+  const emitter = eventBus as unknown as {
+    emit(type: MalformedCacheEvent, payload: MalformedCachePayload): void;
+  };
+  emitter.emit(eventType, payload);
+}
+
+/**
+ * Run a block with `console.error` silenced, guaranteeing restore even when
+ * assertions throw. Avoids cross-test bleed when a test fails mid-flight.
+ */
+async function withSilencedConsoleError<T>(
+  fn: (spy: ReturnType<typeof vi.spyOn>) => Promise<T>
+): Promise<T> {
+  const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
+  try {
+    return await fn(spy);
+  } finally {
+    spy.mockRestore();
   }
 }
 
-class SharedFetchResponderPlugin {
-  constructor(private readonly counter: SharedFetchCountPlugin) {}
-
-  destroy(): void {
-    return;
-  }
-
-  async onRequest(): Promise<{ shortCircuit: ApiResponseContext }> {
-    return {
-      shortCircuit: {
-        status: 200,
-        headers: {},
-        data: {
-          calls: this.counter.calls,
-        },
-      },
-    };
-  }
-}
-
-class SharedFetchDescriptorService extends BaseApiService {
-  constructor(counter: SharedFetchCountPlugin) {
-    const rest = new RestProtocol();
-    const endpoints = new RestEndpointProtocol(rest);
-    super({ baseURL: '/api/query-cache' }, rest, endpoints);
-
-    rest.plugins.add(counter);
-    rest.plugins.add(new SharedFetchResponderPlugin(counter));
-  }
-
-  readonly entity = this.protocol(RestEndpointProtocol).query<{ calls: number }>('/entity/42');
-}
-
-function getQueryClient(plugin: HAI3Plugin): QueryClient {
-  void plugin;
-  const queryClient = (globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL];
-  if (!queryClient) {
+function requireSharedQueryClient(): QueryClient {
+  const client = peekSharedQueryClient();
+  if (!client) {
     throw new Error('expected shared query client');
   }
-
-  return queryClient;
+  return client;
 }
 
-function getBroadcastTarget(queryClient: QueryClient): string {
-  const broadcastTarget = (queryClient as QueryClientWithMetadata)[QUERY_CLIENT_BROADCAST_TARGET];
-  if (!broadcastTarget) {
+function requireBroadcastTarget(client: QueryClient): string {
+  const target = peekQueryClientBroadcastTarget(client);
+  if (!target) {
     throw new Error('expected query client broadcast target');
   }
-
-  return broadcastTarget;
+  return target;
 }
 
 // ============================================================================
@@ -170,6 +161,7 @@ afterEach(() => {
   resetSharedFetchCache();
   resetSharedQueryClient();
   resetStore();
+  vi.restoreAllMocks();
 });
 
 // ============================================================================
@@ -184,40 +176,40 @@ describe('queryCache() — plugin shape', () => {
 
   it('does not retain the shared QueryClient until onInit', () => {
     queryCache();
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBeUndefined();
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL] ?? 0).toBe(0);
+    expect(peekSharedQueryClient()).toBeUndefined();
+    expect(peekSharedQueryClientRetainers()).toBe(0);
   });
 
   it('onDestroy without onInit does not retain the shared QueryClient', () => {
     const plugin = queryCache();
     plugin.onDestroy!(stubApp());
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBeUndefined();
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL] ?? 0).toBe(0);
+    expect(peekSharedQueryClient()).toBeUndefined();
+    expect(peekSharedQueryClientRetainers()).toBe(0);
   });
 
   it('creates a shared QueryClient on onInit', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    expect(getQueryClient(plugin)).toBeInstanceOf(QueryClient);
+    expect(requireSharedQueryClient()).toBeInstanceOf(QueryClient);
   });
 
   it('exposes a broadcast target token for local cache event fan-out', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
 
-    expect(getBroadcastTarget(getQueryClient(plugin))).toMatch(/^query-cache-/);
+    expect(requireBroadcastTarget(requireSharedQueryClient())).toMatch(/^query-cache-/);
   });
 
   it('assigns a fresh broadcast target after the shared client is reset', () => {
     const firstPlugin = queryCache();
     firstPlugin.onInit!(stubApp());
-    const firstTarget = getBroadcastTarget(getQueryClient(firstPlugin));
+    const firstTarget = requireBroadcastTarget(requireSharedQueryClient());
 
     resetSharedQueryClient();
 
     const secondPlugin = queryCache();
     secondPlugin.onInit!(stubApp());
-    const secondTarget = getBroadcastTarget(getQueryClient(secondPlugin));
+    const secondTarget = requireBroadcastTarget(requireSharedQueryClient());
 
     expect(firstTarget).not.toBe(secondTarget);
   });
@@ -237,10 +229,9 @@ describe('queryCache() — plugin shape', () => {
     hostPlugin.onInit?.(stubApp());
     sharedPlugin.onInit?.(stubApp());
 
-    expect(getQueryClient(sharedPlugin)).toBe(getQueryClient(hostPlugin));
-    expect(getBroadcastTarget(getQueryClient(sharedPlugin))).toBe(
-      getBroadcastTarget(getQueryClient(hostPlugin))
-    );
+    const hostClient = requireSharedQueryClient();
+    expect(peekSharedQueryClient()).toBe(hostClient);
+    expect(requireBroadcastTarget(hostClient)).toBe(requireBroadcastTarget(hostClient));
 
     sharedPlugin.onDestroy?.(stubApp());
     hostPlugin.onDestroy?.(stubApp());
@@ -253,26 +244,27 @@ describe('queryCache() — plugin shape', () => {
     hostPlugin.onInit?.(stubApp());
     sharedPlugin.onInit?.(stubApp());
 
-    expect(getQueryClient(sharedPlugin)).toBe(getQueryClient(hostPlugin));
-    expect(getQueryClient(sharedPlugin).getDefaultOptions().queries?.staleTime).toBe(60_000);
+    const client = requireSharedQueryClient();
+    expect(client.getDefaultOptions().queries?.staleTime).toBe(60_000);
 
     sharedPlugin.onDestroy?.(stubApp());
     hostPlugin.onDestroy?.(stubApp());
   });
 
   it('queryCacheShared() can build before the host runtime and join later', async () => {
-    const childApp = createHAI3().use(queryCacheShared()).build() as QueryClientApp;
+    const childApp = createHAI3().use(queryCacheShared()).build();
 
-    expect(childApp[APP_QUERY_CLIENT_SYMBOL]).toBeUndefined();
-    expect(childApp[APP_QUERY_CLIENT_RESOLVER_SYMBOL]?.()).toBeUndefined();
-    expect(typeof childApp[APP_QUERY_CLIENT_ACTIVATOR_SYMBOL]).toBe('function');
+    expect(peekAppQueryClient(childApp)).toBeUndefined();
+    expect(peekAppQueryClientResolver(childApp)?.()).toBeUndefined();
+    expect(typeof peekAppQueryClientActivator(childApp)).toBe('function');
 
-    const hostApp = createHAI3().use(queryCache()).build() as QueryClientApp;
-    const sharedClient = childApp[APP_QUERY_CLIENT_ACTIVATOR_SYMBOL]?.();
+    const hostApp = createHAI3().use(queryCache()).build();
+    const sharedClient = peekAppQueryClientActivator(childApp)?.();
 
-    expect(sharedClient).toBe(hostApp[APP_QUERY_CLIENT_SYMBOL]);
-    expect(childApp[APP_QUERY_CLIENT_SYMBOL]).toBe(hostApp[APP_QUERY_CLIENT_SYMBOL]);
-    expect(childApp[APP_QUERY_CLIENT_RESOLVER_SYMBOL]?.()).toBe(hostApp[APP_QUERY_CLIENT_SYMBOL]);
+    const hostClient = peekAppQueryClient(hostApp);
+    expect(sharedClient).toBe(hostClient);
+    expect(peekAppQueryClient(childApp)).toBe(hostClient);
+    expect(peekAppQueryClientResolver(childApp)?.()).toBe(hostClient);
 
     childApp.destroy();
     hostApp.destroy();
@@ -286,7 +278,8 @@ describe('queryCache() — plugin shape', () => {
     siblingHostPlugin.onInit?.(stubApp());
     hostPlugin.onInit?.(stubApp());
 
-    expect(getQueryClient(siblingHostPlugin)).toBe(getQueryClient(hostPlugin));
+    const hostClient = requireSharedQueryClient();
+    expect(hostClient).toBeDefined();
 
     siblingHostPlugin.onDestroy?.(stubApp());
     hostPlugin.onDestroy?.(stubApp());
@@ -297,7 +290,9 @@ describe('queryCache() — plugin shape', () => {
     hostPlugin.onInit?.(stubApp());
 
     const conflicting = queryCache({ staleTime: 30_000 });
-    expect(() => conflicting.onInit?.(stubApp())).toThrow(
+    expect(() => {
+      conflicting.onInit?.(stubApp());
+    }).toThrow(
       '[HAI3] queryCache() received a config that conflicts with the existing shared QueryClient.'
     );
 
@@ -311,7 +306,7 @@ describe('queryCache() — plugin shape', () => {
     app.destroy();
     await flushQueryCacheClear();
 
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBeUndefined();
+    expect(peekSharedQueryClient()).toBeUndefined();
     expect(getSharedFetchCache()).not.toBe(firstCache);
   });
 
@@ -326,7 +321,7 @@ describe('queryCache() — plugin shape', () => {
     app.destroy();
     await flushQueryCacheClear();
 
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBeUndefined();
+    expect(peekSharedQueryClient()).toBeUndefined();
     expect(getSharedFetchCache()).not.toBe(firstCache);
   });
 });
@@ -339,7 +334,7 @@ describe('queryCache() — runtime default options', () => {
   it('creates runtime with staleTime 30_000 by default', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     const defaults = client.getDefaultOptions();
     expect(defaults.queries?.staleTime).toBe(30_000);
@@ -348,7 +343,7 @@ describe('queryCache() — runtime default options', () => {
   it('creates runtime with gcTime 300_000 by default', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     const defaults = client.getDefaultOptions();
     expect(defaults.queries?.gcTime).toBe(300_000);
@@ -357,7 +352,7 @@ describe('queryCache() — runtime default options', () => {
   it('creates runtime with retry 0 by default', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     const defaults = client.getDefaultOptions();
     expect(defaults.queries?.retry).toBe(0);
@@ -366,7 +361,7 @@ describe('queryCache() — runtime default options', () => {
   it('creates runtime with refetchOnWindowFocus true by default', () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     const defaults = client.getDefaultOptions();
     expect(defaults.queries?.refetchOnWindowFocus).toBe(true);
@@ -381,7 +376,7 @@ describe('queryCache(config) — custom config overrides', () => {
   it('custom staleTime overrides default', () => {
     const plugin = queryCache({ staleTime: 60_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     expect(client.getDefaultOptions().queries?.staleTime).toBe(60_000);
   });
@@ -389,7 +384,7 @@ describe('queryCache(config) — custom config overrides', () => {
   it('custom gcTime overrides default', () => {
     const plugin = queryCache({ gcTime: 600_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     expect(client.getDefaultOptions().queries?.gcTime).toBe(600_000);
   });
@@ -397,7 +392,7 @@ describe('queryCache(config) — custom config overrides', () => {
   it('refetchOnWindowFocus: false overrides default', () => {
     const plugin = queryCache({ refetchOnWindowFocus: false });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     expect(client.getDefaultOptions().queries?.refetchOnWindowFocus).toBe(false);
   });
@@ -405,12 +400,12 @@ describe('queryCache(config) — custom config overrides', () => {
   it('partial config leaves unspecified options at their defaults', () => {
     const plugin = queryCache({ staleTime: 0 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
     const defaults = client.getDefaultOptions();
 
     expect(defaults.queries?.staleTime).toBe(0);
-    expect(defaults.queries?.gcTime).toBe(300_000);   // unchanged default
-    expect(defaults.queries?.retry).toBe(0);           // unchanged default
+    expect(defaults.queries?.gcTime).toBe(300_000);
+    expect(defaults.queries?.retry).toBe(0);
   });
 });
 
@@ -419,28 +414,56 @@ describe('queryCache(config) — custom config overrides', () => {
 // ============================================================================
 
 describe('queryCache() — onInit subscribes to events', () => {
-  it('onInit does not throw', () => {
+  it('onInit installs the shared runtime and MockEvents.Toggle listener', async () => {
     const plugin = queryCache();
-    expect(() => plugin.onInit!(stubApp())).not.toThrow();
-  });
+    const onSpy = vi.spyOn(eventBus, 'on');
 
-  it('clearing cache on MockEvents.Toggle does not throw when no data is cached', () => {
-    const plugin = queryCache();
     plugin.onInit!(stubApp());
 
-    // Fire toggle — should not throw even with an empty cache
-    expect(() =>
-      eventBus.emit(MockEvents.Toggle, { enabled: true })
-    ).not.toThrow();
+    expect(peekSharedQueryClient()).toBeInstanceOf(QueryClient);
+    expect(peekSharedQueryClientRetainers()).toBe(1);
+    // Observe the subscription via eventBus.on() rather than the absent
+    // listenerCount() API: the plugin must register a handler for the toggle
+    // event during onInit.
+    expect(onSpy).toHaveBeenCalledWith(MockEvents.Toggle, expect.any(Function));
+
+    // Extra proof the listener is actually live: toggling mock mode should
+    // drain the cache instead of throwing.
+    const client = requireSharedQueryClient();
+    client.setQueryData(['toggle-sentinel'], 'value');
+    eventBus.emit(MockEvents.Toggle, { enabled: true });
+    await waitForQueryDataGone(client, ['toggle-sentinel']);
   });
 
-  it('firing cache/invalidate does not throw when no data is cached', () => {
+  it('MockEvents.Toggle on an empty cache does not throw and leaves the client usable', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
+    const client = requireSharedQueryClient();
 
-    expect(() =>
-      eventBus.emit('cache/invalidate', { queryKey: ['someKey'] })
-    ).not.toThrow();
+    expect(() => {
+      eventBus.emit(MockEvents.Toggle, { enabled: true });
+    }).not.toThrow();
+    await flushQueryCacheClear();
+
+    // Listener is still alive — seeding + firing again still clears.
+    client.setQueryData(['later'], 'value');
+    eventBus.emit(MockEvents.Toggle, { enabled: false });
+    await waitForQueryDataGone(client, ['later']);
+  });
+
+  it('cache/invalidate against an empty cache does not throw and the listener stays armed', () => {
+    const plugin = queryCache();
+    plugin.onInit!(stubApp());
+    const client = requireSharedQueryClient();
+
+    expect(() => {
+      eventBus.emit('cache/invalidate', { queryKey: ['someKey'] });
+    }).not.toThrow();
+
+    // Seed post-hoc and re-emit — listener still invalidates.
+    client.setQueryData(['someKey'], 'value');
+    eventBus.emit('cache/invalidate', { queryKey: ['someKey'] });
+    expect(client.getQueryState(['someKey'])?.isInvalidated).toBe(true);
   });
 
   it('onInit creates the shared fetch cache', () => {
@@ -459,35 +482,30 @@ describe('queryCache() — MockEvents.Toggle clears the cache', () => {
   it('clears all cached data when MockEvents.Toggle fires', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
-    // Seed data into the runtime cache
     client.setQueryData(['users'], [{ id: 1 }]);
     client.setQueryData(['profile'], { name: 'Alice' });
 
     expect(client.getQueryData(['users'])).toBeDefined();
     expect(client.getQueryData(['profile'])).toBeDefined();
 
-    // Fire the toggle event — should wipe the cache
     eventBus.emit(MockEvents.Toggle, { enabled: true });
-    await flushQueryCacheClear();
 
-    expect(client.getQueryData(['users'])).toBeUndefined();
-    expect(client.getQueryData(['profile'])).toBeUndefined();
+    await waitForQueryDataGone(client, ['users']);
+    await waitForQueryDataGone(client, ['profile']);
   });
 
   it('clears cache on toggle regardless of enabled flag value', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     client.setQueryData(['key'], 'value');
 
-    // Toggle to false should also clear (mock data vs real data must not mix)
     eventBus.emit(MockEvents.Toggle, { enabled: false });
-    await flushQueryCacheClear();
 
-    expect(client.getQueryData(['key'])).toBeUndefined();
+    await waitForQueryDataGone(client, ['key']);
   });
 
   it('clears the shared fetch cache on mock toggle', async () => {
@@ -508,13 +526,15 @@ describe('queryCache() — MockEvents.Toggle clears the cache', () => {
   it('waits for cancellation before clearing runtime and shared fetch cache', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
     const deferred = createDeferred();
     const sharedFetchCache = getSharedFetchCache();
     const clearSpy = vi.spyOn(client, 'clear');
     const sharedClearSpy = vi.spyOn(sharedFetchCache, 'clear');
 
-    const cancelQueriesSpy = vi.spyOn(client, 'cancelQueries').mockImplementation(() => deferred.promise);
+    const cancelQueriesSpy = vi
+      .spyOn(client, 'cancelQueries')
+      .mockImplementation(() => deferred.promise);
 
     eventBus.emit(MockEvents.Toggle, { enabled: true });
     await flushQueryCacheClear();
@@ -531,31 +551,34 @@ describe('queryCache() — MockEvents.Toggle clears the cache', () => {
   });
 
   it('still clears runtime and shared fetch cache when cancellation fails', async () => {
-    const plugin = queryCache();
-    plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
-    const sharedFetchCache = getSharedFetchCache();
-    const fetcher = vi.fn().mockResolvedValue('first');
-    const clearSpy = vi.spyOn(client, 'clear');
-    const sharedClearSpy = vi.spyOn(sharedFetchCache, 'clear');
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await withSilencedConsoleError(async (consoleErrorSpy) => {
+      const plugin = queryCache();
+      plugin.onInit!(stubApp());
+      const client = requireSharedQueryClient();
+      const sharedFetchCache = getSharedFetchCache();
+      const fetcher = vi.fn().mockResolvedValue('first');
+      const clearSpy = vi.spyOn(client, 'clear');
+      const sharedClearSpy = vi.spyOn(sharedFetchCache, 'clear');
 
-    const cancelQueriesSpy = vi.spyOn(client, 'cancelQueries').mockRejectedValue(new Error('cancel failed'));
-    await sharedFetchCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
+      const cancelQueriesSpy = vi
+        .spyOn(client, 'cancelQueries')
+        .mockRejectedValue(new Error('cancel failed'));
+      await sharedFetchCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
 
-    eventBus.emit(MockEvents.Toggle, { enabled: true });
-    await flushQueryCacheClear();
+      eventBus.emit(MockEvents.Toggle, { enabled: true });
+      await flushQueryCacheClear();
 
-    expect(cancelQueriesSpy).toHaveBeenCalledTimes(1);
-    expect(clearSpy).toHaveBeenCalledTimes(1);
-    expect(sharedClearSpy).toHaveBeenCalledTimes(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[HAI3] Failed to clear query cache after mock toggle',
-      expect.any(Error)
-    );
+      expect(cancelQueriesSpy).toHaveBeenCalledTimes(1);
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+      expect(sharedClearSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[HAI3] Failed to clear query cache after mock toggle',
+        expect.any(Error)
+      );
 
-    await sharedFetchCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
-    expect(fetcher).toHaveBeenCalledTimes(2);
+      await sharedFetchCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    });
   });
 });
 
@@ -564,60 +587,44 @@ describe('queryCache() — MockEvents.Toggle clears the cache', () => {
 // ============================================================================
 
 describe('queryCache() — cache/invalidate invalidates query keys', () => {
-  it('marks the specified query key as invalidated', async () => {
+  it('marks the specified query key as invalidated', () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
-    // Seed a cache entry — uses gcTime > 0 so the entry survives without an observer
     client.setQueryData(['entity', 42], { value: 'original' });
 
-    // Emit invalidation event
     eventBus.emit('cache/invalidate', { queryKey: ['entity', 42] });
 
-    // After invalidation the query is marked stale
     const state = client.getQueryState(['entity', 42]);
     expect(state?.isInvalidated).toBe(true);
   });
 
-  it('does not affect unrelated cache keys', async () => {
+  it('does not affect unrelated cache keys', () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     client.setQueryData(['target'], 'will be invalidated');
     client.setQueryData(['unrelated'], 'should stay fresh');
 
     eventBus.emit('cache/invalidate', { queryKey: ['target'] });
 
-    const targetState = client.getQueryState(['target']);
-    const unrelatedState = client.getQueryState(['unrelated']);
-
-    expect(targetState?.isInvalidated).toBe(true);
-    // unrelated key was not invalidated
-    expect(unrelatedState?.isInvalidated).toBeFalsy();
-  });
-
-  it('invalidates a RestEndpointProtocol shared fetch entry for the same query key', async () => {
-    const plugin = queryCache();
-    const counter = new SharedFetchCountPlugin();
-    const service = new SharedFetchDescriptorService(counter);
-
-    plugin.onInit!(stubApp());
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 1 });
-
-    eventBus.emit('cache/invalidate', { queryKey: service.entity.key });
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 2 });
-    expect(counter.calls).toBe(2);
+    expect(client.getQueryState(['target'])?.isInvalidated).toBe(true);
+    expect(client.getQueryState(['unrelated'])?.isInvalidated).toBeFalsy();
   });
 
   it('invalidates descendant shared fetch cache entries when exact is false', async () => {
     const plugin = queryCache();
     const sharedFetchCache = getSharedFetchCache();
-    const parentFetcher = vi.fn().mockResolvedValueOnce('parent-first').mockResolvedValueOnce('parent-second');
-    const childFetcher = vi.fn().mockResolvedValueOnce('child-first').mockResolvedValueOnce('child-second');
+    const parentFetcher = vi
+      .fn()
+      .mockResolvedValueOnce('parent-first')
+      .mockResolvedValueOnce('parent-second');
+    const childFetcher = vi
+      .fn()
+      .mockResolvedValueOnce('child-first')
+      .mockResolvedValueOnce('child-second');
 
     await sharedFetchCache.getOrFetch(['entity'], parentFetcher, { staleTime: 1_000 });
     await sharedFetchCache.getOrFetch(['entity', { page: 1 }], childFetcher, {
@@ -639,7 +646,7 @@ describe('queryCache() — cache/invalidate invalidates query keys', () => {
   it('ignores malformed cache/invalidate events that omit queryKey', async () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
@@ -647,7 +654,7 @@ describe('queryCache() — cache/invalidate invalidates query keys', () => {
     client.setQueryData(['unrelated'], 'unrelated');
     await sharedFetchCache.getOrFetch(['target'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/invalidate', {});
+    emitMalformedCacheEvent('cache/invalidate', {});
 
     expect(client.getQueryState(['target'])?.isInvalidated).toBeFalsy();
     expect(client.getQueryState(['unrelated'])?.isInvalidated).toBeFalsy();
@@ -659,7 +666,7 @@ describe('queryCache() — cache/invalidate invalidates query keys', () => {
   it('ignores broad cache/invalidate events with an empty queryKey', async () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
@@ -667,7 +674,7 @@ describe('queryCache() — cache/invalidate invalidates query keys', () => {
     client.setQueryData(['unrelated'], 'unrelated');
     await sharedFetchCache.getOrFetch(['target'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/invalidate', {
+    emitMalformedCacheEvent('cache/invalidate', {
       queryKey: [],
       exact: false,
     });
@@ -684,8 +691,8 @@ describe('queryCache() — cache/invalidate invalidates query keys', () => {
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
 
     clientA.setQueryData(['shared'], 'a');
     clientB.setQueryData(['shared'], 'b');
@@ -707,8 +714,8 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
 
@@ -727,38 +734,20 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it('cache/set invalidates a RestEndpointProtocol shared fetch entry for the same query key', async () => {
-    const plugin = queryCache();
-    const counter = new SharedFetchCountPlugin();
-    const service = new SharedFetchDescriptorService(counter);
-
-    plugin.onInit!(stubApp());
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 1 });
-
-    eventBus.emit('cache/set', {
-      queryKey: service.entity.key,
-      dataOrUpdater: { optimistic: true },
-    });
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 2 });
-    expect(counter.calls).toBe(2);
-  });
-
   it('ignores malformed cache/set events without a queryKey', async () => {
     const pluginA = queryCache({ gcTime: 300_000 });
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
     clientA.setQueryData(['entity', 'shared'], { value: 'seed' });
     await sharedFetchCache.getOrFetch(['entity', 'shared'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/set', {
+    emitMalformedCacheEvent('cache/set', {
       dataOrUpdater: { value: 'optimistic' },
     });
 
@@ -774,12 +763,12 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
 
     clientA.setQueryData(['entity', 'shared'], { value: 'seed' });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/set', {
+    emitMalformedCacheEvent('cache/set', {
       queryKey: ['entity', 'shared'],
     });
 
@@ -792,8 +781,8 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
@@ -801,7 +790,7 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     clientA.setQueryData(['entity', 'other'], { value: 'other-seed' });
     await sharedFetchCache.getOrFetch(['entity', 'shared'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/set', {
+    emitMalformedCacheEvent('cache/set', {
       queryKey: [],
       dataOrUpdater: { value: 'optimistic' },
     });
@@ -820,8 +809,8 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
 
@@ -839,35 +828,20 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     expect(fetcher).toHaveBeenCalledTimes(2);
   });
 
-  it('cache/remove invalidates a RestEndpointProtocol shared fetch entry for the same query key', async () => {
-    const plugin = queryCache();
-    const counter = new SharedFetchCountPlugin();
-    const service = new SharedFetchDescriptorService(counter);
-
-    plugin.onInit!(stubApp());
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 1 });
-
-    eventBus.emit('cache/remove', { queryKey: service.entity.key });
-
-    await expect(service.entity.fetch({ staleTime: 1_000 })).resolves.toEqual({ calls: 2 });
-    expect(counter.calls).toBe(2);
-  });
-
   it('ignores malformed cache/remove events without a queryKey', async () => {
     const pluginA = queryCache({ gcTime: 300_000 });
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
     clientA.setQueryData(['entity', 'remove'], { value: 'seed' });
     await sharedFetchCache.getOrFetch(['entity', 'remove'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/remove', {});
+    emitMalformedCacheEvent('cache/remove', {});
 
     expect(clientA.getQueryData(['entity', 'remove'])).toEqual({ value: 'seed' });
     expect(clientB.getQueryData(['entity', 'remove'])).toEqual({ value: 'seed' });
@@ -881,8 +855,8 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     const pluginB = queryCache({ gcTime: 300_000 });
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
     const sharedFetchCache = getSharedFetchCache();
     const fetcher = vi.fn().mockResolvedValue('cached');
 
@@ -890,7 +864,7 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
     clientA.setQueryData(['entity', 'keep'], { value: 'keep-seed' });
     await sharedFetchCache.getOrFetch(['entity', 'remove'], fetcher, { staleTime: 1_000 });
 
-    (eventBus.emit as (eventType: string, payload: unknown) => void)('cache/remove', {
+    emitMalformedCacheEvent('cache/remove', {
       queryKey: [],
     });
 
@@ -909,16 +883,35 @@ describe('queryCache() — cache/set and cache/remove synchronize runtimes', () 
 // ============================================================================
 
 describe('queryCache() — onDestroy cleanup', () => {
-  it('onDestroy does not throw', () => {
+  it('onDestroy releases the shared retainer and stops responding to MockEvents.Toggle', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    expect(() => plugin.onDestroy!(stubApp())).not.toThrow();
+    const client = requireSharedQueryClient();
+
+    client.setQueryData(['stale'], 'value');
+    plugin.onDestroy!(stubApp());
+
+    await flushQueryCacheClear();
+
+    expect(peekSharedQueryClientRetainers()).toBe(0);
+    expect(peekSharedQueryClient()).toBeUndefined();
+
+    // The listener must be gone: seeding the (now-detached) client and
+    // emitting MockEvents.Toggle should not purge the reference we still
+    // hold — if the listener were still live and the shared client still
+    // alive it would have been cleared.
+    client.setQueryData(['after-destroy'], 'value');
+    eventBus.emit(MockEvents.Toggle, { enabled: true });
+    // Allow any lingering microtasks a chance to run.
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(client.getQueryData(['after-destroy'])).toBe('value');
   });
 
   it('clears cached data on destroy', async () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     client.setQueryData(['key'], 'value');
 
@@ -966,23 +959,21 @@ describe('queryCache() — onDestroy cleanup', () => {
   it('after onDestroy, MockEvents.Toggle no longer clears cache (unsubscribed)', () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     plugin.onDestroy!(stubApp());
 
-    // Seed data after destroy — the event listener is gone
     client.setQueryData(['key'], 'fresh');
 
     eventBus.emit(MockEvents.Toggle, { enabled: true });
 
-    // The listener was removed on destroy, so data remains
     expect(client.getQueryData(['key'])).toBe('fresh');
   });
 
-  it('after onDestroy, cache/invalidate no longer invalidates queries (unsubscribed)', async () => {
+  it('after onDestroy, cache/invalidate no longer invalidates queries (unsubscribed)', () => {
     const plugin = queryCache({ gcTime: 300_000 });
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
 
     plugin.onDestroy!(stubApp());
 
@@ -991,15 +982,23 @@ describe('queryCache() — onDestroy cleanup', () => {
     eventBus.emit('cache/invalidate', { queryKey: ['key'] });
 
     const state = client.getQueryState(['key']);
-    // Listener was removed — query is not invalidated
     expect(state?.isInvalidated).toBeFalsy();
   });
 
-  it('calling onDestroy multiple times does not throw', () => {
+  it('calling onDestroy multiple times does not change retainer count below zero', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
     plugin.onDestroy!(stubApp());
-    expect(() => plugin.onDestroy!(stubApp())).not.toThrow();
+    await flushQueryCacheClear();
+
+    expect(peekSharedQueryClientRetainers()).toBe(0);
+    expect(() => {
+      plugin.onDestroy!(stubApp());
+    }).not.toThrow();
+    await flushQueryCacheClear();
+
+    expect(peekSharedQueryClientRetainers()).toBe(0);
+    expect(peekSharedQueryClient()).toBeUndefined();
   });
 
   it('two plugin instances have independent cleanup — destroying one does not break the other', async () => {
@@ -1007,33 +1006,24 @@ describe('queryCache() — onDestroy cleanup', () => {
     const pluginB = queryCache();
     pluginA.onInit!(stubApp());
     pluginB.onInit!(stubApp());
-    const clientA = getQueryClient(pluginA);
-    const clientB = getQueryClient(pluginB);
+    const clientA = requireSharedQueryClient();
+    const clientB = requireSharedQueryClient();
 
-    // Seed both caches
     clientA.setQueryData(['a'], 'dataA');
     clientB.setQueryData(['b'], 'dataB');
 
-    // Destroy plugin A — should NOT affect plugin B's listeners
     pluginA.onDestroy!(stubApp());
     await flushQueryCacheClear();
 
-    // Plugin B's cache/invalidate listener should still work
     clientB.setQueryData(['b'], 'dataB-fresh');
     eventBus.emit('cache/invalidate', { queryKey: ['b'] });
 
-    const stateB = clientB.getQueryState(['b']);
-    expect(stateB?.isInvalidated).toBe(true);
-
-    // Shared client state stays alive until the last retainer is destroyed.
+    expect(clientB.getQueryState(['b'])?.isInvalidated).toBe(true);
     expect(clientA.getQueryData(['a'])).toBe('dataA');
 
-    // Plugin B's MockEvents.Toggle listener should still work
     eventBus.emit(MockEvents.Toggle, { enabled: true });
-    await flushQueryCacheClear();
-    expect(clientB.getQueryData(['b'])).toBeUndefined();
+    await waitForQueryDataGone(clientB, ['b']);
 
-    // Clean up plugin B
     pluginB.onDestroy!(stubApp());
   });
 
@@ -1063,12 +1053,14 @@ describe('queryCache() — onDestroy cleanup', () => {
   it('waits for cancellation before clearing runtime and releasing shared fetch cache', async () => {
     const plugin = queryCache();
     plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
+    const client = requireSharedQueryClient();
     const deferred = createDeferred();
     const firstCache = getSharedFetchCache();
     const clearSpy = vi.spyOn(client, 'clear');
 
-    const cancelQueriesSpy = vi.spyOn(client, 'cancelQueries').mockImplementation(() => deferred.promise);
+    const cancelQueriesSpy = vi
+      .spyOn(client, 'cancelQueries')
+      .mockImplementation(() => deferred.promise);
 
     plugin.onDestroy!(stubApp());
     await flushQueryCacheClear();
@@ -1087,7 +1079,7 @@ describe('queryCache() — onDestroy cleanup', () => {
   it('reuses the same shared QueryClient if a new host plugin starts before destroy teardown settles', async () => {
     const firstPlugin = queryCache();
     firstPlugin.onInit!(stubApp());
-    const firstClient = getQueryClient(firstPlugin);
+    const firstClient = requireSharedQueryClient();
     const deferred = createDeferred();
     const clearSpy = vi.spyOn(firstClient, 'clear');
 
@@ -1096,23 +1088,23 @@ describe('queryCache() — onDestroy cleanup', () => {
     firstPlugin.onDestroy!(stubApp());
     await flushQueryCacheClear();
 
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBe(firstClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]).toBe(0);
+    expect(peekSharedQueryClient()).toBe(firstClient);
+    expect(peekSharedQueryClientRetainers()).toBe(0);
 
     const secondPlugin = queryCache();
     secondPlugin.onInit!(stubApp());
-    const secondClient = getQueryClient(secondPlugin);
+    const secondClient = requireSharedQueryClient();
 
     expect(secondClient).toBe(firstClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBe(firstClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]).toBe(1);
+    expect(peekSharedQueryClient()).toBe(firstClient);
+    expect(peekSharedQueryClientRetainers()).toBe(1);
 
     deferred.resolve();
     await flushQueryCacheClear();
 
     expect(clearSpy).not.toHaveBeenCalled();
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBe(firstClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]).toBe(1);
+    expect(peekSharedQueryClient()).toBe(firstClient);
+    expect(peekSharedQueryClientRetainers()).toBe(1);
 
     secondPlugin.onDestroy!(stubApp());
     await flushQueryCacheClear();
@@ -1121,7 +1113,7 @@ describe('queryCache() — onDestroy cleanup', () => {
   it('releases the original shared fetch cache retain when host teardown is superseded', async () => {
     const firstPlugin = queryCache();
     firstPlugin.onInit!(stubApp());
-    const firstClient = getQueryClient(firstPlugin);
+    const firstClient = requireSharedQueryClient();
     const firstCache = getSharedFetchCache();
     const deferred = createDeferred();
     const fetcher = vi.fn().mockResolvedValue('shared');
@@ -1155,7 +1147,7 @@ describe('queryCache() — onDestroy cleanup', () => {
     const hostPlugin = queryCache();
     const sharedPlugin = queryCacheShared();
     hostPlugin.onInit!(stubApp());
-    const hostClient = getQueryClient(hostPlugin);
+    const hostClient = requireSharedQueryClient();
     const deferred = createDeferred();
     const clearSpy = vi.spyOn(hostClient, 'clear');
 
@@ -1166,16 +1158,15 @@ describe('queryCache() — onDestroy cleanup', () => {
 
     sharedPlugin.onInit!(stubApp());
 
-    expect(getQueryClient(sharedPlugin)).toBe(hostClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBe(hostClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]).toBe(1);
+    expect(peekSharedQueryClient()).toBe(hostClient);
+    expect(peekSharedQueryClientRetainers()).toBe(1);
 
     deferred.resolve();
     await flushQueryCacheClear();
 
     expect(clearSpy).not.toHaveBeenCalled();
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBe(hostClient);
-    expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_RETAINERS_SYMBOL]).toBe(1);
+    expect(peekSharedQueryClient()).toBe(hostClient);
+    expect(peekSharedQueryClientRetainers()).toBe(1);
 
     sharedPlugin.onDestroy!(stubApp());
     await flushQueryCacheClear();
@@ -1186,7 +1177,7 @@ describe('queryCache() — onDestroy cleanup', () => {
     const firstSharedPlugin = queryCacheShared();
     hostPlugin.onInit!(stubApp());
     firstSharedPlugin.onInit!(stubApp());
-    const hostClient = getQueryClient(hostPlugin);
+    const hostClient = requireSharedQueryClient();
     const firstCache = getSharedFetchCache();
     const deferred = createDeferred();
     const fetcher = vi.fn().mockResolvedValue('shared');
@@ -1220,33 +1211,36 @@ describe('queryCache() — onDestroy cleanup', () => {
   });
 
   it('still releases the shared fetch cache when runtime cancellation fails on destroy', async () => {
-    const plugin = queryCache();
-    plugin.onInit!(stubApp());
-    const client = getQueryClient(plugin);
-    const firstCache = getSharedFetchCache();
-    const fetcher = vi.fn().mockResolvedValue('shared');
-    const clearSpy = vi.spyOn(client, 'clear');
-    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    await withSilencedConsoleError(async (consoleErrorSpy) => {
+      const plugin = queryCache();
+      plugin.onInit!(stubApp());
+      const client = requireSharedQueryClient();
+      const firstCache = getSharedFetchCache();
+      const fetcher = vi.fn().mockResolvedValue('shared');
+      const clearSpy = vi.spyOn(client, 'clear');
 
-    const cancelQueriesSpy = vi.spyOn(client, 'cancelQueries').mockRejectedValue(new Error('cancel failed'));
-    client.setQueryData(['stale'], 'value');
-    await firstCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
+      const cancelQueriesSpy = vi
+        .spyOn(client, 'cancelQueries')
+        .mockRejectedValue(new Error('cancel failed'));
+      client.setQueryData(['stale'], 'value');
+      await firstCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
 
-    plugin.onDestroy!(stubApp());
-    await flushQueryCacheClear();
+      plugin.onDestroy!(stubApp());
+      await flushQueryCacheClear();
 
-    expect(cancelQueriesSpy).toHaveBeenCalledTimes(1);
-    expect(clearSpy).toHaveBeenCalledTimes(1);
-    expect(consoleErrorSpy).toHaveBeenCalledWith(
-      '[HAI3] Failed to destroy query cache runtime',
-      expect.any(Error)
-    );
-    expect(client.getQueryData(['stale'])).toBeUndefined();
+      expect(cancelQueriesSpy).toHaveBeenCalledTimes(1);
+      expect(clearSpy).toHaveBeenCalledTimes(1);
+      expect(consoleErrorSpy).toHaveBeenCalledWith(
+        '[HAI3] Failed to destroy query cache runtime',
+        expect.any(Error)
+      );
+      expect(client.getQueryData(['stale'])).toBeUndefined();
 
-    const secondCache = getSharedFetchCache();
-    await secondCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
+      const secondCache = getSharedFetchCache();
+      await secondCache.getOrFetch(['shared'], fetcher, { staleTime: 1_000 });
 
-    expect(secondCache).not.toBe(firstCache);
-    expect(fetcher).toHaveBeenCalledTimes(2);
+      expect(secondCache).not.toBe(firstCache);
+      expect(fetcher).toHaveBeenCalledTimes(2);
+    });
   });
 });

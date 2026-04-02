@@ -458,6 +458,13 @@ export {
 } from './compat';
 
 // ============================================================================
+// Test utilities (subset re-export; full API: `@cyberfabric/framework/testing`)
+// ============================================================================
+
+export { TestContainerProvider } from './testing/TestContainerProvider';
+export { resetSharedQueryClient } from './plugins/queryCache';
+
+// ============================================================================
 // Migration Helpers (for @cyberfabric/uicore backward compatibility)
 // ============================================================================
 

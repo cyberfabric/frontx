@@ -9,6 +9,7 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { MfeHandler } from '../handler/types';
+import type { RuntimeCoordinator } from '../coordination/types';
 
 /**
  * Configuration for creating a ScreensetsRegistry instance.
@@ -39,6 +40,15 @@ export interface ScreensetsRegistryConfig {
    * ```
    */
   typeSystem: TypeSystemPlugin;
+
+  /**
+   * Optional runtime coordinator implementation.
+   * If omitted, the registry uses `WeakMapRuntimeCoordinator`.
+   *
+   * This is primarily useful for tests and advanced host integrations that need
+   * to control how runtime connections are stored and resolved.
+   */
+  coordinator?: RuntimeCoordinator;
 
   /**
    * Optional MFE handler instances.

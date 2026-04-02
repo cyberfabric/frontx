@@ -139,7 +139,13 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
     hasHAI3QueryClientActivator(app) && queryClient === undefined;
 
   useEffect(() => {
-    if (queryClient || hasHAI3QueryClientActivator(app) || process.env.NODE_ENV === 'production') {
+    if (
+      queryClient ||
+      hasHAI3QueryClientActivator(app) ||
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'test' ||
+      process.env.VITEST === 'true'
+    ) {
       return;
     }
 

@@ -26,6 +26,10 @@
     "generate-versions": "npx tsx scripts/generate-versions.ts",
     "build": "npm run generate-versions && npm run copy-templates && tsup",
     "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch",
     "test:e2e:pr": "node scripts/e2e-pr-smoke.mjs",
     "test:e2e:nightly": "node scripts/e2e-nightly.mjs"
   },
@@ -64,10 +68,12 @@
     "@types/js-yaml": "^4.0.9",
     "@types/lodash": "^4.17.20",
     "@types/node": "^24.9.1",
+    "@vitest/coverage-v8": "4.1.4",
     "tsup": "^8.5.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "4.1.4"
   },
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=24.14.0"
   }
 }

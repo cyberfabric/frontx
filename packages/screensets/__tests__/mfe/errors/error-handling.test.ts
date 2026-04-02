@@ -26,29 +26,33 @@ describe('Error Handling', () => {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',
         manifest: 'missing-manifest-id',
         exposedModule: './Widget',
+        exposeAssets: { js: { sync: [], async: [] }, css: { sync: [], async: [] } },
         requiredProperties: [],
         actions: [],
         domainActions: [],
       };
 
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow(/Manifest 'missing-manifest-id' not found/);
+      const error = await handler.load(entry).catch((loadError: unknown) => loadError);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect((error as Error).message).toMatch(/Manifest 'missing-manifest-id' not found/);
     });
 
-    it('should throw MfeLoadError when module does not implement lifecycle interface', async () => {
+    it('should throw MfeLoadError when manifest reference is not cached', async () => {
       const handler = new MfeHandlerMF('gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~', { retries: 0 });
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',
         manifest: 'test-manifest',
         exposedModule: './InvalidWidget',
+        exposeAssets: { js: { sync: [], async: [] }, css: { sync: [], async: [] } },
         requiredProperties: [],
         actions: [],
         domainActions: [],
       };
 
-      // This will fail because the manifest is not cached
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
+      const error = await handler.load(entry).catch((loadError: unknown) => loadError);
+      expect(error).toBeInstanceOf(MfeLoadError);
+      expect((error as Error).message).toMatch(/Manifest 'test-manifest' not found/);
     });
   });
 
@@ -111,30 +115,40 @@ describe('Error Handling', () => {
     });
 
     it('should use exponential backoff', async () => {
-      const retryHandler = new RetryHandler();
-      const timestamps: number[] = [];
+      // Drive the backoff with fake timers so the test does not depend on
+      // real wall-clock gaps (which flake under CI load).
+      vi.useFakeTimers({ toFake: ['Date', 'performance', 'setTimeout'] });
+      try {
+        const retryHandler = new RetryHandler();
+        const timestamps: number[] = [];
 
-      const operation = vi.fn(async () => {
-        timestamps.push(Date.now());
+        const operation = vi.fn(async () => {
+          timestamps.push(Date.now());
 
-        if (timestamps.length < 3) {
-          throw new Error('Retry');
-        }
-        return 'success';
-      });
+          if (timestamps.length < 3) {
+            throw new Error('Retry');
+          }
+          return 'success';
+        });
 
-      await retryHandler.retry(operation, 3, 50);
+        const resultPromise = retryHandler.retry(operation, 3, 50);
+        // Advance through both backoff delays (50ms then 100ms) and flush
+        // the intervening microtasks so each retry attempt runs.
+        await vi.runAllTimersAsync();
+        await resultPromise;
 
-      // Verify exponential backoff (approximate due to timing)
-      // timestamps[0] is the first call
-      // timestamps[1] is after ~50ms delay
-      // timestamps[2] is after ~100ms delay (exponential)
-      const delay1 = timestamps[1] - timestamps[0];
-      const delay2 = timestamps[2] - timestamps[1];
+        // timestamps[0] is the first call (t=0)
+        // timestamps[1] is after 50ms delay
+        // timestamps[2] is after an additional 100ms delay (2x exponential)
+        const delay1 = timestamps[1] - timestamps[0];
+        const delay2 = timestamps[2] - timestamps[1];
 
-      expect(delay1).toBeGreaterThanOrEqual(45); // ~50ms
-      expect(delay2).toBeGreaterThanOrEqual(95); // ~100ms (2x exponential)
-      expect(delay2).toBeGreaterThan(delay1); // Second delay should be longer
+        expect(delay1).toBe(50);
+        expect(delay2).toBe(100);
+        expect(delay2).toBeGreaterThan(delay1);
+      } finally {
+        vi.useRealTimers();
+      }
     });
 
     it('should integrate retry with MfeHandlerMF', async () => {
@@ -144,6 +158,7 @@ describe('Error Handling', () => {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.v1',
         manifest: 'missing-manifest',
         exposedModule: './Widget',
+        exposeAssets: { js: { sync: [], async: [] }, css: { sync: [], async: [] } },
         requiredProperties: [],
         actions: [],
         domainActions: [],

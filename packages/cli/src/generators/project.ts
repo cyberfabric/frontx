@@ -12,6 +12,7 @@ import type {
 } from '../core/types.js';
 import {
   DEFAULT_PACKAGE_MANAGER,
+  STANDALONE_APP_WORKSPACES,
   getPackageManagerEngines,
   getManagerWorkspaceFiles,
   getWorkspaceRunScriptCommand,
@@ -20,7 +21,11 @@ import {
 } from '../core/packageManager.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
-import { getLocalPackageRef, rewriteTsconfigPackagePaths } from '../utils/project.js';
+import {
+  getLocalPackageRef,
+  resolvePathUnderProjectRoot,
+  rewriteTsconfigPackagePaths,
+} from '../utils/project.js';
 import { applyMfeReplacements, applyMfeFileRename, buildMfeManifestsContent } from './screenset.js';
 import { isCustomUikit, assertValidUikitForCodegen, normalizeUikit } from '../utils/validation.js';
 import {
@@ -29,6 +34,19 @@ import {
   generateGenericGlobalsCss,
   type CssAliasBridge,
 } from './uikitBridges.js';
+
+/**
+ * Test scaffold choice for generated projects.
+ * - `'unit'`: ship Vitest config, test files, deps, and scripts (default)
+ * - `'none'`: skip every test artifact for prototype/demo scaffolds
+ */
+export type TestsScaffold = 'unit' | 'none';
+
+const TESTS_SCAFFOLD_VALUES: readonly TestsScaffold[] = ['unit', 'none'];
+
+export function isTestsScaffold(value: unknown): value is TestsScaffold {
+  return typeof value === 'string' && (TESTS_SCAFFOLD_VALUES as readonly string[]).includes(value);
+}
 
 /**
  * Input for project generation
@@ -50,6 +68,8 @@ export interface ProjectGeneratorInput {
   monorepoRoot?: string;
   /** Absolute path where the project will be written (for file: relative paths) */
   projectPath?: string;
+  /** Test scaffold variant. Default: 'unit'. Use 'none' to skip Vitest scaffolding. */
+  tests?: TestsScaffold;
 }
 
 const NO_UIKIT_UTILS_TEMPLATE = 'src/app/lib/utils.no-uikit.ts';
@@ -60,6 +80,71 @@ export function cn(...inputs: ClassInput[]) {
 }
 `;
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-no-uikit-utils
+
+/**
+ * Unit-test devDependencies injected into every generated project's package.json.
+ *
+ * Kept as a CLI-owned constant so the generator (and its tests) never need to
+ * read the monorepo root package.json. Cross-workspace version consistency is
+ * enforced separately by `scripts/check-test-dependency-versions.mjs`.
+ */
+export const UNIT_TEST_DEV_DEPENDENCIES = {
+  '@testing-library/dom': '10.4.1',
+  '@testing-library/react': '16.3.2',
+  '@vitest/coverage-v8': '4.1.4',
+  jsdom: '26.1.0',
+  vitest: '4.1.4',
+} as const;
+
+const TEST_ARTIFACT_PATTERNS: readonly RegExp[] = [
+  /(?:^|\/)[^/]+\.test\.[cm]?[tj]sx?$/,
+  /(?:^|\/)[^/]+\.spec\.[cm]?[tj]sx?$/,
+  /(?:^|\/)__tests__\//,
+  /(?:^|\/)__test-utils__\//,
+  /(?:^|\/)vitest\.config\.[cm]?[tj]sx?$/,
+  /(?:^|\/)vitest\.setup\.[cm]?[tj]sx?$/,
+  /(?:^|\/)vitest\.mfe\.base\.[cm]?[tj]sx?$/,
+  /(?:^|\/)vitest\.shared\.[cm]?[tj]sx?$/,
+];
+
+const TEST_DEV_DEP_NAMES: readonly string[] = [
+  '@testing-library/dom',
+  '@testing-library/react',
+  '@vitest/coverage-v8',
+  'jsdom',
+  'vitest',
+];
+
+const TEST_SCRIPT_NAMES: readonly string[] = ['test', 'test:unit', 'test:unit:watch'];
+
+function isTestArtifactPath(filePath: string): boolean {
+  const normalized = filePath.split('\\').join('/');
+  return TEST_ARTIFACT_PATTERNS.some((pattern) => pattern.test(normalized));
+}
+
+function stripTestEntriesFromPackageJson(content: string): string {
+  let pkg: {
+    scripts?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+    [key: string]: unknown;
+  };
+  try {
+    pkg = JSON.parse(content);
+  } catch {
+    return content;
+  }
+  if (pkg.scripts) {
+    for (const name of TEST_SCRIPT_NAMES) {
+      delete pkg.scripts[name];
+    }
+  }
+  if (pkg.devDependencies) {
+    for (const name of TEST_DEV_DEP_NAMES) {
+      delete pkg.devDependencies[name];
+    }
+  }
+  return JSON.stringify(pkg, null, 2) + '\n';
+}
 
 // @cpt-algo:cpt-frontx-algo-ui-libraries-choice-template-selection:p1
 // @cpt-begin:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-utils
@@ -354,6 +439,41 @@ function shouldTransformForPackageManager(filePath: string): boolean {
   return textExtensions.has(ext);
 }
 
+function rewriteCyberfabricDepsToLocalRefs(
+  packageJsonContent: string,
+  monorepoRoot: string,
+  projectPath: string,
+): string {
+  const packageJson = JSON.parse(packageJsonContent) as {
+    dependencies?: Record<string, string>;
+    devDependencies?: Record<string, string>;
+  };
+
+  const rewriteDeps = (deps?: Record<string, string>) => {
+    if (!deps) {
+      return deps;
+    }
+
+    const nextDeps: Record<string, string> = {};
+    for (const [name, value] of Object.entries(deps)) {
+      nextDeps[name] = name.startsWith('@cyberfabric/')
+        ? getLocalPackageRef(name, monorepoRoot, projectPath)
+        : value;
+    }
+    return nextDeps;
+  };
+
+  return JSON.stringify(
+    {
+      ...packageJson,
+      dependencies: rewriteDeps(packageJson.dependencies),
+      devDependencies: rewriteDeps(packageJson.devDependencies),
+    },
+    null,
+    2,
+  ) + '\n';
+}
+
 /**
  * Generate all files for a new FrontX project
  * Combines template files with dynamically generated config files
@@ -365,6 +485,9 @@ type TemplateCopyInput = {
   templatesDir: string;
   studio: boolean;
   uikit: string;
+  useLocalPackages: boolean;
+  monorepoRoot?: string;
+  projectPath?: string;
 };
 
 type AiTargetsInput = {
@@ -407,6 +530,8 @@ const ROOT_CONFIG_FILES = [
   'eslint.config.js',
   'tsconfig.json',
   'vite.config.ts',
+  'vitest.config.ts',
+  'vitest.setup.ts',
   '.dependency-cruiser.cjs',
   '.pre-commit-config.yaml',
   '.npmrc',
@@ -460,9 +585,11 @@ function sanitizeMainTemplateContent(content: string): string {
 
 // @cpt-begin:cpt-frontx-dod-ui-libraries-choice-template-selection-impl:p1:inst-template-copy
 async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFile[]> {
-  const { templatesDir, studio, uikit } = input;
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-validate-runner
+  const { templatesDir, studio, uikit, useLocalPackages, monorepoRoot, projectPath } = input;
   const files: GeneratedFile[] = [];
   const { rootFiles, directories } = await loadTemplateManifest(templatesDir);
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-validate-runner
 
   for (const file of rootFiles) {
     if (file === 'src/app/lib/utils.ts' && uikit !== 'shadcn') {
@@ -504,15 +631,21 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
     }
   }
 
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-starter-tests
   for (const dir of directories) {
     if (dir === 'src/app/themes' && uikit !== 'shadcn') continue;
     if (dir === 'src/app/components' && uikit !== 'shadcn') continue;
-    let dirFiles = await readDirRecursive(path.join(templatesDir, dir), dir);
+    const dirSegments = dir.split('/').filter((segment) => segment.length > 0);
+    let dirFiles = await readDirRecursive(
+      resolvePathUnderProjectRoot(templatesDir, ...dirSegments),
+      dir,
+    );
     if (dir === 'src/app/lib' && uikit !== 'shadcn') {
       dirFiles = dirFiles.filter((file) => file.path !== 'src/app/lib/utils.ts');
     }
     files.push(...dirFiles);
   }
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-starter-tests
 
   const mfeCoreFiles = ['MfeScreenContainer.tsx', 'bootstrap.ts'];
   for (const mfeFile of mfeCoreFiles) {
@@ -545,18 +678,34 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
   }
 
   const rootConfigFiles = uikit === 'shadcn' ? [...ROOT_CONFIG_FILES, 'postcss.config.js'] : ROOT_CONFIG_FILES;
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-runner-config
   for (const file of rootConfigFiles) {
     const filePath = path.join(templatesDir, file);
     if (await fs.pathExists(filePath)) {
       files.push({ path: file, content: await fs.readFile(filePath, 'utf-8') });
     }
   }
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-runner-config
 
   const mfeSharedDir = path.join(templatesDir, 'mfe-shared');
   if (await fs.pathExists(mfeSharedDir)) {
     files.push(...(await readDirRecursive(mfeSharedDir, 'src/mfe_packages/shared')));
   }
 
+  const mfeVitestBasePath = resolvePathUnderProjectRoot(
+    templatesDir,
+    'src',
+    'mfe_packages',
+    'vitest.mfe.base.ts',
+  );
+  if (await fs.pathExists(mfeVitestBasePath)) {
+    files.push({
+      path: 'src/mfe_packages/vitest.mfe.base.ts',
+      content: await fs.readFile(mfeVitestBasePath, 'utf-8'),
+    });
+  }
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-blank-mfe-tests
   if (uikit === 'shadcn') {
     const mfeTemplateDir = path.join(templatesDir, 'mfe-template');
     if (await fs.pathExists(mfeTemplateDir)) {
@@ -566,12 +715,25 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
         const parts = normalizedPath.split(path.posix.sep);
         const renamedParts = parts.map((part) => applyMfeFileRename(part, 'demo'));
         const renamedPath = renamedParts.join(path.posix.sep);
-        const content = applyMfeReplacements(file.content, 'demo', 'Demo', 3001);
+        let content = applyMfeReplacements(file.content, 'demo', 'Demo', 3001);
+        if (
+          useLocalPackages &&
+          monorepoRoot &&
+          projectPath &&
+          normalizedPath === 'package.json'
+        ) {
+          content = rewriteCyberfabricDepsToLocalRefs(
+            content,
+            monorepoRoot,
+            resolvePathUnderProjectRoot(projectPath, 'src', 'mfe_packages', 'demo-mfe'),
+          );
+        }
         return { path: path.posix.join('src/mfe_packages/demo-mfe', renamedPath), content };
       });
       files.push(...demoFiles);
     }
   }
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-blank-mfe-tests
 
   return files;
 }
@@ -712,12 +874,14 @@ async function generateAiTargets(input: AiTargetsInput): Promise<GeneratedFile[]
     }
   }
 
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-write-testing-guidance
   for (const dirName of ['company', 'project']) {
     const hierarchyDir = path.join(templatesDir, '.ai', dirName);
     if (await fs.pathExists(hierarchyDir)) {
       files.push(...(await readDirRecursive(hierarchyDir, `.ai/${dirName}`)));
     }
   }
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-write-testing-guidance
 
   for (const ideDir of ['.claude', '.cursor', '.windsurf']) {
     const dirPath = path.join(templatesDir, ideDir);
@@ -758,7 +922,7 @@ async function generateAiTargets(input: AiTargetsInput): Promise<GeneratedFile[]
 // @cpt-end:cpt-frontx-dod-ui-libraries-choice-ai-guidelines:p1:inst-ai-targets-generate
 
 // @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
-function buildPackageJson(input: PackageJsonInput): string {
+export function buildPackageJson(input: PackageJsonInput): string {
   const {
     projectName,
     studio,
@@ -802,19 +966,25 @@ function buildPackageJson(input: PackageJsonInput): string {
     zod: '4.0.0',
   };
 
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-add-package-json-entries
   const devDependencies: Record<string, string> = {
     '@cyberfabric/cli': 'alpha',
     '@j178/prek': '0.2.25',
+    '@types/node': '^24.9.1',
     '@types/lodash': '4.17.20',
     '@types/react': '19.0.8',
     '@types/react-dom': '19.0.3',
+    '@testing-library/dom': UNIT_TEST_DEV_DEPENDENCIES['@testing-library/dom'],
+    '@testing-library/react': UNIT_TEST_DEV_DEPENDENCIES['@testing-library/react'],
     '@eslint/js': '9.27.0',
     '@vitejs/plugin-react': '4.3.4',
+    '@vitest/coverage-v8': UNIT_TEST_DEV_DEPENDENCIES['@vitest/coverage-v8'],
     autoprefixer: '10.4.18',
     eslint: '9.27.0',
     'eslint-plugin-react-hooks': '5.0.0',
     'eslint-plugin-unused-imports': '4.1.4',
     globals: '15.12.0',
+    jsdom: UNIT_TEST_DEV_DEPENDENCIES.jsdom,
     postcss: '8.4.35',
     'postcss-load-config': '6.0.1',
     tailwindcss: '3.4.1',
@@ -824,6 +994,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     typescript: '5.4.2',
     'typescript-eslint': '8.32.1',
     vite: '6.4.2',
+    vitest: UNIT_TEST_DEV_DEPENDENCIES.vitest,
   };
 
   if (studio) {
@@ -872,7 +1043,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     type: 'module',
     packageManager: packageManagerFieldValue(packageManager),
     engines: getPackageManagerEngines(packageManager, '>=24.14.0'),
-    workspaces: ['eslint-plugin-local'],
+    workspaces: [...STANDALONE_APP_WORKSPACES],
     scripts: {
       'generate:mfe-manifests': 'tsx scripts/generate-mfe-manifests.ts',
       dev: 'tsx scripts/generate-mfe-manifests.ts && vite',
@@ -880,6 +1051,9 @@ function buildPackageJson(input: PackageJsonInput): string {
       'check:mcp': 'tsx scripts/check-mcp.ts',
       build: 'tsx scripts/generate-mfe-manifests.ts && vite build',
       preview: 'vite preview',
+      test: 'vitest run',
+      'test:unit': 'vitest --run --passWithNoTests=false',
+      'test:unit:watch': 'vitest --watch',
       lint: `${workspaceBuildCommand} && eslint . --max-warnings 0`,
       'type-check': 'tsc --noEmit',
       'arch:check': 'tsx scripts/test-architecture.ts',
@@ -891,19 +1065,34 @@ function buildPackageJson(input: PackageJsonInput): string {
     },
     dependencies,
     devDependencies,
-    overrides: {
-      react: '$react',
-      'react-dom': '$react-dom',
-    },
+    ...(packageManager === 'yarn'
+      ? {
+          // Yarn does not apply npm's `overrides`; pin React like npm/pnpm so nested
+          // deps cannot pull a second copy (duplicate @types/react breaks `tsc`).
+          resolutions: {
+            react: dependencies.react,
+            'react-dom': dependencies['react-dom'],
+          },
+        }
+      : {
+          overrides: {
+            react: '$react',
+            'react-dom': '$react-dom',
+          },
+        }),
   };
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-add-package-json-entries
 
   return JSON.stringify(packageJson, null, 2) + '\n';
 }
 // @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-package-json
 
 // @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2
+// @cpt-dod:cpt-frontx-dod-unit-test-generation-and-agent-verification-project-scaffold:p1
+// @cpt-algo:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1
 // @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate
 export async function generateProject(input: ProjectGeneratorInput): Promise<GeneratedFile[]> {
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-receive-runner
   const {
     projectName,
     studio,
@@ -913,12 +1102,21 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
     useLocalPackages = false,
     monorepoRoot,
     projectPath,
+    tests = 'unit',
   } = input;
 
   const templatesDir = getTemplatesDir();
-  const files: GeneratedFile[] = [];
+  let files: GeneratedFile[] = [];
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-receive-runner
 
-  files.push(...(await copyTemplateFiles({ templatesDir, studio, uikit })));
+  files.push(...(await copyTemplateFiles({
+    templatesDir,
+    studio,
+    uikit,
+    useLocalPackages,
+    monorepoRoot,
+    projectPath,
+  })));
   files.push(...(await generateThemeFiles(uikit)));
   files.push(...generateMfeBootstrap(uikit));
   files.push(...(await generateAiTargets({ templatesDir, layer, uikit })));
@@ -981,13 +1179,14 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
   files.push(...workspaceFiles);
 
   for (const file of files) {
-    if (file.path !== 'tsconfig.json') {
+    if (!file.path.endsWith('tsconfig.json')) {
       continue;
     }
     file.content = rewriteTsconfigPackagePaths(file.content, {
       useLocalPackages,
       monorepoRoot,
       projectPath,
+      tsconfigPath: file.path,
     });
   }
 
@@ -999,6 +1198,18 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
     file.content = transformPackageManagerText(file.content, packageManager);
   }
 
+  if (tests === 'none') {
+    files = files.filter((file) => !isTestArtifactPath(file.path));
+    for (const file of files) {
+      const normalized = file.path.split('\\').join('/');
+      if (normalized === 'package.json' || normalized.endsWith('/package.json')) {
+        file.content = stripTestEntriesFromPackageJson(file.content);
+      }
+    }
+  }
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-return-scaffolded-tests
   return files;
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-return-scaffolded-tests
 }
 // @cpt-end:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-orchestrate

@@ -33,9 +33,9 @@ describe('sortUtils', () => {
     it('returns 0 when a === b', () => {
       expect(compareStrings('same', 'same')).toBe(0);
     });
-    it('accepts Intl.CollatorOptions', () => {
-      const result = compareStrings('a', 'b', { sensitivity: 'base' });
-      expect(typeof result).toBe('number');
+    it('applies Intl.CollatorOptions', () => {
+      expect(compareStrings('a', 'á')).not.toBe(0);
+      expect(compareStrings('a', 'á', { sensitivity: 'base' })).toBe(0);
     });
   });
 

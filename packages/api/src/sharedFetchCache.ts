@@ -356,6 +356,21 @@ class SharedFetchCacheImpl implements SharedFetchCache {
     this.versions.clear();
   }
 
+  /** @internal Test-only accessor used by `inspectSharedFetchCacheBookkeepingForTest`. */
+  peekBookkeepingForTest(): {
+    entries: number;
+    aliasesByPrimaryKey: number;
+    primaryKeysByAlias: number;
+    versions: number;
+  } {
+    return {
+      entries: this.entries.size,
+      aliasesByPrimaryKey: this.aliasesByPrimaryKey.size,
+      primaryKeysByAlias: this.primaryKeysByAlias.size,
+      versions: this.versions.size,
+    };
+  }
+
   private registerAliases(
     primaryCacheKey: string,
     aliases?: readonly (readonly unknown[])[]
@@ -526,3 +541,38 @@ export function releaseSharedFetchCache(): void {
   host[SHARED_FETCH_CACHE_RETAINERS_SYMBOL] = retainers - 1;
 }
 // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-l1-shared-fetch-singleton-wiring
+
+/**
+ * Test-only diagnostics for SharedFetchCache bookkeeping state.
+ *
+ * Returns the current sizes of the internal bookkeeping maps so tests can
+ * assert that invalidation/cleanup paths release memory. Intentionally
+ * exposed as a dedicated test seam so test files do not need to cast to
+ * the private impl type. Not re-exported from `index.ts`; consumers outside
+ * this package must go through the public `SharedFetchCache` contract.
+ *
+ * @internal Test-only; do not rely on this outside `__tests__/`.
+ */
+export interface SharedFetchCacheBookkeepingSnapshot {
+  readonly entries: number;
+  readonly aliasesByPrimaryKey: number;
+  readonly primaryKeysByAlias: number;
+  readonly versions: number;
+}
+
+/**
+ * @internal Test-only diagnostic. Returns the current sizes of
+ * {@link SharedFetchCacheImpl}'s internal bookkeeping maps. Only works for
+ * caches created via {@link createSharedFetchCache} / the shared singleton;
+ * throws for foreign implementations so tests do not silently see zeros.
+ */
+export function inspectSharedFetchCacheBookkeepingForTest(
+  cache: SharedFetchCache
+): SharedFetchCacheBookkeepingSnapshot {
+  if (!(cache instanceof SharedFetchCacheImpl)) {
+    throw new TypeError(
+      `${inspectSharedFetchCacheBookkeepingForTest.name} only supports caches created by createSharedFetchCache().`
+    );
+  }
+  return cache.peekBookkeepingForTest();
+}

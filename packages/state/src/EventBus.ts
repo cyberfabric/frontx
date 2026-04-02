@@ -36,7 +36,7 @@ import type {
  */
 // @cpt-dod:cpt-frontx-dod-state-management-eventbus:p1
 // @cpt-state:cpt-frontx-state-state-management-handler-registration:p1
-class EventBusImpl implements IEventBus<EventPayloadMap> {
+class EventBusImpl<TEvents extends EventPayloadMap = EventPayloadMap> implements IEventBus<TEvents> {
   private handlers: Map<string, Set<EventHandler<unknown>>> = new Map();
 
   /**
@@ -45,9 +45,9 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    * Payload is optional for void events.
    */
   // @cpt-algo:cpt-frontx-algo-state-management-eventbus-emit:p1
-  emit<K extends keyof EventPayloadMap>(
+  emit<K extends keyof TEvents>(
     eventType: K,
-    ...args: EventPayloadMap[K] extends void ? [] : [EventPayloadMap[K]]
+    ...args: TEvents[K] extends void ? [] : [TEvents[K]]
   ): void {
     const handlers = this.handlers.get(eventType as string);
     if (handlers) {
@@ -63,9 +63,9 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    */
   // @cpt-algo:cpt-frontx-algo-state-management-eventbus-subscribe:p1
   // @cpt-flow:cpt-frontx-flow-state-management-type-augmentation:p1
-  on<K extends keyof EventPayloadMap>(
+  on<K extends keyof TEvents>(
     eventType: K,
-    handler: EventHandler<EventPayloadMap[K]>
+    handler: EventHandler<TEvents[K]>
   ): Subscription {
     const key = eventType as string;
     if (!this.handlers.has(key)) {
@@ -93,11 +93,11 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
    * Type-safe: handler receives correct payload type for event.
    */
   // @cpt-algo:cpt-frontx-algo-state-management-eventbus-subscribe-once:p2
-  once<K extends keyof EventPayloadMap>(
+  once<K extends keyof TEvents>(
     eventType: K,
-    handler: EventHandler<EventPayloadMap[K]>
+    handler: EventHandler<TEvents[K]>
   ): Subscription {
-    const wrappedHandler = (payload: EventPayloadMap[K]): void => {
+    const wrappedHandler = (payload: TEvents[K]): void => {
       handler(payload);
       subscription.unsubscribe();
     };
@@ -125,7 +125,7 @@ class EventBusImpl implements IEventBus<EventPayloadMap> {
  * Singleton EventBus instance.
  * Use this instance throughout the application for event communication.
  */
-export const eventBus: IEventBus<EventPayloadMap> = new EventBusImpl();
+export const eventBus: IEventBus<EventPayloadMap> = new EventBusImpl<EventPayloadMap>();
 
 /**
  * Export the class for testing purposes.

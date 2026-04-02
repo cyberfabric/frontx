@@ -1,10 +1,21 @@
 import fs from 'fs-extra';
 import path from 'path';
 import type { Hai3Config, PackageManager } from './types.js';
+import { resolvePathUnderProjectRoot } from '../utils/project.js';
 
 // @cpt-algo:cpt-frontx-algo-cli-tooling-package-manager-policy:p1
 export const SUPPORTED_PACKAGE_MANAGERS: PackageManager[] = ['npm', 'pnpm', 'yarn'];
 export const DEFAULT_PACKAGE_MANAGER: PackageManager = 'npm';
+
+/**
+ * Workspace globs for generated standalone apps. Each MFE under `src/mfe_packages/<name>-mfe/`
+ * has its own package.json; Yarn 4 requires those paths to be listed so `yarn <script>` works
+ * when the current working directory is that package (CLI e2e and local workflows).
+ */
+export const STANDALONE_APP_WORKSPACES: readonly string[] = [
+  'eslint-plugin-local',
+  'src/mfe_packages/*',
+];
 
 interface PackageManagerPolicy {
   /**
@@ -147,6 +158,75 @@ export function getRunScriptCommand(manager: PackageManager, scriptName: string)
   return `${manager} run ${scriptName}`;
 }
 
+export type ResolveUnitTestConventionResult =
+  | { ok: true; command: string; packageManager: PackageManager }
+  | { ok: false; error: string };
+
+/**
+ * Resolve the FrontX Vitest / test:unit convention for a project root.
+ */
+// @cpt-dod:cpt-frontx-dod-unit-test-generation-and-agent-verification-standard-test-convention:p1
+// @cpt-algo:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1
+export async function resolveFrontxUnitTestConvention(
+  projectRoot: string,
+  config?: Hai3Config | null
+): Promise<ResolveUnitTestConventionResult> {
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-read-frontx-config
+  const packageJsonPath = resolvePathUnderProjectRoot(projectRoot, 'package.json');
+  const packageJsonExists = await fs.pathExists(packageJsonPath);
+  let packageJson: { scripts?: Record<string, string> } = {};
+  let packageJsonReadable = false;
+
+  if (packageJsonExists) {
+    try {
+      packageJson = await fs.readJson(packageJsonPath);
+      packageJsonReadable = true;
+    } catch {
+      packageJsonReadable = false;
+    }
+  }
+
+  const packageManagerCtx = await detectPackageManager(projectRoot, config);
+  const packageManager = packageManagerCtx.manager;
+
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-read-frontx-config
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-fallback-default
+  const command = getRunScriptCommand(packageManager, 'test:unit');
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-fallback-default
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-extract-command
+  const script = packageJson.scripts?.['test:unit'];
+  const scriptOk =
+    packageJsonExists &&
+    packageJsonReadable &&
+    typeof script === 'string' &&
+    script.trim().length > 0;
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-extract-command
+
+  if (!packageJsonExists || !packageJsonReadable || !scriptOk) {
+    // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-return-config-error
+    let error: string;
+    if (packageJsonExists) {
+      if (packageJsonReadable) {
+        error =
+          'package.json must expose a non-empty scripts.test:unit entry for the FrontX Vitest scaffold convention.';
+      } else {
+        error = 'Unable to read package.json — cannot resolve the FrontX unit-test convention.';
+      }
+    } else {
+      error =
+        'Missing package.json — cannot resolve the FrontX unit-test convention for this project.';
+    }
+    return { ok: false, error };
+    // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-return-config-error
+  }
+
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-return-normalized-config
+  return { ok: true, command, packageManager };
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-resolve-test-convention:p1:inst-return-normalized-config
+}
+
 export function getWorkspaceRunScriptCommand(
   manager: PackageManager,
   workspaceName: string,
@@ -197,10 +277,11 @@ export function getGlobalInstallCommand(manager: PackageManager, target: string)
 // @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-workspace-files
 export function getManagerWorkspaceFiles(manager: PackageManager): Array<{ path: string; content: string }> {
   if (manager === 'pnpm') {
+    const lines = ['packages:', ...STANDALONE_APP_WORKSPACES.map((w) => `  - ${w}`)];
     return [
       {
         path: 'pnpm-workspace.yaml',
-        content: 'packages:\n  - eslint-plugin-local\n',
+        content: `${lines.join('\n')}\n`,
       },
     ];
   }

@@ -277,14 +277,23 @@ npm run preview          # Preview production build
 
 # Validation (run before commits)
 npm run lint             # Run ESLint
-npm run type-check       # Check TypeScript types
+npm run type-check:all   # Check host app, workspace packages, and nested MFEs
+npm run type-check       # Check the host app root tsconfig only
 npm run arch:check       # Architecture tests (must pass)
 npm run arch:deps        # Dependency rules check
+npm run test:unit        # All unit tests (host + workspaces + nested MFEs via monorepo runner)
+npm run test:unit:watch  # Same, watch mode (defaults to host when not narrowed)
 
 # Clean
 npm run clean:deps       # Remove node_modules + reinstall
 npm run clean:build      # Clean + build from scratch
 ```
+
+### Unit tests (host vs packages/MFEs)
+
+- **`npm run test:unit`** — runs the repo-wide runner; it fans out to the **host app** (repo root Vitest), **workspace packages** under `packages/*`, and **nested MFEs** under `src/mfe_packages/*` that define a `test:unit` script.
+- To run tests for a single workspace package while iterating: `npm run test:unit --workspace=@cyberfabric/<package>`.
+- Full contract, narrowing options, and internal root-only aliases are documented in [`.ai/project/targets/UNIT_TESTING.md`](.ai/project/targets/UNIT_TESTING.md).
 
 ## Next Steps
 

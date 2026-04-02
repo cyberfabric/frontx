@@ -130,10 +130,11 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-studio-viewport` | Studio button and panel clamped to viewport (20px margin) on load and window resize |
 | `cpt-frontx-fr-studio-independence` | `@cyberfabric/studio` standalone package; `"sideEffects": false`; excluded from production via `import.meta.env.DEV` |
 | `cpt-frontx-fr-cli-package` | `@cyberfabric/cli` workspace package with binary `frontx`; ESM (Node 18+) and programmatic API |
-| `cpt-frontx-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate |
-| `cpt-frontx-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned |
-| `cpt-frontx-fr-cli-skills` | CLI build generates IDE guidance files and command adapters for Claude, Cursor, Windsurf, and GitHub Copilot |
-| `cpt-frontx-fr-cli-e2e-verification` | Two-tier CI verification: required PR workflow (`cli-pr-e2e`) validates critical scaffold path; nightly workflow covers broader scenarios; shared scripted harness with artifact upload |
+| `cpt-frontx-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate. `frontx validate components` is structural only and does not run the unit-test suite by default. `frontx create` scaffolds the standard Vitest workflow by default, and code-generation commands emit starter unit tests when a stable template exists |
+| `cpt-frontx-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned and include test assets plus editable project-level testing guidance for generated apps and screensets |
+| `cpt-frontx-fr-cli-skills` | CLI build generates IDE guidance files and command adapters for Claude, Cursor, Windsurf, and GitHub Copilot. Generated AI guidance routes agents to project testing guidance and the standard unit-test workflow under tiered triggers, and clarifies that `frontx validate components` does not run unit tests by default |
+| `cpt-frontx-fr-cli-e2e-verification` | Two-tier CI verification: required PR workflow (`cli-pr-e2e`) validates the critical scaffold path, including install, build, type-check, and the standard unit-test workflow; nightly workflow covers broader scenarios; shared scripted harness with artifact upload |
+| `cpt-frontx-fr-ai-agent-integration` | Generated project AI context carries machine-readable FrontX guidance plus project-level testing guidance so agents know when to add or update unit tests, run the standard unit-test command as a separate step from `frontx validate components` when tiered triggers apply, and run `type-check` and `arch:check` after applicable tests |
 | `cpt-frontx-fr-pub-metadata` | All `@cyberfabric/*` packages include complete NPM metadata: author, license, repository, engines, exports |
 | `cpt-frontx-fr-pub-versions` | All `@cyberfabric/*` packages use aligned (same) version numbers |
 | `cpt-frontx-fr-pub-esm` | ESM-first module format: `"type": "module"`, dual exports (ESM + CJS), TypeScript declarations |
@@ -165,7 +166,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-nfr-compat-react` | Compatible with React 19 | `cpt-frontx-component-react` | React 19 as peer dependency; `ref` as prop (no `forwardRef`) | CI tests against React 19 |
 | `cpt-frontx-nfr-maint-zero-crossdeps` | L1 packages have zero cross-dependencies | All L1 packages | Each L1 `package.json` lists no `@cyberfabric/*` dependencies; `dependency-cruiser` rule blocks violations | CI dependency-cruiser check |
 | `cpt-frontx-nfr-maint-event-driven` | Cross-domain communication via events only | `cpt-frontx-component-state`, `cpt-frontx-component-framework` | `eventBus` is the sole cross-domain channel; no direct store imports across domains | Architecture lint rules |
-| `cpt-frontx-nfr-maint-arch-enforcement` | Layer violations detected automatically | Build system | `dependency-cruiser` config with forbidden dependency rules; `knip` for unused exports | CI gate on lint failure |
+| `cpt-frontx-nfr-maint-arch-enforcement` | Layer violations detected automatically | Build system, `cpt-frontx-component-cli` | `dependency-cruiser` config with forbidden dependency rules and `knip` for unused exports remain the hard architecture gates; generated AI guidance keeps `arch:check` in the default verification loop after applicable standard unit-test runs pass | CI gate on lint failure; scaffolded workflow verification in CLI CI |
 
 ### 1.3 Architecture Layers
 
@@ -342,6 +343,8 @@ All direct runtime dependencies MUST use MIT, Apache-2.0, or BSD-compatible lice
 | Effect | An event handler that performs side effects and dispatches reducers | `packages/state/src/effects.ts` |
 | Plugin | A framework extension implementing `HAI3Plugin` interface | `packages/framework/src/plugin.ts` |
 | SharedProperty | A typed value bridging host and MFE state; validated at boundaries | `packages/framework/src/sharedProperty.ts` |
+| ProjectTestingConvention | Generated project contract that defines the canonical unit-test command and baseline Vitest scaffold expectations | Generated `package.json`, Vitest config, and CLI template metadata |
+| ProjectTestingGuidance | Editable project AI guidance describing when generated code needs unit tests and how the standard workflow is executed | Generated `.ai/project/GUIDELINES.md` and `.ai/project/targets/UNIT_TESTING.md` |
 
 **Relationships**:
 - ScreenSet → Screen: contains one or more
@@ -350,6 +353,7 @@ All direct runtime dependencies MUST use MIT, Apache-2.0, or BSD-compatible lice
 - Plugin → State: registers slices and effects during init
 - Plugin → Event: subscribes to and publishes events
 - Microfrontend → SharedProperty: reads/writes declared shared values
+- ProjectTestingConvention → ProjectTestingGuidance: standard test command and scaffold expectations are referenced by generated AI instructions
 - Action → Event → Effect → State: fixed data flow sequence
 
 ### 3.2 Component Model
@@ -601,20 +605,22 @@ Provides a development-time overlay for inspecting and tweaking theme, i18n, vie
 
 ##### Why this component exists
 
-Reduces boilerplate and enforces conventions by generating screen-sets, MFE packages, components, and configuration through interactive scaffolding commands. Integrates AI skills for assisted code generation.
+Reduces boilerplate and enforces conventions by generating screen-sets, MFE packages, components, configuration, and testing baseline assets through interactive scaffolding commands. Integrates AI skills for assisted code generation and keeps the generated verification workflow consistent across projects.
 
 ##### Responsibility scope
 
 - **Package**: Standalone npm package with `frontx` binary entry point
-- **Commands**: `create` (project), `generate` (screen-set, MFE, component), `dev` (development server)
-- **Templates**: EJS-based templates for screen-sets, MFE packages, components — each follows FrontX conventions
-- **AI skills**: Embedded skill definitions for Claude Code / AI assistants to scaffold domain code
+- **Commands**: `create` (project), `generate` (screen-set, MFE, component), `dev` (development server), `ai sync`, `update`, and validation/migration flows
+- **Templates**: EJS-based templates for projects, screen-sets, MFE packages, components, `_blank-mfe`, and related guidance assets — each follows FrontX conventions
+- **Test scaffolding**: `frontx create` emits Vitest config, `test`/`test:unit`/`test:unit:watch` scripts, starter tests, and `_blank-mfe` baseline tests; code generators add companion tests when a stable pattern exists
+- **AI skills**: Embedded skill definitions and generated assistant guidance route agents to project testing guidance and require the standard unit-test workflow during development for touched generated code
 
 ##### Responsibility boundaries
 
 - Does NOT depend on runtime `@cyberfabric/*` packages — generates code that imports them
 - Does NOT run at application runtime — CLI tool only
-- Does NOT manage build or deployment — delegates to Vite and npm scripts
+- Does NOT execute app business logic — it generates project assets and verification contracts, then delegates runtime execution to scaffolded package-manager scripts, Vitest, and CI
+- Does NOT manage build or deployment — delegates to Vite, package-manager scripts, and GitHub Actions
 
 ##### Related components (by ID)
 
@@ -815,6 +821,8 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 3. Register the `MfManifest` GTS entity from the generated config.
 4. Register entries (with `exposeAssets` populated from the generated config) and extensions as normal.
 
+The CLI package exposes a command-and-generated-files contract to scaffolded projects. `frontx create` and code-generation commands leave behind a canonical test contract (`test`, `test:unit`, `test:unit:watch`), Vitest configuration, starter tests, and project testing guidance that AI tools can consume without inspecting CLI internals. `frontx ai sync` extends that contract by projecting the same testing convention into generated assistant files and project-level guidance targets.
+
 **Public Package Interfaces**
 
 | Interface | Package | Description |
@@ -826,7 +834,7 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 | `cpt-frontx-interface-framework` | `@cyberfabric/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-frontx-interface-react` | `@cyberfabric/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
 | `cpt-frontx-interface-studio` | `@cyberfabric/studio` | Dev-only floating overlay with MFE package selector, theme/language/mock controls, persistence, viewport clamping |
-| `cpt-frontx-interface-cli` | `@cyberfabric/cli` | Project scaffolding, code generation, migration runners, AI tool configuration sync |
+| `cpt-frontx-interface-cli` | `@cyberfabric/cli` | Project scaffolding, code generation, migration runners, AI tool configuration sync, unit-test scaffold contract, and generated testing guidance |
 
 **External Integration Contracts**
 
@@ -1054,6 +1062,66 @@ sequenceDiagram
 
 **Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the handler registered for the `(extensionId, actionTypeId)` pair. Handlers are `ActionHandler` abstract class instances — one small class per action type, consistent with the class-based architecture of the entire package. A handler is registered per action type via `ChildMfeBridge.registerActionHandler(actionTypeId, handler)`, which wires it to `mediator.registerHandler(extensionId, actionTypeId, handler)`. Domain-side lifecycle handlers are also small `ActionHandler` subclasses registered per action type during `registerDomain()` — the mediator stores all handlers in a unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. On bridge dispose, all handlers for the extension are unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling, and eliminates the need for a monolithic switch in any handler class.
 
+#### CLI Project Scaffold with Unit Test Baseline
+
+**ID**: `cpt-frontx-seq-cli-project-scaffold`
+
+**Use cases**: `cpt-frontx-usecase-scaffold`
+
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`, `cpt-frontx-actor-ai-agent`
+
+```mermaid
+sequenceDiagram
+    participant Dev as Developer
+    participant CLI as frontx CLI
+    participant Templates as Templates
+    participant Project as Generated Project
+    participant AiSync as AI Sync
+
+    Dev->>CLI: frontx create or scaffold command
+    CLI->>Templates: resolve template manifest
+    Templates-->>CLI: app, screenset, _blank-mfe, guidance assets
+    CLI->>Project: write package.json scripts, Vitest config, starter tests
+    CLI->>Project: write project testing guidance
+    CLI->>AiSync: sync assistant files
+    AiSync->>Project: write tool-specific testing instructions
+    Project-->>Dev: scaffold with passing unit-test baseline
+```
+
+**Description**: Project and screenset scaffolding begin with the CLI resolving the template manifest for application files, `_blank-mfe` baseline tests, and guidance assets. The generated project receives the canonical `test`, `test:unit`, and `test:unit:watch` scripts, Vitest configuration, starter tests, and editable project testing guidance. That guidance carries only the compact Vitest subset FrontX agents need constantly: scaffold command usage, focused test-structure primitives, mocking, environment selection, and targeted filtering. `frontx ai sync` then projects the same testing convention into generated assistant files so later edits follow the scaffolded verification contract.
+
+#### AI Agent Verification Workflow
+
+**ID**: `cpt-frontx-seq-ai-agent-verification`
+
+**Use cases**: `cpt-frontx-usecase-scaffold`
+
+**Actors**: `cpt-frontx-actor-ai-agent`, `cpt-frontx-actor-developer`
+
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant Rules as Project Guidance
+    participant Code as Generated Code
+    participant Tests as Unit Tests
+    participant Verify as Verification Commands
+
+    Agent->>Rules: read .ai/GUIDELINES.md and project testing guidance
+    Agent->>Code: modify generated source
+    Agent->>Tests: add or update unit tests when coverage guidance requires them
+    Agent->>Rules: resolve whether tiered unit-test triggers apply
+    alt tiered triggers apply
+        Agent->>Verify: run the standard unit-test command
+        Verify-->>Agent: passing test feedback
+    else no unit-test run required
+        Rules-->>Agent: guidance allows direct final checks
+    end
+    Agent->>Verify: run type-check and arch:check
+    Verify-->>Agent: final validation status
+```
+
+**Description**: AI-assisted development starts by loading the generated project guidance, including the project-level testing instructions that describe when code changes require unit-test updates and when the standard unit-test command must run. Those instructions intentionally stay compact and avoid full Vitest reference coverage so agents load FrontX-specific testing rules instead of a broad upstream manual. The agent updates source and test files together, resolves whether the tiered triggers require the standard unit-test workflow, and runs the project-standard unit-test command against the scaffolded Vitest baseline only when those triggers apply. The agent advances to `type-check` and `arch:check` after applicable unit tests pass, or immediately when the guidance says no unit-test run is required. This keeps the generated-project verification loop aligned with the tiered test policy while preserving final architecture enforcement for every change.
+
 ### 3.7 Database schemas & tables
 
 Not applicable — FrontX is a frontend framework with no server-side database.
@@ -1171,3 +1239,6 @@ The following architecture domains are not applicable to FrontX as a client-side
 - **PRD**: [PRD.md](./PRD.md)
 - **ADRs**: [ADR/](./ADR/)
 - **Features**: [features/](./features/)
+- **Unit-test feature**: [features/feature-unit-test-generation-and-agent-verification/FEATURE.md](./features/feature-unit-test-generation-and-agent-verification/FEATURE.md)
+- **Allocated requirements in this DESIGN update**: `cpt-frontx-fr-cli-commands`, `cpt-frontx-fr-cli-templates`, `cpt-frontx-fr-cli-skills`, `cpt-frontx-fr-cli-e2e-verification`, `cpt-frontx-fr-ai-agent-integration`
+- **Primary design owners for the test workflow contract**: `cpt-frontx-component-cli`, `cpt-frontx-interface-cli`, `cpt-frontx-seq-cli-project-scaffold`, `cpt-frontx-seq-ai-agent-verification`

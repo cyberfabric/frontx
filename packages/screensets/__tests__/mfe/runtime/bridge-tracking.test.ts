@@ -12,17 +12,19 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 
 describe('ScreensetsRegistry - Bridge Tracking', () => {
   let registry: ScreensetsRegistry;
+  let typeSystem: GtsPlugin;
 
   beforeEach(() => {
+    typeSystem = new GtsPlugin();
     registry = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+      typeSystem,
     });
   });
 
@@ -30,7 +32,9 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
   describe('dispose', () => {
     it('should handle disposal when no bridges present', () => {
       // Should not throw when there are no bridges
-      expect(() => registry.dispose()).not.toThrow();
+      expect(() => {
+        registry.dispose();
+      }).not.toThrow();
     });
 
     it('should be idempotent for disposal', () => {
@@ -38,7 +42,9 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
       registry.dispose();
 
       // Second disposal should not throw
-      expect(() => registry.dispose()).not.toThrow();
+      expect(() => {
+        registry.dispose();
+      }).not.toThrow();
     });
 
     it('should safely dispose after domain registration', () => {
@@ -58,13 +64,15 @@ describe('ScreensetsRegistry - Bridge Tracking', () => {
         ],
       };
 
-      registry.registerDomain(testDomain, new MockContainerProvider());
+      registry.registerDomain(testDomain, new TestContainerProvider());
 
       // Verify domain is registered before disposal
       expect(registry.getDomain(testDomain.id)).toBeDefined();
 
       // Dispose should complete without error
-      expect(() => registry.dispose()).not.toThrow();
+      expect(() => {
+        registry.dispose();
+      }).not.toThrow();
     });
   });
 

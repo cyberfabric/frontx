@@ -279,10 +279,13 @@ export interface HAI3AppBuilder {
   /**
    * Add a plugin to the application.
    *
-   * @param plugin - Plugin instance or factory
+   * Also accepts an array of plugins, which is how preset helpers such as
+   * `presets.headless()` / `presets.minimal()` are consumed.
+   *
+   * @param plugin - Plugin instance, plugin factory, or an array of plugins (e.g. a preset)
    * @returns Builder for chaining
    */
-  use(plugin: HAI3Plugin | PluginFactory): HAI3AppBuilder;
+  use(plugin: HAI3Plugin | PluginFactory | HAI3Plugin[]): HAI3AppBuilder;
 
   /**
    * Add multiple plugins at once.

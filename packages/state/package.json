@@ -1,6 +1,6 @@
 {
   "name": "@cyberfabric/state",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "State management for FrontX SDK - event bus, store, and effects",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -20,13 +20,19 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
   "dependencies": {},
   "devDependencies": {
     "@reduxjs/toolkit": "^2.2.1",
+    "@vitest/coverage-v8": "4.1.4",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "4.1.4"
   },
   "peerDependencies": {
     "@reduxjs/toolkit": ">=2.0.0",

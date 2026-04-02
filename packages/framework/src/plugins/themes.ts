@@ -49,6 +49,7 @@ function changeTheme(payload: ChangeThemePayload): void {
  */
 export function themes(): HAI3Plugin {
   const themeRegistry = createThemeRegistry();
+  let themeChangedSubscription: ReturnType<typeof eventBus.on> | undefined;
 
   return {
     name: 'themes',
@@ -67,7 +68,7 @@ export function themes(): HAI3Plugin {
     // @cpt-begin:cpt-frontx-dod-framework-composition-propagation:p1:inst-1
     onInit(app) {
       // Subscribe to theme changes
-      eventBus.on('theme/changed', (payload: ChangeThemePayload) => {
+      themeChangedSubscription = eventBus.on('theme/changed', (payload: ChangeThemePayload) => {
         themeRegistry.apply(payload.themeId);
         try {
           const themeConfig = themeRegistry.get(payload.themeId);
@@ -87,6 +88,10 @@ export function themes(): HAI3Plugin {
         themeRegistry.apply(themes[0].id);
         app.screensetsRegistry?.setTheme(themes[0].variables);
       }
+    },
+    onDestroy() {
+      themeChangedSubscription?.unsubscribe();
+      themeChangedSubscription = undefined;
     },
     // @cpt-end:cpt-frontx-flow-framework-composition-theme-propagation:p1:inst-2
     // @cpt-end:cpt-frontx-dod-framework-composition-propagation:p1:inst-1

@@ -1,44 +1,23 @@
 # Project Guidelines
 
-This file is for project-specific coding standards, patterns, and rules that apply only to this particular project.
+## AI WORKFLOW (REQUIRED)
+- Read this file before assuming project-specific rules.
+- Use ROUTING to load the project target that matches the task.
+- Keep edits in this directory project-specific and editable by the adopter.
 
-## Purpose
-
-Add guidelines here that are specific to this project, such as:
-- Domain-specific conventions (business logic naming, data models)
-- Project-specific architectural decisions
-- Migration guides for this project
-- Testing strategies specific to this project
-- Deployment procedures
-
-## Structure
-
-You can:
-- Add guidelines directly in this file
-- Create additional target files in `project/targets/` and route to them from this file
-- Use the same routing format as the main GUIDELINES.md
-
-## Preservation
-
-This directory and all files within it are preserved during `frontx update`. Your project guidelines will never be overwritten by FrontX CLI updates.
-
-## Example
-
-```
 ## ROUTING
+- Unit tests and test verification -> .ai/project/targets/UNIT_TESTING.md
 
-For project-specific domain patterns:
-- Domain models -> .ai/project/targets/DOMAIN.md
+## CRITICAL RULES
+- REQUIRED: This directory is the project-owned extension point for local conventions.
+- REQUIRED: Keep project-specific rules short and concrete.
+- REQUIRED: Update or add project targets here instead of editing generated tool files directly.
 
-For project migration guides:
-- Migration procedures -> .ai/project/targets/MIGRATIONS.md
-```
-
-## Getting Started
-
-1. Remove this placeholder content
-2. Add your project-specific guidelines
-3. Create target files in `project/targets/` as needed
-4. Add routing entries to this file
-
-For more information, see `.ai/targets/AI.md` documentation.
+## ADOPTER NOTES
+- This directory is preserved during `frontx update`; edits here are not overwritten.
+- Editing generated project targets (for example `project/targets/UNIT_TESTING.md`) records customized unit-test guidance for this repository.
+- Restoring a target from the CLI template baseline (for example re-copying `UNIT_TESTING.md` from a fresh `frontx create` output) resets DEFAULT guidance when you replace local edits wholesale.
+- To add a project-specific rule set:
+  1. Create a target file under `project/targets/<TOPIC>.md` following the same format as existing targets (see `project/targets/UNIT_TESTING.md`).
+  2. Add a routing entry above, e.g. `Domain models -> .ai/project/targets/DOMAIN.md`.
+  3. Keep entries short; link out rather than duplicating upstream rules.

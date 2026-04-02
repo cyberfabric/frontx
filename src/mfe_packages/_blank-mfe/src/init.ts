@@ -7,6 +7,7 @@
  * - Do not add queryCache(), createHAI3App(), or QueryClientProvider here.
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-internal-dataflow:p1
+// @cpt-dod:cpt-frontx-dod-unit-test-generation-and-agent-verification-blank-mfe-tests:p1
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
 
 import {

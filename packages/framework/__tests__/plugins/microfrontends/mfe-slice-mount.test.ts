@@ -3,6 +3,10 @@
  *
  * Tests for mount/unmount state tracking reducers and selectors.
  *
+ * The reducer treats domainId/extensionId as opaque strings, but we use the
+ * production-shaped GTS IDs here (rather than toy values like 'screen' or
+ * 'home') so tests exercise the same key shapes production code will store.
+ *
  * @packageDocumentation
  * @vitest-environment jsdom
  */
@@ -16,6 +20,22 @@ import {
   type MfeState,
 } from '../../../src/plugins/microfrontends';
 
+const SCREEN_DOMAIN_ID =
+  'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1';
+const SIDEBAR_DOMAIN_ID =
+  'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1';
+const POPUP_DOMAIN_ID =
+  'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1';
+
+const HOME_EXTENSION_ID =
+  'gts.hai3.mfes.ext.extension.v1~test.app.home.v1';
+const SETTINGS_EXTENSION_ID =
+  'gts.hai3.mfes.ext.extension.v1~test.app.settings.v1';
+const ORIGINAL_EXTENSION_ID =
+  'gts.hai3.mfes.ext.extension.v1~test.app.original.v1';
+const REPLACEMENT_EXTENSION_ID =
+  'gts.hai3.mfes.ext.extension.v1~test.app.replacement.v1';
+
 describe('MFE Slice - Mount State', () => {
   describe('42.7.1 - setExtensionMounted reducer', () => {
     it('should update mountedExtensions[domainId] to extensionId', () => {
@@ -26,13 +46,13 @@ describe('MFE Slice - Mount State', () => {
       };
 
       const action = setExtensionMounted({
-        domainId: 'screen',
-        extensionId: 'home',
+        domainId: SCREEN_DOMAIN_ID,
+        extensionId: HOME_EXTENSION_ID,
       });
 
       const newState = mfeSlice.reducer(initialState, action);
 
-      expect(newState.mountedExtensions['screen']).toBe('home');
+      expect(newState.mountedExtensions[SCREEN_DOMAIN_ID]).toBe(HOME_EXTENSION_ID);
     });
 
     it('should overwrite existing mounted extension for domain', () => {
@@ -40,18 +60,18 @@ describe('MFE Slice - Mount State', () => {
         registrationStates: {},
         errors: {},
         mountedExtensions: {
-          screen: 'old-extension',
+          [SCREEN_DOMAIN_ID]: ORIGINAL_EXTENSION_ID,
         },
       };
 
       const action = setExtensionMounted({
-        domainId: 'screen',
-        extensionId: 'new-extension',
+        domainId: SCREEN_DOMAIN_ID,
+        extensionId: REPLACEMENT_EXTENSION_ID,
       });
 
       const newState = mfeSlice.reducer(initialState, action);
 
-      expect(newState.mountedExtensions['screen']).toBe('new-extension');
+      expect(newState.mountedExtensions[SCREEN_DOMAIN_ID]).toBe(REPLACEMENT_EXTENSION_ID);
     });
   });
 
@@ -61,17 +81,17 @@ describe('MFE Slice - Mount State', () => {
         registrationStates: {},
         errors: {},
         mountedExtensions: {
-          screen: 'home',
+          [SCREEN_DOMAIN_ID]: HOME_EXTENSION_ID,
         },
       };
 
       const action = setExtensionUnmounted({
-        domainId: 'screen',
+        domainId: SCREEN_DOMAIN_ID,
       });
 
       const newState = mfeSlice.reducer(initialState, action);
 
-      expect(newState.mountedExtensions['screen']).toBeUndefined();
+      expect(newState.mountedExtensions[SCREEN_DOMAIN_ID]).toBeUndefined();
     });
 
     it('should be idempotent when domain has no mounted extension', () => {
@@ -82,12 +102,12 @@ describe('MFE Slice - Mount State', () => {
       };
 
       const action = setExtensionUnmounted({
-        domainId: 'screen',
+        domainId: SCREEN_DOMAIN_ID,
       });
 
       const newState = mfeSlice.reducer(initialState, action);
 
-      expect(newState.mountedExtensions['screen']).toBeUndefined();
+      expect(newState.mountedExtensions[SCREEN_DOMAIN_ID]).toBeUndefined();
     });
   });
 
@@ -98,17 +118,14 @@ describe('MFE Slice - Mount State', () => {
           registrationStates: {},
           errors: {},
           mountedExtensions: {
-            screen: 'home',
-            sidebar: 'settings',
+            [SCREEN_DOMAIN_ID]: HOME_EXTENSION_ID,
+            [SIDEBAR_DOMAIN_ID]: SETTINGS_EXTENSION_ID,
           },
         },
       };
 
-      const screenExtension = selectMountedExtension(state, 'screen');
-      const sidebarExtension = selectMountedExtension(state, 'sidebar');
-
-      expect(screenExtension).toBe('home');
-      expect(sidebarExtension).toBe('settings');
+      expect(selectMountedExtension(state, SCREEN_DOMAIN_ID)).toBe(HOME_EXTENSION_ID);
+      expect(selectMountedExtension(state, SIDEBAR_DOMAIN_ID)).toBe(SETTINGS_EXTENSION_ID);
     });
   });
 
@@ -119,14 +136,12 @@ describe('MFE Slice - Mount State', () => {
           registrationStates: {},
           errors: {},
           mountedExtensions: {
-            screen: 'home',
+            [SCREEN_DOMAIN_ID]: HOME_EXTENSION_ID,
           },
         },
       };
 
-      const popupExtension = selectMountedExtension(state, 'popup');
-
-      expect(popupExtension).toBeUndefined();
+      expect(selectMountedExtension(state, POPUP_DOMAIN_ID)).toBeUndefined();
     });
 
     it('should return undefined for a domain that was unmounted', () => {
@@ -135,14 +150,12 @@ describe('MFE Slice - Mount State', () => {
           registrationStates: {},
           errors: {},
           mountedExtensions: {
-            screen: undefined,
+            [SCREEN_DOMAIN_ID]: undefined,
           },
         },
       };
 
-      const screenExtension = selectMountedExtension(state, 'screen');
-
-      expect(screenExtension).toBeUndefined();
+      expect(selectMountedExtension(state, SCREEN_DOMAIN_ID)).toBeUndefined();
     });
   });
 });

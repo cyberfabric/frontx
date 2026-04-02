@@ -847,7 +847,7 @@ The CLI MUST be implemented as workspace package `@cyberfabric/cli` with binary 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-cli-commands`
 
-The CLI MUST provide: `frontx create <project>` (scaffold new project), `frontx update` (update packages/templates), `frontx scaffold layout` (generate layout), `frontx scaffold screenset <name>` (generate screenset), `frontx validate components` (validate structure), `frontx ai sync` (sync AI tool configs), `frontx migrate [version]` (run code migrations).
+The CLI MUST provide: `frontx create <project>` (scaffold new project), `frontx update` (update packages/templates), `frontx scaffold layout` (generate layout), `frontx scaffold screenset <name>` (generate screenset), `frontx validate components` (validate structure), `frontx ai sync` (sync AI tool configs), `frontx migrate [version]` (run code migrations). `frontx validate components` MUST remain a structural validation command and MUST NOT execute the unit-test suite by default; the generated `test:unit` script alias, invoked through the project's configured package manager (for example `npm run test:unit`, `pnpm run test:unit`, or `yarn test:unit`), and CI MUST remain the unit-test execution contract. Scaffolded projects MUST include a standard unit-test workflow by default. Commands that generate new code MUST also generate starter unit tests when a stable template exists for that output.
 
 **Rationale**: Complete developer workflow from project creation through maintenance.
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-cli`
@@ -856,7 +856,7 @@ The CLI MUST provide: `frontx create <project>` (scaffold new project), `frontx 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-cli-templates`
 
-The CLI MUST use a template system with `copy-templates.ts` build script, manifest.json, and screenset templates. Templates MUST be user-owned (not locked in node_modules).
+The CLI MUST use a template system with `copy-templates.ts` build script, manifest.json, and screenset templates. Templates MUST be user-owned (not locked in node_modules). Project and screenset templates MUST include the assets required for the standard unit-test workflow, including starter test files and editable project-level testing guidance where applicable.
 
 **Rationale**: Consistent scaffolding with full user control over generated code.
 **Actors**: `cpt-frontx-actor-cli`
@@ -865,7 +865,7 @@ The CLI MUST use a template system with `copy-templates.ts` build script, manife
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-cli-skills`
 
-The CLI build MUST generate IDE guidance files and command adapters for supported tools: `CLAUDE.md`, `.cursor/rules/`, `.windsurf/rules/`, `.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`, and `.github/copilot-commands/`.
+The CLI build MUST generate IDE guidance files and command adapters for supported tools: `CLAUDE.md`, `.cursor/rules/`, `.windsurf/rules/`, `.claude/commands/`, `.cursor/commands/`, `.windsurf/workflows/`, and `.github/copilot-commands/`. Generated AI guidance MUST include project-level unit-test guidance and instructions that direct agents to use the standard unit-test workflow under tiered triggers when modifying generated code, and MUST NOT equate `frontx validate components` with running unit tests.
 
 **Rationale**: Distributes AI assistant integrations with every scaffolded project.
 **Actors**: `cpt-frontx-actor-cli`
@@ -874,7 +874,7 @@ The CLI build MUST generate IDE guidance files and command adapters for supporte
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-cli-e2e-verification`
 
-The repository MUST run a dedicated required GitHub Actions PR workflow (`cli-pr-e2e`) that verifies the freshly scaffolded default app is installable, buildable, and type-check clean on Node 24.14.x. A separate non-required nightly workflow MUST cover broader CLI scenarios (custom UIKit, layer scaffolds, migrate commands, invalid-name rejection, ai sync idempotency). Both workflows MUST persist step-level logs as CI artifacts.
+The repository MUST run a dedicated required GitHub Actions PR workflow (`cli-pr-e2e`) that verifies the freshly scaffolded default app is installable, buildable, type-check clean, and passes the standard unit-test workflow on Node 24.14.x. A separate non-required nightly workflow MUST cover broader CLI scenarios (custom UIKit, layer scaffolds, migrate commands, invalid-name rejection, ai sync idempotency). Both workflows MUST persist step-level logs as CI artifacts.
 
 **Rationale**: The generated project is the primary CLI deliverable; a green CLI package build alone does not prove the scaffold path works end-to-end.
 **Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-cli`
@@ -1033,9 +1033,9 @@ Studio MUST provide a screenset selector as the top-level navigation control. Th
 
 #### AI Agent Integration
 
-- [ ] `p1` - **ID**: `cpt-frontx-fr-ai-agent-integration`
+- [x] `p1` - **ID**: `cpt-frontx-fr-ai-agent-integration`
 
-The system MUST provide FrontX-specific AI skills and workflows that enable AI agents to create screensets, modify shell code, and manage MFE packages within screensets. Each screenset MUST include machine-readable context (guidelines, structure descriptions) that AI agents can consume to understand the screenset's structure and conventions.
+The system MUST provide FrontX-specific AI skills and workflows that enable AI agents to create screensets, modify shell code, and manage MFE packages within screensets. Each screenset MUST include machine-readable context (guidelines, structure descriptions) that AI agents can consume to understand the screenset's structure and conventions. Generated project AI context MUST include project-level unit-test guidance that tells agents when to add or update unit tests and to use the standard unit-test workflow when modifying generated code. Generated guidance MUST NOT describe `frontx validate components` as running or replacing unit tests; agents MUST run the standard unit-test workflow as a separate step when tiered triggers apply: colocated tests or test setup touched, logic-heavy modules changed, or task or review handoff. That unit-test guidance MUST stay compact and adapt only the Vitest topics FrontX agents need for generated projects: scaffold command usage, focused test-structure primitives, mocking, environment selection, and targeted filtering.
 
 **Rationale**: AI tooling is the primary mechanism for PMs and designers to modify shell code. Without dedicated skills and context, AI agents would lack the domain knowledge to operate on screensets effectively.
 **Actors**: `cpt-frontx-actor-ai-agent`, `cpt-frontx-actor-product-manager`
@@ -1450,13 +1450,16 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Main Flow**:
 1. Developer runs `frontx scaffold screenset my-feature`
 2. CLI copies screenset template to `src/screensets/my-feature/`
-3. Template includes: screens, translations, API service stubs, actions, effects
-4. Developer modifies generated code to implement business logic
+3. Template includes: screens, translations, API service stubs, actions, effects, and starter unit tests when a stable template exists
+4. Generated project AI context includes project-level unit-test guidance for the new screenset code
+5. Developer modifies generated code and starter tests to implement business logic
 
 **Postconditions**:
 - Self-contained screenset folder with working demo screens
 - Translation namespaces derived from screenset/screen IDs
 - API service stubs ready for implementation
+- Starter unit tests exist for generated screenset code when a stable template exists
+- Generated code follows the project's standard unit-test workflow
 
 **Alternative Flows**:
 - **Directory exists**: CLI prompts for `--force` flag to overwrite
@@ -1556,7 +1559,10 @@ Non-production screensets MUST NOT be included in the production build's module 
 - [x] GTS validation rejects invalid shared property values before propagation
 - [x] All formatters return `''` for invalid inputs without throwing
 - [x] Studio panel is excluded from production builds via tree-shaking
-- [x] CLI scaffolds functional project with `frontx create` + `frontx scaffold layout`
+- [x] CLI scaffolds functional project with `frontx create` + `frontx scaffold layout`, including a standard unit-test workflow
+- [x] Generated projects include editable project-level unit-test guidance for AI-assisted development
+- [x] Code-generation commands create starter unit tests alongside generated code when a stable template exists
+- [x] The default scaffold passes the standard unit-test workflow in required CLI PR verification
 - [ ] A screenset can be created (from template or by duplicating any existing screenset) in under 2 seconds
 - [ ] The copied screenset's shell code is independently modifiable without affecting the source
 - [ ] Studio displays all local screensets grouped by stage and allows switching between them

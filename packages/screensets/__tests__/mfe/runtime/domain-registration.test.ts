@@ -7,18 +7,29 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { DomainValidationError } from '../../../src/mfe/errors';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
+
+/**
+ * Deliberately invalid {@link ExtensionDomain} shape for negative tests.
+ * Required fields are omitted on purpose; the cast is confined to this helper.
+ */
+function invalidExtensionDomainFixtureForValidation(): ExtensionDomain {
+  return {
+    id: 'gts.hai3.mfes.ext.domain.v1~test.corp.layout.invalid.v1',
+    sharedProperties: [],
+  } as unknown as ExtensionDomain;
+}
 
 describe('Domain Registration', () => {
   const plugin = new GtsPlugin();
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
 
   beforeEach(() => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
   });
 
   describe('registerDomain with GTS validation', () => {
@@ -81,11 +92,7 @@ describe('Domain Registration', () => {
     });
 
     it('should throw DomainValidationError for invalid domain schema', () => {
-      const invalidDomain = {
-        id: 'gts.hai3.mfes.ext.domain.v1~test.corp.layout.invalid.v1',
-        // Missing required fields
-        sharedProperties: [],
-      } as unknown as ExtensionDomain;
+      const invalidDomain = invalidExtensionDomainFixtureForValidation();
 
       expect(() => {
         registry.registerDomain(invalidDomain, mockContainerProvider);

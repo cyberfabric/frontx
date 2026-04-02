@@ -161,8 +161,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     // Initialize operation serializer
     this.operationSerializer = new OperationSerializer();
 
-    // Initialize coordinator (always construct internally)
-    this.coordinator = new WeakMapRuntimeCoordinator();
+    // Allow tests and advanced hosts to supply a custom coordinator while
+    // keeping WeakMap coordination as the default runtime behavior.
+    this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
 
     // Initialize runtime bridge factory
     this.bridgeFactory = new DefaultRuntimeBridgeFactory();

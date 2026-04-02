@@ -14,20 +14,21 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeHandler } from '../../../src/mfe/handler/types';
-import { MockContainerProvider } from '../test-utils';
+import type { ChildMfeBridge, MfeEntryLifecycle } from '../../../src/mfe/handler/types';
+import { TestContainerProvider, makeMfeHandlerDouble } from '../../../__test-utils__';
 
 
 describe('Extension Lifecycle Actions', () => {
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
+  let typeSystem: GtsPlugin;
 
   // Test domain with toggle semantics (supports mount + unmount)
   const toggleDomain: ExtensionDomain = {
@@ -98,26 +99,15 @@ describe('Extension Lifecycle Actions', () => {
     entry: testEntry.id,
   };
 
-  // Build a mock MfeHandler that records load/mount/unmount calls
-  function createMockMfeHandler() {
-    return {
-      handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-      priority: 100,
-      load: vi.fn().mockResolvedValue({
-        mount: vi.fn().mockResolvedValue(undefined),
-        unmount: vi.fn().mockResolvedValue(undefined),
-      }),
-    };
-  }
-
   beforeEach(() => {
+    typeSystem = new GtsPlugin();
     registry = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+      typeSystem,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register test entry with GTS
-    gtsPlugin.register(testEntry);
+    typeSystem.register(testEntry);
   });
 
   // ---------------------------------------------------------------------------
@@ -126,10 +116,13 @@ describe('Extension Lifecycle Actions', () => {
 
   describe('load_ext action', () => {
     it('should complete successfully with a valid subject payload', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -174,10 +167,13 @@ describe('Extension Lifecycle Actions', () => {
 
   describe('mount_ext action - toggle semantics', () => {
     it('should mount extension and record it as mounted', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -213,10 +209,13 @@ describe('Extension Lifecycle Actions', () => {
     });
 
     it('should NOT use swap semantics — second mount does not implicitly unmount', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -241,10 +240,13 @@ describe('Extension Lifecycle Actions', () => {
 
   describe('unmount_ext action', () => {
     it('should unmount extension and clear mounted state', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -301,15 +303,18 @@ describe('Extension Lifecycle Actions', () => {
     it('should unmount current extension before mounting new one', async () => {
       const mountFn = vi.fn().mockResolvedValue(undefined);
       const unmountFn = vi.fn().mockResolvedValue(undefined);
-      const mockHandler = {
+      const loadMock = vi
+        .fn<(entry: MfeEntry) => Promise<MfeEntryLifecycle<ChildMfeBridge>>>()
+        .mockResolvedValue({ mount: mountFn, unmount: unmountFn });
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        load: vi.fn().mockResolvedValue({ mount: mountFn, unmount: unmountFn }),
-      };
+        load: loadMock,
+      });
 
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       const ext2Container = document.createElement('div');
@@ -364,15 +369,21 @@ describe('Extension Lifecycle Actions', () => {
 
     it('should no-op when mounting the same extension that is already mounted', async () => {
       const mountFn = vi.fn().mockResolvedValue(undefined);
-      const mockHandler = {
+      const loadMock = vi
+        .fn<(entry: MfeEntry) => Promise<MfeEntryLifecycle<ChildMfeBridge>>>()
+        .mockResolvedValue({
+          mount: mountFn,
+          unmount: vi.fn().mockResolvedValue(undefined),
+        });
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        load: vi.fn().mockResolvedValue({ mount: mountFn, unmount: vi.fn().mockResolvedValue(undefined) }),
-      };
+        load: loadMock,
+      });
 
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       const container = document.createElement('div');
@@ -406,11 +417,14 @@ describe('Extension Lifecycle Actions', () => {
 
   describe('getMountedExtension', () => {
     it('should return currently mounted extension ID', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
 
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -443,11 +457,14 @@ describe('Extension Lifecycle Actions', () => {
     });
 
     it('should return undefined after unmounting', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
 
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -555,14 +572,18 @@ describe('Extension Lifecycle Actions', () => {
           payload: { subject: testExtension2.id },
         },
       });
-      // No handler registered → no error, chain succeeds as no-op
-      expect(errors.length).toBe(0);
+      // Fresh per-suite type systems expose the real behavior here: swap domains
+      // reject unmount_ext instead of silently inheriting a stale handler.
+      expect(errors.length).toBeGreaterThan(0);
 
       consoleErrorSpy.mockRestore();
     });
 
     it('should unregister all handlers during unregisterDomain', async () => {
       registry.registerDomain(toggleDomain, mockContainerProvider);
+      // Register extension so load_ext payload.subject passes GTS x-gts-ref validation.
+      // (unregisterExtension removes runtime state but leaves the instance in the GTS store.)
+      await registry.registerExtension(testExtension1);
 
       await registry.unregisterDomain(toggleDomain.id);
 
@@ -584,10 +605,13 @@ describe('Extension Lifecycle Actions', () => {
 
   describe('ContainerProvider integration', () => {
     it('should call getContainer during mount and releaseContainer during unmount', async () => {
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);
@@ -617,10 +641,13 @@ describe('Extension Lifecycle Actions', () => {
     it('should log chain failure when getContainer throws', async () => {
       // registry.executeActionsChain() captures errors from the handler and logs them.
       // It does not re-throw — callers observe failure via console.error output.
-      const mockHandler = createMockMfeHandler();
+      const mockHandler = makeMfeHandlerDouble({
+        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+        priority: 100,
+      });
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(toggleDomain, mockContainerProvider);
       await registry.registerExtension(testExtension1);

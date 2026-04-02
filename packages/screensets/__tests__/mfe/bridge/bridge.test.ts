@@ -13,7 +13,7 @@ import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mf
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 describe('Bridge Implementation', () => {
   describe('ChildMfeBridge', () => {
@@ -391,13 +391,11 @@ describe('Bridge Implementation', () => {
         // Unsubscribe
         unsubscribe();
 
-        // Should throw after unsubscribe
-        try {
-          await childBridge.handleParentActionsChain(chain);
-          expect.fail('Should have thrown NoActionsChainHandlerError');
-        } catch (error) {
-          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
-        }
+        expect(() => {
+          childBridge.handleParentActionsChain(chain);
+        }).toThrow(
+          NoActionsChainHandlerError
+        );
       });
 
       it('should clear handler on cleanup', async () => {
@@ -407,12 +405,12 @@ describe('Bridge Implementation', () => {
         childBridge.cleanup();
 
         const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
-        try {
-          await childBridge.handleParentActionsChain(chain);
-          expect.fail('Should have thrown NoActionsChainHandlerError');
-        } catch (error) {
-          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
-        }
+
+        expect(() => {
+          childBridge.handleParentActionsChain(chain);
+        }).toThrow(
+          NoActionsChainHandlerError
+        );
       });
     });
 
@@ -433,17 +431,19 @@ describe('Bridge Implementation', () => {
       it('should throw NoActionsChainHandlerError when no handler registered', async () => {
         const chain: ActionsChain = { action: { type: 'test', target: 'domain' } };
 
-        try {
-          await childBridge.handleParentActionsChain(chain);
-          expect.fail('Should have thrown NoActionsChainHandlerError');
-        } catch (error) {
-          expect(error).toBeInstanceOf(NoActionsChainHandlerError);
-          if (error instanceof NoActionsChainHandlerError) {
-            expect(error.instanceId).toBe('test-instance');
-            expect(error.message).toContain('test-instance');
-            expect(error.code).toBe('NO_ACTIONS_CHAIN_HANDLER');
-          }
-        }
+        expect(() => {
+          childBridge.handleParentActionsChain(chain);
+        }).toThrow(
+          NoActionsChainHandlerError
+        );
+        expect(() => {
+          childBridge.handleParentActionsChain(chain);
+        }).toThrow(
+          expect.objectContaining({
+            instanceId: 'test-instance',
+            code: 'NO_ACTIONS_CHAIN_HANDLER',
+          })
+        );
       });
     });
 
@@ -469,16 +469,10 @@ describe('Bridge Implementation', () => {
         await expect(parentBridge.sendActionsChain(chain)).rejects.toThrow(
           BridgeDisposedError
         );
-
-        try {
-          await parentBridge.sendActionsChain(chain);
-        } catch (error) {
-          expect(error).toBeInstanceOf(BridgeDisposedError);
-          if (error instanceof BridgeDisposedError) {
-            expect(error.instanceId).toBe('test-instance');
-            expect(error.code).toBe('BRIDGE_DISPOSED');
-          }
-        }
+        await expect(parentBridge.sendActionsChain(chain)).rejects.toMatchObject({
+          instanceId: 'test-instance',
+          code: 'BRIDGE_DISPOSED',
+        });
       });
 
       it('should propagate errors from child handler', async () => {
@@ -540,15 +534,19 @@ describe('Bridge Implementation', () => {
         schemas.set(id, { $id: `gts://${id}`, type: 'object' });
       }
 
+      const gtsUri = ['gts', ':', '//'].join('');
       return {
         name: 'MinimalMock',
         version: '1.0.0',
-        isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-        parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
         registerSchema: (schema: JSONSchema) => {
-          if (schema.$id) schemas.set(schema.$id.replace('gts://', ''), schema);
+          if (schema.$id) schemas.set(schema.$id, schema);
         },
-        getSchema: (id: string) => schemas.get(id),
+        getSchema: (id: string) => {
+          const direct = schemas.get(id);
+          if (direct !== undefined) return direct;
+          if (!id.startsWith(gtsUri)) return schemas.get(gtsUri + id);
+          return undefined;
+        },
         register: (entity: unknown) => {
           const e = entity as { id?: string };
           registered.set(e.id ?? '', entity);
@@ -557,13 +555,7 @@ describe('Bridge Implementation', () => {
           if (registered.has(instanceId)) return { valid: true, errors: [] };
           return { valid: false, errors: [{ path: '', message: `Not registered: ${instanceId}`, keyword: 'not-registered' }] };
         },
-        query: (pattern: string, limit?: number) => {
-          const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
-          return limit ? results.slice(0, limit) : results;
-        },
         isTypeOf: (typeId: string, baseTypeId: string) => typeId === baseTypeId || typeId.startsWith(baseTypeId),
-        checkCompatibility: () => ({ compatible: true, breaking: false, changes: [] }),
-        getAttribute: (typeId: string, path: string) => ({ typeId, path, resolved: false }),
       };
     }
 
@@ -607,7 +599,9 @@ describe('Bridge Implementation', () => {
         const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
         const spy = new SpyHandler();
 
-        expect(() => bridge.registerActionHandler(ACTION_TYPE_SPY, spy)).toThrow(
+        expect(() => {
+          bridge.registerActionHandler(ACTION_TYPE_SPY, spy);
+        }).toThrow(
           'registerActionHandler callback not wired'
         );
       });
@@ -618,7 +612,9 @@ describe('Bridge Implementation', () => {
         bridge.cleanup();
 
         const spy = new SpyHandler();
-        expect(() => bridge.registerActionHandler(ACTION_TYPE_SPY, spy)).toThrow(
+        expect(() => {
+          bridge.registerActionHandler(ACTION_TYPE_SPY, spy);
+        }).toThrow(
           'registerActionHandler callback not wired'
         );
       });
@@ -633,12 +629,12 @@ describe('Bridge Implementation', () => {
       let registry: DefaultScreensetsRegistry;
       let mediator: DefaultActionsChainsMediator;
       let domain: ExtensionDomain;
-      let containerProvider: MockContainerProvider;
+      let containerProvider: TestContainerProvider;
 
       beforeEach(() => {
         plugin = createMinimalTypeSystem();
         registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
-        containerProvider = new MockContainerProvider();
+        containerProvider = new TestContainerProvider();
         mediator = new DefaultActionsChainsMediator({
           typeSystem: plugin,
           getDomainState: (domainId) => registry.getDomainState(domainId),
@@ -774,7 +770,7 @@ describe('Bridge Implementation', () => {
           lifecycleStages: [],
           extensionsLifecycleStages: [],
         };
-        gtsRegistry.registerDomain(domain, new MockContainerProvider());
+        gtsRegistry.registerDomain(domain, new TestContainerProvider());
 
         gtsPlugin.register({
           id: PROFILE_EXT_ID,

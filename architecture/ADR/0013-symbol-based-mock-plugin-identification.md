@@ -20,6 +20,7 @@ date: 2026-01-04
   - [String-based identification](#string-based-identification)
   - [Centralized mock registry](#centralized-mock-registry)
   - [Service-specific mock mode flag](#service-specific-mock-mode-flag)
+- [Bundling Trade-Off: Mock Fixtures Ship to Production](#bundling-trade-off-mock-fixtures-ship-to-production)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 
@@ -84,6 +85,26 @@ Chosen option: "Symbol-based plugin identification", because symbols are type-sa
 
 * Good, because each service controls its own mock state explicitly
 * Bad, because it violates the Single Responsibility Principle by embedding infrastructure concerns in service logic
+
+## Bundling Trade-Off: Mock Fixtures Ship to Production
+
+Mock fixture files (`mocks.ts`, `mock-user-store.ts`) and `RestMockPlugin`/`SseMockPlugin` registrations are included in production bundles unconditionally. This is intentional.
+
+**Why not strip at build time?**
+
+- Mock mode is a **runtime** capability, toggleable in deployed dev/staging environments via `toggleMockMode`. A build-time flag would remove that capability.
+- The mock toggle already gates **activation**, not inclusion. When mock mode is off (the production default — `isDevEnvironment()` returns `false` for non-localhost hostnames), `syncMockPlugins(false)` never wires mock plugins into protocol chains. No interception occurs; no mock data is returned.
+- Mock fixture files are small data maps (typically 15–50 lines each). The bundle cost is negligible compared to framework and HTTP-client dependencies that ship regardless.
+- This differs from Studio (`@cyberfabric/studio`), which uses `import.meta.env.DEV` gating because it carries substantial DOM/CSS weight. Mock fixtures carry no UI weight and no side effects when inactive.
+
+**Separation from test utilities.** Runtime mock fixtures (`mocks.ts`, `mock-user-store.ts`) live alongside their API service, outside `__test-utils__/`. Test-only helpers (state reset functions, factory builders) live in `__test-utils__/` per `UNIT_TESTING.md`. The two serve different purposes and the split is correct:
+
+| Location | Purpose | Consumed by | In bundle? |
+|---|---|---|---|
+| `api/mocks.ts`, `api/mock-user-store.ts` | Runtime mock data for `RestMockPlugin` | Service constructor | Yes |
+| `api/__test-utils__/mocks.ts` | Test reset/getter helpers | Vitest test files only | No |
+
+**When to revisit.** If mock fixture files grow large (e.g., full response corpuses exceeding several KB), consider dynamic `import()` behind the mock toggle to defer loading. This is a performance optimisation, not a correctness concern, and should be driven by bundle analysis rather than preemptive policy.
 
 ## More Information
 

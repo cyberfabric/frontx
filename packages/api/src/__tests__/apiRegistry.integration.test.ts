@@ -55,6 +55,8 @@ describe('apiRegistry class-based registration', () => {
       }
     }
 
-    expect(() => apiRegistry.getService(NotRegistered)).toThrow();
+    expect(() => {
+      apiRegistry.getService(NotRegistered);
+    }).toThrow();
   });
 });

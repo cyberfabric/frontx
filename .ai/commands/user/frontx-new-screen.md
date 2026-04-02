@@ -7,11 +7,12 @@ FORBIDDEN: Creating screen without reading target files first.
 
 ## AI WORKFLOW (REQUIRED)
 1) Read .ai/targets/SCREENSETS.md and .ai/targets/EVENTS.md before starting.
-2) Read `frontx.config.json` at project root to identify the configured `uikit` value.
+2) Read `.ai/project/GUIDELINES.md` and `.ai/project/targets/UNIT_TESTING.md` when they exist **before** planning unit tests, validation, or any test-related tasks in this command (project-owned overrides take precedence over defaults here; `UNIT_TESTING.md` defines the exact test commands, shared-helper convention, and durable assertion rules).
+3) Read `frontx.config.json` at project root to identify the configured `uikit` value.
    - If a third-party package (not `shadcn` or `none`): read its exports to discover available components.
-3) Gather requirements from user (including UI sections).
-4) Present implementation plan and wait for approval.
-5) Implement after approval.
+4) Gather requirements from user (including UI sections).
+5) Present implementation plan and wait for approval.
+6) Implement after approval.
 
 ## GATHER REQUIREMENTS
 Ask user for:
@@ -38,9 +39,10 @@ Present the following to the user for approval:
   - Add screen ID to ids.ts
   - Create components per Component Plan (BEFORE screen file)
   - Create screen (orchestrates components, follows EVENTS.md data flow)
+  - Add or update a screen test that covers stable render or behavior and follows `.ai/project/targets/UNIT_TESTING.md` for helper placement and durable assertions
   - Add i18n files for all languages
   - Add to menu (if requested)
-  - Validate: `npm run type-check && npm run lint`
+  - Validate: run `test:unit`, `type-check`, and `arch:check` via this project's package manager per `.ai/project/targets/UNIT_TESTING.md` (which defines the exact commands). Apply constraints from workflow step 2.
   - Test via Chrome DevTools MCP
 
 ## STEP 2: Wait for Approval
@@ -54,11 +56,16 @@ After approval, follow the plan strictly:
    - Use actions to trigger state changes
    - FORBIDDEN: Direct slice dispatch from screen
 4) Add i18n with useScreenTranslations(). Export default.
-5) Add to menu if requested.
-6) Validate: `npm run type-check && npm run lint`.
-7) Test via Chrome DevTools MCP (REQUIRED):
+5) Add or update a screen test that covers stable render or behavior for the new screen and place any test-only helpers in a sibling `__test-utils__/` folder.
+6) Add to menu if requested.
+7) Validate: run `test:unit`, `type-check`, and `arch:check` via this project's package manager per `.ai/project/targets/UNIT_TESTING.md` (which defines the exact commands). Apply constraints from workflow step 2.
+8) Test via Chrome DevTools MCP (REQUIRED):
    - Navigate to new screen
    - Verify screen renders without console errors
    - Test UI interactions and data flow
    - Verify translations load correctly
    - STOP if MCP connection fails
+
+## TESTING
+- REQUIRED: Load `.ai/project/GUIDELINES.md` and `.ai/project/targets/UNIT_TESTING.md` when they exist **before** interpreting unit-test requirements elsewhere in this command.
+- REQUIRED: Use neutral fixtures, translation mocks, and stable keys, roles, or IDs instead of placeholder-derived copy when adding or updating generated screen tests.

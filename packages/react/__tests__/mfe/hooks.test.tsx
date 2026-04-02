@@ -29,6 +29,7 @@ const mockBridge: ChildMfeBridge = {
   executeActionsChain: vi.fn().mockResolvedValue(undefined),
   subscribeToProperty: vi.fn().mockReturnValue(() => {}),
   getProperty: vi.fn().mockReturnValue(undefined),
+  registerActionHandler: vi.fn(),
 };
 
 const mockMfeContextValue: MfeContextValue = {
@@ -118,8 +119,10 @@ describe('MfeContext', () => {
     it('should return undefined when property is not set', () => {
       const store = createMockStore();
       const wrapper = createWrapper(mockMfeContextValue, store);
+      const unsubscribe = vi.fn();
+      vi.mocked(mockBridge.subscribeToProperty).mockReturnValueOnce(unsubscribe);
 
-      const { result } = renderHook(
+      const { result, unmount } = renderHook(
         () => useSharedProperty('gts.hai3.mfes.comm.shared_property.v1~test.user_data.v1'),
         { wrapper }
       );
@@ -131,6 +134,9 @@ describe('MfeContext', () => {
         'gts.hai3.mfes.comm.shared_property.v1~test.user_data.v1',
         expect.any(Function)
       );
+
+      unmount();
+      expect(unsubscribe).toHaveBeenCalled();
     });
   });
 

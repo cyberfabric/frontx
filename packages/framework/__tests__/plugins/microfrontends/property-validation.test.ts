@@ -18,7 +18,20 @@
 import { describe, it, expect } from 'vitest';
 import { GtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@cyberfabric/screensets';
+import type { JSONSchema } from '@cyberfabric/screensets';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../../src/gts';
+
+/**
+ * Returns the `value` property of a shared_property schema or fails the test
+ * loudly if the schema shape is unexpected.
+ */
+function getValuePropertySchema(schema: JSONSchema | undefined): JSONSchema {
+  expect(schema).toBeDefined();
+  expect(schema?.properties).toBeDefined();
+  const value = schema?.properties?.value;
+  expect(value).toBeDefined();
+  return value as JSONSchema;
+}
 
 /**
  * Build a fresh GtsPlugin instance with the application-layer derived schemas registered.
@@ -44,14 +57,17 @@ describe('application-layer derived GTS schemas', () => {
 
     it('constrains value to non-empty string (minLength: 1)', () => {
       const schema = plugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
-      const properties = schema?.properties as Record<string, { type?: string; minLength?: number }>;
-      expect(properties?.value?.type).toBe('string');
-      expect(properties?.value?.minLength).toBe(1);
+      const valueSchema = getValuePropertySchema(schema);
+      expect(valueSchema.type).toBe('string');
+      // minLength is a JSON-schema keyword not in the narrowed JSONSchema type;
+      // the interface's index signature keeps it typed as unknown.
+      expect(valueSchema.minLength).toBe(1);
     });
 
     it('uses allOf derivation from base shared_property schema', () => {
       const schema = plugin.getSchema(HAI3_SHARED_PROPERTY_THEME);
-      expect(Array.isArray((schema as Record<string, unknown>).allOf)).toBe(true);
+      expect(schema?.allOf).toBeDefined();
+      expect(Array.isArray(schema?.allOf)).toBe(true);
     });
 
     it('valid theme value "dark" passes validation via named instance pattern', () => {
@@ -85,14 +101,17 @@ describe('application-layer derived GTS schemas', () => {
 
     it('constrains value to 36 enum strings', () => {
       const schema = plugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
-      const properties = schema?.properties as Record<string, { type?: string; enum?: string[] }>;
-      expect(properties?.value?.type).toBe('string');
-      expect(properties?.value?.enum).toHaveLength(36);
+      const valueSchema = getValuePropertySchema(schema);
+      expect(valueSchema.type).toBe('string');
+      expect(valueSchema.enum).toBeDefined();
+      expect(Array.isArray(valueSchema.enum)).toBe(true);
+      expect(valueSchema.enum as unknown[]).toHaveLength(36);
     });
 
     it('uses allOf derivation from base shared_property schema', () => {
       const schema = plugin.getSchema(HAI3_SHARED_PROPERTY_LANGUAGE);
-      expect(Array.isArray((schema as Record<string, unknown>).allOf)).toBe(true);
+      expect(schema?.allOf).toBeDefined();
+      expect(Array.isArray(schema?.allOf)).toBe(true);
     });
 
     it('valid language value "en" passes validation via named instance pattern', () => {
@@ -140,11 +159,8 @@ describe('application-layer derived GTS schemas', () => {
     });
 
     it('presentation has required label and route fields', () => {
-      const presentation = (extensionScreenSchema.properties as Record<string, {
-        type?: string;
-        required?: string[];
-        properties?: Record<string, unknown>;
-      }>)?.['presentation'];
+      const presentation = extensionScreenSchema.properties?.['presentation'];
+      expect(presentation).toBeDefined();
       expect(presentation?.type).toBe('object');
       expect(presentation?.required).toContain('label');
       expect(presentation?.required).toContain('route');

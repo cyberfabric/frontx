@@ -8,26 +8,25 @@
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { apiRegistry } from '../apiRegistry';
+import type { ApiProtocol, BasePluginHooks } from '../types';
 
-/** Minimal plugin shape required to exercise the shared management contract. */
-interface MinimalPlugin {
-  destroy?: () => void;
-}
-
-/** Protocol instance surface used by the shared tests. */
-interface ProtocolInstance<TPlugin extends MinimalPlugin> {
+/**
+ * Protocol instance surface used by the shared tests, aligned with {@link ApiProtocol}
+ * and concrete protocols (e.g. readonly plugin lists from {@link RestProtocol}).
+ */
+type ProtocolTestInstance<TPlugin extends BasePluginHooks> = ApiProtocol<TPlugin> & {
   plugins: {
     add(plugin: TPlugin): void;
     remove(plugin: TPlugin): void;
-    getAll(): TPlugin[];
+    getAll(): readonly TPlugin[];
   };
   /** Returns the combined global + instance plugin list in execution order. */
-  getPluginsInOrder(): TPlugin[];
-}
+  getPluginsInOrder(): readonly TPlugin[];
+};
 
 export interface ProtocolPluginTestConfig<
-  TProtocol extends new (...args: unknown[]) => ProtocolInstance<TPlugin>,
-  TPlugin extends MinimalPlugin,
+  TProtocol extends new (...args: never[]) => ProtocolTestInstance<TPlugin>,
+  TPlugin extends BasePluginHooks,
 > {
   /** Human-readable label used in describe block names. */
   protocolName: string;
@@ -45,7 +44,7 @@ export interface ProtocolPluginTestConfig<
    * Factory that produces a plugin with a destroy spy.
    * `onDestroy` will be called when the plugin's destroy() is invoked.
    */
-  makePluginWithDestroy(onDestroy: () => void): TPlugin & { destroy: () => void };
+  makePluginWithDestroy(onDestroy: () => void): TPlugin;
 }
 
 /**
@@ -56,8 +55,8 @@ export interface ProtocolPluginTestConfig<
  * LIFO, retry) live in the individual test files.
  */
 export function createProtocolPluginTests<
-  TProtocol extends new (...args: unknown[]) => ProtocolInstance<TPlugin>,
-  TPlugin extends MinimalPlugin,
+  TProtocol extends new (...args: never[]) => ProtocolTestInstance<TPlugin>,
+  TPlugin extends BasePluginHooks,
 >(config: ProtocolPluginTestConfig<TProtocol, TPlugin>): void {
   const { protocolName, ProtocolClass, makePlugin, makePluginWithDestroy } = config;
 

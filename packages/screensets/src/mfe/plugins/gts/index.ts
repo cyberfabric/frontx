@@ -25,7 +25,7 @@ import {
   createJsonEntity,
   type JsonEntity,
 } from '@globaltypesystem/gts-ts';
-import type { TypeSystemPlugin, JSONSchema } from '../types';
+import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../types';
 import { loadSchemas, loadLifecycleStages } from '../../gts/loader';
 
 /**
@@ -140,6 +140,23 @@ export class GtsPlugin implements TypeSystemPlugin {
           `Schema: ${schema ? JSON.stringify(schema, null, 2) : '(schema not resolved)'}`
       );
     }
+  }
+
+  validateInstance(instanceId: string): ValidationResult {
+    const result = this.gtsStore.validateInstance(instanceId);
+    if (result.ok && result.valid) {
+      return { valid: true, errors: [] };
+    }
+    return {
+      valid: false,
+      errors: [
+        {
+          path: '',
+          message: result.error ?? 'validation failed',
+          keyword: 'gts-validation',
+        },
+      ],
+    };
   }
 
   // === Type Hierarchy ===

@@ -152,7 +152,9 @@ export class I18nRegistryImpl implements II18nRegistry {
    */
   private notifySubscribers(): void {
     this.version++;
-    this.subscribers.forEach((callback) => callback());
+    this.subscribers.forEach((callback) => {
+      callback();
+    });
   }
 
   /**

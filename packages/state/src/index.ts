@@ -19,11 +19,23 @@
 // Type Exports (minimal public API)
 // ============================================================================
 
+import type {
+  ReducerPayload,
+  EventPayloadMap as InternalEventPayloadMap,
+  RootState,
+  AppDispatch,
+  EffectInitializer,
+  HAI3Store,
+  SliceObject,
+  EventBus,
+  EventHandler,
+  Subscription,
+} from './types';
+import { eventBus as internalEventBus } from './EventBus';
+
 export type {
   // For reducers
   ReducerPayload,
-  // For module augmentation
-  EventPayloadMap,
   RootState,
   // For effects
   AppDispatch,
@@ -35,13 +47,19 @@ export type {
   EventBus,
   EventHandler,
   Subscription,
-} from './types';
+};
+
+/**
+ * Public augmentation site for application and package events.
+ * Consumers augment `@cyberfabric/state`, not the internal `./types` module.
+ */
+export interface EventPayloadMap extends InternalEventPayloadMap {}
 
 // ============================================================================
 // Event Bus
 // ============================================================================
 
-export { eventBus } from './EventBus';
+export const eventBus: EventBus<EventPayloadMap> = internalEventBus as EventBus<EventPayloadMap>;
 
 // ============================================================================
 // Store

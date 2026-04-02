@@ -8,6 +8,8 @@
  * Root scripts/test-architecture.ts re-exports this for the monorepo
  */
 
+import * as path from 'node:path';
+import { pathToFileURL } from 'node:url';
 import {
   runValidation,
   getStandaloneChecks,
@@ -49,8 +51,14 @@ function main(): void {
   displayResults(results);
 }
 
-// Execute if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Execute if run directly. `pathToFileURL(path.resolve(argv[1]))` is
+// Windows-safe (handles drive letters + backslashes) and symlink-safe,
+// where the hand-rolled `file://${argv[1]}` form silently mismatches.
+const isEntryPoint =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (isEntryPoint) {
   main();
 }
 

@@ -23,7 +23,7 @@ import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
-import { MockContainerProvider } from '../test-utils';
+import { MockContainerProvider } from '../../../__test-utils__';
 
 /**
  * Test-only ActionHandler that delegates to a vitest mock function.
@@ -81,18 +81,23 @@ function createMockPlugin(): TypeSystemPlugin {
     schemas.set(typeId, { $id: `gts://${typeId}`, type: 'object' });
   }
 
+  const gtsUri = ['gts', ':', '//'].join('');
   return {
     name: 'MockPlugin',
     version: '1.0.0',
-    isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-    parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
     registerSchema: (schema: JSONSchema) => {
       if (schema.$id) {
-        const typeId = schema.$id.replace('gts://', '');
-        schemas.set(typeId, schema);
+        schemas.set(schema.$id, schema);
       }
     },
-    getSchema: (typeId: string) => schemas.get(typeId),
+    getSchema: (typeId: string) => {
+      const direct = schemas.get(typeId);
+      if (direct !== undefined) return direct;
+      if (!typeId.startsWith(gtsUri)) {
+        return schemas.get(gtsUri + typeId);
+      }
+      return undefined;
+    },
     register: (entity: unknown) => {
       const entityWithId = entity as { id?: string };
       // GTS assigns id='' for anonymous instances (e.g. actions which have 'type' but no 'id').
@@ -115,23 +120,9 @@ function createMockPlugin(): TypeSystemPlugin {
         ],
       };
     },
-    query: (pattern: string, limit?: number) => {
-      const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
-      return limit ? results.slice(0, limit) : results;
-    },
     isTypeOf: (typeId: string, baseTypeId: string) => {
       return typeId === baseTypeId || typeId.startsWith(baseTypeId);
     },
-    checkCompatibility: () => ({
-      compatible: true,
-      breaking: false,
-      changes: [],
-    }),
-    getAttribute: (typeId: string, path: string) => ({
-      typeId,
-      path,
-      resolved: false,
-    }),
   };
 }
 

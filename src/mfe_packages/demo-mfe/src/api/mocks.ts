@@ -7,26 +7,8 @@
  */
 
 import type { MockMap } from '@cyberfabric/react';
-import { Language } from '@cyberfabric/react';
-import { UserRole, type ApiUser, type GetCurrentUserResponse, type UpdateProfileRequest } from './types';
-
-/**
- * Mock user data
- */
-let mockUser: ApiUser = {
-  id: 'mock-user-001',
-  email: 'demo@frontx.dev',
-  firstName: 'Demo',
-  lastName: 'User',
-  role: UserRole.Admin,
-  language: Language.English,
-  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
-  createdAt: new Date('2024-01-01T00:00:00Z').toISOString(),
-  updatedAt: new Date('2024-12-01T00:00:00Z').toISOString(),
-  extra: {
-    department: 'Engineering',
-  },
-};
+import type { GetCurrentUserResponse, UpdateProfileRequest } from './types';
+import { readCurrentAccountsMockUser, replaceCurrentAccountsMockUser } from './mock-user-store';
 
 /**
  * Accounts mock map
@@ -34,7 +16,7 @@ let mockUser: ApiUser = {
  */
 export const accountsMockMap: MockMap = {
   'GET /api/accounts/user/current': (): GetCurrentUserResponse => ({
-    user: mockUser,
+    user: readCurrentAccountsMockUser(),
   }),
 
   'PUT /api/accounts/user/profile': (requestData): GetCurrentUserResponse => {
@@ -42,10 +24,11 @@ export const accountsMockMap: MockMap = {
     // Merge the patched fields onto the base mock user so the response reflects
     // what the server would return after persisting the change.
     const patch = (requestData ?? {}) as Partial<UpdateProfileRequest>;
+    const mockUser = readCurrentAccountsMockUser();
     const currentDepartment =
       typeof mockUser.extra?.department === 'string' ? mockUser.extra.department : undefined;
 
-    mockUser = {
+    const updatedUser = {
       ...mockUser,
       firstName: patch.firstName ?? mockUser.firstName,
       lastName: patch.lastName ?? mockUser.lastName,
@@ -56,8 +39,10 @@ export const accountsMockMap: MockMap = {
       },
     };
 
+    replaceCurrentAccountsMockUser(updatedUser);
+
     return {
-      user: mockUser,
+      user: updatedUser,
     };
   },
 };

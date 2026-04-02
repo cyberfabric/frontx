@@ -10,11 +10,12 @@ FORBIDDEN: Creating screenset manually or by copying peers.
 ## AI WORKFLOW (REQUIRED)
 1) Check prerequisites above.
 2) Read .ai/targets/SCREENSETS.md and .ai/targets/EVENTS.md before starting.
-3) Read `frontx.config.json` at project root to identify the configured `uikit` value.
+3) Read `.ai/project/GUIDELINES.md` and `.ai/project/targets/UNIT_TESTING.md` when they exist **before** planning unit tests, validation, or any test-related tasks in this command (project-owned overrides take precedence over defaults here; `UNIT_TESTING.md` defines the exact test commands, shared-helper convention, and durable starter-baseline rules).
+4) Read `frontx.config.json` at project root to identify the configured `uikit` value.
    - If a third-party package (not `shadcn` or `none`): read its exports to discover available components.
-4) Gather requirements from user (including UI sections).
-5) Present implementation plan and wait for approval.
-6) Implement after approval.
+5) Gather requirements from user (including UI sections).
+6) Present implementation plan and wait for approval.
+7) Implement after approval.
 
 ## GATHER REQUIREMENTS
 Ask user for:
@@ -47,7 +48,8 @@ Present the following to the user for approval:
   - Create components per Component Plan (BEFORE screen file)
   - Implement data flow per EVENTS.md (actions emit events, effects update slices)
   - Add API service with mocks and endpoint descriptors via explicit contracts (for example `this.protocol(RestEndpointProtocol).query()` / `.mutation()`)
-  - Validate: `npm run type-check && npm run arch:check && npm run lint`
+  - Add or update starter unit tests for stable generated behavior and preserve the baseline API-contract plus `HomeScreen` smoke-test patterns from `.ai/project/targets/UNIT_TESTING.md`
+  - Validate: run `test:unit`, `type-check`, `arch:check`, and `lint` via this project's package manager per `.ai/project/targets/UNIT_TESTING.md` (which defines the exact commands). Apply constraints from workflow step 3.
   - Test via Chrome DevTools MCP
 
 ## STEP 2: Wait for Approval
@@ -62,14 +64,20 @@ After approval, follow the plan strictly:
    - Effects subscribe and update slices
    - FORBIDDEN: Direct slice dispatch from components
 4) Add API service with mocks and endpoint descriptors:
-   - Read endpoints: `readonly prop = this.query<T>('/path')`
-   - Write endpoints: `readonly prop = this.mutation<T, V>('PUT', '/path')`
+   - Read endpoints: `readonly prop = this.protocol(RestEndpointProtocol).query<T>('/path')`
+   - Write endpoints: `readonly prop = this.protocol(RestEndpointProtocol).mutation<T, V>('PUT', '/path')`
    - NO queryOptions, NO manual query key factories outside the service
    - Screens use `useApiQuery(service.prop)` and `useApiMutation({ endpoint: service.prop })`
-5) Validate: `npm run type-check && npm run arch:check && npm run lint`.
-6) Test via Chrome DevTools MCP (REQUIRED):
+5) Add or update starter unit tests for stable generated behavior, preserve the baseline API-contract plus `HomeScreen` smoke-test patterns, and place any test-only helpers in a sibling `__test-utils__/` folder.
+6) Validate: run `test:unit`, `type-check`, `arch:check`, and `lint` via this project's package manager per `.ai/project/targets/UNIT_TESTING.md` (which defines the exact commands). Apply constraints from workflow step 3.
+7) Test via Chrome DevTools MCP (REQUIRED):
    - Navigate to new screenset
    - Verify screen renders without console errors
    - Test user interactions trigger correct events
    - Verify state updates via Redux DevTools
    - STOP if MCP connection fails
+
+## TESTING
+- REQUIRED: Load `.ai/project/GUIDELINES.md` and `.ai/project/targets/UNIT_TESTING.md` when they exist **before** interpreting unit-test requirements elsewhere in this command.
+- REQUIRED: Preserve the generated API-contract test and `HomeScreen` smoke test unless the new behavior replaces that baseline intentionally.
+- REQUIRED: Keep starter assertions route-agnostic and placeholder-safe; use durable patterns, neutral fixtures, and stable IDs, keys, or roles instead of generated names or localized copy.

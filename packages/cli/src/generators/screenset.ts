@@ -2,9 +2,9 @@
 import path from 'path';
 import fs from 'fs-extra';
 import { getTemplatesDir } from '../core/templates.js';
-import { writeGeneratedFiles } from '../utils/fs.js';
+import { joinUnderRoot, writeGeneratedFiles } from '../utils/fs.js';
 import type { GeneratedFile } from '../core/types.js';
-import { loadConfig } from '../utils/project.js';
+import { loadConfig, rewriteTsconfigPackagePaths } from '../utils/project.js';
 import { isCustomUikit, assertValidUikitForCodegen, normalizeUikit } from '../utils/validation.js';
 
 /**
@@ -232,7 +232,7 @@ async function regenerateMfeManifests(projectRoot: string): Promise<void> {
  */
 export function buildMfeManifestsContent(mfePackages: string[]): string {
   const imports = mfePackages
-    .map((pkg, idx) => `import mfe${idx} from '@/mfe_packages/${pkg}/mfe.json';`)
+    .map((pkg, idx) => `import mfe${idx} from '../../mfe_packages/${pkg}/mfe.json' with { type: 'json' };`)
     .join('\n');
 
   const registryEntries = mfePackages
@@ -252,6 +252,8 @@ export interface MfeManifestConfig {
   manifest: JSONSchema;
   entries: MfeEntry[];
   extensions: Extension[];
+  /** MFE-carried schemas (custom actions, properties). Registered before entries and extensions. */
+  schemas?: JSONSchema[];
 }
 
 export const MFE_MANIFESTS: MfeManifestConfig[] = [
@@ -710,6 +712,7 @@ export async function generateScreenset(
   const templateFiles = await readDirRecursive(mfeTemplateDir);
 
   // Transform content and apply renames
+  // @cpt-begin:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-command-tests
   let outputFiles: GeneratedFile[] = templateFiles.map((file) => {
     // Apply file rename
     const parts = file.path.split(path.sep);
@@ -721,6 +724,21 @@ export async function generateScreenset(
     const transformedContent = applyMfeReplacements(file.content, name, namePascal, port);
 
     return { path: renamedPath, content: transformedContent };
+  });
+  // @cpt-end:cpt-frontx-algo-unit-test-generation-and-agent-verification-scaffold-tests:p1:inst-generate-command-tests
+
+  outputFiles = outputFiles.map((file) => {
+    if (!file.path.endsWith('tsconfig.json')) {
+      return file;
+    }
+
+    return {
+      path: file.path,
+      content: rewriteTsconfigPackagePaths(file.content, {
+        useLocalPackages: false,
+        tsconfigPath: path.posix.join('src', 'mfe_packages', mfeDirName, file.path.split('\\').join('/')),
+      }),
+    };
   });
   // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
 
@@ -758,6 +776,15 @@ export async function generateScreenset(
     const mfeSharedTemplateDir = path.join(templatesDir, 'mfe-shared');
     if (await fs.pathExists(mfeSharedTemplateDir)) {
       await fs.copy(mfeSharedTemplateDir, sharedDir);
+    }
+  }
+
+  const mfeVitestBasePath = joinUnderRoot(projectRoot, 'src', 'mfe_packages', 'vitest.mfe.base.ts');
+  if (!(await fs.pathExists(mfeVitestBasePath))) {
+    const mfeVitestBaseTemplatePath = joinUnderRoot(templatesDir, 'src', 'mfe_packages', 'vitest.mfe.base.ts');
+    if (await fs.pathExists(mfeVitestBaseTemplatePath)) {
+      await fs.ensureDir(path.dirname(mfeVitestBasePath));
+      await fs.copy(mfeVitestBaseTemplatePath, mfeVitestBasePath);
     }
   }
 

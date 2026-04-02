@@ -5,7 +5,7 @@
  * Validates API Communication feature acceptance criteria for SSE plugins.
  */
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SseProtocol } from '../protocols/SseProtocol';
 import { SseMockPlugin } from '../plugins/SseMockPlugin';
 import { MockEventSource } from '../mocks/MockEventSource';
@@ -18,11 +18,14 @@ import { createProtocolPluginTests } from './protocolPluginTestFactory';
 
 createProtocolPluginTests({
   protocolName: 'SseProtocol',
-  ProtocolClass: SseProtocol as new (...args: unknown[]) => SseProtocol,
+  ProtocolClass: SseProtocol,
   makePlugin(): SsePluginHooks {
-    return { onConnect: async (ctx) => ctx };
+    return {
+      onConnect: async (ctx) => ctx,
+      destroy: () => {},
+    };
   },
-  makePluginWithDestroy(onDestroy: () => void): SsePluginHooks & { destroy: () => void } {
+  makePluginWithDestroy(onDestroy: () => void): SsePluginHooks {
     class DestroyableSsePlugin implements SsePluginHooks {
       onConnect = async (ctx: SseConnectContext) => ctx;
       destroy() { onDestroy(); }
@@ -36,6 +39,14 @@ createProtocolPluginTests({
 // ---------------------------------------------------------------------------
 
 describe('SseProtocol plugins', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   describe('short-circuit with SseMockPlugin', () => {
     it('should short-circuit with SseMockPlugin returning MockEventSource', async () => {
       const mockPlugin = new SseMockPlugin({
@@ -97,8 +108,8 @@ describe('SseProtocol plugins', () => {
         receivedMessages.push(event.data);
       };
 
-      // Wait for events to be emitted
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await Promise.resolve();
+      await vi.runAllTimersAsync();
 
       expect(receivedMessages.length).toBe(2);
       expect(receivedMessages[0]).toBe('{"chunk": 1}');
@@ -112,8 +123,10 @@ describe('SseProtocol plugins', () => {
       // Initially CONNECTING
       expect(mockSource.readyState).toBe(0);
 
-      // Wait for events
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await Promise.resolve();
+      expect(mockSource.readyState).toBe(1);
+
+      await vi.runAllTimersAsync();
 
       // After completion, should be CLOSED
       expect(mockSource.readyState).toBe(2);
@@ -126,7 +139,7 @@ describe('SseProtocol plugins', () => {
       let openCalled = false;
       mockSource.onopen = () => { openCalled = true; };
 
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await Promise.resolve();
 
       expect(openCalled).toBe(true);
     });
@@ -143,7 +156,8 @@ describe('SseProtocol plugins', () => {
         doneCalled = true;
       });
 
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      await Promise.resolve();
+      await vi.runAllTimersAsync();
 
       expect(doneCalled).toBe(true);
     });
@@ -162,15 +176,13 @@ describe('SseProtocol plugins', () => {
         receivedMessages.push(event.data);
       };
 
-      // Close after first event
-      await new Promise((resolve) => setTimeout(resolve, 70));
+      await Promise.resolve();
+      await vi.advanceTimersByTimeAsync(50);
       mockSource.close();
 
-      // Wait to ensure no more events
-      await new Promise((resolve) => setTimeout(resolve, 150));
+      await vi.runAllTimersAsync();
 
-      // Should have received only 1-2 events before close
-      expect(receivedMessages.length).toBeLessThan(3);
+      expect(receivedMessages).toEqual(['{"chunk": 1}']);
     });
   });
 

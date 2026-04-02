@@ -17,6 +17,7 @@ import { useScreenTranslations } from '../../shared/useScreenTranslations';
 import { AccountsApiService, type UpdateProfileVariables } from '../../api/AccountsApiService';
 import type { GetCurrentUserResponse } from '../../api/types';
 import { ProfileDetailsCard, type ProfileFormValues } from './components/ProfileDetailsCard';
+import { applyOptimisticProfileUpdate } from './profileOptimisticUpdate';
 
 type UpdateProfileContext = {
   snapshot: GetCurrentUserResponse | undefined;
@@ -80,22 +81,7 @@ export const ProfileScreen: React.FC<ProfileScreenProps> = ({ bridge }) => {
       const snapshot = queryCache.get<GetCurrentUserResponse>(service.getCurrentUser);
 
       queryCache.set<GetCurrentUserResponse>(service.getCurrentUser, (old) => {
-        if (!old) {
-          return old;
-        }
-
-        return {
-          user: {
-            ...old.user,
-            firstName: variables.firstName,
-            lastName: variables.lastName,
-            updatedAt: new Date().toISOString(),
-            extra: {
-              ...old.user.extra,
-              department: variables.department,
-            },
-          },
-        };
+        return applyOptimisticProfileUpdate(old, variables);
       });
 
       return { snapshot };

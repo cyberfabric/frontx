@@ -11,6 +11,23 @@
 /**
  * JSON Schema type (simplified for type system plugin interface)
  */
+/**
+ * Single validation issue from {@link TypeSystemPlugin.validateInstance}.
+ */
+export interface ValidationErrorItem {
+  path: string;
+  message: string;
+  keyword?: string;
+}
+
+/**
+ * Result of validating a registered instance by ID.
+ */
+export interface ValidationResult {
+  valid: boolean;
+  errors: ValidationErrorItem[];
+}
+
 export interface JSONSchema {
   $id?: string;
   $schema?: string;
@@ -108,6 +125,12 @@ export interface TypeSystemPlugin {
    *   the validation reason.
    */
   register(entity: unknown): void;
+
+  /**
+   * Validate a previously registered instance by its GTS instance ID.
+   * For anonymous registrations (e.g. actions), the store key is often `''`.
+   */
+  validateInstance(instanceId: string): ValidationResult;
 
   // === Type Hierarchy ===
 

@@ -108,7 +108,9 @@ export class SseProtocol extends ApiProtocol<SsePluginHooks> {
     this.connections.clear();
 
     // Cleanup instance plugins
-    this._instancePlugins.forEach((plugin) => plugin.destroy());
+    this._instancePlugins.forEach((plugin) => {
+      plugin.destroy();
+    });
     this._instancePlugins.clear();
   }
   // @cpt-end:cpt-frontx-flow-api-communication-sse-disconnect:p1:inst-cleanup

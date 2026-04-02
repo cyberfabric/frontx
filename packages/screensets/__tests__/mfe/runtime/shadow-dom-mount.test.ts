@@ -11,12 +11,16 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultMountManager } from '../../../src/mfe/runtime/default-mount-manager';
 import { DefaultExtensionManager } from '../../../src/mfe/runtime/default-extension-manager';
 import { DefaultRuntimeBridgeFactory } from '../../../src/mfe/runtime/default-runtime-bridge-factory';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeEntryLifecycle } from '../../../src/mfe/handler/types';
+import type { ChildMfeBridge, MfeEntryLifecycle } from '../../../src/mfe/handler/types';
 import type { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import type { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
-import { MockContainerProvider } from '../test-utils';
+import {
+  TestContainerProvider,
+  createMinimalScreensetsRegistryStub,
+  makeMfeHandlerDouble,
+} from '../../../__test-utils__';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
@@ -27,9 +31,10 @@ describe('Shadow DOM Mount Pipeline', () => {
   let mountManager: DefaultMountManager;
   let extensionManager: DefaultExtensionManager;
   let coordinator: RuntimeCoordinator;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
   let mockLifecycle: MfeEntryLifecycle;
   let mockHostRuntime: ScreensetsRegistry;
+  let typeSystem: GtsPlugin;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~hai3.test.shadow_dom_test.domain.v1',
@@ -73,11 +78,12 @@ describe('Shadow DOM Mount Pipeline', () => {
 
   beforeEach(() => {
     // Register test entry with GTS
-    gtsPlugin.register(testEntry);
+    typeSystem = new GtsPlugin();
+    typeSystem.register(testEntry);
 
     // Create extension manager with all required callbacks
     extensionManager = new DefaultExtensionManager({
-      typeSystem: gtsPlugin,
+      typeSystem,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       triggerDomainOwnLifecycle: vi.fn().mockResolvedValue(undefined),
       unmountExtension: vi.fn().mockResolvedValue(undefined),
@@ -92,7 +98,7 @@ describe('Shadow DOM Mount Pipeline', () => {
     };
 
     // Create mock container provider
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Create mock lifecycle
     mockLifecycle = {
@@ -101,20 +107,24 @@ describe('Shadow DOM Mount Pipeline', () => {
     };
 
     // Create mock host runtime
-    mockHostRuntime = {} as ScreensetsRegistry;
+    mockHostRuntime = createMinimalScreensetsRegistryStub();
 
     // Create bridge factory
     const bridgeFactory = new DefaultRuntimeBridgeFactory();
 
+    const loadMock = vi
+      .fn<(entry: MfeEntry) => Promise<MfeEntryLifecycle<ChildMfeBridge>>>()
+      .mockResolvedValue(mockLifecycle);
+    const testHandler = makeMfeHandlerDouble({
+      handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+      priority: 0,
+      load: loadMock,
+    });
+
     // Create mount manager with mock dependencies
     mountManager = new DefaultMountManager({
       extensionManager,
-      resolveHandler: (_entryTypeId: string) => ({
-        handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
-        priority: 0,
-        load: vi.fn().mockResolvedValue(mockLifecycle),
-        bridgeFactory: undefined,
-      }),
+      resolveHandler: () => testHandler,
       coordinator,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       executeActionsChain: vi.fn().mockResolvedValue(undefined),
@@ -127,7 +137,7 @@ describe('Shadow DOM Mount Pipeline', () => {
     });
 
     // Register domain
-    extensionManager.registerDomain(testDomain, mockContainerProvider);
+    extensionManager.registerDomain(testDomain);
   });
 
   describe('42.6.1 - mountExtension creates Shadow DOM on container', () => {
@@ -161,7 +171,7 @@ describe('Shadow DOM Mount Pipeline', () => {
 
       // Verify lifecycle.mount was called with shadow root
       expect(mockLifecycle.mount).toHaveBeenCalled();
-      const mountCallArgs = (mockLifecycle.mount as ReturnType<typeof vi.fn>).mock.calls[0];
+      const mountCallArgs = vi.mocked(mockLifecycle.mount).mock.calls[0];
       const mountTarget = mountCallArgs[0];
 
       // mountTarget should be the shadow root, not the container
@@ -186,7 +196,7 @@ describe('Shadow DOM Mount Pipeline', () => {
       expect(container.shadowRoot).toBe(existingShadowRoot);
 
       // Verify lifecycle.mount was called with the existing shadow root
-      const mountCallArgs = (mockLifecycle.mount as ReturnType<typeof vi.fn>).mock.calls[0];
+      const mountCallArgs = vi.mocked(mockLifecycle.mount).mock.calls[0];
       const mountTarget = mountCallArgs[0];
       expect(mountTarget).toBe(existingShadowRoot);
     });
@@ -212,7 +222,7 @@ describe('Shadow DOM Mount Pipeline', () => {
 
       // Verify lifecycle.unmount was called with shadow root
       expect(mockLifecycle.unmount).toHaveBeenCalled();
-      const unmountCallArgs = (mockLifecycle.unmount as ReturnType<typeof vi.fn>).mock.calls[0];
+      const unmountCallArgs = vi.mocked(mockLifecycle.unmount).mock.calls[0];
       const unmountTarget = unmountCallArgs[0];
 
       expect(unmountTarget).toBe(shadowRoot);
@@ -240,7 +250,7 @@ describe('Shadow DOM Mount Pipeline', () => {
 
       // Verify lifecycle.unmount was called with container (fallback)
       expect(mockLifecycle.unmount).toHaveBeenCalled();
-      const unmountCallArgs = (mockLifecycle.unmount as ReturnType<typeof vi.fn>).mock.calls[0];
+      const unmountCallArgs = vi.mocked(mockLifecycle.unmount).mock.calls[0];
       const unmountTarget = unmountCallArgs[0];
 
       expect(unmountTarget).toBe(container);

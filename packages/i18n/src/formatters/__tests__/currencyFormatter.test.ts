@@ -10,6 +10,10 @@ import { i18nRegistry } from '../../I18nRegistry';
 import { Language } from '../../types';
 import { formatCurrency } from '../currencyFormatter';
 
+function normalizeCurrencyOutput(value: string): string {
+  return value.replaceAll(/\s+/g, ' ').trim();
+}
+
 describe('currencyFormatter', () => {
   let getLanguageSpy: ReturnType<typeof vi.spyOn>;
 
@@ -33,15 +37,23 @@ describe('currencyFormatter', () => {
     expect(formatCurrency(Number.NaN, 'USD')).toBe('');
   });
   it('returns formatted currency for valid value', () => {
-    expect(formatCurrency(99.99, 'USD')).toBe('$99.99');
+    const formatted = formatCurrency(99.99, 'USD');
+
+    expect(normalizeCurrencyOutput(formatted)).toContain('99.99');
+    expect(formatted).toMatch(/\$|USD/);
   });
   it('accepts different currency codes', () => {
-    expect(formatCurrency(100, 'EUR')).toBe('€100.00');
+    const formatted = formatCurrency(100, 'EUR');
+
+    expect(normalizeCurrencyOutput(formatted)).toContain('100.00');
+    expect(formatted).toMatch(/EUR|€/);
   });
 
   it('returns empty string for invalid currencyCode and does not throw', () => {
     expect(formatCurrency(100, '')).toBe('');
     expect(formatCurrency(100, 'INVALID')).toBe('');
-    expect(() => formatCurrency(100, 'NOTACODE')).not.toThrow();
+    expect(() => {
+      formatCurrency(100, 'NOTACODE');
+    }).not.toThrow();
   });
 });

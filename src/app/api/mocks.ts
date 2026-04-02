@@ -7,26 +7,8 @@
  */
 
 import type { MockMap } from '@cyberfabric/react';
-import { Language } from '@cyberfabric/react';
-import { UserRole, type ApiUser, type GetCurrentUserResponse } from './types';
-
-/**
- * Mock user data
- */
-const mockUser: ApiUser = {
-  id: 'mock-user-001',
-  email: 'demo@frontx.dev',
-  firstName: 'Demo',
-  lastName: 'User',
-  role: UserRole.Admin,
-  language: Language.English,
-  avatarUrl: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Demo',
-  createdAt: new Date('2024-01-01T00:00:00Z').toISOString(),
-  updatedAt: new Date('2024-12-01T00:00:00Z').toISOString(),
-  extra: {
-    department: 'Engineering',
-  },
-};
+import type { GetCurrentUserResponse } from './types';
+import { readCurrentAccountsMockUser } from './mock-user-store';
 
 /**
  * Accounts mock map
@@ -34,6 +16,6 @@ const mockUser: ApiUser = {
  */
 export const accountsMockMap: MockMap = {
   'GET /api/accounts/user/current': (): GetCurrentUserResponse => ({
-    user: mockUser,
+    user: readCurrentAccountsMockUser(),
   }),
 };

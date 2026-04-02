@@ -70,6 +70,7 @@ program
   )
   .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
   .option('--local', 'Use local @cyberfabric packages from monorepo (file:) instead of npm')
+  .option('--tests <variant>', "Test scaffold ('unit' or 'none' to skip Vitest scaffolding)")
   .action(async (projectName: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
       createCommand,
@@ -80,6 +81,7 @@ program
         packageManager: options.packageManager as 'npm' | 'pnpm' | 'yarn' | undefined,
         layer: options.layer as 'sdk' | 'framework' | 'react' | 'app' | undefined,
         local: options.local as boolean | undefined,
+        tests: options.tests as 'unit' | 'none' | undefined,
       },
       { interactive: true }
     );

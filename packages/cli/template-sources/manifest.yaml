@@ -59,6 +59,7 @@ root:
     # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/
     # - src/app/App.custom-uikit.tsx, App.custom-uikit.no-studio.tsx -> src/app/
   directories:
+    - src/__test-utils__   # Shared test helpers used by host and MFE tests
     - src/app/themes      # Theme definitions (default, dark, light)
     - src/app/icons       # Icon definitions
     - src/app/api         # API services (AccountsApiService)

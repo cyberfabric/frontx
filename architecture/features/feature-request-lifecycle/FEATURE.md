@@ -41,6 +41,7 @@
   - [Shared QueryClient Across MFEs](#shared-queryclient-across-mfes)
   - [Endpoint Descriptors and Automatic Cache Keys](#endpoint-descriptors-and-automatic-cache-keys)
   - [Event-Based Cache Invalidation for Flux Effects](#event-based-cache-invalidation-for-flux-effects)
+  - [Test Coverage Scope (this ticket)](#test-coverage-scope-this-ticket)
 
 <!-- /toc -->
 
@@ -77,9 +78,9 @@ Success criteria: A developer can fetch data with `useApiQuery` and submit chang
 ### 1.4 References
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
-- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — sections 2.4, 2.7
+- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — section 2.12 (this feature); depends on sections 2.4 (API Communication), 2.6 (Framework Composition), 2.7 (React Bindings)
 - PRD: [PRD.md](../../PRD.md) — sections 5.1 (API Package), 5.19 (Mock Mode)
-- Parent features: `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-react-bindings`
+- Parent features: `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-framework-composition`, `cpt-frontx-feature-react-bindings`
 - ADRs: `cpt-frontx-adr-protocol-separated-api-architecture`, `cpt-frontx-adr-tanstack-query-data-management`
 
 ---
@@ -485,12 +486,13 @@ The system **MUST** export a `useApiStream` hook from `@cyberfabric/react` that 
 - [x] `queryCache()` plugin clears cache on `MockEvents.Toggle` (including `sharedFetchCache`), listens for `cache/invalidate`, `cache/set`, and `cache/remove`, mirrors them into the TanStack-backed runtime, and invalidates matching `sharedFetchCache` keys; on destroy it tears down queries and calls `releaseSharedFetchCache()`
 - [x] `HAI3Provider` resolves the shared `QueryClient` from the app instance (not creating its own) and mounts `QueryClientProvider`
 - [x] All MFEs share the host's `QueryClient` via `queryCache()` / `queryCacheShared()` shared-client reuse — overlapping descriptor keys are deduplicated across MFE boundaries, including cross-root in-flight fetch reuse through `sharedFetchCache`
+- [x] For identical in-flight descriptor keys observed across host and child roots, exactly one underlying transport request executes; all observers resolve from the shared request/result window
 - [x] `useApiQuery(service.endpoint)` accepts an `EndpointDescriptor` and returns `ApiQueryResult { data, isLoading, error }` with automatic cancellation on unmount
 - [x] `useApiSuspenseQuery(service.endpoint)` supports the same descriptor-driven read model inside Suspense boundaries and returns `ApiSuspenseQueryResult`
 - [x] `useApiInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` keeps paginated reads descriptor-driven, returns `ApiInfiniteQueryResult`, and never requires raw query keys in MFE code
 - [x] `useApiSuspenseInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` supports the same descriptor-driven pagination model inside Suspense boundaries
 - [x] Two components using the same endpoint descriptor result in a single HTTP request (deduplication)
-- [x] Stale data is returned immediately on re-mount, with background refetch
+- [x] A fresh cached descriptor read returns cached data on re-mount without an immediate duplicate request; once stale, mounted observers refetch in the background
 - [x] Infinite-query page fetches are grouped under the initial descriptor key while adjacent-page resolution still flows through service-owned `EndpointDescriptor` objects
 - [x] `useApiMutation({ endpoint: service.mutation, ... })` supports the full callback lifecycle: `onMutate` (optimistic), `onSuccess`, `onError` (rollback), `onSettled` — each callback receives `{ queryCache }` as an additional parameter
 - [x] `QueryCache` interface exposes `get`, `getState`, `set` (with updater function support), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor` or raw `QueryKey` — wraps the caching library client internally
@@ -510,8 +512,11 @@ The system **MUST** export a `useApiStream` hook from `@cyberfabric/react` that 
 - [x] `queryOptions` is NOT re-exported from `@cyberfabric/react` — endpoint descriptors replace it
 - [x] Cross-feature mutations use the Flux pattern with event-based cache updates at L2: Flux effects emit `cache/invalidate` (most common), or `cache/set` / `cache/remove` when imperative cache writes or evictions are required; the `queryCache()` framework plugin registers EventBus listeners during `onInit` (not in `HAI3Provider`) and keeps TanStack query state and L1 `sharedFetchCache` aligned for each payload
 - [x] Mock mode continues to work: `RestMockPlugin` short-circuits regardless of `signal` presence
+- [x] `MockEvents.Toggle` and `app.destroy()` teardown cancel in-flight work, clear runtime cache entries, clear matching `sharedFetchCache` windows, and release retained shared-cache coordination before the next root attaches
 - [x] `@cyberfabric/api` remains at zero `@cyberfabric/*` dependencies (AbortSignal is a browser API)
 - [x] `@tanstack/react-query` is a peer dependency of `@cyberfabric/react`, not bundled
+- [x] This ticket's unit-test scope covers package-local behavior only: cancellation/plugin-bypass semantics, descriptor key derivation, `QueryCache` contract behavior, optimistic rollback, and SSE hook lifecycle
+- [x] Deferred follow-up integration coverage MUST verify host/child shared-client join, cross-root request dedupe, Flux `cache/invalidate` / `cache/set` / `cache/remove` propagation, and mock-toggle / destroy teardown of shared cache state
 
 ---
 
@@ -547,37 +552,13 @@ When a mock plugin short-circuits a request, the `AbortSignal` is ignored becaus
 
 MFEs and screen-set components interact with the cache through the `QueryCache` interface. It is injected into `useApiMutation` callbacks and returned by `useQueryCache()` for controlled imperative cache work. The underlying TanStack `QueryClient` is owned by the L2 `queryCache()` plugin; L3 only exposes `QueryCache` through hooks — no raw `QueryClient` to MFEs or re-exports.
 
-All `QueryCache` methods accept either an `EndpointDescriptor` (from which `.key` is extracted) or a raw `QueryKey` array for backward compatibility:
+All `QueryCache` methods accept either an `EndpointDescriptor` (extracting `.key`) or a raw `QueryKey` array for backward compatibility. The sanctioned surface is limited to `get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, and `remove`.
 
-```typescript
-type CacheKeyInput = EndpointDescriptor<unknown> | QueryKey;
+Preferred optimistic-update flow with endpoint descriptors:
 
-interface QueryCache {
-  get<T>(target: CacheKeyInput): T | undefined;
-  getState<TData = unknown, TError = Error>(
-    target: CacheKeyInput
-  ): QueryCacheState<TData, TError> | undefined;
-  set<T>(target: CacheKeyInput, dataOrUpdater: T | ((old: T | undefined) => T | undefined)): void;
-  cancel(target: CacheKeyInput): Promise<void>;
-  invalidate(target: CacheKeyInput): Promise<void>;
-  invalidateMany(filters: QueryCacheInvalidateFilters): Promise<void>;
-  remove(target: CacheKeyInput): void;
-}
-```
-
-Usage with endpoint descriptors (preferred):
-```typescript
-// In mutation callbacks:
-onMutate: async (variables, { queryCache }) => {
-  await queryCache.cancel(service.getCurrentUser);       // descriptor
-  const snapshot = queryCache.get(service.getCurrentUser); // descriptor
-  queryCache.set(service.getCurrentUser, (old) => ({ ...old, ...variables }));
-  return { snapshot };
-},
-onSettled: async (_data, _err, _vars, _ctx, { queryCache }) => {
-  await queryCache.invalidate(service.getCurrentUser);   // descriptor
-},
-```
+- `onMutate` cancels the affected descriptor, snapshots current data with `get`, applies the optimistic value through `set`, and returns the snapshot for rollback.
+- `onError` restores the snapshot through `set` when the mutation fails.
+- `onSettled` invalidates the descriptor so authoritative data is refetched through the normal observer lifecycle.
 
 - `set` accepts both a value and an updater function for atomic read-modify-write. Returning `undefined` from the updater cancels the update.
 - `getState` exposes query status metadata without exposing the full cache client API.
@@ -598,81 +579,21 @@ All MFEs share the host's `QueryClient`, but not through React-context inheritan
 
 Cache keys are derived automatically from the service's `baseURL`, the HTTP method, and the endpoint path. No manual key factories are needed.
 
-```typescript
-// Service (L1 — @cyberfabric/api)
-class AccountsApiService extends BaseApiService {
-  constructor() {
-    const rest = new RestProtocol();
-    const sse = new SseProtocol();
+Representative descriptor patterns:
 
-    super(
-      { baseURL: '/api/accounts' },
-      rest,
-      sse,
-      new RestEndpointProtocol(rest),
-      new SseStreamProtocol(sse)
-    );
-  }
+- A static read such as `getCurrentUser` produces a key shaped like `[baseURL, 'GET', '/user/current']`.
+- A parameterized read such as `getUser({ id: '123' })` produces `[baseURL, 'GET', '/user/123', { id: '123' }]`.
+- A descriptor may carry cache overrides such as longer `staleTime` or `gcTime` for slow-changing configuration reads.
+- A mutation descriptor such as `updateProfile` uses `[baseURL, method, path]`.
+- An SSE stream descriptor such as `activityStream` uses `[baseURL, 'SSE', path]`.
 
-  // Static: key = ['/api/accounts', 'GET', '/user/current']
-  readonly getCurrentUser = this.protocol(RestEndpointProtocol)
-    .query<GetCurrentUserResponse>('/user/current');
+Representative consumer behavior:
 
-  // Parameterized: key = ['/api/accounts', 'GET', '/user/123', { id: '123' }]
-  readonly getUser = this.protocol(RestEndpointProtocol)
-    .queryWith<GetUserResponse, { id: string }>((params) => `/user/${params.id}`);
-
-  // With cache config: staleTime override on the descriptor
-  readonly getConfig = this.protocol(RestEndpointProtocol).query<AppConfigResponse>(
-    '/config',
-    {
-      staleTime: 600_000,
-      gcTime: Infinity,
-    }
-  );
-
-  // Mutation
-  readonly updateProfile = this.protocol(RestEndpointProtocol).mutation<
-    GetCurrentUserResponse,
-    UpdateProfileVariables
-  >('PUT', '/user/profile');
-
-  // SSE Stream: key = ['/api/accounts', 'SSE', '/stream/activity']
-  readonly activityStream = this.protocol(SseStreamProtocol)
-    .stream<ActivityEvent>('/stream/activity');
-}
-```
-
-Component usage:
-```typescript
-// Read — pass descriptor directly
-const { data } = useApiQuery(service.getCurrentUser);
-
-// Read with params
-const { data } = useApiQuery(service.getUser({ id: '123' }));
-
-// Read with per-call override (rare)
-const { data } = useApiQuery(service.getConfig, { staleTime: 0 });
-
-// Write with optimistic update — queryCache accepts descriptors
-const { mutateAsync } = useApiMutation({
-  endpoint: service.updateProfile,
-  onMutate: async (variables, { queryCache }) => {
-    const snapshot = queryCache.get(service.getCurrentUser);
-    queryCache.set(service.getCurrentUser, (old) => ({ ...old, ...variables }));
-    return { snapshot };
-  },
-});
-
-// SSE Stream — latest event
-const { data: activity, status } = useApiStream(service.activityStream);
-
-// SSE Stream — accumulate all events
-const { events } = useApiStream(service.activityStream, { mode: 'accumulate' });
-
-// SSE Stream — deferred connection
-const { data, disconnect } = useApiStream(service.activityStream, { enabled: isActive });
-```
+- `useApiQuery(service.getCurrentUser)` performs a static descriptor read.
+- `useApiQuery(service.getUser({ id: '123' }))` performs a parameterized descriptor read.
+- Rare per-call cache overrides stay at the hook boundary and do not replace descriptor-owned key derivation.
+- `useApiMutation` works with mutation descriptors plus `QueryCache` callbacks for optimistic updates and rollback.
+- `useApiStream` consumes the stream descriptor in either latest-event or accumulate mode, with optional deferred connection through `enabled: false`.
 
 `EndpointDescriptor` is defined at L1 (`@cyberfabric/api`) with zero caching library dependency. It is a plain object carrying `key`, `fetch`, and optional cache configuration. The React layer (L3) consumes descriptors and maps them to the underlying caching library.
 
@@ -689,3 +610,23 @@ L2 Flux effects coordinate with the shared `QueryClient` (via the `queryCache()`
 This is handled entirely at L2 — no React listener needed. Previously, a synchronous listener inside `HAI3Provider` (L3) handled only invalidation. Centralizing **invalidate / set / remove** in the plugin eliminates bootstrap races and keeps descriptor-level dedupe coherent across MFE boundaries.
 
 On **`MockEvents.Toggle`**, the plugin aborts in-flight queries, clears the runtime cache, and clears **`sharedFetchCache`**. On **`app.destroy()`**, it tears down the runtime and calls **`releaseSharedFetchCache()`** after cancel/clear completes, matching **`retainSharedFetchCache()`** at init.
+
+### Test Coverage Scope (this ticket)
+
+**Integration tests are out of scope of this feature.** This ticket ships **unit tests only**, repo-wide. Existing suites that crossed package boundaries (notably the shared-client bridging tests driving `BaseApiService` + `RestEndpointProtocol` through the plugin, and the `describeBootstrapMfeContract` invocations in `packages/framework/__tests__/testing.test.ts`) have been removed or reduced to unit coverage local to the package that owns the contract. Any future end-to-end or cross-package integration coverage belongs in a **separate ticket**.
+
+This ticket's package-local unit coverage is expected to verify:
+
+- cancellation reaches Axios through `AbortSignal` and bypasses the error plugin chain;
+- descriptor key derivation stays stable for static, parameterized, mutation, and stream descriptors;
+- `QueryCache` optimistic update / rollback / invalidate behavior remains deterministic;
+- `useApiStream` covers connect, mode handling, enabled/disabled gating, and disconnect cleanup.
+
+The deferred follow-up integration ticket is expected to verify:
+
+- host `queryCache()` plus child `queryCacheShared()` share one runtime client before first render;
+- identical descriptor keys deduplicate a single underlying request across separate React roots;
+- Flux `cache/invalidate`, `cache/set`, and `cache/remove` events keep `QueryClient` and `sharedFetchCache` aligned;
+- `MockEvents.Toggle` and `app.destroy()` cancel in-flight work, clear cache state, and release shared-fetch coordination without leaking stale windows.
+
+The two MFE suites at `packages/framework/__tests__/plugins/microfrontends.test.ts` (Phase 7.9 — plugin propagation and schema loading) and `packages/framework/__tests__/plugins/microfrontends/plugin.test.ts` (Phase 13 — Flux wiring, slice, effects) are **deliberately split**: 7.9 exercises registry wiring; 13 exercises slice/effects/actions. Keep them separate so a Phase 7.9 regression does not have to read through Flux scaffolding to be understood. This note replaces the inline file-level prose that used to be the only signal for why the suites are split.

@@ -11,18 +11,17 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeHandler } from '../../../src/mfe/handler/types';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider, makeMfeHandlerDouble } from '../../../__test-utils__';
 
 describe('Lifecycle Stage Triggering', () => {
   let registry: ScreensetsRegistry;
   let plugin: TypeSystemPlugin;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
 
   const customStageId = 'gts.hai3.mfes.lifecycle.stage.v1~test.lifecycle.trigger.custom_stage.v1';
   const initStageId = 'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1';
@@ -76,7 +75,7 @@ describe('Lifecycle Stage Triggering', () => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: plugin,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Pre-register test entities with GTS
     plugin.register(testEntry);
@@ -129,10 +128,7 @@ describe('Lifecycle Stage Triggering', () => {
       expect(registered?.id).toBe(extensionWithHooks.id);
 
       // Spy on executeActionsChain to verify it gets called
-      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue({
-        completed: true,
-        path: [],
-      });
+      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
       await registry.triggerLifecycleStage(extensionWithHooks.id, customStageId);
 
@@ -192,10 +188,7 @@ describe('Lifecycle Stage Triggering', () => {
       const exts = registry.getExtensionsForDomain(testDomain.id);
       expect(exts).toHaveLength(2);
 
-      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue({
-        completed: true,
-        path: [],
-      });
+      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
       await registry.triggerDomainLifecycleStage(testDomain.id, customStageId);
 
@@ -236,10 +229,7 @@ describe('Lifecycle Stage Triggering', () => {
       expect(registered).toBeDefined();
       expect(registered?.id).toBe(domainWithHooks.id);
 
-      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue({
-        completed: true,
-        path: [],
-      });
+      const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
       await registry.triggerDomainOwnLifecycleStage(domainWithHooks.id, customStageId);
 
@@ -296,19 +286,15 @@ describe('Lifecycle Stage Triggering', () => {
 
     it('should trigger activated stage during mountExtension', async () => {
       // Register domain with mock handler
-      const mockHandler = {
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        load: vi.fn().mockResolvedValue({
-          mount: vi.fn().mockResolvedValue(undefined),
-          unmount: vi.fn().mockResolvedValue(undefined),
-        }),
-      };
+      });
 
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
         typeSystem: plugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(testDomain, mockContainerProvider);
       await registry.registerExtension(testExtension);
@@ -339,19 +325,15 @@ describe('Lifecycle Stage Triggering', () => {
 
     it('should trigger deactivated stage during unmountExtension', async () => {
       // Register domain with mock handler
-      const mockHandler = {
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
-        load: vi.fn().mockResolvedValue({
-          mount: vi.fn().mockResolvedValue(undefined),
-          unmount: vi.fn().mockResolvedValue(undefined),
-        }),
-      };
+      });
 
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
         typeSystem: plugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        mfeHandlers: [mockHandler],
       });
       registry.registerDomain(testDomain, mockContainerProvider);
       await registry.registerExtension(testExtension);
@@ -439,7 +421,6 @@ describe('Lifecycle Stage Triggering', () => {
       const calls: string[] = [];
       const spy = vi.spyOn(registry, 'executeActionsChain').mockImplementation(async (chain) => {
         calls.push(chain.action.type);
-        return { completed: true, path: [] };
       });
 
       await registry.triggerLifecycleStage(extensionWithMultipleHooks.id, customStageId);

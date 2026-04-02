@@ -9,7 +9,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import {
   HAI3_ACTION_LOAD_EXT,
@@ -20,7 +20,7 @@ import {
 describe('Phase 41 Regression Tests', () => {
   let gtsPlugin: GtsPlugin;
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
   const testDomain: ExtensionDomain = {
@@ -47,9 +47,6 @@ describe('Phase 41 Regression Tests', () => {
 
   const testEntry: MfeEntry = {
     id: 'gts.hai3.mfes.mfe.entry.v1~hai3.test.phase41.entry.v1',
-    entryType: 'hai3.mfes.entry.module_federation',
-    remoteUrl: 'http://localhost:3001/remoteEntry.js',
-    exposedModule: './TestComponent',
     requiredProperties: [],
     optionalProperties: [],
     actions: [],
@@ -73,7 +70,7 @@ describe('Phase 41 Regression Tests', () => {
       typeSystem: gtsPlugin,
     });
 
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register domain and entry with GTS
     gtsPlugin.register(testDomain);

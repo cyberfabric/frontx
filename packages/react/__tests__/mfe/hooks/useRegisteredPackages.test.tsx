@@ -4,39 +4,24 @@
  * Tests registered packages observation via store subscription.
  *
  * @packageDocumentation
- * @vitest-environment jsdom
  */
 
 import { describe, it, expect, afterEach, vi } from 'vitest';
 import { renderHook, waitFor, act } from '@testing-library/react';
-import { HAI3Provider } from '../../../src/HAI3Provider';
-import { useRegisteredPackages } from '../../../src/mfe/hooks/useRegisteredPackages';
-import { createHAI3 } from '@cyberfabric/framework';
-import { screensets } from '@cyberfabric/framework';
-import { effects } from '@cyberfabric/framework';
-import { microfrontends } from '@cyberfabric/framework';
-import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
-import { gtsPlugin } from '@cyberfabric/framework';
-import { ContainerProvider } from '@cyberfabric/framework';
-import type { HAI3App } from '@cyberfabric/framework';
-
-// Mock Container Provider for React tests
-class TestContainerProvider extends ContainerProvider {
-  private mockContainer: Element;
-
-  constructor() {
-    super();
-    this.mockContainer = document.createElement('div');
-  }
-
-  getContainer(_extensionId: string): Element {
-    return this.mockContainer;
-  }
-
-  releaseContainer(_extensionId: string): void {
-    // no-op
-  }
-}
+import { HAI3Provider, useRegisteredPackages } from '@cyberfabric/react';
+import {
+  createHAI3,
+  effects,
+  gtsPlugin,
+  microfrontends,
+  queryCache,
+  screensets,
+  TestContainerProvider,
+  type ContainerProvider,
+  type Extension,
+  type ExtensionDomain,
+  type HAI3App,
+} from '@cyberfabric/framework';
 
 describe('useRegisteredPackages hook - Phase 39.6', () => {
   const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.package.hooks.domain.v1';
@@ -44,7 +29,9 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
   // Track app instances for cleanup
   const apps: HAI3App[] = [];
   afterEach(() => {
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps.length = 0;
   });
 
@@ -90,20 +77,30 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     const app = createHAI3()
       .use(screensets())
       .use(effects())
+      .use(queryCache())
       .use(microfrontends({ typeSystem: gtsPlugin }))
       .build();
     apps.push(app);
+
+    if (!app.screensetsRegistry) {
+      throw new Error('Expected screensetsRegistry');
+    }
+    const screensetsRegistry = app.screensetsRegistry;
 
     // Track packages for mock
     const packageMap = new Map<string, Set<string>>();
 
     // Mock registerExtension to bypass validation, dispatch action, and track packages
-    const origRegisterDomain = app.screensetsRegistry.registerDomain.bind(app.screensetsRegistry);
-    app.screensetsRegistry.registerDomain = (domain: ExtensionDomain) => {
-      origRegisterDomain(domain);
-    };
+    const origRegisterDomain = screensetsRegistry.registerDomain.bind(screensetsRegistry);
+    screensetsRegistry.registerDomain = ((
+      domain: ExtensionDomain,
+      containerProvider: ContainerProvider,
+      options?: Parameters<typeof screensetsRegistry.registerDomain>[2]
+    ) => {
+      origRegisterDomain(domain, containerProvider, options);
+    }) as typeof screensetsRegistry.registerDomain;
 
-    app.screensetsRegistry.registerExtension = vi.fn(async (ext: Extension) => {
+    screensetsRegistry.registerExtension = vi.fn(async (ext: Extension) => {
       // Extract package (simplified extraction for test)
       const instancePortion = ext.id.split('~')[ext.id.split('~').length - 1];
       const dotSegments = instancePortion.split('.');
@@ -118,7 +115,7 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
       app.store.dispatch({ type: 'mfe/setExtensionRegistered', payload: { extensionId: ext.id } });
     });
 
-    app.screensetsRegistry.unregisterExtension = vi.fn(async (extId: string) => {
+    screensetsRegistry.unregisterExtension = vi.fn(async (extId: string) => {
       // Remove from packages
       for (const [packageId, extensions] of packageMap.entries()) {
         if (extensions.has(extId)) {
@@ -135,7 +132,7 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     });
 
     // Mock getRegisteredPackages to return from our tracked map
-    app.screensetsRegistry.getRegisteredPackages = vi.fn(() => {
+    screensetsRegistry.getRegisteredPackages = vi.fn(() => {
       return Array.from(packageMap.keys());
     });
 
@@ -152,8 +149,8 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('39.6.13 should return registered packages from the registry', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
-      await app.screensetsRegistry.registerExtension(demoExtension1);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
+      await app.screensetsRegistry!.registerExtension(demoExtension1);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
@@ -164,7 +161,7 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('should return empty array when no extensions registered', () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
@@ -174,14 +171,14 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('should update when extension is registered', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
       expect(result.current).toHaveLength(0);
 
       await act(async () => {
-        await app.screensetsRegistry.registerExtension(demoExtension1);
+        await app.screensetsRegistry!.registerExtension(demoExtension1);
       });
 
       await waitFor(() => {
@@ -194,10 +191,10 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('should deduplicate packages from same package', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
 
-      await app.screensetsRegistry.registerExtension(demoExtension1);
-      await app.screensetsRegistry.registerExtension(demoExtension2);
+      await app.screensetsRegistry!.registerExtension(demoExtension1);
+      await app.screensetsRegistry!.registerExtension(demoExtension2);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
@@ -208,10 +205,10 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('should return multiple packages from different packages', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
 
-      await app.screensetsRegistry.registerExtension(demoExtension1);
-      await app.screensetsRegistry.registerExtension(otherExtension);
+      await app.screensetsRegistry!.registerExtension(demoExtension1);
+      await app.screensetsRegistry!.registerExtension(otherExtension);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
@@ -223,17 +220,17 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     it('should update when extension is unregistered', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      app.screensetsRegistry!.registerDomain(mockDomain, testContainerProvider);
 
-      await app.screensetsRegistry.registerExtension(demoExtension1);
-      await app.screensetsRegistry.registerExtension(demoExtension2);
+      await app.screensetsRegistry!.registerExtension(demoExtension1);
+      await app.screensetsRegistry!.registerExtension(demoExtension2);
 
       const { result } = renderHook(() => useRegisteredPackages(), { wrapper: buildWrapper(app) });
 
       expect(result.current).toHaveLength(1);
 
       await act(async () => {
-        await app.screensetsRegistry.unregisterExtension(demoExtension1.id);
+        await app.screensetsRegistry!.unregisterExtension(demoExtension1.id);
       });
 
       // Package still exists (demoExtension2 still registered)
@@ -242,7 +239,7 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
       });
 
       await act(async () => {
-        await app.screensetsRegistry.unregisterExtension(demoExtension2.id);
+        await app.screensetsRegistry!.unregisterExtension(demoExtension2.id);
       });
 
       // Package removed (last extension unregistered)

@@ -16,17 +16,18 @@
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
   - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle--query-integration--high)
+  - [2.13 Unit Test Generation & Agent Verification ⏳ MEDIUM](#213-unit-test-generation--agent-verification--medium)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
 
 ## 1. Overview
 
-The DESIGN is decomposed into 11 features aligned with package/module boundaries in the monorepo. Each feature maps to a cohesive set of source files that can be implemented, tested, and reviewed independently.
+The DESIGN is decomposed into 13 features aligned with package/module boundaries in the monorepo. Each feature maps to a cohesive set of source files that can be implemented, tested, and reviewed independently.
 
-**Decomposition strategy**: One feature per logical package or cross-cutting capability. L1 SDK packages each get their own feature (state, screensets, api, i18n). L2/L3 packages get their own features. MFE isolation is separated from screenset registry because it spans multiple packages and has distinct FRs. Standalone packages (studio, cli) are individual features, and UI strategy is captured as a separate CLI-driven feature. Publishing/CI is a separate infrastructure feature.
+**Decomposition strategy**: One feature per logical package or cross-cutting capability. L1 SDK packages each get their own feature (state, screensets, api, i18n). L2/L3 packages get their own features. MFE isolation is separated from screenset registry because it spans multiple packages and has distinct FRs. Standalone packages (studio, cli) are individual features, and UI strategy is captured as a separate CLI-driven feature. Publishing/CI is a separate infrastructure feature. Unit-test generation extends the CLI tooling with test scaffolding, starter tests, and AI agent verification guidance.
 
-**Dependency direction**: Features follow the same layer dependency as the architecture — SDK features have no inter-dependencies, framework depends on SDK features, react depends on framework, standalone features are independent.
+**Dependency direction**: Features follow the same layer dependency as the architecture — SDK features have no inter-dependencies, framework depends on SDK features, react depends on framework, standalone features are independent. Tooling-extension features depend on the standalone features they extend.
 
 ## 2. Entries
 
@@ -575,6 +576,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Out of scope**:
   - Runtime framework functionality (CLI generates code that imports it)
   - Build or deployment execution (delegates to Vite and npm)
+  - Unit-test scaffolding and AI verification guidance (see `cpt-frontx-feature-unit-test-generation-and-agent-verification`)
 
 - **Requirements Covered**:
 
@@ -809,6 +811,68 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
   - `cpt-frontx-adr-tanstack-query-data-management`
 
+### 2.13 [Unit Test Generation & Agent Verification](feature-unit-test-generation-and-agent-verification/) ⏳ MEDIUM
+
+- [x] `p1` - **ID**: `cpt-frontx-feature-unit-test-generation-and-agent-verification`
+
+- **Purpose**: Extends FrontX CLI scaffolding so newly created projects ship with a configured Vitest workflow, starter unit tests, editable project-level testing guidance, and AI instructions that require agents to use the standard unit-test workflow under tiered triggers (not after every edit). Generation commands produce companion test files when stable templates exist.
+
+- **Depends On**: `cpt-frontx-feature-cli-tooling`
+
+- **Scope**:
+  - Vitest configuration in scaffolded projects (`vitest.config.ts`, dependencies)
+  - Standard `test:unit` / `test:unit:watch` script aliases in generated `package.json`, invoked through the project's configured package manager
+  - Starter app-level unit tests exercising scaffolded utilities
+  - `_blank-mfe` baseline tests so generated screensets inherit a working test pattern
+  - Companion starter tests for code-generation commands when a stable template exists
+  - Editable project-level testing guidance (`.ai/project/GUIDELINES.md`, `.ai/project/targets/UNIT_TESTING.md`)
+  - AI sync propagation: generated assistant files reference the standard unit-test command and testing guidance
+  - Default `frontx validate` (`validate components`) remains a fast structural check and does not run unit tests by default; optional future CLI composition may chain tests behind an explicit subcommand or flag
+  - Generated agent guidance uses tiered triggers for when to run the package-manager invocation of `test:unit` (or a scoped workspace equivalent), with CI as full enforcement
+  - E2E scaffold verification: CLI PR gate validates the standard unit-test workflow passes on a fresh scaffold
+
+- **Out of scope**:
+  - Test-library or strategy selection (Vitest is the fixed choice for initial rollout)
+  - Runtime test execution infrastructure (delegates to Vitest + project package-manager scripts)
+  - Application-specific test logic (starter tests are minimal baselines)
+
+- **Requirements Covered** (shares CLI-scaffold clauses with `cpt-frontx-feature-cli-tooling` and separately covers the project-level agent-guidance clause in `cpt-frontx-fr-ai-agent-integration`):
+
+  - [x] `p1` - `cpt-frontx-fr-cli-commands` (unit-test scaffold and generation clauses)
+  - [x] `p1` - `cpt-frontx-fr-cli-templates` (test asset and testing guidance clauses)
+  - [x] `p1` - `cpt-frontx-fr-cli-skills` (testing guidance in AI assistant files)
+  - [x] `p1` - `cpt-frontx-fr-cli-e2e-verification` (standard `test:unit` in required PR gate; workflow and `e2e-pr-smoke` harness allocated under `cpt-frontx-feature-cli-tooling`)
+  - [x] `p1` - `cpt-frontx-fr-ai-agent-integration` (project-level testing guidance and generated agent instructions)
+  - [ ] `p2` - `cpt-frontx-nfr-maint-arch-enforcement` (scaffolded unit-test workflow in verification loop)
+
+- **Design Principles Covered**:
+  - (Tooling feature; doesn't uniquely own architecture principles)
+
+- **Design Constraints Covered**:
+
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
+
+- **Domain Model Entities**:
+  - ProjectTestingConvention
+  - ProjectTestingGuidance
+
+- **Design Components**:
+
+  - [x] `p2` - `cpt-frontx-component-cli`
+
+- **API**:
+  - `frontx create` (Vitest scaffold output)
+  - `frontx ai sync` (testing guidance propagation)
+  - `test:unit` / `test:unit:watch` via the configured package manager (generated command contract)
+
+- **Sequences**:
+
+  - `cpt-frontx-seq-cli-project-scaffold`
+  - `cpt-frontx-seq-ai-agent-verification`
+
+- **Data**:
+  - N/A (client-side library)
+
 ---
 
 ## 3. Feature Dependencies
@@ -834,8 +898,11 @@ cpt-frontx-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
     │       requires: framework-composition
     │
     └─→ cpt-frontx-feature-request-lifecycle
-            requires: api-communication, react-bindings,
-                      framework-composition
+    │       requires: api-communication, react-bindings,
+    │                 framework-composition
+
+cpt-frontx-feature-unit-test-generation-and-agent-verification
+                                            (standalone, requires: cli-tooling)
 ```
 
 **Dependency Rationale**:
@@ -845,4 +912,5 @@ cpt-frontx-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
 - `cpt-frontx-feature-react-bindings` requires `cpt-frontx-feature-framework-composition`: React layer consumes the built framework output
 - `cpt-frontx-feature-request-lifecycle` requires `cpt-frontx-feature-api-communication` (AbortSignal and descriptors at L1), `cpt-frontx-feature-framework-composition` (`queryCache()` / `queryCacheShared()` plugins at L2), and `cpt-frontx-feature-react-bindings` (TanStack Query hooks and provider resolution at L3)
 - `cpt-frontx-feature-ui-libraries-choice` requires `cpt-frontx-feature-cli-tooling`: CLI commands (`frontx create`, `frontx screenset`) implement the UI kit scaffolding
+- `cpt-frontx-feature-unit-test-generation-and-agent-verification` requires `cpt-frontx-feature-cli-tooling`: extends CLI scaffolding with Vitest configuration, starter tests, and AI verification guidance
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

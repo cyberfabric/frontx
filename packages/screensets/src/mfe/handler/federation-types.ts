@@ -8,3 +8,6 @@
  *
  * @packageDocumentation
  */
+
+/** Legacy MF 1.x shared-scope map shape (tests only). */
+export type FederationSharedMap = Record<string, unknown>;

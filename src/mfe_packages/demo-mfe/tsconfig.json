@@ -22,7 +22,11 @@
     "strictBindCallApply": true,
     "strictPropertyInitialization": true,
     "alwaysStrict": true,
-    "noImplicitThis": true
+    "noImplicitThis": true,
+    "baseUrl": ".",
+    "paths": {
+      "@frontx-test-utils/*": ["../../__test-utils__/*"]
+    }
   },
   "include": [
     "src",

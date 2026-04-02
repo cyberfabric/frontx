@@ -1,11 +1,9 @@
 /**
  * Unit tests for layer-aware filtering utilities
  *
- * Run with: node --import tsx --test src/core/layers.test.ts
  */
 
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, expect, it } from 'vitest';
 import { selectCommandVariant, isTargetApplicableToLayer, type LayerType } from './layers.js';
 
 describe('selectCommandVariant', () => {
@@ -16,7 +14,7 @@ describe('selectCommandVariant', () => {
         'sdk',
         ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'frontx-validate.sdk.md');
+      expect(result).toBe('frontx-validate.sdk.md');
     });
 
     it('should fall back to .md when no .sdk.md', () => {
@@ -25,7 +23,7 @@ describe('selectCommandVariant', () => {
         'sdk',
         ['frontx-validate.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'frontx-validate.md');
+      expect(result).toBe('frontx-validate.md');
     });
 
     it('should return null when no matching variant found', () => {
@@ -34,7 +32,7 @@ describe('selectCommandVariant', () => {
         'sdk',
         ['frontx-validate.react.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, null);
+      expect(result).toBe(null);
     });
   });
 
@@ -45,7 +43,7 @@ describe('selectCommandVariant', () => {
         'framework',
         ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'frontx-validate.framework.md');
+      expect(result).toBe('frontx-validate.framework.md');
     });
 
     it('should fall back through chain: .framework.md → .sdk.md → .md', () => {
@@ -55,7 +53,7 @@ describe('selectCommandVariant', () => {
         'framework',
         ['frontx-validate.md', 'frontx-validate.sdk.md']
       );
-      assert.equal(result, 'frontx-validate.sdk.md');
+      expect(result).toBe('frontx-validate.sdk.md');
 
       // No .framework.md or .sdk.md, should find .md
       result = selectCommandVariant(
@@ -63,7 +61,7 @@ describe('selectCommandVariant', () => {
         'framework',
         ['frontx-validate.md']
       );
-      assert.equal(result, 'frontx-validate.md');
+      expect(result).toBe('frontx-validate.md');
     });
 
     it('should return null when no matching variant in chain', () => {
@@ -72,7 +70,7 @@ describe('selectCommandVariant', () => {
         'framework',
         ['frontx-validate.react.md']
       );
-      assert.equal(result, null);
+      expect(result).toBe(null);
     });
   });
 
@@ -83,7 +81,7 @@ describe('selectCommandVariant', () => {
         'react',
         ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md', 'frontx-validate.react.md']
       );
-      assert.equal(result, 'frontx-validate.react.md');
+      expect(result).toBe('frontx-validate.react.md');
     });
 
     it('should fall back through full chain: .react.md → .framework.md → .sdk.md → .md', () => {
@@ -93,7 +91,7 @@ describe('selectCommandVariant', () => {
         'react',
         ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'frontx-validate.framework.md');
+      expect(result).toBe('frontx-validate.framework.md');
 
       // No .react.md or .framework.md, should find .sdk.md
       result = selectCommandVariant(
@@ -101,7 +99,7 @@ describe('selectCommandVariant', () => {
         'react',
         ['frontx-validate.md', 'frontx-validate.sdk.md']
       );
-      assert.equal(result, 'frontx-validate.sdk.md');
+      expect(result).toBe('frontx-validate.sdk.md');
 
       // No .react.md, .framework.md or .sdk.md, should find .md
       result = selectCommandVariant(
@@ -109,7 +107,7 @@ describe('selectCommandVariant', () => {
         'react',
         ['frontx-validate.md']
       );
-      assert.equal(result, 'frontx-validate.md');
+      expect(result).toBe('frontx-validate.md');
     });
 
     it('should return null when no matching variant in chain', () => {
@@ -118,7 +116,7 @@ describe('selectCommandVariant', () => {
         'react',
         ['frontx-other.md']
       );
-      assert.equal(result, null);
+      expect(result).toBe(null);
     });
   });
 
@@ -129,8 +127,8 @@ describe('selectCommandVariant', () => {
       // Both should select .react.md when available
       const reactResult = selectCommandVariant('frontx-validate.md', 'react', availableFiles);
       const appResult = selectCommandVariant('frontx-validate.md', 'app', availableFiles);
-      assert.equal(reactResult, appResult);
-      assert.equal(appResult, 'frontx-validate.react.md');
+      expect(reactResult).toBe(appResult);
+      expect(appResult).toBe('frontx-validate.react.md');
     });
 
     it('should fall back through same chain as React layer', () => {
@@ -138,15 +136,15 @@ describe('selectCommandVariant', () => {
       const filesWithoutReact = ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md'];
       const reactResult = selectCommandVariant('frontx-validate.md', 'react', filesWithoutReact);
       const appResult = selectCommandVariant('frontx-validate.md', 'app', filesWithoutReact);
-      assert.equal(reactResult, appResult);
-      assert.equal(appResult, 'frontx-validate.framework.md');
+      expect(reactResult).toBe(appResult);
+      expect(appResult).toBe('frontx-validate.framework.md');
     });
   });
 
   describe('Edge cases', () => {
     it('should handle empty available files array', () => {
       const result = selectCommandVariant('frontx-validate.md', 'sdk', []);
-      assert.equal(result, null);
+      expect(result).toBe(null);
     });
 
     it('should handle command name without .md extension in available files', () => {
@@ -156,7 +154,7 @@ describe('selectCommandVariant', () => {
         'sdk',
         ['frontx-validate.sdk.md']
       );
-      assert.equal(result, 'frontx-validate.sdk.md');
+      expect(result).toBe('frontx-validate.sdk.md');
     });
   });
 });
@@ -166,17 +164,15 @@ describe('isTargetApplicableToLayer', () => {
     const sdkTargets = ['API.md', 'STORE.md', 'EVENTS.md', 'I18N.md'];
     const allLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
 
-    sdkTargets.forEach(target => {
-      it(`${target} should be available to all layers`, () => {
-        allLayers.forEach(layer => {
-          assert.equal(
-            isTargetApplicableToLayer(target, layer),
-            true,
-            `${target} should be available to ${layer} layer`
-          );
-        });
-      });
-    });
+    it.each(sdkTargets.flatMap((target) => allLayers.map((layer) => [target, layer] as const)))(
+      '%s should be available to %s layer',
+      (target, layer) => {
+        expect(
+          isTargetApplicableToLayer(target, layer),
+          `${target} should be available to ${layer} layer`
+        ).toBe(true);
+      }
+    );
   });
 
   describe('Framework targets', () => {
@@ -184,10 +180,10 @@ describe('isTargetApplicableToLayer', () => {
 
     frameworkTargets.forEach(target => {
       it(`${target} should be available to framework, react, app (not sdk)`, () => {
-        assert.equal(isTargetApplicableToLayer(target, 'sdk'), false);
-        assert.equal(isTargetApplicableToLayer(target, 'framework'), true);
-        assert.equal(isTargetApplicableToLayer(target, 'react'), true);
-        assert.equal(isTargetApplicableToLayer(target, 'app'), true);
+        expect(isTargetApplicableToLayer(target, 'sdk')).toBe(false);
+        expect(isTargetApplicableToLayer(target, 'framework')).toBe(true);
+        expect(isTargetApplicableToLayer(target, 'react')).toBe(true);
+        expect(isTargetApplicableToLayer(target, 'app')).toBe(true);
       });
     });
   });
@@ -197,10 +193,10 @@ describe('isTargetApplicableToLayer', () => {
 
     reactTargets.forEach(target => {
       it(`${target} should be available to react, app only`, () => {
-        assert.equal(isTargetApplicableToLayer(target, 'sdk'), false);
-        assert.equal(isTargetApplicableToLayer(target, 'framework'), false);
-        assert.equal(isTargetApplicableToLayer(target, 'react'), true);
-        assert.equal(isTargetApplicableToLayer(target, 'app'), true);
+        expect(isTargetApplicableToLayer(target, 'sdk')).toBe(false);
+        expect(isTargetApplicableToLayer(target, 'framework')).toBe(false);
+        expect(isTargetApplicableToLayer(target, 'react')).toBe(true);
+        expect(isTargetApplicableToLayer(target, 'app')).toBe(true);
       });
     });
   });
@@ -209,30 +205,28 @@ describe('isTargetApplicableToLayer', () => {
     const metaTargets = ['AI.md', 'AI_COMMANDS.md', 'CLI.md'];
     const allLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
 
-    metaTargets.forEach(target => {
-      it(`${target} should be available to all layers`, () => {
-        allLayers.forEach(layer => {
-          assert.equal(
-            isTargetApplicableToLayer(target, layer),
-            true,
-            `${target} should be available to ${layer} layer`
-          );
-        });
-      });
-    });
+    it.each(metaTargets.flatMap((target) => allLayers.map((layer) => [target, layer] as const)))(
+      '%s should be available to %s layer',
+      (target, layer) => {
+        expect(
+          isTargetApplicableToLayer(target, layer),
+          `${target} should be available to ${layer} layer`
+        ).toBe(true);
+      }
+    );
   });
 
   describe('Unknown targets', () => {
-    it('should return true for backward compatibility', () => {
-      const allLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
+    const allLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
 
-      allLayers.forEach(layer => {
-        assert.equal(
+    it.each(allLayers)(
+      'UNKNOWN.md should be available to %s layer for backward compatibility',
+      (layer) => {
+        expect(
           isTargetApplicableToLayer('UNKNOWN.md', layer),
-          true,
           `Unknown target should be available to ${layer} layer for backward compatibility`
-        );
-      });
-    });
+        ).toBe(true);
+      }
+    );
   });
 });

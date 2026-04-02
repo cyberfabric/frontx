@@ -24,7 +24,9 @@ export function createThemeRegistry(): ThemeRegistry {
 
   function notifySubscribers(): void {
     version++;
-    subscribers.forEach((callback) => callback());
+    subscribers.forEach((callback) => {
+      callback();
+    });
   }
 
   /**

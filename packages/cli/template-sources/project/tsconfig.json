@@ -7,6 +7,7 @@
       "@/*": ["./src/*"],
       "@/app/*": ["./src/app/*"],
       "@/screensets/*": ["./src/screensets/*"],
+      "@frontx-test-utils/*": ["./src/__test-utils__/*"],
       "@cyberfabric/state": ["../../../state/src/index.ts"],
       "@cyberfabric/state/*": ["../../../state/src/*"],
       "@cyberfabric/layout": ["../../../layout/src/index.ts"],

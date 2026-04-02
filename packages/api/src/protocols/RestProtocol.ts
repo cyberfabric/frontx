@@ -173,13 +173,35 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   // @cpt-begin:cpt-frontx-state-api-communication-rest-connection:p1:inst-2
   cleanup(): void {
     // Cleanup instance plugins
-    this._instancePlugins.forEach((plugin) => plugin.destroy());
+    this._instancePlugins.forEach((plugin) => {
+      plugin.destroy();
+    });
     this._instancePlugins.clear();
 
     this.client = null;
     this.config = null;
   }
   // @cpt-end:cpt-frontx-state-api-communication-rest-connection:p1:inst-2
+
+  /**
+   * Test-only hook that replaces the underlying axios `request` dispatcher.
+   *
+   * Exists so tests can stub the network layer without reaching into the
+   * private axios instance via structural casts. Throws if the protocol has
+   * not been initialized, since no underlying client exists yet.
+   *
+   * @internal Test seam — do not rely on this in production code.
+   */
+  setRequestDispatcherForTest(
+    dispatch: (config: AxiosRequestConfig) => Promise<unknown>
+  ): void {
+    if (!this.client) {
+      throw new Error(
+        'RestProtocol.setRequestDispatcherForTest: protocol has not been initialized.'
+      );
+    }
+    this.client.request = dispatch as AxiosInstance['request'];
+  }
 
   /**
    * Get global plugins from apiRegistry, filtering out excluded classes.

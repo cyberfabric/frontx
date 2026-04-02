@@ -9,7 +9,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
 import { apiRegistry } from '../apiRegistry';
-import type { RestPluginHooks, RestRequestContext, RestResponseContext } from '../types';
+import type { ApiPluginErrorContext, RestPluginHooks, RestRequestContext } from '../types';
 import { createProtocolPluginTests } from './protocolPluginTestFactory';
 
 // ---------------------------------------------------------------------------
@@ -18,11 +18,14 @@ import { createProtocolPluginTests } from './protocolPluginTestFactory';
 
 createProtocolPluginTests({
   protocolName: 'RestProtocol',
-  ProtocolClass: RestProtocol as new (...args: unknown[]) => RestProtocol,
+  ProtocolClass: RestProtocol,
   makePlugin(): RestPluginHooks {
-    return { onRequest: async (ctx) => ctx };
+    return {
+      onRequest: async (ctx) => ctx,
+      destroy: () => {},
+    };
   },
-  makePluginWithDestroy(onDestroy: () => void): RestPluginHooks & { destroy: () => void } {
+  makePluginWithDestroy(onDestroy: () => void): RestPluginHooks {
     class DestroyableRestPlugin implements RestPluginHooks {
       onRequest = async (ctx: RestRequestContext) => ctx;
       destroy() { onDestroy(); }
@@ -110,13 +113,25 @@ describe('RestProtocol plugins', () => {
   });
 
   describe('onResponse hooks', () => {
-    it('should execute onResponse hooks in reverse order (LIFO)', () => {
+    it('should execute onResponse hooks in reverse order (LIFO)', async () => {
       const executionOrder: string[] = [];
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+      restProtocol.setRequestDispatcherForTest(async () => ({
+        status: 200,
+        headers: {},
+        data: { order: [] as string[] },
+      }));
 
       const plugin1: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin1');
-          return ctx;
+          return {
+            ...ctx,
+            data: {
+              order: [...((ctx.data as { order: string[] }).order), 'plugin1'],
+            },
+          };
         },
         destroy: () => {},
       };
@@ -124,7 +139,12 @@ describe('RestProtocol plugins', () => {
       const plugin2: RestPluginHooks & { destroy: () => void } = {
         onResponse: async (ctx) => {
           executionOrder.push('plugin2');
-          return ctx;
+          return {
+            ...ctx,
+            data: {
+              order: [...((ctx.data as { order: string[] }).order), 'plugin2'],
+            },
+          };
         },
         destroy: () => {},
       };
@@ -132,18 +152,9 @@ describe('RestProtocol plugins', () => {
       apiRegistry.plugins.add(RestProtocol, plugin1);
       apiRegistry.plugins.add(RestProtocol, plugin2);
 
-      const restProtocol = new RestProtocol();
-      const plugins = [...restProtocol.getPluginsInOrder()].reverse();
+      const result = await restProtocol.get<{ order: string[] }>('/test');
 
-      // Simulate onResponse execution order
-      plugins.forEach((p) => {
-        if (p.onResponse) {
-          const ctx: RestResponseContext = { status: 200, headers: {}, data: {} };
-          p.onResponse(ctx);
-        }
-      });
-
-      // LIFO order: plugin2 first, then plugin1
+      expect(result.order).toEqual(['plugin2', 'plugin1']);
       expect(executionOrder).toEqual(['plugin2', 'plugin1']);
     });
   });
@@ -182,18 +193,11 @@ describe('RestProtocol plugins', () => {
       const restProtocol = new RestProtocol();
       restProtocol.initialize({ baseURL: '/api' });
 
-      interface CapturedContext {
-        error: Error;
-        request: RestRequestContext;
-        retryCount: number;
-        retry: (modifiedRequest?: Partial<RestRequestContext>) => Promise<RestResponseContext>;
-      }
-
-      let capturedContext: CapturedContext | null = null;
+      const captured = { context: null as ApiPluginErrorContext | null };
 
       const retryPlugin: RestPluginHooks = {
-        onError: async (context) => {
-          capturedContext = context;
+        onError: async (context: ApiPluginErrorContext) => {
+          captured.context = context;
           return context.error;
         },
         destroy: () => {},
@@ -219,13 +223,14 @@ describe('RestProtocol plugins', () => {
         // Expected to throw
       }
 
-      expect(capturedContext).not.toBeNull();
-      expect(capturedContext?.error).toBeInstanceOf(Error);
-      expect(capturedContext?.error.message).toBe('Test error');
-      expect(capturedContext?.request).toBeDefined();
-      expect(capturedContext?.request.method).toBe('GET');
-      expect(capturedContext?.retryCount).toBe(0);
-      expect(typeof capturedContext?.retry).toBe('function');
+      expect(captured.context).not.toBeNull();
+      const ctx = captured.context!;
+      expect(ctx.error).toBeInstanceOf(Error);
+      expect(ctx.error.message).toBe('Test error');
+      expect(ctx.request).toBeDefined();
+      expect(ctx.request.method).toBe('GET');
+      expect(ctx.retryCount).toBe(0);
+      expect(typeof ctx.retry).toBe('function');
     });
 
     it('should retry with modified headers', async () => {

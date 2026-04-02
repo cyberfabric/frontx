@@ -34,6 +34,7 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
 
   // Listen for 'app/user/fetch' event
   eventBus.on('app/user/fetch', async () => {
+    let headerLoadingStarted = false;
     try {
       // Check if accounts service is registered before trying to use it
       if (!apiRegistry.has(AccountsApiService)) {
@@ -42,6 +43,8 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
       }
 
       dispatch(setHeaderLoading(true));
+      headerLoadingStarted = true;
+
       // Get accounts service using class-based registration
       const accountsService = apiRegistry.getService(AccountsApiService);
       const response = await accountsService.getCurrentUser.fetch();
@@ -50,7 +53,10 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
       }
     } catch (error) {
       console.warn('Failed to fetch user:', error);
-      dispatch(setHeaderLoading(false));
+    } finally {
+      if (headerLoadingStarted) {
+        dispatch(setHeaderLoading(false));
+      }
     }
   });
 

@@ -1,32 +1,11 @@
 {
+  "extends": "../../../packages/cli/template-sources/project/configs/tsconfig.json",
   "compilerOptions": {
-    "target": "ES2020",
-    "useDefineForClassFields": true,
-    "lib": ["ES2020", "DOM", "DOM.Iterable"],
-    "module": "ESNext",
-    "skipLibCheck": true,
-    "moduleResolution": "bundler",
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "isolatedModules": true,
-    "noEmit": true,
-    "jsx": "react-jsx",
-    "strict": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "noFallthroughCasesInSwitch": true,
-    "noImplicitReturns": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "strictFunctionTypes": true,
-    "strictBindCallApply": true,
-    "strictPropertyInitialization": true,
-    "alwaysStrict": true,
-    "noImplicitThis": true
+    "baseUrl": ".",
+    "paths": {
+      "@frontx-test-utils/*": ["../../__test-utils__/*"]
+    }
   },
-  "include": [
-    "src",
-    "src/screens/home"
-  ],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

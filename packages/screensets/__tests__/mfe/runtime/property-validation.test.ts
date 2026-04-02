@@ -22,7 +22,7 @@ import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScree
 import { GtsPlugin } from '../../../src/mfe/plugins/gts/index';
 import type { JSONSchema } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain } from '../../../src/mfe/types';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 /**
  * Minimal derived shared-property schema for testing.
@@ -43,7 +43,7 @@ describe('updateSharedProperty - GTS runtime validation mechanics', () => {
   let registry: DefaultScreensetsRegistry;
   let gtsPlugin: GtsPlugin;
   let testDomain: ExtensionDomain;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
 
   const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.test.validation.slot.v1';
 
@@ -54,7 +54,7 @@ describe('updateSharedProperty - GTS runtime validation mechanics', () => {
     gtsPlugin.registerSchema(testPropertySchema);
 
     registry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     testDomain = {
       id: DOMAIN_ID,

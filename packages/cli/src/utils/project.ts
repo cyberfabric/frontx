@@ -9,6 +9,61 @@ import { isCustomUikit, isValidPackageName, normalizeUikit } from './validation.
  */
 export const CONFIG_FILE = 'frontx.config.json';
 
+function isSinglePathSegmentForProjectJoin(name: string): boolean {
+  if (name.length === 0) {
+    return false;
+  }
+  if (name === '.' || name === '..') {
+    return false;
+  }
+  if (name.includes('\0')) {
+    return false;
+  }
+  if (
+    name.includes(path.sep) ||
+    name.includes(path.posix.sep) ||
+    name.includes(path.win32.sep)
+  ) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Join an absolute `projectRoot` with fixed relative path segments and ensure
+ * the result cannot escape the resolved root (SAST: do not `path.join` a
+ * tainted root with a multi-segment relative string).
+ */
+export function resolvePathUnderProjectRoot(
+  projectRoot: string,
+  ...relativeSegments: string[]
+): string {
+  if (!projectRoot || projectRoot.includes('\0') || !path.isAbsolute(projectRoot)) {
+    throw new Error(
+      `Refusing to resolve under non-absolute or unsafe project root: ${JSON.stringify(projectRoot)}`
+    );
+  }
+  const resolvedRoot = path.resolve(projectRoot);
+  let cursor = resolvedRoot;
+  for (const seg of relativeSegments) {
+    if (!isSinglePathSegmentForProjectJoin(seg)) {
+      throw new Error(
+        `Refusing to resolve disallowed project-relative path segment: ${JSON.stringify(seg)}`
+      );
+    }
+    cursor = path.join(cursor, seg);
+  }
+  const rel = path.relative(resolvedRoot, cursor);
+  if (rel === '' || rel.startsWith('..') || path.isAbsolute(rel)) {
+    throw new Error(
+      `Refusing to resolve project path outside project root (${resolvedRoot}): ${relativeSegments.join(
+        path.sep
+      )}`
+    );
+  }
+  return cursor;
+}
+
 /**
  * Check if a directory has @cyberfabric/* dependencies in package.json
  */
@@ -190,6 +245,7 @@ export async function findMonorepoRoot(fromPath: string): Promise<string | null>
 }
 
 const CURRENT_FRONTX_PACKAGE_SCOPE = '@cyberfabric/';
+const TEMPLATE_PROJECT_TSCONFIG_SEGMENT = 'template-sources/project/configs/tsconfig.json';
 
 /**
  * Resolve a @cyberfabric package name to a file: URL path relative to projectPath.
@@ -238,15 +294,31 @@ export function rewriteTsconfigPackagePaths(
     useLocalPackages: boolean;
     monorepoRoot?: string;
     projectPath?: string;
+    tsconfigPath?: string;
   }
 ): string {
-  // Standalone preset tsconfig files are JSONC and often have no package aliases.
-  // Avoid strict JSON parsing unless there is actually a @cyberfabric path to rewrite.
-  if (!tsconfigContent.includes(CURRENT_FRONTX_PACKAGE_SCOPE)) {
-    return tsconfigContent;
+  const shouldRewriteTemplateExtends = tsconfigContent.includes(TEMPLATE_PROJECT_TSCONFIG_SEGMENT);
+  let nextContent = tsconfigContent;
+
+  if (shouldRewriteTemplateExtends && input.tsconfigPath) {
+    const normalizedTsconfigPath = input.tsconfigPath.split(path.sep).join(path.posix.sep);
+    const relativeRootTsconfig = path.posix.relative(
+      path.posix.dirname(normalizedTsconfigPath),
+      'tsconfig.json',
+    );
+    nextContent = nextContent.replace(
+      /("extends"\s*:\s*")([^"]*template-sources\/project\/configs\/tsconfig\.json)(")/,
+      `$1${relativeRootTsconfig}$3`,
+    );
   }
 
-  const tsconfig = JSON.parse(tsconfigContent) as {
+  // Standalone preset tsconfig files are JSONC and often have no package aliases.
+  // Avoid strict JSON parsing unless there is actually a @cyberfabric path to rewrite.
+  if (!nextContent.includes(CURRENT_FRONTX_PACKAGE_SCOPE)) {
+    return nextContent;
+  }
+
+  const tsconfig = JSON.parse(nextContent) as {
     compilerOptions?: {
       paths?: Record<string, string[]>;
     };

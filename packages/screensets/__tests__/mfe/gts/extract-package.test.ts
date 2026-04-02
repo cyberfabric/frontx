@@ -33,21 +33,27 @@ describe('extractGtsPackage - Phase 39.6', () => {
   describe('Malformed GTS entity IDs', () => {
     it('39.6.4 should throw for entity ID with fewer than 2 dot-segments in instance portion', () => {
       const malformedId = 'gts.hai3.mfes.ext.extension.v1~hai3';
-      expect(() => extractGtsPackage(malformedId)).toThrow(
+      expect(() => {
+        extractGtsPackage(malformedId);
+      }).toThrow(
         /fewer than 2 dot-segments in its instance portion/
       );
     });
 
     it('39.6.4b should throw for entity ID with no ~ delimiter', () => {
       const noDelimiterId = 'gts.hai3.mfes.ext.extension.v1';
-      expect(() => extractGtsPackage(noDelimiterId)).toThrow(
+      expect(() => {
+        extractGtsPackage(noDelimiterId);
+      }).toThrow(
         /does not contain '~' delimiter/
       );
     });
 
     it('39.6.4c should throw for schema type ID ending with ~', () => {
       const schemaTypeId = 'gts.hai3.mfes.ext.extension.v1~';
-      expect(() => extractGtsPackage(schemaTypeId)).toThrow(
+      expect(() => {
+        extractGtsPackage(schemaTypeId);
+      }).toThrow(
         /schema type ID.*ends with '~'/
       );
     });

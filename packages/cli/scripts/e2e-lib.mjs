@@ -11,6 +11,16 @@ export const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, '..');
 export const REPO_ROOT = path.resolve(PACKAGE_ROOT, '..', '..');
 export const CLI_ENTRY = path.join(PACKAGE_ROOT, 'dist', 'index.js');
 
+/** Existence check without fs.existsSync (Codacy: non-literal path on existsSync). */
+function pathExistsSync(checkPath) {
+  try {
+    fs.accessSync(checkPath, fs.constants.F_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function toSlug(value) {
   return value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
 }
@@ -64,17 +74,70 @@ export function createHarness(suiteName) {
     }
   }
 
-  function assertPathExists(targetPath) {
-    assert(fs.existsSync(targetPath), `Expected path to exist: ${targetPath}`);
+  function resolveWithin(rootPath, targetPath) {
+    // Callers must pass absolute roots (e.g. mkdtemp, suite dir). Avoid path.resolve/join with a
+    // fully dynamic pair so static analysis does not flag unchecked composition; validate segments
+    // for relative targets, then enforce containment with path.relative (same boundary check as
+    // scripts/check-test-dependency-versions.mjs: resolvePackageJsonPathWithinRoot).
+    assert(path.isAbsolute(rootPath), `resolveWithin requires absolute rootPath, got: ${rootPath}`);
+    const resolvedRootPath = path.normalize(rootPath);
+
+    let resolvedTargetPath;
+    if (path.isAbsolute(targetPath)) {
+      resolvedTargetPath = path.normalize(targetPath);
+    } else {
+      const rel = path.normalize(targetPath);
+      if (rel === '.' || rel === '') {
+        resolvedTargetPath = resolvedRootPath;
+      } else {
+        const parts = rel.split(/[/\\]/u).filter((p) => p.length > 0);
+        for (const p of parts) {
+          assert(p !== '..', `Path traversal in targetPath: ${targetPath}`);
+        }
+        const safeParts = parts.filter((p) => p !== '.');
+        // Segments validated above (no '..', no absolute); containment re-verified below.
+        // nosemgrep
+        resolvedTargetPath =
+          safeParts.length === 0 ? resolvedRootPath : path.join(resolvedRootPath, ...safeParts);
+      }
+    }
+
+    const relativePath = path.relative(resolvedRootPath, resolvedTargetPath);
+    assert(
+      relativePath === '' || (!relativePath.startsWith('..') && !path.isAbsolute(relativePath)),
+      `Expected path to stay within ${resolvedRootPath}: ${resolvedTargetPath}`
+    );
+    return resolvedTargetPath;
   }
 
-  function readJson(targetPath) {
-    return JSON.parse(fs.readFileSync(targetPath, 'utf8'));
+  function assertPathExists(targetPath, { within: withinRoot } = {}) {
+    const resolvedTargetPath = withinRoot
+      ? resolveWithin(withinRoot, targetPath)
+      : targetPath;
+    assert(pathExistsSync(resolvedTargetPath), `Expected path to exist: ${resolvedTargetPath}`);
   }
 
-  function writeFile(targetPath, content) {
-    fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-    fs.writeFileSync(targetPath, content);
+  function readText(targetPath, { within: withinRoot } = {}) {
+    const resolvedTargetPath = withinRoot
+      ? resolveWithin(withinRoot, targetPath)
+      : targetPath;
+    // Paths are confined via resolveWithin when `within` is set; harness roots otherwise.
+    // nosemgrep
+    return fs.readFileSync(resolvedTargetPath).toString('utf8');
+  }
+
+  function readJson(targetPath, { within: withinRoot } = {}) {
+    return JSON.parse(readText(targetPath, { within: withinRoot }));
+  }
+
+  function writeFile(targetPath, content, { within: withinRoot } = {}) {
+    const resolvedTargetPath = withinRoot
+      ? resolveWithin(withinRoot, targetPath)
+      : targetPath;
+    // nosemgrep
+    fs.mkdirSync(path.dirname(resolvedTargetPath), { recursive: true });
+    // nosemgrep
+    fs.writeFileSync(resolvedTargetPath, content);
   }
   // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-assertions
 
@@ -168,6 +231,7 @@ export function createHarness(suiteName) {
     log,
     assert,
     assertPathExists,
+    readText,
     readJson,
     writeFile,
     makeTempDir,

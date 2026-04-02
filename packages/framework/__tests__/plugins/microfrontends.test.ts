@@ -4,79 +4,80 @@
  * Tests plugin propagation and JSON loading ONLY.
  * Flux integration tests (actions, effects, slice) are in Phase 13.8.
  *
+ * See also: packages/framework/__tests__/plugins/microfrontends/plugin.test.ts
+ * for Phase 13.8 Flux-integration coverage. The two suites are intentionally
+ * separated: Phase 7.9 exercises registry wiring and schema loading; Phase 13
+ * exercises slice/effects/actions.
+ *
  * @packageDocumentation
  */
 
-import { describe, it, expect, afterEach, beforeEach } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { eventBus, resetStore } from '@cyberfabric/state';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { TypeSystemPlugin } from '@cyberfabric/screensets';
 import { createHAI3 } from '../../src/createHAI3';
 import { screensets } from '../../src/plugins/screensets';
-import {
-  microfrontends,
-} from '../../src/plugins/microfrontends';
+import { microfrontends } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
-import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
 import type { ScreensetsRegistry } from '@cyberfabric/framework';
-import { ContainerProvider } from '@cyberfabric/framework';
+import { TestContainerProvider } from '../../src/testing/TestContainerProvider';
+import { resetSharedQueryClient } from '../../src/testing';
 import type { HAI3App } from '../../src/types';
 
-// Mock Container Provider for framework tests
-class TestContainerProvider extends ContainerProvider {
-  private mockContainer: Element;
-
-  constructor() {
-    super();
-    // Create a mock DOM element for testing
-    if (typeof document !== 'undefined') {
-      this.mockContainer = document.createElement('div');
-    } else {
-      // Fallback for non-DOM environments
-      this.mockContainer = { tagName: 'DIV' } as Element;
-    }
+function getAppScreensetsRegistry(app: HAI3App): ScreensetsRegistry {
+  const registry = app.screensetsRegistry;
+  if (!registry) {
+    throw new Error('expected screensetsRegistry on app');
   }
-
-  getContainer(_extensionId: string): Element {
-    return this.mockContainer;
-  }
-
-  releaseContainer(_extensionId: string): void {
-    // no-op
-  }
+  return registry;
 }
 
 describe('microfrontends plugin - Phase 7.9', () => {
-  // Load layout domains once for all tests
   const [sidebarDomain, popupDomain, screenDomain, overlayDomain] = loadLayoutDomains();
   let apps: HAI3App[] = [];
+  // NOTE: We deliberately reuse the module-scoped `gtsPlugin` singleton across
+  // every test in this file. The `screensetsRegistryFactory` is itself a
+  // process-wide singleton that caches the very first TypeSystemPlugin it was
+  // built with, and rejects subsequent .build(...) calls with a *different*
+  // plugin identity (even if both are named "gts"). That makes a fresh
+  // `new GtsPlugin()` per test incompatible with the registry factory.
+  //
+  // Schema registration below is idempotent: the three first-class schemas are
+  // static and do not mutate between tests, so sharing the singleton does not
+  // leak test-specific state.
+  const typeSystem: TypeSystemPlugin = gtsPlugin;
 
-  beforeEach(() => {
-    // The layout domains reference application-layer property schemas (theme, language).
-    // Register them on the gtsPlugin singleton so GTS can validate domain sharedProperties.
-    gtsPlugin.registerSchema(themeSchema);
-    gtsPlugin.registerSchema(languageSchema);
-    gtsPlugin.registerSchema(extensionScreenSchema);
+  beforeAll(() => {
+    typeSystem.registerSchema(themeSchema);
+    typeSystem.registerSchema(languageSchema);
+    typeSystem.registerSchema(extensionScreenSchema);
   });
 
   afterEach(() => {
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps = [];
+    vi.restoreAllMocks();
+    eventBus.clearAll();
+    resetStore();
+    resetSharedQueryClient();
   });
 
+  function buildApp(): HAI3App {
+    const app = createHAI3()
+      .use(screensets())
+      .use(microfrontends({ typeSystem }))
+      .build();
+    apps.push(app);
+    return app;
+  }
+
   describe('plugin factory', () => {
-    it('should accept required typeSystem parameter', () => {
-      expect(() => {
-        microfrontends({ typeSystem: gtsPlugin });
-      }).not.toThrow();
-    });
-
-    it('should accept optional MicrofrontendsConfig with mfeHandlers', () => {
-      expect(() => {
-        microfrontends({ typeSystem: gtsPlugin, mfeHandlers: [] });
-      }).not.toThrow();
-    });
-
-    it('should return a valid plugin object', () => {
-      const plugin = microfrontends({ typeSystem: gtsPlugin });
+    it('accepts required typeSystem parameter and returns a valid plugin object', () => {
+      const plugin = microfrontends({ typeSystem });
 
       expect(plugin).toHaveProperty('name', 'microfrontends');
       expect(plugin).toHaveProperty('dependencies');
@@ -85,38 +86,34 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(plugin).toHaveProperty('provides');
       expect(plugin.provides).toHaveProperty('registries');
     });
+
+    it('accepts optional mfeHandlers config', () => {
+      const plugin = microfrontends({ typeSystem, mfeHandlers: [] });
+
+      expect(plugin.name).toBe('microfrontends');
+    });
   });
 
   describe('7.9.1 - plugin obtains screensetsRegistry from framework', () => {
-    it('should provide screensetsRegistry via provides.registries', () => {
-      const plugin = microfrontends({ typeSystem: gtsPlugin });
+    it('provides screensetsRegistry via provides.registries', () => {
+      const plugin = microfrontends({ typeSystem });
 
       expect(plugin.provides).toBeDefined();
       expect(plugin.provides?.registries).toBeDefined();
       expect(plugin.provides?.registries?.screensetsRegistry).toBeDefined();
     });
 
-    it('should make screensetsRegistry available on app object', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('makes screensetsRegistry available on the app object', () => {
+      const app = buildApp();
 
       expect(app.screensetsRegistry).toBeDefined();
       expect(typeof app.screensetsRegistry).toBe('object');
     });
 
-    it('should expose screensetsRegistry with MFE methods', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('exposes screensetsRegistry with MFE methods', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-
-      // Verify MFE methods are present
       expect(typeof registry.registerDomain).toBe('function');
       expect(typeof registry.typeSystem).toBe('object');
       expect(registry.typeSystem.name).toBe('gts');
@@ -124,136 +121,102 @@ describe('microfrontends plugin - Phase 7.9', () => {
   });
 
   describe('7.9.2 - same TypeSystemPlugin instance is propagated through layers', () => {
-    it('should use same TypeSystemPlugin instance throughout', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('uses the same TypeSystemPlugin instance throughout', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-
-      // Verify the plugin is the GTS plugin
-      expect(registry.typeSystem).toBeDefined();
-      expect(registry.typeSystem.name).toBe('gts');
+      expect(registry.typeSystem).toBe(typeSystem);
       expect(registry.typeSystem.version).toBe('1.0.0');
 
-      // Verify plugin has required methods
       expect(typeof registry.typeSystem.registerSchema).toBe('function');
       expect(typeof registry.typeSystem.getSchema).toBe('function');
       expect(typeof registry.typeSystem.register).toBe('function');
       expect(typeof registry.typeSystem.isTypeOf).toBe('function');
     });
 
-    it('should have consistent plugin reference across multiple calls', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('has a consistent plugin reference across multiple calls', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-
-      // Get reference to plugin
-      const plugin1 = registry.typeSystem;
-      const plugin2 = registry.typeSystem;
-
-      // Should be the same instance
-      expect(plugin1).toBe(plugin2);
+      expect(registry.typeSystem).toBe(registry.typeSystem);
     });
   });
 
   describe('7.9.3 - runtime.registerDomain() works for base domains at runtime', () => {
-    it('should register sidebar domain successfully', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('registers sidebar domain and exposes it via getDomain', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+      registry.registerDomain(sidebarDomain, provider);
 
-      expect(() => {
-        const testContainerProvider = new TestContainerProvider();
-        registry.registerDomain(sidebarDomain, testContainerProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(sidebarDomain.id)).toBeDefined();
+      expect(registry.getDomain(sidebarDomain.id)?.id).toBe(sidebarDomain.id);
     });
 
-    it('should register popup domain successfully', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('registers popup domain and exposes it via getDomain', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+      registry.registerDomain(popupDomain, provider);
 
-      expect(() => {
-        const testContainerProvider = new TestContainerProvider();
-        registry.registerDomain(popupDomain, testContainerProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(popupDomain.id)).toBeDefined();
     });
 
-    it('should register screen domain successfully', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('registers screen domain and exposes it via getDomain', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+      registry.registerDomain(screenDomain, provider);
 
-      expect(() => {
-        const testContainerProvider = new TestContainerProvider();
-        registry.registerDomain(screenDomain, testContainerProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(screenDomain.id)).toBeDefined();
     });
 
-    it('should register overlay domain successfully', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('registers overlay domain and exposes it via getDomain', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+      registry.registerDomain(overlayDomain, provider);
 
-      expect(() => {
-        const testContainerProvider = new TestContainerProvider();
-        registry.registerDomain(overlayDomain, testContainerProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(overlayDomain.id)).toBeDefined();
     });
 
-    it('should register all base domains without conflicts', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('registers all base domains so each can be queried back', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-      const testProvider = new TestContainerProvider();
+      registry.registerDomain(sidebarDomain, provider);
+      registry.registerDomain(popupDomain, provider);
+      registry.registerDomain(screenDomain, provider);
+      registry.registerDomain(overlayDomain, provider);
 
-      expect(() => {
-        registry.registerDomain(sidebarDomain, testProvider);
-        registry.registerDomain(popupDomain, testProvider);
-        registry.registerDomain(screenDomain, testProvider);
-        registry.registerDomain(overlayDomain, testProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(sidebarDomain.id)?.id).toBe(sidebarDomain.id);
+      expect(registry.getDomain(popupDomain.id)?.id).toBe(popupDomain.id);
+      expect(registry.getDomain(screenDomain.id)?.id).toBe(screenDomain.id);
+      expect(registry.getDomain(overlayDomain.id)?.id).toBe(overlayDomain.id);
+    });
+
+    it('returns undefined for unregistered domains', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+
+      expect(
+        registry.getDomain(
+          'gts.hai3.mfes.ext.domain.v1~unknown.domain.v1'
+        )
+      ).toBeUndefined();
     });
   });
 
   describe('7.9.4 - JSON schema loading works correctly', () => {
-    it('should load first-class citizen schemas during plugin construction', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('loads first-class citizen schemas during plugin construction', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-
-      // First-class citizen schemas should be available
       const coreSchemas = [
         'gts.hai3.mfes.mfe.entry.v1~',
         'gts.hai3.mfes.ext.domain.v1~',
@@ -272,16 +235,10 @@ describe('microfrontends plugin - Phase 7.9', () => {
       }
     });
 
-    it('should validate schema availability via getSchema', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('validates schema availability via getSchema', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
-
-      // Test a few specific schemas
       const entrySchema = registry.typeSystem.getSchema('gts.hai3.mfes.mfe.entry.v1~');
       expect(entrySchema).toBeDefined();
       expect(entrySchema?.$id).toContain('gts.hai3.mfes.mfe.entry.v1~');
@@ -291,14 +248,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domainSchema?.$id).toContain('gts.hai3.mfes.ext.domain.v1~');
     });
 
-    it('should return undefined for non-existent schemas', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
-
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+    it('returns undefined for non-existent schemas', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
 
       const nonExistentSchema = registry.typeSystem.getSchema('gts.nonexistent.schema.v1~');
       expect(nonExistentSchema).toBeUndefined();
@@ -306,37 +258,28 @@ describe('microfrontends plugin - Phase 7.9', () => {
   });
 
   describe('7.9.5 - JSON instance loading works correctly', () => {
-    it('should load base domain instances from JSON', () => {
-      // Verify instances have correct structure
+    it('loads base domain instances from JSON with expected ids', () => {
       expect(sidebarDomain.id).toContain('hai3.screensets.layout.sidebar');
       expect(popupDomain.id).toContain('hai3.screensets.layout.popup');
       expect(screenDomain.id).toContain('hai3.screensets.layout.screen');
       expect(overlayDomain.id).toContain('hai3.screensets.layout.overlay');
     });
 
-    it('should validate loaded domain instances', () => {
-      const app = createHAI3()
-        .use(screensets())
-        .use(microfrontends({ typeSystem: gtsPlugin }))
-        .build();
-      apps.push(app);
+    it('validates the loaded domain instance when registered', () => {
+      const app = buildApp();
+      const registry = getAppScreensetsRegistry(app);
+      const provider = new TestContainerProvider();
 
-      const registry = app.screensetsRegistry as ScreensetsRegistry;
+      registry.registerDomain(sidebarDomain, provider);
 
-      // Register the domain (this triggers validation internally)
-      expect(() => {
-        const testContainerProvider = new TestContainerProvider();
-        registry.registerDomain(sidebarDomain, testContainerProvider);
-      }).not.toThrow();
+      expect(registry.getDomain(sidebarDomain.id)).toBeDefined();
     });
 
-    it('should load lifecycle stages from JSON', () => {
-      // Verify lifecycle stages are loaded
+    it('loads lifecycle stages from JSON', () => {
       expect(sidebarDomain.lifecycleStages).toBeDefined();
       expect(Array.isArray(sidebarDomain.lifecycleStages)).toBe(true);
       expect(sidebarDomain.lifecycleStages.length).toBe(4);
 
-      // Verify stage IDs
       const stageIds = sidebarDomain.lifecycleStages;
       expect(stageIds).toContain('gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1');
       expect(stageIds).toContain('gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1');
@@ -344,20 +287,17 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(stageIds).toContain('gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1');
     });
 
-    it('should load base actions from JSON', () => {
-      // Verify actions are loaded
+    it('loads base actions from JSON', () => {
       expect(sidebarDomain.actions).toBeDefined();
       expect(Array.isArray(sidebarDomain.actions)).toBe(true);
       expect(sidebarDomain.actions.length).toBe(3);
 
-      // Verify action IDs
       expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
       expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
       expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
 
-    it('should handle screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
-      // Screen domain should have load_ext and mount_ext, but not unmount_ext (swap semantics)
+    it('handles screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
       expect(screenDomain.actions.length).toBe(2);
       expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
       expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
@@ -366,7 +306,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
   });
 
   describe('base domain factories', () => {
-    it('should create sidebar domain with correct structure', () => {
+    it('creates sidebar domain with correct structure', () => {
       const domain = sidebarDomain;
 
       expect(domain).toMatchObject({
@@ -387,7 +327,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
     });
 
-    it('should create popup domain with correct structure', () => {
+    it('creates popup domain with correct structure', () => {
       const domain = popupDomain;
 
       expect(domain).toMatchObject({
@@ -408,7 +348,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
     });
 
-    it('should create screen domain with only load_ext action', () => {
+    it('creates screen domain with only load_ext action', () => {
       const domain = screenDomain;
 
       expect(domain).toMatchObject({
@@ -425,13 +365,11 @@ describe('microfrontends plugin - Phase 7.9', () => {
         defaultActionTimeout: 30000,
       });
       expect(domain.actions).toHaveLength(2);
-      // Screen domain is permanent (init-only): 1 lifecycle stage
       expect(domain.lifecycleStages).toHaveLength(1);
-      // Screen extensions still go through full lifecycle: 4 stages
       expect(domain.extensionsLifecycleStages).toHaveLength(4);
     });
 
-    it('should create overlay domain with correct structure', () => {
+    it('creates overlay domain with correct structure', () => {
       const domain = overlayDomain;
 
       expect(domain).toMatchObject({

@@ -5,9 +5,10 @@
  * Validates API Communication feature acceptance criteria for cross-cutting plugins.
  */
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { SseProtocol } from '../protocols/SseProtocol';
+import { SseMockPlugin } from '../plugins/SseMockPlugin';
 import { apiRegistry } from '../apiRegistry';
 import type {
   RestPluginHooks,
@@ -59,6 +60,7 @@ describe('Cross-cutting plugins', () => {
 
   afterEach(() => {
     apiRegistry.reset();
+    vi.useRealTimers();
   });
 
   it('should allow plugin implementing both RestPluginHooks and SsePluginHooks', () => {
@@ -84,73 +86,96 @@ describe('Cross-cutting plugins', () => {
     expect(apiRegistry.plugins.has(SseProtocol, crossPlugin.constructor as never)).toBe(true);
   });
 
-  it('should execute REST hooks for REST requests', async () => {
+  it('should execute REST hooks for REST requests through the protocol pipeline', async () => {
     const crossPlugin = new CrossCuttingLogPlugin();
     apiRegistry.plugins.add(RestProtocol, crossPlugin);
 
-    // Simulate REST request
-    const restContext: RestRequestContext = {
-      method: 'GET',
-      url: '/api/users',
+    const restProtocol = new RestProtocol();
+    restProtocol.initialize({ baseURL: '/api' });
+    restProtocol.setRequestDispatcherForTest(async () => ({
+      status: 200,
       headers: {},
-    };
+      data: { ok: true },
+    }));
 
-    await crossPlugin.onRequest(restContext);
+    const result = await restProtocol.get<{ ok: boolean }>('/users');
 
     expect(crossPlugin.restRequestCount).toBe(1);
+    expect(crossPlugin.restResponseCount).toBe(1);
     expect(crossPlugin.logs).toContain('REST request: GET /api/users');
+    expect(crossPlugin.logs).toContain('REST response: 200');
+    expect(result).toEqual({ ok: true });
   });
 
-  it('should execute SSE hooks for SSE connections', async () => {
+  it('should execute SSE hooks for SSE connections through the protocol pipeline', async () => {
+    vi.useFakeTimers();
     const crossPlugin = new CrossCuttingLogPlugin();
     apiRegistry.plugins.add(SseProtocol, crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, new SseMockPlugin({
+      mockStreams: {
+        '/api/stream': [
+          { data: 'test' },
+          { event: 'done', data: '' },
+        ],
+      },
+      delay: 10,
+    }));
 
-    // Simulate SSE connection
-    const sseContext: SseConnectContext = {
-      url: '/api/stream',
-      headers: {},
-    };
+    const sseProtocol = new SseProtocol();
+    sseProtocol.initialize({ baseURL: '/api' });
+    const onComplete = vi.fn();
 
-    await crossPlugin.onConnect(sseContext);
+    await sseProtocol.connect('/stream', () => undefined, onComplete);
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
 
     expect(crossPlugin.sseConnectCount).toBe(1);
     expect(crossPlugin.logs).toContain('SSE connect: /api/stream');
+    expect(onComplete).toHaveBeenCalledTimes(1);
   });
 
   it('should track both REST and SSE activity in same plugin instance', async () => {
+    vi.useFakeTimers();
     const crossPlugin = new CrossCuttingLogPlugin();
 
-    // Register with both protocols
     apiRegistry.plugins.add(RestProtocol, crossPlugin);
     apiRegistry.plugins.add(SseProtocol, crossPlugin);
+    apiRegistry.plugins.add(SseProtocol, new SseMockPlugin({
+      mockStreams: {
+        '/api/events': [
+          { data: 'test' },
+          { event: 'done', data: '' },
+        ],
+      },
+      delay: 10,
+    }));
 
-    // Execute REST request
-    await crossPlugin.onRequest({
-      method: 'POST',
-      url: '/api/data',
+    const restProtocol = new RestProtocol();
+    restProtocol.initialize({ baseURL: '/api' });
+    restProtocol.setRequestDispatcherForTest(async (config) => ({
+      status: 200,
       headers: {},
-      body: { test: true },
-    });
+      data: { url: config.url },
+    }));
 
-    // Execute SSE connection
-    await crossPlugin.onConnect({
-      url: '/api/events',
-      headers: {},
-    });
+    const sseProtocol = new SseProtocol();
+    sseProtocol.initialize({ baseURL: '/api' });
 
-    // Execute another REST request
-    await crossPlugin.onRequest({
-      method: 'GET',
-      url: '/api/status',
-      headers: {},
-    });
+    await restProtocol.post('/data', { test: true });
+    await sseProtocol.connect('/events', () => undefined);
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
+    await restProtocol.get('/status');
 
     expect(crossPlugin.restRequestCount).toBe(2);
+    expect(crossPlugin.restResponseCount).toBe(2);
     expect(crossPlugin.sseConnectCount).toBe(1);
     expect(crossPlugin.logs).toEqual([
       'REST request: POST /api/data',
+      'REST response: 200',
       'SSE connect: /api/events',
       'REST request: GET /api/status',
+      'REST response: 200',
     ]);
   });
 

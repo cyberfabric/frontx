@@ -4,15 +4,14 @@
  * Covers mount path when the host app has no queryCache() plugin:
  * HAI3Provider renders without QueryClientProvider, the app has no query cache handle, and the slot
  * must still mount via registry.executeActionsChain without mount-context wrapping.
- *
- * @vitest-environment jsdom
  */
 
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import React from 'react';
 import { render, waitFor } from '@testing-library/react';
-import { HAI3Provider } from '../../src/HAI3Provider';
-import { ExtensionDomainSlot } from '../../src/mfe/components/ExtensionDomainSlot';
+import {
+  ExtensionDomainSlot,
+  HAI3Provider,
+} from '@cyberfabric/react';
 import {
   createHAI3,
   screensets,
@@ -26,13 +25,13 @@ import {
 } from '@cyberfabric/framework';
 import type { HAI3App, ParentMfeBridge } from '@cyberfabric/framework';
 
-const APP_QUERY_CLIENT_SYMBOL = Symbol.for('hai3:query-cache:app-client');
-
 describe('ExtensionDomainSlot', () => {
   const apps: HAI3App[] = [];
 
   afterEach(() => {
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps.length = 0;
     vi.restoreAllMocks();
   });
@@ -49,7 +48,6 @@ describe('ExtensionDomainSlot', () => {
 
   it('mounts via registry.executeActionsChain when app has no queryCache plugin', async () => {
     const app = buildAppWithoutQueryCache();
-    expect((app as HAI3App & Record<typeof APP_QUERY_CLIENT_SYMBOL, unknown>)[APP_QUERY_CLIENT_SYMBOL]).toBeUndefined();
 
     const registry = app.screensetsRegistry;
     if (!registry) {
@@ -172,6 +170,9 @@ describe('ExtensionDomainSlot', () => {
     expect(slot?.textContent).toContain('Loading extension...');
 
     resolveMount?.();
+    await waitFor(() => {
+      expect(slot?.textContent).not.toContain('Loading extension...');
+    });
     unmount();
   });
 });

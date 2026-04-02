@@ -29,11 +29,11 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
   });
 
   afterEach(() => {
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps = [];
-    // Clear all event bus listeners to prevent handler accumulation across tests.
-    // The themes() and i18n() plugins subscribe in onInit but have no onDestroy cleanup,
-    // so without this, handlers from previous test apps bleed into subsequent tests.
+    // Clear test-local listeners registered inside assertions.
     eventBus.clearAll();
     resetStore();
   });
@@ -131,6 +131,34 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
 
       expect(applySpy).toHaveBeenCalledWith('dark');
     });
+
+    it('should unsubscribe theme propagation when the plugin app is destroyed', () => {
+      const firstApp = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(themes())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(firstApp);
+
+      firstApp.destroy();
+      apps = apps.filter((app) => app !== firstApp);
+
+      const secondApp = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(themes())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(secondApp);
+
+      const updateSpy = vi.spyOn(secondApp.screensetsRegistry!, 'updateSharedProperty');
+
+      eventBus.emit('theme/changed', { themeId: 'dark' });
+
+      expect(updateSpy).toHaveBeenCalledWith(HAI3_SHARED_PROPERTY_THEME, 'dark');
+      expect(updateSpy).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('language propagation via i18n() plugin', () => {
@@ -147,15 +175,13 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
 
       eventBus.emit('i18n/language/changed', { language: 'de' });
 
-      // The i18n event handler is async and internally awaits i18nRegistry.setLanguage()
-      // which itself awaits loadLanguage() and Promise.all(). We need multiple microtask
-      // flushes to let the entire async chain complete before asserting.
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(updateSpy).toHaveBeenCalledWith(HAI3_SHARED_PROPERTY_LANGUAGE, 'de');
+      // The i18n event handler is async and internally awaits several promises.
+      // Use vi.waitFor so the assertion is driven by observable state rather
+      // than by a fixed microtask count that would break if the handler's
+      // async chain grows or shrinks.
+      await vi.waitFor(() => {
+        expect(updateSpy).toHaveBeenCalledWith(HAI3_SHARED_PROPERTY_LANGUAGE, 'de');
+      });
     });
 
     it('should not throw when i18n/language/changed fires even if updateSharedProperty throws', async () => {
@@ -171,10 +197,33 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         throw new Error('GTS validation failed');
       });
 
-      await expect(async () => {
-        eventBus.emit('i18n/language/changed', { language: 'xx' });
-        await Promise.resolve();
-      }).not.toThrow();
+      // Track unhandled rejections to surface async failures that a simple
+      // not.toThrow assertion would silently miss.
+      const unhandled: unknown[] = [];
+      function onUnhandled(reason: unknown): void {
+        unhandled.push(reason);
+      }
+      process.on('unhandledRejection', onUnhandled);
+
+      try {
+        const failHandler = vi.fn();
+        eventBus.on('i18n/propagation/failed', failHandler);
+
+        await expect(
+          (async () => {
+            eventBus.emit('i18n/language/changed', { language: 'xx' });
+            // Wait for the propagation-failed event as a proxy for the async
+            // chain settling; ensures no rejection escapes the handler.
+            await vi.waitFor(() => {
+              expect(failHandler).toHaveBeenCalled();
+            });
+          })()
+        ).resolves.not.toThrow();
+
+        expect(unhandled).toEqual([]);
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
     });
 
     it('should emit i18n/propagation/failed when updateSharedProperty throws', async () => {
@@ -196,15 +245,42 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
 
       eventBus.emit('i18n/language/changed', { language: 'xx' });
 
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(failHandler).toHaveBeenCalledWith({
-        language: 'xx',
-        error: propagationError,
+      await vi.waitFor(() => {
+        expect(failHandler).toHaveBeenCalledWith({
+          language: 'xx',
+          error: propagationError,
+        });
       });
+    });
+
+    it('should unsubscribe language propagation when the plugin app is destroyed', async () => {
+      const firstApp = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(i18n())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(firstApp);
+
+      firstApp.destroy();
+      apps = apps.filter((app) => app !== firstApp);
+
+      const secondApp = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(i18n())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(secondApp);
+
+      const updateSpy = vi.spyOn(secondApp.screensetsRegistry!, 'updateSharedProperty');
+
+      eventBus.emit('i18n/language/changed', { language: 'de' });
+
+      await vi.waitFor(() => {
+        expect(updateSpy).toHaveBeenCalledWith(HAI3_SHARED_PROPERTY_LANGUAGE, 'de');
+      });
+      expect(updateSpy).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -246,14 +322,26 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
 
       const setLanguageSpy = vi.spyOn(app.i18nRegistry, 'setLanguage');
 
-      // Must not throw — optional chaining skips updateSharedProperty silently
-      await expect(async () => {
-        eventBus.emit('i18n/language/changed', { language: 'es' });
-        await Promise.resolve();
-      }).not.toThrow();
+      const unhandled: unknown[] = [];
+      function onUnhandled(reason: unknown): void {
+        unhandled.push(reason);
+      }
+      process.on('unhandledRejection', onUnhandled);
 
-      // i18n registry must still set the language
-      expect(setLanguageSpy).toHaveBeenCalledWith('es');
+      try {
+        await expect(
+          (async () => {
+            eventBus.emit('i18n/language/changed', { language: 'es' });
+            await vi.waitFor(() => {
+              expect(setLanguageSpy).toHaveBeenCalledWith('es');
+            });
+          })()
+        ).resolves.not.toThrow();
+
+        expect(unhandled).toEqual([]);
+      } finally {
+        process.off('unhandledRejection', onUnhandled);
+      }
     });
   });
 

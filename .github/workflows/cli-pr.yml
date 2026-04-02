@@ -1,5 +1,13 @@
 name: CLI PR E2E
 
+# This workflow only exercises the CLI scaffold end-to-end paths. Monorepo
+# unit-test coverage (including `packages/cli`'s own unit tests under
+# `vitest`) is run by `main.yml` on the same pull_request trigger, so
+# duplicating `npm run test:unit` here would just double the CI cost for
+# every PR. If the CLI ever grows a regression path that unit tests miss
+# but main.yml does not yet guard, add an explicit check here (ideally via
+# a `--workspace=@cyberfabric/cli` test run) rather than re-running the
+# whole monorepo suite.
 on:
   pull_request:
     branches: [ main, develop ]

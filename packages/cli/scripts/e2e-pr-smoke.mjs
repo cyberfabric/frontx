@@ -1,6 +1,5 @@
 // @cpt-flow:cpt-frontx-flow-cli-tooling-e2e-pr:p1
 // @cpt-dod:cpt-frontx-dod-cli-tooling-e2e-pr:p1
-import fs from 'fs';
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
@@ -24,11 +23,38 @@ const expectedManagerEngines = {
   yarn: '>=4.0.0',
 };
 
-function runScriptArgs(scriptName) {
+function runScriptArgs(scriptName, extraArgs = []) {
   if (packageManager === 'yarn') {
-    return [scriptName];
+    return [scriptName, ...extraArgs];
+  }
+  if (extraArgs.length > 0) {
+    return ['run', scriptName, '--', ...extraArgs];
   }
   return ['run', scriptName];
+}
+
+/**
+ * Args for `test:unit` with verbose reporter. pnpm's `run <script> -- <args>` can
+ * forward a stray `--` token into Vitest, which then drops --reporter=verbose from
+ * stdout; `pnpm exec vitest` matches npm/yarn output for assertStepOutputIncludes.
+ */
+function runVitestUnitArgs() {
+  if (packageManager === 'pnpm') {
+    return ['exec', 'vitest', '--run', '--passWithNoTests=false', '--reporter=verbose'];
+  }
+  return runScriptArgs('test:unit', ['--reporter=verbose']);
+}
+
+function runScriptCommand(scriptName) {
+  if (packageManager === 'yarn') {
+    return `yarn ${scriptName}`;
+  }
+  return `${packageManager} run ${scriptName}`;
+}
+
+function assertStepOutputIncludes(stepResult, expectedSnippet, message) {
+  const output = `${stepResult.stdout || ''}\n${stepResult.stderr || ''}`;
+  harness.assert(output.includes(expectedSnippet), message);
 }
 
 function installArgs() {
@@ -86,6 +112,7 @@ function runProjectValidation(projectRoot) {
 try {
   const workspace = harness.makeTempDir('workspace');
   const projectRoot = path.join(workspace, 'smoke-app');
+  const demoMfeRoot = path.join(projectRoot, 'src', 'mfe_packages', 'demo-mfe');
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-create-app
   harness.runStep({
@@ -97,6 +124,7 @@ try {
       'create',
       'smoke-app',
       '--no-studio',
+      '--local',
       '--uikit',
       'shadcn',
       '--package-manager',
@@ -109,12 +137,21 @@ try {
   harness.assertPathExists(path.join(projectRoot, 'frontx.config.json'));
   harness.assertPathExists(path.join(projectRoot, 'package.json'));
   harness.assertPathExists(path.join(projectRoot, '.ai', 'GUIDELINES.md'));
+  harness.assertPathExists(path.join(projectRoot, '.ai', 'project', 'GUIDELINES.md'));
+  harness.assertPathExists(path.join(projectRoot, '.ai', 'project', 'targets', 'UNIT_TESTING.md'));
+  harness.assertPathExists(path.join(projectRoot, 'vitest.config.ts'));
   harness.assertPathExists(path.join(projectRoot, 'src', 'app', 'layout', 'Layout.tsx'));
+  harness.assertPathExists(path.join(projectRoot, 'src', 'app', 'lib', 'utils.test.ts'));
   harness.assertPathExists(path.join(projectRoot, 'scripts', 'generate-mfe-manifests.ts'));
+  harness.assertPathExists(path.join(demoMfeRoot, 'package.json'));
+  harness.assertPathExists(path.join(demoMfeRoot, 'vitest.config.ts'));
+  harness.assertPathExists(path.join(demoMfeRoot, 'src', 'screens', 'home', 'HomeScreen.test.tsx'));
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-files
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
-  const packageJson = harness.readJson(path.join(projectRoot, 'package.json'));
+  const packageJson = harness.readJson(path.join(projectRoot, 'package.json'), {
+    within: projectRoot,
+  });
   harness.assert(
     packageJson.engines?.node === '>=24.14.0',
     'Generated project must pin node >=24.14.0'
@@ -127,13 +164,20 @@ try {
     packageJson.engines?.[packageManager] === expectedManagerEngines[packageManager],
     `Generated project engines must require ${packageManager} ${expectedManagerEngines[packageManager]}`
   );
+  harness.assert(
+    typeof packageJson.dependencies?.['@cyberfabric/react'] === 'string' &&
+      packageJson.dependencies['@cyberfabric/react'].startsWith('file:'),
+    'PR smoke generated project must use local @cyberfabric packages from the checked-out monorepo'
+  );
   if (packageManager === 'pnpm') {
     harness.assertPathExists(path.join(projectRoot, 'pnpm-workspace.yaml'));
   }
   if (packageManager === 'yarn') {
     harness.assertPathExists(path.join(projectRoot, '.yarnrc.yml'));
   }
-  const frontxConfig = harness.readJson(path.join(projectRoot, 'frontx.config.json'));
+  const frontxConfig = harness.readJson(path.join(projectRoot, 'frontx.config.json'), {
+    within: projectRoot,
+  });
   harness.assert(
     frontxConfig.packageManager === packageManager,
     `Generated frontx.config.json must set packageManager to ${packageManager}`
@@ -142,11 +186,51 @@ try {
     !('packageManagerVersion' in frontxConfig),
     'Generated frontx.config.json must not include packageManagerVersion'
   );
-  const readmeContent = fs.readFileSync(path.join(projectRoot, 'README.md'), 'utf8');
+  const readmeContent = harness.readText(path.join(projectRoot, 'README.md'), {
+    within: projectRoot,
+  });
   harness.assert(
     readmeContent.includes(`${packageManager} install`) ||
       (packageManager === 'yarn' && readmeContent.includes('yarn dev')),
     'Generated README must include concrete package-manager setup commands'
+  );
+  harness.assert(
+    packageJson.scripts?.['test:unit'] === 'vitest --run --passWithNoTests=false',
+    'Generated project must expose test:unit as the standard unit-test command'
+  );
+  harness.assert(
+    packageJson.scripts?.['test:unit:watch'] === 'vitest --watch',
+    'Generated project must expose test:unit:watch'
+  );
+  harness.assert(
+    typeof packageJson.devDependencies?.vitest === 'string' &&
+      packageJson.devDependencies.vitest.length > 0,
+    'Generated project must declare vitest in devDependencies'
+  );
+  const copilotInstructions = harness.readText(
+    path.join(projectRoot, '.github', 'copilot-instructions.md'),
+    { within: projectRoot }
+  );
+  const newScreenCommand = harness.readText(
+    path.join(projectRoot, '.ai', 'commands', 'frontx-new-screen.md'),
+    { within: projectRoot }
+  );
+  const newComponentCommand = harness.readText(
+    path.join(projectRoot, '.ai', 'commands', 'frontx-new-component.md'),
+    { within: projectRoot }
+  );
+  harness.assert(
+    copilotInstructions.includes('test:unit'),
+    'Generated AI guidance must reference the standard unit-test workflow'
+  );
+  harness.assert(
+    newScreenCommand.includes('Add or update a screen test'),
+    'Generated new-screen command must require a starter screen test'
+  );
+  harness.assert(
+    newComponentCommand.includes('shared composite') &&
+      newComponentCommand.includes(runScriptCommand('test:unit')),
+    'Generated new-component command must require tests for shared composites'
   );
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
 
@@ -181,9 +265,33 @@ try {
       command: packageManager,
       args: runScriptArgs('type-check'),
     });
+
+    const rootUnitTestResult = harness.runStep({
+      name: 'test-unit-generated-project',
+      cwd: projectRoot,
+      command: packageManager,
+      args: runVitestUnitArgs(),
+    });
+    assertStepOutputIncludes(
+      rootUnitTestResult,
+      'src/app/mfe/bootstrap.test.ts',
+      'Generated project root test:unit must execute the host-side MFE bootstrap smoke test'
+    );
+
+    const demoMfeUnitTestResult = harness.runStep({
+      name: 'test-unit-generated-demo-mfe',
+      cwd: demoMfeRoot,
+      command: packageManager,
+      args: runVitestUnitArgs(),
+    });
+    assertStepOutputIncludes(
+      demoMfeUnitTestResult,
+      'src/screens/home/HomeScreen.test.tsx',
+      'Generated demo MFE must execute inherited _blank-mfe Vitest tests'
+    );
     // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-build-typecheck
   } else {
-    harness.log(`Skipping ${packageManager} install/build/type-check`);
+    harness.log(`Skipping ${packageManager} install/build/type-check/test:unit`);
   }
 
   runProjectValidation(projectRoot);

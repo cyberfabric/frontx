@@ -105,7 +105,10 @@ npm run build:packages:cli
 ## Validation
 
 ```bash
-# Type checking
+# Repo-wide type checking (host app + workspace packages + nested MFEs)
+npm run type-check:all
+
+# Host app only (`tsconfig.json`; nested MFEs and package test tsconfigs run separately)
 npm run type-check
 
 # Linting
@@ -115,6 +118,19 @@ npm run lint
 npm run arch:check
 npm run arch:deps
 ```
+
+### Unit tests
+
+Run the full suite from the repo root with the monorepo fan-out runner ([`scripts/run-monorepo-unit-tests.mjs`](scripts/run-monorepo-unit-tests.mjs)):
+
+```bash
+npm run test:unit
+npm run test:unit:watch
+```
+
+The host app (`src/app`) and each workspace or nested MFE that defines `test:unit` is exercised by that command. For conventions, CI expectations, and narrowing runs to a single project or path, see [`.ai/project/targets/UNIT_TESTING.md`](.ai/project/targets/UNIT_TESTING.md).
+
+**Internal scripts (do not call directly):** Root [`package.json`](package.json) defines `_test:unit:host` and `_test:unit:host:watch` for the host app only; they exist so the monorepo runner can invoke Vitest where there is no workspace package. Agents and CI should use `npm run test:unit` / `test:unit:watch` instead.
 
 ## License
 

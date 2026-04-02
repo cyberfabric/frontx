@@ -183,7 +183,6 @@
 - REQUIRED: `build.target: 'esnext'` for top-level await support (federation runtime uses it).
 - NOTE: `build.cssCodeSplit` may remain enabled; `MfeHandlerMF` reads the remote's CSS metadata and injects emitted styles into the mount target before lifecycle mount.
 - REQUIRED: Register `@originjs/vite-plugin-federation` (`federation()`) and `hai3MfeExternalize({ shared })` from `src/mfe_packages/shared/vite-plugin-frontx-externalize.ts` with the **same** `shared` dependency list. Federation only rewrites expose entries; the externalize plugin rewrites imports in code-split chunks so shared packages load via `importShared()`.
-- NOTE: In `packages/screensets`, `npm run test:integration` builds `_blank-mfe` in production mode and asserts `MfeHandlerMF` can load the bundle (minify + `cssCodeSplit: true` compatible).
 - REFERENCE: See `src/mfe_packages/_blank-mfe/vite.config.ts` for canonical MFE vite configuration.
 
 ## MFE LIFECYCLE ARCHITECTURE

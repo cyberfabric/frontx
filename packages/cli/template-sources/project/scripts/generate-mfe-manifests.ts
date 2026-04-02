@@ -18,6 +18,8 @@ export interface MfeManifestConfig {
   manifest: JSONSchema;
   entries: MfeEntry[];
   extensions: Extension[];
+  /** MFE-carried schemas (custom actions, properties). Registered before entries and extensions. */
+  schemas?: JSONSchema[];
 }`;
 }
 
@@ -70,7 +72,7 @@ function generateManifestRegistry(): void {
     // Generate import statements
     const imports = mfePackages
       .map((pkg, idx) => {
-        return `import mfe${idx} from '@/mfe_packages/${pkg}/mfe.json';`;
+        return `import mfe${idx} from '../../mfe_packages/${pkg}/mfe.json' with { type: 'json' };`;
       })
       .join('\n');
 

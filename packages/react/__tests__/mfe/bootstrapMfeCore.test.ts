@@ -3,8 +3,6 @@
  *
  * Verifies repeated bootstrap calls only register domains/shared properties and
  * never patch registry execution behavior.
- *
- * @vitest-environment jsdom
  */
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -28,7 +26,10 @@ describe('bootstrapMfeDomains', () => {
       registerDomain: vi.fn(),
       updateSharedProperty: vi.fn(),
       executeActionsChain: originalExecuteActionsChain,
-    } as ScreensetsRegistry;
+    } satisfies Pick<
+      ScreensetsRegistry,
+      'registerDomain' | 'updateSharedProperty' | 'executeActionsChain'
+    >;
     const app = {
       screensetsRegistry: registry,
       themeRegistry: {
@@ -37,7 +38,7 @@ describe('bootstrapMfeDomains', () => {
       i18nRegistry: {
         getLanguage: vi.fn().mockReturnValue('en'),
       },
-    } as HAI3App;
+    } as unknown as HAI3App;
 
     await bootstrapMfeDomains(app, screenContainerRef);
     await bootstrapMfeDomains(app, screenContainerRef);

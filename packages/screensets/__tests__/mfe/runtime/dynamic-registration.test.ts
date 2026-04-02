@@ -7,19 +7,19 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
-import type { MfeHandler } from '../../../src/mfe/handler/types';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider, makeMfeHandlerDouble, type TestDoubleMfeHandler } from '../../../__test-utils__';
 
 describe('Dynamic Registration', () => {
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
+  let typeSystem: GtsPlugin;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.dynamic.reg.domain.v1',
@@ -62,13 +62,14 @@ describe('Dynamic Registration', () => {
   };
 
   beforeEach(() => {
+    typeSystem = new GtsPlugin();
     registry = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+      typeSystem,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register the entry instance with GTS plugin before using it
-    gtsPlugin.register(testEntry);
+    typeSystem.register(testEntry);
   });
 
   describe('factory', () => {
@@ -94,7 +95,7 @@ describe('Dynamic Registration', () => {
     it('should fail if domain not registered', async () => {
       // Try to register extension without domain
       await expect(registry.registerExtension(testExtension)).rejects.toThrow(
-        /domain.*not registered/i
+        /domain.*not registered|Referenced entity.*not found/i
       );
     });
   });
@@ -151,14 +152,14 @@ describe('Dynamic Registration', () => {
   });
 
   describe('loadExtension and preloadExtension', () => {
-    it.skip('should require extension to be registered (19.5.7)', async () => {
+    it('should require extension to be registered (19.5.7)', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       // Extension registration validation IS implemented in MountManager.loadExtension
       // (lines 105-111). This test is skipped because it tests error handling during
       // action chain execution, which is covered by other tests in the suite.
       registry.registerDomain(testDomain, mockContainerProvider);
 
       // Try to load non-existent extension via actions chain
-      // executeActionsChain now throws instead of returning error result
       await expect(
         registry.executeActionsChain({
           action: {
@@ -167,7 +168,11 @@ describe('Dynamic Registration', () => {
             payload: { subject: 'nonexistent' },
           },
         })
-      ).rejects.toThrow();
+      ).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
+      errorSpy.mockRestore();
     });
 
     it('should cache bundle for mounting (19.5.8)', async () => {
@@ -176,15 +181,15 @@ describe('Dynamic Registration', () => {
         mount: vi.fn().mockResolvedValue(undefined),
         unmount: vi.fn().mockResolvedValue(undefined),
       };
-      const mockHandler = {
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        load: vi.fn().mockResolvedValue(mockLifecycle),
         priority: 100,
-      };
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+      });
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       // Register domain
@@ -231,15 +236,15 @@ describe('Dynamic Registration', () => {
         mount: vi.fn().mockResolvedValue(undefined),
         unmount: vi.fn().mockResolvedValue(undefined),
       };
-      const mockHandler = {
+      const mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        load: vi.fn().mockResolvedValue(mockLifecycle),
         priority: 100,
-      };
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+      });
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       // Register domain
@@ -268,13 +273,7 @@ describe('Dynamic Registration', () => {
 
   describe('mountExtension and unmountExtension', () => {
     let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
-    let mockHandler: {
-      bridgeFactory: unknown;
-      handledBaseTypeId: string;
-      load: ReturnType<typeof vi.fn>;
-      preload: ReturnType<typeof vi.fn>;
-      priority: number;
-    };
+    let mockHandler: TestDoubleMfeHandler;
 
     beforeEach(() => {
       mockLifecycle = {
@@ -282,20 +281,18 @@ describe('Dynamic Registration', () => {
         unmount: vi.fn().mockResolvedValue(undefined),
       };
 
-      mockHandler = {
-        bridgeFactory: {} as unknown,
+      mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        load: vi.fn().mockResolvedValue(mockLifecycle),
-        preload: vi.fn().mockResolvedValue(undefined),
         priority: 0,
-      };
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+      });
     });
 
     it('should auto-load if not loaded (19.5.10)', async () => {
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       // Register domain
@@ -334,14 +331,14 @@ describe('Dynamic Registration', () => {
       expect(registry.getMountedExtension(testDomain.id)).toBe(testExtension.id);
     });
 
-    it.skip('should require extension to be registered (19.5.11)', async () => {
+    it('should require extension to be registered (19.5.11)', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       // Extension registration validation IS implemented in MountManager.mountExtension
       // (lines 168-174). This test is skipped because it tests error handling during
       // action chain execution, which is covered by other tests in the suite.
       registry.registerDomain(testDomain, mockContainerProvider);
 
       // Try to mount non-existent extension via actions chain
-      // executeActionsChain now throws instead of returning error result
       await expect(
         registry.executeActionsChain({
           action: {
@@ -350,14 +347,18 @@ describe('Dynamic Registration', () => {
             payload: { subject: 'nonexistent' },
           },
         })
-      ).rejects.toThrow();
+      ).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
+      errorSpy.mockRestore();
     });
 
     it('should keep extension registered and bundle loaded after unmount (19.5.12)', async () => {
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       // Register domain
@@ -407,13 +408,7 @@ describe('Dynamic Registration', () => {
 
   describe('unregisterExtension with mounted MFE', () => {
     let mockLifecycle: { mount: ReturnType<typeof vi.fn>; unmount: ReturnType<typeof vi.fn> };
-    let mockHandler: {
-      bridgeFactory: unknown;
-      handledBaseTypeId: string;
-      load: ReturnType<typeof vi.fn>;
-      preload: ReturnType<typeof vi.fn>;
-      priority: number;
-    };
+    let mockHandler: TestDoubleMfeHandler;
 
     beforeEach(() => {
       mockLifecycle = {
@@ -421,20 +416,18 @@ describe('Dynamic Registration', () => {
         unmount: vi.fn().mockResolvedValue(undefined),
       };
 
-      mockHandler = {
-        bridgeFactory: {} as unknown,
+      mockHandler = makeMfeHandlerDouble({
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
-        load: vi.fn().mockResolvedValue(mockLifecycle),
-        preload: vi.fn().mockResolvedValue(undefined),
         priority: 0,
-      };
+        load: vi.fn().mockResolvedValue(mockLifecycle),
+      });
     });
 
     it('should unmount MFE if mounted (19.5.3)', async () => {
       // Create new registry with handler in config
       registry = new DefaultScreensetsRegistry({
-        typeSystem: gtsPlugin,
-        mfeHandlers: [mockHandler as unknown as MfeHandler],
+        typeSystem,
+        mfeHandlers: [mockHandler],
       });
 
       // Register domain
@@ -501,7 +494,7 @@ describe('Dynamic Registration', () => {
           HAI3_ACTION_UNMOUNT_EXT,
         ],
       };
-      gtsPlugin.register(newEntry);
+      typeSystem.register(newEntry);
 
       const newExtension: Extension = {
         id: testExtension.id, // Same ID

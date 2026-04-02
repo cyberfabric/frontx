@@ -142,7 +142,7 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     if (!manifest?.['metaData']) {
       throw new Error(`Expected mfe.json to be enriched with manifest.metaData after build.\n${buildInfo}`);
     }
-  });
+  }, 120_000);
 
   it('emits mf-manifest.json (raw @module-federation/vite output) with correct base structure', () => {
     // mf-manifest.json is the raw MF plugin output (not the GTS manifest).
@@ -232,7 +232,7 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     // import syntax — the public load() API cannot be driven in Node because
     // dynamic blob/data imports require a browser ESM loader.
     type MfeHandlerMFInternal = Record<string, (source: string, chunkFilename: string) => string[]>;
-    const proto = MfeHandlerMF.prototype as MfeHandlerMFInternal;
+    const proto = MfeHandlerMF.prototype as unknown as MfeHandlerMFInternal;
     const parseStaticImportFilenames = proto.parseStaticImportFilenames;
 
     // Chunk paths in manifest are relative to DIST_DIR
@@ -254,7 +254,7 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
       { timeout: 30_000, retries: 0 }
     );
     type MfeHandlerMFInternal = Record<string, (source: string, chunkFilename: string) => string[]>;
-    const proto = MfeHandlerMF.prototype as MfeHandlerMFInternal;
+    const proto = MfeHandlerMF.prototype as unknown as MfeHandlerMFInternal;
     const parseStaticImportFilenames = proto.parseStaticImportFilenames;
 
     const deps = parseStaticImportFilenames.call(

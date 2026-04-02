@@ -67,6 +67,7 @@
 ## STOP CONDITIONS
 - Editing /core/runtime or /sdk.
 - Modifying registry root files.
+- Creating new packages without explicit user approval.
 - Adding new top-level dependencies.
 - Bypassing rules in EVENTS.md.
 - Killing MCP server processes (see MCP_TROUBLESHOOTING.md).

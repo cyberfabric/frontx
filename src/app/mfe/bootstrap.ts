@@ -10,16 +10,17 @@
  */
 
 import type { RefObject } from 'react';
+import * as MFE_MANIFESTS_MODULE from './generated-mfe-manifests.json';
 import type {
   HAI3App,
   Extension,
+  ScreenExtension,
   MfManifest,
   MfeEntryMF,
   JSONSchema,
   ScreensetsRegistry,
 } from '@cyberfabric/react';
 import { bootstrapMfeDomains } from '@cyberfabric/react';
-import MFE_MANIFESTS from './generated-mfe-manifests.json';
 
 /**
  * Shape of each MFE manifest config in the generated JSON.
@@ -32,6 +33,20 @@ interface MfeManifestConfig {
   schemas?: JSONSchema[];
 }
 
+const manifestModule = MFE_MANIFESTS_MODULE as {
+  default?: MfeManifestConfig[];
+  MFE_MANIFESTS?: MfeManifestConfig[];
+};
+const MFE_MANIFESTS = manifestModule.MFE_MANIFESTS ?? manifestModule.default ?? [];
+
+function isScreenExtension(extension: Extension): extension is ScreenExtension {
+  const presentation = (extension as Partial<ScreenExtension>).presentation;
+  return typeof presentation === 'object' &&
+    presentation !== null &&
+    'route' in presentation &&
+    typeof presentation.route === 'string';
+}
+
 // @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
 /**
  * Scoped schema registration: only register schemas whose $id matches an action ID
@@ -42,8 +57,8 @@ interface MfeManifestConfig {
 function collectDeclaredActionIds(entries: MfeEntryMF[]): Set<string> {
   const declaredActionIds = new Set<string>();
   for (const entry of entries) {
-    for (const actionId of entry.actions) declaredActionIds.add(actionId);
-    for (const actionId of entry.domainActions) declaredActionIds.add(actionId);
+    for (const actionId of entry.actions ?? []) declaredActionIds.add(actionId);
+    for (const actionId of entry.domainActions ?? []) declaredActionIds.add(actionId);
   }
   return declaredActionIds;
 }
@@ -56,9 +71,8 @@ function registerScopedSchemas(
   for (const schema of schemas) {
     const schemaId = schema.$id;
     if (!schemaId) continue;
-    const matches = Array.from(declaredActionIds).some((actionId) =>
-      schemaId.includes(actionId),
-    );
+    const matches = declaredActionIds.size === 0 ||
+      Array.from(declaredActionIds).some((actionId) => schemaId.includes(actionId));
     if (matches) {
       registry.typeSystem.registerSchema(schema);
     }
@@ -101,19 +115,28 @@ async function registerMfePackage(
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
-): Promise<void> {
+): Promise<ScreenExtension[]> {
   const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef);
 
   if (MFE_MANIFESTS.length === 0) {
     console.warn(
       '[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.',
     );
-    return;
+    return [];
   }
 
   const manifests = MFE_MANIFESTS as MfeManifestConfig[];
+  const screenExtensions: ScreenExtension[] = [];
   for (const config of manifests) {
     await registerMfePackage(screensetsRegistry, config);
+    screenExtensions.push(...config.extensions.filter(isScreenExtension));
   }
+
+  if (screenExtensions.length === 0) {
+    console.warn('[MFE Bootstrap] No screen extensions available, skipping mount');
+    return [];
+  }
+
+  return screenExtensions;
 }
 // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-bootstrap-mfe

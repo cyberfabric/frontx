@@ -207,7 +207,7 @@ export const ProfileDetailsCard: React.FC<ProfileDetailsCardProps> = ({
         )}
       </CardContent>
       <CardFooter className="p-6 pt-0 gap-2">
-        <Button onClick={onRefresh} disabled={isSaving}>
+        <Button data-testid="profile-refresh-button" onClick={onRefresh} disabled={isSaving}>
           {t('refresh')}
         </Button>
         {isEditing ? null : (

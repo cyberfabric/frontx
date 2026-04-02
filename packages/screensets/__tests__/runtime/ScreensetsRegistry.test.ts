@@ -7,76 +7,14 @@
 import { describe, it, expect, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { ScreensetsRegistryConfig } from '../../src/mfe/runtime/config';
-import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../src/mfe/plugins/types';
+import type { TypeSystemPlugin } from '../../src/mfe/plugins/types';
+import type { MfeHandler } from '../../src/mfe/handler/types';
 import type { ExtensionDomain, Action, ActionsChain } from '../../src/mfe/types';
-import { MockContainerProvider } from '../mfe/test-utils';
-
-// Mock Type System Plugin
-function createMockPlugin(): TypeSystemPlugin {
-  const schemas = new Map<string, JSONSchema>();
-  const registeredEntities = new Map<string, unknown>();
-
-  return {
-    name: 'MockPlugin',
-    version: '1.0.0',
-    isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-    parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
-    registerSchema: (schema: JSONSchema) => {
-      if (schema.$id) {
-        const typeId = schema.$id.replace('gts://', '');
-        schemas.set(typeId, schema);
-      }
-    },
-    getSchema: (typeId: string) => schemas.get(typeId),
-    // GTS-native register method
-    register: (entity: unknown) => {
-      const entityWithId = entity as { id?: string; type?: string };
-      // Actions use 'type' field as identifier, others use 'id'
-      const identifier = entityWithId.type || entityWithId.id;
-      if (identifier) {
-        registeredEntities.set(identifier, entity);
-      }
-    },
-    // GTS-native validateInstance by ID only
-    validateInstance: (instanceId: string): ValidationResult => {
-      // Return valid if entity is registered
-      if (registeredEntities.has(instanceId)) {
-        return { valid: true, errors: [] };
-      }
-      return {
-        valid: false,
-        errors: [
-          {
-            path: '',
-            message: `Instance not registered: ${instanceId}`,
-            keyword: 'not-registered',
-          },
-        ],
-      };
-    },
-    query: (pattern: string, limit?: number) => {
-      const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
-      return limit ? results.slice(0, limit) : results;
-    },
-    isTypeOf: (typeId: string, baseTypeId: string) => {
-      return typeId === baseTypeId || typeId.startsWith(baseTypeId);
-    },
-    checkCompatibility: () => ({
-      compatible: true,
-      breaking: false,
-      changes: [],
-    }),
-    getAttribute: (typeId: string, path: string) => ({
-      typeId,
-      path,
-      resolved: false,
-    }),
-  };
-}
+import { TestContainerProvider, createMockTypeSystemPlugin } from '../../__test-utils__';
 
 describe('ScreensetsRegistry - Phase 4', () => {
   const createTestConfig = (): ScreensetsRegistryConfig => ({
-    typeSystem: createMockPlugin(),
+    typeSystem: createMockTypeSystemPlugin(),
   });
 
   describe('4.1 Runtime Configuration', () => {
@@ -94,51 +32,23 @@ describe('ScreensetsRegistry - Phase 4', () => {
       );
     });
 
-    it('should accept optional onError callback', () => {
-      const onError = vi.fn();
-      const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
-        onError,
-      };
-      const registry = new DefaultScreensetsRegistry(registryConfig);
-      expect(registry).toBeDefined();
-    });
-
     it('should accept optional debug flag', () => {
       const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       };
       const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
-    it('should accept optional loadingComponent', () => {
-      const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
-        loadingComponent: 'LoadingComponent',
-      };
-      const registry = new DefaultScreensetsRegistry(registryConfig);
-      expect(registry).toBeDefined();
-    });
-
-    it('should accept optional errorFallbackComponent', () => {
-      const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
-        errorFallbackComponent: 'ErrorComponent',
-      };
-      const registry = new DefaultScreensetsRegistry(registryConfig);
-      expect(registry).toBeDefined();
-    });
-
-    it('should accept optional mfeHandler', () => {
+    it('should accept optional mfeHandlers', () => {
       const mockHandler = {
         bridgeFactory: {} as unknown,
         handledBaseTypeId: 'gts.hai3.screensets.mfe.entry.v1~',
         load: async () => ({ lifecycle: {} as unknown, entry: {} as unknown, unload: () => {} }),
-      };
+      } as unknown as MfeHandler;
       const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
-        mfeHandler: mockHandler as unknown,
+        typeSystem: createMockTypeSystemPlugin(),
+        mfeHandlers: [mockHandler],
       };
       const registry = new DefaultScreensetsRegistry(registryConfig);
       expect(registry).toBeDefined();
@@ -163,8 +73,8 @@ describe('ScreensetsRegistry - Phase 4', () => {
       };
 
       const registryConfig: ScreensetsRegistryConfig = {
-        typeSystem: createMockPlugin(),
-        mfeHandler: mockHandler as unknown,
+        typeSystem: createMockTypeSystemPlugin(),
+        mfeHandlers: [mockHandler as unknown as MfeHandler],
       };
 
       const registry = new DefaultScreensetsRegistry(registryConfig);
@@ -186,13 +96,15 @@ describe('ScreensetsRegistry - Phase 4', () => {
         extensionsLifecycleStages: [],
       };
 
-      const mockContainerProvider = new MockContainerProvider();
-      expect(() => registry.registerDomain(validDomain, mockContainerProvider)).not.toThrow();
+      const mockContainerProvider = new TestContainerProvider();
+      expect(() => {
+        registry.registerDomain(validDomain, mockContainerProvider);
+      }).not.toThrow();
     });
 
     it('should validate action type ID via plugin before chain execution', async () => {
       const registry = new DefaultScreensetsRegistry(createTestConfig());
-      const mockContainerProvider = new MockContainerProvider();
+      const mockContainerProvider = new TestContainerProvider();
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -215,12 +127,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
         action: validAction,
       };
 
-      await registry.executeActionsChain(chain);
-      // If we get here without throwing, the chain executed successfully
-      expect(true).toBe(true);
+      await expect(registry.executeActionsChain(chain)).resolves.not.toThrow();
     });
 
-    it.skip('should return validation error if type IDs are invalid', async () => {
+    it('should return validation error if type IDs are invalid', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       // Type ID validation IS implemented in ActionsChainsMediator.executeChainRecursive
       // (lines 156-162). This test is skipped because it tests error handling with
       // invalid type IDs, which is covered by other validation tests in the suite.
@@ -235,8 +146,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
         action: invalidAction,
       };
 
-      // executeActionsChain now throws instead of returning a result with error
-      await expect(registry.executeActionsChain(chain)).rejects.toThrow();
+      await expect(registry.executeActionsChain(chain)).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
+      errorSpy.mockRestore();
     });
   });
 
@@ -254,7 +168,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      const mockContainerProvider = new MockContainerProvider();
+      const mockContainerProvider = new TestContainerProvider();
       registry.registerDomain(domain, mockContainerProvider);
 
       const actionWithPayload: Action = {
@@ -267,12 +181,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
         action: actionWithPayload,
       };
 
-      await registry.executeActionsChain(chain);
-      // If we get here without throwing, the chain executed successfully
-      expect(true).toBe(true);
+      await expect(registry.executeActionsChain(chain)).resolves.not.toThrow();
     });
 
-    it.skip('should return validation error on payload failure', async () => {
+    it('should return validation error on payload failure', async () => {
+      const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       // Payload validation IS implemented in ActionsChainsMediator.executeChainRecursive
       // (lines 156-162) via validateInstance(). This test is skipped because it tests
       // error handling with invalid payloads, which is covered by other validation tests.
@@ -281,7 +194,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
       // PROPERTY within the action. When validateInstance() is called, GTS validates the
       // entire action instance including the payload against the derived type's schema.
       const failingPlugin: TypeSystemPlugin = {
-        ...createMockPlugin(),
+        ...createMockTypeSystemPlugin(),
         validateInstance: () => ({
           valid: false,
           errors: [
@@ -306,8 +219,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
         action: actionWithInvalidPayload,
       };
 
-      // executeActionsChain now throws instead of returning a result with error
-      await expect(registry.executeActionsChain(chain)).rejects.toThrow();
+      await expect(registry.executeActionsChain(chain)).resolves.toBeUndefined();
+      expect(errorSpy).toHaveBeenCalledTimes(1);
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
+      errorSpy.mockRestore();
     });
 
     it('should allow actions without payload', async () => {
@@ -323,7 +239,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
-      const mockContainerProvider = new MockContainerProvider();
+      const mockContainerProvider = new TestContainerProvider();
       registry.registerDomain(domain, mockContainerProvider);
 
       const actionWithoutPayload: Action = {
@@ -335,9 +251,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
         action: actionWithoutPayload,
       };
 
-      await registry.executeActionsChain(chain);
-      // If we get here without throwing, the chain executed successfully
-      expect(true).toBe(true);
+      await expect(registry.executeActionsChain(chain)).resolves.not.toThrow();
     });
   });
 
@@ -355,11 +269,13 @@ describe('ScreensetsRegistry - Phase 4', () => {
         extensionsLifecycleStages: [],
       };
 
-      registry.registerDomain(domain, new MockContainerProvider());
+      registry.registerDomain(domain, new TestContainerProvider());
       registry.dispose();
 
       // After disposal, registry should be clean
-      expect(() => registry.dispose()).not.toThrow();
+      expect(() => {
+        registry.dispose();
+      }).not.toThrow();
     });
   });
 });

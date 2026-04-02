@@ -32,18 +32,21 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
   "dependencies": {
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
+    "@cyberfabric/auth": "*",
+    "@vitest/coverage-v8": "4.1.4",
     "@tanstack/query-core": "^5.0.0",
-    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "8.0.0",
     "typescript": "5.4.2",
-    "vitest": "4.0.18"
+    "vitest": "4.1.4"
   },
   "peerDependencies": {
     "@cyberfabric/auth": "*",
@@ -51,7 +54,8 @@
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
     "@cyberfabric/i18n": "*",
-    "@tanstack/query-core": "^5.0.0"
+    "@tanstack/query-core": "^5.0.0",
+    "vitest": "4.1.4"
   },
   "peerDependenciesMeta": {
     "@cyberfabric/auth": {
@@ -71,6 +75,9 @@
     },
     "@tanstack/query-core": {
       "optional": false
+    },
+    "vitest": {
+      "optional": true
     }
   },
   "publishConfig": {

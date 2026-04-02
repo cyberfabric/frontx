@@ -3,8 +3,17 @@
 // Do not edit manually!
 // Regenerate: npm run generate:mfe-manifests
 
+import type { Extension, JSONSchema, MfeEntry } from '@cyberfabric/react';
 
-export const MFE_MANIFESTS = [
+export interface MfeManifestConfig {
+  manifest: JSONSchema;
+  entries: MfeEntry[];
+  extensions: Extension[];
+  /** MFE-carried schemas (custom actions, properties). Registered before entries and extensions. */
+  schemas?: JSONSchema[];
+}
+
+export const MFE_MANIFESTS: MfeManifestConfig[] = [
 
 ];
 

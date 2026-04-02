@@ -1,6 +1,6 @@
 {
   "name": "@cyberfabric/studio",
-  "version": "0.2.0-alpha.1",
+  "version": "0.2.0-alpha.2",
   "description": "FrontX Studio - Development studio overlay for FrontX applications",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -24,7 +24,11 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
   "keywords": [
     "frontx",
@@ -44,7 +48,7 @@
   },
   "homepage": "https://github.com/cyberfabric/frontx#readme",
   "engines": {
-    "node": ">=18"
+    "node": ">=24.14.0"
   },
   "publishConfig": {
     "access": "public"
@@ -68,7 +72,11 @@
     "@types/node": "^24.9.1",
     "@types/react": "^19.0.8",
     "@types/react-dom": "^19.0.3",
+    "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "4.1.4",
+    "jsdom": "26.1.0",
     "tsup": "^8.5.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "4.1.4"
   }
 }

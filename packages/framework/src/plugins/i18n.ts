@@ -51,6 +51,7 @@ function setLanguage(payload: SetLanguagePayload): void {
 export function i18n(): HAI3Plugin {
   // Use the singleton i18n registry - user translations register to this
   const i18nRegistry = singletonI18nRegistry;
+  let languageChangedSubscription: ReturnType<typeof eventBus.on> | undefined;
 
   return {
     name: 'i18n',
@@ -69,21 +70,31 @@ export function i18n(): HAI3Plugin {
     // @cpt-begin:cpt-frontx-dod-framework-composition-propagation:p1:inst-2
     onInit(app) {
       // Language change effect
-      eventBus.on('i18n/language/changed', async (payload: SetLanguagePayload) => {
-        await i18nRegistry.setLanguage(payload.language as Language);
-        try {
-          app.screensetsRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, payload.language);
-        } catch (error) {
-          console.error('[HAI3] Failed to propagate language to MFE domains', error);
-          eventBus.emit('i18n/propagation/failed', { language: payload.language, error });
+      languageChangedSubscription = eventBus.on(
+        'i18n/language/changed',
+        async (payload: SetLanguagePayload) => {
+          await i18nRegistry.setLanguage(payload.language as Language);
+          try {
+            app.screensetsRegistry?.updateSharedProperty(
+              HAI3_SHARED_PROPERTY_LANGUAGE,
+              payload.language
+            );
+          } catch (error) {
+            console.error('[HAI3] Failed to propagate language to MFE domains', error);
+            eventBus.emit('i18n/propagation/failed', { language: payload.language, error });
+          }
         }
-      });
+      );
 
       // Bootstrap: Set initial language to trigger translation loading
       // Run async without blocking - translations load in background
       i18nRegistry.setLanguage(Language.English).catch((err: Error) => {
         console.warn('[HAI3] Failed to load initial translations:', err);
       });
+    },
+    onDestroy() {
+      languageChangedSubscription?.unsubscribe();
+      languageChangedSubscription = undefined;
     },
     // @cpt-end:cpt-frontx-flow-framework-composition-i18n-propagation:p1:inst-2
     // @cpt-end:cpt-frontx-dod-framework-composition-propagation:p1:inst-2

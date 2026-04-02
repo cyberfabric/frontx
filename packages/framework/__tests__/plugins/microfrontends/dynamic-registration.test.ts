@@ -16,37 +16,42 @@ import {
   registerExtension,
   unregisterExtension,
   MfeEvents,
+  type RegisterExtensionPayload,
+  type UnregisterExtensionPayload,
   selectExtensionState,
   selectRegisteredExtensions,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@cyberfabric/state';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
-import { ContainerProvider } from '@cyberfabric/framework';
-import type { HAI3App } from '../../../src/types';
+import { TestContainerProvider } from '../../../src/testing/TestContainerProvider';
+import type { HAI3App, MfeScreensetsRegistry } from '../../../src/types';
 
-// Mock Container Provider for framework tests
-class TestContainerProvider extends ContainerProvider {
-  private mockContainer: Element;
-
-  constructor() {
-    super();
-    // Create a mock DOM element for testing
-    if (typeof document !== 'undefined') {
-      this.mockContainer = document.createElement('div');
-    } else {
-      // Fallback for non-DOM environments
-      this.mockContainer = { tagName: 'DIV' } as Element;
-    }
+function getScreensetsRegistry(app: HAI3App): MfeScreensetsRegistry {
+  if (!app.screensetsRegistry) {
+    throw new Error('Expected microfrontends plugin to provide screensetsRegistry');
   }
 
-  getContainer(_extensionId: string): Element {
-    return this.mockContainer;
-  }
+  return app.screensetsRegistry;
+}
 
-  releaseContainer(_extensionId: string): void {
-    // no-op
-  }
+async function waitForExtensionState(
+  app: HAI3App,
+  extensionId: string,
+  expectedState: ReturnType<typeof selectExtensionState>,
+): Promise<void> {
+  await vi.waitFor(() => {
+    expect(selectExtensionState(app.store.getState(), extensionId)).toBe(expectedState);
+  });
+}
+
+async function waitForRegisteredExtensions(
+  app: HAI3App,
+  predicate: (registered: string[]) => void,
+): Promise<void> {
+  await vi.waitFor(() => {
+    predicate(selectRegisteredExtensions(app.store.getState()));
+  });
 }
 
 describe('dynamic registration - Phase 20', () => {
@@ -54,11 +59,21 @@ describe('dynamic registration - Phase 20', () => {
 
   afterEach(() => {
     // Cleanup all apps created in tests
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps = [];
     // Reset global store to prevent state pollution between tests
     resetStore();
   });
+
+  /**
+   * Matches the domain-level default timeout for lifecycle action chains.
+   * Kept at the same 5s the production base domains default to so the fake
+   * domain feels realistic rather than an accidental magic number.
+   */
+  const DEFAULT_DOMAIN_ACTION_TIMEOUT_MS = 5_000;
+
   const mockDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
     sharedProperties: [],
@@ -67,7 +82,7 @@ describe('dynamic registration - Phase 20', () => {
       'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
     ],
     extensionsActions: [],
-    defaultActionTimeout: 5000,
+    defaultActionTimeout: DEFAULT_DOMAIN_ACTION_TIMEOUT_MS,
     lifecycleStages: [],
     extensionsLifecycleStages: [],
   };
@@ -79,10 +94,14 @@ describe('dynamic registration - Phase 20', () => {
   };
 
   describe('20.5.1 - registerExtension action emits event', () => {
-    let eventSpy: ReturnType<typeof vi.fn>;
+    let receivedPayloads: RegisterExtensionPayload[];
+    let eventHandler: (payload: RegisterExtensionPayload) => void;
 
     beforeEach(() => {
-      eventSpy = vi.fn();
+      receivedPayloads = [];
+      eventHandler = (payload) => {
+        receivedPayloads.push(payload);
+      };
     });
 
     afterEach(() => {
@@ -90,13 +109,13 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should emit registerExtensionRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.RegisterExtensionRequested, eventSpy);
+      const unsub = eventBus.on(MfeEvents.RegisterExtensionRequested, eventHandler);
 
       registerExtension(mockExtension);
 
-      expect(eventSpy).toHaveBeenCalledWith({
+      expect(receivedPayloads).toEqual([{
         extension: mockExtension,
-      });
+      }]);
 
       unsub.unsubscribe();
     });
@@ -105,21 +124,21 @@ describe('dynamic registration - Phase 20', () => {
   describe('20.5.2 - registerExtension effect calls runtime', () => {
     it('should dispatch setExtensionRegistering and setExtensionRegistered on success', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
       // Mock runtime method
       const registerExtensionSpy = vi.fn().mockResolvedValue(undefined);
-      app.screensetsRegistry.registerExtension = registerExtensionSpy;
+      screensetsRegistry.registerExtension = registerExtensionSpy;
 
       // First register the domain
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Trigger action
       registerExtension(mockExtension);
 
-      // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForExtensionState(app, mockExtension.id, 'registered');
 
       // Verify runtime method was called
       expect(registerExtensionSpy).toHaveBeenCalledWith(mockExtension);
@@ -131,17 +150,17 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should dispatch setExtensionError on failure', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
       // Mock runtime method to fail
       const registerExtensionSpy = vi.fn().mockRejectedValue(new Error('Registration failed'));
-      app.screensetsRegistry.registerExtension = registerExtensionSpy;
+      screensetsRegistry.registerExtension = registerExtensionSpy;
 
       // Trigger action
       registerExtension(mockExtension);
 
-      // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForExtensionState(app, mockExtension.id, 'error');
 
       // Verify state shows error
       const state = app.store.getState();
@@ -150,10 +169,14 @@ describe('dynamic registration - Phase 20', () => {
   });
 
   describe('20.5.3 - unregisterExtension action and effect', () => {
-    let eventSpy: ReturnType<typeof vi.fn>;
+    let receivedPayloads: UnregisterExtensionPayload[];
+    let eventHandler: (payload: UnregisterExtensionPayload) => void;
 
     beforeEach(() => {
-      eventSpy = vi.fn();
+      receivedPayloads = [];
+      eventHandler = (payload) => {
+        receivedPayloads.push(payload);
+      };
     });
 
     afterEach(() => {
@@ -161,30 +184,30 @@ describe('dynamic registration - Phase 20', () => {
     });
 
     it('should emit unregisterExtensionRequested event', () => {
-      const unsub = eventBus.on(MfeEvents.UnregisterExtensionRequested, eventSpy);
+      const unsub = eventBus.on(MfeEvents.UnregisterExtensionRequested, eventHandler);
 
       unregisterExtension(mockExtension.id);
 
-      expect(eventSpy).toHaveBeenCalledWith({
+      expect(receivedPayloads).toEqual([{
         extensionId: mockExtension.id,
-      });
+      }]);
 
       unsub.unsubscribe();
     });
 
     it('should call runtime.unregisterExtension', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
       // Mock runtime method
       const unregisterExtensionSpy = vi.fn().mockResolvedValue(undefined);
-      app.screensetsRegistry.unregisterExtension = unregisterExtensionSpy;
+      screensetsRegistry.unregisterExtension = unregisterExtensionSpy;
 
       // Trigger action
       unregisterExtension(mockExtension.id);
 
-      // Wait for async effect
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForExtensionState(app, mockExtension.id, 'unregistered');
 
       // Verify runtime method was called
       expect(unregisterExtensionSpy).toHaveBeenCalledWith(mockExtension.id);
@@ -198,16 +221,17 @@ describe('dynamic registration - Phase 20', () => {
   describe('20.5.6 - slice state transitions', () => {
     it('should transition through registration states', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
-      // Mock runtime method with delay
-      app.screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
-        await new Promise((resolve) => setTimeout(resolve, 10));
+      // Mock runtime completes on a microtask so `registering` is observable before `registered`
+      screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
+        await Promise.resolve();
       });
 
       // Register domain first
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Initial state
       let state = app.store.getState();
@@ -216,13 +240,10 @@ describe('dynamic registration - Phase 20', () => {
       // Trigger registration
       registerExtension(mockExtension);
 
-      // Wait a bit (registering state)
-      await new Promise((resolve) => setTimeout(resolve, 5));
-      state = app.store.getState();
-      expect(selectExtensionState(state, mockExtension.id)).toBe('registering');
+      await waitForExtensionState(app, mockExtension.id, 'registering');
 
       // Wait for completion (registered state)
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForExtensionState(app, mockExtension.id, 'registered');
       state = app.store.getState();
       expect(selectExtensionState(state, mockExtension.id)).toBe('registered');
     });
@@ -239,14 +260,15 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should return correct state for known extension', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
-      app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
+      screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       registerExtension(mockExtension);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForExtensionState(app, mockExtension.id, 'registered');
 
       const state = app.store.getState();
       expect(selectExtensionState(state, mockExtension.id)).toBe('registered');
@@ -264,18 +286,23 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should return array of registered extension IDs', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
-      app.screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
+      screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };
       const ext2 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext2.v1' };
 
       registerExtension(ext1);
       registerExtension(ext2);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await waitForRegisteredExtensions(app, (registered) => {
+        expect(registered).toContain(ext1.id);
+        expect(registered).toContain(ext2.id);
+        expect(registered.length).toBe(2);
+      });
 
       const state = app.store.getState();
       const registered = selectRegisteredExtensions(state);
@@ -287,17 +314,18 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should not include unregistered or error state extensions', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
+      const screensetsRegistry = getScreensetsRegistry(app);
       apps.push(app);
 
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Mock one success and one failure
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };
       const ext2 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext2.v1' };
 
       let callCount = 0;
-      app.screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
+      screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
         callCount++;
         if (callCount === 2) {
           throw new Error('Registration failed');
@@ -306,7 +334,10 @@ describe('dynamic registration - Phase 20', () => {
 
       registerExtension(ext1);
       registerExtension(ext2);
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      await vi.waitFor(() => {
+        expect(selectExtensionState(app.store.getState(), ext1.id)).toBe('registered');
+        expect(selectExtensionState(app.store.getState(), ext2.id)).toBe('error');
+      });
 
       const state = app.store.getState();
       const registered = selectRegisteredExtensions(state);

@@ -18,20 +18,16 @@ function createMockPlugin(typeHierarchy: Record<string, string[]> = {}): TypeSys
   return {
     name: 'mock',
     version: '1.0.0',
-    isValidTypeId: () => true,
-    parseTypeId: (id: string) => ({ id }),
     registerSchema: () => {},
     getSchema: () => undefined,
-    query: () => [],
     register: () => {},
+    validateInstance: () => ({ valid: true, errors: [] }),
     isTypeOf: (typeId: string, baseTypeId: string) => {
       if (typeHierarchy[typeId]) {
         return typeHierarchy[typeId].includes(baseTypeId);
       }
       return typeId.startsWith(baseTypeId) || typeId === baseTypeId;
     },
-    checkCompatibility: () => ({ compatible: true, breaking: false, changes: [] }),
-    getAttribute: () => ({ typeId: '', path: '', resolved: false }),
   };
 }
 

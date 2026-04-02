@@ -295,6 +295,16 @@ After creation:
 2. The screenset auto-registers via Vite glob pattern
 3. Run `npm run dev` and switch to the new screenset via the UI selector
 
+### Testing
+
+From the monorepo root, the canonical entry for all unit tests (host app, workspace packages, and nested MFEs) is:
+
+```bash
+npm run test:unit
+```
+
+Use `npm run test:unit:watch` for interactive runs. Conventions and monorepo-specific behavior are described in [`.ai/project/targets/UNIT_TESTING.md`](.ai/project/targets/UNIT_TESTING.md); contributors should also read the [Validation](CONTRIBUTING.md#validation) section in [CONTRIBUTING.md](CONTRIBUTING.md).
+
 ### Updating AI Configuration
 
 When FrontX updates are released, use the update command to sync your project:
@@ -317,7 +327,8 @@ TODO
 - **[DECOMPOSITION.md](architecture/DECOMPOSITION.md)**: Project roadmap and feature decomposition
 - **[PRD.md](architecture/PRD.md)**: Core philosophy, principles, and values
 - **[GUIDELINES.md](.ai/GUIDELINES.md)**: Development guidelines for AI and humans
-- **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to contribute to the project
+- **[CONTRIBUTING.md](CONTRIBUTING.md)**: How to contribute to the project (includes validation and unit-test commands)
+- **[UNIT_TESTING.md](.ai/project/targets/UNIT_TESTING.md)**: Unit-test contract and monorepo runner rules
 
 ## Community & Support
 

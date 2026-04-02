@@ -1,109 +1,131 @@
 /**
- * Runtime Coordinator Integration Tests (Task 8.4.8)
+ * Runtime Coordinator Registry Integration Tests
  *
- * Tests for verifying coordination through ScreensetsRegistry API.
- * These tests verify that the coordinator is properly integrated and accessible
- * through the registry, even though mount/unmount don't exist yet (Phase 19.3).
+ * Verifies the registry constructs and wires its internal runtime coordinator
+ * during mount/unmount flows, while coordinator storage behavior remains covered
+ * by focused unit tests below.
  */
 
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
-import type { TypeSystemPlugin, JSONSchema, ValidationResult } from '../../../src/mfe/plugins/types';
-import type { RuntimeConnection } from '../../../src/mfe/coordination/types';
-import { MockContainerProvider } from '../test-utils';
+import type { RuntimeConnection, RuntimeCoordinator } from '../../../src/mfe/coordination/types';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../../../src/mfe/constants';
+import type { Extension, ExtensionDomain, MfeEntry } from '../../../src/mfe/types';
+import { TestContainerProvider, createMockTypeSystemPlugin, makeMfeHandlerDouble } from '../../../__test-utils__';
 
+const toggleDomain: ExtensionDomain = {
+  id: 'gts.hai3.mfes.ext.domain.v1~test.coordinator.integration.domain.v1',
+  sharedProperties: [],
+  actions: [
+    HAI3_ACTION_LOAD_EXT,
+    HAI3_ACTION_MOUNT_EXT,
+    HAI3_ACTION_UNMOUNT_EXT,
+  ],
+  extensionsActions: [],
+  defaultActionTimeout: 5000,
+  lifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+  extensionsLifecycleStages: [
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.activated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.deactivated.v1',
+    'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.destroyed.v1',
+  ],
+};
 
-// Mock Type System Plugin
-function createMockPlugin(): TypeSystemPlugin {
-  const schemas = new Map<string, JSONSchema>();
-  const registeredEntities = new Map<string, unknown>();
+const testEntry: MfeEntry = {
+  id: 'gts.hai3.mfes.mfe.entry.v1~test.coordinator.integration.entry.v1',
+  requiredProperties: [],
+  optionalProperties: [],
+  actions: [],
+  domainActions: [
+    HAI3_ACTION_LOAD_EXT,
+    HAI3_ACTION_MOUNT_EXT,
+    HAI3_ACTION_UNMOUNT_EXT,
+  ],
+};
 
-  const coreTypeIds = [
-    'gts.hai3.mfes.mfe.entry.v1~',
-    'gts.hai3.mfes.ext.domain.v1~',
-    'gts.hai3.mfes.ext.extension.v1~',
-    'gts.hai3.mfes.comm.shared_property.v1~',
-    'gts.hai3.mfes.comm.action.v1~',
-    'gts.hai3.mfes.comm.actions_chain.v1~',
-    'gts.hai3.mfes.lifecycle.stage.v1~',
-    'gts.hai3.mfes.lifecycle.hook.v1~',
-  ];
+const testExtension: Extension = {
+  id: 'gts.hai3.mfes.ext.extension.v1~test.coordinator.integration.extension.v1',
+  domain: toggleDomain.id,
+  entry: testEntry.id,
+};
 
-  for (const typeId of coreTypeIds) {
-    schemas.set(typeId, { $id: `gts://${typeId}`, type: 'object' });
-  }
-
-  return {
-    name: 'MockPlugin',
-    version: '1.0.0',
-    isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-    parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
-    registerSchema: (schema: JSONSchema) => {
-      if (schema.$id) {
-        const typeId = schema.$id.replace('gts://', '');
-        schemas.set(typeId, schema);
-      }
-    },
-    getSchema: (typeId: string) => schemas.get(typeId),
-    register: (entity: unknown) => {
-      const entityWithId = entity as { id?: string };
-      if (entityWithId.id) {
-        registeredEntities.set(entityWithId.id, entity);
-      }
-    },
-    validateInstance: (instanceId: string): ValidationResult => {
-      if (registeredEntities.has(instanceId)) {
-        return { valid: true, errors: [] };
-      }
-      return {
-        valid: false,
-        errors: [
-          {
-            path: '',
-            message: `Instance not registered: ${instanceId}`,
-            keyword: 'not-registered',
-          },
-        ],
-      };
-    },
-    query: (pattern: string, limit?: number) => {
-      const results = Array.from(schemas.keys()).filter(id => id.includes(pattern));
-      return limit ? results.slice(0, limit) : results;
-    },
-    isTypeOf: (typeId: string, baseTypeId: string) => {
-      return typeId === baseTypeId || typeId.startsWith(baseTypeId);
-    },
-    checkCompatibility: () => ({
-      compatible: true,
-      breaking: false,
-      changes: [],
-    }),
-    getAttribute: (typeId: string, path: string) => ({
-      typeId,
-      path,
-      resolved: false,
-    }),
-  };
+function getInternalCoordinator(registry: DefaultScreensetsRegistry): RuntimeCoordinator {
+  return Reflect.get(registry, 'coordinator') as RuntimeCoordinator;
 }
 
 describe('Runtime Coordinator Integration - Task 8.4.8', () => {
-  describe('Default coordinator initialization', () => {
-    it('should create WeakMapRuntimeCoordinator by default', () => {
+  describe('Registry coordinator wiring', () => {
+    it('creates a WeakMapRuntimeCoordinator internally', () => {
       const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
-      expect(registry).toBeDefined();
-      // Coordinator is private, but we can verify the registry works properly
-      expect(registry.typeSystem).toBeDefined();
+      expect(getInternalCoordinator(registry)).toBeInstanceOf(WeakMapRuntimeCoordinator);
+    });
+
+    it('registers and unregisters mounted bridges in the internal coordinator', async () => {
+      const typeSystem = new GtsPlugin();
+      typeSystem.register(testEntry);
+
+      const registry = new DefaultScreensetsRegistry({
+        typeSystem,
+        mfeHandlers: [
+          makeMfeHandlerDouble({
+            handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
+            priority: 100,
+          }),
+        ],
+      });
+      const containerProvider = new TestContainerProvider();
+      const container = document.createElement('div');
+      containerProvider.getContainer = vi.fn().mockReturnValue(container);
+
+      registry.registerDomain(toggleDomain, containerProvider);
+      await registry.registerExtension(testExtension);
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_MOUNT_EXT,
+          target: toggleDomain.id,
+          payload: { subject: testExtension.id },
+        },
+      });
+
+      const coordinator = getInternalCoordinator(registry);
+      const connection = coordinator.get(container);
+      const bridge = registry.getParentBridge(testExtension.id);
+
+      expect(connection?.hostRuntime).toBe(registry);
+      expect(connection?.bridges.get(testExtension.id)).toBe(bridge);
+      expect(bridge?.instanceId).toContain(testExtension.id);
+
+      await registry.executeActionsChain({
+        action: {
+          type: HAI3_ACTION_UNMOUNT_EXT,
+          target: toggleDomain.id,
+          payload: { subject: testExtension.id },
+        },
+      });
+
+      expect(coordinator.get(container)).toBeUndefined();
+      expect(registry.getParentBridge(testExtension.id)).toBeNull();
     });
   });
 
   describe('Coordinator encapsulation', () => {
     it('should not pollute window global scope', () => {
       new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
       // Verify no global pollution
@@ -113,34 +135,10 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       expect(globalObj.__screensets_coordinator).toBeUndefined();
     });
   });
-
-
-  describe('Integration with registry lifecycle', () => {
-    it('should initialize coordinator during registry construction', () => {
-      // This test verifies that coordinator is ready when registry is created
-      const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
-      });
-
-      // Registry should be fully functional immediately
-      expect(registry.typeSystem).toBeDefined();
-      expect(() => {
-        const mockContainerProvider = new MockContainerProvider();
-        registry.registerDomain({
-          id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-          sharedProperties: [],
-          actions: [],
-          extensionsActions: [],
-          defaultActionTimeout: 5000,
-          lifecycleStages: [],
-          extensionsLifecycleStages: [],
-        }, mockContainerProvider);
-      }).not.toThrow();
-    });
-
+  describe('Registry lifecycle cleanup', () => {
     it('should clean up coordinator on registry disposal', () => {
       const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
       // Dispose registry
@@ -148,7 +146,9 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
       // Registry should be disposed cleanly
       // (Coordinator's WeakMap will be garbage collected automatically)
-      expect(() => registry.dispose()).not.toThrow();
+      expect(() => {
+        registry.dispose();
+      }).not.toThrow();
     });
   });
 
@@ -156,7 +156,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     it('should register and retrieve runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
       const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
       // Create a mock container element
@@ -178,7 +178,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     it('should unregister runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
       const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
       const container = document.createElement('div');
@@ -197,7 +197,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
     it('should support multiple simultaneous runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
       const registry = new DefaultScreensetsRegistry({
-        typeSystem: createMockPlugin(),
+        typeSystem: createMockTypeSystemPlugin(),
       });
 
       // Create multiple containers

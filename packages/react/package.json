@@ -12,6 +12,11 @@
       "import": "./dist/index.js",
       "require": "./dist/index.cjs"
     },
+    "./testing": {
+      "types": "./dist/testing.d.ts",
+      "import": "./dist/testing.js",
+      "require": "./dist/testing.cjs"
+    },
     "./types": {
       "types": "./dist/types.d.ts",
       "import": "./dist/types.js",
@@ -27,29 +32,31 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit",
+    "test:unit": "vitest --run --passWithNoTests=false",
+    "test:unit:watch": "vitest --watch"
   },
-  "dependencies": {},
   "devDependencies": {
+    "@reduxjs/toolkit": "^2.5.0",
     "@tanstack/react-query": "^5.90.0",
+    "@testing-library/react": "16.3.2",
+    "@types/react": "^19.0.8",
+    "@types/react-redux": "^7.1.33",
+    "@vitejs/plugin-react": "4.3.4",
+    "@vitest/coverage-v8": "4.1.4",
+    "jsdom": "26.1.0",
+    "react": "^19.2.4",
+    "react-redux": "^9.1.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.2",
-    "react": "^19.2.4",
-    "@types/react": "^19.0.8",
-    "react-redux": "^9.1.0",
-    "@types/react-redux": "^7.1.33",
-    "vitest": "^4.0.18",
-    "@vitest/coverage-v8": "^4.0.18",
-    "@testing-library/react": "^16.1.0",
-    "@reduxjs/toolkit": "^2.5.0",
-    "jsdom": "^25.0.1"
+    "vitest": "4.1.4"
   },
   "peerDependencies": {
     "@cyberfabric/framework": "*",
+    "@tanstack/react-query": ">=5.0.0",
     "react": "^19.2.4",
-    "react-redux": ">=8.0.0",
-    "@tanstack/react-query": ">=5.0.0"
+    "react-redux": ">=8.0.0"
   },
   "peerDependenciesMeta": {
     "@cyberfabric/framework": {

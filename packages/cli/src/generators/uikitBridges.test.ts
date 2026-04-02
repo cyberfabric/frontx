@@ -1,84 +1,91 @@
 /**
  * Unit tests for UI kit bridge utilities
  *
- * Run with: node --import tsx --test src/generators/uikitBridges.test.ts
  */
 
-import { describe, it } from 'node:test';
-import assert from 'node:assert/strict';
+import { describe, expect, it } from 'vitest';
 import {
   getUikitBridge,
   generateGenericThemes,
   generateGenericGlobalsCss,
 } from './uikitBridges.js';
 
+function getKnownBridge() {
+  const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
+  expect(bridge).not.toBe(null);
+  if (bridge === null) {
+    throw new Error('expected known UI kit bridge');
+  }
+  return bridge;
+}
+
 describe('getUikitBridge', () => {
   it('should return a bridge for @acronis-platform/shadcn-uikit', () => {
-    const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
-    assert.notEqual(bridge, null);
-    assert.equal(bridge!.type, 'css-alias');
+    const bridge = getKnownBridge();
+    expect(bridge.type).toBe('css-alias');
   });
 
   it('should include CSS imports for known bridge', () => {
-    const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
-    assert.equal(bridge!.type, 'css-alias');
-    if (bridge != null && bridge.type === 'css-alias') {
-      assert.ok(bridge.cssImports.length > 0);
-      assert.ok(bridge.bridgeCss.includes(':root'));
+    const bridge = getKnownBridge();
+    if (bridge.type !== 'css-alias') {
+      throw new Error('expected css-alias bridge');
     }
+    expect(bridge.cssImports.length > 0).toBeTruthy();
+    expect(bridge.bridgeCss).toContain(':root');
   });
 
   it('should include theme mappings for known bridge', () => {
-    const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
-    if (bridge != null && bridge.type === 'css-alias') {
-      assert.ok(bridge.themes.length > 0);
-      const defaultTheme = bridge.themes.find((t) => t.default === true);
-      assert.ok(defaultTheme, 'Should have a default theme');
+    const bridge = getKnownBridge();
+    if (bridge.type !== 'css-alias') {
+      throw new Error('expected css-alias bridge');
     }
+    expect(bridge.themes.length > 0).toBeTruthy();
+    const defaultTheme = bridge.themes.find((t) => t.default === true);
+    expect(defaultTheme).toBeTruthy();
   });
 
   it('should include sync import and effect for known bridge', () => {
-    const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
-    assert.ok(bridge!.syncImport.length > 0);
-    assert.ok(bridge!.syncEffect.length > 0);
+    const bridge = getKnownBridge();
+    expect(bridge.syncImport.length > 0).toBeTruthy();
+    expect(bridge.syncEffect.length > 0).toBeTruthy();
   });
 
   it('should include dependencies for known bridge', () => {
-    const bridge = getUikitBridge('@acronis-platform/shadcn-uikit');
-    assert.ok(Object.keys(bridge!.dependencies).length > 0);
-    assert.ok('@acronis-platform/shadcn-uikit' in bridge!.dependencies);
+    const bridge = getKnownBridge();
+    expect(Object.keys(bridge.dependencies).length > 0).toBeTruthy();
+    expect('@acronis-platform/shadcn-uikit' in bridge.dependencies).toBeTruthy();
   });
 
   it('should return null for unknown packages', () => {
-    assert.equal(getUikitBridge('antd'), null);
-    assert.equal(getUikitBridge('@mui/material'), null);
-    assert.equal(getUikitBridge('nonexistent-package'), null);
+    expect(getUikitBridge('antd')).toBe(null);
+    expect(getUikitBridge('@mui/material')).toBe(null);
+    expect(getUikitBridge('nonexistent-package')).toBe(null);
   });
 });
 
 describe('generateGenericThemes', () => {
   it('should return two themes (default and dark)', () => {
     const { themes } = generateGenericThemes();
-    assert.equal(themes.length, 2);
+    expect(themes.length).toBe(2);
   });
 
   it('should set defaultId to "default"', () => {
     const { defaultId } = generateGenericThemes();
-    assert.equal(defaultId, 'default');
+    expect(defaultId).toBe('default');
   });
 
   it('should mark the first theme as default', () => {
     const { themes } = generateGenericThemes();
-    assert.equal(themes[0].default, true);
-    assert.equal(themes[0].id, 'default');
-    assert.equal(themes[0].name, 'Default');
+    expect(themes[0].default).toBe(true);
+    expect(themes[0].id).toBe('default');
+    expect(themes[0].name).toBe('Default');
   });
 
   it('should have a dark theme without default flag', () => {
     const { themes } = generateGenericThemes();
-    assert.equal(themes[1].id, 'dark');
-    assert.equal(themes[1].name, 'Dark');
-    assert.equal(themes[1].default, undefined);
+    expect(themes[1].id).toBe('dark');
+    expect(themes[1].name).toBe('Dark');
+    expect(themes[1].default).toBe(undefined);
   });
 
   it('should include essential CSS variables in both themes', () => {
@@ -90,44 +97,44 @@ describe('generateGenericThemes', () => {
 
     for (const theme of themes) {
       for (const varName of requiredVars) {
-        assert.ok(varName in theme.variables, `Theme "${theme.id}" is missing variable "${varName}"`);
+        expect(varName in theme.variables, `Theme "${theme.id}" is missing variable "${varName}"`).toBeTruthy();
       }
     }
   });
 
   it('should have light background in default theme and dark in dark theme', () => {
     const { themes } = generateGenericThemes();
-    assert.ok(themes[0].variables['--background'].includes('100%'));
-    assert.ok(themes[1].variables['--background'].includes('3.9%'));
-    assert.ok(!themes[0].variables['--background'].includes('hsl('));
-    assert.ok(!themes[1].variables['--background'].includes('hsl('));
+    expect(themes[0].variables['--background']).toContain('100%');
+    expect(themes[1].variables['--background']).toContain('3.9%');
+    expect(themes[0].variables['--background']).not.toContain('hsl(');
+    expect(themes[1].variables['--background']).not.toContain('hsl(');
   });
 });
 
 describe('generateGenericGlobalsCss', () => {
   it('should include :root block with CSS variables', () => {
     const css = generateGenericGlobalsCss();
-    assert.ok(css.includes(':root {'));
-    assert.ok(css.includes('--background:'));
-    assert.ok(css.includes('--foreground:'));
-    assert.ok(css.includes('--primary:'));
+    expect(css).toContain(':root {');
+    expect(css).toContain('--background:');
+    expect(css).toContain('--foreground:');
+    expect(css).toContain('--primary:');
   });
 
   it('should include body styling', () => {
     const css = generateGenericGlobalsCss();
-    assert.ok(css.includes('body {'));
-    assert.ok(css.includes('background-color: hsl(var(--background))'));
-    assert.ok(css.includes('color: hsl(var(--foreground))'));
+    expect(css).toContain('body {');
+    expect(css).toContain('background-color: hsl(var(--background))');
+    expect(css).toContain('color: hsl(var(--foreground))');
   });
 
   it('should include html,body reset', () => {
     const css = generateGenericGlobalsCss();
-    assert.ok(css.includes('html, body {'));
-    assert.ok(css.includes('margin: 0'));
+    expect(css).toContain('html, body {');
+    expect(css).toContain('margin: 0');
   });
 
   it('should include font-family declaration', () => {
     const css = generateGenericGlobalsCss();
-    assert.ok(css.includes('font-family:'));
+    expect(css).toContain('font-family:');
   });
 });

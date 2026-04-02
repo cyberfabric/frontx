@@ -2,33 +2,17 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createSharedFetchCache,
   getSharedFetchCache,
+  inspectSharedFetchCacheBookkeepingForTest,
   releaseSharedFetchCache,
   resetSharedFetchCache,
   retainSharedFetchCache,
 } from '../sharedFetchCache';
-
-function readAliasState(cache: unknown): {
-  aliasesByPrimaryKey: Map<string, Set<string>>;
-  primaryKeysByAlias: Map<string, Set<string>>;
-} {
-  return cache as {
-    aliasesByPrimaryKey: Map<string, Set<string>>;
-    primaryKeysByAlias: Map<string, Set<string>>;
-  };
-}
-
-function readVersionState(cache: unknown): { versions: Map<string, number> } {
-  return cache as {
-    versions: Map<string, number>;
-  };
-}
 
 beforeEach(() => {
   resetSharedFetchCache();
 });
 
 afterEach(() => {
-  vi.useRealTimers();
   resetSharedFetchCache();
 });
 
@@ -117,7 +101,7 @@ describe('SharedFetchCache', () => {
 
     cache.invalidate(['users']);
 
-    expect(readVersionState(cache).versions.size).toBe(0);
+    expect(inspectSharedFetchCacheBookkeepingForTest(cache).versions).toBe(0);
   });
 
   it('invalidates a primary entry through an exact alias key', async () => {
@@ -207,7 +191,7 @@ describe('SharedFetchCache', () => {
     cache.invalidate(['users']);
 
     await expect(pendingPromise).rejects.toMatchObject({ name: 'AbortError' });
-    expect(readVersionState(cache).versions.size).toBe(0);
+    expect(inspectSharedFetchCacheBookkeepingForTest(cache).versions).toBe(0);
   });
 
   it('normalizes caller-provided Error abort reasons to AbortError', async () => {
@@ -469,9 +453,9 @@ describe('SharedFetchCache', () => {
       })
     ).resolves.toBe('ok');
 
-    const aliasState = readAliasState(cache);
-    expect(aliasState.aliasesByPrimaryKey.size).toBe(0);
-    expect(aliasState.primaryKeysByAlias.size).toBe(0);
+    const bookkeeping = inspectSharedFetchCacheBookkeepingForTest(cache);
+    expect(bookkeeping.aliasesByPrimaryKey).toBe(0);
+    expect(bookkeeping.primaryKeysByAlias).toBe(0);
   });
 
   it('cleans up alias bookkeeping when a fetch fails', async () => {
@@ -488,9 +472,9 @@ describe('SharedFetchCache', () => {
       )
     ).rejects.toThrow('boom');
 
-    const aliasState = readAliasState(cache);
-    expect(aliasState.aliasesByPrimaryKey.size).toBe(0);
-    expect(aliasState.primaryKeysByAlias.size).toBe(0);
+    const bookkeeping = inspectSharedFetchCacheBookkeepingForTest(cache);
+    expect(bookkeeping.aliasesByPrimaryKey).toBe(0);
+    expect(bookkeeping.primaryKeysByAlias).toBe(0);
   });
 
   it('does not reuse cached data when a later caller requests staleTime zero', async () => {

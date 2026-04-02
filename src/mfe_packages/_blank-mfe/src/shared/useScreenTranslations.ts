@@ -48,12 +48,16 @@ export function useScreenTranslations(
   const [loading, setLoading] = useState(true);
   // Use ref to track current language for comparison without triggering effect re-runs
   const currentLanguageRef = useRef<string>('en');
+  const lastLoadedLanguageRef = useRef<string | null>(null);
+  const lastLoadedModulesRef = useRef<LanguageModuleMap | null>(null);
 
   // Load translations for the given language
   const loadTranslations = useCallback(
     async (language: string) => {
       // Keep ref in sync
       currentLanguageRef.current = language;
+      lastLoadedLanguageRef.current = language;
+      lastLoadedModulesRef.current = languageModules;
       setLoading(true);
       try {
         // Build module key from language (e.g., './i18n/en.json')
@@ -92,17 +96,26 @@ export function useScreenTranslations(
     // Get initial language
     const initialProperty = bridge.getProperty(HAI3_SHARED_PROPERTY_LANGUAGE);
     const lang = initialProperty && typeof initialProperty.value === 'string' ? initialProperty.value : 'en';
-    loadTranslations(lang);
+    const shouldLoadInitialTranslations =
+      lastLoadedLanguageRef.current !== lang || lastLoadedModulesRef.current !== languageModules;
+
+    if (shouldLoadInitialTranslations) {
+      loadTranslations(lang);
+    }
 
     // Subscribe to language changes
     const unsubscribe = bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, (property) => {
-      if (typeof property.value === 'string' && property.value !== currentLanguageRef.current) {
+      if (
+        typeof property.value === 'string' &&
+        (property.value !== currentLanguageRef.current ||
+          lastLoadedModulesRef.current !== languageModules)
+      ) {
         loadTranslations(property.value);
       }
     });
 
     return unsubscribe;
-  }, [bridge, loadTranslations]);
+  }, [bridge, languageModules, loadTranslations]);
 
   // Translation function
   const t = useCallback(

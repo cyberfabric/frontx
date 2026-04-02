@@ -22,17 +22,46 @@ import {
   selectMountedExtension,
 } from '../../../src/plugins/microfrontends';
 import { eventBus, resetStore } from '@cyberfabric/state';
-import { HAI3_ACTION_MOUNT_EXT, screensetsRegistryFactory, type Extension } from '@cyberfabric/screensets';
+import {
+  HAI3_ACTION_MOUNT_EXT,
+  screensetsRegistryFactory,
+  type Extension,
+  type ScreensetsRegistry,
+} from '@cyberfabric/screensets';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import type { HAI3App } from '../../../src/types';
+
+/**
+ * The Phase 13 mount-sync suites only exercise a handful of ScreensetsRegistry
+ * methods. We stub exactly those surfaces to keep the test scaffolding honest
+ * instead of blanket-casting to ScreensetsRegistry.
+ */
+type MountSyncRegistry = Pick<
+  ScreensetsRegistry,
+  | 'typeSystem'
+  | 'executeActionsChain'
+  | 'getMountedExtension'
+  | 'registerExtension'
+  | 'unregisterExtension'
+>;
+
+function asScreensetsRegistry(stub: MountSyncRegistry): ScreensetsRegistry {
+  // This is the only cast we allow: the factory.build() signature returns
+  // ScreensetsRegistry and the production code paths we exercise rely only on
+  // the MountSyncRegistry subset.
+  return stub as unknown as ScreensetsRegistry;
+}
 
 describe('microfrontends plugin - Phase 13', () => {
   let apps: HAI3App[] = [];
 
   afterEach(() => {
-    apps.forEach(app => app.destroy());
+    apps.forEach((app) => {
+      app.destroy();
+    });
     apps = [];
     vi.restoreAllMocks();
+    eventBus.clearAll();
     resetStore();
   });
   describe('13.8.1 - plugin registration', () => {
@@ -76,7 +105,7 @@ describe('microfrontends plugin - Phase 13', () => {
   });
 
   describe('13.8.2 - MFE lifecycle actions call executeActionsChain', () => {
-    it('should call executeActionsChain for loadExtension', () => {
+    it('should call executeActionsChain for loadExtension', async () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
@@ -84,7 +113,6 @@ describe('microfrontends plugin - Phase 13', () => {
         .build();
       apps.push(app);
 
-      // Mock getExtension to return extension (avoids GTS validation)
       const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
       const testExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext.v1';
       const testExtension: Extension = {
@@ -98,15 +126,19 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(registry, 'getExtension').mockReturnValue(testExtension);
       const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
-      // Call loadExtension - should call executeActionsChain fire-and-forget
+      // loadExtension fires executeActionsChain fire-and-forget. Use vi.waitFor
+      // so we deterministically observe the call even if the action scheduling
+      // changes to a microtask boundary.
       loadExtension(testExtensionId);
 
-      expect(spy).toHaveBeenCalledWith({
-        action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
-          target: testDomainId,
-          payload: { subject: testExtensionId },
-        },
+      await vi.waitFor(() => {
+        expect(spy).toHaveBeenCalledWith({
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+            target: testDomainId,
+            payload: { subject: testExtensionId },
+          },
+        });
       });
     });
 
@@ -132,7 +164,9 @@ describe('microfrontends plugin - Phase 13', () => {
       vi.spyOn(registry, 'getDomain').mockReturnValue(undefined);
       const chainSpy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
-      expect(() => unmountExtension(testExtensionId)).toThrow(
+      expect(() => {
+        unmountExtension(testExtensionId);
+      }).toThrow(
         /domain 'gts\.hai3\.mfes\.ext\.domain\.v1~test\.app\.test\.domain\.v1' is not registered.*extension 'gts\.hai3\.mfes\.ext\.extension\.v1~test\.app\.test\.ext\.v1'/
       );
       expect(chainSpy).not.toHaveBeenCalled();
@@ -194,7 +228,7 @@ describe('microfrontends plugin - Phase 13', () => {
 
   describe('13.8.4 - mount state sync follows registry state', () => {
     it('does not mark the requested extension mounted when the chain resolves without mounting it', async () => {
-      const fakeRegistry = {
+      const fakeRegistry: MountSyncRegistry = {
         typeSystem: gtsPlugin,
         executeActionsChain: vi.fn().mockResolvedValue(undefined),
         getMountedExtension: vi.fn().mockReturnValue(undefined),
@@ -202,7 +236,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -227,7 +261,7 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('mirrors the registry mounted extension when a fallback path leaves a different extension mounted', async () => {
       const mountedByDomain = new Map<string, string | undefined>();
-      const fakeRegistry = {
+      const fakeRegistry: MountSyncRegistry = {
         typeSystem: gtsPlugin,
         executeActionsChain: vi.fn().mockImplementation(async (chain: { action: { target: string } }) => {
           mountedByDomain.set(
@@ -240,7 +274,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -266,7 +300,7 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('syncs every domain touched by a chained mount/unmount sequence', async () => {
       const mountedByDomain = new Map<string, string | undefined>();
-      const fakeRegistry = {
+      const fakeRegistry: MountSyncRegistry = {
         typeSystem: gtsPlugin,
         executeActionsChain: vi.fn().mockImplementation(async (chain: {
           action: { target: string };
@@ -288,7 +322,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -327,7 +361,7 @@ describe('microfrontends plugin - Phase 13', () => {
 
     it('does not dispatch mount sync for fallback-only domains that were never executed', async () => {
       const mountedByDomain = new Map<string, string | undefined>();
-      const fakeRegistry = {
+      const fakeRegistry: MountSyncRegistry = {
         typeSystem: gtsPlugin,
         executeActionsChain: vi.fn().mockImplementation(async (chain: { action: { target: string } }) => {
           mountedByDomain.set(
@@ -340,7 +374,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(fakeRegistry as never);
+      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -381,8 +415,8 @@ describe('microfrontends plugin - Phase 13', () => {
     });
   });
 
-  describe('13.8.8 - Navigation integration', () => {
-    it('should initialize navigation integration', () => {
+  describe('13.8.8 - plugin lifecycle wiring', () => {
+    it('initializes MFE effects on init so bus events invoke the registry', async () => {
       const app = createHAI3()
         .use(screensets())
         .use(effects())
@@ -390,21 +424,53 @@ describe('microfrontends plugin - Phase 13', () => {
         .build();
       apps.push(app);
 
-      // Plugin should initialize navigation integration
-      // This is tested indirectly via plugin onInit
-      expect(app).toBeDefined();
+      const registry = app.screensetsRegistry;
+      if (!registry) throw new Error('expected screensetsRegistry');
+      const registerSpy = vi
+        .spyOn(registry, 'registerExtension')
+        .mockResolvedValue(undefined);
+
+      const extension: Extension = {
+        id: 'gts.hai3.mfes.ext.extension.v1~test.app.init.ext.v1',
+        domain: 'gts.hai3.mfes.ext.domain.v1~test.app.init.domain.v1',
+        entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.init.entry.v1',
+      };
+      eventBus.emit(MfeEvents.RegisterExtensionRequested, { extension });
+
+      await vi.waitFor(() => {
+        expect(registerSpy).toHaveBeenCalledWith(extension);
+      });
     });
 
-    it('should handle plugin cleanup', () => {
+    it('tears down MFE effects on destroy so the bus no longer drives the registry', async () => {
+      // Fresh app so we control its destroy ordering independently of afterEach.
       const app = createHAI3()
         .use(screensets())
         .use(effects())
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
-      apps.push(app);
 
-      // Should not throw on destroy (afterEach handles actual cleanup)
-      expect(() => app.destroy()).not.toThrow();
+      const registry = app.screensetsRegistry;
+      if (!registry) throw new Error('expected screensetsRegistry');
+      const registerSpy = vi
+        .spyOn(registry, 'registerExtension')
+        .mockResolvedValue(undefined);
+
+      app.destroy();
+
+      eventBus.emit(MfeEvents.RegisterExtensionRequested, {
+        extension: {
+          id: 'gts.hai3.mfes.ext.extension.v1~test.app.post-destroy.ext.v1',
+          domain: 'gts.hai3.mfes.ext.domain.v1~test.app.post-destroy.domain.v1',
+          entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.post-destroy.entry.v1',
+        },
+      });
+
+      // Give any potential lingering microtask a chance to run.
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(registerSpy).not.toHaveBeenCalled();
     });
   });
 });

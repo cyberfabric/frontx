@@ -13,7 +13,20 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import * as path from 'node:path';
+import { createRequire } from 'node:module';
+import { pathToFileURL } from 'node:url';
+
+// Load the layer partitioning from the same source that the depcruise rules
+// consume. `sdk-layer-tests.ts` asserts package.json edges while depcruise
+// asserts import-graph edges; pulling the lists from one CJS module means the
+// two checks cannot drift apart (see internal/depcruise-config/layer-constants.cjs).
+const require = createRequire(import.meta.url);
+const LAYER_CONSTANTS = require('../internal/depcruise-config/layer-constants.cjs') as {
+  SDK_PACKAGES: readonly string[];
+  ALLOWED_FRAMEWORK_SDK_DEPS: readonly string[];
+  DEPRECATED_PACKAGES: readonly string[];
+};
 
 interface TestResult {
   name: string;
@@ -54,32 +67,24 @@ function readPackageJson(packagePath: string): PackageJson | null {
 }
 
 function getHai3Dependencies(pkg: PackageJson): string[] {
+  // Merge `devDependencies` too — otherwise a deprecated package listed only
+  // under devDeps (a common pattern for types / test-only packages) would
+  // slip past the deprecation and layer-boundary guards. The SDK layer
+  // contract applies regardless of which dependency group declares the pin.
   const allDeps = {
     ...pkg.dependencies,
     ...pkg.peerDependencies,
+    ...pkg.devDependencies,
   };
   return Object.keys(allDeps).filter((dep) => dep.startsWith('@cyberfabric/'));
 }
 
-// SDK packages that should have ZERO @cyberfabric dependencies
-// Note: @cyberfabric/events + @cyberfabric/store were consolidated into @cyberfabric/state
-// Note: @cyberfabric/layout was deleted, layout slices now in @cyberfabric/framework
-const SDK_PACKAGES = ['state', 'api', 'i18n', 'screensets'];
-
-// Framework can only import these SDK packages
-const ALLOWED_SDK_DEPS = [
-  '@cyberfabric/state',      // Consolidated from @cyberfabric/events + @cyberfabric/store
-  '@cyberfabric/api',
-  '@cyberfabric/i18n',
-  '@cyberfabric/screensets', // Screenset contracts and registry
-];
-
-// Deprecated packages that should not be imported
-const DEPRECATED_PACKAGES = [
-  '@cyberfabric/uikit-contracts',  // Theme types now in @cyberfabric/framework
-  '@cyberfabric/uicore',           // Consolidated into @cyberfabric/framework
-  '@cyberfabric/layout',           // Layout slices now in @cyberfabric/framework
-];
+// Layer partitioning — re-exposed under the historic names used in this file
+// so the helper functions below stay readable. The single source lives in
+// `internal/depcruise-config/layer-constants.cjs` (see loader above).
+const SDK_PACKAGES = LAYER_CONSTANTS.SDK_PACKAGES;
+const ALLOWED_SDK_DEPS = LAYER_CONSTANTS.ALLOWED_FRAMEWORK_SDK_DEPS;
+const DEPRECATED_PACKAGES = LAYER_CONSTANTS.DEPRECATED_PACKAGES;
 
 /**
  * Test: SDK packages have zero @cyberfabric dependencies
@@ -88,7 +93,7 @@ function testSdkZeroDependencies(): TestResult[] {
   const results: TestResult[] = [];
 
   for (const pkgName of SDK_PACKAGES) {
-    const pkgPath = join(process.cwd(), 'packages', pkgName);
+    const pkgPath = path.join(process.cwd(), 'packages', pkgName);
     const pkg = readPackageJson(pkgPath);
 
     if (!pkg) {
@@ -120,7 +125,7 @@ function testSdkZeroDependencies(): TestResult[] {
  * Test: Framework package only imports SDK packages
  */
 function testFrameworkOnlySdkDeps(): TestResult {
-  const pkgPath = join(process.cwd(), 'packages', 'framework');
+  const pkgPath = path.join(process.cwd(), 'packages', 'framework');
   const pkg = readPackageJson(pkgPath);
 
   if (!pkg) {
@@ -149,7 +154,7 @@ function testFrameworkOnlySdkDeps(): TestResult {
  * Test: React package only imports framework
  */
 function testReactOnlyFrameworkDep(): TestResult {
-  const pkgPath = join(process.cwd(), 'packages', 'react');
+  const pkgPath = path.join(process.cwd(), 'packages', 'react');
   const pkg = readPackageJson(pkgPath);
 
   if (!pkg) {
@@ -182,7 +187,7 @@ function testNoDeprecatedDependencies(): TestResult[] {
   const packagesToCheck = [...SDK_PACKAGES, 'framework', 'react'];
 
   for (const pkgName of packagesToCheck) {
-    const pkgPath = join(process.cwd(), 'packages', pkgName);
+    const pkgPath = path.join(process.cwd(), 'packages', pkgName);
     const pkg = readPackageJson(pkgPath);
 
     if (!pkg) {
@@ -220,11 +225,11 @@ function testLayeredConfigsExist(): TestResult[] {
   const results: TestResult[] = [];
 
   // ESLint config package (in internal/, compiled to dist/)
-  const eslintConfigPath = join(process.cwd(), 'internal', 'eslint-config', 'dist');
+  const eslintConfigPath = path.join(process.cwd(), 'internal', 'eslint-config', 'dist');
   const eslintConfigFiles = ['base.js', 'sdk.js', 'framework.js', 'react.js', 'screenset.js'];
 
   for (const file of eslintConfigFiles) {
-    const filePath = join(eslintConfigPath, file);
+    const filePath = path.join(eslintConfigPath, file);
     const exists = existsSync(filePath);
     results.push({
       name: `ESLint config: ${file}`,
@@ -234,11 +239,11 @@ function testLayeredConfigsExist(): TestResult[] {
   }
 
   // Depcruise config package (in internal/)
-  const depcruiseConfigPath = join(process.cwd(), 'internal', 'depcruise-config');
+  const depcruiseConfigPath = path.join(process.cwd(), 'internal', 'depcruise-config');
   const depcruiseConfigFiles = ['base.cjs', 'sdk.cjs', 'framework.cjs', 'react.cjs', 'screenset.cjs'];
 
   for (const file of depcruiseConfigFiles) {
-    const filePath = join(depcruiseConfigPath, file);
+    const filePath = path.join(depcruiseConfigPath, file);
     const exists = existsSync(filePath);
     results.push({
       name: `Depcruise config: ${file}`,
@@ -304,8 +309,16 @@ function main(): void {
   }
 }
 
-// Execute if run directly
-if (import.meta.url === `file://${process.argv[1]}`) {
+// Execute if run directly. Use `pathToFileURL` instead of a hand-rolled
+// `file://${argv[1]}` — the hand-rolled form fails on Windows (drive letters
+// / backslashes need escaping) and on symlinks where argv[1] resolves
+// differently from import.meta.url. `pathToFileURL(path.resolve(argv[1]))`
+// produces the canonical form the runtime compares against.
+const isEntryPoint =
+  process.argv[1] !== undefined &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href;
+
+if (isEntryPoint) {
   main();
 }
 

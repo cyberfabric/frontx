@@ -1,4 +1,5 @@
 // @cpt-flow:cpt-frontx-flow-cli-tooling-create-project:p1
+// @cpt-flow:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1
 // @cpt-dod:cpt-frontx-dod-cli-tooling-package:p1
 // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-invoke-create
 import fs from 'fs-extra';
@@ -17,7 +18,11 @@ import {
   getRunScriptCommand,
   isSupportedPackageManager,
 } from '../../core/packageManager.js';
-import { generateProject } from '../../generators/project.js';
+import {
+  generateProject,
+  isTestsScaffold,
+  type TestsScaffold,
+} from '../../generators/project.js';
 import { generateLayerPackage } from '../../generators/layerPackage.js';
 import { writeGeneratedFiles } from '../../utils/fs.js';
 import {
@@ -40,6 +45,8 @@ export interface CreateCommandArgs {
   layer?: LayerType;
   /** Use local monorepo packages (file:) instead of npm registry */
   local?: boolean;
+  /** Test scaffold variant — 'unit' (default) or 'none' for prototype/demo scaffolds */
+  tests?: TestsScaffold;
 }
 
 /**
@@ -95,6 +102,12 @@ export const createCommand: CommandDefinition<
       type: 'string',
       choices: ['npm', 'pnpm', 'yarn'],
     },
+    {
+      name: 'tests',
+      description: "Test scaffold: 'unit' (default) for Vitest scaffolding, 'none' to skip tests/configs/deps",
+      type: 'string',
+      choices: ['unit', 'none'],
+    },
   ],
 
   validate(args, ctx) {
@@ -127,6 +140,13 @@ export const createCommand: CommandDefinition<
       return validationError(
         'INVALID_PACKAGE_MANAGER',
         "Invalid package manager. Valid options: npm, pnpm, yarn"
+      );
+    }
+
+    if (args.tests !== undefined && !isTestsScaffold(args.tests)) {
+      return validationError(
+        'INVALID_TESTS',
+        "Invalid --tests. Valid options: unit, none"
       );
     }
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-name-validation
@@ -240,6 +260,7 @@ export const createCommand: CommandDefinition<
     }
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-branch-layer
 
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-invoke
     // App project - get configuration via prompts if not provided
     let studio = args.studio;
     let uikit = args.uikit;
@@ -369,7 +390,9 @@ export const createCommand: CommandDefinition<
         logger.info('Using local @cyberfabric packages from monorepo (file:).');
       }
     }
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-invoke
 
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-run-scaffold
     // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-generate-project
     // Generate project files (async - reads from templates)
     const files = await generateProject({
@@ -381,14 +404,18 @@ export const createCommand: CommandDefinition<
       useLocalPackages: Boolean(monorepoRoot),
       monorepoRoot: monorepoRoot ?? undefined,
       projectPath,
+      tests: args.tests ?? 'unit',
     });
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-generate-project
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-run-scaffold
 
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-write-files
     // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-write-files
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-write-files
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-write-files
 
     // Display message based on uikit selection
     if (isCustomUikit(resolvedUikit)) {
@@ -401,6 +428,7 @@ export const createCommand: CommandDefinition<
       logger.log('Create your own screenset with `frontx screenset create`.');
     }
 
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-run-ai-sync
     // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
     // Run ai sync to generate IDE config files
     logger.newline();
@@ -414,6 +442,7 @@ export const createCommand: CommandDefinition<
       // Ignore errors - ai sync is optional
     }
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-run-ai-sync
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-log-success-create
     // Done
@@ -428,6 +457,7 @@ export const createCommand: CommandDefinition<
     logger.newline();
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-log-success-create
 
+    // @cpt-begin:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-return
     // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-return-create
     // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
     // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
@@ -440,6 +470,7 @@ export const createCommand: CommandDefinition<
     // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
     // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
     // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-return-create
+    // @cpt-end:cpt-frontx-flow-unit-test-generation-and-agent-verification-create-project:p1:inst-create-project-return
   },
 };
 // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-invoke-create

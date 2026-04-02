@@ -9,13 +9,14 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
-import type { ExtensionDomain, Extension } from '../../../src/mfe/types';
-import { MockContainerProvider } from '../test-utils';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
+import type { ExtensionDomain, Extension, ScreenExtension } from '../../../src/mfe/types';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 describe('ScreensetsRegistry Query Methods', () => {
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
+  let typeSystem: GtsPlugin;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.testorg.query.domain.v1',
@@ -50,13 +51,14 @@ describe('ScreensetsRegistry Query Methods', () => {
   };
 
   beforeEach(() => {
+    typeSystem = new GtsPlugin();
     registry = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+      typeSystem,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register the entry instance with GTS plugin before using it
-    gtsPlugin.register(testEntry);
+    typeSystem.register(testEntry);
   });
 
   describe('getExtension', () => {
@@ -77,7 +79,7 @@ describe('ScreensetsRegistry Query Methods', () => {
     });
 
     it('should return extension with presentation metadata', async () => {
-      const extensionWithPresentation: Extension = {
+      const extensionWithPresentation: ScreenExtension = {
         id: 'gts.hai3.mfes.ext.extension.v1~test.testorg.query.with_presentation.v1',
         domain: testDomain.id,
         entry: testEntry.id,
@@ -95,7 +97,7 @@ describe('ScreensetsRegistry Query Methods', () => {
 
       const result = registry.getExtension(extensionWithPresentation.id);
       expect(result).toBeDefined();
-      expect(result?.presentation).toEqual({
+      expect((result as ScreenExtension).presentation).toEqual({
         label: 'Test Screen',
         icon: 'test',
         route: '/test',

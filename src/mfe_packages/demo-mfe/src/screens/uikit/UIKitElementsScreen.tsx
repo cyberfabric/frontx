@@ -79,7 +79,7 @@ export const UIKitElementsScreen: React.FC<UIKitElementsScreenProps> = ({ bridge
   // Load translations
   const { t, loading: translationsLoading } = useScreenTranslations(languageModules, bridge);
 
-  // Handle theme subscription and RTL language detection
+  // Handle theme subscription; language + direction come from useScreenTranslations
   useEffect(() => {
     // Read initial property values
     const initialTheme = bridge.getProperty(HAI3_SHARED_PROPERTY_THEME);

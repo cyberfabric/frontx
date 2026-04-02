@@ -15,7 +15,7 @@ import { ScreensetsRegistry } from '../../../src/mfe/runtime';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 // Create a lenient mock plugin for testing domain properties
 function createMockPlugin(): TypeSystemPlugin {
@@ -38,18 +38,23 @@ function createMockPlugin(): TypeSystemPlugin {
     schemas.set(typeId, { $id: `gts://${typeId}`, type: 'object' });
   }
 
+  const gtsUri = ['gts', ':', '//'].join('');
   return {
     name: 'MockPlugin',
     version: '1.0.0',
-    isValidTypeId: (id: string) => id.includes('gts.') && id.endsWith('~'),
-    parseTypeId: (id: string) => ({ id, segments: id.split('.') }),
     registerSchema: (schema: JSONSchema) => {
       if (schema.$id) {
-        const typeId = schema.$id.replace('gts://', '');
-        schemas.set(typeId, schema);
+        schemas.set(schema.$id, schema);
       }
     },
-    getSchema: (typeId: string) => schemas.get(typeId),
+    getSchema: (typeId: string) => {
+      const direct = schemas.get(typeId);
+      if (direct !== undefined) return direct;
+      if (!typeId.startsWith(gtsUri)) {
+        return schemas.get(gtsUri + typeId);
+      }
+      return undefined;
+    },
     register: (entity: unknown) => {
       const entityWithId = entity as { id?: string };
       if (entityWithId.id) {
@@ -62,21 +67,19 @@ function createMockPlugin(): TypeSystemPlugin {
       }
       return {
         valid: false,
-        errors: [{ path: '', message: `Instance not registered: ${instanceId}` }],
+        errors: [{ path: '', message: `Instance not registered: ${instanceId}`, keyword: 'not-registered' }],
       };
     },
     isTypeOf: (typeId: string, baseTypeId: string) => {
       return typeId.startsWith(baseTypeId);
     },
-    checkCompatibility: () => ({ compatible: true, changes: [] }),
-    getAttribute: () => undefined,
   };
 }
 
 describe('ScreensetsRegistry - Domain Properties', () => {
   let registry: ScreensetsRegistry;
   let testDomain: ExtensionDomain;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
   const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.test.widget.slot.v1';
   const THEME_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.ui.theme.v1';
   const USER_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.auth.user.v1';
@@ -85,7 +88,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
     registry = new DefaultScreensetsRegistry({
       typeSystem: createMockPlugin(),
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     testDomain = {
       id: DOMAIN_ID,

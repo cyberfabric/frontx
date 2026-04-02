@@ -9,18 +9,19 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { gtsPlugin } from '../../../src/mfe/plugins/gts';
+import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '../../../src/mfe/constants';
-import { MockContainerProvider } from '../test-utils';
+import { TestContainerProvider } from '../../../__test-utils__';
 
 describe('GTS Package Tracking - Phase 39.6', () => {
   let registry: DefaultScreensetsRegistry;
-  let mockContainerProvider: MockContainerProvider;
+  let mockContainerProvider: TestContainerProvider;
+  let typeSystem: GtsPlugin;
 
   const testDomain: ExtensionDomain = {
     id: 'gts.hai3.mfes.ext.domain.v1~test.package.tracking.domain.v1',
@@ -77,14 +78,15 @@ describe('GTS Package Tracking - Phase 39.6', () => {
   };
 
   beforeEach(() => {
+    typeSystem = new GtsPlugin();
     registry = new DefaultScreensetsRegistry({
-      typeSystem: gtsPlugin,
+      typeSystem,
     });
-    mockContainerProvider = new MockContainerProvider();
+    mockContainerProvider = new TestContainerProvider();
 
     // Register the domain and entry instances with GTS plugin before using them
-    gtsPlugin.register(testDomain);
-    gtsPlugin.register(testEntry);
+    typeSystem.register(testDomain);
+    typeSystem.register(testEntry);
   });
 
   describe('getRegisteredPackages', () => {

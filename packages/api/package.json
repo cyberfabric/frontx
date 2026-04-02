@@ -27,16 +27,18 @@
   "scripts": {
     "build": "tsup",
     "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check:test": "tsc -p tsconfig.test.json",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "vitest --run --passWithNoTests=false --exclude='**/*.integration.test.ts'",
+    "test:integration": "vitest --run --passWithNoTests=false --testTimeout=15000 --hookTimeout=15000 .integration.test",
+    "test:unit:watch": "vitest --watch --exclude='**/*.integration.test.ts'"
   },
-  "dependencies": {},
   "devDependencies": {
-    "@vitest/coverage-v8": "^4.0.18",
+    "@vitest/coverage-v8": "4.1.4",
     "axios": "1.14.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.2",
-    "vitest": "^4.0.18"
+    "vitest": "4.1.4"
   },
   "peerDependencies": {
     "axios": ">=1.0.0 <1.14.1"

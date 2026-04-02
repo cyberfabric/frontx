@@ -86,7 +86,9 @@ describe('MFE State Container Factory', () => {
 
       container.dispose();
 
-      expect(() => container.getState()).toThrow(
+      expect(() => {
+        container.getState();
+      }).toThrow(
         'Cannot get state from disposed container'
       );
     });
@@ -149,9 +151,9 @@ describe('MFE State Container Factory', () => {
       container.subscribe(goodListener);
 
       // Should not throw, should log error
-      expect(() =>
-        container.setState((state) => ({ ...state, count: 1 }))
-      ).not.toThrow();
+      expect(() => {
+        container.setState((state) => ({ ...state, count: 1 }));
+      }).not.toThrow();
 
       expect(consoleErrorSpy).toHaveBeenCalledWith(
         'Error in state listener:',
@@ -169,9 +171,9 @@ describe('MFE State Container Factory', () => {
 
       container.dispose();
 
-      expect(() =>
-        container.setState((state) => ({ ...state, count: 1 }))
-      ).toThrow('Cannot set state on disposed container');
+      expect(() => {
+        container.setState((state) => ({ ...state, count: 1 }));
+      }).toThrow('Cannot set state on disposed container');
     });
   });
 
@@ -255,7 +257,9 @@ describe('MFE State Container Factory', () => {
 
       container.dispose();
 
-      expect(() => container.subscribe(() => {})).toThrow(
+      expect(() => {
+        container.subscribe(() => {});
+      }).toThrow(
         'Cannot subscribe to disposed container'
       );
     });
@@ -273,9 +277,9 @@ describe('MFE State Container Factory', () => {
       container.dispose();
 
       // Attempting to update after dispose should throw
-      expect(() =>
-        container.setState((state) => ({ ...state, count: 1 }))
-      ).toThrow();
+      expect(() => {
+        container.setState((state) => ({ ...state, count: 1 }));
+      }).toThrow();
 
       expect(listener).not.toHaveBeenCalled();
     });
@@ -286,7 +290,9 @@ describe('MFE State Container Factory', () => {
       });
 
       container.dispose();
-      expect(() => container.dispose()).not.toThrow();
+      expect(() => {
+        container.dispose();
+      }).not.toThrow();
     });
 
     it('should clear state reference for garbage collection', () => {
@@ -297,7 +303,9 @@ describe('MFE State Container Factory', () => {
       container.dispose();
 
       // State should no longer be accessible
-      expect(() => container.getState()).toThrow();
+      expect(() => {
+        container.getState();
+      }).toThrow();
     });
   });
 
@@ -386,9 +394,15 @@ describe('MFE State Container Factory', () => {
       container.dispose();
 
       // All operations should now fail
-      expect(() => container.getState()).toThrow();
-      expect(() => container.setState((s) => s)).toThrow();
-      expect(() => container.subscribe(() => {})).toThrow();
+      expect(() => {
+        container.getState();
+      }).toThrow();
+      expect(() => {
+        container.setState((s) => s);
+      }).toThrow();
+      expect(() => {
+        container.subscribe(() => {});
+      }).toThrow();
 
       // Listener should not be called
       expect(listener).not.toHaveBeenCalled();

@@ -9,7 +9,7 @@
 
 import { describe, it, expect, beforeEach } from 'vitest';
 import { DefaultRuntimeBridgeFactory } from '../../../src/mfe/runtime/default-runtime-bridge-factory';
-import type { ExtensionDomainState } from '../../../src/mfe/runtime';
+import type { ExtensionDomainState } from '../../../src/mfe/runtime/extension-manager';
 import type { ExtensionDomain, SharedProperty } from '../../../src/mfe/types';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 
@@ -20,9 +20,12 @@ describe('Runtime Bridge Factory', () => {
   beforeEach(() => {
     const domain: ExtensionDomain = {
       id: 'gts.hai3.mfes.ext.domain.v1~test.domain',
-      slots: [],
       sharedProperties: ['prop1', 'prop2', 'prop3'],
+      actions: [],
+      extensionsActions: [],
+      defaultActionTimeout: 5000,
       lifecycleStages: [],
+      extensionsLifecycleStages: [],
     };
 
     domainState = {
@@ -45,7 +48,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -61,7 +67,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -78,7 +87,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -102,7 +114,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -131,7 +146,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -155,7 +173,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -175,7 +196,10 @@ describe('Runtime Bridge Factory', () => {
           domainState,
           `test-extension-${i}`,
           'gts.hai3.mfes.mfe.entry.v1~test.entry',
-          async () => ({ success: true }),
+          [],
+          async () => {},
+          () => {},
+          () => {},
           () => {},
           () => {}
         );
@@ -201,7 +225,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'test-extension',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -210,7 +237,9 @@ describe('Runtime Bridge Factory', () => {
       domainState.propertySubscribers.clear();
 
       // Should not throw
-      expect(() => bridgeFactory.disposeBridge(domainState, parentBridge)).not.toThrow();
+      expect(() => {
+        bridgeFactory.disposeBridge(domainState, parentBridge);
+      }).not.toThrow();
     });
   });
 
@@ -220,7 +249,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'extension-1',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );
@@ -229,7 +261,10 @@ describe('Runtime Bridge Factory', () => {
         domainState,
         'extension-2',
         'gts.hai3.mfes.mfe.entry.v1~test.entry',
-        async () => ({ success: true }),
+        [],
+        async () => {},
+        () => {},
+        () => {},
         () => {},
         () => {}
       );

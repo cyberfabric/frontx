@@ -1,55 +1,44 @@
-/**
- * @vitest-environment jsdom
- */
 import React from 'react';
-import { describe, expect, it, afterEach } from 'vitest';
-import { act, waitFor, cleanup } from '@testing-library/react';
+import { describe, expect, it, afterEach, vi } from 'vitest';
+import { act, waitFor } from '@testing-library/react';
 import {
   createHAI3,
+  type ChildMfeBridge,
   type EndpointDescriptor,
   type HAI3App,
   queryCache,
   queryCacheShared,
+  resetSharedQueryClient,
 } from '@cyberfabric/framework';
-import { resetSharedQueryClient } from '@cyberfabric/framework/testing';
-import { ThemeAwareReactLifecycle } from '../../src/mfe/ThemeAwareReactLifecycle';
-import { useApiQuery, useQueryCache } from '../../src';
-import { bootstrapHAI3QueryClient, useOptionalHAI3QueryClient } from '../../src/queryClient';
-import { QueryClient } from '@tanstack/react-query';
-
-const APP_QUERY_CLIENT_SYMBOL = Symbol.for('hai3:query-cache:app-client');
-const SHARED_QUERY_CLIENT_SYMBOL = Symbol.for('hai3:query-cache:shared-client');
-
-type HiddenQueryClientApp = HAI3App & {
-  [APP_QUERY_CLIENT_SYMBOL]?: QueryClient;
-};
-
-type SharedQueryClientHost = typeof globalThis & {
-  [SHARED_QUERY_CLIENT_SYMBOL]?: QueryClient;
-};
+import {
+  ThemeAwareReactLifecycle,
+  useApiQuery,
+  useQueryCache,
+} from '@cyberfabric/react';
+import {
+  bootstrapHAI3QueryClient,
+  resolveHAI3QueryClient,
+  useOptionalHAI3QueryClient,
+} from '@cyberfabric/react/testing';
 
 afterEach(() => {
-  cleanup();
   resetSharedQueryClient();
 });
 
-function createStoreStub() {
-  return {
-    dispatch: () => undefined,
-    getState: () => ({}),
-    subscribe: () => () => undefined,
-  };
+/** Minimal real app: failure-path test only needs an app without shared QueryClient wiring. */
+function createMinimalHai3App(): HAI3App {
+  return createHAI3().build();
 }
 
-/** Minimal test double: ThemeAwareReactLifecycle only needs `store` + app-owned QueryClient here. */
-function createMinimalHai3App(queryClient?: QueryClient): HAI3App {
-  const app = {
-    store: createStoreStub(),
-  } as unknown as HiddenQueryClientApp;
-  if (queryClient) {
-    app[APP_QUERY_CLIENT_SYMBOL] = queryClient;
-  }
-  return app;
+function makeScreenMountBridgeStub(): ChildMfeBridge {
+  return {
+    domainId: 'screen',
+    instanceId: 'bridge',
+    executeActionsChain: vi.fn().mockResolvedValue(undefined),
+    subscribeToProperty: vi.fn().mockReturnValue(() => undefined),
+    getProperty: vi.fn().mockReturnValue(undefined),
+    registerActionHandler: vi.fn(),
+  };
 }
 
 function QueryCacheProbe({ onRender }: { onRender: (value: unknown) => void }) {
@@ -123,8 +112,8 @@ class ApiQueryLateJoinLifecycle extends ThemeAwareReactLifecycle {
 describe('MFE shared QueryClient join', () => {
   it('resolves the shared QueryClient at mount when the child app built before the host', async () => {
     const childApp = createHAI3().use(queryCacheShared()).build();
-    const hostApp = createHAI3().use(queryCache()).build() as HiddenQueryClientApp;
-    const hostClient = hostApp[APP_QUERY_CLIENT_SYMBOL];
+    const hostApp = createHAI3().use(queryCache()).build();
+    const hostClient = resolveHAI3QueryClient(hostApp);
     if (!hostClient) {
       throw new Error('expected host query client');
     }
@@ -139,13 +128,7 @@ describe('MFE shared QueryClient join', () => {
     await act(async () => {
       lifecycle.mount(
         container,
-        {
-          executeActionsChain: async () => undefined,
-          getProperty: () => undefined,
-          subscribeToProperty: () => () => undefined,
-          domainId: 'screen',
-          instanceId: 'bridge',
-        } as never,
+        makeScreenMountBridgeStub(),
         {
           domainId: 'screen',
           extensionId: 'ext',
@@ -165,8 +148,8 @@ describe('MFE shared QueryClient join', () => {
   });
 
   it('keeps the joined QueryClient readable after immediate host app teardown following mount', async () => {
-    const hostApp = createHAI3().use(queryCache()).build() as HiddenQueryClientApp;
-    const hostClient = hostApp[APP_QUERY_CLIENT_SYMBOL];
+    const hostApp = createHAI3().use(queryCache()).build();
+    const hostClient = resolveHAI3QueryClient(hostApp);
     if (!hostClient) {
       throw new Error('expected host query client');
     }
@@ -183,13 +166,7 @@ describe('MFE shared QueryClient join', () => {
     await act(async () => {
       lifecycle.mount(
         container,
-        {
-          executeActionsChain: async () => undefined,
-          getProperty: () => undefined,
-          subscribeToProperty: () => () => undefined,
-          domainId: 'screen',
-          instanceId: 'bridge',
-        } as never,
+        makeScreenMountBridgeStub(),
         {
           domainId: 'screen',
           extensionId: 'ext',
@@ -212,12 +189,16 @@ describe('MFE shared QueryClient join', () => {
   });
 
   it('reads the app QueryClient through the first React commit', async () => {
-    const sharedClient = new QueryClient();
+    const app = createHAI3().use(queryCache()).build();
+    const sharedClient = resolveHAI3QueryClient(app);
+    if (!sharedClient) {
+      throw new Error('expected app query client');
+    }
     sharedClient.setQueryData(['probe'], 'shared-query-client');
 
     let observedValue: unknown;
     const lifecycle = new TestLifecycle(
-      createMinimalHai3App(sharedClient),
+      app,
       (value) => {
         observedValue = value;
       }
@@ -227,13 +208,7 @@ describe('MFE shared QueryClient join', () => {
     await act(async () => {
       lifecycle.mount(
         container,
-        {
-          executeActionsChain: async () => undefined,
-          getProperty: () => undefined,
-          subscribeToProperty: () => () => undefined,
-          domainId: 'screen',
-          instanceId: 'bridge',
-        } as never,
+        makeScreenMountBridgeStub(),
         {
           domainId: 'screen',
           extensionId: 'ext',
@@ -247,23 +222,22 @@ describe('MFE shared QueryClient join', () => {
 
     act(() => {
       lifecycle.unmount(container);
+      app.destroy();
     });
   });
 
   it('does not activate queryCacheShared() from render bootstrap', async () => {
-    const childApp = createHAI3().use(queryCacheShared()).build() as HiddenQueryClientApp;
+    const childApp = createHAI3().use(queryCacheShared()).build();
     const hostApp = createHAI3().use(queryCache()).build();
 
     expect(bootstrapHAI3QueryClient(childApp)).toBeUndefined();
-    expect(childApp[APP_QUERY_CLIENT_SYMBOL]).toBeUndefined();
+    expect(resolveHAI3QueryClient(childApp)).toBeUndefined();
 
     act(() => {
       hostApp.destroy();
     });
 
-    await waitFor(() => {
-      expect((globalThis as SharedQueryClientHost)[SHARED_QUERY_CLIENT_SYMBOL]).toBeUndefined();
-    });
+    expect(bootstrapHAI3QueryClient(childApp)).toBeUndefined();
 
     childApp.destroy();
   });
@@ -280,13 +254,7 @@ describe('MFE shared QueryClient join', () => {
     await act(async () => {
       lifecycle.mount(
         container,
-        {
-          executeActionsChain: async () => undefined,
-          getProperty: () => undefined,
-          subscribeToProperty: () => () => undefined,
-          domainId: 'screen',
-          instanceId: 'bridge',
-        } as never,
+        makeScreenMountBridgeStub(),
         {
           domainId: 'screen',
           extensionId: 'ext',
@@ -296,7 +264,10 @@ describe('MFE shared QueryClient join', () => {
 
     expect(last).toBeUndefined();
 
-    const hostApp = createHAI3().use(queryCache()).build() as HiddenQueryClientApp;
+    let hostApp!: HAI3App;
+    await act(async () => {
+      hostApp = createHAI3().use(queryCache()).build();
+    });
 
     await waitFor(() => {
       expect(last?.data).toBe('late-join-data');
@@ -322,13 +293,7 @@ describe('MFE shared QueryClient join', () => {
     await act(async () => {
       lifecycle.mount(
         container,
-        {
-          executeActionsChain: async () => undefined,
-          getProperty: () => undefined,
-          subscribeToProperty: () => () => undefined,
-          domainId: 'screen',
-          instanceId: 'bridge',
-        } as never,
+        makeScreenMountBridgeStub(),
         {
           domainId: 'screen',
           extensionId: 'ext',
@@ -340,12 +305,15 @@ describe('MFE shared QueryClient join', () => {
     // does not mount (and does not observe undefined) until the host exists.
     expect(observedValue).toBe('initial');
 
-    const hostApp = createHAI3().use(queryCache()).build() as HiddenQueryClientApp;
-    const hostClient = hostApp[APP_QUERY_CLIENT_SYMBOL];
-    if (!hostClient) {
-      throw new Error('expected host query client');
-    }
-    hostClient.setQueryData(['probe'], 'shared-query-client');
+    let hostApp!: HAI3App;
+    await act(async () => {
+      hostApp = createHAI3().use(queryCache()).build();
+      const hostClient = resolveHAI3QueryClient(hostApp);
+      if (!hostClient) {
+        throw new Error('expected host query client');
+      }
+      hostClient.setQueryData(['probe'], 'shared-query-client');
+    });
 
     await waitFor(() => {
       expect(observedValue).toBe('shared-query-client');
@@ -359,28 +327,27 @@ describe('MFE shared QueryClient join', () => {
   });
 
   it('fails explicitly when a mounted MFE app has no shared QueryClient', async () => {
-    const lifecycle = new TestLifecycle(createMinimalHai3App(), () => undefined);
-    const container = document.createElement('div');
+    const minimalApp = createMinimalHai3App();
+    try {
+      const lifecycle = new TestLifecycle(minimalApp, () => undefined);
+      const container = document.createElement('div');
 
-    expect(() => {
-      act(() => {
-        lifecycle.mount(
-          container,
-          {
-            executeActionsChain: async () => undefined,
-            getProperty: () => undefined,
-            subscribeToProperty: () => () => undefined,
-            domainId: 'screen',
-            instanceId: 'bridge',
-          } as never,
-          {
-            domainId: 'screen',
-            extensionId: 'ext',
-          }
-        );
-      });
-    }).toThrow(
-      '[HAI3Provider] Mounted MFEs require queryCacheShared() in the child app and queryCache() in the host app before loading the MFE app.'
-    );
+      expect(() => {
+        act(() => {
+          lifecycle.mount(
+            container,
+            makeScreenMountBridgeStub(),
+            {
+              domainId: 'screen',
+              extensionId: 'ext',
+            }
+          );
+        });
+      }).toThrow(
+        '[HAI3Provider] Mounted MFEs require queryCacheShared() in the child app and queryCache() in the host app before loading the MFE app.'
+      );
+    } finally {
+      minimalApp.destroy();
+    }
   });
 });

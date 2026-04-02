@@ -29,7 +29,7 @@ import {
 import { validateDomainLifecycleHooks, validateExtensionLifecycleHooks } from '../validation/lifecycle';
 import { validateContract } from '../validation/contract';
 import { validateExtensionType } from '../validation/extension-type';
-import { UnsupportedLifecycleStageError } from '../errors';
+import { DomainValidationError, UnsupportedLifecycleStageError } from '../errors';
 
 /**
  * Default extension manager implementation.
@@ -103,7 +103,12 @@ export class DefaultExtensionManager extends ExtensionManager {
   // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-validation:p1:inst-1
   registerDomain(domain: ExtensionDomain, onInitError?: (error: Error) => void): void {
     // Step 1: GTS-native validation — register() validates and throws on failure
-    this.typeSystem.register(domain);
+    try {
+      this.typeSystem.register(domain);
+    } catch (cause) {
+      const err = cause instanceof Error ? cause : new Error(String(cause));
+      throw new DomainValidationError(domain.id, err);
+    }
 
     // Step 2: Validate lifecycle hooks reference supported stages
     const lifecycleValidation = validateDomainLifecycleHooks(domain);

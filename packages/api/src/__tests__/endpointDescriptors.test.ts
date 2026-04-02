@@ -15,7 +15,7 @@
  * @cpt-flow:cpt-frontx-flow-request-lifecycle-use-api-mutation:p2
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { BaseApiService } from '../BaseApiService';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestEndpointProtocol } from '../protocols/RestEndpointProtocol';
@@ -259,12 +259,14 @@ describe('RestEndpointProtocol.queryWith()', () => {
     expect(descriptor.gcTime).toBeUndefined();
   });
 
-  it('params object is included in the key (enables per-param cache isolation)', () => {
+  it('params snapshot is included in the key (enables per-param cache isolation)', () => {
     const params = { id: '7' };
     const descriptor = service.getUser(params);
 
-    // The params reference is embedded in the key at index 3
+    // queryWith() stores a shallow clone so later caller mutations do not
+    // rewrite the descriptor identity.
     expect(descriptor.key[3]).toEqual(params);
+    expect(descriptor.key[3]).not.toBe(params);
   });
 });
 
@@ -381,6 +383,13 @@ describe('key derivation invariants', () => {
 });
 
 describe('SseStreamProtocol.stream()', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  // Shared afterEach in vitest.setup.ts calls vi.useRealTimers() already;
+  // a per-suite duplicate would silently drift if the shared hook changes.
+
   it('returns a StreamDescriptor with the correct key', () => {
     const descriptor: StreamDescriptor<{ id: string; text: string }> = service.messageStream;
     expect(descriptor.key).toEqual(['/api/test', 'SSE', '/stream/messages']);
@@ -397,7 +406,8 @@ describe('SseStreamProtocol.stream()', () => {
       }
     );
 
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
 
     expect(connectionId).toMatch(/^sse-/);
     expect(events).toEqual([{ id: '1', text: 'hello' }]);
@@ -408,7 +418,8 @@ describe('SseStreamProtocol.stream()', () => {
     const events: string[] = [];
 
     await service.rawStream.connect((event) => events.push(event));
-    await new Promise((resolve) => setTimeout(resolve, 10));
+    await Promise.resolve();
+    await vi.runAllTimersAsync();
 
     expect(events).toEqual(['raw-1']);
   });

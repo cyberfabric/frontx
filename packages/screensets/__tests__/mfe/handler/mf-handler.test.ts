@@ -18,7 +18,13 @@ import {
   createChunkWithRelativeImport,
   createSharedDepSource,
   TEST_BASE_URL,
-} from '../test-utils/mock-blob-url-loader';
+} from '../../../__test-utils__/mock-blob-url-loader';
+
+const MFE_ENTRY_CONTRACT: Pick<MfeEntryMF, 'requiredProperties' | 'actions' | 'domainActions'> = {
+  requiredProperties: [],
+  actions: [],
+  domainActions: [],
+};
 
 // ---------------------------------------------------------------------------
 // Test manifest factory helpers
@@ -113,6 +119,7 @@ function createTestSetup(
       chunkSource: options.chunkSources?.[exposedModule],
     });
     return {
+      ...MFE_ENTRY_CONTRACT,
       id: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.${suffix}.v1`,
       manifest,
       exposedModule,
@@ -206,6 +213,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.acme.chart2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -251,6 +259,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.acme.chart.ref2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -289,6 +298,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.notcached.v1',
         manifest: 'gts.hai3.mfes.mfe.mf_manifest.v1~missing.manifest.v1',
         exposedModule: './ChartWidget',
@@ -319,6 +329,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.acme.int.chart2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -355,12 +366,14 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       mocks.registerSource(`${baseUrl}expose-Widget2.js`, createExposeChunkSource());
 
       const entry1: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.cache1.v1',
         manifest,
         exposedModule: './Widget1',
         exposeAssets: { js: { sync: ['expose-Widget1.js'], async: [] }, css: { sync: [], async: [] } },
       };
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.cache2.v1',
         manifest,
         exposedModule: './Widget2',
@@ -403,6 +416,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.acme.sharedmf.v1',
         manifest,
         exposedModule: './ChartWidget',
@@ -428,6 +442,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         registerSource: mocks.registerSource,
       });
       const entry2: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.acme.tidref2.v1',
         manifest: manifest.id,
         exposedModule: './ChartWidget2',
@@ -464,6 +479,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.scoped.v1',
         manifest,
         exposedModule: './Widget',
@@ -497,6 +513,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.flat.v1',
         manifest,
         exposedModule: './Widget',
@@ -532,6 +549,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.deep.v1',
         manifest,
         exposedModule: './Widget',
@@ -562,6 +580,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.minified.v1',
         manifest,
         exposedModule: './Widget',
@@ -586,6 +605,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled.v1',
         manifest,
         exposedModule: './Widget',
@@ -604,6 +624,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: () => {},
       });
 
       const styleElement = shadowRoot.getElementById('__hai3-mfe-runtime-style-0');
@@ -625,6 +646,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-repeat.v1',
         manifest,
         exposedModule: './Widget',
@@ -643,6 +665,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: () => {},
       };
 
       await lifecycle.mount(shadowRoot, bridge);
@@ -670,6 +693,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-unmount.v1',
         manifest,
         exposedModule: './Widget',
@@ -689,6 +713,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: () => {},
       });
 
       expect(shadowRoot.getElementById('__hai3-mfe-runtime-style-0')).toBeTruthy();
@@ -711,6 +736,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.manifestchunk.v1',
         manifest,
         exposedModule: './Widget',
@@ -736,6 +762,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.publicpath.v1',
         manifest,
         exposedModule: './Widget',
@@ -762,6 +789,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.cssmanifest.v1',
         manifest,
         exposedModule: './Widget',
@@ -780,6 +808,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: () => {},
       });
 
       const link = shadowRoot.getElementById('__hai3-mfe-runtime-style-0') as HTMLLinkElement;
@@ -790,6 +819,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
     it('throws MfeLoadError when exposeAssets.js.sync is empty', async () => {
       const manifest = buildManifest('emptyExposeRemote');
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.emptyexpose.v1',
         manifest,
         exposedModule: './Widget',
@@ -812,6 +842,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const manifest = buildManifest(remoteName);
       const entry: MfeEntryMF = {
+        ...MFE_ENTRY_CONTRACT,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.multicss.v1',
         manifest,
         exposedModule: './Widget',
@@ -830,6 +861,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         executeActionsChain: async () => undefined,
         subscribeToProperty: () => () => undefined,
         getProperty: () => undefined,
+        registerActionHandler: () => {},
       });
 
       // sync and async CSS are both injected (3 total)
