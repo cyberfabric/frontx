@@ -50,7 +50,12 @@ function getMFEPackages(): MfeInfo[] {
       const scripts = pkgJson.scripts ?? {};
 
       // Try dev first, fall back to preview
-      const scriptName = scripts['dev'] ? 'dev' : scripts['preview'] ? 'preview' : null;
+      let scriptName: string | null = null;
+      if (scripts['dev']) {
+        scriptName = 'dev';
+      } else if (scripts['preview']) {
+        scriptName = 'preview';
+      }
       const portSource = scriptName ? scripts[scriptName] : '';
       const portMatch = portSource?.match(/--port\s+(\d+)/);
 

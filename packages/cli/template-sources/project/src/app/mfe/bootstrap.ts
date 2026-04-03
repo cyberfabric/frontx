@@ -9,9 +9,6 @@
  * MFE packages from src/mfe_packages/.
  */
 
-// Module-level reference to allow cleanup on re-runs (e.g. HMR)
-let popstateHandler: (() => void) | null = null;
-
 import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@hai3/react';
 import {
   screenDomain,
@@ -24,6 +21,9 @@ import {
   RefContainerProvider,
 } from '@hai3/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
+
+// Module-level reference to allow cleanup on re-runs (e.g. HMR)
+let popstateHandler: (() => void) | null = null;
 
 interface MfeManifestConfig {
   manifest: JSONSchema;
