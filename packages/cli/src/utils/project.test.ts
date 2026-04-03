@@ -9,7 +9,13 @@ import assert from 'node:assert/strict';
 import path from 'path';
 import fs from 'fs-extra';
 import os from 'os';
-import { loadConfig, findMonorepoRoot, getLocalPackageRef, CONFIG_FILE } from './project.js';
+import {
+  loadConfig,
+  findMonorepoRoot,
+  getLocalPackageRef,
+  rewriteTsconfigPackagePaths,
+  CONFIG_FILE,
+} from './project.js';
 
 describe('getLocalPackageRef', () => {
   it('should convert @cyberfabric/react to a file: reference', () => {
@@ -31,6 +37,90 @@ describe('getLocalPackageRef', () => {
     assert.equal(getLocalPackageRef('react', '/repo', '/repo/app'), 'react');
     assert.equal(getLocalPackageRef('lodash', '/repo', '/repo/app'), 'lodash');
     assert.equal(getLocalPackageRef('@types/node', '/repo', '/repo/app'), '@types/node');
+  });
+});
+
+describe('rewriteTsconfigPackagePaths', () => {
+  const tsconfigContent = JSON.stringify(
+    {
+      compilerOptions: {
+        paths: {
+          '@/*': ['./src/*'],
+          '@cyberfabric/state': ['../../../state/src/index.ts'],
+          '@cyberfabric/state/*': ['../../../state/src/*'],
+          '@cyberfabric/react': ['../../../react/src/index.ts'],
+          '@cyberfabric/react/*': ['../../../react/src/*'],
+        },
+      },
+    },
+    null,
+    2
+  );
+
+  it('rewrites scaffold tsconfig aliases to installed package paths', () => {
+    const rewritten = JSON.parse(
+      rewriteTsconfigPackagePaths(tsconfigContent, {
+        useLocalPackages: false,
+      })
+    ) as {
+      compilerOptions: {
+        paths: Record<string, string[]>;
+      };
+    };
+
+    assert.deepEqual(rewritten.compilerOptions.paths, {
+      '@/*': ['./src/*'],
+      '@cyberfabric/state': ['./node_modules/@cyberfabric/state'],
+      '@cyberfabric/state/*': ['./node_modules/@cyberfabric/state/*'],
+      '@cyberfabric/react': ['./node_modules/@cyberfabric/react'],
+      '@cyberfabric/react/*': ['./node_modules/@cyberfabric/react/*'],
+    });
+  });
+
+  it('rewrites scaffold tsconfig aliases to local monorepo source paths', () => {
+    const rewritten = JSON.parse(
+      rewriteTsconfigPackagePaths(tsconfigContent, {
+        useLocalPackages: true,
+        monorepoRoot: '/repo',
+        projectPath: '/repo/apps/demo',
+      })
+    ) as {
+      compilerOptions: {
+        paths: Record<string, string[]>;
+      };
+    };
+
+    assert.deepEqual(rewritten.compilerOptions.paths, {
+      '@/*': ['./src/*'],
+      '@cyberfabric/state': ['../../packages/state/src/index.ts'],
+      '@cyberfabric/state/*': ['../../packages/state/src/*'],
+      '@cyberfabric/react': ['../../packages/react/src/index.ts'],
+      '@cyberfabric/react/*': ['../../packages/react/src/*'],
+    });
+  });
+
+  it('returns JSONC tsconfig unchanged when no @cyberfabric aliases exist', () => {
+    const jsoncTsconfig = `{
+  "compilerOptions": {
+    "target": "ES2020",
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  }
+}
+`;
+
+    assert.equal(
+      rewriteTsconfigPackagePaths(jsoncTsconfig, {
+        useLocalPackages: true,
+        monorepoRoot: '/repo',
+        projectPath: '/repo/apps/demo',
+      }),
+      jsoncTsconfig
+    );
   });
 });
 

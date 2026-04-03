@@ -56,7 +56,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-global-shared-property-broadcast`,
 `cpt-frontx-adr-cli-template-based-code-generation`,
 `cpt-frontx-adr-two-tier-cli-e2e-verification`,
-`cpt-frontx-adr-channel-aware-version-locking`
+`cpt-frontx-adr-channel-aware-version-locking`,
+`cpt-frontx-adr-tanstack-query-data-management`
 
 #### Functional Drivers
 
@@ -91,6 +92,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sse-mock-mode` | `SseMockPlugin` short-circuits `EventSource` creation; returns `MockEventSource` for dev/test environments |
 | `cpt-frontx-fr-sse-protocol-registry` | `BaseApiService` uses protocol registry; protocols registered by constructor name via type-safe `protocol<T>()` |
 | `cpt-frontx-fr-sse-type-safe-events` | SSE events typed via `EventPayloadMap` module augmentation for compile-time safety |
+| `cpt-frontx-fr-sse-stream-descriptors` | `SseStreamProtocol.stream<TEvent>()` returns `StreamDescriptor` with `connect`/`disconnect`; `useApiStream` hook manages lifecycle |
 | `cpt-frontx-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
 | `cpt-frontx-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
 | `cpt-frontx-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
@@ -128,6 +130,11 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-pub-versions` | All `@cyberfabric/*` packages use aligned (same) version numbers |
 | `cpt-frontx-fr-pub-esm` | ESM-first module format: `"type": "module"`, dual exports (ESM + CJS), TypeScript declarations |
 | `cpt-frontx-fr-pub-ci` | CI auto-publishes affected packages to NPM in layer order on version change merge; stops on first failure |
+| `cpt-frontx-fr-api-request-cancellation` | `RestProtocol` HTTP methods accept optional `AbortSignal` via `RestRequestOptions`; aborted requests bypass `onError` plugin chain |
+| `cpt-frontx-fr-api-endpoint-descriptors` | `BaseApiService` provides `query()`, `queryWith()`, `mutation()`, `stream()` returning descriptor objects; cache keys derived from `[baseURL, method, path]` |
+| `cpt-frontx-fr-framework-query-cache-plugin` | `queryCache(config?)` plugin owns `QueryClient` lifecycle; exposes `app.queryClient`; clears cache on mock toggle; handles `cache/invalidate` events |
+| `cpt-frontx-fr-react-query-hooks` | `useApiQuery`, `useApiMutation`, `useApiStream`, `useQueryCache` hooks consume descriptors; HAI3-owned result types; no `queryOptions` re-export |
+| `cpt-frontx-fr-react-query-client-isolation` | `HAI3Provider` reads `app.queryClient` from plugin; host registers `MountContextResolver` returning `MfeMountValues` (merged into `MfeMountContext.values` at mount, e.g. `queryClient`); restricted `QueryCache` interface |
 
 #### NFR Allocation
 
@@ -338,7 +345,7 @@ All packages output ESM as the primary module format. `package.json` files inclu
 │  │ @cyberfabric/  │  │  @cyberfabric/react │  │  app-owned UI        │ │
 │  │ studio  │  │  HAI3Provider │  │  components          │ │
 │  └─────────┘  │  hooks        │  └──────────────────────┘ │
-│               │  MfeContainer │                           │
+│               │  ExtensionDomainSlot │                   │
 │               └──────┬───────┘                            │
 │                      │ depends on                         │
 │               ┌──────▼───────┐                            │
@@ -417,7 +424,7 @@ Defines the contract between the host application and microfrontend extensions. 
 ##### Related components (by ID)
 
 - `cpt-frontx-component-framework` — depends on: framework's `microfrontends()` plugin orchestrates MFE lifecycle using screensets API
-- `cpt-frontx-component-react` — depends on: `MfeContainer` component renders loaded MFE content
+- `cpt-frontx-component-react` — depends on: `ExtensionDomainSlot` renders loaded MFE content into host-managed domain containers
 
 #### @cyberfabric/api (L1)
 
@@ -433,6 +440,7 @@ Provides a unified API service layer that abstracts protocol differences (REST, 
 - **Protocol registry**: Registers protocol adapters (REST via Axios, SSE via EventSource) that can be switched at runtime
 - **REST adapter**: Standard HTTP operations with Axios; interceptors for auth, retry, error mapping
 - **SSE adapter**: Server-Sent Events connection management with typed event streams
+- **Stream descriptors**: `this.stream<TEvent>(path)` returns `StreamDescriptor` routing through `SseProtocol` plugin chain; consumed by `useApiStream` at L3
 - **Mock mode**: `RestMockPlugin` and `SseMockPlugin` provide mock responses; `toggleMockMode` action switches at runtime
 - **Type-safe events**: SSE event types are generic-parameterized for compile-time safety
 
@@ -518,9 +526,11 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 
 ##### Responsibility scope
 
-- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, and framework context
+- **HAI3Provider**: Root provider component that wraps the application with Redux store, i18n context, theme, framework context, and a `QueryClientProvider` (TanStack Query). `HAI3Provider` does not create a TanStack client; `queryCache()` is the sole owner of the `QueryClient` lifecycle, and the provider reads `app.queryClient` or accepts the same host-owned client for separately mounted MFE roots so every root reuses the plugin-owned cache. When a `QueryClient` exists, it registers a `MountContextResolver` that returns `MfeMountValues` (for example `{ queryClient }`), and the default mount path passes that bag as `mountContext.values` into child lifecycles. Subscribes synchronously to `cache/invalidate` events from EventBus for L2 Flux effect integration.
 - **Hooks**: `useSelector()`, `useDispatch()`, `useTranslation()`, `useSharedProperty()`, `useAction()` — typed wrappers over framework primitives
-- **MFE rendering**: `MfeContainer` component that mounts MFE content inside Shadow DOM for CSS isolation
+- **Query hooks**: `useApiQuery()` for single-page declarative reads, `useApiSuspenseQuery()` for Suspense-driven single-page reads, `useApiInfiniteQuery()` for descriptor-driven paginated reads, `useApiSuspenseInfiniteQuery()` for Suspense-driven paginated reads, `useApiMutation()` for writes with optimistic updates via `QueryCache`, and `useQueryCache()` as the sanctioned imperative cache API. `QueryCache` exposes `get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, and `remove`. `queryClient` is internal, `useQueryClient` is NOT exported from `@cyberfabric/react`, and app/MFE code uses `QueryCache` rather than raw TanStack APIs.
+- **Service descriptors**: Service descriptors are the only sanctioned source of query keys and cache metadata. `BaseApiService` descriptors feed `useApiQuery()`, `useApiMutation()`, and `QueryCache` directly, so per-domain query key factories and `queryOptions()` are no longer part of the public model.
+- **MFE rendering**: `ExtensionDomainSlot` drives host-side mount/unmount for domain content, while `RefContainerProvider` lets the framework resolve the same DOM node that React renders. Host bootstrap registers domains/extensions/shared properties and returns screen extensions for route selection; the host screen container renders `ExtensionDomainSlot`, and every `mount_ext` path resolves the same `queryCache()`-owned host `QueryClient` through the runtime mount-context resolver. MFEs still render inside Shadow DOM and do not inherit host React context directly.
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
 - **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
 
@@ -529,6 +539,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - Does NOT define the store, event bus, or action system — uses `cpt-frontx-component-framework`
 - Does NOT define UI component implementations — uses application/screenset local UI
 - Does NOT manage MFE loading or blob URL creation — uses `cpt-frontx-component-screensets` via framework
+- Does NOT own the caching library — declarative API contracts at L1 carry endpoint descriptors with transport metadata and cache hints; the `queryCache()` plugin (L2) owns the `QueryClient`; `@cyberfabric/react` (L3) maps descriptors to library-specific hooks.
 
 ##### Related components (by ID)
 
@@ -653,6 +664,26 @@ interface ApiService<T> {
 }
 ```
 
+Stream descriptors extend the service interface to SSE:
+
+```typescript
+interface StreamDescriptor<TEvent> {
+  readonly key: readonly unknown[];   // [baseURL, 'SSE', path]
+  connect(onEvent: (event: TEvent) => void, onComplete?: () => void): Promise<string>;
+  disconnect(connectionId: string): void;
+}
+```
+
+Stream descriptors extend the service interface to SSE:
+
+```typescript
+interface StreamDescriptor<TEvent> {
+  readonly key: readonly unknown[];   // [baseURL, 'SSE', path]
+  connect(onEvent: (event: TEvent) => void, onComplete?: () => void): Promise<string>;
+  disconnect(connectionId: string): void;
+}
+```
+
 - [x] `p1` - **ID**: `cpt-frontx-interface-shared-property`
 - **Contract**: cpt-frontx-contract-shared-property
 - **Technology**: TypeScript interface
@@ -672,7 +703,7 @@ interface SharedPropertyBridge {
 |-----------|---------|-------------|
 | `cpt-frontx-interface-state` | `@cyberfabric/state` | Event-driven state management with EventBus, Redux-backed store, dynamic slice registration, and type-safe module augmentation |
 | `cpt-frontx-interface-screensets` | `@cyberfabric/screensets` | MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
-| `cpt-frontx-interface-api` | `@cyberfabric/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards |
+| `cpt-frontx-interface-api` | `@cyberfabric/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards, endpoint/stream descriptors |
 | `cpt-frontx-interface-i18n` | `@cyberfabric/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-frontx-interface-framework` | `@cyberfabric/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-frontx-interface-react` | `@cyberfabric/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
@@ -834,10 +865,10 @@ sequenceDiagram
     FW->>FW: propagate theme
     FW->>FW: propagate i18n
     FW->>Host: MFE ready
-    Host->>Host: MfeContainer renders in Shadow DOM
+    Host->>Host: ExtensionDomainSlot renders in host screen container
 ```
 
-**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@cyberfabric/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer renders the MFE content inside a Shadow DOM container for CSS isolation.
+**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@cyberfabric/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer uses `ExtensionDomainSlot` plus a host-managed container provider to render the MFE into a Shadow DOM container for CSS isolation.
 
 #### Shared Property Broadcast
 

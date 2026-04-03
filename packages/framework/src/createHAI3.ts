@@ -148,6 +148,8 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       apiRegistry: apiRegistry,
       i18nRegistry: aggregated.registries.i18nRegistry as HAI3App['i18nRegistry'],
       screensetsRegistry: aggregated.registries.screensetsRegistry as HAI3App['screensetsRegistry'],
+      // queryClient is optional — only present when queryCache() plugin is used
+      queryClient: aggregated.registries.queryClient as HAI3App['queryClient'],
       actions: aggregated.actions as HAI3Actions,
       destroy: () => this.destroyApp(orderedPlugins, app),
     };

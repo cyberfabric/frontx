@@ -1,39 +1,85 @@
+// @cpt-flow:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2
+
 /**
  * MFE Screen Container Component
  *
- * Provides the DOM container element for MFE screen domain.
- * This container is provided to the screen domain via RefContainerProvider.
+ * Bootstraps MFE domains and extensions, then declaratively renders the active
+ * screen extension via ExtensionDomainSlot. Loading and error states are surfaced
+ * automatically by the slot component.
  */
 
-import { useRef, useEffect } from 'react';
-import { useHAI3 } from '@cyberfabric/react';
+import { useRef, useEffect, useCallback, useSyncExternalStore, useState } from 'react';
+import {
+  useHAI3,
+  ExtensionDomainSlot,
+  screenDomain,
+  type ScreenExtension,
+} from '@cyberfabric/react';
 import { bootstrapMFE } from './bootstrap';
 
 /**
  * Container component for MFE screen domain.
- * Renders a div that MFEs will mount into.
+ * Renders the active screen extension via ExtensionDomainSlot.
  */
 export function MfeScreenContainer() {
+  // containerRef is shared with the screen domain's RefContainerProvider (via bootstrap)
+  // AND passed to ExtensionDomainSlot so the MFE mounts into the same DOM element
+  // that the slot manages.
   const containerRef = useRef<HTMLDivElement>(null);
   const app = useHAI3();
+  // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
+  const queryClient = app.queryClient;
+  // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
   const bootstrappedRef = useRef(false);
 
+  // Screen extensions collected after bootstrap, used to pick the initial screen
+  const [screenExtensions, setScreenExtensions] = useState<ScreenExtension[]>([]);
+
   useEffect(() => {
-    // Bootstrap MFE system once on mount
-    if (!bootstrappedRef.current && containerRef.current) {
-      bootstrappedRef.current = true;
-      // Cast ref to non-null since we know it's assigned
-      bootstrapMFE(app, containerRef as React.RefObject<HTMLDivElement>).catch((error) => {
-        console.error('[MFE Bootstrap] Failed to bootstrap MFE:', error);
-      });
-    }
-  }, [app]);
+    // Bootstrap MFE system once on mount: register domains and extensions.
+    // containerRef.current may be null here (slot not yet rendered), but that's fine —
+    // RefContainerProvider only reads ref.current when getContainer() is called (during mount),
+    // by which time the slot will have rendered and attached the ref.
+    if (bootstrappedRef.current) return;
+    bootstrappedRef.current = true;
+    bootstrapMFE(app, containerRef, queryClient).then((exts) => {
+      setScreenExtensions(exts);
+    }).catch((error) => {
+      console.error('[MFE Bootstrap] Failed to bootstrap MFE:', error);
+    });
+  }, [app, queryClient]);
+
+  // Reactively track the currently mounted screen extension ID.
+  // Any store dispatch (including mount state updates from Menu) triggers a snapshot check.
+  const subscribe = useCallback(
+    (onStoreChange: () => void) => app.store.subscribe(onStoreChange),
+    [app.store]
+  );
+  const activeExtensionId = useSyncExternalStore(
+    subscribe,
+    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
+    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
+  );
+
+  // Drive screen selection from the screen domain state. On the very first load,
+  // we still honor the current URL passively so direct links can open a screen
+  // without wiring menu selection to browser history updates.
+  const initialRouteExtensionId = screenExtensions.find(
+    (extension) => extension.presentation.route === globalThis.location.pathname
+  )?.id;
+  const resolvedExtensionId = activeExtensionId ?? initialRouteExtensionId ?? screenExtensions[0]?.id;
 
   return (
-    <div
-      ref={containerRef}
-      className="flex-1 overflow-auto"
-      data-mfe-screen-container
-    />
+    <div className="flex-1 overflow-auto" data-mfe-screen-container>
+      {resolvedExtensionId && app.screensetsRegistry ? (
+        <ExtensionDomainSlot
+          registry={app.screensetsRegistry}
+          domainId={screenDomain.id}
+          extensionId={resolvedExtensionId}
+          containerRef={containerRef}
+          className="h-full"
+        />
+      ) : null}
+    </div>
   );
 }

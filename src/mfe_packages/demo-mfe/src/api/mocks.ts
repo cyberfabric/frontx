@@ -8,14 +8,14 @@
 
 import type { MockMap } from '@cyberfabric/react';
 import { Language } from '@cyberfabric/react';
-import { UserRole, type ApiUser, type GetCurrentUserResponse } from './types';
+import { UserRole, type ApiUser, type GetCurrentUserResponse, type UpdateProfileRequest } from './types';
 
 /**
  * Mock user data
  */
-const mockUser: ApiUser = {
+let mockUser: ApiUser = {
   id: 'mock-user-001',
-  email: 'demo@hai3.org',
+  email: 'demo@frontx.dev',
   firstName: 'Demo',
   lastName: 'User',
   role: UserRole.Admin,
@@ -36,4 +36,28 @@ export const accountsMockMap: MockMap = {
   'GET /api/accounts/user/current': (): GetCurrentUserResponse => ({
     user: mockUser,
   }),
+
+  'PUT /api/accounts/user/profile': (requestData): GetCurrentUserResponse => {
+    // requestData is the PUT body forwarded by RestMockPlugin as context.body.
+    // Merge the patched fields onto the base mock user so the response reflects
+    // what the server would return after persisting the change.
+    const patch = (requestData ?? {}) as Partial<UpdateProfileRequest>;
+    const currentDepartment =
+      typeof mockUser.extra?.department === 'string' ? mockUser.extra.department : undefined;
+
+    mockUser = {
+      ...mockUser,
+      firstName: patch.firstName ?? mockUser.firstName,
+      lastName: patch.lastName ?? mockUser.lastName,
+      updatedAt: new Date().toISOString(),
+      extra: {
+        ...mockUser.extra,
+        department: patch.department ?? currentDepartment,
+      },
+    };
+
+    return {
+      user: mockUser,
+    };
+  },
 };

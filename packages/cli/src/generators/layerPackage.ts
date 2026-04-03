@@ -11,6 +11,7 @@ import {
 } from '../core/packageManager.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
+import { getLocalPackageRef } from '../utils/project.js';
 
 /**
  * Input for layer package generation
@@ -22,6 +23,12 @@ export interface LayerPackageInput {
   layer: LayerType;
   /** Package manager to configure package for */
   packageManager?: PackageManager;
+  /** Use local monorepo packages via file: (for linked CLI development) */
+  useLocalPackages?: boolean;
+  /** Monorepo root path when useLocalPackages is true */
+  monorepoRoot?: string;
+  /** Absolute path where the project will be written (for file: relative paths) */
+  projectPath?: string;
 }
 
 /**
@@ -59,13 +66,17 @@ function getLayerDependencies(layer: LayerType): {
       return {
         dependencies: {},
         peerDependencies: {
-          '@cyberfabric/events': 'alpha',
-          '@cyberfabric/store': 'alpha',
+          '@cyberfabric/state': 'alpha',
+          '@cyberfabric/screensets': 'alpha',
+          '@cyberfabric/api': 'alpha',
+          '@cyberfabric/i18n': 'alpha',
         },
         devDependencies: {
           ...eslintDevDeps,
-          '@cyberfabric/events': 'alpha',
-          '@cyberfabric/store': 'alpha',
+          '@cyberfabric/state': 'alpha',
+          '@cyberfabric/screensets': 'alpha',
+          '@cyberfabric/api': 'alpha',
+          '@cyberfabric/i18n': 'alpha',
           typescript: '^5.4.0',
           tsup: '^8.0.0',
         },
@@ -309,9 +320,31 @@ function getTsConfig(layer: LayerType): string {
  */
 // @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 export async function generateLayerPackage(input: LayerPackageInput): Promise<GeneratedFile[]> {
-  const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
+  const {
+    packageName,
+    layer,
+    packageManager = DEFAULT_PACKAGE_MANAGER,
+    useLocalPackages = false,
+    monorepoRoot,
+    projectPath,
+  } = input;
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
+
+  if (useLocalPackages && monorepoRoot && projectPath) {
+    const toLocalRefs = (packages: Record<string, string>): Record<string, string> => {
+      const out: Record<string, string> = {};
+      for (const [name, value] of Object.entries(packages)) {
+        out[name] =
+          name.startsWith('@cyberfabric/') ? getLocalPackageRef(name, monorepoRoot, projectPath) : value;
+      }
+      return out;
+    };
+
+    deps.dependencies = toLocalRefs(deps.dependencies);
+    deps.peerDependencies = toLocalRefs(deps.peerDependencies);
+    deps.devDependencies = toLocalRefs(deps.devDependencies);
+  }
 
   // package.json
   const packageJson = {
@@ -430,7 +463,7 @@ ${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 ## Layer: ${layer}
 
 This package follows HAI3's ${layer}-layer architecture conventions:
-${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@cyberfabric/events, @cyberfabric/store, etc.)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@cyberfabric/framework)\n- React peer dependency' : ''}
+${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@cyberfabric/framework)\n- React peer dependency' : ''}
 
 ## License
 

@@ -68,6 +68,41 @@ export interface ChildMfeBridge {
 }
 
 /**
+ * One entry in {@link MfeMountValues}. Opaque at the screensets layer — integrators
+ * narrow at L2/L3 (e.g. React host reads `values.queryClient` after checking shape).
+ */
+export type MfeMountValue = unknown;
+
+/**
+ * String-keyed bag returned by {@link MountContextResolver} and attached to
+ * {@link MfeMountContext.values} when the resolver returns a value.
+ */
+export type MfeMountValues = Readonly<Record<string, MfeMountValue>>;
+
+/**
+ * Runtime values supplied by the host at mount time.
+ *
+ * The runtime always attaches identity metadata (`extensionId`, `domainId`).
+ * Higher layers may additionally pass an opaque values bag for runtime wiring.
+ */
+export interface MfeMountContext {
+  readonly values?: MfeMountValues;
+  readonly extensionId?: string;
+  readonly domainId?: string;
+}
+
+/**
+ * Resolve host-provided runtime values for an extension mount.
+ *
+ * The runtime always supplies `extensionId` and `domainId`; resolvers add any
+ * extra opaque host values needed by the mounted MFE.
+ */
+export type MountContextResolver = (
+  extensionId: string,
+  domainId: string
+) => MfeMountValues | undefined;
+
+/**
  * MFE lifecycle interface.
  * All MFE entries must implement this interface.
  */
@@ -81,8 +116,13 @@ export interface MfeEntryLifecycle<TBridge = ChildMfeBridge> {
    *
    * @param container - DOM element or shadow root to mount into
    * @param bridge - Bridge instance for communication with host
+   * @param mountContext - Host-provided runtime context for this mount
    */
-  mount(container: Element | ShadowRoot, bridge: TBridge): void | Promise<void>;
+  mount(
+    container: Element | ShadowRoot,
+    bridge: TBridge,
+    mountContext?: MfeMountContext
+  ): void | Promise<void>;
 
   /**
    * Unmount the MFE from its container.

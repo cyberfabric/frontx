@@ -3,7 +3,15 @@
  * Replace '_Blank' with your screenset name.
  */
 
-import { BaseApiService, RestProtocol, RestMockPlugin } from '@cyberfabric/react';
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
+import {
+  BaseApiService,
+  RestEndpointProtocol,
+  RestProtocol,
+  RestMockPlugin,
+} from '@cyberfabric/react';
+import type { GetBlankStatusResponse } from './types';
 import { blankMockMap } from './mocks';
 
 /**
@@ -15,8 +23,9 @@ export class _BlankApiService extends BaseApiService {
     const restProtocol = new RestProtocol({
       timeout: 30000,
     });
+    const restEndpoints = new RestEndpointProtocol(restProtocol);
 
-    super({ baseURL: '/api/blank' }, restProtocol);
+    super({ baseURL: '/api/blank' }, restProtocol, restEndpoints);
 
     this.registerPlugin(
       restProtocol,
@@ -26,4 +35,9 @@ export class _BlankApiService extends BaseApiService {
       })
     );
   }
+
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-blank-descriptors
+  readonly getStatus = this.protocol(RestEndpointProtocol)
+    .query<GetBlankStatusResponse>('/status');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-blank-descriptors
 }

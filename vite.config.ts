@@ -10,8 +10,14 @@ export default defineConfig({
     federation({
       name: 'host',
       shared: {
-        react: { singleton: false, requiredVersion: '^19.0.0' },
-        'react-dom': { singleton: false, requiredVersion: '^19.0.0' },
+        react: { singleton: true, requiredVersion: '^19.0.0' },
+        'react-dom': { singleton: true, requiredVersion: '^19.0.0' },
+        // Same React Query instance as the host when remotes use federation scope;
+        // separately mounted MFEs still receive the host QueryClient via runtime mount context.
+        '@tanstack/react-query': {
+          singleton: true,
+          requiredVersion: '^5.90.0',
+        },
         tailwindcss: { singleton: false },
       },
     }),

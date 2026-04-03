@@ -13,6 +13,7 @@
       { "name": "@cyberfabric/screensets", "chunkPath": "__federation_shared_@cyberfabric/screensets.js" },
       { "name": "@cyberfabric/api", "chunkPath": "__federation_shared_@cyberfabric/api.js" },
       { "name": "@cyberfabric/i18n", "chunkPath": "__federation_shared_@cyberfabric/i18n.js" },
+      { "name": "@tanstack/react-query", "chunkPath": "__federation_shared_@tanstack/react-query.js" },
       { "name": "@reduxjs/toolkit", "chunkPath": "__federation_shared_@reduxjs/toolkit.js" },
       { "name": "react-redux", "chunkPath": "__federation_shared_react-redux.js" }
     ]

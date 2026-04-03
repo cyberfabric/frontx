@@ -103,6 +103,7 @@ export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
   /**
    * Find mock events for the given URL.
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-find-mock-events
   private findMockEvents(url: string): readonly SseMockEvent[] | undefined {
     // Try exact match first
     const exactMatch = this.currentMockStreams[url];
@@ -119,11 +120,13 @@ export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
 
     return undefined;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-find-mock-events
 
   /**
    * Match URL against pattern.
    * Supports simple prefix matching and exact matching.
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-match-url-pattern
   private matchUrlPattern(pattern: string, url: string): boolean {
     // Exact match
     if (pattern === url) {
@@ -138,6 +141,7 @@ export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
 
     return false;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-match-url-pattern
 
   /**
    * Cleanup plugin resources.

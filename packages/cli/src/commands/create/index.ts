@@ -181,11 +181,27 @@ export const createCommand: CommandDefinition<
       logger.info(`Creating ${layer}-layer package '${args.projectName}'...`);
       logger.newline();
 
+      const useLocal = args.local ?? (process.env.FRONTX_USE_LOCAL === '1' || process.env.FRONTX_USE_LOCAL === 'true');
+      let monorepoRoot: string | null = null;
+      if (useLocal) {
+        monorepoRoot = await findMonorepoRoot(getTemplatesDir());
+        if (monorepoRoot) {
+          logger.info('Using local @cyberfabric packages from monorepo (file:).');
+        } else {
+          logger.warn(
+            'Local packages requested but FrontX monorepo root not found. Set FRONTX_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
+          );
+        }
+      }
+
       // Generate layer package files
       const files = await generateLayerPackage({
         packageName: args.projectName,
         layer,
         packageManager,
+        useLocalPackages: Boolean(monorepoRoot),
+        monorepoRoot: monorepoRoot ?? undefined,
+        projectPath,
       });
 
       // Write files

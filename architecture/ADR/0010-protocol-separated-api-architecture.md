@@ -26,11 +26,11 @@ date: 2025-11-16
 **ID**: `cpt-frontx-adr-protocol-separated-api-architecture`
 ## Context and Problem Statement
 
-FrontX needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another.
+FrontX needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another. The same separation rule applies to API contracts at the service layer: imperative transport contracts (`get`, `post`, `connect`) and declarative descriptor contracts (`query`, `mutation`, `stream`) must remain separate peers so no base service becomes a transport router.
 
 ## Decision Drivers
 
-* Adding a new protocol must require no changes to existing protocol implementations (Open/Closed Principle)
+* Adding a new protocol or declarative contract must require no changes to existing protocol implementations (Open/Closed Principle)
 * Plugin registration must be type-safe and support dynamic registration after protocol instances are created
 
 ## Considered Options
@@ -41,16 +41,17 @@ FrontX needed to support multiple API protocols (REST, SSE, potentially others) 
 
 ## Decision Outcome
 
-Chosen option: "Protocol-specific configuration interfaces extending a base config; global plugin registry keyed by protocol class", because protocols evolve independently, the protocol class as Map key provides type-safe retrieval, and runtime query at request execution enables dynamic plugin discovery without constructor coupling.
+Chosen option: "Protocol-specific configuration interfaces extending a base config; global plugin registry keyed by protocol class", because protocols evolve independently, the protocol class as Map key provides type-safe retrieval, runtime query at request execution enables dynamic plugin discovery without constructor coupling, and declarative endpoint/stream contracts can be introduced as separate peers without changing existing imperative transports.
 
 ### Consequences
 
 * Good, because protocol independence, type-safe plugin management, and extensibility without modifying existing code
+* Good, because declarative contracts can evolve separately from imperative transports without turning `BaseApiService` into a protocol router
 * Bad, because indirection is introduced (plugins are queried at request time rather than injected), and developers must understand two plugin levels — global registry and instance-level overrides
 
 ### Confirmation
 
-Protocol-specific config interfaces (`RestProtocolConfig`, `SseProtocolConfig`) are located in `packages/api/src/protocols/`. The `apiRegistry` with Map-based plugin storage lives in `packages/api/src/registry.ts`. REST and SSE protocol implementations query the registry during request execution rather than at construction time.
+Protocol-specific config interfaces (`RestProtocolConfig`, `SseProtocolConfig`) are located in `packages/api/src/protocols/`. The `apiRegistry` with Map-based plugin storage lives in `packages/api/src/registry.ts`. REST and SSE protocol implementations query the registry during request execution rather than at construction time. Declarative service contracts are modeled as separate peers (`RestEndpointProtocol`, `SseStreamProtocol`) rather than as methods on `BaseApiService` or on the imperative transports themselves.
 
 ## Pros and Cons of the Options
 
@@ -71,7 +72,7 @@ Protocol-specific config interfaces (`RestProtocolConfig`, `SseProtocolConfig`) 
 
 ## More Information
 
-Protocols query `apiRegistry` during request execution rather than receiving plugins through constructor injection. This design choice was deliberate: constructor injection would prevent dynamic plugin registration that occurs after protocol instances are created.
+Protocols query `apiRegistry` during request execution rather than receiving plugins through constructor injection. This design choice was deliberate: constructor injection would prevent dynamic plugin registration that occurs after protocol instances are created. Services compose imperative and declarative peers explicitly, for example `new RestProtocol()` plus `new RestEndpointProtocol(rest)`, so the base service stays transport-agnostic while each contract remains single-purpose.
 
 ## Traceability
 

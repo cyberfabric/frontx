@@ -27,7 +27,7 @@ import { ContainerProvider } from '@cyberfabric/framework';
  */
 // @cpt-begin:cpt-frontx-dod-react-bindings-ref-container-provider:p1:inst-1
 export class RefContainerProvider extends ContainerProvider {
-  constructor(private readonly containerRef: RefObject<HTMLDivElement>) {
+  constructor(private readonly containerRef: RefObject<HTMLDivElement | null>) {
     super();
   }
 

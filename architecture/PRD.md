@@ -37,6 +37,7 @@
   - [5.17 Mock Mode](#517-mock-mode)
   - [5.18 Microfrontend Plugin](#518-microfrontend-plugin)
   - [5.19 Screensets Workflow](#519-screensets-workflow)
+  - [5.20 Request Lifecycle & Data Management](#520-request-lifecycle--data-management)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
   - [6.2 NFR Exclusions](#62-nfr-exclusions)
@@ -324,7 +325,7 @@ The system MUST use consistent FrontX Flux terminology: Action (emits events), E
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sdk-api-package`
 
-`@cyberfabric/api` MUST export `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `ApiPluginBase`, `ApiPlugin`, `ApiProtocol`, `apiRegistry`, and type guards `isShortCircuit`/`isRestShortCircuit`/`isSseShortCircuit`. It MUST have only `axios` as peer dependency.
+`@cyberfabric/api` MUST export `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `ApiPluginBase`, `ApiPlugin`, `ApiProtocol`, `apiRegistry`, type guards `isShortCircuit`/`isRestShortCircuit`/`isSseShortCircuit`, and streaming types `StreamDescriptor`/`StreamStatus`. It MUST have only `axios` as peer dependency.
 
 **Rationale**: Protocol-agnostic API layer with pluggable mock mode.
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-api-protocol`
@@ -467,6 +468,15 @@ SSE-related events MUST be type-safe via `EventPayloadMap` module augmentation.
 
 **Rationale**: Compile-time safety for event-driven SSE integration.
 **Actors**: `cpt-frontx-actor-developer`
+
+#### Stream Descriptors
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-sse-stream-descriptors`
+
+`BaseApiService` at L1 MUST provide `this.stream<TEvent>(path, options?)` that returns a `StreamDescriptor<TEvent>` with `key`, `connect(onEvent, onComplete?)`, and `disconnect(connectionId)`. Cache keys MUST be derived from `[baseURL, 'SSE', path]`. The `connect` method MUST route through `SseProtocol` with full plugin chain support (including mock short-circuit). Default event parsing MUST be `JSON.parse(event.data)` with an optional `parse` override. `@cyberfabric/react` MUST export `useApiStream(descriptor, options?)` that manages EventSource lifecycle (connect on mount, disconnect on unmount), supports `'latest'` and `'accumulate'` modes, and returns `ApiStreamResult<TEvent>` with `{ data, events, status, error, disconnect }`.
+
+**Rationale**: Extends the descriptor pattern to SSE streams, giving components a declarative hook for real-time data that mirrors `useApiQuery` for REST. Services remain the single source of truth for connection shape and mock configuration.
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-screenset-author`
 
 ### 5.4 MFE Type System
 
@@ -1030,6 +1040,53 @@ A single FrontX project MUST support multiple independent production screensets 
 
 **Rationale**: Companies often build multiple frontend products from a single codebase, sharing infrastructure and MFE packages while maintaining independent release cycles.
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-product-manager`
+
+### 5.20 Request Lifecycle & Data Management
+
+#### Request Cancellation
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-api-request-cancellation`
+
+`RestProtocol` HTTP methods (`get`, `post`, `put`, `patch`, `delete`) MUST accept an optional `AbortSignal` via a `RestRequestOptions` parameter. When the signal is aborted, the in-flight Axios request MUST be canceled and the error MUST NOT enter the `onError` plugin chain or trigger retries.
+
+**Rationale**: Enables callers to cancel requests on component unmount, navigation, or user action — preventing wasted bandwidth, state updates on unmounted components, and memory leaks.
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
+
+#### Endpoint Descriptors
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-api-endpoint-descriptors`
+
+`BaseApiService` at L1 MUST provide `this.query<TData>(path, options?)`, `this.queryWith<TData, TParams>(pathFn, options?)`, and `this.mutation<TData, TVariables>(method, path)` methods that return `EndpointDescriptor` / `MutationDescriptor` objects, and `this.stream<TEvent>(path, options?)` that returns a `StreamDescriptor<TEvent>`. `query` and `queryWith` are always GET — the method is implicit. Cache keys MUST be derived automatically from `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes, and `[baseURL, 'SSE', path]` for streams. Descriptors carry optional cache hints (`staleTime`, `gcTime`). MFEs MUST NOT use manual query key factories or `queryOptions()` outside service descriptors — the service IS the data layer.
+
+**Rationale**: Moves the caching contract to the service layer where the request shape (baseURL, method, path) is already known, eliminating per-MFE coupling to the caching library. A library swap (TanStack → SWR, Apollo, custom) requires changes only in the `queryCache()` plugin and `@cyberfabric/react` hooks (~6 files), not in any MFE.
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-screenset-author`
+
+#### queryCache Framework Plugin
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-framework-query-cache-plugin`
+
+`@cyberfabric/framework` MUST provide a `queryCache(config?)` framework plugin that creates and owns the `QueryClient` lifecycle from `@tanstack/query-core`. The plugin MUST expose `app.queryClient` via the registries mechanism, accept configurable defaults (`staleTime`, `gcTime`, `refetchOnWindowFocus`), clear the cache on `MockEvents.Toggle`, handle `cache/invalidate` events from L2 Flux effects, and clean up on `app.destroy()`. The plugin MUST be included in the `full()` preset.
+
+**Rationale**: Centralizes cache infrastructure management in the framework's plugin system, following the same pattern as `mock()` and `themes()`. Enables non-React cache access (tests, SSR) and makes cache defaults configurable at the framework level.
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
+
+#### Declarative Query Hooks
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-react-query-hooks`
+
+`@cyberfabric/react` MUST export `useApiQuery`, `useApiSuspenseQuery`, `useApiInfiniteQuery`, `useApiSuspenseInfiniteQuery`, `useApiMutation`, `useApiStream`, and `useQueryCache` hooks. `useApiQuery` MUST accept an `EndpointDescriptor` (from a declarative contract such as `RestEndpointProtocol.query()`) and return `ApiQueryResult<TData>` (HAI3-owned type) with automatic caching, request deduplication, stale-while-revalidate, background refetch on window focus, and request cancellation on unmount. `useApiSuspenseQuery` MUST accept the same `EndpointDescriptor` contract as `useApiQuery`, require a surrounding Suspense boundary for the initial load, and return `ApiSuspenseQueryResult<TData>` (HAI3-owned type) with `data`, `isFetching`, and `refetch`. `useApiInfiniteQuery` MUST accept descriptor-driven pagination inputs `{ initialPage, getNextPage, getPreviousPage? }`, where each page is an `EndpointDescriptor`, and return `ApiInfiniteQueryResult<TPage>` (HAI3-owned type) with grouped page data plus `hasNextPage`, `hasPreviousPage`, `fetchNextPage`, and `fetchPreviousPage`. `useApiSuspenseInfiniteQuery` MUST accept the same descriptor-driven pagination inputs as `useApiInfiniteQuery`, require a surrounding Suspense boundary for the initial load, and return `ApiSuspenseInfiniteQueryResult<TPage>` (HAI3-owned type) with grouped page data plus `hasNextPage`, `hasPreviousPage`, `fetchNextPage`, and `fetchPreviousPage`. `useApiMutation` MUST accept `{ endpoint: MutationDescriptor, onMutate?, onSuccess?, onError?, onSettled? }` and return `ApiMutationResult<TData>` (HAI3-owned type) with support for optimistic updates via `onMutate` with rollback on error. `useApiStream` MUST accept a `StreamDescriptor<TEvent>` (from a declarative contract such as `SseStreamProtocol.stream()`) and return `ApiStreamResult<TEvent>` (HAI3-owned type) with connection lifecycle management, `'latest'`/`'accumulate'` modes, and `{ data, events, status, error, disconnect }`. `useQueryCache` MUST expose the sanctioned imperative cache API accepting `EndpointDescriptor | QueryKey` for inspection, invalidation, and targeted cache writes without exposing the raw cache client. `queryOptions` MUST NOT be re-exported. `UseApiQueryOptions` type MUST NOT exist.
+
+**Rationale**: Eliminates per-endpoint boilerplate for component-level reads and writes while keeping MFEs library-agnostic — they consume descriptors, not TanStack-specific types.
+**Actors**: `cpt-frontx-actor-screenset-author`, `cpt-frontx-actor-developer`
+
+#### Query Client Shared Cache
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-react-query-client-isolation`
+
+`HAI3Provider` MUST read `app.queryClient` from the `queryCache()` framework plugin instead of creating its own. When used inside separately mounted MFE React roots, the host MUST inject the same `QueryClient` instance into each MFE via the runtime mount-context resolver so overlapping queries (same descriptor key) are deduplicated and cached once across MFE boundaries. The resolver returns `MfeMountValues` (opaque string-keyed bag); the registry merges that into `MfeMountContext.values` when calling `MfeEntryLifecycle.mount(container, bridge, mountContext)` (for example `values.queryClient` alongside runtime-supplied `extensionId` and `domainId`). Each MFE retains its own `apiRegistry` and service instances — the descriptor's `fetch` uses the local service, but the cache layer is shared. MFEs MUST NOT access the cache client directly — cache operations are available only through the `QueryCache` interface (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) which accepts `EndpointDescriptor | QueryKey`. Cache keys are derived automatically from `[baseURL, method, path]` — MFEs sharing the same `baseURL` and path share cache entries; MFEs wanting isolated cache use a different `baseURL`.
+
+**Rationale**: MFEs render in separate React roots, so they cannot share the cache through React-context inheritance alone. The `queryCache()` plugin owns the `QueryClient` and makes it available to `HAI3Provider`. The restricted `QueryCache` interface prevents uncontrolled cross-MFE cache tampering. Cache key derivation from `baseURL` gives MFEs natural opt-in/opt-out control over shared caching.
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
 
 ## 6. Non-Functional Requirements
 

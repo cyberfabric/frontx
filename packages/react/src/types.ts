@@ -15,10 +15,97 @@ import type {
   Language,
   Formatters,
 } from '@cyberfabric/framework';
+import type { QueryClient } from '@tanstack/react-query';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
 export type { HAI3Config, HAI3App };
+
+// ============================================================================
+// API Hook Result Types
+// ============================================================================
+
+/**
+ * HAI3-owned query result type.
+ * Returned by useApiQuery — callers depend on this contract, not on TanStack internals.
+ */
+// @cpt-FEATURE:implement-endpoint-descriptors:p3
+// @cpt-begin:implement-endpoint-descriptors:p3:inst-api-query-result
+export interface ApiQueryResult<TData, TError = Error> {
+  data: TData | undefined;
+  error: TError | null;
+  isLoading: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  refetch: () => Promise<unknown>;
+}
+// @cpt-end:implement-endpoint-descriptors:p3:inst-api-query-result
+
+/**
+ * HAI3-owned suspense query result type.
+ * Returned by useApiSuspenseQuery — callers depend on this contract, not on TanStack internals.
+ */
+// @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-query-result
+export interface ApiSuspenseQueryResult<TData> {
+  data: TData;
+  isFetching: boolean;
+  refetch: () => Promise<void>;
+}
+// @cpt-end:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-query-result
+
+/**
+ * HAI3-owned infinite query result type.
+ * Returned by useApiInfiniteQuery for descriptor-driven pagination.
+ */
+// @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-infinite-query-result
+export interface ApiInfiniteQueryResult<TPage, TError = Error> {
+  data: readonly TPage[] | undefined;
+  error: TError | null;
+  isLoading: boolean;
+  isFetching: boolean;
+  isError: boolean;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  isFetchingNextPage: boolean;
+  isFetchingPreviousPage: boolean;
+  fetchNextPage: () => Promise<void>;
+  fetchPreviousPage: () => Promise<void>;
+  refetch: () => Promise<void>;
+}
+// @cpt-end:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-infinite-query-result
+
+/**
+ * HAI3-owned suspense infinite query result type.
+ * Returned by useApiSuspenseInfiniteQuery for descriptor-driven pagination.
+ */
+// @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-infinite-query-result
+export interface ApiSuspenseInfiniteQueryResult<TPage> {
+  data: readonly TPage[];
+  isFetching: boolean;
+  hasNextPage: boolean;
+  hasPreviousPage: boolean;
+  isFetchingNextPage: boolean;
+  isFetchingPreviousPage: boolean;
+  fetchNextPage: () => Promise<void>;
+  fetchPreviousPage: () => Promise<void>;
+  refetch: () => Promise<void>;
+}
+// @cpt-end:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-infinite-query-result
+
+/**
+ * HAI3-owned mutation result type.
+ * Returned by useApiMutation — callers depend on this contract, not on TanStack internals.
+ */
+// @cpt-begin:implement-endpoint-descriptors:p3:inst-api-mutation-result
+export interface ApiMutationResult<TData, TError = Error, TVariables = void> {
+  mutate: (variables: TVariables) => void;
+  mutateAsync: (variables: TVariables) => Promise<TData>;
+  isPending: boolean;
+  error: TError | null;
+  data: TData | undefined;
+  reset: () => void;
+}
+// @cpt-end:implement-endpoint-descriptors:p3:inst-api-mutation-result
 
 // ============================================================================
 // Type Aliases
@@ -54,6 +141,11 @@ type TranslationParams = Record<string, string | number | boolean>;
  * <FrontXProvider mfeBridge={{ bridge, extensionId, domainId }}>
  *   <MyMfeApp />
  * </FrontXProvider>
+ *
+ * // With injected QueryClient shared across roots
+ * <FrontXProvider app={app} queryClient={sharedQueryClient}>
+ *   <MyMfeApp />
+ * </FrontXProvider>
  * ```
  */
 export interface HAI3ProviderProps {
@@ -65,6 +157,13 @@ export interface HAI3ProviderProps {
   app?: HAI3App;
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
+  /**
+   * Optional externally managed QueryClient for MFE injection.
+   * When multiple React roots (host + MFEs) must share one cache, pass the
+   * host-owned QueryClient here so each MFE root participates in the same instance.
+   * When omitted, HAI3Provider reads app.queryClient from the queryCache() plugin.
+   */
+  queryClient?: QueryClient;
 }
 
 // ============================================================================

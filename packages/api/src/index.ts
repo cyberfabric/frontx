@@ -7,7 +7,7 @@
  * - Plugin system for request/response modification
  * - Mock data support for testing
  *
- * SDK Layer: L1 (Zero @hai3 dependencies)
+ * SDK Layer: L1 (Zero @cyberfabric dependencies)
  */
 
 // @cpt-dod:cpt-frontx-dod-api-communication-public-api:p1
@@ -25,6 +25,7 @@ export type {
   RestProtocolConfig,
   SseProtocolConfig,
   HttpMethod,
+  MutationMethod,
   ApiRequestContext,
   ApiResponseContext,
   ShortCircuitResponse,
@@ -39,11 +40,20 @@ export type {
   SsePluginHooks,
   RestRequestContext,
   RestResponseContext,
+  RestRequestOptions,
   ApiPluginErrorContext,
   SseConnectContext,
   EventSourceLike,
   RestShortCircuitResponse,
   SseShortCircuitResponse,
+  // Endpoint descriptor types
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  EndpointOptions,
+  // Stream descriptor types
+  StreamDescriptor,
+  StreamStatus,
 } from './types';
 
 // Re-export mock config types from plugin files
@@ -76,6 +86,8 @@ export { BaseApiService } from './BaseApiService';
 // Export protocols
 export { RestProtocol } from './protocols/RestProtocol';
 export { SseProtocol } from './protocols/SseProtocol';
+export { RestEndpointProtocol } from './protocols/RestEndpointProtocol';
+export { SseStreamProtocol } from './protocols/SseStreamProtocol';
 
 // Export protocol-specific mock plugins
 export { RestMockPlugin } from './plugins/RestMockPlugin';

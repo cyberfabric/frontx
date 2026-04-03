@@ -10,7 +10,7 @@
 // @cpt-state:cpt-frontx-state-screenset-registry-extension-load:p1
 // @cpt-state:cpt-frontx-state-screenset-registry-extension-mount:p1
 
-import type { MfeHandler, ParentMfeBridge } from '../handler/types';
+import type { MfeHandler, MfeMountContext, MfeMountValues, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 import type { ActionHandler } from '../mediator/types';
 import type { ActionsChain } from '../types';
@@ -81,6 +81,14 @@ export class DefaultMountManager extends MountManager {
    */
   private readonly bridgeFactory: RuntimeBridgeFactory;
 
+  /**
+   * Resolve host-provided mount context values for an extension right before lifecycle.mount().
+   */
+  private readonly resolveMountContext: (
+    extensionId: string,
+    domainId: string
+  ) => MfeMountValues | undefined;
+
   constructor(config: {
     extensionManager: DefaultExtensionManager;
     resolveHandler: HandlerResolver;
@@ -91,6 +99,10 @@ export class DefaultMountManager extends MountManager {
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterDomainActionHandler: (domainId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
+    resolveMountContext: (
+      extensionId: string,
+      domainId: string
+    ) => MfeMountValues | undefined;
   }) {
     super();
     this.extensionManager = config.extensionManager;
@@ -102,6 +114,7 @@ export class DefaultMountManager extends MountManager {
     this.registerDomainActionHandler = config.registerDomainActionHandler;
     this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
     this.bridgeFactory = config.bridgeFactory;
+    this.resolveMountContext = config.resolveMountContext;
   }
 
   /**
@@ -176,7 +189,10 @@ export class DefaultMountManager extends MountManager {
    * @returns Promise resolving to the parent bridge
    */
   // @cpt-begin:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
-  async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
+  async mountExtension(
+    extensionId: string,
+    container: Element
+  ): Promise<ParentMfeBridge> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
     if (!extensionState) {
@@ -243,7 +259,8 @@ export class DefaultMountManager extends MountManager {
       // Store shadow root on extension state for unmount
       extensionState.shadowRoot = shadowRoot;
 
-      // Call lifecycle.mount(shadowRoot, childBridge) - pass shadow root instead of container
+      // Call lifecycle.mount(shadowRoot, childBridge, mountContext) - pass shadow root
+      // plus any opaque host-provided runtime values needed for this mount.
       const lifecycle = extensionState.lifecycle;
       if (!lifecycle) {
         throw new Error(
@@ -251,7 +268,13 @@ export class DefaultMountManager extends MountManager {
           `This should not happen - loadExtension should have cached the lifecycle.`
         );
       }
-      await lifecycle.mount(shadowRoot, childBridge);
+      const resolvedValues = this.resolveMountContext(extensionId, extensionState.extension.domain);
+      const mountContext: MfeMountContext = {
+        ...(resolvedValues !== undefined && { values: resolvedValues }),
+        extensionId,
+        domainId: extensionState.extension.domain,
+      };
+      await lifecycle.mount(shadowRoot, childBridge, mountContext);
 
       // Update state
       extensionState.bridge = parentBridge;

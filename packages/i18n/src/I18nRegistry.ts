@@ -6,7 +6,7 @@
  * - RTL/LTR support
  * - Parameter interpolation
  *
- * SDK Layer: L1 (Zero @hai3 dependencies)
+ * SDK Layer: L1 (Zero @cyberfabric dependencies)
  */
 // @cpt-flow:cpt-frontx-flow-i18n-infrastructure-language-activation:p1
 // @cpt-flow:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1

@@ -46,6 +46,7 @@ const store = configureStore({ ... }); // FORBIDDEN
 | `routing()` | routeRegistry, URL sync | screensets |
 | `i18n()` | i18nRegistry, setLanguage | - |
 | `effects()` | Core effect coordination | - |
+| `queryCache()` | QueryClient lifecycle, cache invalidation, mock integration | - |
 
 ## CUSTOM PLUGINS
 ```typescript

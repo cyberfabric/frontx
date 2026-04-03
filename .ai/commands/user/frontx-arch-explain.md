@@ -10,9 +10,11 @@ Ask the user which concept they want explained, or detect from context:
 5. **Dependency Rules**: Package isolation and import rules
 6. **Type Safety**: Module augmentation and contract enforcement
 7. **Theme System**: Theme tokens and application
-8. **API Services**: Domain-based services with mocks
-9. **i18n System**: Namespace-based lazy loading
-10. **Build Order**: Package dependency chain
+8. **API Services**: Domain-based services with mocks and endpoint descriptors
+9. **Endpoint Descriptors**: Cache-aware endpoints on services via explicit declarative contracts (`RestEndpointProtocol.query()`, `mutation()`)
+10. **queryCache Plugin**: Framework plugin that owns QueryClient lifecycle
+11. **i18n System**: Namespace-based lazy loading
+12. **Build Order**: Package dependency chain
 
 Then provide:
 

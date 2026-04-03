@@ -8,6 +8,7 @@ Part of the FrontX React Layer (L3) - depends on @cyberfabric/framework. Peer de
 
 - [HAI3Provider](https://frontx.dev/docs/react/provider): Root context provider
 - [MFE Components](https://frontx.dev/docs/react/mfe): ExtensionDomainSlot, MfeProvider, RefContainerProvider
+- `HAI3Provider` accepts optional `queryClient` so separate React roots can share one TanStack Query cache
 
 ## Hooks
 
@@ -32,14 +33,14 @@ Part of the FrontX React Layer (L3) - depends on @cyberfabric/framework. Peer de
 ## Quick Start
 
 ```tsx
-import { HAI3Provider, ExtensionDomainSlot, useTranslation, useFrontX } from '@cyberfabric/react';
+import { HAI3Provider, useTranslation, useFrontX } from '@cyberfabric/react';
 
 // Wrap app with provider
 function App() {
   return (
     <HAI3Provider>
       <Layout>
-        <ExtensionDomainSlot domainId="screen" fallback={<Loading />} />
+        <MainScreen />
       </Layout>
     </HAI3Provider>
   );
@@ -66,13 +67,12 @@ function MyComponent() {
 import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function LayoutScreen() {
-  const screenContainerRef = useRef<HTMLDivElement>(null);
-
   return (
     <ExtensionDomainSlot
+      registry={registry}
       domainId="screen"
-      containerRef={screenContainerRef}
-      fallback={<Loading />}
+      extensionId="home"
+      loadingComponent={<Loading />}
     />
   );
 }

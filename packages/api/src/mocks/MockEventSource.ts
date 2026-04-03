@@ -27,6 +27,8 @@ export interface SseMockEvent {
  * MockEventSource Implementation
  *
  * Simulates EventSource behavior by emitting events asynchronously.
+ * Stays CONNECTING until after construction returns (microtask), matching
+ * native EventSource so onopen and addEventListener('open') can be attached first.
  * Supports abort via close() and proper readyState management.
  *
  * @example
@@ -66,6 +68,7 @@ export class MockEventSource implements EventSourceLike {
   /** Delay between events in milliseconds */
   private delay: number;
 
+  // @cpt-begin:cpt-frontx-state-api-communication-mock-event-source:p2:inst-constructor
   constructor(events: readonly SseMockEvent[], delay = 50) {
     this.events = events;
     this.delay = delay;
@@ -73,26 +76,31 @@ export class MockEventSource implements EventSourceLike {
     // Start emitting events asynchronously
     this.startEmitting();
   }
+  // @cpt-end:cpt-frontx-state-api-communication-mock-event-source:p2:inst-constructor
 
   /**
    * Add event listener
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-add-event-listener
   addEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
     if (!this.listeners.has(type)) {
       this.listeners.set(type, new Set());
     }
     this.listeners.get(type)!.add(listener);
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-add-event-listener
 
   /**
    * Remove event listener
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-remove-event-listener
   removeEventListener(type: string, listener: EventListenerOrEventListenerObject): void {
     const listeners = this.listeners.get(type);
     if (listeners) {
       listeners.delete(listener);
     }
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-remove-event-listener
 
   /**
    * Close the connection
@@ -118,10 +126,16 @@ export class MockEventSource implements EventSourceLike {
     this.abortController = new AbortController();
     const signal = this.abortController.signal;
 
-    // Transition to OPEN
-    this.readyState = 1; // OPEN
+    // Async functions run synchronously until the first await; without this yield,
+    // OPEN and `open` would fire before the constructor returns (breaking the
+    // EventSource contract and listeners assigned after `new`).
+    await Promise.resolve();
 
-    // Emit open event
+    if (signal.aborted) {
+      return;
+    }
+
+    this.readyState = 1; // OPEN
     this.emitEvent('open', new Event('open'));
 
     // Emit events with delay
@@ -164,6 +178,7 @@ export class MockEventSource implements EventSourceLike {
   /**
    * Emit an event to registered listeners
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-emit-event
   private emitEvent(type: string, event: Event | MessageEvent): void {
     const listeners = this.listeners.get(type);
     if (listeners) {
@@ -183,19 +198,30 @@ export class MockEventSource implements EventSourceLike {
       this.onerror.call(this as unknown as EventSource, event);
     }
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-emit-event
 
   /**
    * Sleep with abort signal support
    */
+  // @cpt-begin:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-sleep-abort
   private sleep(ms: number, signal: AbortSignal): Promise<void> {
-    return new Promise((resolve, reject) => {
-      const timeout = setTimeout(resolve, ms);
+    return new Promise((resolve) => {
+      if (signal.aborted) {
+        resolve();
+        return;
+      }
+      const timeout = setTimeout(() => {
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      }, ms);
 
-      // Handle abort
-      signal.addEventListener('abort', () => {
+      const onAbort = () => {
         clearTimeout(timeout);
-        reject(new Error('Aborted'));
-      });
+        signal.removeEventListener('abort', onAbort);
+        resolve();
+      };
+      signal.addEventListener('abort', onAbort);
     });
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-mock-event-source:p2:inst-sleep-abort
 }

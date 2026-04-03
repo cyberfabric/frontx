@@ -27,7 +27,28 @@ export {
   useScreenTranslations,
   useFormatters,
   useTheme,
+  useApiQuery,
+  useApiSuspenseQuery,
+  useApiInfiniteQuery,
+  useApiSuspenseInfiniteQuery,
+  useApiMutation,
+  useApiStream,
+  useQueryCache,
 } from './hooks';
+
+export type { ApiQueryOverrides } from './hooks/useApiQuery';
+export type {
+  ApiInfiniteQueryOptions,
+  ApiInfiniteQueryPageContext,
+} from './hooks/useApiInfiniteQuery';
+export type { UseApiMutationOptions } from './hooks/useApiMutation';
+export type { ApiStreamOptions, ApiStreamResult } from './hooks/useApiStream';
+export type {
+  QueryCache,
+  QueryCacheInvalidateFilters,
+  QueryCacheState,
+  MutationCallbackContext,
+} from './hooks/QueryCache';
 
 // ============================================================================
 // MFE Context and Hooks
@@ -38,6 +59,7 @@ export {
   useMfeContext,
   MfeProvider,
   useMfeBridge,
+  ThemeAwareReactLifecycle,
   useSharedProperty,
   useHostAction,
   useDomainExtensions,
@@ -45,6 +67,8 @@ export {
   useActivePackage,
   RefContainerProvider,
   ExtensionDomainSlot,
+  bootstrapMfeDomains,
+  DetachedContainerProvider,
 } from './mfe';
 
 export type {
@@ -66,6 +90,11 @@ export type {
   UseScreenTranslationsReturn,
   UseFormattersReturn,
   UseThemeReturn,
+  ApiQueryResult,
+  ApiSuspenseQueryResult,
+  ApiInfiniteQueryResult,
+  ApiSuspenseInfiniteQueryResult,
+  ApiMutationResult,
 } from './types';
 
 // ============================================================================
@@ -93,6 +122,7 @@ export {
   layout,
   i18n,
   effects,
+  queryCache,
 
   // Registries
   createThemeRegistry,
@@ -186,7 +216,9 @@ export {
   apiRegistry,
   BaseApiService,
   RestProtocol,
+  RestEndpointProtocol,
   SseProtocol,
+  SseStreamProtocol,
   // Protocol-specific mock plugins (replaces generic MockPlugin)
   RestMockPlugin,
   SseMockPlugin,
@@ -225,6 +257,14 @@ export type {
   HAI3Plugin,
   HAI3AppBuilder,
   HAI3App,
+  // Endpoint descriptors — L3 components import from @cyberfabric/react
+  EndpointOptions,
+  EndpointDescriptor,
+  ParameterizedEndpointDescriptor,
+  MutationDescriptor,
+  // Stream descriptors
+  StreamDescriptor,
+  StreamStatus,
   PluginFactory,
   PluginProvides,
   PluginLifecycle,
@@ -381,6 +421,10 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
+  MfeMountValue,
+  MfeMountValues,
+  MfeMountContext,
+  MountContextResolver,
   Extension,
   ScreenExtension,
   ExtensionPresentation,

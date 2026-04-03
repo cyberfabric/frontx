@@ -12,6 +12,7 @@ const sharedDeps = [
   '@cyberfabric/screensets',
   '@cyberfabric/api',
   '@cyberfabric/i18n',
+  '@tanstack/react-query',
   '@reduxjs/toolkit',
   'react-redux',
 ];

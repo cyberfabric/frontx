@@ -20,6 +20,8 @@ import type {
 
 import type { Reducer } from '@reduxjs/toolkit';
 
+// From @tanstack/query-core
+import type { QueryClient } from '@tanstack/query-core';
 // From @cyberfabric/api
 import type { ApiRegistry } from '@cyberfabric/api';
 
@@ -392,6 +394,10 @@ export interface HAI3App {
 
   /** MFE-enabled ScreensetsRegistry (optional, provided by microfrontends plugin) */
   screensetsRegistry?: MfeScreensetsRegistry;
+
+  /** TanStack QueryClient — provided by queryCache plugin. Optional because apps may
+   *  compose plugins without queryCache() when they do not use server state. */
+  queryClient?: QueryClient;
 
   /** All registered actions (type-safe via FrontXActions interface) */
   actions: HAI3Actions;

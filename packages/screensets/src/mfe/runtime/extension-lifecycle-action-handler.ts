@@ -48,7 +48,7 @@ type DomainSemantics = 'swap' | 'toggle';
  * NOTE: The `mountExtension` callback accepts a `container: Element` parameter.
  * The handler obtains the container from `this.containerProvider.getContainer(extensionId)`
  * and passes it to the callback. The callback then routes through
- * OperationSerializer -> MountManager.mountExtension(id, container). This keeps
+ * OperationSerializer -> MountManager.mountExtension(id, container, mountContext). This keeps
  * all ContainerProvider interaction in the handler (single ownership), while the
  * callback chain remains a simple pass-through for the resolved container.
  */
@@ -56,7 +56,10 @@ export interface ExtensionLifecycleCallbacks {
   /** Load an extension's bundle (OperationSerializer -> MountManager.loadExtension) */
   loadExtension: (extensionId: string) => Promise<void>;
   /** Mount an extension into a container (OperationSerializer -> MountManager.mountExtension) */
-  mountExtension: (extensionId: string, container: Element) => Promise<ParentMfeBridge>;
+  mountExtension: (
+    extensionId: string,
+    container: Element
+  ) => Promise<ParentMfeBridge>;
   /** Unmount an extension (OperationSerializer -> MountManager.unmountExtension) */
   unmountExtension: (extensionId: string) => Promise<void>;
   /** Query the currently mounted extension in a domain (ExtensionManager) */

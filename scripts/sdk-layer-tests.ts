@@ -5,7 +5,7 @@
  * Tests that the SDK layer packages follow the 3-layer architecture
  *
  * These tests verify:
- * - SDK packages (L1) have ZERO @hai3 dependencies
+ * - SDK packages (L1) have ZERO @cyberfabric dependencies
  * - Framework package (L2) only imports SDK packages
  * - React package (L3) only imports framework
  * - No package depends on deprecated packages (@cyberfabric/uikit-contracts, @cyberfabric/uicore, @cyberfabric/layout)
@@ -61,7 +61,7 @@ function getHai3Dependencies(pkg: PackageJson): string[] {
   return Object.keys(allDeps).filter((dep) => dep.startsWith('@cyberfabric/'));
 }
 
-// SDK packages that should have ZERO @hai3 dependencies
+// SDK packages that should have ZERO @cyberfabric dependencies
 // Note: @cyberfabric/events + @cyberfabric/store were consolidated into @cyberfabric/state
 // Note: @cyberfabric/layout was deleted, layout slices now in @cyberfabric/framework
 const SDK_PACKAGES = ['state', 'api', 'i18n', 'screensets'];
@@ -82,7 +82,7 @@ const DEPRECATED_PACKAGES = [
 ];
 
 /**
- * Test: SDK packages have zero @hai3 dependencies
+ * Test: SDK packages have zero @cyberfabric dependencies
  */
 function testSdkZeroDependencies(): TestResult[] {
   const results: TestResult[] = [];
@@ -93,7 +93,7 @@ function testSdkZeroDependencies(): TestResult[] {
 
     if (!pkg) {
       results.push({
-        name: `SDK @cyberfabric/${pkgName}: Zero @hai3 deps`,
+        name: `SDK @cyberfabric/${pkgName}: Zero @cyberfabric deps`,
         passed: true,
         message: `Package not yet created (will be created in Phase 3)`,
         skipped: true,
@@ -105,11 +105,11 @@ function testSdkZeroDependencies(): TestResult[] {
     const passed = hai3Deps.length === 0;
 
     results.push({
-      name: `SDK @cyberfabric/${pkgName}: Zero @hai3 deps`,
+      name: `SDK @cyberfabric/${pkgName}: Zero @cyberfabric deps`,
       passed,
       message: passed
-        ? 'No @hai3 dependencies found'
-        : `Found @hai3 dependencies: ${hai3Deps.join(', ')}`,
+        ? 'No @cyberfabric dependencies found'
+        : `Found @cyberfabric dependencies: ${hai3Deps.join(', ')}`,
     });
   }
 

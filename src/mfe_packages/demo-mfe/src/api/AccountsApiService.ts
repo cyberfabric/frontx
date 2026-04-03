@@ -6,9 +6,22 @@
  * services into its own isolated apiRegistry instance.
  */
 
-import { BaseApiService, RestProtocol, RestMockPlugin } from '@cyberfabric/react';
+// @cpt-FEATURE:implement-endpoint-descriptors:p1
+
+import {
+  BaseApiService,
+  RestEndpointProtocol,
+  RestProtocol,
+  RestMockPlugin,
+} from '@cyberfabric/react';
 import type { GetCurrentUserResponse } from './types';
 import { accountsMockMap } from './mocks';
+
+export type UpdateProfileVariables = {
+  firstName: string;
+  lastName: string;
+  department?: string;
+};
 
 /**
  * Accounts API Service for the demo MFE.
@@ -20,8 +33,9 @@ export class AccountsApiService extends BaseApiService {
     const restProtocol = new RestProtocol({
       timeout: 30000,
     });
+    const restEndpoints = new RestEndpointProtocol(restProtocol);
 
-    super({ baseURL: '/api/accounts' }, restProtocol);
+    super({ baseURL: '/api/accounts' }, restProtocol, restEndpoints);
 
     // Register mock plugin (framework controls when it's active based on mock mode toggle)
     this.registerPlugin(
@@ -33,10 +47,10 @@ export class AccountsApiService extends BaseApiService {
     );
   }
 
-  /**
-   * Get current authenticated user
-   */
-  async getCurrentUser(): Promise<GetCurrentUserResponse> {
-    return this.protocol(RestProtocol).get<GetCurrentUserResponse>('/user/current');
-  }
+  // @cpt-begin:implement-endpoint-descriptors:p1:inst-accounts-descriptors
+  readonly getCurrentUser = this.protocol(RestEndpointProtocol)
+    .query<GetCurrentUserResponse>('/user/current');
+  readonly updateProfile = this.protocol(RestEndpointProtocol)
+    .mutation<GetCurrentUserResponse, UpdateProfileVariables>('PUT', '/user/profile');
+  // @cpt-end:implement-endpoint-descriptors:p1:inst-accounts-descriptors
 }

@@ -15,7 +15,7 @@ import { UserRole, type ApiUser, type GetCurrentUserResponse } from './types';
  */
 const mockUser: ApiUser = {
   id: 'mock-user-001',
-  email: 'demo@hai3.org',
+  email: 'demo@frontx.dev',
   firstName: 'Demo',
   lastName: 'User',
   role: UserRole.Admin,

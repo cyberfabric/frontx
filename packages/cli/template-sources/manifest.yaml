@@ -48,10 +48,12 @@ root:
     # (Stage 1b-override replaces MFE-specific code with standalone-compatible code)
     - src/app/main.tsx
     - src/app/App.tsx
+    - src/app/initApp.ts
     - src/app/globals.css
     # Standalone-only files (in template-sources/project/ instead of monorepo root):
     # - vite.config.ts -> configs/vite.config.ts (no federation plugin)
     # - postcss.config.js -> configs/postcss.config.js
+    # - src/app/initApp.ts -> shared app init (monorepo inlines this in main.tsx)
     # - src/app/main.no-uikit.tsx -> src/app/ (no MFE imports)
     # - src/app/main.custom-uikit.tsx -> src/app/ (custom uikit variant)
     # - src/app/App.no-studio.tsx, App.no-uikit.tsx, App.no-uikit.no-studio.tsx -> src/app/
@@ -62,12 +64,13 @@ root:
     - src/app/api         # API services (AccountsApiService)
     - src/app/components  # Reusable components (TextLoader)
     - src/app/lib         # Utility functions (cn)
-    - src/app/mfe         # MFE bootstrap + generated manifests stub
+    - src/app/mfe         # Shared MFE runtime files (bootstrap overridden in Stage 1b-override)
     - src/app/actions     # Bootstrap actions
     - src/app/effects     # Bootstrap effects
     - src/app/events      # Bootstrap events
   # MFE template is sourced from src/mfe_packages/_blank-mfe/ (see copy-templates.ts)
-  # src/app/mfe is handled by Stage 1b-override + explicit bootstrap copy
+  # src/app/mfe is handled by Stage 1b-override so standalone templates keep the
+  # manifest-driven bootstrap plus an empty generated-mfe-manifests.ts stub
 
 # Stage 1c: AI documentation overrides
 ai_overrides:

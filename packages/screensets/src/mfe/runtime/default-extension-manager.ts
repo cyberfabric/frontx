@@ -512,4 +512,5 @@ export class DefaultExtensionManager extends ExtensionManager {
     }
     domainState.mountedExtension = extensionId;
   }
+
 }

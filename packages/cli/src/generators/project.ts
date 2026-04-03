@@ -20,7 +20,7 @@ import {
 } from '../core/packageManager.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { isTargetApplicableToLayer, selectCommandVariant } from '../core/layers.js';
-import { getLocalPackageRef } from '../utils/project.js';
+import { getLocalPackageRef, rewriteTsconfigPackagePaths } from '../utils/project.js';
 import { applyMfeReplacements, applyMfeFileRename, buildMfeManifestsContent } from './screenset.js';
 import { isCustomUikit, assertValidUikitForCodegen, normalizeUikit } from '../utils/validation.js';
 import {
@@ -448,6 +448,13 @@ function getAppTemplateName(uikit: string, studio: boolean): string {
   }
   return studio ? 'src/app/App.no-uikit.tsx' : 'src/app/App.no-uikit.no-studio.tsx';
 }
+
+function sanitizeMainTemplateContent(content: string): string {
+  return content.replace(
+    /^\/\/ @ts-expect-error .*template-sources-only tree\.\n/gm,
+    ''
+  );
+}
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-4
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-template-selection:p1:inst-template-selection-3
 
@@ -469,7 +476,8 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
 
     if (file === 'src/app/main.tsx') {
       const templatePath = path.join(templatesDir, getMainTemplateName(uikit));
-      files.push({ path: 'src/app/main.tsx', content: await fs.readFile(templatePath, 'utf-8') });
+      const content = sanitizeMainTemplateContent(await fs.readFile(templatePath, 'utf-8'));
+      files.push({ path: 'src/app/main.tsx', content });
       continue;
     }
 
@@ -499,7 +507,11 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
   for (const dir of directories) {
     if (dir === 'src/app/themes' && uikit !== 'shadcn') continue;
     if (dir === 'src/app/components' && uikit !== 'shadcn') continue;
-    files.push(...(await readDirRecursive(path.join(templatesDir, dir), dir)));
+    let dirFiles = await readDirRecursive(path.join(templatesDir, dir), dir);
+    if (dir === 'src/app/lib' && uikit !== 'shadcn') {
+      dirFiles = dirFiles.filter((file) => file.path !== 'src/app/lib/utils.ts');
+    }
+    files.push(...dirFiles);
   }
 
   const mfeCoreFiles = ['MfeScreenContainer.tsx', 'bootstrap.ts'];
@@ -769,6 +781,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     '@iconify/react': '5.0.2',
     '@radix-ui/react-avatar': '1.1.10',
     '@radix-ui/react-slot': '1.2.3',
+    '@tanstack/react-query': '5.90.21',
     '@reduxjs/toolkit': '2.11.2',
     'class-variance-authority': '0.7.1',
     clsx: '2.1.1',
@@ -964,6 +977,17 @@ export async function generateProject(input: ProjectGeneratorInput): Promise<Gen
 
   const workspaceFiles = getManagerWorkspaceFiles(packageManager);
   files.push(...workspaceFiles);
+
+  for (const file of files) {
+    if (file.path !== 'tsconfig.json') {
+      continue;
+    }
+    file.content = rewriteTsconfigPackagePaths(file.content, {
+      useLocalPackages,
+      monorepoRoot,
+      projectPath,
+    });
+  }
 
   // Rewrite npm-centric snippets in template-derived text files.
   for (const file of files) {

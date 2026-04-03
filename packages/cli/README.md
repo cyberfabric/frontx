@@ -215,7 +215,7 @@ FrontX uses a 3-layer SDK architecture. When building custom packages that exten
 # SDK layer - pure TypeScript, no FrontX dependencies
 frontx create my-contracts --layer=sdk
 
-# Framework layer - depends on @cyberfabric/events, @cyberfabric/store
+# Framework layer - depends on SDK packages such as @cyberfabric/state and @cyberfabric/screensets
 frontx create my-store-extension --layer=framework
 
 # React layer - depends on @cyberfabric/framework + React
@@ -229,7 +229,7 @@ Each layer has specific peer dependency requirements enforced by the generated c
 | Layer | Allowed Dependencies |
 |-------|---------------------|
 | SDK | None (pure TypeScript) |
-| Framework | `@cyberfabric/events`, `@cyberfabric/store` |
+| Framework | `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n` |
 | React | `@cyberfabric/framework`, `react`, `react-dom` |
 
 ### Generated Package Structure

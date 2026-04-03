@@ -70,7 +70,10 @@ export abstract class MountManager {
    * @param container - DOM element to mount into
    * @returns Promise resolving to the parent bridge
    */
-  abstract mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge>;
+  abstract mountExtension(
+    extensionId: string,
+    container: Element
+  ): Promise<ParentMfeBridge>;
 
   /**
    * Unmount an extension from its container.

@@ -11,13 +11,14 @@ export default defineConfig({
   sourcemap: true,
   splitting: false,
   external: [
-    // All @hai3 packages - peer dependencies
+    // All @cyberfabric packages - peer dependencies
     '@cyberfabric/framework',
     // React ecosystem
     'react',
     'react-dom',
     'react/jsx-runtime',
     'react-redux',
+    '@tanstack/react-query',
     'use-sync-external-store',
     'use-sync-external-store/shim',
     /^use-sync-external-store/,

@@ -15,6 +15,7 @@ import { effects } from '../../../src/plugins/effects';
 import {
   microfrontends,
   loadExtension,
+  unmountExtension,
   MfeEvents,
   selectExtensionState,
   selectExtensionError,
@@ -103,6 +104,32 @@ describe('microfrontends plugin - Phase 13', () => {
           payload: { subject: testExtensionId },
         },
       });
+    });
+
+    it('should throw when unmountExtension resolves a domain that is not registered on the registry', () => {
+      const app = createHAI3()
+        .use(screensets())
+        .use(effects())
+        .use(microfrontends({ typeSystem: gtsPlugin }))
+        .build();
+      apps.push(app);
+
+      const testDomainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
+      const testExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext.v1';
+      const testExtension: Extension = {
+        id: testExtensionId,
+        domain: testDomainId,
+        entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
+      };
+
+      vi.spyOn(app.screensetsRegistry, 'getExtension').mockReturnValue(testExtension);
+      vi.spyOn(app.screensetsRegistry, 'getDomain').mockReturnValue(undefined);
+      const chainSpy = vi.spyOn(app.screensetsRegistry, 'executeActionsChain').mockResolvedValue(undefined);
+
+      expect(() => unmountExtension(testExtensionId)).toThrow(
+        /domain 'gts\.hai3\.mfes\.ext\.domain\.v1~test\.app\.test\.domain\.v1' is not registered.*extension 'gts\.hai3\.mfes\.ext\.extension\.v1~test\.app\.test\.ext\.v1'/
+      );
+      expect(chainSpy).not.toHaveBeenCalled();
     });
 
     it('should verify registration events still work', () => {

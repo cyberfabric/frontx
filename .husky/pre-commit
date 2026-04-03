@@ -1,6 +1,10 @@
 #!/usr/bin/env sh
-# Check for large files (>500KB), excluding package-lock.json
-git diff --cached --name-only -z | grep -z -v 'package-lock\.json' | while IFS= read -r -d '' file; do
+# Check for large files (>500KB), excluding package-lock.json.
+# Use a POSIX-compatible loop because /bin/sh may not support `read -d`.
+git diff --cached --name-only --diff-filter=ACMR | while IFS= read -r file; do
+  [ -z "$file" ] && continue
+  [ "$file" = "package-lock.json" ] && continue
+
   size=$(git cat-file -s ":$file" 2>/dev/null) || continue
   if [ "$size" -gt 512000 ]; then
     echo "ERROR: $file is too large ($(( size / 1024 ))KB > 500KB)"

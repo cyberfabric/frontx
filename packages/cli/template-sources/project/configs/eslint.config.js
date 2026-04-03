@@ -128,6 +128,14 @@ export default [
               message:
                 'LAYER VIOLATION: App-layer code must import from @cyberfabric/react, not directly from @cyberfabric/screensets (Layer 1).',
             },
+            // TanStack Query - use HAI3 wrappers instead
+            {
+              group: ['@tanstack/react-query'],
+              message:
+                'QUERY VIOLATION: Do not import from @tanstack/react-query directly. ' +
+                'Use useApiQuery, useApiMutation, useApiStream, or useQueryCache from @cyberfabric/react. ' +
+                'HAI3Provider already includes QueryClientProvider.',
+            },
             // Redux term bans - use FrontX state terms instead
             {
               group: ['react-redux'],
@@ -190,6 +198,8 @@ export default [
       'local/no-inline-styles': 'error',
       'local/uikit-no-business-logic': 'off',
       'local/screen-inline-components': 'off',
+      'local/no-direct-tanstack-hooks': 'off',
+      'local/no-manual-query-keys': 'off',
 
       // Type safety: Discourage loose types
       'no-restricted-syntax': [
@@ -289,6 +299,20 @@ export default [
     files: ['src/screensets/**/screens/**/*Screen.tsx'],
     rules: {
       'local/screen-inline-components': 'error',
+    },
+  },
+
+  // Data Layer: Enforce HAI3 query wrappers (no direct TanStack hooks or manual cache keys)
+  {
+    files: [
+      'src/screensets/**/*.{ts,tsx}',
+      'src/app/**/*.{ts,tsx}',
+      'src/mfe_packages/*/src/**/*.{ts,tsx}',
+    ],
+    ignores: ['**/*.test.*', '**/*.spec.*'],
+    rules: {
+      'local/no-direct-tanstack-hooks': 'error',
+      'local/no-manual-query-keys': 'error',
     },
   },
 
@@ -513,4 +537,21 @@ export default [
   },
 
   // ==== App Events: Allow inline config for module augmentation ====
+
+  // main variants: @/app/themes is copied from monorepo at template build (manifest root.directories),
+  // not present in template-sources-only checkouts — allow @ts-expect-error on theme imports.
+  {
+    files: [
+      'src/app/main.tsx',
+      'src/app/main.custom-uikit.tsx',
+      'src/app/main.no-uikit.tsx',
+      // Monorepo: ESLint cwd may be repo root, so paths include packages/cli/template-sources/project/
+      'packages/cli/template-sources/project/src/app/main.tsx',
+      'packages/cli/template-sources/project/src/app/main.custom-uikit.tsx',
+      'packages/cli/template-sources/project/src/app/main.no-uikit.tsx',
+    ],
+    rules: {
+      '@typescript-eslint/ban-ts-comment': 'off',
+    },
+  },
 ];
