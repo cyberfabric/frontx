@@ -1,0 +1,20 @@
+{
+  "name": "e2e-tests",
+  "private": true,
+  "scripts": {
+    "test": "npx bddgen && npx playwright test --project=chromium",
+    "test:bdd": "npx bddgen && npx playwright test --project=chromium",
+    "test:smoke": "npx playwright test --project=smoke",
+    "test:all": "npx bddgen && npx playwright test --project=chromium --project=smoke",
+    "test:ui": "npx bddgen && npx playwright test --ui",
+    "report": "npx playwright show-report",
+    "bddgen": "npx bddgen"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.44.0",
+    "playwright-bdd": "^8.4.0",
+    "typescript": "^5.3.0",
+    "ts-node": "^10.9.0",
+    "@types/node": "^20.0.0"
+  }
+}
