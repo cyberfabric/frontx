@@ -1,6 +1,6 @@
 {
   "name": "@cyberfabric/screensets",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "Pure TypeScript contracts and registry for FrontX screenset management",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -37,7 +37,8 @@
     "build": "tsup",
     "type-check": "tsc --noEmit",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:integration": "vitest run --config vitest.integration.config.ts"
   },
   "devDependencies": {
     "@vitest/coverage-v8": "^4.0.18",

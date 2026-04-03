@@ -31,8 +31,9 @@ export default defineConfig({
   ],
   build: {
     target: 'esnext',
-    minify: false,
-    cssCodeSplit: false,
     modulePreload: false,
+    /** Default Vite prod behavior; MfeHandlerMF integration test asserts compatibility. */
+    minify: true,
+    cssCodeSplit: true,
   },
 });

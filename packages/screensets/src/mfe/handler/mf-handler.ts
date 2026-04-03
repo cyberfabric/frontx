@@ -23,6 +23,11 @@ import type {
   FederationPackageVersions,
 } from './federation-types';
 
+interface ExposedModuleMetadata {
+  readonly chunkFilename: string;
+  readonly stylesheetPaths: string[];
+}
+
 /**
  * A shareScope object written to globalThis.__federation_shared__.
  * Format: { [packageName]: { [version]: { get, loaded?, scope? } } }
@@ -122,7 +127,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const manifest = await this.resolveManifest(entry.manifest);
     this.manifestCache.cacheManifest(manifest);
 
-    const moduleFactory = await this.loadExposedModuleIsolated(
+    const { moduleFactory, stylesheetPaths, baseUrl } = await this.loadExposedModuleIsolated(
       manifest,
       entry.exposedModule,
       entry.id
@@ -137,7 +142,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       );
     }
 
-    return loadedModule;
+    return this.wrapLifecycleWithStylesheets(
+      loadedModule,
+      stylesheetPaths,
+      baseUrl
+    );
   }
 
   /**
@@ -157,7 +166,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     manifest: MfManifest,
     exposedModule: string,
     entryId: string
-  ): Promise<() => unknown> {
+  ): Promise<{
+    moduleFactory: () => unknown;
+    stylesheetPaths: string[];
+    baseUrl: string;
+  }> {
     const remoteEntryUrl = manifest.remoteEntry;
     const baseUrl = remoteEntryUrl.substring(
       0,
@@ -177,11 +190,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     // Parse remoteEntry to find the expose chunk filename
     const remoteEntrySource = await this.fetchSourceText(remoteEntryUrl);
-    const exposeFilename = this.parseExposeChunkFilename(
+    const exposeMetadata = this.parseExposeMetadata(
       remoteEntrySource,
       exposedModule
     );
-    if (!exposeFilename) {
+    if (!exposeMetadata) {
       throw new MfeLoadError(
         `Cannot find expose chunk for '${exposedModule}' in remoteEntry`,
         entryId
@@ -189,12 +202,12 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     }
 
     // Build blob URL chain for the expose chunk and all its static deps
-    await this.createBlobUrlChain(loadState, exposeFilename);
+    await this.createBlobUrlChain(loadState, exposeMetadata.chunkFilename);
 
-    const exposeBlobUrl = loadState.blobUrlMap.get(exposeFilename);
+    const exposeBlobUrl = loadState.blobUrlMap.get(exposeMetadata.chunkFilename);
     if (!exposeBlobUrl) {
       throw new MfeLoadError(
-        `Failed to create blob URL for expose chunk '${exposeFilename}'`,
+        `Failed to create blob URL for expose chunk '${exposeMetadata.chunkFilename}'`,
         entryId
       );
     }
@@ -206,9 +219,13 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       'Module', '__esModule', 'default', '_export_sfc',
     ]);
     const keys = Object.keys(exposeModule as object);
-    return keys.every((k) => exportSet.has(k))
-      ? () => (exposeModule as Record<string, unknown>).default
-      : () => exposeModule;
+    return {
+      moduleFactory: keys.every((k) => exportSet.has(k))
+        ? () => (exposeModule as Record<string, unknown>).default
+        : () => exposeModule,
+      stylesheetPaths: exposeMetadata.stylesheetPaths,
+      baseUrl,
+    };
   }
 
   private isValidLifecycleModule(
@@ -222,6 +239,60 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       typeof candidate.mount === 'function' &&
       typeof candidate.unmount === 'function'
     );
+  }
+
+  private wrapLifecycleWithStylesheets(
+    lifecycle: MfeEntryLifecycle<ChildMfeBridge>,
+    stylesheetPaths: string[],
+    baseUrl: string
+  ): MfeEntryLifecycle<ChildMfeBridge> {
+    if (stylesheetPaths.length === 0) {
+      return lifecycle;
+    }
+
+    return {
+      mount: async (container, bridge) => {
+        await this.injectRemoteStylesheets(container, stylesheetPaths, baseUrl);
+        await lifecycle.mount(container, bridge);
+      },
+      unmount: async (container) => lifecycle.unmount(container),
+    };
+  }
+
+  private async injectRemoteStylesheets(
+    container: Element | ShadowRoot,
+    stylesheetPaths: string[],
+    baseUrl: string
+  ): Promise<void> {
+    const stylesheetTexts = await Promise.all(
+      stylesheetPaths.map((path) => this.fetchSourceText(baseUrl + path))
+    );
+
+    stylesheetTexts.forEach((css, index) => {
+      const targetId = `__hai3-mfe-runtime-style-${index}`;
+      this.upsertStyleElement(container, css, targetId);
+    });
+  }
+
+  private upsertStyleElement(
+    container: Element | ShadowRoot,
+    css: string,
+    id: string
+  ): void {
+    let styleElement: HTMLStyleElement | null = null;
+    if ('getElementById' in container && typeof container.getElementById === 'function') {
+      styleElement = container.getElementById(id) as HTMLStyleElement | null;
+    } else if (container instanceof Element) {
+      styleElement = container.querySelector(`style#${id}`);
+    }
+
+    if (!styleElement) {
+      styleElement = document.createElement('style');
+      styleElement.id = id;
+      container.appendChild(styleElement);
+    }
+
+    styleElement.textContent = css;
   }
 
   /**
@@ -453,23 +524,158 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Parse the remoteEntry source to find the expose chunk filename.
    *
-   * Matches the moduleMap entry pattern:
+   * Matches the moduleMap entry pattern (dev / pretty-print):
    *   "./lifecycle-helloworld":()=>{
    *     ...
    *     return __federation_import('./__federation_expose_Lifecycle-helloworld-CeX0Lwd2.js')...
    *   }
+   *
+   * Production builds minify the entry to an arrow expression body and rename helpers, e.g.:
+   *   "./lifecycle":()=>(E([],!1,"./lifecycle"),w("./__federation_expose_Lifecycle-….js").then(...))
    */
   // @cpt-algo:cpt-frontx-algo-mfe-isolation-parse-expose-chunk:p1
-  private parseExposeChunkFilename(
+  private parseExposeMetadata(
+    remoteEntrySource: string,
+    exposedModule: string
+  ): ExposedModuleMetadata | null {
+    const body = this.findExposeModuleBody(remoteEntrySource, exposedModule);
+    if (body === null) {
+      return null;
+    }
+
+    const chunkFilename = this.parseExposeChunkFilename(body);
+    if (!chunkFilename) {
+      return null;
+    }
+
+    const stylesheetPaths = this.parseStylesheetPaths(body, exposedModule);
+    return {
+      chunkFilename,
+      stylesheetPaths,
+    };
+  }
+
+  /**
+   * Resolve the expose chunk file inside the moduleMap callback body.
+   * Prefers stable `__federation_expose_*` paths; falls back to __federation_import().
+   */
+  private parseExposeChunkFilename(exposeBody: string): string | null {
+    const exposeRef = /['"]\.\/(__federation_expose_[^'"]+\.js)['"]/.exec(exposeBody);
+    if (exposeRef) {
+      return exposeRef[1];
+    }
+    const importMatch = /__federation_import\(\s*['"]\.\/([^'"]+)['"]\s*\)/.exec(
+      exposeBody
+    );
+    return importMatch ? importMatch[1] : null;
+  }
+
+  private findExposeModuleBody(
     remoteEntrySource: string,
     exposedModule: string
   ): string | null {
     const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const regex = new RegExp(
-      `"${escaped}"[^}]*__federation_import\\(['"]\\.\\/([^'"]+)['"]\\)`
+    const startRegex = new RegExp(
+      `["']${escaped}["']\\s*:\\s*\\(\\)\\s*=>\\s*(\\{|\\()`,
+      'g'
     );
-    const match = regex.exec(remoteEntrySource);
-    return match ? match[1] : null;
+    const match = startRegex.exec(remoteEntrySource);
+    if (!match) {
+      return null;
+    }
+
+    const delimiter = match[1] as '{' | '(';
+    const bodyStart = match.index + match[0].length;
+    if (delimiter === '{') {
+      return this.scanBalancedDelimiter(remoteEntrySource, bodyStart, '{', '}');
+    }
+    return this.scanBalancedDelimiter(remoteEntrySource, bodyStart, '(', ')');
+  }
+
+  /**
+   * Slice `source` from `startIndex` up to (but not including) the closing delimiter
+   * that balances the opening `{` or `(` at startIndex-1 context (caller positions
+   * startIndex immediately after the opening delimiter).
+   */
+  private scanBalancedDelimiter(
+    source: string,
+    startIndex: number,
+    openChar: string,
+    closeChar: string
+  ): string | null {
+    let depth = 1;
+    let quote: '"' | "'" | '`' | null = null;
+    let escapedChar = false;
+
+    for (let index = startIndex; index < source.length; index++) {
+      const char = source[index];
+
+      if (quote !== null) {
+        if (escapedChar) {
+          escapedChar = false;
+          continue;
+        }
+        if (char === '\\') {
+          escapedChar = true;
+          continue;
+        }
+        if (char === quote) {
+          quote = null;
+        }
+        continue;
+      }
+
+      if (char === '"' || char === '\'' || char === '`') {
+        quote = char;
+        continue;
+      }
+      if (char === openChar) {
+        depth += 1;
+        continue;
+      }
+      if (char === closeChar) {
+        depth -= 1;
+        if (depth === 0) {
+          return source.slice(startIndex, index);
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extract CSS asset paths from the expose callback. Pretty builds call
+   * `dynamicLoadingCss([...], …)`; minified output uses a short alias with the same
+   * argument shape: `([...], <bool>, "<exposeKey>")`.
+   */
+  private parseStylesheetPaths(
+    exposeBody: string,
+    exposedModule: string
+  ): string[] {
+    const legacy = /dynamicLoadingCss\(\s*\[([\s\S]*?)\]\s*,/.exec(exposeBody);
+    if (legacy) {
+      return this.extractCssStringPaths(legacy[1]);
+    }
+
+    const escaped = exposedModule.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const minified = new RegExp(
+      `\\[([\\s\\S]*?)\\]\\s*,\\s*[^,]+\\s*,\\s*["']${escaped}["']`
+    ).exec(exposeBody);
+    if (!minified) {
+      return [];
+    }
+    return this.extractCssStringPaths(minified[1]);
+  }
+
+  private extractCssStringPaths(bracketInner: string): string[] {
+    const paths: string[] = [];
+    const stringRegex = /['"]([^'"]+\.css[^'"]*)['"]/g;
+    let match: RegExpExecArray | null;
+    while ((match = stringRegex.exec(bracketInner)) !== null) {
+      paths.push(match[1]);
+    }
+    return paths;
   }
 
   /**
@@ -488,14 +694,14 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const filenames: string[] = [];
 
     // Named imports: import { x } from './dep.js'  /  export { x } from './dep.js'
-    const namedRegex = /from\s+['"](\.\.?\/[^'"]+)['"]/g;
+    const namedRegex = /from\s*['"](\.\.?\/[^'"]+)['"]/g;
     let match;
     while ((match = namedRegex.exec(source)) !== null) {
       filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
     }
 
     // Bare side-effect imports: import './dep.js'
-    const bareRegex = /(?:^|;|\n)\s*import\s+['"](\.\.?\/[^'"]+)['"]\s*;/g;
+    const bareRegex = /(?:^|;|\n)\s*import\s*['"](\.\.?\/[^'"]+)['"]\s*;?/g;
     while ((match = bareRegex.exec(source)) !== null) {
       filenames.push(this.resolveRelativePath(chunkFilename, match[1]));
     }
@@ -525,11 +731,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     // Static imports: from './...' or from '../...'
     let result = source.replace(
-      /from\s+'(\.\.?\/[^']+)'/g,
+      /from\s*'(\.\.?\/[^']+)'/g,
       (_match, relPath: string) => `from '${resolve(relPath)}'`
     );
     result = result.replace(
-      /from\s+"(\.\.?\/[^"]+)"/g,
+      /from\s*"(\.\.?\/[^"]+)"/g,
       (_match, relPath: string) => `from "${resolve(relPath)}"`
     );
 
@@ -545,11 +751,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     // Bare side-effect imports: import './dep.js'
     result = result.replace(
-      /import\s+'(\.\.?\/[^']+)'\s*;/g,
+      /import\s*'(\.\.?\/[^']+)'\s*;?/g,
       (_match, relPath: string) => `import '${resolve(relPath)}';`
     );
     result = result.replace(
-      /import\s+"(\.\.?\/[^"]+)"\s*;/g,
+      /import\s*"(\.\.?\/[^"]+)"\s*;?/g,
       (_match, relPath: string) => `import "${resolve(relPath)}";`
     );
 

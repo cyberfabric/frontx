@@ -28,7 +28,11 @@ import {
 function createTestManifest(
   remoteName: string,
   exposedModules: string[],
-  options?: { sharedDependencies?: MfManifest['sharedDependencies'] }
+  options?: {
+    sharedDependencies?: MfManifest['sharedDependencies'];
+    cssByExpose?: Record<string, string[]>;
+    chunkSources?: Record<string, string>;
+  }
 ): {
   manifest: MfManifest;
   registerSources: (reg: (url: string, src: string) => void) => void;
@@ -50,9 +54,12 @@ function createTestManifest(
   };
 
   const registerSources = (reg: (url: string, src: string) => void) => {
-    reg(remoteEntryUrl, createRemoteEntrySource(exposeMap));
-    for (const chunk of Object.values(exposeMap)) {
-      reg(`${baseUrl}${chunk}`, createExposeChunkSource());
+    reg(remoteEntryUrl, createRemoteEntrySource(exposeMap, options?.cssByExpose));
+    for (const [moduleName, chunk] of Object.entries(exposeMap)) {
+      reg(
+        `${baseUrl}${chunk}`,
+        options?.chunkSources?.[moduleName] ?? createExposeChunkSource()
+      );
     }
   };
 
@@ -561,6 +568,99 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       const fetchedUrls = mocks.mockFetch.mock.calls.map((c: unknown[]) => c[0]);
       expect(fetchedUrls).toContain(`${baseUrl}root-dep.js`);
+    });
+
+    it('parses minified remoteEntry with ()=> expression body (production shape)', async () => {
+      const remoteName = 'prodRemoteEntryShape';
+      const remoteEntryUrl = `${TEST_BASE_URL}/${remoteName}/remoteEntry.js`;
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+      const exposeChunk = '__federation_expose_Widget-prod.js';
+      const minifiedRemote = `const moduleMap={"./Widget":()=>(E([],!1,"./Widget"),w("./${exposeChunk}").then(e=>e))};`;
+
+      mocks.registerSource(remoteEntryUrl, minifiedRemote);
+      mocks.registerSource(`${baseUrl}${exposeChunk}`, createExposeChunkSource());
+
+      const manifest: MfManifest = {
+        id: `gts.hai3.mfes.mfe.mf_manifest.v1~test.${remoteName}.manifest.v1`,
+        remoteEntry: remoteEntryUrl,
+        remoteName,
+      };
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.prodRemoteEntry.v1',
+        manifest,
+        exposedModule: './Widget',
+      };
+
+      const result = await handler.load(entry);
+      expect(result).toBeDefined();
+      expect(typeof result.mount).toBe('function');
+    });
+
+    it('supports minified static imports during blob rewriting', async () => {
+      const { manifest, registerSources } = createTestManifest(
+        'minifiedRemote',
+        ['./Widget'],
+        {
+          chunkSources: {
+            './Widget': 'import{helper as h}from"./dep.js";export default{mount:()=>h(),unmount:()=>{}};',
+          },
+        }
+      );
+      registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${TEST_BASE_URL}/minifiedRemote/dep.js`,
+        'export const helper = () => {};'
+      );
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.minified.v1',
+        manifest,
+        exposedModule: './Widget',
+      };
+
+      const result = await handler.load(entry);
+      expect(result).toBeDefined();
+      expect(typeof result.mount).toBe('function');
+    });
+
+    it('injects remote stylesheets into the shadow root before mount', async () => {
+      const { manifest, registerSources } = createTestManifest(
+        'styledRemote',
+        ['./Widget'],
+        {
+          cssByExpose: {
+            './Widget': ['widget.css'],
+          },
+        }
+      );
+      registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${TEST_BASE_URL}/styledRemote/widget.css`,
+        '.widget { color: red; }'
+      );
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled.v1',
+        manifest,
+        exposedModule: './Widget',
+      };
+
+      const lifecycle = await handler.load(entry);
+      const host = document.createElement('div');
+      const shadowRoot = host.attachShadow({ mode: 'open' });
+      await lifecycle.mount(shadowRoot, {
+        domainId: 'domain',
+        instanceId: 'instance',
+        executeActionsChain: async () => undefined,
+        subscribeToProperty: () => () => undefined,
+        getProperty: () => undefined,
+      });
+
+      const styleElement = shadowRoot.getElementById('__hai3-mfe-runtime-style-0');
+      expect(styleElement).toBeTruthy();
+      expect(styleElement?.textContent).toContain('.widget');
+      expect(styleElement?.textContent).toContain('color: red');
     });
   });
 });

@@ -179,7 +179,9 @@
 ## MFE BUILD CONFIGURATION
 - REQUIRED: `build.modulePreload: false` in every MFE vite.config.ts. Vite's modulePreload injects a `__vitePreload` helper that resolves chunk URLs against the page origin (host), not the MFE server origin, causing 404s in cross-origin MFE loading.
 - REQUIRED: `build.target: 'esnext'` for top-level await support (federation runtime uses it).
-- REQUIRED: `build.cssCodeSplit: false` for single CSS output in MFE bundles.
+- NOTE: `build.cssCodeSplit` may remain enabled; `MfeHandlerMF` reads the remote's CSS metadata and injects emitted styles into the mount target before lifecycle mount.
+- REQUIRED: Register `@originjs/vite-plugin-federation` (`federation()`) and `hai3MfeExternalize({ shared })` from `src/mfe_packages/shared/vite-plugin-frontx-externalize.ts` with the **same** `shared` dependency list. Federation only rewrites expose entries; the externalize plugin rewrites imports in code-split chunks so shared packages load via `importShared()`.
+- NOTE: In `packages/screensets`, `npm run test:integration` builds `_blank-mfe` in production mode and asserts `MfeHandlerMF` can load the bundle (minify + `cssCodeSplit: true` compatible).
 - REFERENCE: See `src/mfe_packages/_blank-mfe/vite.config.ts` for canonical MFE vite configuration.
 
 ## MFE LIFECYCLE ARCHITECTURE
@@ -209,3 +211,4 @@
 - [ ] MFE API services are local (not imported from host).
 - [ ] MFE events use mfe/ prefix convention.
 - [ ] MFE init.ts creates app, registers slices, registers API services.
+- [ ] MFE vite.config matches canonical setup: `modulePreload: false`, `target: 'esnext'`, `federation()` + `hai3MfeExternalize` with identical `shared` arrays.
