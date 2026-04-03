@@ -20,6 +20,7 @@ import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
 import { MfeBridgeFactoryDefault } from './mfe-bridge-factory-default';
 import type {
+  FederationSharedEntryAddress,
   FederationPackageVersions,
 } from './federation-types';
 
@@ -66,6 +67,7 @@ class ManifestCache {
 interface MfeLoaderConfig {
   timeout?: number;
   retries?: number;
+  sourceCacheMaxEntries?: number;
 }
 
 /**
@@ -85,6 +87,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly manifestCache: ManifestCache;
   private readonly config: MfeLoaderConfig;
   private readonly retryHandler: RetryHandler;
+  private loadQueue: Promise<void> = Promise.resolve();
   // @cpt-state:cpt-frontx-state-mfe-isolation-source-cache:p1
   private readonly sourceTextCache = new Map<string, Promise<string>>();
 
@@ -99,6 +102,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     this.config = {
       timeout: config.timeout ?? 30000,
       retries: config.retries ?? 2,
+      sourceCacheMaxEntries: config.sourceCacheMaxEntries ?? 200,
     };
   }
 
@@ -107,11 +111,28 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    */
   // @cpt-flow:cpt-frontx-flow-mfe-isolation-load:p1
   async load(entry: MfeEntryMF): Promise<MfeEntryLifecycle<ChildMfeBridge>> {
-    return this.retryHandler.retry(
-      () => this.loadInternal(entry),
-      this.config.retries ?? 0,
-      1000
+    return this.runSerializedLoad(
+      () => this.retryHandler.retry(
+        () => this.loadInternal(entry),
+        this.config.retries ?? 0,
+        1000
+      )
     );
+  }
+
+  private async runSerializedLoad<T>(operation: () => Promise<T>): Promise<T> {
+    const previousLoad = this.loadQueue;
+    let releaseLoad: () => void = () => undefined;
+    this.loadQueue = new Promise<void>((resolve) => {
+      releaseLoad = resolve;
+    });
+
+    await previousLoad;
+    try {
+      return await operation();
+    } finally {
+      releaseLoad();
+    }
   }
 
   /**
@@ -122,7 +143,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const manifest = await this.resolveManifest(entry.manifest);
     this.manifestCache.cacheManifest(manifest);
 
-    const moduleFactory = await this.loadExposedModuleIsolated(
+    const { moduleFactory, cleanup } = await this.loadExposedModuleIsolated(
       manifest,
       entry.exposedModule,
       entry.id
@@ -131,13 +152,14 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const loadedModule = moduleFactory();
 
     if (!this.isValidLifecycleModule(loadedModule)) {
+      cleanup();
       throw new MfeLoadError(
         `Module '${entry.exposedModule}' must implement MfeEntryLifecycle interface (mount/unmount)`,
         entry.id
       );
     }
 
-    return loadedModule;
+    return this.wrapLifecycleWithCleanup(loadedModule, cleanup);
   }
 
   /**
@@ -148,16 +170,17 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *    __federation_fn_import → fresh moduleCache per load)
    *  - Shared dep chunks are also blob-URL'd via get() closures that share
    *    the same per-load blobUrlMap (so React and ReactDOM get the same React)
-   *  - Blob URLs are NOT revoked — modules with top-level await continue
-   *    evaluating after import() resolves, and revoking during async evaluation
-   *    causes ERR_FILE_NOT_FOUND. Blob URLs are cleaned up by the browser on
-   *    page unload.
+   *  - Blob URLs are not revoked until load cleanup: modules with top-level
+   *    await continue evaluating after import() resolves, so revoking during
+   *    that window causes ERR_FILE_NOT_FOUND. createLoadCleanup revokes all
+   *    blob URLs for the load on failure (catch path), mount failure, or after
+   *    unmount().
    */
   private async loadExposedModuleIsolated(
     manifest: MfManifest,
     exposedModule: string,
     entryId: string
-  ): Promise<() => unknown> {
+  ): Promise<{ moduleFactory: () => unknown; cleanup: () => void }> {
     const remoteEntryUrl = manifest.remoteEntry;
     const baseUrl = remoteEntryUrl.substring(
       0,
@@ -173,42 +196,74 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     // Build shareScope with per-load isolated get() functions
     const shareScope = this.buildShareScope(manifest, loadState);
-    this.writeShareScope(shareScope);
+    const installedEntries = this.writeShareScope(shareScope);
+    const cleanup = this.createLoadCleanup(loadState, installedEntries);
 
-    // Parse remoteEntry to find the expose chunk filename
-    const remoteEntrySource = await this.fetchSourceText(remoteEntryUrl);
-    const exposeFilename = this.parseExposeChunkFilename(
-      remoteEntrySource,
-      exposedModule
-    );
-    if (!exposeFilename) {
-      throw new MfeLoadError(
-        `Cannot find expose chunk for '${exposedModule}' in remoteEntry`,
-        entryId
+    try {
+      // Parse remoteEntry to find the expose chunk filename
+      const remoteEntrySource = await this.fetchSourceText(remoteEntryUrl);
+      const exposeFilename = this.parseExposeChunkFilename(
+        remoteEntrySource,
+        exposedModule
       );
+      if (!exposeFilename) {
+        throw new MfeLoadError(
+          `Cannot find expose chunk for '${exposedModule}' in remoteEntry`,
+          entryId
+        );
+      }
+
+      // Build blob URL chain for the expose chunk and all its static deps
+      await this.createBlobUrlChain(loadState, exposeFilename);
+
+      const exposeBlobUrl = loadState.blobUrlMap.get(exposeFilename);
+      if (!exposeBlobUrl) {
+        throw new MfeLoadError(
+          `Failed to create blob URL for expose chunk '${exposeFilename}'`,
+          entryId
+        );
+      }
+
+      const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
+
+      // Extract module factory (replicates container's moduleMap handler)
+      const exportSet = new Set([
+        'Module', '__esModule', 'default', '_export_sfc',
+      ]);
+      const keys = Object.keys(exposeModule as object);
+      return {
+        moduleFactory: keys.every((k) => exportSet.has(k))
+          ? () => (exposeModule as Record<string, unknown>).default
+          : () => exposeModule,
+        cleanup,
+      };
+    } catch (error) {
+      cleanup();
+      throw error;
     }
+  }
 
-    // Build blob URL chain for the expose chunk and all its static deps
-    await this.createBlobUrlChain(loadState, exposeFilename);
-
-    const exposeBlobUrl = loadState.blobUrlMap.get(exposeFilename);
-    if (!exposeBlobUrl) {
-      throw new MfeLoadError(
-        `Failed to create blob URL for expose chunk '${exposeFilename}'`,
-        entryId
-      );
-    }
-
-    const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
-
-    // Extract module factory (replicates container's moduleMap handler)
-    const exportSet = new Set([
-      'Module', '__esModule', 'default', '_export_sfc',
-    ]);
-    const keys = Object.keys(exposeModule as object);
-    return keys.every((k) => exportSet.has(k))
-      ? () => (exposeModule as Record<string, unknown>).default
-      : () => exposeModule;
+  private wrapLifecycleWithCleanup(
+    lifecycle: MfeEntryLifecycle<ChildMfeBridge>,
+    cleanup: () => void
+  ): MfeEntryLifecycle<ChildMfeBridge> {
+    return {
+      async mount(container, bridge): Promise<void> {
+        try {
+          await lifecycle.mount(container, bridge);
+        } catch (error) {
+          cleanup();
+          throw error;
+        }
+      },
+      async unmount(container): Promise<void> {
+        try {
+          await lifecycle.unmount(container);
+        } finally {
+          cleanup();
+        }
+      },
+    };
   }
 
   private isValidLifecycleModule(
@@ -306,13 +361,14 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Replicates the behavior of container.init(shareScope).
    */
   // @cpt-algo:cpt-frontx-algo-mfe-isolation-write-share-scope:p1
-  private writeShareScope(shareScope: ShareScope): void {
+  private writeShareScope(shareScope: ShareScope): FederationSharedEntryAddress[] {
     const g = globalThis as Record<string, unknown>;
     const globalShared = (g.__federation_shared__ ?? {}) as Record<
       string,
       Record<string, FederationPackageVersions>
     >;
     g.__federation_shared__ = globalShared;
+    const installedEntries: FederationSharedEntryAddress[] = [];
 
     for (const [packageName, versions] of Object.entries(shareScope)) {
       for (const [versionKey, versionValue] of Object.entries(versions)) {
@@ -324,8 +380,16 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
           globalShared[scope][packageName] = {};
         }
         globalShared[scope][packageName][versionKey] = versionValue;
+        installedEntries.push({
+          scope,
+          packageName,
+          versionKey,
+          value: versionValue,
+        });
       }
     }
+
+    return installedEntries;
   }
 
   // ---- Blob URL chain creation ----
@@ -421,10 +485,28 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private fetchSourceText(absoluteChunkUrl: string): Promise<string> {
     const cached = this.sourceTextCache.get(absoluteChunkUrl);
     if (cached !== undefined) {
+      this.sourceTextCache.delete(absoluteChunkUrl);
+      this.sourceTextCache.set(absoluteChunkUrl, cached);
       return cached;
     }
 
-    const fetchPromise = fetch(absoluteChunkUrl)
+    if ((this.config.sourceCacheMaxEntries ?? 0) <= 0) {
+      return this.fetchSourceTextUncached(absoluteChunkUrl);
+    }
+
+    const fetchPromise = this.fetchSourceTextUncached(absoluteChunkUrl)
+      .catch((error) => {
+        this.sourceTextCache.delete(absoluteChunkUrl);
+        throw error;
+      });
+
+    this.sourceTextCache.set(absoluteChunkUrl, fetchPromise);
+    this.evictSourceTextCacheIfNeeded();
+    return fetchPromise;
+  }
+
+  private fetchSourceTextUncached(absoluteChunkUrl: string): Promise<string> {
+    return fetch(absoluteChunkUrl)
       .then((response) => {
         if (!response.ok) {
           throw new MfeLoadError(
@@ -435,7 +517,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
         return response.text();
       })
       .catch((error) => {
-        this.sourceTextCache.delete(absoluteChunkUrl);
         if (error instanceof MfeLoadError) {
           throw error;
         }
@@ -445,9 +526,65 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
           error instanceof Error ? error : undefined
         );
       });
+  }
 
-    this.sourceTextCache.set(absoluteChunkUrl, fetchPromise);
-    return fetchPromise;
+  private evictSourceTextCacheIfNeeded(): void {
+    const maxEntries = this.config.sourceCacheMaxEntries ?? 0;
+    while (maxEntries > 0 && this.sourceTextCache.size > maxEntries) {
+      const oldestKey = this.sourceTextCache.keys().next().value;
+      if (oldestKey === undefined) {
+        return;
+      }
+      this.sourceTextCache.delete(oldestKey);
+    }
+  }
+
+  private createLoadCleanup(
+    loadState: LoadBlobState,
+    installedEntries: FederationSharedEntryAddress[]
+  ): () => void {
+    let cleanedUp = false;
+
+    return (): void => {
+      if (cleanedUp) {
+        return;
+      }
+      cleanedUp = true;
+      this.removeShareScopeEntries(installedEntries);
+      this.revokeBlobUrls(loadState);
+    };
+  }
+
+  private removeShareScopeEntries(
+    installedEntries: FederationSharedEntryAddress[]
+  ): void {
+    const globalShared = (globalThis as Record<string, unknown>).__federation_shared__;
+    if (typeof globalShared !== 'object' || globalShared === null) {
+      return;
+    }
+
+    const shared = globalShared as Record<string, Record<string, FederationPackageVersions>>;
+    for (const entry of installedEntries) {
+      const packageVersions = shared[entry.scope]?.[entry.packageName];
+      if (packageVersions?.[entry.versionKey] !== entry.value) {
+        continue;
+      }
+
+      delete packageVersions[entry.versionKey];
+      if (Object.keys(packageVersions).length === 0) {
+        delete shared[entry.scope][entry.packageName];
+      }
+      if (Object.keys(shared[entry.scope]).length === 0) {
+        delete shared[entry.scope];
+      }
+    }
+  }
+
+  private revokeBlobUrls(loadState: LoadBlobState): void {
+    for (const blobUrl of loadState.blobUrlMap.values()) {
+      URL.revokeObjectURL(blobUrl);
+    }
+    loadState.blobUrlMap.clear();
   }
 
   /**

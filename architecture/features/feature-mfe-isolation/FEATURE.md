@@ -102,7 +102,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 4. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.remoteEntry` (directory portion) — `inst-derive-base-url`
 5. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
 6. [x] - `p1` - Algorithm: build share scope via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
-7. [x] - `p1` - `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
+7. [x] - `p1` - `load()` serializes `loadInternal()` execution so only one load mutates `globalThis.__federation_shared__` at a time, then `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
 8. [x] - `p1` - Algorithm: fetch `remoteEntry.js` source text via `cpt-frontx-algo-mfe-isolation-fetch-source` — `inst-fetch-remote-entry`
 9. [x] - `p1` - Algorithm: parse expose chunk filename via `cpt-frontx-algo-mfe-isolation-parse-expose-chunk` — `inst-parse-expose-chunk`
 10. [x] - `p1` - **IF** expose chunk filename is null **RETURN** `MfeLoadError` — `inst-check-expose-chunk`
@@ -175,15 +175,16 @@ The closure returned by `createBlobUrlGet` is stored in the share scope and invo
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-fetch-source`
 
-All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (keyed by absolute URL), ensuring at most one network request per chunk across all loads.
+All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (keyed by absolute URL), ensuring at most one network request per cached chunk across all loads while bounding retained entries with LRU eviction.
 
 1. [x] - `p1` - **IF** `sourceTextCache` contains an entry for `absoluteChunkUrl` **RETURN** the cached `Promise<string>` — `inst-cache-hit`
 2. [x] - `p1` - **TRY**: issue `fetch(absoluteChunkUrl)` — `inst-fetch-request`
    - **IF** `response.ok` is false **RETURN** `MfeLoadError` with HTTP status and URL — `inst-http-error`
    - **RETURN** `response.text()` — `inst-return-text`
 3. [x] - `p1` - **CATCH**: remove the failed entry from `sourceTextCache` (prevents a stuck negative cache entry), then **RETURN** `MfeLoadError` wrapping the original error — `inst-cache-evict-on-error`
-4. [x] - `p1` - Store the `Promise<string>` in `sourceTextCache` keyed by `absoluteChunkUrl` before awaiting — `inst-cache-store`
-5. [x] - `p1` - **RETURN** the stored promise — `inst-return-promise`
+4. [x] - `p1` - Store the `Promise<string>` in `sourceTextCache` keyed by `absoluteChunkUrl` before awaiting, and move cache hits to the most-recently-used position — `inst-cache-store`
+5. [x] - `p2` - **IF** the cache size exceeds the configured maximum: evict the least-recently-used resolved entry key before returning — `inst-cache-evict-lru`
+6. [x] - `p1` - **RETURN** the stored promise — `inst-return-promise`
 
 ### Recursive Blob URL Chain
 
@@ -199,8 +200,9 @@ Processes a chunk and all its static relative imports depth-first. Within a sing
 6. [x] - `p1` - Rewrite module imports in the source text via `cpt-frontx-algo-mfe-isolation-rewrite-module-imports`, using `loadState.blobUrlMap` for already-processed deps and `loadState.baseUrl` for the rest — `inst-rewrite-source`
 7. [x] - `p1` - Create a `Blob` from the rewritten source with MIME type `text/javascript` — `inst-create-blob`
 8. [x] - `p1` - Call `URL.createObjectURL(blob)` to produce a blob URL — `inst-create-object-url`
-9. [x] - `p2` - Do NOT call `URL.revokeObjectURL()` at any point — modules with top-level `await` continue evaluating asynchronously after `import()` resolves, and premature revocation causes `ERR_FILE_NOT_FOUND` — `inst-no-revoke`
+9. [x] - `p2` - Do NOT call `URL.revokeObjectURL()` before module evaluation and lifecycle use are complete — premature revocation while the load is active can break deferred module work — `inst-no-revoke`
 10. [x] - `p1` - Store the blob URL in `loadState.blobUrlMap` keyed by `filename` — `inst-store-blob-url`
+11. [x] - `p2` - Revoke all blob URLs from `loadState.blobUrlMap` when the load fails or when the returned lifecycle finishes `unmount()` — `inst-revoke-on-cleanup`
 
 ### Parse Static Import Filenames
 
@@ -247,7 +249,7 @@ Writes the constructed share scope entries to `globalThis.__federation_shared__`
      - Derive `scope` as `versionValue.scope ?? 'default'` — `inst-derive-scope`
      - Ensure `globalThis.__federation_shared__[scope]` and `[scope][packageName]` exist — `inst-ensure-scope-keys`
      - Write `versionValue` to `globalThis.__federation_shared__[scope][packageName][versionKey]` — `inst-write-entry`
-3. [x] - `p1` - Each `get()` closure already captures its own `LoadBlobState`; overwriting the global entry for a new load does not affect an earlier load's already-resolved `importShared()` calls — `inst-concurrent-safety`
+3. [x] - `p1` - `load()` MUST serialize share-scope installation and expose-chunk import so a second load cannot overwrite the global `'*'` entry before the active load resolves its `importShared()` calls — `inst-concurrent-safety`
 
 ### hai3-mfe-externalize: Rename Shared Chunks
 
@@ -304,18 +306,19 @@ Tracks the blob URL map and visitation set for a single MFE load call. Created f
 3. [x] - `p1` - **FROM** ACTIVE (VISITED) **TO** ACTIVE (MAPPED) **WHEN** a blob URL is inserted into `blobUrlMap` for the visited filename — `inst-state-mapped`
 4. [x] - `p1` - **FROM** ACTIVE **TO** COMPLETE **WHEN** the expose blob URL is successfully imported and the lifecycle module is returned — `inst-state-complete`
 5. [x] - `p1` - **FROM** ACTIVE **TO** FAILED **WHEN** any step throws `MfeLoadError` — `inst-state-failed`
-6. [x] - `p2` - `LoadBlobState` instances are not retained after the load completes; blob URLs in `blobUrlMap` are never revoked and persist for the page lifetime — `inst-state-gc`
+6. [x] - `p2` - `LoadBlobState` instances are not retained after the load completes; blob URLs in `blobUrlMap` persist only until load failure or lifecycle `unmount()` cleanup revokes them — `inst-state-gc`
 
 ### SourceTextCache (Handler-Level)
 
 - [x] `p1` - **ID**: `cpt-frontx-state-mfe-isolation-source-cache`
 
-Tracks the fetch state of each chunk URL across all loads for the lifetime of the `MfeHandlerMF` instance.
+Tracks the fetch state of recently used chunk URLs across all loads for the lifetime of the `MfeHandlerMF` instance, subject to LRU eviction.
 
 1. [x] - `p1` - **FROM** ABSENT **TO** PENDING **WHEN** a fetch for `absoluteChunkUrl` is initiated and the `Promise<string>` is stored in `sourceTextCache` — `inst-cache-pending`
 2. [x] - `p1` - **FROM** PENDING **TO** RESOLVED **WHEN** `fetch()` succeeds and the promise resolves with source text — `inst-cache-resolved`
 3. [x] - `p1` - **FROM** PENDING **TO** ABSENT **WHEN** `fetch()` fails; the entry is removed from `sourceTextCache` to avoid a stuck negative cache — `inst-cache-evicted`
-4. [x] - `p1` - **FROM** RESOLVED **TO** RESOLVED **WHEN** subsequent loads request the same URL (cache hit; no new fetch) — `inst-cache-hit-state`
+4. [x] - `p1` - **FROM** RESOLVED **TO** RESOLVED **WHEN** subsequent loads request the same URL (cache hit; no new fetch; entry becomes most-recently-used) — `inst-cache-hit-state`
+5. [x] - `p2` - **FROM** RESOLVED **TO** ABSENT **WHEN** inserting a newer cache entry would exceed the configured cache bound and this entry is least-recently-used — `inst-cache-lru-evict`
 
 ---
 

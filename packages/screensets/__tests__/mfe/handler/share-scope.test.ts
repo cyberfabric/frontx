@@ -24,7 +24,8 @@ import {
   createRemoteEntrySource,
   createExposeChunkSource,
   TEST_BASE_URL,
-} from '../test-utils/mock-blob-url-loader';
+  TEST_MF_ENTRY_BASE,
+} from '../test-utils';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -82,6 +83,7 @@ function createTestSetup(
     },
     createEntry(exposedModule: string, suffix: string): MfeEntryMF {
       return {
+        ...TEST_MF_ENTRY_BASE,
         id: `gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.${suffix}.v1`,
         manifest,
         exposedModule,
@@ -329,6 +331,61 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
     });
   });
 
+  describe('serialized load execution', () => {
+    it('does not start a second load until the first load leaves share-scope setup', async () => {
+      const setup1 = createTestSetup('serializedRemote1', {
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+        ],
+      });
+      const setup2 = createTestSetup('serializedRemote2', {
+        sharedDeps: [
+          { name: 'react', chunkPath: '__federation_shared_react.js' },
+        ],
+      });
+
+      setup1.registerSources(mocks.registerSource);
+      setup2.registerSources(mocks.registerSource);
+      mocks.registerSource(
+        `${setup1.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
+      mocks.registerSource(
+        `${setup2.baseUrl}__federation_shared_react.js`,
+        'export default {};'
+      );
+
+      const firstRemoteEntryUrl = `${setup1.baseUrl}remoteEntry.js`;
+      const secondRemoteEntryUrl = `${setup2.baseUrl}remoteEntry.js`;
+
+      let releaseFirstRemoteEntry: (() => void) | undefined;
+      const firstRemoteEntryStarted = new Promise<void>((resolve) => {
+        globalThis.fetch = vi.fn(async (url: string) => {
+          if (url === firstRemoteEntryUrl) {
+            resolve();
+            await new Promise<void>((resume) => {
+              releaseFirstRemoteEntry = resume;
+            });
+          }
+          return mocks.mockFetch(url);
+        }) as typeof fetch;
+      });
+
+      const load1 = handler.load(setup1.createEntry('./Widget1', 'serialized1.entry'));
+      await firstRemoteEntryStarted;
+
+      const load2 = handler.load(setup2.createEntry('./Widget1', 'serialized2.entry'));
+      await Promise.resolve();
+
+      const secondRemoteEntryFetches = (globalThis.fetch as unknown as ReturnType<typeof vi.fn>).mock.calls
+        .filter((call: unknown[]) => call[0] === secondRemoteEntryUrl);
+      expect(secondRemoteEntryFetches).toHaveLength(0);
+
+      releaseFirstRemoteEntry?.();
+      await Promise.all([load1, load2]);
+    });
+  });
+
   // -------------------------------------------------------------------------
   // Source text cache — deduplicates fetches
   // -------------------------------------------------------------------------
@@ -367,6 +424,31 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
         (call: unknown[]) => call[0] === sharedChunkUrl
       );
       expect(chunkFetches).toHaveLength(1);
+    });
+
+    it('evicts least-recently-used source text entries when the cache is full', async () => {
+      handler = new MfeHandlerMF(
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+        { timeout: 5000, retries: 0, sourceCacheMaxEntries: 2 }
+      );
+
+      const setupA = createTestSetup('cacheEvictA');
+      const setupB = createTestSetup('cacheEvictB');
+      const setupC = createTestSetup('cacheEvictC');
+      setupA.registerSources(mocks.registerSource);
+      setupB.registerSources(mocks.registerSource);
+      setupC.registerSources(mocks.registerSource);
+
+      await handler.load(setupA.createEntry('./Widget1', 'cacheevict.a.entry'));
+      await handler.load(setupB.createEntry('./Widget1', 'cacheevict.b.entry'));
+      await handler.load(setupC.createEntry('./Widget1', 'cacheevict.c.entry'));
+      await handler.load(setupA.createEntry('./Widget1', 'cacheevict.a2.entry'));
+
+      const remoteEntryUrlA = `${setupA.baseUrl}remoteEntry.js`;
+      const remoteEntryFetchesA = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === remoteEntryUrlA
+      );
+      expect(remoteEntryFetchesA).toHaveLength(2);
     });
   });
 
@@ -411,6 +493,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       };
 
       const entry: MfeEntryMF = {
+        ...TEST_MF_ENTRY_BASE,
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.missingexpose.v1',
         manifest,
         exposedModule: './NonExistent',

@@ -97,15 +97,15 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support; action `type` values are GTS schema type IDs (trailing `~`); extension references in payloads use `subject` field |
 | `cpt-frontx-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
 | `cpt-frontx-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
-| `cpt-frontx-fr-blob-no-revoke` | Blob URLs kept alive for page lifetime; `URL.revokeObjectURL()` never called after `import()` resolves |
-| `cpt-frontx-fr-blob-source-cache` | In-memory cache of fetched source text keyed by chunk URL; at most one network fetch per chunk across all loads |
+| `cpt-frontx-fr-blob-no-revoke` | Blob URLs are never revoked while a load is active; cleanup revokes them after load failure or lifecycle unmount |
+| `cpt-frontx-fr-blob-source-cache` | In-memory LRU cache of fetched source text keyed by chunk URL; at most one network fetch per cached chunk across all loads |
 | `cpt-frontx-fr-blob-recursive-chain` | `createBlobUrlChain` recursively creates blob URLs for chunk and all static dependencies |
 | `cpt-frontx-fr-blob-per-load-map` | `blobUrlMap` scoped per MFE load; different loads have independent instances preventing cross-load reuse |
 | `cpt-frontx-fr-externalize-filenames` | Shared dependency chunks use deterministic filenames without content hashes for stable MFE manifests |
 | `cpt-frontx-fr-externalize-build-only` | `hai3-mfe-externalize` plugin operates at `vite build` only; does not transform imports during `vite dev` |
 | `cpt-frontx-fr-dataflow-internal-app` | Each MFE creates isolated `HAI3App` via `createHAI3().use(effects()).use(mock()).build()` with `HAI3Provider` |
 | `cpt-frontx-fr-sharescope-construction` | `MfeHandlerMF` constructs `shareScope` from manifest, writes to `globalThis.__federation_shared__` |
-| `cpt-frontx-fr-sharescope-concurrent` | Concurrent MFE loads have independent `LoadBlobState`; at most one network fetch per chunk URL |
+| `cpt-frontx-fr-sharescope-concurrent` | `load()` serializes share-scope mutation so concurrent MFE loads cannot race on global `__federation_shared__`; per-load `LoadBlobState` still isolates blob graphs |
 | `cpt-frontx-fr-broadcast-matching` | `updateSharedProperty()` propagates only to domains declaring the property in their `sharedProperties` array |
 | `cpt-frontx-fr-broadcast-validate` | GTS validation occurs before propagation; invalid values never stored or broadcast to any domain |
 | `cpt-frontx-fr-validation-gts` | `typeSystem.register()` + `typeSystem.validateInstance()` pattern validates shared property values |

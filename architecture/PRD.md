@@ -550,7 +550,7 @@ The `i18n()` plugin MUST call `screensetsRegistry?.updateSharedProperty(HAI3_SHA
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-blob-no-revoke`
 
-The handler MUST NOT call `URL.revokeObjectURL()` after `import()` resolves; blob URLs MUST remain valid for the page lifetime.
+The handler MUST NOT call `URL.revokeObjectURL()` while a load is still evaluating or mounted. Blob URLs MAY be revoked during deterministic cleanup after load failure or lifecycle `unmount()`.
 
 **Rationale**: Modules with top-level `await` continue evaluating after `import()` resolves.
 **Actors**: `cpt-frontx-actor-microfrontend`
@@ -1057,7 +1057,7 @@ All published packages MUST be tree-shakeable. `sideEffects` field MUST be decla
 
 - [x] `p2` - **ID**: `cpt-frontx-nfr-perf-blob-overhead`
 
-Blob URL creation for MFE isolation MUST add no more than ~1-5ms per shared dependency per MFE load. Source text MUST be cached in-memory after first fetch.
+Blob URL creation for MFE isolation MUST add no more than ~1-5ms per shared dependency per MFE load. Source text MUST be cached in-memory after first fetch with a bounded eviction policy so retained cache size stays finite.
 
 **Threshold**: < 5ms per dependency; < 50ms total for typical MFE with 10 shared deps.
 **Rationale**: Isolation overhead must be imperceptible to users.

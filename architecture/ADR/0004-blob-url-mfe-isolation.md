@@ -34,7 +34,7 @@ Browsers cache ES modules by URL identity — when multiple MFEs share dependenc
 
 * Each MFE load must produce its own module-level state instances (EventBus, store, i18n) regardless of caching
 * The solution must not introduce `@cyberfabric/*` dependencies into L1 packages (zero-dependency constraint)
-* Blob URLs must never be revoked — `import()` resolves at parse time, not evaluation time, so early revocation causes load failures with top-level await
+* Blob URLs must not be revoked while a load is still in flight or modules may still be evaluating — `import()` resolves before top-level await finishes, so premature revocation causes `ERR_FAILED`; revocation is deferred until load failure or lifecycle cleanup after `unmount()` (see [More Information](#more-information))
 
 ## Considered Options
 
@@ -51,7 +51,7 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 ### Consequences
 
 * Good, because each MFE load has true module-level isolation — EventBus instances, stores, and singletons are independent regardless of the number of MFEs loaded simultaneously
-* Bad, because blob URLs accumulate (~30–40 per load) and source text is cached in memory; the `hai3-mfe-externalize` Vite plugin adds build-time complexity for MFE authors
+* Bad, because blob URL chains and source text still consume memory while a load is active; the `hai3-mfe-externalize` Vite plugin adds build-time complexity for MFE authors
 
 ### Confirmation
 
@@ -62,7 +62,7 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 ### Fetch source text and create a unique Blob URL per MFE load
 
 * Good, because the UUID embedded in every blob URL guarantees no two loads share a module instance, and no browser or bundler workaround is required
-* Bad, because memory usage grows proportionally with the number of loaded MFEs and the size of their shared dependency graph
+* Bad, because memory usage still grows with the number of concurrently mounted MFEs and the size of their shared dependency graph
 
 ### Module Federation singleton/shared mechanism
 
@@ -86,7 +86,7 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 
 ## More Information
 
-- The never-revoke rule: `URL.createObjectURL` returns a URL that persists until explicitly revoked. Because `import()` with top-level await may parse (and cache the URL reference) before the module body executes, revoking the blob URL before all dependent modules finish loading causes `ERR_FAILED` on subsequent imports of the same specifier
+- The no-premature-revoke rule: `URL.createObjectURL` returns a URL that persists until explicitly revoked. Revoking the blob URL before dependent modules finish loading can cause `ERR_FAILED`; revocation is therefore deferred until load failure or lifecycle cleanup after `unmount()`
 - The `hai3-mfe-externalize` Vite plugin rewrites all `import { X } from '@cyberfabric/...'` statements in MFE bundles to `const { X } = await importShared('@cyberfabric/...')`, which is then intercepted by the blob loader to inject per-load instances
 - Related: ADR 0001 (Four-Layer SDK Architecture) — blob loader lives in `packages/screensets` (L1) and must not import other `@cyberfabric/*` packages
 - Related: ADR 0002 (Event-Driven Flux Data Flow) — EventBus isolation is the primary motivation for per-MFE module scope
@@ -98,7 +98,7 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 
 This decision directly addresses:
 * `cpt-frontx-fr-blob-fresh-eval` — fresh evaluation via unique blob URL per load
-* `cpt-frontx-fr-blob-no-revoke` — prohibition on revoking blob URLs after import
+* `cpt-frontx-fr-blob-no-revoke` — prohibition on revoking blob URLs before load cleanup
 * `cpt-frontx-fr-blob-source-cache` — source text caching strategy
 * `cpt-frontx-fr-blob-import-rewriting` — string-based import specifier rewriting
 * `cpt-frontx-fr-blob-recursive-chain` — recursive resolution of transitive shared dependencies

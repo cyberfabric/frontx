@@ -28,6 +28,16 @@ export interface FederationSharedEntry {
 }
 
 /**
+ * Address of a shared entry inside globalThis.__federation_shared__.
+ */
+export interface FederationSharedEntryAddress {
+  scope: string;
+  packageName: string;
+  versionKey: string;
+  value: FederationSharedEntry;
+}
+
+/**
  * The per-version map for a single package within a scope.
  * Keys are concrete version strings (e.g. '19.2.4').
  */
