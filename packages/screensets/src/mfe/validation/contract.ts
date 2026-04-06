@@ -46,9 +46,10 @@ export interface ContractValidationResult {
 /**
  * Infrastructure lifecycle actions handled by ExtensionLifecycleActionHandler.
  * These actions are NOT handled by MFE application code and should be excluded
- * from rule 3 (domain.actions ⊆ entry.domainActions) validation.
+ * from rule 3 (domain.actions ⊆ entry.domainActions) validation, and also from
+ * mediator-level extension contract enforcement.
  */
-const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
+export const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,

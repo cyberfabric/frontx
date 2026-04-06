@@ -38,6 +38,7 @@
   - [ScreensetsRegistry Public Contract](#screensetsregistry-public-contract)
   - [MFE Type Contracts](#mfe-type-contracts)
   - [GTS-Based Validation](#gts-based-validation)
+  - [MFE Schema Registration](#mfe-schema-registration)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [MFE Handler Injection](#mfe-handler-injection)
   - [TypeSystemPlugin Interface](#typesystemplugin-interface)
@@ -163,10 +164,11 @@ Success criteria: A host application can register a domain and extension, execut
 5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; GTS resolves the schema from `action.type` via `schemaIdFields` config; `typeSystem.validateInstance('')` validates the anonymous instance — IF validation fails the chain fails with a recorded error - `inst-validate-action-anonymous`
 6. - [x] `p1` - Mediator invokes the domain's registered `ExtensionLifecycleActionHandler` - `inst-invoke-handler`
 7. - [ ] `p1` - IF `action.target` matches a registered extension ID, mediator also resolves the extension's `ActionHandler` registered via `ChildMfeBridge.registerActionHandler()` and invokes it instead of (or in addition to) the domain handler — routing is extension-level when an extension handler is present - `inst-resolve-extension-handler`
-8. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
-9. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
-10. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
-11. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
+8. - [ ] `p1` - IF `action.target` resolves to an extension handler: mediator looks up the `entryId` from the `extensionHandlers` map entry (`{ extensionId, domainId, entryId, handler }`), retrieves the corresponding `MfeEntry` from the registry, and validates that `action.type` is present in `entry.domainActions`; infrastructure lifecycle types (`gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~`, `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~`, `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~`) are excluded from this check; IF the type is not present the chain fails with a recorded `ContractViolationError` - `inst-validate-extension-contract`
+9. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
+10. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
+11. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
+12. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
 
 ### Register Extension Action Handler
 
@@ -427,6 +429,24 @@ All registration and dispatch paths perform GTS-native validation:
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
 - `cpt-frontx-principle-self-registering-registries`
+
+### MFE Schema Registration
+
+- [ ] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
+
+`mfe.json` carries an optional top-level `schemas` array of inline GTS JSON Schema definitions. During MFE loading (before entries and extensions are registered), the bootstrap loader iterates `mfe.json.schemas` and calls `typeSystem.registerSchema(schema)` for each entry. Deduplication is automatic because GTS overwrites any schema with the same `$id`. This makes each MFE package self-describing — the host application never needs to hard-code MFE-specific action schemas.
+
+**Rules**:
+- Schema registration happens before `registerEntry` and before `registerExtension` calls for the loaded package
+- Missing or empty `schemas` array is silently skipped
+- Each schema element must carry a `$id` — the GTS `registerSchema` implementation enforces this at runtime
+- Registration is idempotent: loading the same MFE package twice does not produce errors
+
+**Implements**:
+- `cpt-frontx-contract-mfe-json-schemas`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-screensets`
 
 ### Shared Property Broadcast
 

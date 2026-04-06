@@ -9,7 +9,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@cyberfabric/react';
+import type { Extension, HAI3App, ScreenExtension } from '@cyberfabric/react';
 import {
   screenDomain,
   sidebarDomain,
@@ -20,13 +20,7 @@ import {
   HAI3_SHARED_PROPERTY_LANGUAGE,
   RefContainerProvider,
 } from '@cyberfabric/react';
-import { MFE_MANIFESTS } from './generated-mfe-manifests';
-
-interface MfeManifestConfig {
-  manifest: JSONSchema;
-  entries: MfeEntry[];
-  extensions: Extension[];
-}
+import { MFE_MANIFESTS, type MfeManifestConfig } from './generated-mfe-manifests';
 
 function isScreenExtension(extension: Extension): extension is ScreenExtension {
   const candidate = extension as { presentation?: { route?: string } };
@@ -95,6 +89,16 @@ export async function bootstrapMFE(
   const screenExtensions: ScreenExtension[] = [];
 
   for (const config of manifests) {
+    // @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+    // Register MFE-carried schemas (custom actions, properties) before entries so GTS
+    // can validate entry references to these schemas at registration time.
+    if (config.schemas) {
+      for (const schema of config.schemas) {
+        screensetsRegistry.typeSystem.registerSchema(schema);
+      }
+    }
+    // @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+
     // Register manifest type
     screensetsRegistry.typeSystem.register(config.manifest);
 

@@ -18,6 +18,9 @@ import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { MockContainerProvider } from '../test-utils';
+import {
+  HAI3_ACTION_MOUNT_EXT,
+} from '../../../src/mfe/constants';
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -391,7 +394,8 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
         'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
         'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
-        handler
+        handler,
+        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
       );
 
       const domain: ExtensionDomain = {
@@ -427,7 +431,8 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
         'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
         'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
-        handler
+        handler,
+        []
       );
 
       mediator.unregisterExtensionHandler('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
@@ -445,7 +450,8 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
         'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
         'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
-        handler
+        handler,
+        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
       );
 
       const domain: ExtensionDomain = {
@@ -495,7 +501,8 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
         'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
         'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
-        handler
+        handler,
+        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
       );
 
       const domain: ExtensionDomain = {
@@ -740,6 +747,112 @@ describe('ActionsChainsMediator - Phase 9', () => {
       // Should execute fallback after timeout
       expect(result.completed).toBe(true);
       expect(result.path).toContain('gts.hai3.mfes.comm.action.v1~test.fallback.v1~');
+    });
+  });
+
+  // @cpt-FEATURE:feature-screenset-registry:p-contract-enforcement
+  describe('Extension contract enforcement (Fix #254b)', () => {
+    // GTS type IDs used throughout this block
+    const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.contract.ext.v1~test.contract.ext.inst.v1';
+    const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.contract.domain.v1~';
+    const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.contract.entry.v1~';
+    const ACCEPTED_ACTION = 'gts.hai3.mfes.comm.action.v1~test.action.v1~';
+    const OTHER_ACTION = 'gts.hai3.mfes.comm.action.v1~test.other.v1~';
+
+    // Concrete class implementing ActionHandler — plain objects are not allowed per project rules.
+    class ContractTestHandler implements ActionHandler {
+      private readonly invocations: string[] = [];
+
+      async handleAction(actionTypeId: string): Promise<void> {
+        this.invocations.push(actionTypeId);
+      }
+
+      getInvocations(): ReadonlyArray<string> {
+        return this.invocations;
+      }
+    }
+
+    function setupDomain(): void {
+      const domain: ExtensionDomain = {
+        id: DOMAIN_ID,
+        sharedProperties: [],
+        // Both the accepted action and the other action appear under extensionsActions so the
+        // domain-support check (actions array) does not fire before the contract check.
+        actions: [],
+        extensionsActions: [ACCEPTED_ACTION, OTHER_ACTION],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain, mockContainerProvider);
+    }
+
+    it('accepted action — handler.handleAction is called', async () => {
+      setupDomain();
+      const handler = new ContractTestHandler();
+      mediator.registerExtensionHandler(
+        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
+        [ACCEPTED_ACTION]
+      );
+
+      const result = await mediator.executeActionsChain({
+        action: { type: ACCEPTED_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(true);
+      expect(handler.getInvocations()).toEqual([ACCEPTED_ACTION]);
+    });
+
+    it('rejected action — fails with error mentioning extension and accepted actions', async () => {
+      setupDomain();
+      const handler = new ContractTestHandler();
+      mediator.registerExtensionHandler(
+        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
+        [ACCEPTED_ACTION]
+      );
+
+      const result = await mediator.executeActionsChain({
+        action: { type: OTHER_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(false);
+      expect(result.error).toContain(EXTENSION_ID);
+      expect(result.error).toContain(OTHER_ACTION);
+      expect(result.error).toContain(ACCEPTED_ACTION);
+    });
+
+    it('infrastructure bypass — HAI3_ACTION_MOUNT_EXT reaches handler regardless of empty domainActions', async () => {
+      setupDomain();
+      const handler = new ContractTestHandler();
+      mediator.registerExtensionHandler(
+        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
+        [] // empty contract — infrastructure actions must still pass
+      );
+
+      const result = await mediator.executeActionsChain({
+        action: { type: HAI3_ACTION_MOUNT_EXT, target: EXTENSION_ID },
+      });
+
+      // Infrastructure actions bypass the contract check, so the chain completes.
+      // (handler.handleAction is called; the mock resolves successfully.)
+      expect(result.completed).toBe(true);
+    });
+
+    it('empty domainActions — non-infrastructure action is rejected', async () => {
+      setupDomain();
+      const handler = new ContractTestHandler();
+      mediator.registerExtensionHandler(
+        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
+        [] // no domain actions declared
+      );
+
+      const result = await mediator.executeActionsChain({
+        action: { type: OTHER_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(false);
+      expect(result.error).toContain(EXTENSION_ID);
+      expect(result.error).toContain('(none)'); // accepted actions list is empty
     });
   });
 

@@ -18,6 +18,7 @@ import {
   type ChainExecutionOptions,
   type ActionHandler,
 } from './types';
+import { INFRASTRUCTURE_LIFECYCLE_ACTIONS } from '../validation/contract';
 
 /**
  * Default chain timeout: 2 minutes (120000ms)
@@ -32,6 +33,8 @@ interface ExtensionHandlerInfo {
   domainId: string;
   entryId: string;
   handler: ActionHandler;
+  /** Action type IDs the entry declares it can receive, stored for runtime contract enforcement. */
+  domainActions: readonly string[];
 }
 
 /**
@@ -176,6 +179,21 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
         `Supported actions: ${domainState.domain.actions.join(', ')}`
       );
     }
+
+    // @cpt-begin:feature-screenset-registry:inst-validate-extension-contract
+    // Validate extension-targeted actions against the entry's declared domainActions contract.
+    // Infrastructure lifecycle actions are excluded — they bypass MFE application code
+    // and are handled directly by ExtensionLifecycleActionHandler.
+    const extensionInfo = this.extensionHandlers.get(action.target);
+    if (extensionInfo && !INFRASTRUCTURE_LIFECYCLE_ACTIONS.has(action.type)) {
+      if (!extensionInfo.domainActions.includes(action.type)) {
+        throw new Error(
+          `Extension '${action.target}' does not accept action '${action.type}'. ` +
+          `Accepted actions: ${extensionInfo.domainActions.join(', ') || '(none)'}`
+        );
+      }
+    }
+    // @cpt-end:feature-screenset-registry:inst-validate-extension-contract
 
     // Execute the action with timeout
     try {
@@ -417,18 +435,21 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param domainId - ID of the domain
    * @param entryId - ID of the MFE entry
    * @param handler - The action handler
+   * @param domainActions - Action type IDs the entry declares it can receive (from MfeEntry.domainActions)
    */
   registerExtensionHandler(
     extensionId: string,
     domainId: string,
     entryId: string,
-    handler: ActionHandler
+    handler: ActionHandler,
+    domainActions: readonly string[]
   ): void {
     this.extensionHandlers.set(extensionId, {
       extensionId,
       domainId,
       entryId,
       handler,
+      domainActions,
     });
   }
 

@@ -24,27 +24,6 @@ gtsPlugin.registerSchema(themeSchema);
 gtsPlugin.registerSchema(languageSchema);
 gtsPlugin.registerSchema(extensionScreenSchema);
 
-// Register demo MFE custom action schema for extension-level action delivery (issue #254).
-// This action targets an extension ID directly — the mediator routes it to the extension's
-// registered ActionHandler. The schema derives from action.v1 (no required payload).
-gtsPlugin.registerSchema({
-  $id: 'gts://gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~',
-  $schema: 'https://json-schema.org/draft/2020-12/schema',
-  type: 'object',
-  properties: {
-    type: { 'x-gts-ref': '/$id' },
-    target: {
-      oneOf: [
-        { 'x-gts-ref': 'gts.hai3.mfes.ext.domain.v1~*' },
-        { 'x-gts-ref': 'gts.hai3.mfes.ext.extension.v1~*' },
-      ],
-    },
-    payload: { type: 'object' },
-    timeout: { type: 'number', minimum: 1 },
-  },
-  required: ['type', 'target'],
-});
-
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);
 

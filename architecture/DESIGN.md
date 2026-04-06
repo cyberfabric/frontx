@@ -694,6 +694,33 @@ interface ParentMfeBridge {
 }
 ```
 
+- [ ] `p1` - **ID**: `cpt-frontx-contract-mfe-json-schemas`
+- **Contract**: `cpt-frontx-contract-mfe-json-schemas`
+- **Technology**: JSON / TypeScript interface
+- **Location**: `mfe.json` (MFE package root), bootstrap loader (`src/app/mfe/bootstrap.ts`)
+
+`mfe.json` carries an optional top-level `schemas` array of inline GTS JSON Schema objects. Each element is a standard JSON Schema with a GTS `$id` (e.g., `gts://gts.hai3.mfes.comm.action.v1~vendor.action.refresh.v1~`). The parent registers all schemas with `typeSystem.registerSchema()` before registering any entries or extensions, ensuring GTS validation is available for all action types declared in `domainActions`.
+
+```json
+{
+  "manifest": { "..." : "..." },
+  "schemas": [
+    {
+      "$id": "gts://gts.hai3.mfes.comm.action.v1~vendor.action.refresh.v1~",
+      "type": "object",
+      "properties": { "..." : "..." }
+    }
+  ],
+  "entries": [ { "..." : "..." } ],
+  "extensions": [ { "..." : "..." } ]
+}
+```
+
+**Registration flow** (parent side):
+1. Parse `mfe.json`.
+2. FOR EACH schema in `mfe.json.schemas` (if present): call `typeSystem.registerSchema(schema)`. Deduplication is automatic — GTS overwrites any existing entry with the same `$id`.
+3. Register entries and extensions as normal.
+
 **Public Package Interfaces**
 
 | Interface | Package | Description |

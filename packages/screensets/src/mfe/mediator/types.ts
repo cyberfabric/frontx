@@ -114,12 +114,14 @@ export abstract class ActionsChainsMediator {
    * @param domainId - ID of the domain the extension belongs to
    * @param entryId - ID of the MFE entry
    * @param handler - The action handler
+   * @param domainActions - Action type IDs the entry declares it can receive (from MfeEntry.domainActions)
    */
   abstract registerExtensionHandler(
     extensionId: string,
     domainId: string,
     entryId: string,
-    handler: ActionHandler
+    handler: ActionHandler,
+    domainActions: readonly string[]
   ): void;
 
   /**

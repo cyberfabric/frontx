@@ -79,7 +79,7 @@ export class DefaultMountManager extends MountManager {
   /**
    * Callback for registering extension action handlers in the parent mediator.
    */
-  private readonly registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void;
+  private readonly registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler, domainActions: readonly string[]) => void;
 
   /**
    * Callback for unregistering extension action handlers from the parent mediator.
@@ -100,7 +100,7 @@ export class DefaultMountManager extends MountManager {
     hostRuntime: ScreensetsRegistry;
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterDomainActionHandler: (domainId: string) => void;
-    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void;
+    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler, domainActions: readonly string[]) => void;
     unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
@@ -228,14 +228,18 @@ export class DefaultMountManager extends MountManager {
       }
 
       // Create bridge using bridge factory
+      // domainActions is threaded from the entry so the mediator can enforce
+      // the extension-level action contract at execution time.
+      const entryDomainActions = extensionState.entry.domainActions;
       const { parentBridge, childBridge } = this.bridgeFactory.createBridge(
         domainState,
         extensionId,
         extensionState.entry.id,
+        entryDomainActions,
         (chain: ActionsChain) => this.executeActionsChain(chain),
         (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
         (domainId) => this.unregisterDomainActionHandler(domainId),
-        (extId, domainId, entryId, handler) => this.registerExtensionActionHandler(extId, domainId, entryId, handler),
+        (extId, domainId, entryId, handler, domainActions) => this.registerExtensionActionHandler(extId, domainId, entryId, handler, domainActions),
         (extId) => this.unregisterExtensionActionHandler(extId)
       );
 

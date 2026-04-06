@@ -107,20 +107,21 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 1. [x] - `p1` - Host requests load of an `MfeEntryMF` through the screensets registry — `inst-host-request-load`
 2. [x] - `p1` - `MfeHandlerMF.load()` delegates to `loadInternal()` wrapped in retry logic — `inst-retry-wrapper`
 3. [x] - `p1` - `loadInternal()` resolves the `MfManifest` (inline object or cached by ID) — `inst-resolve-manifest`
-4. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.remoteEntry` (directory portion) — `inst-derive-base-url`
-5. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
-6. [x] - `p1` - Algorithm: build share scope via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
-7. [x] - `p1` - `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
-8. [x] - `p1` - Algorithm: fetch `remoteEntry.js` source text via `cpt-frontx-algo-mfe-isolation-fetch-source` — `inst-fetch-remote-entry`
-9. [x] - `p1` - Algorithm: parse expose metadata (moduleMap callback body, chunk filename, stylesheet paths) via `cpt-frontx-algo-mfe-isolation-parse-expose-metadata` — `inst-parse-expose-metadata`
-10. [x] - `p1` - **IF** expose metadata is null **RETURN** `MfeLoadError` — `inst-check-expose-metadata`
-11. [x] - `p1` - Algorithm: build blob URL chain for expose chunk via `cpt-frontx-algo-mfe-isolation-blob-url-chain` — `inst-blob-url-chain`
-12. [x] - `p1` - **IF** expose blob URL is absent from `blobUrlMap` **RETURN** `MfeLoadError` — `inst-check-expose-blob`
-13. [x] - `p1` - Dynamic `import()` of the expose blob URL produces the expose module — `inst-import-expose-blob`
-14. [x] - `p1` - Module factory extracted from expose module; result validated as `MfeEntryLifecycle` (must have `mount` and `unmount`) — `inst-validate-lifecycle`
-15. [x] - `p1` - **IF** lifecycle interface not satisfied **RETURN** `MfeLoadError` — `inst-check-lifecycle`
-16. [x] - `p1` - Algorithm: when stylesheet paths are non-empty, wrap lifecycle so `mount` injects remote CSS (`cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`) and `unmount` removes injected `<link>` / `<style>` nodes — `inst-wrap-stylesheets`
-17. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
+4. [x] - `p1` - **IF** `entry.schemas` is present and non-empty: FOR EACH schema in `entry.schemas`, call `typeSystem.registerSchema(schema)` — this step runs before entry or extension registration so action schema validation is available when entries are processed — `inst-register-mfe-schemas`
+5. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.remoteEntry` (directory portion) — `inst-derive-base-url`
+6. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
+7. [x] - `p1` - Algorithm: build share scope via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
+8. [x] - `p1` - `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
+9. [x] - `p1` - Algorithm: fetch `remoteEntry.js` source text via `cpt-frontx-algo-mfe-isolation-fetch-source` — `inst-fetch-remote-entry`
+10. [x] - `p1` - Algorithm: parse expose metadata (moduleMap callback body, chunk filename, stylesheet paths) via `cpt-frontx-algo-mfe-isolation-parse-expose-metadata` — `inst-parse-expose-metadata`
+11. [x] - `p1` - **IF** expose metadata is null **RETURN** `MfeLoadError` — `inst-check-expose-metadata`
+12. [x] - `p1` - Algorithm: build blob URL chain for expose chunk via `cpt-frontx-algo-mfe-isolation-blob-url-chain` — `inst-blob-url-chain`
+13. [x] - `p1` - **IF** expose blob URL is absent from `blobUrlMap` **RETURN** `MfeLoadError` — `inst-check-expose-blob`
+14. [x] - `p1` - Dynamic `import()` of the expose blob URL produces the expose module — `inst-import-expose-blob`
+15. [x] - `p1` - Module factory extracted from expose module; result validated as `MfeEntryLifecycle` (must have `mount` and `unmount`) — `inst-validate-lifecycle`
+16. [x] - `p1` - **IF** lifecycle interface not satisfied **RETURN** `MfeLoadError` — `inst-check-lifecycle`
+17. [x] - `p1` - Algorithm: when stylesheet paths are non-empty, wrap lifecycle so `mount` injects remote CSS (`cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`) and `unmount` removes injected `<link>` / `<style>` nodes — `inst-wrap-stylesheets`
+18. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
 
 ### MFE Build with Externalize Plugin
 
@@ -535,6 +536,12 @@ interface ChildMfeBridge {
 - `registerActionHandler` — registers the MFE's own `ActionHandler` with the mediator so it can receive actions targeted at `instanceId`; the bridge wires this to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)`; the handler is automatically unregistered when the bridge is disposed
 
 The MFE provides the handler; the system manages routing and lifecycle. The handler is never called directly by the MFE — it is invoked by the mediator when an actions chain targets this extension.
+
+**`domainActions` field semantics**: The `domainActions` array on `MfeEntry` declares **all action types this entry can receive**, regardless of delivery path. The field name is a legacy from the era when only domain-level delivery existed, but it now covers both paths:
+- **Domain-level delivery** — the domain's `ExtensionLifecycleActionHandler` routes the action to all mounted extensions in the domain
+- **Extension-targeted delivery** — the mediator delivers the action directly to this entry's registered `ActionHandler` when `action.target` equals the extension instance ID
+
+The mediator enforces the `domainActions` contract at execution time for extension-targeted actions: if `action.type` is not in `entry.domainActions` (excluding infrastructure lifecycle types), the chain fails. Infrastructure lifecycle types (`load_ext`, `mount_ext`, `unmount_ext`) are excluded from this check because they are generated by the host runtime, not by application code.
 
 **Implements**:
 - `cpt-frontx-flow-screenset-registry-register-extension-handler`

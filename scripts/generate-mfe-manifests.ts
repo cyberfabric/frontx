@@ -17,6 +17,9 @@ export interface MfeManifestConfig {
   manifest: JSONSchema;
   entries: MfeEntry[];
   extensions: Extension[];
+  // @cpt-FEATURE:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1
+  /** MFE-carried schemas (custom actions, properties). Registered before entries and extensions. */
+  schemas?: JSONSchema[];
 }`;
 }
 

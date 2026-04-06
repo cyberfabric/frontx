@@ -35,6 +35,7 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
    * @param domainState - Domain state containing properties and subscribers
    * @param extensionId - ID of the extension
    * @param entryTypeId - Type ID of the MFE entry
+   * @param domainActions - Action type IDs the entry declares it can receive (from MfeEntry.domainActions)
    * @param executeActionsChain - Callback for executing actions chains from child to parent
    * @param registerDomainActionHandler - Callback for registering child domain action handlers in parent mediator
    * @param unregisterDomainActionHandler - Callback for unregistering child domain action handlers from parent mediator
@@ -44,10 +45,11 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     domainState: ExtensionDomainState,
     extensionId: string,
     entryTypeId: string,
+    domainActions: readonly string[],
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterDomainActionHandler: (domainId: string) => void,
-    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler) => void,
+    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler, domainActions: readonly string[]) => void,
     _unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
 
@@ -82,9 +84,10 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     childBridge.setChildDomainCallbacks(registerChildDomainCallback, unregisterChildDomainCallback);
 
     // Wire extension action handler registration callback
-    // The bridge already knows domainId and instanceId; entryTypeId is captured from createBridge params.
+    // The bridge captures extensionId, domainId, entryTypeId, and domainActions from createBridge params.
+    // domainActions is threaded through so the mediator can enforce the extension contract at execution time.
     childBridge.setRegisterActionHandlerCallback((handler) => {
-      registerExtensionActionHandler(extensionId, domainState.domain.id, entryTypeId, handler);
+      registerExtensionActionHandler(extensionId, domainState.domain.id, entryTypeId, handler, domainActions);
     });
 
     // Populate initial properties from domain state (raw values)

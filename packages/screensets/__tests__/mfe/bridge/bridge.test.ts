@@ -655,7 +655,7 @@ describe('Bridge Implementation', () => {
 
         // Wire the callback exactly as DefaultRuntimeBridgeFactory does.
         bridge.setRegisterActionHandlerCallback((handler) =>
-          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler)
+          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler, [ACTION_TYPE])
         );
 
         const spy = new SpyActionHandler();
@@ -671,7 +671,7 @@ describe('Bridge Implementation', () => {
       it('should deliver the correct actionTypeId and payload to handleAction', async () => {
         const bridge = new ChildMfeBridgeImpl(DOMAIN_ID, 'test-instance');
         bridge.setRegisterActionHandlerCallback((handler) =>
-          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler)
+          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler, [ACTION_TYPE])
         );
 
         const spy = new SpyActionHandler();
