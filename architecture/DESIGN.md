@@ -667,7 +667,7 @@ interface SharedPropertyBridge {
 ```
 
 - [ ] `p1` - **ID**: `cpt-frontx-interface-child-mfe-bridge`
-- **Contract**: `cpt-frontx-contract-child-mfe-bridge`
+- **Contract**: `cpt-frontx-interface-child-mfe-bridge`
 - **Technology**: TypeScript interface
 - **Location**: `packages/screensets/src/mfe/handler/types.ts`
 
@@ -683,7 +683,7 @@ interface ChildMfeBridge {
 ```
 
 - [ ] `p1` - **ID**: `cpt-frontx-interface-parent-mfe-bridge`
-- **Contract**: `cpt-frontx-contract-parent-mfe-bridge`
+- **Contract**: `cpt-frontx-interface-parent-mfe-bridge`
 - **Technology**: TypeScript interface
 - **Location**: `packages/screensets/src/mfe/handler/types.ts`
 
@@ -694,8 +694,8 @@ interface ParentMfeBridge {
 }
 ```
 
-- [ ] `p1` - **ID**: `cpt-frontx-contract-mfe-json-schemas`
-- **Contract**: `cpt-frontx-contract-mfe-json-schemas`
+- [ ] `p1` - **ID**: `cpt-frontx-interface-mfe-json-schemas`
+- **Contract**: `cpt-frontx-interface-mfe-json-schemas`
 - **Technology**: JSON / TypeScript interface
 - **Location**: `mfe.json` (MFE package root), bootstrap loader (`src/app/mfe/bootstrap.ts`)
 
