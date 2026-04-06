@@ -177,9 +177,9 @@ Success criteria: A host application can register a domain and extension, execut
 **Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
 
 1. - [x] `p1` - Child MFE calls `bridge.registerActionHandler(handler)` during mount, providing its `ActionHandler` implementation - `inst-call-register-handler`
-2. - [x] `p1` - `ChildMfeBridge` delegates to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)` — the bridge holds the `extensionId`, `domainId`, and `entryId` from its construction context - `inst-bridge-delegates-to-mediator`
-3. - [x] `p1` - Mediator stores the handler in the `extensionHandlers` map keyed by `extensionId` - `inst-store-extension-handler`
-4. - [ ] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters the extension handler for `extensionId` — the `extensionHandlers` entry is removed - `inst-unregister-on-dispose`
+2. - [x] `p1` - `ChildMfeBridge` delegates to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler, domainActions)` — the bridge holds the `extensionId`, `domainId`, `entryId`, and `domainActions` from its construction context - `inst-bridge-delegates-to-mediator`
+3. - [x] `p1` - Mediator stores the handler and `domainActions` in the `extensionHandlers` map keyed by `extensionId` - `inst-store-extension-handler`
+4. - [x] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters the extension handler for `extensionId` — the `extensionHandlers` entry is removed - `inst-unregister-on-dispose`
 
 ### Update Shared Property
 

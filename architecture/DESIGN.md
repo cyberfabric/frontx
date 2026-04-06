@@ -947,8 +947,8 @@ sequenceDiagram
         Handler-->>Mediator: resolve
         Mediator-->>Bridge: chain complete
     else no extension handler
-        Mediator->>Mediator: chain fails with recorded error
-        Mediator-->>Bridge: chain failed
+        Mediator->>Mediator: no-op (successful return)
+        Mediator-->>Bridge: chain complete
     end
     Bridge-->>Host: Promise resolves
 ```

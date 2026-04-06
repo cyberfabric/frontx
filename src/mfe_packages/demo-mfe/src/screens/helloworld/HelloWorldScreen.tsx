@@ -189,7 +189,7 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
               {t('go_to_theme')}
             </Button>
             <Button onClick={handleOpenProfileAndRefresh} variant={ButtonVariant.Outline}>
-              Open Profile &amp; Refresh
+              {t('open_profile_refresh')}
             </Button>
           </div>
         </CardContent>

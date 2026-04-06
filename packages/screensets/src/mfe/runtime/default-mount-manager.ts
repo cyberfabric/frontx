@@ -331,6 +331,9 @@ export class DefaultMountManager extends MountManager {
         await lifecycle.unmount(unmountTarget);
       }
 
+      // Unregister extension action handler from mediator before disposing bridge
+      this.unregisterExtensionActionHandler(extensionId);
+
       // Dispose bridge
       if (extensionState.bridge) {
         const domainState = this.extensionManager.getDomainState(extensionState.extension.domain);

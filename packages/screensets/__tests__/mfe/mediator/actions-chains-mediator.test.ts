@@ -821,21 +821,22 @@ describe('ActionsChainsMediator - Phase 9', () => {
       expect(result.error).toContain(ACCEPTED_ACTION);
     });
 
-    it('infrastructure bypass — HAI3_ACTION_MOUNT_EXT reaches handler regardless of empty domainActions', async () => {
+    it('lifecycle action targeting extension is rejected by GTS schema validation — target must be a domain', async () => {
       setupDomain();
       const handler = new ContractTestHandler();
       mediator.registerExtensionHandler(
         EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [] // empty contract — infrastructure actions must still pass
+        [] // empty contract
       );
 
       const result = await mediator.executeActionsChain({
         action: { type: HAI3_ACTION_MOUNT_EXT, target: EXTENSION_ID },
       });
 
-      // Infrastructure actions bypass the contract check, so the chain completes.
-      // (handler.handleAction is called; the mock resolves successfully.)
-      expect(result.completed).toBe(true);
+      // Lifecycle action schemas constrain target to domain IDs only.
+      // GTS validation rejects the extension ID as an invalid target.
+      expect(result.completed).toBe(false);
+      expect(result.error).toBeDefined();
     });
 
     it('empty domainActions — non-infrastructure action is rejected', async () => {

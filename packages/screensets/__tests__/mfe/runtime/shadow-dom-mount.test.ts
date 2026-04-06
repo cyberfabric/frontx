@@ -121,6 +121,8 @@ describe('Shadow DOM Mount Pipeline', () => {
       hostRuntime: mockHostRuntime,
       registerDomainActionHandler: vi.fn(),
       unregisterDomainActionHandler: vi.fn(),
+      registerExtensionActionHandler: vi.fn(),
+      unregisterExtensionActionHandler: vi.fn(),
       bridgeFactory,
     });
 

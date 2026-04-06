@@ -18,7 +18,7 @@ import {
   type ChainExecutionOptions,
   type ActionHandler,
 } from './types';
-import { INFRASTRUCTURE_LIFECYCLE_ACTIONS } from '../validation/contract';
+
 
 /**
  * Default chain timeout: 2 minutes (120000ms)
@@ -182,16 +182,14 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
     // @cpt-begin:feature-screenset-registry:inst-validate-extension-contract
     // Validate extension-targeted actions against the entry's declared domainActions contract.
-    // Infrastructure lifecycle actions are excluded — they bypass MFE application code
-    // and are handled directly by ExtensionLifecycleActionHandler.
+    // Lifecycle actions are already rejected by GTS schema validation above — their schemas
+    // constrain target to domain IDs only, so they never reach this point with an extension target.
     const extensionInfo = this.extensionHandlers.get(action.target);
-    if (extensionInfo && !INFRASTRUCTURE_LIFECYCLE_ACTIONS.has(action.type)) {
-      if (!extensionInfo.domainActions.includes(action.type)) {
-        throw new Error(
-          `Extension '${action.target}' does not accept action '${action.type}'. ` +
-          `Accepted actions: ${extensionInfo.domainActions.join(', ') || '(none)'}`
-        );
-      }
+    if (extensionInfo && !extensionInfo.domainActions.includes(action.type)) {
+      throw new Error(
+        `Extension '${action.target}' does not accept action '${action.type}'. ` +
+        `Accepted actions: ${extensionInfo.domainActions.join(', ') || '(none)'}`
+      );
     }
     // @cpt-end:feature-screenset-registry:inst-validate-extension-contract
 
