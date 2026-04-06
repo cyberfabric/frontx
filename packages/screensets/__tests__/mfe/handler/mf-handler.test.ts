@@ -624,7 +624,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       expect(typeof result.mount).toBe('function');
     });
 
-    it('injects remote stylesheets into the shadow root before mount', async () => {
+    it('injects remote stylesheet links into the shadow root before mount', async () => {
       const { manifest, registerSources } = createTestManifest(
         'styledRemote',
         ['./Widget'],
@@ -635,10 +635,6 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         }
       );
       registerSources(mocks.registerSource);
-      mocks.registerSource(
-        `${TEST_BASE_URL}/styledRemote/widget.css`,
-        '.widget { color: red; }'
-      );
 
       const entry: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled.v1',
@@ -658,9 +654,98 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       });
 
       const styleElement = shadowRoot.getElementById('__hai3-mfe-runtime-style-0');
-      expect(styleElement).toBeTruthy();
-      expect(styleElement?.textContent).toContain('.widget');
-      expect(styleElement?.textContent).toContain('color: red');
+      expect(styleElement).toBeInstanceOf(HTMLLinkElement);
+      expect((styleElement as HTMLLinkElement | null)?.rel).toBe('stylesheet');
+      expect((styleElement as HTMLLinkElement | null)?.href).toBe(
+        `${TEST_BASE_URL}/styledRemote/widget.css`
+      );
+      expect(shadowRoot.querySelectorAll('link[id^="__hai3-mfe-runtime-style-"]')).toHaveLength(1);
+      expect(shadowRoot.querySelector('style[id^="__hai3-mfe-runtime-style-"]')).toBeNull();
+    });
+
+    it('reuses stylesheet link ids instead of duplicating them on repeated mount', async () => {
+      const { manifest, registerSources } = createTestManifest(
+        'styledRepeatRemote',
+        ['./Widget'],
+        {
+          cssByExpose: {
+            './Widget': ['widget.css'],
+          },
+        }
+      );
+      registerSources(mocks.registerSource);
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-repeat.v1',
+        manifest,
+        exposedModule: './Widget',
+      };
+
+      const lifecycle = await handler.load(entry);
+      const host = document.createElement('div');
+      const shadowRoot = host.attachShadow({ mode: 'open' });
+      const bridge = {
+        domainId: 'domain',
+        instanceId: 'instance',
+        executeActionsChain: async () => undefined,
+        subscribeToProperty: () => () => undefined,
+        getProperty: () => undefined,
+      };
+
+      await lifecycle.mount(shadowRoot, bridge);
+      await lifecycle.mount(shadowRoot, bridge);
+
+      expect(shadowRoot.querySelectorAll('link[id="__hai3-mfe-runtime-style-0"]')).toHaveLength(1);
+    });
+
+    it('removes injected remote stylesheets before unmount', async () => {
+      const { manifest, registerSources } = createTestManifest(
+        'styledUnmountRemote',
+        ['./Widget'],
+        {
+          cssByExpose: {
+            './Widget': ['widget.css'],
+          },
+          chunkSources: {
+            './Widget': `export default {
+              mount: () => {},
+              unmount: (container) => {
+                if (container.querySelector('link[id^="__hai3-mfe-runtime-style-"], style[id^="__hai3-mfe-runtime-style-"]')) {
+                  throw new Error('runtime stylesheet cleanup should happen before unmount');
+                }
+              }
+            };`,
+          },
+        }
+      );
+      registerSources(mocks.registerSource);
+
+      const entry: MfeEntryMF = {
+        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.styled-unmount.v1',
+        manifest,
+        exposedModule: './Widget',
+      };
+
+      const lifecycle = await handler.load(entry);
+      const host = document.createElement('div');
+      const shadowRoot = host.attachShadow({ mode: 'open' });
+
+      await lifecycle.mount(shadowRoot, {
+        domainId: 'domain',
+        instanceId: 'instance',
+        executeActionsChain: async () => undefined,
+        subscribeToProperty: () => () => undefined,
+        getProperty: () => undefined,
+      });
+
+      expect(
+        shadowRoot.getElementById('__hai3-mfe-runtime-style-0')
+      ).toBeTruthy();
+
+      await expect(lifecycle.unmount(shadowRoot)).resolves.toBeUndefined();
+      expect(
+        shadowRoot.getElementById('__hai3-mfe-runtime-style-0')
+      ).toBeNull();
     });
   });
 });

@@ -139,7 +139,7 @@ export function createRemoteEntrySource(
     .map(
       ([key, chunk]) => {
         const cssPaths = cssByExpose[key] ?? [];
-        const cssArg = `[${cssPaths.map((path) => `'${path}'`).join(',')}]`;
+        const cssArg = `[${cssPaths.map((path) => "'" + path + "'").join(',')}]`;
         return `"${key}":()=>{dynamicLoadingCss(${cssArg},false,'${key}');return __federation_import('./${chunk}')}`;
       }
     )
