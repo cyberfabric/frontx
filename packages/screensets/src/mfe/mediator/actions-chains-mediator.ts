@@ -170,27 +170,13 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       throw new Error(`Action validation failed: ${errorMsg}`);
     }
 
-    // Validate that target domain supports this action (BLOCKER 4)
-    // See design/mfe-actions.md line 221-243: Action Support Validation
-    const domainState = this.getDomainState(action.target);
-    if (domainState && !domainState.domain.actions.includes(action.type)) {
-      throw new Error(
-        `Domain '${action.target}' does not support action '${action.type}'. ` +
-        `Supported actions: ${domainState.domain.actions.join(', ')}`
-      );
-    }
-
     // @cpt-begin:feature-screenset-registry:inst-validate-extension-contract
-    // Validate extension-targeted actions against the entry's declared domainActions contract.
-    // Lifecycle actions are already rejected by GTS schema validation above — their schemas
-    // constrain target to domain IDs only, so they never reach this point with an extension target.
-    const extensionInfo = this.extensionHandlers.get(action.target);
-    if (extensionInfo && !extensionInfo.domainActions.includes(action.type)) {
-      throw new Error(
-        `Extension '${action.target}' does not accept action '${action.type}'. ` +
-        `Accepted actions: ${extensionInfo.domainActions.join(', ') || '(none)'}`
-      );
-    }
+    // Action target contract validation is handled entirely by GTS schema validation above.
+    // Each action schema constrains its `target` field via x-gts-ref:
+    // - Lifecycle actions (load_ext, mount_ext, unmount_ext): target → domain IDs only
+    // - Custom MFE actions (e.g. refresh_profile): target → specific extension ID
+    // GTS validates the action instance against its schema, rejecting invalid targets.
+    // No manual includes() checks needed — the type system IS the contract enforcement.
     // @cpt-end:feature-screenset-registry:inst-validate-extension-contract
 
     // Execute the action with timeout

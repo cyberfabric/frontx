@@ -18,9 +18,6 @@ import type { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { MockContainerProvider } from '../test-utils';
-import {
-  HAI3_ACTION_MOUNT_EXT,
-} from '../../../src/mfe/constants';
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -751,15 +748,17 @@ describe('ActionsChainsMediator - Phase 9', () => {
   });
 
   // @cpt-FEATURE:feature-screenset-registry:p-contract-enforcement
-  describe('Extension contract enforcement (Fix #254b)', () => {
-    // GTS type IDs used throughout this block
+  describe('Extension contract enforcement via GTS schema validation (Fix #254b)', () => {
+    // Contract enforcement is handled entirely by GTS schema validation (x-gts-ref on target).
+    // The mock TypeSystemPlugin used by the rest of this file does not validate x-gts-ref,
+    // so schema-level contract tests live in bridge.test.ts where the real GtsPlugin is used.
+    // Here we only verify the mediator's routing behavior with the mock plugin.
+
     const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.contract.ext.v1~test.contract.ext.inst.v1';
     const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.contract.domain.v1~';
     const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.contract.entry.v1~';
-    const ACCEPTED_ACTION = 'gts.hai3.mfes.comm.action.v1~test.action.v1~';
-    const OTHER_ACTION = 'gts.hai3.mfes.comm.action.v1~test.other.v1~';
+    const ACTION_TYPE = 'gts.hai3.mfes.comm.action.v1~test.action.v1~';
 
-    // Concrete class implementing ActionHandler — plain objects are not allowed per project rules.
     class ContractTestHandler implements ActionHandler {
       private readonly invocations: string[] = [];
 
@@ -772,88 +771,32 @@ describe('ActionsChainsMediator - Phase 9', () => {
       }
     }
 
-    function setupDomain(): void {
+    it('action targeting extension routes to registered handler', async () => {
       const domain: ExtensionDomain = {
         id: DOMAIN_ID,
         sharedProperties: [],
-        // Both the accepted action and the other action appear under extensionsActions so the
-        // domain-support check (actions array) does not fire before the contract check.
         actions: [],
-        extensionsActions: [ACCEPTED_ACTION, OTHER_ACTION],
+        extensionsActions: [],
         defaultActionTimeout: 5000,
         lifecycleStages: [],
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
-    }
 
-    it('accepted action — handler.handleAction is called', async () => {
-      setupDomain();
       const handler = new ContractTestHandler();
       mediator.registerExtensionHandler(
         EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [ACCEPTED_ACTION]
+        [ACTION_TYPE]
       );
 
       const result = await mediator.executeActionsChain({
-        action: { type: ACCEPTED_ACTION, target: EXTENSION_ID },
+        action: { type: ACTION_TYPE, target: EXTENSION_ID },
       });
 
+      // Mock plugin always validates successfully — the action reaches the handler.
+      // Real GTS validation (x-gts-ref) is tested in bridge.test.ts with GtsPlugin.
       expect(result.completed).toBe(true);
-      expect(handler.getInvocations()).toEqual([ACCEPTED_ACTION]);
-    });
-
-    it('rejected action — fails with error mentioning extension and accepted actions', async () => {
-      setupDomain();
-      const handler = new ContractTestHandler();
-      mediator.registerExtensionHandler(
-        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [ACCEPTED_ACTION]
-      );
-
-      const result = await mediator.executeActionsChain({
-        action: { type: OTHER_ACTION, target: EXTENSION_ID },
-      });
-
-      expect(result.completed).toBe(false);
-      expect(result.error).toContain(EXTENSION_ID);
-      expect(result.error).toContain(OTHER_ACTION);
-      expect(result.error).toContain(ACCEPTED_ACTION);
-    });
-
-    it('lifecycle action targeting extension is rejected by GTS schema validation — target must be a domain', async () => {
-      setupDomain();
-      const handler = new ContractTestHandler();
-      mediator.registerExtensionHandler(
-        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [] // empty contract
-      );
-
-      const result = await mediator.executeActionsChain({
-        action: { type: HAI3_ACTION_MOUNT_EXT, target: EXTENSION_ID },
-      });
-
-      // Lifecycle action schemas constrain target to domain IDs only.
-      // GTS validation rejects the extension ID as an invalid target.
-      expect(result.completed).toBe(false);
-      expect(result.error).toBeDefined();
-    });
-
-    it('empty domainActions — non-infrastructure action is rejected', async () => {
-      setupDomain();
-      const handler = new ContractTestHandler();
-      mediator.registerExtensionHandler(
-        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [] // no domain actions declared
-      );
-
-      const result = await mediator.executeActionsChain({
-        action: { type: OTHER_ACTION, target: EXTENSION_ID },
-      });
-
-      expect(result.completed).toBe(false);
-      expect(result.error).toContain(EXTENSION_ID);
-      expect(result.error).toContain('(none)'); // accepted actions list is empty
+      expect(handler.getInvocations()).toEqual([ACTION_TYPE]);
     });
   });
 

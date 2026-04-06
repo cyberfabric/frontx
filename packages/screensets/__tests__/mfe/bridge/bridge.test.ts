@@ -699,5 +699,129 @@ describe('Bridge Implementation', () => {
         expect(result.path).toContain(ACTION_TYPE);
       });
     });
+
+    describe('GTS schema-level contract enforcement (real GtsPlugin)', () => {
+      // These tests use the real GtsPlugin (not a mock) to verify that x-gts-ref
+      // constraints on action schemas reject wrong targets at validation time.
+      // This is the actual contract enforcement mechanism — no manual includes() needed.
+
+      const PROFILE_EXT_ID = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.profile.v1';
+      const HELLOWORLD_EXT_ID = 'gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.helloworld.v1';
+      const SCREEN_DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1';
+      const REFRESH_ACTION = 'gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~';
+
+      let gtsPlugin: import('../../../src/mfe/plugins/gts').GtsPlugin;
+      let gtsMediator: DefaultActionsChainsMediator;
+      let gtsRegistry: DefaultScreensetsRegistry;
+
+      beforeEach(async () => {
+        // Use the real GtsPlugin with built-in schemas
+        const { GtsPlugin } = await import('../../../src/mfe/plugins/gts');
+        gtsPlugin = new GtsPlugin();
+
+        gtsRegistry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
+
+        gtsMediator = new DefaultActionsChainsMediator({
+          typeSystem: gtsPlugin,
+          getDomainState: (domainId) => gtsRegistry.getDomainState(domainId),
+        });
+
+        // Register the refresh_profile action schema (constrains target to profile extension only)
+        gtsPlugin.registerSchema({
+          $id: 'gts://gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~',
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: {
+            type: { 'x-gts-ref': '/$id' },
+            target: { 'x-gts-ref': PROFILE_EXT_ID },
+            payload: { type: 'object' },
+            timeout: { type: 'number', minimum: 1 },
+          },
+          required: ['type', 'target'],
+        });
+
+        // Register domain and extensions as GTS instances
+        const domain = {
+          id: SCREEN_DOMAIN_ID,
+          sharedProperties: [],
+          actions: ['gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~'],
+          extensionsActions: [],
+          defaultActionTimeout: 5000,
+          lifecycleStages: [],
+          extensionsLifecycleStages: [],
+        };
+        gtsRegistry.registerDomain(domain, new MockContainerProvider());
+
+        gtsPlugin.register({
+          id: PROFILE_EXT_ID,
+          domain: SCREEN_DOMAIN_ID,
+          entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.profile.v1',
+        });
+        gtsPlugin.register({
+          id: HELLOWORLD_EXT_ID,
+          domain: SCREEN_DOMAIN_ID,
+          entry: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~hai3.demo.mfe.helloworld.v1',
+        });
+      });
+
+      it('refresh action targeting profile extension passes GTS validation', async () => {
+        const handler = new SpyActionHandler();
+        gtsMediator.registerExtensionHandler(
+          PROFILE_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, [REFRESH_ACTION]
+        );
+
+        const result = await gtsMediator.executeActionsChain({
+          action: { type: REFRESH_ACTION, target: PROFILE_EXT_ID },
+        });
+
+        expect(result.completed).toBe(true);
+        expect(handler.getCalls()).toHaveLength(1);
+      });
+
+      it('refresh action targeting WRONG extension is rejected by GTS x-gts-ref validation', async () => {
+        const handler = new SpyActionHandler();
+        gtsMediator.registerExtensionHandler(
+          HELLOWORLD_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, []
+        );
+
+        const result = await gtsMediator.executeActionsChain({
+          action: { type: REFRESH_ACTION, target: HELLOWORLD_EXT_ID },
+        });
+
+        expect(result.completed).toBe(false);
+        expect(result.error).toContain('x-gts-ref validation failed');
+      });
+
+      it('lifecycle action (mount_ext) targeting extension is rejected by GTS — target must be domain', async () => {
+        const handler = new SpyActionHandler();
+        gtsMediator.registerExtensionHandler(
+          PROFILE_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, []
+        );
+
+        const result = await gtsMediator.executeActionsChain({
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+            target: PROFILE_EXT_ID,
+            payload: { subject: PROFILE_EXT_ID },
+          },
+        });
+
+        expect(result.completed).toBe(false);
+        expect(result.error).toContain('x-gts-ref validation failed');
+      });
+
+      it('lifecycle action (mount_ext) targeting domain passes GTS validation', async () => {
+        const result = await gtsMediator.executeActionsChain({
+          action: {
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+            target: SCREEN_DOMAIN_ID,
+            payload: { subject: PROFILE_EXT_ID },
+          },
+        });
+
+        // mount_ext targeting domain passes GTS. The domain handler handles it.
+        expect(result.completed).toBe(true);
+      });
+    });
   });
 });
