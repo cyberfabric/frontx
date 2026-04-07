@@ -192,6 +192,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   // HTTP Methods
   // ============================================================================
 
+  // @cpt-begin:cpt-frontx-flow-api-communication-rest-request:p1:inst-2
   /**
    * Perform GET request.
    * @template TResponse - Response type
@@ -234,6 +235,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   async delete<TResponse>(url: string, options?: RestRequestOptions): Promise<TResponse> {
     return this.request<TResponse>('DELETE', url, undefined, options ?? {});
   }
+  // @cpt-end:cpt-frontx-flow-api-communication-rest-request:p1:inst-2
 
   // ============================================================================
   // Request Execution
@@ -390,6 +392,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   // Plugin Chain Execution
   // ============================================================================
 
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-2
   /**
    * Execute onRequest plugin chain.
    * Plugins execute in FIFO order (global first, then instance).
@@ -422,7 +425,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentContext;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-2
 
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-2
   /**
    * Execute onResponse plugin chain.
    * Plugins execute in reverse order (LIFO - onion model).
@@ -443,6 +448,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentContext;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-2
 
   /**
    * Execute onError plugin chain with retry support.
