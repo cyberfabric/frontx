@@ -450,6 +450,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   }
   // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-2
 
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-3
   /**
    * Execute onError plugin chain with retry support.
    * Plugins execute in reverse order (LIFO).
@@ -526,5 +527,6 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
 
     return currentResult;
   }
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-3
 
 }
