@@ -22,6 +22,8 @@
 
 Date: 2026-03-17
 
+> **Superseded (integration shape):** For the **shipped** stack, see [ADR-0017](../ADR/0017-tanstack-query-data-management.md) and code: L2 `queryCache()` exposes `app.serverState` (QueryClient-backed runtime), not `app.queryClient`; L1 `sharedFetchCache` stays aligned with server-state keys when the host retains it. Sections below that still mention `app.queryClient` or a minimal “~6 file” swap are **historical research notes**, not the current contract.
+
 ## Research question
 
 How does TanStack Query v5 work architecturally, and how does it integrate into a codebase that already has its own API service layer (BaseApiService with protocols and plugins) and Redux-based state management? Specifically: package split, queryFn wrapping patterns, AbortSignal handling, headless usage via query-core, bundle size, key features, and coexistence with Redux/Zustand.
@@ -339,21 +341,21 @@ The descriptor is a plain object at L1 with zero caching library dependency. The
 
 Separately from the swappability question, `@tanstack/query-core` can be managed by a **framework plugin** at L2 — following the same pattern as `mock()`, `themes()`, etc. The `queryCache()` plugin:
 
-1. Creates and owns the `QueryClient` with configurable defaults
-2. Exposes it as `app.queryClient` via `provides.registries`
-3. Listens for `MockEvents.Toggle` → clears cache on mock mode changes
-4. Listens for `cache/invalidate` events → Flux escape hatch for L2 effects
-5. Calls `queryClient.clear()` on `onDestroy`
+1. Creates and owns a QueryClient-backed `ServerStateRuntime` with configurable defaults
+2. Exposes it as `app.serverState` via `provides.registries` (raw `QueryClient` is not on `app`)
+3. Listens for `MockEvents.Toggle` → clears server-state cache and aligns L1 `sharedFetchCache`
+4. Listens for `cache/invalidate`, `cache/set`, `cache/remove` → Flux escape hatch; keeps TanStack cache and `sharedFetchCache` in sync
+5. On `onDestroy`: cancels in-flight queries, clears runtime, releases shared fetch-cache retention
 
-This is analogous to how `mock()` owns mock mode state and syncs plugins via events. The plugin does NOT make TanStack swappable — it centralizes lifecycle management. Combined with endpoint descriptors, the architecture becomes:
+This is analogous to how `mock()` owns mock mode state and syncs plugins via events. The plugin centralizes lifecycle management. Combined with endpoint descriptors, the shipped architecture is:
 
 ```text
-L1  EndpointDescriptor { key, fetch }     — library-agnostic, zero deps
-L2  queryCache() plugin                    — owns QueryClient, event integration
-L3  useApiQuery(descriptor)                — maps descriptor → TanStack hook
+L1  EndpointDescriptor { key, fetch }     — library-agnostic; REST may use sharedFetchCache when retained
+L2  queryCache() plugin                    — owns ServerStateRuntime (QueryClient inside), events + L1 sync
+L3  useApiQuery(descriptor)                — maps descriptor → TanStack hook via ServerStateProvider
 ```
 
-Swapping TanStack requires changing the L2 plugin + L3 hooks (~6 files). MFEs change nothing.
+Replacing the server-state stack spans L1 transport dedup, the L2 plugin, and L3 hooks (see ADR-0017). MFEs that stay on descriptors still avoid direct library coupling.
 
 **Why not a RestPlugin (L1 request chain)?** TanStack operates as a long-lived observer/subscription system: components subscribe, receive reactive updates, trigger background refetches, GC on unsubscribe. The `RestPlugin` lifecycle (`onRequest → onResponse → onError`) is one-shot per request — it cannot model subscriptions, deduplication, or stale-while-revalidate.
 

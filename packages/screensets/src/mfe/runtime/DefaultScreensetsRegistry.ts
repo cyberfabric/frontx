@@ -24,7 +24,7 @@
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ScreensetsRegistryConfig } from './config';
-import type { MfeHandler, MountContextResolver, ParentMfeBridge } from '../handler/types';
+import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
@@ -137,7 +137,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    * INTERNAL: Packages are auto-discovered during extension registration.
    */
   private readonly packages = new Map<string, Set<string>>();
-  private mountContextResolver?: MountContextResolver;
 
   constructor(config: ScreensetsRegistryConfig) {
     super();
@@ -199,8 +198,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
       unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
       bridgeFactory: this.bridgeFactory,
-      resolveMountContext: (extensionId, domainId) =>
-        this.mountContextResolver?.(extensionId, domainId),
     });
 
     // Register custom handlers if provided
@@ -288,9 +285,9 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     const lifecycleCallbacks: ExtensionLifecycleCallbacks = {
       loadExtension: (id) =>
         this.operationSerializer.serializeOperation(id, () => this.mountManager.loadExtension(id)),
-      mountExtension: (id, container) =>
+      mountExtension: (id, container, mountOpts) =>
         this.operationSerializer.serializeOperation(id, () =>
-          this.mountManager.mountExtension(id, container)
+          this.mountManager.mountExtension(id, container, mountOpts)
         ),
       unmountExtension: (id) =>
         this.operationSerializer.serializeOperation(id, () => this.mountManager.unmountExtension(id)),
@@ -368,12 +365,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     this.extensionManager.updateSharedProperty(propertyId, value);
   }
   // @cpt-end:cpt-frontx-flow-screenset-registry-update-shared-property:p1:inst-1
-
-  // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-delegate
-  setMountContextResolver(resolver: MountContextResolver | undefined): void {
-    this.mountContextResolver = resolver;
-  }
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-delegate
 
   /**
    * Get a domain property value.

@@ -32,6 +32,7 @@
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
+    "@tanstack/query-core": "^5.0.0",
     "tsup": "^8.0.0",
     "typescript": "^5.4.2"
   },

@@ -866,8 +866,12 @@ export interface EndpointOptions {
 export interface EndpointDescriptor<TData> {
   /** Stable cache key: `[baseURL, method, path]`. */
   readonly key: readonly unknown[];
-  /** Execute the HTTP request. Signal is forwarded to the underlying protocol. */
-  fetch(options?: { signal?: AbortSignal }): Promise<TData>;
+  /**
+   * Execute the HTTP request.
+   * Signal is forwarded to the underlying protocol and staleTime lets higher
+   * layers align protocol-level reuse with the resolved query cache freshness.
+   */
+  fetch(options?: { signal?: AbortSignal; staleTime?: number }): Promise<TData>;
   /** Optional cache freshness override (milliseconds). */
   readonly staleTime?: number;
   /** Optional garbage-collection time override (milliseconds). */

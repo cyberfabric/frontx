@@ -1,8 +1,8 @@
 /**
  * ExtensionDomainSlot tests
  *
- * Covers mount path when the host app has no QueryClient (no queryCache() plugin):
- * HAI3Provider omits QueryClientProvider, app.queryClient is undefined, and the slot
+ * Covers mount path when the host app has no server-state runtime (no queryCache() plugin):
+ * HAI3Provider renders without server-state provider, app.serverState is undefined, and the slot
  * must still mount via registry.executeActionsChain without mount-context wrapping.
  *
  * @vitest-environment jsdom
@@ -35,7 +35,7 @@ describe('ExtensionDomainSlot', () => {
     vi.restoreAllMocks();
   });
 
-  function buildAppWithoutQueryClient(): HAI3App {
+  function buildAppWithoutServerState(): HAI3App {
     const app = createHAI3()
       .use(screensets())
       .use(effects())
@@ -45,9 +45,9 @@ describe('ExtensionDomainSlot', () => {
     return app;
   }
 
-  it('mounts via registry.executeActionsChain when app has no QueryClient (no QueryClientProvider)', async () => {
-    const app = buildAppWithoutQueryClient();
-    expect(app.queryClient).toBeUndefined();
+  it('mounts via registry.executeActionsChain when app has no server-state runtime', async () => {
+    const app = buildAppWithoutServerState();
+    expect(app.serverState).toBeUndefined();
 
     const registry = app.screensetsRegistry;
     if (!registry) {
@@ -88,7 +88,7 @@ describe('ExtensionDomainSlot', () => {
     });
   });
 
-  it('registers shared mount context when QueryClient is available', async () => {
+  it('does not register mount context even when server-state runtime is available', async () => {
     const app = createHAI3()
       .use(screensets())
       .use(effects())
@@ -96,7 +96,7 @@ describe('ExtensionDomainSlot', () => {
       .use(microfrontends({ typeSystem: gtsPlugin }))
       .build();
     apps.push(app);
-    expect(app.queryClient).toBeDefined();
+    expect(app.serverState).toBeDefined();
 
     const registry = app.screensetsRegistry;
     if (!registry) {
@@ -109,7 +109,6 @@ describe('ExtensionDomainSlot', () => {
       dispose: vi.fn(),
     };
 
-    const resolverSpy = vi.spyOn(registry, 'setMountContextResolver');
     const execSpy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
     vi.spyOn(registry, 'getParentBridge').mockReturnValue(parentBridge);
     vi.spyOn(registry, 'getDomain').mockReturnValue(screenDomain);
@@ -128,13 +127,6 @@ describe('ExtensionDomainSlot', () => {
       const slot = container.querySelector('[data-extension-id]');
       expect((slot as HTMLElement | null)?.dataset.bridgeActive).toBe('true');
     });
-
-    expect(resolverSpy).toHaveBeenCalled();
-    const resolver = resolverSpy.mock.calls.at(-1)?.[0];
-    expect(resolver?.(extensionId, HAI3_SCREEN_DOMAIN)).toEqual({
-      queryClient: app.queryClient,
-    });
-
     expect(execSpy).toHaveBeenCalledWith({
       action: {
         type: HAI3_ACTION_MOUNT_EXT,
@@ -145,7 +137,7 @@ describe('ExtensionDomainSlot', () => {
   });
 
   it('keeps the mount host rendered while the extension is loading', async () => {
-    const app = buildAppWithoutQueryClient();
+    const app = buildAppWithoutServerState();
     const registry = app.screensetsRegistry;
     if (!registry) {
       throw new Error('expected screensetsRegistry');

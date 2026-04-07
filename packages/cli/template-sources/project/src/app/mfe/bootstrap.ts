@@ -12,7 +12,6 @@
  */
 
 import type { RefObject } from 'react';
-import type { QueryClient } from '@tanstack/react-query';
 import type { HAI3App, JSONSchema, MfeEntry, Extension, ScreenExtension } from '@cyberfabric/react';
 import { bootstrapMfeDomains } from '@cyberfabric/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
@@ -35,15 +34,13 @@ function isScreenExtension(extension: Extension): extension is ScreenExtension {
  *
  * @param app - FrontX application instance
  * @param screenContainerRef - React ref for the screen domain container element
- * @param queryClient - optional host-owned QueryClient for shared cache across MFE roots
  * @returns Array of registered screen extensions, for URL routing in MfeScreenContainer
  */
 export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
-  queryClient?: QueryClient,
 ): Promise<ScreenExtension[]> {
-  const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef, queryClient);
+  const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef);
 
   if (MFE_MANIFESTS.length === 0) {
     console.warn('[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.');

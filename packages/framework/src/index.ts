@@ -80,10 +80,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
-  MfeMountValue,
-  MfeMountValues,
   MfeMountContext,
-  MountContextResolver,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -178,6 +175,30 @@ export type {
   SetLanguagePayload,
   LanguagePropagationFailedPayload,
 } from './types';
+
+export {
+  SERVER_STATE_NATIVE_HANDLE,
+  SERVER_STATE_BROADCAST_TARGET,
+  DEFAULT_SERVER_STATE_ADAPTER_ID,
+} from './serverState';
+export {
+  MFE_MOUNT_RUNTIME_CONTEXT_SYMBOL,
+  createMfeMountRuntimeToken,
+  setMfeMountRuntimeContext,
+  clearMfeMountRuntimeContext,
+  registerMfeMountExplicitServerState,
+} from './plugins/microfrontends/mountRuntimeContext';
+export type {
+  ServerStateRuntime,
+  ServerStateCache,
+  ServerStateKey,
+  ServerStateInvalidateFilters,
+  ServerStateQueryState,
+  ServerStateRefetchMode,
+  ServerStateFetchStatus,
+  ServerStateStatus,
+  ServerStateUpdater,
+} from './serverState';
 
 // ============================================================================
 // Re-exports from SDK packages for convenience
@@ -341,6 +362,7 @@ export {
   RestPluginWithConfig,
   SsePlugin,
   SsePluginWithConfig,
+  resetSharedFetchCache,
   // Type guards
   isShortCircuit,
   isRestShortCircuit,

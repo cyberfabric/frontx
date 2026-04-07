@@ -51,6 +51,30 @@ describe('Cross-Runtime Action Chain Routing', () => {
       });
     });
 
+    it('should forward mountRuntimeToken via bridge transport', async () => {
+      vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(undefined);
+
+      const handler = new ChildDomainForwardingHandler(
+        parentBridge,
+        'gts.hai3.mfes.ext.domain.v1~child.domain.v1'
+      );
+
+      await handler.handleAction(
+        'gts.hai3.mfes.ext.action.v1~test.action.v1',
+        { foo: 'bar' },
+        { mountRuntimeToken: 'cross-runtime-token' }
+      );
+
+      expect(parentBridge.sendActionsChain).toHaveBeenCalledWith({
+        action: {
+          type: 'gts.hai3.mfes.ext.action.v1~test.action.v1',
+          target: 'gts.hai3.mfes.ext.domain.v1~child.domain.v1',
+          payload: { foo: 'bar' },
+        },
+        mountRuntimeToken: 'cross-runtime-token',
+      });
+    });
+
     it('should propagate errors from child domain', async () => {
       // Setup: Mock failed chain result
       const testError = new Error('Test error');
@@ -184,7 +208,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
   });
 
   describe('End-to-End Integration', () => {
-    it('should route action from parent mediator through child bridge to child registry', async () => {
+    it('should route action and mountRuntimeToken from parent mediator through child bridge to child registry', async () => {
       // Setup: Mock child registry executeActionsChain
       const childRegistryExecute = vi.fn().mockResolvedValue(undefined);
 
@@ -214,7 +238,8 @@ describe('Cross-Runtime Action Chain Routing', () => {
       const handler = handlers.get(childDomainId);
       await handler.handleAction(
         'gts.hai3.mfes.ext.action.v1~test.action.v1',
-        { data: 'test' }
+        { data: 'test' },
+        { mountRuntimeToken: 'cross-runtime-token' }
       );
 
       // Assert: Child registry received the action chain
@@ -224,6 +249,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
           target: childDomainId,
           payload: { data: 'test' },
         },
+        mountRuntimeToken: 'cross-runtime-token',
       });
     });
 

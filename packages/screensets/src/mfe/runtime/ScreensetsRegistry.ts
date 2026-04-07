@@ -11,7 +11,7 @@
 // @cpt-dod:cpt-frontx-dod-screenset-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
-import type { MountContextResolver, ParentMfeBridge } from '../handler/types';
+import type { ParentMfeBridge } from '../handler/types';
 import type {
   ExtensionDomain,
   Extension,
@@ -134,20 +134,6 @@ export abstract class ScreensetsRegistry {
    * @returns Property value, or undefined if not set
    */
   abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
-
-  // --- Mount Context ---
-
-  // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-contract
-  /**
-   * Register or clear a host-provided mount-context resolver.
-   *
-   * The runtime always provides `extensionId` and `domainId`; the resolver adds
-   * any extra opaque host values needed by the mounted MFE.
-   *
-   * @param resolver - Resolver for host-provided mount values, or undefined to clear it
-   */
-  abstract setMountContextResolver(resolver: MountContextResolver | undefined): void;
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-registry-mount-context-contract
 
   // --- Action Chains ---
 

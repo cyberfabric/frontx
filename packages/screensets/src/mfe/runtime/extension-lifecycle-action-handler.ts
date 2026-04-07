@@ -10,7 +10,7 @@
  * @internal
  */
 
-import type { ActionHandler } from '../mediator';
+import type { ActionExecutionContext, ActionHandler } from '../mediator';
 import type { ParentMfeBridge } from '../handler/types';
 import type { ContainerProvider } from './container-provider';
 import {
@@ -48,7 +48,7 @@ type DomainSemantics = 'swap' | 'toggle';
  * NOTE: The `mountExtension` callback accepts a `container: Element` parameter.
  * The handler obtains the container from `this.containerProvider.getContainer(extensionId)`
  * and passes it to the callback. The callback then routes through
- * OperationSerializer -> MountManager.mountExtension(id, container, mountContext). This keeps
+ * OperationSerializer -> MountManager.mountExtension(id, container). This keeps
  * all ContainerProvider interaction in the handler (single ownership), while the
  * callback chain remains a simple pass-through for the resolved container.
  */
@@ -58,7 +58,8 @@ export interface ExtensionLifecycleCallbacks {
   /** Mount an extension into a container (OperationSerializer -> MountManager.mountExtension) */
   mountExtension: (
     extensionId: string,
-    container: Element
+    container: Element,
+    options?: { mountRuntimeToken?: string }
   ) => Promise<ParentMfeBridge>;
   /** Unmount an extension (OperationSerializer -> MountManager.unmountExtension) */
   unmountExtension: (extensionId: string) => Promise<void>;
@@ -80,7 +81,11 @@ export interface ExtensionLifecycleCallbacks {
  * Custom action handler callback type.
  * Invoked for non-lifecycle actions on the domain.
  */
-export type CustomActionHandler = (actionTypeId: string, payload: Record<string, unknown> | undefined) => Promise<void>;
+export type CustomActionHandler = (
+  actionTypeId: string,
+  payload: Record<string, unknown> | undefined,
+  context?: ActionExecutionContext
+) => Promise<void>;
 
 /**
  * Action handler for extension lifecycle actions within a domain.
@@ -112,7 +117,8 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
   // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async handleAction(
     actionTypeId: string,
-    payload: Record<string, unknown> | undefined
+    payload: Record<string, unknown> | undefined,
+    context?: ActionExecutionContext
   ): Promise<void> {
     switch (actionTypeId) {
       case HAI3_ACTION_LOAD_EXT: {
@@ -125,12 +131,16 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
       case HAI3_ACTION_MOUNT_EXT: {
         this.requirePayload(actionTypeId, payload);
         const extensionId = this.requireSubject(payload);
+        const mountOpts =
+          context?.mountRuntimeToken !== undefined
+            ? { mountRuntimeToken: context.mountRuntimeToken }
+            : undefined;
         if (this.domainSemantics === 'swap') {
-          await this.handleScreenSwap(extensionId);
+          await this.handleScreenSwap(extensionId, mountOpts);
         } else {
           // Toggle semantics: get container and mount
           const container = this.containerProvider.getContainer(extensionId);
-          await this.callbacks.mountExtension(extensionId, container);
+          await this.callbacks.mountExtension(extensionId, container, mountOpts);
         }
         break;
       }
@@ -147,7 +157,7 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
         // Non-lifecycle domain actions: delegate to custom handler if provided.
         // The mediator already validated that the domain supports this action type.
         if (this.customActionHandler) {
-          await this.customActionHandler(actionTypeId, payload);
+          await this.customActionHandler(actionTypeId, payload, context);
         }
         break;
     }
@@ -178,7 +188,10 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
   }
 
   // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
-  private async handleScreenSwap(newExtensionId: string): Promise<void> {
+  private async handleScreenSwap(
+    newExtensionId: string,
+    mountOpts?: { mountRuntimeToken?: string }
+  ): Promise<void> {
     await this.callbacks.serializeOnDomain(this.domainId, async () => {
       const currentExtId = this.callbacks.getMountedExtension(this.domainId);
 
@@ -192,7 +205,7 @@ export class ExtensionLifecycleActionHandler implements ActionHandler {
       }
 
       const container = this.containerProvider.getContainer(newExtensionId);
-      await this.callbacks.mountExtension(newExtensionId, container);
+      await this.callbacks.mountExtension(newExtensionId, container, mountOpts);
     });
   }
   // @cpt-end:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1

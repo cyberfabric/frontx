@@ -22,4 +22,10 @@ export interface ActionsChain {
   next?: ActionsChain;
   /** Fallback chain to execute on failure */
   fallback?: ActionsChain;
+  /**
+   * Opaque per-invocation token for host↔MFE side channels (e.g. serverState handoff).
+   * Set by the host framework on the chain link that triggers `mount_ext`; forwarded
+   * into `MfeMountContext` so consumers never collide on extension/domain pairs alone.
+   */
+  mountRuntimeToken?: string;
 }

@@ -8,7 +8,6 @@
 export type {
   ParentMfeBridge,
   ChildMfeBridge,
-  MountContextResolver,
   MfeEntryLifecycle,
 } from './types';
 export { MfeBridgeFactory, MfeHandler } from './types';

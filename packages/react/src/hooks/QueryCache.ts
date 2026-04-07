@@ -1,11 +1,11 @@
 /**
- * QueryCache — restricted interface for interacting with the TanStack QueryClient.
+ * QueryCache — restricted interface for interacting with the FrontX server-state cache.
  *
  * MFEs and screen-set components access the shared cache through this sanctioned
  * public interface. It is injected as { queryCache } into useApiMutation callbacks
  * and also returned by useQueryCache() for controlled imperative cache access.
- * The underlying QueryClient is never exposed directly, preventing one MFE from
- * depending on raw TanStack internals.
+ * The underlying engine is never exposed directly, preventing one MFE from
+ * depending on implementation-specific internals.
  *
  * Surface area mirrors the mutation callback use cases documented in FEATURE.md:
  *   - get/getState/set: optimistic snapshot + restore + state inspection
@@ -22,34 +22,57 @@
 // @cpt-flow:cpt-frontx-flow-request-lifecycle-use-api-mutation:p2:inst-create-query-cache
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
-import type { QueryClient, QueryKey, QueryState } from '@tanstack/react-query';
-import type { EndpointDescriptor } from '@cyberfabric/framework';
+import type {
+  EndpointDescriptor,
+  ServerStateInvalidateFilters,
+  ServerStateKey,
+  ServerStateQueryState,
+  ServerStateRuntime,
+  ServerStateUpdater,
+} from '@cyberfabric/framework';
+import { eventBus } from '@cyberfabric/framework';
 
-export type QueryCacheState<TData = unknown, TError = Error> = Pick<
-  QueryState<TData, TError>,
-  | 'data'
-  | 'dataUpdatedAt'
-  | 'error'
-  | 'errorUpdatedAt'
-  | 'fetchFailureCount'
-  | 'fetchFailureReason'
-  | 'fetchStatus'
-  | 'isInvalidated'
-  | 'status'
->;
+export type QueryCacheState<TData = unknown, TError = Error> = ServerStateQueryState<TData, TError>;
 
 export type QueryCacheInvalidateFilters = {
-  queryKey?: EndpointDescriptor<unknown> | QueryKey;
+  queryKey: EndpointDescriptor<unknown> | ServerStateKey;
   exact?: boolean;
-  refetchType?: 'active' | 'inactive' | 'all' | 'none';
+  refetchType?: ServerStateInvalidateFilters['refetchType'];
 };
+
+type CacheInvalidateEvent = ServerStateInvalidateFilters & {
+  source?: string;
+};
+
+type CacheSetEvent = {
+  queryKey: ServerStateKey;
+  dataOrUpdater: ServerStateUpdater<unknown>;
+  source?: string;
+};
+
+type CacheRemoveEvent = {
+  queryKey: ServerStateKey;
+  source?: string;
+};
+
+const SERVER_STATE_BROADCAST_TARGET = Symbol.for('hai3:server-state:broadcast-target');
+
+function emitCacheEvent(event: string, payload: unknown): void {
+  (eventBus.emit as (eventType: string, payload: unknown) => void)(event, payload);
+}
+
+function getBroadcastSource(runtime: ServerStateRuntime): string {
+  return (
+    runtime as ServerStateRuntime & Record<typeof SERVER_STATE_BROADCAST_TARGET, string>
+  )[SERVER_STATE_BROADCAST_TARGET];
+}
 
 // @cpt-begin:implement-endpoint-descriptors:p3:inst-resolve-key
 /**
  * Extract the raw QueryKey from either an EndpointDescriptor or a plain QueryKey.
  * This lets callers pass service.endpoint directly instead of service.endpoint.key.
  */
-export function resolveKey(target: EndpointDescriptor<unknown> | QueryKey): readonly unknown[] {
+export function resolveKey(target: EndpointDescriptor<unknown> | ServerStateKey): readonly unknown[] {
   if (
     target !== null &&
     typeof target === 'object' &&
@@ -79,15 +102,15 @@ export function resolveKey(target: EndpointDescriptor<unknown> | QueryKey): read
  * Returning undefined from the updater cancels the update — matching TanStack semantics.
  */
 export interface QueryCache {
-  get<T>(queryKey: EndpointDescriptor<unknown> | QueryKey): T | undefined;
+  get<T>(queryKey: EndpointDescriptor<unknown> | ServerStateKey): T | undefined;
   getState<TData = unknown, TError = Error>(
-    queryKey: EndpointDescriptor<unknown> | QueryKey
+    queryKey: EndpointDescriptor<unknown> | ServerStateKey
   ): QueryCacheState<TData, TError> | undefined;
-  set<T>(queryKey: EndpointDescriptor<unknown> | QueryKey, dataOrUpdater: T | ((old: T | undefined) => T | undefined)): void;
-  cancel(queryKey: EndpointDescriptor<unknown> | QueryKey): Promise<void>;
-  invalidate(queryKey: EndpointDescriptor<unknown> | QueryKey): Promise<void>;
+  set<T>(queryKey: EndpointDescriptor<unknown> | ServerStateKey, dataOrUpdater: T | ((old: T | undefined) => T | undefined)): void;
+  cancel(queryKey: EndpointDescriptor<unknown> | ServerStateKey): Promise<void>;
+  invalidate(queryKey: EndpointDescriptor<unknown> | ServerStateKey): Promise<void>;
   invalidateMany(filters: QueryCacheInvalidateFilters): Promise<void>;
-  remove(queryKey: EndpointDescriptor<unknown> | QueryKey): void;
+  remove(queryKey: EndpointDescriptor<unknown> | ServerStateKey): void;
 }
 // @cpt-end:cpt-frontx-dod-request-lifecycle-use-api-mutation:p2:inst-query-cache-interface
 
@@ -116,37 +139,61 @@ function toQueryUpdater<T>(
 // @cpt-end:implement-endpoint-descriptors:p3:inst-to-query-updater
 
 /**
- * Build a restricted QueryCache facade from the internal TanStack QueryClient.
+ * Build a restricted QueryCache facade from the internal server-state cache.
  */
 // @cpt-begin:implement-endpoint-descriptors:p3:inst-create-query-cache
-export function createQueryCache(queryClient: QueryClient): QueryCache {
+export function createQueryCache(runtime: ServerStateRuntime): QueryCache {
   return {
-    get: <T,>(key: EndpointDescriptor<unknown> | QueryKey): T | undefined => {
-      return queryClient.getQueryData<T>(resolveKey(key) as QueryKey);
+    get: <T,>(key: EndpointDescriptor<unknown> | ServerStateKey): T | undefined => {
+      return runtime.cache.get<T>(resolveKey(key));
     },
-    getState: <TData = unknown, TError = Error>(key: EndpointDescriptor<unknown> | QueryKey) => {
-      return queryClient.getQueryState<TData, TError>(resolveKey(key) as QueryKey);
+    getState: <TData = unknown, TError = Error>(key: EndpointDescriptor<unknown> | ServerStateKey) => {
+      return runtime.cache.getState<TData, TError>(resolveKey(key));
     },
-    set: <T,>(key: EndpointDescriptor<unknown> | QueryKey, dataOrUpdater: QueryCacheUpdater<T>): void => {
-      queryClient.setQueryData<T>(resolveKey(key) as QueryKey, toQueryUpdater(dataOrUpdater));
+    set: <T,>(key: EndpointDescriptor<unknown> | ServerStateKey, dataOrUpdater: QueryCacheUpdater<T>): void => {
+      const resolvedKey = resolveKey(key);
+      runtime.cache.set<T>(resolvedKey, toQueryUpdater(dataOrUpdater));
+      emitCacheEvent('cache/set', {
+        queryKey: resolvedKey,
+        dataOrUpdater: dataOrUpdater as ServerStateUpdater<unknown>,
+        source: getBroadcastSource(runtime),
+      } satisfies CacheSetEvent);
     },
-    cancel: (key: EndpointDescriptor<unknown> | QueryKey): Promise<void> => {
-      return queryClient.cancelQueries({ queryKey: resolveKey(key) as QueryKey });
+    cancel: (key: EndpointDescriptor<unknown> | ServerStateKey): Promise<void> => {
+      return runtime.cache.cancel(resolveKey(key));
     },
-    invalidate: (key: EndpointDescriptor<unknown> | QueryKey): Promise<void> => {
-      return queryClient.invalidateQueries({ queryKey: resolveKey(key) as QueryKey });
+    invalidate: (key: EndpointDescriptor<unknown> | ServerStateKey): Promise<void> => {
+      const resolvedKey = resolveKey(key);
+      const result = runtime.cache.invalidate(resolvedKey);
+      emitCacheEvent('cache/invalidate', {
+        queryKey: resolvedKey,
+        source: getBroadcastSource(runtime),
+      } satisfies CacheInvalidateEvent);
+      return result;
     },
     invalidateMany: (filters): Promise<void> => {
-      const { queryKey, ...rest } = filters;
-      return queryClient.invalidateQueries({
-        ...rest,
-        ...(queryKey !== undefined
-          ? { queryKey: resolveKey(queryKey) as QueryKey }
-          : {}),
-      });
+      if (filters.queryKey === undefined) {
+        return Promise.resolve();
+      }
+
+      const payload = {
+        ...filters,
+        queryKey: resolveKey(filters.queryKey),
+      };
+      const result = runtime.cache.invalidateMany(payload);
+      emitCacheEvent('cache/invalidate', {
+        ...payload,
+        source: getBroadcastSource(runtime),
+      } satisfies CacheInvalidateEvent);
+      return result;
     },
-    remove: (key: EndpointDescriptor<unknown> | QueryKey): void => {
-      queryClient.removeQueries({ queryKey: resolveKey(key) as QueryKey });
+    remove: (key: EndpointDescriptor<unknown> | ServerStateKey): void => {
+      const resolvedKey = resolveKey(key);
+      runtime.cache.remove(resolvedKey);
+      emitCacheEvent('cache/remove', {
+        queryKey: resolvedKey,
+        source: getBroadcastSource(runtime),
+      } satisfies CacheRemoveEvent);
     },
   };
 }

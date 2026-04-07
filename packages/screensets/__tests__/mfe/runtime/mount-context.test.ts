@@ -2,7 +2,6 @@
  * Mount Context Lifecycle Tests
  *
  * Verifies:
- * - MountManager resolves host-provided mount context at mount time
  * - Runtime identity metadata is always attached to lifecycle.mount()
  *
  * @cpt-FEATURE:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2
@@ -32,7 +31,6 @@ import {
 const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.test.mount_context.domain.v1';
 const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~hai3.test.mount_context.entry.v1';
 const EXT_ID = 'gts.hai3.mfes.ext.extension.v1~hai3.test.mount_context.ext.v1';
-
 const testDomain: ExtensionDomain = {
   id: DOMAIN_ID,
   sharedProperties: [],
@@ -71,8 +69,6 @@ describe('DefaultMountManager — mount context forwarding', () => {
   let extensionManager: DefaultExtensionManager;
   let mockContainerProvider: MockContainerProvider;
   let mockLifecycle: MfeEntryLifecycle;
-  let resolveMountContext: ReturnType<typeof vi.fn>;
-
   beforeEach(() => {
     gtsPlugin.register(testEntry);
 
@@ -97,8 +93,6 @@ describe('DefaultMountManager — mount context forwarding', () => {
     };
 
     const bridgeFactory = new DefaultRuntimeBridgeFactory();
-    resolveMountContext = vi.fn();
-
     mountManager = new DefaultMountManager({
       extensionManager,
       resolveHandler: (_entryTypeId: string) => ({
@@ -114,50 +108,25 @@ describe('DefaultMountManager — mount context forwarding', () => {
       registerDomainActionHandler: vi.fn(),
       unregisterDomainActionHandler: vi.fn(),
       bridgeFactory,
-      resolveMountContext,
     });
 
     extensionManager.registerDomain(testDomain, mockContainerProvider);
   });
 
-  it('passes resolved host values plus runtime identity to lifecycle.mount()', async () => {
+  it('passes runtime identity metadata and mountRuntimeToken to lifecycle.mount()', async () => {
     await extensionManager.registerExtension(testExtension);
 
-    const fakeQueryClient = {
-      getQueryCache: () => ({}),
-      getMutationCache: () => ({}),
-      defaultQueryOptions: () => ({}),
-    };
-    resolveMountContext.mockReturnValue({ queryClient: fakeQueryClient });
-
     const container = mockContainerProvider.mockContainer as HTMLElement;
-    await mountManager.mountExtension(EXT_ID, container);
-
-    expect(mockLifecycle.mount).toHaveBeenCalledOnce();
-    expect(resolveMountContext).toHaveBeenCalledWith(EXT_ID, DOMAIN_ID);
-    const callArgs = (mockLifecycle.mount as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(callArgs[2]).toBeDefined();
-    expect(callArgs[2]).toEqual({
-      values: {
-        queryClient: fakeQueryClient,
-      },
-      extensionId: EXT_ID,
-      domainId: DOMAIN_ID,
+    await mountManager.mountExtension(EXT_ID, container, {
+      mountRuntimeToken: 'hai3-test-mount-token',
     });
-  });
-
-  it('passes identity-only mount context when no host values are resolved', async () => {
-    await extensionManager.registerExtension(testExtension);
-    resolveMountContext.mockReturnValue(undefined);
-
-    const container = mockContainerProvider.mockContainer as HTMLElement;
-    await mountManager.mountExtension(EXT_ID, container);
 
     expect(mockLifecycle.mount).toHaveBeenCalledOnce();
     const callArgs = (mockLifecycle.mount as ReturnType<typeof vi.fn>).mock.calls[0];
-    expect(callArgs[2]).toEqual({
+    expect(callArgs[2]).toMatchObject({
       extensionId: EXT_ID,
       domainId: DOMAIN_ID,
+      mountRuntimeToken: 'hai3-test-mount-token',
     });
   });
 });

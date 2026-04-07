@@ -1,14 +1,13 @@
 /**
  * Shared MFE bootstrap core utilities.
  *
- * Contains the domain registration, shared property setup, and QueryClient
- * chain patching that every host application needs. Callers (demo app,
+ * Contains the domain registration, shared property setup, and host bootstrap
+ * steps that every application needs. Callers (demo app,
  * CLI-scaffolded projects, standalone templates) use `bootstrapMfeDomains`
  * as a thin foundation and layer their own manifest/extension registration on top.
  */
 
 import type { RefObject } from 'react';
-import type { QueryClient } from '@tanstack/query-core';
 import type { HAI3App, ScreensetsRegistry } from '@cyberfabric/framework';
 import {
   screenDomain,
@@ -35,22 +34,17 @@ export class DetachedContainerProvider extends RefContainerProvider {
 }
 
 /**
- * Register the four standard MFE domains, set shared properties (theme,
- * language), and optionally register a mount-context resolver so separately
- * mounted MFE roots reuse the host-owned `QueryClient`.
+ * Register the four standard MFE domains and set shared properties (theme,
+ * language) used by mounted extensions.
  *
  * @param app - HAI3 application instance
  * @param screenContainerRef - React ref pointing at the screen domain's DOM container
- * @param queryClient - optional host-owned QueryClient; when this or
- *   `app.queryClient` (from `queryCache()`) is set, the registry receives a
- *   mount-context resolver so all mount paths use the same shared cache
  * @returns the `screensetsRegistry` instance, ready for caller-specific
  *   manifest and extension registration
  */
 export async function bootstrapMfeDomains(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
-  queryClient?: QueryClient,
 ): Promise<ScreensetsRegistry> {
   const screensetsRegistry = app.screensetsRegistry;
   if (!screensetsRegistry) {
@@ -67,14 +61,6 @@ export async function bootstrapMfeDomains(
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   const derivedLanguage = app.i18nRegistry.getLanguage();
   screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, derivedLanguage ?? 'en');
-
-  // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-shared-cache-bootstrap
-  const sharedQueryClient = queryClient ?? app.queryClient;
-
-  if (sharedQueryClient) {
-    screensetsRegistry.setMountContextResolver(() => ({ queryClient: sharedQueryClient }));
-  }
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-shared-cache-bootstrap
 
   return screensetsRegistry;
 }

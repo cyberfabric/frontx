@@ -72,7 +72,8 @@ export abstract class MountManager {
    */
   abstract mountExtension(
     extensionId: string,
-    container: Element
+    container: Element,
+    options?: { mountRuntimeToken?: string }
   ): Promise<ParentMfeBridge>;
 
   /**

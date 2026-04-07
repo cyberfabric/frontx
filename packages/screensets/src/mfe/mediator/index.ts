@@ -11,5 +11,6 @@ export { ActionsChainsMediator } from './types';
 export type {
   ChainResult,
   ChainExecutionOptions,
+  ActionExecutionContext,
   ActionHandler,
 } from './types';

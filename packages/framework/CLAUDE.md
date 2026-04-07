@@ -56,12 +56,12 @@ const headlessApp = createHAI3()
 | `microfrontends()` | MFE actions, selectors, domain constants | screensets |
 | `i18n()` | i18nRegistry, setLanguage action | - |
 | `effects()` | Core effect coordination | - |
-| `queryCache()` | QueryClient lifecycle, cache invalidation, mock integration | - |
+| `queryCache()` | TanStack `QueryClient`–backed `ServerStateRuntime`, Flux `cache/*` events, mock toggle + destroy cleanup, L1 `sharedFetchCache` retain/release and invalidation sync | - |
 | `mock()` | mockSlice, toggleMockMode action | effects |
 
 ### Query Cache Plugin
 
-The `queryCache()` plugin owns the `QueryClient` lifecycle and integrates caching with the event-driven architecture. It's included in the `full()` preset by default:
+The `queryCache()` plugin owns the **headless TanStack Query** server-state runtime (`@tanstack/query-core` peer) and bridges it to L1 transport dedup: it **retains** the global `sharedFetchCache` from `@cyberfabric/api` for the app lifetime and **keeps it aligned** with Flux-driven cache events. It's included in the `full()` preset by default:
 
 ```typescript
 import { createHAI3App } from '@cyberfabric/framework';
@@ -69,11 +69,14 @@ import { createHAI3App } from '@cyberfabric/framework';
 // Full preset includes queryCache plugin automatically
 const app = createHAI3App();
 
-// Access QueryClient (for non-React contexts like tests/SSR)
-app.queryClient;
+// Access server-state runtime (for non-React contexts like tests/SSR)
+app.serverState;
 
-// Cache is automatically cleared on mock mode toggle
-// Flux effects can invalidate cache via eventBus.emit('cache/invalidate', { queryKey })
+// Cache is cleared on mock mode toggle (server-state + shared fetch layer)
+// Flux effects can drive cache via eventBus, e.g.:
+//   eventBus.emit('cache/invalidate', { queryKey })
+//   eventBus.emit('cache/set', { queryKey, dataOrUpdater })
+//   eventBus.emit('cache/remove', { queryKey })
 ```
 
 For custom plugin compositions:
@@ -87,13 +90,14 @@ const app = createHAI3()
 ```
 
 The plugin:
-- Creates and manages the `QueryClient` with configurable defaults (`staleTime`, `gcTime`, `retry: 0`)
-- Clears cache on mock mode toggle (via `MockEvents.Toggle` listener)
-- Handles Flux escape hatch: L2 effects invalidate cache via `cache/invalidate` event
-- Exposes `app.queryClient` for `HAI3Provider` and non-React access
-- Calls `queryClient.clear()` on destroy
+- Creates `ServerStateRuntime` (`QueryClient` under the hood) with configurable defaults (`staleTime`, `gcTime`, `retry: 0`, `refetchOnWindowFocus`)
+- Calls `retainSharedFetchCache()` on init and `releaseSharedFetchCache()` after teardown on destroy (balances in-flight shared fetch retention)
+- On mock toggle: cancels queries, clears server-state cache, then clears `peekSharedFetchCache()` when present
+- Subscribes to `cache/invalidate`, `cache/set`, and `cache/remove` — updates `ServerStateRuntime` **and** mirrors invalidation to `sharedFetchCache` for matching keys (avoiding stale transport dedup vs React/server-state)
+- Exposes `app.serverState` for `HAI3Provider` and non-React access
+- On destroy: unsubscribes listeners, cancels and clears server-state cache, then releases shared-fetch retention
 
-`@tanstack/query-core` is a peer dependency of `@cyberfabric/framework`.
+`@tanstack/query-core` is a peer dependency of `@cyberfabric/framework` (React bindings remain in `@cyberfabric/react`).
 
 ### Mock Mode Control
 

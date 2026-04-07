@@ -20,13 +20,12 @@ import type {
 
 import type { Reducer } from '@reduxjs/toolkit';
 
-// From @tanstack/query-core
-import type { QueryClient } from '@tanstack/query-core';
 // From @cyberfabric/api
 import type { ApiRegistry } from '@cyberfabric/api';
 
 // From @cyberfabric/i18n
 import type { I18nRegistry } from '@cyberfabric/i18n';
+import type { ServerStateRuntime } from './serverState';
 
 // Re-export FrontXStore from @cyberfabric/store for framework consumers
 export type HAI3Store = StoreType;
@@ -395,9 +394,10 @@ export interface HAI3App {
   /** MFE-enabled ScreensetsRegistry (optional, provided by microfrontends plugin) */
   screensetsRegistry?: MfeScreensetsRegistry;
 
-  /** TanStack QueryClient — provided by queryCache plugin. Optional because apps may
-   *  compose plugins without queryCache() when they do not use server state. */
-  queryClient?: QueryClient;
+  // @cpt-begin:cpt-frontx-dod-request-lifecycle-query-provider:p2:inst-expose-client
+  /** Server-state runtime provided by queryCache(). Optional for apps that do not use server state. */
+  serverState?: ServerStateRuntime;
+  // @cpt-end:cpt-frontx-dod-request-lifecycle-query-provider:p2:inst-expose-client
 
   /** All registered actions (type-safe via FrontXActions interface) */
   actions: HAI3Actions;

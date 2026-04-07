@@ -726,9 +726,9 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `RestRequestOptions` pattern for HTTP method extensibility
   - `CanceledError` detection and plugin chain bypass
   - `EndpointDescriptor<TData>`, `MutationDescriptor<TData, TVariables>`, and `StreamDescriptor<TEvent>` types at L1 (`@cyberfabric/api`)
-  - `RestEndpointProtocol.query(path)`, `queryWith(pathFn)`, `mutation(method, path)`, and `SseStreamProtocol.stream(path)` — cache keys derived from `[baseURL, method, path]` for REST and `[baseURL, 'SSE', path]` for streams
-  - `queryCache()` framework plugin at L2 — creates `QueryClient`, handles `MockEvents.Toggle` cache clear, handles `cache/invalidate` events from Flux effects, exposes `app.queryClient`
-  - `HAI3Provider` reads `app.queryClient` from the plugin (not creating its own)
+  - `RestEndpointProtocol.query(path)`, `queryWith(pathFn)`, `mutation(method, path)`, and `SseStreamProtocol.stream(path)` — cache keys derived from `[baseURL, 'GET', path]` for static reads, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, and `[baseURL, 'SSE', path]` for streams
+  - `queryCache()` framework plugin at L2 — creates a QueryClient-backed `ServerStateRuntime`, handles `MockEvents.Toggle` cache clear, handles `cache/invalidate` / `cache/set` / `cache/remove` events from Flux effects, keeps the L1 `sharedFetchCache` in sync, and exposes `app.serverState`
+  - `HAI3Provider` reads `app.serverState` from the plugin (not creating its own)
   - Restricted `QueryCache` interface (`get`, `getState`, `set` with updater, `cancel`, `invalidate`, `invalidateMany`, `remove`) accepts `EndpointDescriptor | QueryKey` — exposed via `useQueryCache()` and injected into mutation callbacks
   - `useApiQuery(descriptor)` hook for declarative single-page reads — returns `ApiQueryResult<TData>` (HAI3-owned type)
   - `useApiSuspenseQuery(descriptor)` hook for Suspense-driven single-page reads — returns `ApiSuspenseQueryResult<TData>` (HAI3-owned type)
@@ -736,7 +736,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `useApiSuspenseInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` hook for Suspense-driven paginated reads — returns `ApiSuspenseInfiniteQueryResult<TPage>` (HAI3-owned type)
   - `useApiMutation({ endpoint, ... })` hook for declarative writes — returns `ApiMutationResult<TData>` (HAI3-owned type)
   - `useApiStream(descriptor, options?)` hook for declarative SSE streaming — returns `ApiStreamResult<TEvent>` (HAI3-owned type) with `'latest'`/`'accumulate'` modes and automatic connect/disconnect lifecycle
-  - Event-based cache invalidation for L2 Flux effects (`cache/invalidate` event in `queryCache()` plugin)
+  - Event-based cache updates for L2 Flux effects (`cache/invalidate`, `cache/set`, and `cache/remove` in `queryCache()` plugin)
   - Flux escape hatch for cross-feature orchestration
 
 - **Out of scope**:
@@ -777,7 +777,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `RestEndpointProtocol.queryWith<TData, TParams>(pathFn, options?)` → `ParameterizedEndpointDescriptor<TData, TParams>` (always GET)
   - `RestEndpointProtocol.mutation<TData, TVariables>(method, path)` → `MutationDescriptor<TData, TVariables>`
   - `SseStreamProtocol.stream<TEvent>(path, options?)` → `StreamDescriptor<TEvent>` — routes through `SseProtocol` plugin chain
-  - `queryCache(config?)` framework plugin — creates `QueryClient`, exposes `app.queryClient`
+  - `queryCache(config?)` framework plugin — creates a QueryClient-backed `ServerStateRuntime`, exposes `app.serverState`
   - `useApiQuery(descriptor)` → `ApiQueryResult<TData>` — caching, dedup, cancel on unmount
   - `useApiSuspenseQuery(descriptor)` → `ApiSuspenseQueryResult<TData>` — Suspense-driven reads with descriptor-based cancellation and refetch
   - `useApiInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` → `ApiInfiniteQueryResult<TPage>` — paginated reads, adjacent-page descriptor resolution, cancel on unmount
@@ -785,7 +785,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `useApiMutation({ endpoint, onMutate, onSuccess, onError, onSettled })` → `ApiMutationResult<TData>` — callbacks receive `{ queryCache }`
   - `useApiStream(descriptor, options?)` → `ApiStreamResult<TEvent>` — connect on mount, disconnect on unmount, `'latest'`/`'accumulate'` modes
   - `QueryCache` interface: `get`, `getState`, `set` (value or updater), `cancel`, `invalidate`, `invalidateMany`, `remove` — accepts `EndpointDescriptor | QueryKey`
-  - Cache keys derived automatically: `[baseURL, 'GET', path]` for reads, `[baseURL, method, path]` for writes, `[baseURL, 'SSE', path]` for streams — no manual key factories
+  - Cache keys derived automatically: `[baseURL, 'GET', path]` for static reads, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, `[baseURL, 'SSE', path]` for streams — no manual key factories
 
 - **Sequences**:
   - None

@@ -45,6 +45,13 @@ export interface ChainExecutionOptions {
 }
 
 /**
+ * Optional metadata for a single mediated action execution.
+ */
+export interface ActionExecutionContext {
+  readonly mountRuntimeToken?: string;
+}
+
+/**
  * Action handler interface for receiving actions.
  *
  * Extensions and domains implement this to handle incoming actions.
@@ -55,9 +62,14 @@ export interface ActionHandler {
    *
    * @param actionTypeId - The type ID of the action
    * @param payload - The action payload
+   * @param context - Optional execution metadata from the chain link (e.g. mount correlation token)
    * @returns Promise that resolves when action is handled
    */
-  handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
+  handleAction(
+    actionTypeId: string,
+    payload: Record<string, unknown> | undefined,
+    context?: ActionExecutionContext
+  ): Promise<void>;
 }
 
 /**

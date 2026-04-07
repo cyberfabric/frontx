@@ -4,8 +4,8 @@
  * Wraps MFE components with bridge and metadata.
  * Used by the MFE mounting system.
  *
- * MfeProvider does not create or own a QueryClient. When the host injects the
- * same QueryClient into each separately mounted MFE root via HAI3Provider,
+ * MfeProvider does not create or own server-state runtime. When the host injects
+ * the same runtime into each separately mounted MFE root via HAI3Provider,
  * overlapping queries (same query key) are deduplicated and cached once across
  * MFE boundaries. Each MFE still uses its own apiRegistry and service
  * instances in queryFn.
@@ -55,8 +55,8 @@ export interface MfeProviderProps {
 // @cpt-begin:cpt-frontx-dod-react-bindings-mfe-hooks:p1:inst-render-mfe-provider
 // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client
 export const MfeProvider: React.FC<MfeProviderProps> = ({ value, children }) => {
-  // MfeProvider only supplies the bridge context. Shared query cache depends on
-  // the host injecting the same QueryClient into each MFE root's HAI3Provider.
+  // MfeProvider only supplies the bridge context. Shared cache depends on
+  // the host injecting the same runtime into each MFE root's HAI3Provider.
   return (
     <MfeContext.Provider value={value}>
       {children}

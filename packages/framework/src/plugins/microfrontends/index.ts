@@ -17,13 +17,14 @@
 
 import {
   screensetsRegistryFactory,
+  type ActionsChain,
   type MfeHandler,
   type TypeSystemPlugin,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '@cyberfabric/screensets';
 import { getStore } from '@cyberfabric/state';
-import type { HAI3Plugin } from '../../types';
+import type { HAI3App, HAI3Plugin } from '../../types';
 import { mfeSlice, setExtensionMounted, setExtensionUnmounted } from './slice';
 import { initMfeEffects } from './effects';
 import {
@@ -34,6 +35,11 @@ import {
   unregisterExtension,
   setMfeRegistry,
 } from './actions';
+import {
+  clearMfeMountRuntimeContext,
+  primeMfeMountRuntimeContextForChain,
+  resolveMfeMountServerState,
+} from './mountRuntimeContext';
 
 /**
  * Configuration for the microfrontends plugin.
@@ -53,6 +59,32 @@ export interface MicrofrontendsConfig {
    * handlers manually via screensetsRegistry API.
    */
   mfeHandlers?: MfeHandler[];
+}
+
+function collectLifecycleDomains(chain: ActionsChain): string[] {
+  const domains = new Set<string>();
+
+  const visit = (link: ActionsChain): void => {
+    const actionType = link.action?.type;
+    const domainId = link.action?.target;
+    if (
+      (actionType === HAI3_ACTION_MOUNT_EXT || actionType === HAI3_ACTION_UNMOUNT_EXT) &&
+      domainId
+    ) {
+      domains.add(domainId);
+    }
+
+    if (link.next) {
+      visit(link.next);
+    }
+
+    if (link.fallback) {
+      visit(link.fallback);
+    }
+  };
+
+  visit(chain);
+  return [...domains];
 }
 
 /**
@@ -103,24 +135,45 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
     mfeHandlers: config.mfeHandlers,
   });
 
+  let hostApp: HAI3App | undefined;
+
   // Wrap executeActionsChain to intercept mount/unmount completions for store dispatch
   const originalExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
   screensetsRegistry.executeActionsChain = async (chain) => {
-    await originalExecuteActionsChain(chain);
-    // After successful execution, dispatch store updates for mount/unmount
-    const actionType = chain.action?.type;
-    if (actionType === HAI3_ACTION_MOUNT_EXT) {
-      const store = getStore();
-      const domainId = chain.action!.target;
-      const extensionId = typeof chain.action?.payload?.subject === 'string' ? chain.action.payload.subject : undefined;
-      if (domainId && extensionId) {
-        store.dispatch(setExtensionMounted({ domainId, extensionId }));
+    const lifecycleDomains = collectLifecycleDomains(chain);
+    const mountedBeforeByDomain = new Map(
+      lifecycleDomains.map((domainId) => [domainId, screensetsRegistry.getMountedExtension(domainId)])
+    );
+
+    const serverStateForHandoff = hostApp ? resolveMfeMountServerState(hostApp) : undefined;
+    const mountRuntimeTokens =
+      serverStateForHandoff === undefined
+        ? []
+        : primeMfeMountRuntimeContextForChain(chain, serverStateForHandoff);
+
+    try {
+      await originalExecuteActionsChain(chain);
+      // Sync the store from the registry's post-condition instead of assuming
+      // that a resolved chain mounted/unmounted only the root link's extension.
+      if (lifecycleDomains.length > 0) {
+        const store = getStore();
+        for (const domainId of lifecycleDomains) {
+          const mountedBefore = mountedBeforeByDomain.get(domainId);
+          const mountedExtensionId = screensetsRegistry.getMountedExtension(domainId);
+          if (mountedBefore === mountedExtensionId) {
+            continue;
+          }
+
+          if (mountedExtensionId) {
+            store.dispatch(setExtensionMounted({ domainId, extensionId: mountedExtensionId }));
+          } else {
+            store.dispatch(setExtensionUnmounted({ domainId }));
+          }
+        }
       }
-    } else if (actionType === HAI3_ACTION_UNMOUNT_EXT) {
-      const store = getStore();
-      const domainId = chain.action!.target;
-      if (domainId) {
-        store.dispatch(setExtensionUnmounted({ domainId }));
+    } finally {
+      for (const token of mountRuntimeTokens) {
+        clearMfeMountRuntimeContext(token);
       }
     }
   };
@@ -152,9 +205,12 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
       },
     },
 
-    onInit(): void {
+    onInit(app): void {
       // Wire the registry reference into actions module
       setMfeRegistry(screensetsRegistry);
+      // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client
+      hostApp = app;
+      // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-query-client
 
       // Initialize effects and store cleanup references
       effectsCleanup = initMfeEffects(screensetsRegistry);
@@ -176,6 +232,7 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
         effectsCleanup();
         effectsCleanup = null;
       }
+      hostApp = undefined;
     },
   };
 }

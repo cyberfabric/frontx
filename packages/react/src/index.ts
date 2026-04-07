@@ -15,6 +15,7 @@
 
 export { HAI3Provider } from './HAI3Provider';
 export { HAI3Context, useHAI3 } from './HAI3Context';
+export { registerServerStateReactAdapter } from './serverState/registry';
 
 // ============================================================================
 // Hooks
@@ -96,6 +97,7 @@ export type {
   ApiSuspenseInfiniteQueryResult,
   ApiMutationResult,
 } from './types';
+export type { ServerStateReactAdapter } from './serverState/types';
 
 // ============================================================================
 // Re-exports from @cyberfabric/framework for convenience
@@ -257,6 +259,11 @@ export type {
   HAI3Plugin,
   HAI3AppBuilder,
   HAI3App,
+  ServerStateRuntime,
+  ServerStateCache,
+  ServerStateKey,
+  ServerStateInvalidateFilters,
+  ServerStateQueryState,
   // Endpoint descriptors — L3 components import from @cyberfabric/react
   EndpointOptions,
   EndpointDescriptor,
@@ -421,10 +428,7 @@ export {
 export type {
   ChildMfeBridge,
   ParentMfeBridge,
-  MfeMountValue,
-  MfeMountValues,
   MfeMountContext,
-  MountContextResolver,
   Extension,
   ScreenExtension,
   ExtensionPresentation,

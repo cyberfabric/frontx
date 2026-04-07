@@ -3,10 +3,10 @@
  *
  * React Layer: L3 (Depends on @cyberfabric/framework)
  *
- * QueryClient lifecycle is owned by the queryCache() framework plugin (L2).
- * HAI3Provider reads app.queryClient from context instead of creating its own.
- * For MFE roots that render in separate React trees, callers pass the same host-
- * owned QueryClient via the queryClient prop so all roots share one cache.
+ * Server-state lifecycle is owned by the queryCache() framework plugin (L2).
+ * HAI3Provider reads app.serverState from context instead of creating its own.
+ * For separate render trees, callers can pass the same host-owned serverState
+ * runtime so every tree participates in the same cache runtime.
  */
 // @cpt-flow:cpt-frontx-flow-react-bindings-bootstrap-provider:p1
 // @cpt-algo:cpt-frontx-algo-react-bindings-resolve-app:p1
@@ -16,13 +16,25 @@
 // @cpt-flow:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2
 // @cpt-FEATURE:implement-endpoint-descriptors:p3
 
-import React, { useMemo, useEffect, useState } from 'react';
+import React, { useMemo, useEffect, useLayoutEffect, useState } from 'react';
 import { Provider as ReduxProvider } from 'react-redux';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { createHAI3App } from '@cyberfabric/framework';
-import type { HAI3App } from '@cyberfabric/framework';
+import type { Store } from '@reduxjs/toolkit';
+import {
+  createHAI3,
+  createHAI3App,
+  effects,
+  i18n,
+  layout,
+  microfrontends,
+  mock,
+  registerMfeMountExplicitServerState,
+  screensets,
+  themes,
+} from '@cyberfabric/framework';
+import type { HAI3App, ServerStateRuntime } from '@cyberfabric/framework';
 import { HAI3Context } from './HAI3Context';
 import { MfeProvider } from './mfe/MfeProvider';
+import { ServerStateProvider } from './serverState';
 import type { HAI3ProviderProps } from './types';
 
 /**
@@ -39,6 +51,39 @@ function shallowEqual(
   const keysA = Object.keys(a);
   if (keysA.length !== Object.keys(b).length) return false;
   return keysA.every((k) => Object.is(a[k], b[k]));
+}
+
+type ProviderOwnedAppConfig = HAI3ProviderProps['config'] & {
+  microfrontends?: Parameters<typeof microfrontends>[0];
+};
+
+function createProviderOwnedApp(
+  config: ProviderOwnedAppConfig | undefined,
+  providedServerState: ServerStateRuntime | undefined
+): HAI3App {
+  if (providedServerState === undefined) {
+    return createHAI3App(config);
+  }
+
+  // When a host/runtime is injected, avoid booting a second queryCache() lifecycle.
+  // Keep the mock plugin available so provider-owned roots still expose the same
+  // actions/slice behavior as the default preset, but suppress its init-time
+  // dev auto-toggle because that would eagerly clear the externally managed runtime.
+  const builder = createHAI3(config)
+    .use(effects())
+    .use(screensets({ autoDiscover: true }))
+    .use(themes())
+    .use(layout())
+    .use(i18n())
+    .use(mock({ enabledByDefault: false }));
+
+  if (config?.microfrontends) {
+    builder.use(microfrontends(config.microfrontends));
+  }
+
+  const app = builder.build();
+  app.serverState = providedServerState;
+  return app;
 }
 
 /**
@@ -70,8 +115,8 @@ function shallowEqual(
  *   <MyMfeApp />
  * </FrontXProvider>
  *
- * // With injected QueryClient (host + separate MFE roots share one cache)
- * <FrontXProvider app={app} queryClient={sharedQueryClient}>
+ * // With injected server-state runtime (host + separate roots share one cache)
+ * <FrontXProvider app={app} serverState={sharedServerState}>
  *   <MyMfeApp />
  * </FrontXProvider>
  * ```
@@ -84,7 +129,7 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   config,
   app: providedApp,
   mfeBridge,
-  queryClient: providedQueryClient,
+  serverState: providedServerState,
 }) => {
   // @cpt-begin:cpt-frontx-flow-react-bindings-bootstrap-provider:p1:inst-resolve-app
   // @cpt-begin:cpt-frontx-algo-react-bindings-resolve-app:p1:inst-use-provided-app
@@ -110,8 +155,11 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
       return providedApp;
     }
 
-    return createHAI3App(stableConfig);
-  }, [providedApp, stableConfig]);
+    return createProviderOwnedApp(
+      stableConfig as ProviderOwnedAppConfig | undefined,
+      providedServerState,
+    );
+  }, [providedApp, providedServerState, stableConfig]);
   // @cpt-end:cpt-frontx-algo-react-bindings-resolve-app:p1:inst-use-provided-app
   // @cpt-end:cpt-frontx-algo-react-bindings-resolve-app:p1:inst-create-app
   // @cpt-end:cpt-frontx-algo-react-bindings-resolve-app:p1:inst-memoize-app
@@ -119,29 +167,52 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-end:cpt-frontx-flow-react-bindings-bootstrap-provider:p1:inst-resolve-app
 
   // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-resolve-query-client
-  // Priority: explicitly injected client (MFE root) > plugin-owned client (app.queryClient).
+  // Priority: explicitly injected runtime > plugin-owned runtime (app.serverState).
   // Memoized so descendants (e.g. ExtensionDomainSlot effects keyed on app) do not see spurious
   // reference churn when the provider re-renders with the same inputs.
-  const queryClient = useMemo(
-    () => providedQueryClient ?? app.queryClient,
-    [providedQueryClient, app.queryClient],
+  const serverState = useMemo(
+    () => providedServerState ?? app.serverState,
+    [providedServerState, app.serverState],
   );
 
-  if (!queryClient && process.env.NODE_ENV !== 'production') {
+  const contextApp = useMemo<HAI3App>(() => {
+    if (serverState === app.serverState) {
+      return app;
+    }
+
+    // Keep useHAI3().serverState aligned with the runtime injected into
+    // ServerStateProvider without mutating a caller-owned app instance.
+    return {
+      ...app,
+      serverState,
+    };
+  }, [app, serverState]);
+
+  if (!serverState && process.env.NODE_ENV !== 'production') {
     console.warn(
-      '[HAI3Provider] No QueryClient available. Add queryCache() to your plugin composition ' +
-      'or pass a queryClient prop. useApiQuery/useApiMutation will fail without it.'
+      '[HAI3Provider] No server-state runtime available. Add queryCache() to your plugin composition ' +
+      'or pass a serverState prop. useApiQuery/useApiMutation will fail without it.'
     );
   }
   // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-resolve-query-client
 
-  useEffect(() => {
-    if (!app.screensetsRegistry || !queryClient) {
+  // Register explicit serverState for this app's microfrontends() mount handoff.
+  useLayoutEffect(() => {
+    if (providedServerState === undefined) {
       return;
     }
 
-    app.screensetsRegistry.setMountContextResolver(() => ({ queryClient }));
-  }, [app.screensetsRegistry, queryClient]);
+    const disposeAppRegistration = registerMfeMountExplicitServerState(app, providedServerState);
+    const disposeContextRegistration =
+      contextApp === app
+        ? undefined
+        : registerMfeMountExplicitServerState(contextApp, providedServerState);
+
+    return () => {
+      disposeContextRegistration?.();
+      disposeAppRegistration();
+    };
+  }, [app, contextApp, providedServerState]);
 
   // @cpt-begin:cpt-frontx-flow-react-bindings-bootstrap-provider:p1:inst-destroy-app
   // Cleanup on unmount
@@ -163,24 +234,16 @@ export const HAI3Provider: React.FC<HAI3ProviderProps> = ({
   // @cpt-begin:cpt-frontx-flow-react-bindings-bootstrap-provider:p1:inst-render-children
   // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-render-query-provider
   // Provider order (outer to inner):
-  //   HAI3Context -> ReduxProvider -> QueryClientProvider -> children
-  // A host-owned QueryClient can be injected via the queryClient prop so separately
-  // mounted MFE roots share one cache. MfeProvider does not create a QueryClient.
-  const content = queryClient ? (
-    <HAI3Context.Provider value={app}>
-      <ReduxProvider store={app.store}>
-        <QueryClientProvider client={queryClient}>
+  //   HAI3Context -> ReduxProvider -> ServerStateProvider -> children
+  // A host-owned runtime can be injected via the serverState prop so separately
+  // mounted roots share one cache. MfeProvider does not create server-state runtime.
+  const content = (
+    <HAI3Context.Provider value={contextApp}>
+      <ReduxProvider store={contextApp.store as Store}>
+        {/* app.store is FrontX-owned but Redux-compatible. Cast keeps react-redux happy. */}
+        <ServerStateProvider runtime={serverState}>
           {children}
-        </QueryClientProvider>
-      </ReduxProvider>
-    </HAI3Context.Provider>
-  ) : (
-    // No QueryClient available (queryCache plugin not registered, none injected).
-    // Render without QueryClientProvider — useApiQuery/useApiMutation will throw
-    // if called, which surfaces the misconfiguration clearly.
-    <HAI3Context.Provider value={app}>
-      <ReduxProvider store={app.store}>
-        {children}
+        </ServerStateProvider>
       </ReduxProvider>
     </HAI3Context.Provider>
   );

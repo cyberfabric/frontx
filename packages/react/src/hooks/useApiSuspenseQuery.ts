@@ -8,31 +8,16 @@
 // @cpt-flow:cpt-frontx-flow-request-lifecycle-use-api-query:p2
 // @cpt-state:cpt-frontx-state-request-lifecycle-query:p2
 
-import { useSuspenseQuery } from '@tanstack/react-query';
 import type { EndpointDescriptor } from '@cyberfabric/framework';
 import type { ApiSuspenseQueryResult } from '../types';
 import type { ApiQueryOverrides } from './useApiQuery';
+import { useServerStateSuspenseQuery } from '../serverState';
 
 // @cpt-begin:cpt-frontx-flow-request-lifecycle-use-api-query:p2:inst-delegate-use-suspense-query
 export function useApiSuspenseQuery<TData = unknown, TError = Error>(
   descriptor: EndpointDescriptor<TData>,
   overrides?: ApiQueryOverrides
-): ApiSuspenseQueryResult<TData> {
-  const result = useSuspenseQuery<TData, TError>({
-    queryKey: descriptor.key as unknown[],
-    queryFn: ({ signal }) => descriptor.fetch({ signal }),
-    staleTime: overrides?.staleTime ?? descriptor.staleTime,
-    gcTime: overrides?.gcTime ?? descriptor.gcTime,
-  });
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-use-api-query:p2:inst-delegate-use-suspense-query
-
-  // @cpt-begin:cpt-frontx-flow-request-lifecycle-use-api-query:p2:inst-return-suspense-data
-  return {
-    data: result.data,
-    isFetching: result.isFetching,
-    refetch: async () => {
-      await result.refetch();
-    },
-  };
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-use-api-query:p2:inst-return-suspense-data
+): ApiSuspenseQueryResult<TData, TError> {
+  return useServerStateSuspenseQuery<TData, TError>(descriptor, overrides);
 }
+// @cpt-end:cpt-frontx-flow-request-lifecycle-use-api-query:p2:inst-delegate-use-suspense-query

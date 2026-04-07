@@ -14,8 +14,8 @@ import type {
   RootState,
   Language,
   Formatters,
+  ServerStateRuntime,
 } from '@cyberfabric/framework';
-import type { QueryClient } from '@tanstack/react-query';
 import type { MfeContextValue } from './mfe/MfeContext';
 
 // Re-export imported types for convenience
@@ -46,8 +46,9 @@ export interface ApiQueryResult<TData, TError = Error> {
  * Returned by useApiSuspenseQuery — callers depend on this contract, not on TanStack internals.
  */
 // @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-query-result
-export interface ApiSuspenseQueryResult<TData> {
+export interface ApiSuspenseQueryResult<TData, TError = Error> {
   data: TData;
+  error: TError | null;
   isFetching: boolean;
   refetch: () => Promise<void>;
 }
@@ -79,8 +80,9 @@ export interface ApiInfiniteQueryResult<TPage, TError = Error> {
  * Returned by useApiSuspenseInfiniteQuery for descriptor-driven pagination.
  */
 // @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-query:p2:inst-suspense-infinite-query-result
-export interface ApiSuspenseInfiniteQueryResult<TPage> {
+export interface ApiSuspenseInfiniteQueryResult<TPage, TError = Error> {
   data: readonly TPage[];
+  error: TError | null;
   isFetching: boolean;
   hasNextPage: boolean;
   hasPreviousPage: boolean;
@@ -142,8 +144,8 @@ type TranslationParams = Record<string, string | number | boolean>;
  *   <MyMfeApp />
  * </FrontXProvider>
  *
- * // With injected QueryClient shared across roots
- * <FrontXProvider app={app} queryClient={sharedQueryClient}>
+ * // With injected server-state runtime shared across roots
+ * <FrontXProvider app={app} serverState={sharedServerState}>
  *   <MyMfeApp />
  * </FrontXProvider>
  * ```
@@ -158,12 +160,16 @@ export interface HAI3ProviderProps {
   /** MFE bridge context (for MFE components) */
   mfeBridge?: MfeContextValue;
   /**
-   * Optional externally managed QueryClient for MFE injection.
-   * When multiple React roots (host + MFEs) must share one cache, pass the
-   * host-owned QueryClient here so each MFE root participates in the same instance.
-   * When omitted, HAI3Provider reads app.queryClient from the queryCache() plugin.
+   * Optional externally managed server-state runtime for multi-root injection.
+   * When multiple render trees (host + MFEs) must share one cache, pass the
+   * host-owned runtime here so each tree participates in the same instance.
+   * When omitted, HAI3Provider reads app.serverState from the queryCache() plugin.
+   * When set, this value is also registered for MFE `mount_ext` handoff so
+   * registry-mounted extensions receive the same runtime in their root.
    */
-  queryClient?: QueryClient;
+  // @cpt-begin:cpt-frontx-algo-request-lifecycle-query-client-defaults:p2:inst-provider-reads-client
+  serverState?: ServerStateRuntime;
+  // @cpt-end:cpt-frontx-algo-request-lifecycle-query-client-defaults:p2:inst-provider-reads-client
 }
 
 // ============================================================================

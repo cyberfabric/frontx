@@ -1,0 +1,592 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  createSharedFetchCache,
+  getSharedFetchCache,
+  releaseSharedFetchCache,
+  resetSharedFetchCache,
+  retainSharedFetchCache,
+} from '../sharedFetchCache';
+
+function readAliasState(cache: unknown): {
+  aliasesByPrimaryKey: Map<string, Set<string>>;
+  primaryKeysByAlias: Map<string, Set<string>>;
+} {
+  return cache as {
+    aliasesByPrimaryKey: Map<string, Set<string>>;
+    primaryKeysByAlias: Map<string, Set<string>>;
+  };
+}
+
+function readVersionState(cache: unknown): { versions: Map<string, number> } {
+  return cache as {
+    versions: Map<string, number>;
+  };
+}
+
+beforeEach(() => {
+  resetSharedFetchCache();
+});
+
+afterEach(() => {
+  vi.useRealTimers();
+  resetSharedFetchCache();
+});
+
+describe('SharedFetchCache', () => {
+  it('deduplicates concurrent fetches for the same key', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi.fn(async () => {
+      await Promise.resolve();
+      return { ok: true };
+    });
+
+    const [first, second] = await Promise.all([
+      cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 }),
+      cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 }),
+    ]);
+
+    expect(first).toEqual({ ok: true });
+    expect(second).toEqual({ ok: true });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts the shared request only after the last consumer aborts', async () => {
+    const cache = createSharedFetchCache();
+    const firstController = new AbortController();
+    const secondController = new AbortController();
+    let capturedSignal: AbortSignal | undefined;
+
+    const fetcher = vi.fn(
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          capturedSignal = signal;
+          if (signal?.aborted) {
+            reject(signal.reason ?? new Error('aborted'));
+            return;
+          }
+          signal?.addEventListener(
+            'abort',
+            () => reject(signal.reason ?? new Error('aborted')),
+            { once: true }
+          );
+        })
+    );
+
+    const firstPromise = cache.getOrFetch(['users'], fetcher, {
+      signal: firstController.signal,
+      staleTime: 1_000,
+    });
+    const secondPromise = cache.getOrFetch(['users'], fetcher, {
+      signal: secondController.signal,
+      staleTime: 1_000,
+    });
+
+    firstController.abort();
+    await expect(firstPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(capturedSignal?.aborted).toBe(false);
+
+    secondController.abort();
+    await expect(secondPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(capturedSignal?.aborted).toBe(true);
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops cached data after invalidate so the next consumer refetches', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 })).resolves.toBe('first');
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 })).resolves.toBe('first');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    cache.invalidate(['users']);
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 })).resolves.toBe('second');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('releases version bookkeeping after invalidating a settled entry', async () => {
+    const cache = createSharedFetchCache();
+
+    await expect(cache.getOrFetch(['users'], () => Promise.resolve('first'), { staleTime: 1_000 })).resolves.toBe(
+      'first'
+    );
+
+    cache.invalidate(['users']);
+
+    expect(readVersionState(cache).versions.size).toBe(0);
+  });
+
+  it('invalidates a primary entry through an exact alias key', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/users', { Authorization: 'Bearer a' }],
+        fetcher,
+        {
+          aliases: [['/api/users', 'GET', '/current-user']],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('first');
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/users', { Authorization: 'Bearer a' }],
+        fetcher,
+        {
+          aliases: [['/api/users', 'GET', '/current-user']],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('first');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+
+    cache.invalidate(['/api/users', 'GET', '/current-user']);
+
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/users', { Authorization: 'Bearer a' }],
+        fetcher,
+        {
+          aliases: [['/api/users', 'GET', '/current-user']],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('second');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('aborts an in-flight request when the same key is invalidated', async () => {
+    const cache = createSharedFetchCache();
+    let capturedSignal: AbortSignal | undefined;
+
+    const fetcher = vi.fn(
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          capturedSignal = signal;
+          signal?.addEventListener(
+            'abort',
+            () => reject(signal.reason ?? new Error('aborted')),
+            { once: true }
+          );
+        })
+    );
+
+    const pendingPromise = cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 });
+    await Promise.resolve();
+
+    cache.invalidate(['users']);
+
+    await expect(pendingPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(capturedSignal?.aborted).toBe(true);
+  });
+
+  it('releases version bookkeeping after an invalidated in-flight entry settles', async () => {
+    const cache = createSharedFetchCache();
+
+    const pendingPromise = cache.getOrFetch(
+      ['users'],
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          signal?.addEventListener('abort', () => reject(signal.reason ?? new Error('aborted')), {
+            once: true,
+          });
+        }),
+      { staleTime: 1_000 }
+    );
+
+    await Promise.resolve();
+    cache.invalidate(['users']);
+
+    await expect(pendingPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(readVersionState(cache).versions.size).toBe(0);
+  });
+
+  it('normalizes caller-provided Error abort reasons to AbortError', async () => {
+    const cache = createSharedFetchCache();
+    const controller = new AbortController();
+    const abortReason = new Error('request cancelled by caller');
+
+    const fetcher = vi.fn(
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          signal?.addEventListener('abort', () => reject(signal.reason), { once: true });
+        })
+    );
+
+    const pendingPromise = cache.getOrFetch(['users'], fetcher, {
+      signal: controller.signal,
+      staleTime: 1_000,
+    });
+
+    controller.abort(abortReason);
+
+    await expect(pendingPromise).rejects.toMatchObject({
+      cause: abortReason,
+      message: 'request cancelled by caller',
+      name: 'AbortError',
+    });
+  });
+
+  it('drops cached descendant data after prefix invalidation', async () => {
+    const cache = createSharedFetchCache();
+    const parentFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('parent-first')
+      .mockResolvedValueOnce('parent-second');
+    const childFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('child-first')
+      .mockResolvedValueOnce('child-second');
+    const unrelatedFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('unrelated-first');
+
+    await expect(cache.getOrFetch(['messages'], parentFetcher, { staleTime: 1_000 })).resolves.toBe('parent-first');
+    await expect(cache.getOrFetch(['messages', { page: 1 }], childFetcher, { staleTime: 1_000 })).resolves.toBe('child-first');
+    await expect(cache.getOrFetch(['other'], unrelatedFetcher, { staleTime: 1_000 })).resolves.toBe('unrelated-first');
+
+    cache.invalidateMany({ key: ['messages'], exact: false });
+
+    await expect(cache.getOrFetch(['messages'], parentFetcher, { staleTime: 1_000 })).resolves.toBe('parent-second');
+    await expect(cache.getOrFetch(['messages', { page: 1 }], childFetcher, { staleTime: 1_000 })).resolves.toBe('child-second');
+    await expect(cache.getOrFetch(['other'], unrelatedFetcher, { staleTime: 1_000 })).resolves.toBe('unrelated-first');
+    expect(parentFetcher).toHaveBeenCalledTimes(2);
+    expect(childFetcher).toHaveBeenCalledTimes(2);
+    expect(unrelatedFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops aliased descendant data after prefix invalidation', async () => {
+    const cache = createSharedFetchCache();
+    const parentFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('parent-first')
+      .mockResolvedValueOnce('parent-second');
+    const childFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('child-first')
+      .mockResolvedValueOnce('child-second');
+
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/messages', { Authorization: 'Bearer a' }],
+        parentFetcher,
+        {
+          aliases: [['/api/messages', 'GET', '/messages']],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('parent-first');
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/messages', { Authorization: 'Bearer a' }, { page: '1' }],
+        childFetcher,
+        {
+          aliases: [['/api/messages', 'GET', '/messages', { page: '1' }]],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('child-first');
+
+    cache.invalidateMany({ key: ['/api/messages', 'GET', '/messages'], exact: false });
+
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/messages', { Authorization: 'Bearer a' }],
+        parentFetcher,
+        {
+          aliases: [['/api/messages', 'GET', '/messages']],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('parent-second');
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/messages', { Authorization: 'Bearer a' }, { page: '1' }],
+        childFetcher,
+        {
+          aliases: [['/api/messages', 'GET', '/messages', { page: '1' }]],
+          staleTime: 1_000,
+        }
+      )
+    ).resolves.toBe('child-second');
+    expect(parentFetcher).toHaveBeenCalledTimes(2);
+    expect(childFetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not treat an empty prefix invalidation key as a wildcard', async () => {
+    const cache = createSharedFetchCache();
+    const targetFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('target-first');
+    const unrelatedFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('unrelated-first');
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+
+    cache.invalidateMany({ key: [], exact: false });
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+    expect(targetFetcher).toHaveBeenCalledTimes(1);
+    expect(unrelatedFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats invalidateMany() without filters as a no-op', async () => {
+    const cache = createSharedFetchCache();
+    const targetFetcher = vi.fn<() => Promise<string>>().mockResolvedValueOnce('target-first');
+    const unrelatedFetcher = vi.fn<() => Promise<string>>().mockResolvedValueOnce('unrelated-first');
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+
+    cache.invalidateMany();
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+    expect(targetFetcher).toHaveBeenCalledTimes(1);
+    expect(unrelatedFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('treats invalidateMany({}) as a no-op', async () => {
+    const cache = createSharedFetchCache();
+    const targetFetcher = vi.fn<() => Promise<string>>().mockResolvedValueOnce('target-first');
+    const unrelatedFetcher = vi.fn<() => Promise<string>>().mockResolvedValueOnce('unrelated-first');
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+
+    cache.invalidateMany({});
+
+    await expect(cache.getOrFetch(['target'], targetFetcher, { staleTime: 1_000 })).resolves.toBe(
+      'target-first'
+    );
+    await expect(
+      cache.getOrFetch(['unrelated'], unrelatedFetcher, { staleTime: 1_000 })
+    ).resolves.toBe('unrelated-first');
+    expect(targetFetcher).toHaveBeenCalledTimes(1);
+    expect(unrelatedFetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('aborts pending descendant requests during prefix invalidation', async () => {
+    const cache = createSharedFetchCache();
+    let parentSignal: AbortSignal | undefined;
+    let childSignal: AbortSignal | undefined;
+
+    const parentFetcher = vi.fn(
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          parentSignal = signal;
+          if (signal?.aborted) {
+            reject(signal.reason ?? new Error('aborted'));
+            return;
+          }
+          signal?.addEventListener(
+            'abort',
+            () => reject(signal.reason ?? new Error('aborted')),
+            { once: true }
+          );
+        })
+    );
+    const childFetcher = vi.fn(
+      ({ signal }: { signal?: AbortSignal }) =>
+        new Promise<string>((_resolve, reject) => {
+          childSignal = signal;
+          if (signal?.aborted) {
+            reject(signal.reason ?? new Error('aborted'));
+            return;
+          }
+          signal?.addEventListener(
+            'abort',
+            () => reject(signal.reason ?? new Error('aborted')),
+            { once: true }
+          );
+        })
+    );
+
+    const parentPromise = cache.getOrFetch(['messages'], parentFetcher, { staleTime: 1_000 });
+    const childPromise = cache.getOrFetch(['messages', { page: 1 }], childFetcher, {
+      staleTime: 1_000,
+    });
+
+    cache.invalidateMany({ key: ['messages'], exact: false });
+
+    await expect(parentPromise).rejects.toMatchObject({ name: 'AbortError' });
+    await expect(childPromise).rejects.toMatchObject({ name: 'AbortError' });
+    expect(parentSignal?.aborted).toBe(true);
+    expect(childSignal?.aborted).toBe(true);
+  });
+
+  it('does not reuse resolved data when staleTime is zero', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 0 })).resolves.toBe('first');
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 0 })).resolves.toBe('second');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('cleans up alias bookkeeping when a zero-stale entry is dropped after success', async () => {
+    const cache = createSharedFetchCache();
+
+    await expect(
+      cache.getOrFetch(['GET', '/api/users', { Authorization: 'Bearer a' }], () => Promise.resolve('ok'), {
+        aliases: [['/api/users', 'GET', '/current-user']],
+        staleTime: 0,
+      })
+    ).resolves.toBe('ok');
+
+    const aliasState = readAliasState(cache);
+    expect(aliasState.aliasesByPrimaryKey.size).toBe(0);
+    expect(aliasState.primaryKeysByAlias.size).toBe(0);
+  });
+
+  it('cleans up alias bookkeeping when a fetch fails', async () => {
+    const cache = createSharedFetchCache();
+
+    await expect(
+      cache.getOrFetch(
+        ['GET', '/api/users', { Authorization: 'Bearer a' }],
+        () => Promise.reject(new Error('boom')),
+        {
+          aliases: [['/api/users', 'GET', '/current-user']],
+          staleTime: 1_000,
+        }
+      )
+    ).rejects.toThrow('boom');
+
+    const aliasState = readAliasState(cache);
+    expect(aliasState.aliasesByPrimaryKey.size).toBe(0);
+    expect(aliasState.primaryKeysByAlias.size).toBe(0);
+  });
+
+  it('does not reuse cached data when a later caller requests staleTime zero', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 60_000 })).resolves.toBe('first');
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 0 })).resolves.toBe('second');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('uses the later caller staleTime when checking cached data freshness', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-04-06T00:00:00.000Z'));
+
+    const cache = createSharedFetchCache();
+    const fetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 60_000 })).resolves.toBe('first');
+
+    vi.advanceTimersByTime(750);
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 500 })).resolves.toBe('second');
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('retains a deduped result when a concurrent caller requests caching', async () => {
+    const cache = createSharedFetchCache();
+    const fetcher = vi.fn(async () => {
+      await Promise.resolve();
+      return 'shared';
+    });
+
+    await expect(
+      Promise.all([
+        cache.getOrFetch(['users'], fetcher, { staleTime: 0 }),
+        cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 }),
+      ])
+    ).resolves.toEqual(['shared', 'shared']);
+
+    await expect(cache.getOrFetch(['users'], fetcher, { staleTime: 1_000 })).resolves.toBe('shared');
+    expect(fetcher).toHaveBeenCalledTimes(1);
+  });
+
+  it('drops all cached data after clear so every key refetches', async () => {
+    const cache = createSharedFetchCache();
+    const usersFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('users-first')
+      .mockResolvedValueOnce('users-second');
+    const profileFetcher = vi
+      .fn<() => Promise<string>>()
+      .mockResolvedValueOnce('profile-first')
+      .mockResolvedValueOnce('profile-second');
+
+    await expect(cache.getOrFetch(['users'], usersFetcher, { staleTime: 1_000 })).resolves.toBe('users-first');
+    await expect(cache.getOrFetch(['profile'], profileFetcher, { staleTime: 1_000 })).resolves.toBe('profile-first');
+
+    cache.clear();
+
+    await expect(cache.getOrFetch(['users'], usersFetcher, { staleTime: 1_000 })).resolves.toBe('users-second');
+    await expect(cache.getOrFetch(['profile'], profileFetcher, { staleTime: 1_000 })).resolves.toBe('profile-second');
+    expect(usersFetcher).toHaveBeenCalledTimes(2);
+    expect(profileFetcher).toHaveBeenCalledTimes(2);
+  });
+
+  it('reuses the global cache while it is retained by another runtime', async () => {
+    const firstCache = retainSharedFetchCache();
+    const secondCache = retainSharedFetchCache();
+    const fetcher = vi.fn().mockResolvedValue('shared');
+
+    await firstCache.getOrFetch(['users'], fetcher, { staleTime: 1_000 });
+    releaseSharedFetchCache();
+    await secondCache.getOrFetch(['users'], fetcher, { staleTime: 1_000 });
+
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    releaseSharedFetchCache();
+  });
+
+  it('resets the global cache after the last retained runtime releases it', async () => {
+    const firstCache = retainSharedFetchCache();
+    const fetcher = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
+
+    await firstCache.getOrFetch(['users'], fetcher, { staleTime: 1_000 });
+    releaseSharedFetchCache();
+
+    const secondCache = getSharedFetchCache();
+    await secondCache.getOrFetch(['users'], fetcher, { staleTime: 1_000 });
+
+    expect(secondCache).not.toBe(firstCache);
+    expect(fetcher).toHaveBeenCalledTimes(2);
+  });
+});

@@ -15,7 +15,7 @@ date: 2026-03-17
   - [Consequences](#consequences)
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
-  - [Adopt @tanstack/react-query at L3 with endpoint descriptors exposed through dedicated service contracts](#adopt-tanstackreact-query-at-l3-with-endpoint-descriptors-exposed-through-dedicated-service-contracts)
+  - [Adopt TanStack Query with endpoint descriptors, a headless L2 runtime, and L3 React bindings](#adopt-tanstack-query-with-endpoint-descriptors-a-headless-l2-runtime-and-l3-react-bindings)
   - [Adopt @tanstack/react-query at L3 with per-MFE query key factories](#adopt-tanstackreact-query-at-l3-with-per-mfe-query-key-factories)
   - [Adopt RTK Query leveraging the existing Redux store](#adopt-rtk-query-leveraging-the-existing-redux-store)
   - [Build a custom query/cache layer inside @cyberfabric/react](#build-a-custom-querycache-layer-inside-cyberfabricreact)
@@ -33,7 +33,7 @@ date: 2026-03-17
 
 Screen-set authors must write five files (action, event declaration, effect, Redux slice, component selector) for every API endpoint they consume. Each slice manually tracks `loading`, `error`, and `data` state. There is no request deduplication — if five components need the same user profile, five identical HTTP requests fire. There is no caching — navigating away and back triggers a full refetch. There is no built-in mechanism for optimistic updates or cache invalidation after mutations.
 
-These are solved problems in the React ecosystem. The question is whether to build a custom solution inside FrontX or adopt an established library at the React layer (L3).
+These are solved problems in the React ecosystem. The question is whether to build a custom solution inside FrontX or adopt an established TanStack-based server-state stack with a headless runtime at L2 and React bindings at L3.
 
 A secondary question follows: if an external caching library is adopted, where should the abstraction boundary sit? The naive approach places query key factories and `queryOptions` calls in per-MFE query modules, coupling every MFE to the chosen library's API surface. With hundreds of MFEs planned, a future library swap would require editing hundreds of files rather than a handful of framework files. The alternative is to move caching metadata into the service layer where the request shape is already known, so MFEs remain library-agnostic.
 
@@ -43,7 +43,7 @@ A secondary question follows: if an external caching library is adopted, where s
 * Enable a shared cache across MFEs so overlapping queries (e.g., current user) are fetched once, while each MFE retains its own API service instances and plugin chains
 * Support optimistic updates with rollback for mutations
 * Preserve the existing plugin chain, mock mode, and service registry at L1
-* Respect the layer hierarchy: no new dependencies below L3
+* Respect the layer hierarchy: keep L1 free of **TanStack** server-state dependencies (no `@tanstack/query-core` / `react-query` at L1) while allowing L1 transport coordination (shared fetch dedup keyed like descriptors); keep React-specific integration at L3
 * Minimize bundle size impact
 * Maintain the event-driven Flux pattern as an escape hatch for cross-feature orchestration
 * Eliminate per-MFE coupling to the caching library (no manual query key factories, no `queryOptions` imports)
@@ -51,11 +51,11 @@ A secondary question follows: if an external caching library is adopted, where s
 * Keep the MFE developer's API minimal: `useApiQuery(service.endpoint)` for single-page reads, `useApiSuspenseQuery(service.endpoint)` for Suspense-driven single-page reads, `useApiInfiniteQuery({ initialPage, getNextPage })` for paginated reads, `useApiSuspenseInfiniteQuery({ initialPage, getNextPage })` for Suspense-driven paginated reads, and `useApiMutation({ endpoint: service.endpoint })` for writes
 * Support future protocol swaps (REST → GraphQL, SSE) without MFE changes
 * Keep `EndpointDescriptor` at L1 (`@cyberfabric/api`) with no caching library dependency
-* Keep the caching library adapter at L3 (`@cyberfabric/react`) as the sole integration point
+* Keep the TanStack split explicit: the headless server-state runtime lives at L2 (`@cyberfabric/framework`), while the React adapter remains at L3 (`@cyberfabric/react`)
 
 ## Considered Options
 
-* Adopt `@tanstack/react-query` at L3 with **endpoint descriptors exposed through dedicated service contracts** and a `queryCache()` framework plugin at L2
+* Adopt TanStack Query with **endpoint descriptors exposed through dedicated service contracts**, a headless `queryCache()` runtime at L2, and React bindings at L3
 * Adopt `@tanstack/react-query` at L3 with **per-MFE query key factories** colocated in standalone query modules
 * Adopt RTK Query (`@reduxjs/toolkit/query`) leveraging the existing Redux store
 * Build a custom query/cache layer inside `@cyberfabric/react`
@@ -63,11 +63,11 @@ A secondary question follows: if an external caching library is adopted, where s
 
 ## Decision Outcome
 
-Chosen option: **Adopt `@tanstack/react-query` at L3 with endpoint descriptors exposed through dedicated service contracts**, combined with a **`queryCache()` framework plugin** at L2 that owns the `QueryClient` lifecycle, event-driven cache invalidation, and mock mode integration.
+Chosen option: **Adopt TanStack Query-backed server state with endpoint descriptors exposed through dedicated service contracts**, combined with a **`queryCache()` framework plugin** at L2 that owns the `ServerStateRuntime` lifecycle and exposes `app.serverState`, while `@cyberfabric/react` remains the sole L3 integration point for React hooks and providers.
 
-TanStack Query provides caching, deduplication, optimistic updates, and cache invalidation with zero runtime dependencies in its core package, sits cleanly at the React layer without violating the L1/L2 boundary, and avoids rebuilding ~500 lines of battle-tested, race-condition-sensitive code (cache GC, structural sharing, stale tracking, subscriber lifecycle).
+TanStack Query provides caching, deduplication, optimistic updates, and cache invalidation with zero runtime dependencies in `@tanstack/query-core`. The React bindings stay confined to L3, while L2 owns the headless `ServerStateRuntime` and event-driven cache orchestration without introducing React below L3. This avoids rebuilding ~500 lines of battle-tested, race-condition-sensitive code (cache GC, structural sharing, stale tracking, subscriber lifecycle).
 
-Endpoint descriptors move the caching contract to the service layer where the request shape is already known, but they are exposed through dedicated declarative contracts rather than `BaseApiService` itself. Cache keys are derived automatically from `[baseURL, method, path, params]`. MFEs consume descriptors via `useApiQuery(service.endpoint)` without knowing which caching library backs them. Swapping the caching library requires changes only in the `queryCache()` plugin and `@cyberfabric/react` hooks (~6 files), not in any MFE.
+Endpoint descriptors move the caching contract to the service layer where the request shape is already known, but they are exposed through dedicated declarative contracts rather than `BaseApiService` itself. Cache keys are derived automatically from `[baseURL, method, path, params]`. MFEs consume descriptors via `useApiQuery(service.endpoint)` without knowing which caching library backs them. **Swapping the server-state library** (the `QueryClient`-backed runtime) primarily touches `@cyberfabric/framework` (`queryCache()`, `ServerStateRuntime` / `tanstackRuntime`) and `@cyberfabric/react` hooks, but **must stay consistent with L1 `sharedFetchCache`** wired through `RestProtocol` / `RestEndpointProtocol` (same keys, invalidation, and lifecycle retention). Treat a full swap as spanning **API + framework + React**, not “~6 files” alone.
 
 RTK Query was evaluated as a natural candidate given FrontX's existing Redux dependency, but was rejected primarily because its static `createApi` endpoint model and shared `baseQuery` conflict with FrontX's architecture, where each MFE keeps its own isolated `apiRegistry` and service instances. Wrapping per-MFE services into a shared `createApi` would require a service-bridge abstraction to resolve the correct service at runtime, which negates the simplicity RTK Query is meant to provide. RTK Query does offer infinite queries (`build.infiniteQuery` / `useInfiniteQuery`), structural sharing (`copyWithStructuralSharing`, with `structuralSharing: false` as an escape hatch), and `AbortSignal` / `abort()` cancellation support, but its cancellation lifecycle differs by design from FrontX's automatic unmount-driven behavior. The primary incompatibility is the `createApi` / `apiRegistry` mismatch, not missing features.
 
@@ -80,18 +80,18 @@ The existing Flux pattern (action → event → effect → reducer) is retained 
 * Good, because optimistic updates and rollback are supported via the `onMutate`/`onError` callback pattern and imperative cache work is available via `useQueryCache()`, both using the same restricted `QueryCache` accessor (`get`, `getState`, `set` with updater function, `cancel`, `invalidate`, `invalidateMany`, `remove`) — MFEs never access `queryClient` directly
 * Good, because `@tanstack/query-core` has zero runtime dependencies and ~12kB gzipped bundle size
 * Good, because each MFE retains its own `apiRegistry` and service instances — `queryFn` wraps the local service, but the cache layer is shared
-* Good, because `queryClient` is internal to `@cyberfabric/react` — MFEs interact with the cache only through the `QueryCache` interface (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) exposed via `useQueryCache()` and injected into mutation callbacks, preventing uncontrolled cross-MFE cache tampering
+* Good, because the underlying `QueryClient` stays behind the framework-owned `ServerStateRuntime` boundary and the L3 React adapter — MFEs interact with the cache only through the `QueryCache` interface (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) exposed via `useQueryCache()` and injected into mutation callbacks, preventing uncontrolled cross-MFE cache tampering
 * Good, because MFEs no longer import `queryOptions`, `UseApiQueryOptions`, or define manual key factories — standalone query modules for cache wiring are eliminated
 * Good, because cache keys are derived deterministically from `[baseURL, method, path, params]` — no manual key factories, no risk of key collisions or typos
-* Good, because swapping the caching library (TanStack → SWR, Apollo, custom) requires changes only in the `queryCache()` plugin and `@cyberfabric/react` hooks (~6 files), not in any MFE
+* Good, because MFEs stay decoupled from the server-state implementation — but **replacing** that implementation is **not** confined to the framework plugin and React hooks: `sharedFetchCache` at L1 and REST descriptor `fetch` paths must be updated or replaced in lockstep so transport dedup and TanStack (or successor) cache stay aligned
 * Good, because swapping the transport protocol (REST → GraphQL) requires changes only in the service class and protocol, not in MFE components — `useApiQuery(service.endpoint)` stays the same
-* Good, because `EndpointDescriptor` lives at L1 with zero caching library dependency — it is a plain object with a key and a fetch function
+* Good, because `EndpointDescriptor` lives at L1 with **no TanStack types** — it is a plain object with a key and a fetch function; REST reads may route through **L1 `sharedFetchCache`** (in-package transport dedup keyed like the descriptor) when the host enables retention via `queryCache()`
 * Good, because per-endpoint cache configuration (`staleTime`, `gcTime`) is colocated with the service method, not scattered across separate query-module files
-* Good, because `QueryCache` methods (`get`, `set`, `invalidate`, `cancel`, `remove`) accept endpoint descriptors directly, making cache operations type-safe and refactor-friendly
-* Good, because the `queryCache()` framework plugin centralizes cache lifecycle, mock mode integration, and Flux cache invalidation — following the same pattern as `mock()`, `themes()`, and other framework plugins
-* Good, because `QueryClient` is owned by the framework plugin and available without React (for tests, SSR, non-React contexts) via `app.queryClient`
+* Good, because `QueryCache` methods (`get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove`) accept endpoint descriptors directly, making cache operations type-safe and refactor-friendly
+* Good, because the `queryCache()` framework plugin centralizes **TanStack `QueryClient`–backed** server-state lifecycle, mock mode integration, Flux-driven cache operations (`cache/invalidate`, `cache/set`, `cache/remove`), **retain/release of L1 `sharedFetchCache`**, and keeps transport-level entries in sync with server-state invalidation — following the same pattern as `mock()`, `themes()`, and other framework plugins
+* Good, because the QueryClient-backed `ServerStateRuntime` is owned by the framework plugin and available without React (for tests, SSR, non-React contexts) via `app.serverState`
 * Good, because cache defaults (`staleTime`, `gcTime`) are configurable at the framework level via `queryCache({ staleTime: 60_000 })`, not hardcoded in React components
-* Good, because L2 Flux effects invalidate the cache via event-based pattern (`cache/invalidate` event), preserving layer boundaries without requiring L2 to depend on TanStack Query
+* Good, because L2 Flux effects can drive cache updates via events (`cache/invalidate`, `cache/set`, `cache/remove`) without MFEs importing TanStack — **note:** the `queryCache()` plugin itself **does** depend on `@tanstack/query-core` for the headless `QueryClient`; the boundary is “no TanStack in Flux slices/effects,” not “no TanStack in L2”
 * Bad, because two data-fetching patterns coexist (TanStack hooks for component-level operations, Flux for cross-feature orchestration), requiring a clear decision rule for authors
 * Bad, because mutation callback signatures differ slightly from vanilla TanStack Query (extra `{ queryCache }` parameter), which developers familiar with TanStack will notice
 * Bad, because TanStack Query's built-in retry must be disabled (set to 0) to avoid double-retry with the existing `onError` plugin chain
@@ -103,23 +103,25 @@ The existing Flux pattern (action → event → effect → reducer) is retained 
 Confirmed when:
 
 **L1 — Endpoint Descriptors (`@cyberfabric/api`)**:
+* `RestProtocol` exposes shared-cache-aware GET (`getWithSharedCache` or equivalent) used by descriptor `fetch` so in-flight/read-through dedup aligns with the same `queryKey` shape TanStack uses at L2/L3
+* L1 `sharedFetchCache` module provides optional transport-level retention; `queryCache()` calls `retainSharedFetchCache` / `releaseSharedFetchCache` around the app lifecycle
 * `RestEndpointProtocol` exposes `query<TData>(path, options?)` and `queryWith<TData, TParams>(pathFn, options?)` for read endpoints (always GET — method is implicit)
 * `RestEndpointProtocol` exposes `mutation<TData, TVariables>(method, path)` for write endpoints
 * `SseStreamProtocol` exposes `stream<TEvent>(path, options?)` for SSE streaming endpoints — returns `StreamDescriptor<TEvent>` with `connect`/`disconnect`
 * `EndpointDescriptor<TData>` interface is defined in `@cyberfabric/api` with `key`, `fetch(options?)`, and optional `staleTime`/`gcTime`
 * `StreamDescriptor<TEvent>` interface is defined in `@cyberfabric/api` with `key`, `connect(onEvent, onComplete?)`, and `disconnect(connectionId)`
 * `ParameterizedEndpointDescriptor<TData, TParams>` returns an `EndpointDescriptor` when called with params
-* Cache keys are derived automatically: `[baseURL, method, path]` for static endpoints, `[baseURL, method, resolvedPath, params]` for parameterized ones, `[baseURL, 'SSE', path]` for streams
+* Cache keys are derived automatically: `[baseURL, 'GET', path]` for static read endpoints, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, `[baseURL, 'SSE', path]` for streams
 * `AbortSignal` is automatically created per query and passed to `queryFn` for cancellation on unmount
 
 **L2 — `queryCache()` Framework Plugin (`@cyberfabric/framework`)**:
-* A `queryCache(config?)` plugin is available that creates and owns the `QueryClient` lifecycle
-* The plugin provides `app.queryClient` via the registries mechanism
+* A `queryCache(config?)` plugin is available that creates and owns a QueryClient-backed `ServerStateRuntime`
+* The plugin provides `app.serverState` via the registries mechanism
 * The plugin is included in the `full()` preset alongside `mock()`, `themes()`, etc.
 * Cache defaults (`staleTime`, `gcTime`, `retry: 0`, `refetchOnWindowFocus`) are configurable via plugin config: `queryCache({ staleTime: 60_000 })`
 * The plugin listens for `MockEvents.Toggle` and clears cache on mock mode changes
-* The plugin listens for `cache/invalidate` events from L2 Flux effects and invalidates the corresponding cache entries
-* The plugin calls `queryClient.clear()` on `onDestroy`
+* The plugin listens for `cache/invalidate`, `cache/set`, and `cache/remove` events from L2 Flux effects and keeps the L1 `sharedFetchCache` in sync
+* The plugin cancels in-flight queries, clears runtime cache state, and releases shared fetch-cache retention on `onDestroy`
 * `@tanstack/query-core` is a peer dependency of `@cyberfabric/framework`
 
 **L3 — React Hooks (`@cyberfabric/react`)**:
@@ -130,12 +132,12 @@ Confirmed when:
 * `useApiSuspenseInfiniteQuery({ initialPage, getNextPage, getPreviousPage? })` accepts the same descriptor resolvers for Suspense-driven paginated reads and returns `ApiSuspenseInfiniteQueryResult<TPage>` (FrontX-owned type)
 * `useApiMutation({ endpoint, onMutate?, ... })` accepts an endpoint descriptor for the mutation and descriptors in `queryCache` operations
 * `useApiStream(descriptor, options?)` accepts a `StreamDescriptor<TEvent>` and returns `ApiStreamResult<TEvent>` (FrontX-owned type) with automatic connect/disconnect lifecycle, `'latest'`/`'accumulate'` modes, and `{ data, events, status, error, disconnect }`
-* `QueryCache.get`, `set`, `invalidate`, `cancel`, `remove` accept `EndpointDescriptor | QueryKey` (descriptor extracts `.key` internally)
-* `ApiQueryResult<TData>`, `ApiSuspenseQueryResult<TData>`, `ApiInfiniteQueryResult<TPage>`, `ApiSuspenseInfiniteQueryResult<TPage>`, and `ApiMutationResult<TData>` are FrontX-owned types exposing only the fields MFEs use (`data`, `error`, `isLoading`, `isPending`, `isFetching`, `refetch`, `fetchNextPage`, `fetchPreviousPage`, `mutateAsync`, `reset`)
-* `HAI3Provider` reads `app.queryClient` from the framework plugin instead of creating its own `QueryClient`
+* `QueryCache.get`, `getState`, `set`, `cancel`, `invalidate`, `invalidateMany`, `remove` accept `EndpointDescriptor | QueryKey` (descriptor extracts `.key` internally)
+* `ApiQueryResult<TData>`, `ApiSuspenseQueryResult<TData>`, `ApiInfiniteQueryResult<TPage>`, `ApiSuspenseInfiniteQueryResult<TPage>`, and `ApiMutationResult<TData>` are FrontX-owned types exposing only the fields MFEs use instead of TanStack result objects directly: query result types expose read state (`data`, `error`, `isLoading`, `isFetching`, `isError`, `refetch`, pagination helpers), while mutation results expose mutation helpers (`mutate`, `mutateAsync`, `isPending`, `reset`, `data`, `error`)
+* `HAI3Provider` reads `app.serverState` from the framework plugin instead of creating its own cache runtime
 * The `queryOptions` re-export is removed from `@cyberfabric/react` public API
 * `UseApiQueryOptions` type alias is removed from `@cyberfabric/react` public API
-* Separately mounted MFEs receive the same host-owned `QueryClient` through the runtime mount-context resolver and pass it into `HAI3Provider` (no per-MFE `QueryClient`)
+* Separately mounted MFEs receive the same host-owned `ServerStateRuntime` through the **`mountRuntimeToken` side channel** (symbol-backed map: primed per `mount_ext` link before the actions chain, consumed once in the MFE React lifecycle) and pass it into `HAI3Provider` (no per-MFE cache runtime)
 
 **MFE / CLI**:
 * Legacy per-MFE query-module scaffolding is removed from CLI templates
@@ -143,12 +145,12 @@ Confirmed when:
 
 ## Pros and Cons of the Options
 
-### Adopt @tanstack/react-query at L3 with endpoint descriptors exposed through dedicated service contracts
+### Adopt TanStack Query with endpoint descriptors, a headless L2 runtime, and L3 React bindings
 
 `@tanstack/react-query` (v5) wraps `@tanstack/query-core` (zero dependencies, framework-agnostic) with React hooks. Service classes register explicit declarative contracts alongside imperative transports. The service layer carries both transport and caching metadata without making `BaseApiService` itself a protocol router. Components consume descriptors without knowing the caching library.
 
 ```typescript
-// Service (L1) — no TanStack dependency
+// Service (L1) — no TanStack imports; REST reads use RestProtocol + optional sharedFetchCache when the host enables queryCache()
 class AccountsApiService extends BaseApiService {
   constructor() {
     const rest = new RestProtocol();
@@ -251,9 +253,9 @@ TanStack's `RestPlugin` system (L1) handles the request/response lifecycle — `
 
 The `queryCache()` plugin follows the same framework plugin pattern as `mock()`:
 * `mock()` owns mock mode state, listens for `MockEvents.Toggle`, syncs `isMockPlugin` plugins across all services
-* `queryCache()` owns the `QueryClient`, listens for `cache/invalidate` events, syncs cache state on mock mode toggles
+* `queryCache()` owns the **`QueryClient` via `ServerStateRuntime`**, retains L1 `sharedFetchCache` for the app lifetime, listens for **`cache/invalidate` / `cache/set` / `cache/remove`**, mirrors those operations against **`peekSharedFetchCache()`** where needed, and clears both server-state and shared-fetch layers on mock toggle and destroy
 
-Both orchestrate cross-cutting behavior through event-driven effects without modifying the request chain.
+Both orchestrate cross-cutting behavior through event-driven effects without modifying the per-request plugin chain **shape** (shared fetch hooks into `RestProtocol` execution instead of replacing REST plugins).
 
 ### Layer responsibilities
 
@@ -262,18 +264,18 @@ L1  @cyberfabric/api          EndpointDescriptor { key, fetch, staleTime?, gcTim
                         StreamDescriptor { key, connect, disconnect }
                         RestEndpointProtocol.query() / queryWith() / mutation()
                         SseStreamProtocol.stream()
-                        No caching library dependency
+                        sharedFetchCache + RestProtocol integration (no TanStack at L1; transport dedup keyed like descriptors)
 
-L2  @cyberfabric/framework    queryCache() plugin — owns QueryClient lifecycle
-                        @tanstack/query-core as peer dependency
-                        Event-driven cache invalidation + mock mode integration
-                        Exposes app.queryClient for non-React access
+L2  @cyberfabric/framework    queryCache() plugin — owns QueryClient-backed ServerStateRuntime
+                        @tanstack/query-core as peer dependency (headless QueryClient)
+                        Event-driven cache/invalidate/set/remove + mock mode + retain/release and sync with L1 sharedFetchCache
+                        Exposes app.serverState for non-React access
 
 L3  @cyberfabric/react        useApiQuery(descriptor) / useApiSuspenseQuery(descriptor) / useApiInfiniteQuery({ initialPage, getNextPage }) / useApiSuspenseInfiniteQuery({ initialPage, getNextPage }) / useApiMutation({ endpoint })
                         useApiStream(descriptor) — SSE lifecycle management
                         @tanstack/react-query as peer dependency
-                        Maps descriptors → TanStack hooks using plugin's QueryClient
-                        HAI3Provider reads app.queryClient instead of creating its own
+                        Maps descriptors -> TanStack hooks using plugin runtime's native handle
+                        HAI3Provider reads app.serverState instead of creating its own cache runtime
 ```
 
 ## Traceability
@@ -286,7 +288,7 @@ This decision directly addresses:
 * `cpt-frontx-fr-sdk-api-package` — API service layer gains explicit declarative endpoint/stream contracts alongside imperative protocols
 * `cpt-frontx-fr-sdk-react-layer` — `useApiQuery` and `useApiMutation` consume descriptors; new hooks added to React layer public API surface
 * `cpt-frontx-nfr-compat-react` — TanStack Query v5 requires React 18+; FrontX uses React 19
-* `cpt-frontx-constraint-no-react-below-l3` — TanStack Query is confined to L3 (`@cyberfabric/react`); L1 and L2 are unaffected
-* `cpt-frontx-constraint-zero-cross-deps-at-l1` — `EndpointDescriptor` is defined at L1 with zero caching library dependency; `@cyberfabric/api` gains no new dependencies (AbortSignal is a browser API)
+* `cpt-frontx-constraint-no-react-below-l3` — `@tanstack/react-query` stays confined to L3 (`@cyberfabric/react`); L2 uses headless `@tanstack/query-core` through the framework-owned `ServerStateRuntime` without introducing React below L3
+* `cpt-frontx-constraint-zero-cross-deps-at-l1` — `EndpointDescriptor` is defined at L1 with **no TanStack** dependency; L1 may ship **in-package** transport cache (`sharedFetchCache`) coordinated with L2 (still no cross-package SDK dependency for “query library” beyond axios at L1)
 * `cpt-frontx-component-react` — `@cyberfabric/react` package scope for descriptor-consuming hooks and provider integration
 * `cpt-frontx-component-api` — `@cyberfabric/api` package scope for `EndpointDescriptor` and service methods

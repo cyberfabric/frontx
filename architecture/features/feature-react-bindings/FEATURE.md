@@ -1,6 +1,6 @@
 # Feature: React Bindings
 
-<!-- artifact-version: 1.1 -->
+<!-- artifact-version: 1.2 -->
 
 
 <!-- toc -->
@@ -102,7 +102,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
 
-1. [x] - `p1` - Host application renders `<HAI3Provider>` with optional `config`, `app`, `queryClient`, or `mfeBridge` props - `inst-render-provider`
+1. [x] - `p1` - Host application renders `<HAI3Provider>` with optional `config`, `app`, `serverState`, or `mfeBridge` props - `inst-render-provider`
 2. [x] - `p1` - Algorithm: resolve HAI3App instance using `cpt-frontx-algo-react-bindings-resolve-app` - `inst-resolve-app`
 3. [x] - `p1` - `HAI3App` instance placed into `HAI3Context` via React context provider - `inst-set-hai3-context`
 4. [x] - `p1` - Redux store from `app.store` wrapped in `react-redux` `<Provider>` - `inst-set-redux-provider`
@@ -203,7 +203,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 1. [x] - `p1` - Host renders `<ExtensionDomainSlot registry={registry} domainId={...} extensionId={...}>`, optionally sharing `containerRef` with a `RefContainerProvider` - `inst-render-slot`
 2. [x] - `p1` - Component renders a loading placeholder while mounting proceeds - `inst-show-loading`
-3. [x] - `p1` - Component dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` via mount-context-aware execution so each mount receives the host `QueryClient` with `domainId` and `subject` - `inst-dispatch-mount`
+3. [x] - `p1` - Component dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` via `registry.executeActionsChain`, which runs after the framework has primed per-link **opaque `mountRuntimeToken`** values and a one-shot `{ serverState }` handoff for the host `ServerStateRuntime` (TanStack-backed cache shared across roots); the chain payload still carries `domainId` and `subject` (`extensionId`) - `inst-dispatch-mount`
 4. [x] - `p1` - IF mount succeeds THEN component queries `registry.getParentBridge(extensionId)` to obtain the parent bridge - `inst-get-bridge`
 5. [x] - `p1` - IF bridge is returned THEN component transitions to mounted state and invokes optional `onMounted(bridge)` callback - `inst-notify-mounted`
 6. [x] - `p1` - IF mount throws THEN component transitions to error state, renders error UI, invokes optional `onError(err)` callback - `inst-handle-mount-error`
@@ -408,9 +408,9 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-react-bindings-provider`
 
-`HAI3Provider` accepts `children`, optional `config`, optional pre-built `app`, optional injected `queryClient`, and optional `mfeBridge`. When `app` is not provided, it creates one via `createHAI3App(config)`. When `queryClient` is not provided, it uses `app.queryClient` when available; otherwise it renders without `QueryClientProvider`. When a client is provided (or comes from the app), separate React roots can share the same TanStack cache instance. The instance is memoized; internally created resources are cleaned up on unmount. The full context tree (`HAI3Context` → `ReduxProvider` → optional `QueryClientProvider` → optional `MfeProvider`) is assembled before children render.
+`HAI3Provider` accepts `children`, optional `config`, optional pre-built `app`, optional injected `serverState`, and optional `mfeBridge`. When `app` is not provided, it creates one via `createHAI3App(config)`. When `serverState` is not provided, it uses `app.serverState` when available; otherwise it renders without `ServerStateProvider`. When a runtime is provided (or comes from the app), separate React roots can share the same TanStack-backed cache instance. The runtime is memoized; internally created resources are cleaned up on unmount. The full context tree (`HAI3Context` → `ReduxProvider` → optional `ServerStateProvider` → optional `MfeProvider`) is assembled before children render.
 
-For MFE screen roots, when a `QueryClient` is resolved the provider registers a mount-context resolver that returns `MfeMountValues` `{ queryClient }`; the screensets runtime merges that bag into `MfeMountContext.values` before invoking `lifecycle.mount(container, bridge, mountContext)`. React lifecycles (e.g. `ThemeAwareReactLifecycle`) read the shared client from `mountContext.values?.queryClient`, not a top-level `mountContext.queryClient`.
+For MFE screen roots, when a host `ServerStateRuntime` must cross into a separate React tree, the framework primes per-`mount_ext` link **opaque `mountRuntimeToken` values** (see `primeMfeMountRuntimeContextForChain`) and stores `{ serverState }` in a symbol-backed global map keyed by each token before the actions chain runs. `MfeMountContext` carries `mountRuntimeToken` into `lifecycle.mount(container, bridge, mountContext)`; React lifecycles (e.g. `ThemeAwareReactLifecycle` via `consumeMfeMountRuntimeContext`) **consume and clear** that one-shot entry, then pass the resolved `serverState` into `HAI3Provider` (with a fallback to `app.serverState` when extension/domain are known but no token is present). Overlapping descriptor fetches can still reuse the same `sharedFetchCache` window across roots before TanStack observers attach.
 
 **Implements**:
 - `cpt-frontx-algo-react-bindings-resolve-app`
@@ -534,7 +534,7 @@ For MFE screen roots, when a `QueryClient` is resolved the provider registers a 
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-react-bindings-extension-slot`
 
-`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders the DOM container div for the domain even while loading so a shared `containerRef` can be used by `RefContainerProvider`. It dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` through mount-context-aware execution so separately mounted roots receive the host `QueryClient`. Domains with explicit unmount support dispatch `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` on cleanup; the screen domain relies on mount swap semantics instead. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
+`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders the DOM container div for the domain even while loading so a shared `containerRef` can be used by `RefContainerProvider`. It dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` via `registry.executeActionsChain`; the screensets/runtime path propagates the host **`ServerStateRuntime`** into child React roots using **`mountRuntimeToken`** (see Root Provider DoD), not by threading a `QueryClient` through this component. Domains with explicit unmount support dispatch `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` on cleanup; the screen domain relies on mount swap semantics instead. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
 
 **Implements**:
 - `cpt-frontx-flow-react-bindings-extension-domain-slot`
@@ -645,7 +645,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 - [x]`useScreenTranslations` transitions through `UNLOADED → LOADING → LOADED` states; reloads when language changes; does not update state after unmount
 - [x]`useTheme` returns current theme and available themes; `setTheme` triggers framework theme change action
 - [x]`useFormatters` returns locale-aware formatters that recalculate on language change
-- [x]`ExtensionDomainSlot` shows loading state during mount, transitions to mounted container on success, shows error UI on failure, relies on runtime-resolved mount context, and dispatches unmount on cleanup only for domains that support explicit unmount
+- [x]`ExtensionDomainSlot` shows loading state during mount, transitions to mounted container on success, shows error UI on failure, relies on explicit `mountRuntimeToken` + `{ serverState }` handoff, and dispatches unmount on cleanup only for domains that support explicit unmount
 - [x]`useSharedProperty` re-renders MFE component when host updates the subscribed property
 - [x]`useHostAction` sends an `ActionsChain` to the host bridge; errors are logged to console, not thrown
 - [x]`useDomainExtensions`, `useRegisteredPackages`, `useActivePackage` all throw descriptive errors when `microfrontends()` plugin is absent

@@ -62,10 +62,7 @@ export type {
   // Handler types
   ParentMfeBridge,
   ChildMfeBridge,
-  MfeMountValue,
-  MfeMountValues,
   MfeMountContext,
-  MountContextResolver,
   MfeEntryLifecycle,
 } from './mfe';
 

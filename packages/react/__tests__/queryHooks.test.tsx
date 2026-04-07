@@ -1,5 +1,5 @@
 /**
- * Integration tests for TanStack Query hooks in @cyberfabric/react - Phase 3
+ * Integration tests for server-state hooks in @cyberfabric/react - Phase 3
  *
  * Covers:
  *   - useApiQuery: accepts EndpointDescriptor, returns ApiQueryResult
@@ -10,8 +10,8 @@
  *   - useApiStream: StreamDescriptor lifecycle, cancellation, connect/reject paths
  *   - useApiStream: stable stream identity from descriptor.key (no reconnect on new object, same key)
  *   - QueryCache: methods accept EndpointDescriptor | QueryKey via resolveKey
- *   - HAI3Provider: reads app.queryClient from plugin
- *   - Shared QueryClient across separately mounted MFE roots via provider injection
+ *   - HAI3Provider: reads app.serverState from plugin
+ *   - Shared server-state runtime across separately mounted MFE roots via provider injection
  *
  * @packageDocumentation
  * @vitest-environment jsdom
@@ -23,20 +23,42 @@
 // @cpt-FEATURE:cpt-frontx-dod-request-lifecycle-use-api-stream:p2
 // @cpt-FEATURE:cpt-frontx-dod-request-lifecycle-query-provider:p2
 
-import { describe, it, expect, vi, afterEach } from 'vitest';
+import { describe, it, expect, expectTypeOf, vi, afterEach } from 'vitest';
 import React from 'react';
 import { act, renderHook, waitFor } from '@testing-library/react';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { QueryClient, type QueryState } from '@tanstack/react-query';
+import { resetSharedFetchCache } from '../../framework/src/index';
+import { useHAI3 } from '../src/HAI3Context';
 import { useApiQuery } from '../src/hooks/useApiQuery';
 import { useApiSuspenseQuery } from '../src/hooks/useApiSuspenseQuery';
 import { useApiInfiniteQuery } from '../src/hooks/useApiInfiniteQuery';
 import { useApiSuspenseInfiniteQuery } from '../src/hooks/useApiSuspenseInfiniteQuery';
 import { useApiMutation } from '../src/hooks/useApiMutation';
 import { useApiStream } from '../src/hooks/useApiStream';
-import type { MutationCallbackContext } from '../src/hooks/QueryCache';
+import { createQueryCache, type MutationCallbackContext } from '../src/hooks/QueryCache';
 import { HAI3Provider } from '../src/HAI3Provider';
 import type { MfeContextValue } from '../src/mfe/MfeContext';
-import type { ChildMfeBridge, EndpointDescriptor, MutationDescriptor, StreamDescriptor } from '@cyberfabric/framework';
+import {
+  DEFAULT_SERVER_STATE_ADAPTER_ID,
+  SERVER_STATE_BROADCAST_TARGET,
+  SERVER_STATE_NATIVE_HANDLE,
+  createHAI3App,
+  eventBus,
+  queryCache,
+  RestEndpointProtocol,
+  RestProtocol,
+  type ChildMfeBridge,
+  type EndpointDescriptor,
+  type HAI3Plugin,
+  type MutationDescriptor,
+  type ServerStateInvalidateFilters,
+  type ServerStateKey,
+  type ServerStateQueryState,
+  type ServerStateRuntime,
+  type StreamDescriptor,
+} from '@cyberfabric/framework';
+
+let testServerStateCounter = 0;
 
 // ============================================================================
 // Shared test helpers
@@ -71,23 +93,83 @@ function buildMutationCacheTestQueryClient(): QueryClient {
 }
 
 /**
- * React wrapper that provides an isolated QueryClient for each test.
+ * Adapt QueryClient state into the FrontX-owned server-state contract used by HAI3Provider.
+ */
+function mapQueryState<TData, TError = Error>(
+  state: QueryState<TData, TError>
+): ServerStateQueryState<TData, TError> {
+  return {
+    data: state.data,
+    dataUpdatedAt: state.dataUpdatedAt,
+    error: state.error,
+    errorUpdatedAt: state.errorUpdatedAt,
+    fetchFailureCount: state.fetchFailureCount,
+    fetchFailureReason: state.fetchFailureReason,
+    fetchStatus: state.fetchStatus,
+    isInvalidated: state.isInvalidated,
+    status: state.status,
+  };
+}
+
+function buildTestServerState(client: QueryClient): ServerStateRuntime {
+  testServerStateCounter += 1;
+  return {
+    adapterId: DEFAULT_SERVER_STATE_ADAPTER_ID,
+    cache: {
+      get: <T,>(queryKey: ServerStateKey) => client.getQueryData<T>(queryKey),
+      getState: <TData = unknown, TError = Error>(queryKey: ServerStateKey) => {
+        const state = client.getQueryState<TData, TError>(queryKey);
+        return state ? mapQueryState(state) : undefined;
+      },
+      set: <T,>(
+        queryKey: ServerStateKey,
+        dataOrUpdater: T | ((old: T | undefined) => T | undefined)
+      ) => {
+        client.setQueryData<T>(queryKey, dataOrUpdater);
+      },
+      cancel: (queryKey: ServerStateKey) => client.cancelQueries({ queryKey }),
+      cancelAll: () => client.cancelQueries(),
+      invalidate: (queryKey: ServerStateKey) => client.invalidateQueries({ queryKey }),
+      invalidateMany: (filters: ServerStateInvalidateFilters) => client.invalidateQueries(filters),
+      remove: (queryKey: ServerStateKey) => client.removeQueries({ queryKey }),
+      clear: () => client.clear(),
+    },
+    [SERVER_STATE_BROADCAST_TARGET]: `test-runtime-${testServerStateCounter}`,
+    [SERVER_STATE_NATIVE_HANDLE]: client,
+  };
+}
+
+function getPluginServerState(plugin: HAI3Plugin): ServerStateRuntime {
+  const runtime = plugin.provides?.registries?.['serverState'] as ServerStateRuntime | undefined;
+  if (!runtime) {
+    throw new Error('expected queryCache plugin to expose serverState');
+  }
+
+  return runtime;
+}
+
+function stubApp() {
+  return {} as import('@cyberfabric/framework').HAI3App;
+}
+
+/**
+ * React wrapper that provides an isolated server-state runtime for each test.
  * Re-created per test via the factory pattern to avoid shared state.
  */
 function makeQueryWrapper(client: QueryClient) {
+  const serverState = buildTestServerState(client);
   return function QueryWrapper({ children }: { children: React.ReactNode }) {
-    return (
-      <QueryClientProvider client={client}>{children}</QueryClientProvider>
-    );
+    return <HAI3Provider serverState={serverState}>{children}</HAI3Provider>;
   };
 }
 
 function makeSuspenseQueryWrapper(client: QueryClient) {
+  const serverState = buildTestServerState(client);
   return function SuspenseQueryWrapper({ children }: { children: React.ReactNode }) {
     return (
-      <QueryClientProvider client={client}>
+      <HAI3Provider serverState={serverState}>
         <React.Suspense fallback={<div>loading</div>}>{children}</React.Suspense>
-      </QueryClientProvider>
+      </HAI3Provider>
     );
   };
 }
@@ -97,10 +179,26 @@ function makeSuspenseQueryWrapper(client: QueryClient) {
  */
 function makeQueryDescriptor<TData>(
   key: readonly unknown[],
-  fetchFn: (options?: { signal?: AbortSignal }) => Promise<TData>,
+  fetchFn: (options?: { signal?: AbortSignal; staleTime?: number }) => Promise<TData>,
   options?: { staleTime?: number; gcTime?: number }
 ): EndpointDescriptor<TData> {
   return { key, fetch: fetchFn, ...options };
+}
+
+function makeRestQueryDescriptor<TData>(
+  path: string,
+  fetchFn: (path: string, options?: { signal?: AbortSignal }) => Promise<TData>,
+  options?: { staleTime?: number; gcTime?: number }
+): EndpointDescriptor<TData> {
+  const rest = new RestProtocol();
+  rest.initialize({ baseURL: '/api/test' });
+  vi.spyOn(rest, 'getWithSharedCache').mockImplementation((requestPath, requestOptions) =>
+    fetchFn(requestPath, requestOptions ? { signal: requestOptions.signal } : undefined)
+  );
+
+  const endpoints = new RestEndpointProtocol(rest);
+  endpoints.initialize({ baseURL: '/api/test' });
+  return endpoints.query<TData>(path, options);
 }
 
 /**
@@ -148,6 +246,11 @@ function makeContextValue(id: string): MfeContextValue {
     domainId: 'gts.hai3.mfes.ext.domain.v1~test.isolation.v1',
   };
 }
+
+afterEach(() => {
+  eventBus.clearAll();
+  resetSharedFetchCache();
+});
 
 // ============================================================================
 // useApiQuery
@@ -261,6 +364,120 @@ describe('useApiQuery', () => {
     const queryState = client.getQueryState(['overrideTest']);
     expect(queryState).toBeDefined();
   });
+
+  it('forwards component staleTime overrides into descriptor fetches', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+    const fetchFn = vi.fn(() => Promise.resolve('value'));
+
+    const descriptor = makeQueryDescriptor(
+      ['overrideForwarded'],
+      fetchFn,
+      { staleTime: 600_000 }
+    );
+
+    const { result } = renderHook(
+      () => useApiQuery(descriptor, { staleTime: 0 }),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.data).toBe('value'));
+    expect(fetchFn).toHaveBeenCalledWith(
+      expect.objectContaining({ staleTime: 0 })
+    );
+  });
+
+  it('forwards runtime default staleTime into descriptor fetches', async () => {
+    const client = new QueryClient({
+      defaultOptions: {
+        queries: { retry: 0, gcTime: 0, staleTime: 0 },
+        mutations: { retry: 0 },
+      },
+    });
+    const wrapper = makeQueryWrapper(client);
+    const fetchFn = vi.fn(() => Promise.resolve('value'));
+    const descriptor = makeQueryDescriptor(['runtimeDefaultForwarded'], fetchFn);
+
+    const { result } = renderHook(
+      () => useApiQuery(descriptor),
+      { wrapper }
+    );
+
+    await waitFor(() => expect(result.current.data).toBe('value'));
+    expect(fetchFn).toHaveBeenCalledWith(
+      expect.objectContaining({ staleTime: 0 })
+    );
+  });
+
+  it('queryCache({ staleTime: 0 }) disables shared fetch cache reuse across runtimes', async () => {
+    const pluginA = queryCache({ staleTime: 0, gcTime: 300_000 });
+    const pluginB = queryCache({ staleTime: 0, gcTime: 300_000 });
+    pluginA.onInit?.(stubApp());
+    pluginB.onInit?.(stubApp());
+
+    const runtimeA = getPluginServerState(pluginA);
+    const runtimeB = getPluginServerState(pluginB);
+    const fetchFn = vi
+      .fn<(path: string, options?: { signal?: AbortSignal }) => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+    const descriptor = makeRestQueryDescriptor('/shared-zero-stale-time', fetchFn);
+
+    const firstRender = renderHook(
+      () => useApiQuery<string>(descriptor),
+      { wrapper: ({ children }) => <HAI3Provider serverState={runtimeA}>{children}</HAI3Provider> }
+    );
+    await waitFor(() => expect(firstRender.result.current.data).toBe('first'));
+    firstRender.unmount();
+
+    const secondRender = renderHook(
+      () => useApiQuery<string>(descriptor),
+      { wrapper: ({ children }) => <HAI3Provider serverState={runtimeB}>{children}</HAI3Provider> }
+    );
+    await waitFor(() => expect(secondRender.result.current.data).toBe('second'));
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+
+    secondRender.unmount();
+    pluginA.onDestroy?.(stubApp());
+    pluginB.onDestroy?.(stubApp());
+  });
+
+  it('per-hook staleTime: 0 disables shared fetch cache reuse across runtimes', async () => {
+    const pluginA = queryCache({ staleTime: 60_000, gcTime: 300_000 });
+    const pluginB = queryCache({ staleTime: 60_000, gcTime: 300_000 });
+    pluginA.onInit?.(stubApp());
+    pluginB.onInit?.(stubApp());
+
+    const runtimeA = getPluginServerState(pluginA);
+    const runtimeB = getPluginServerState(pluginB);
+    const fetchFn = vi
+      .fn<(path: string, options?: { signal?: AbortSignal }) => Promise<string>>()
+      .mockResolvedValueOnce('first')
+      .mockResolvedValueOnce('second');
+    const descriptor = makeRestQueryDescriptor('/shared-override-zero-stale-time', fetchFn, {
+      staleTime: 60_000,
+    });
+
+    const firstRender = renderHook(
+      () => useApiQuery<string>(descriptor, { staleTime: 0 }),
+      { wrapper: ({ children }) => <HAI3Provider serverState={runtimeA}>{children}</HAI3Provider> }
+    );
+    await waitFor(() => expect(firstRender.result.current.data).toBe('first'));
+    firstRender.unmount();
+
+    const secondRender = renderHook(
+      () => useApiQuery<string>(descriptor, { staleTime: 0 }),
+      { wrapper: ({ children }) => <HAI3Provider serverState={runtimeB}>{children}</HAI3Provider> }
+    );
+    await waitFor(() => expect(secondRender.result.current.data).toBe('second'));
+
+    expect(fetchFn).toHaveBeenCalledTimes(2);
+
+    secondRender.unmount();
+    pluginA.onDestroy?.(stubApp());
+    pluginB.onDestroy?.(stubApp());
+  });
 });
 
 // ============================================================================
@@ -286,6 +503,30 @@ describe('useApiSuspenseQuery', () => {
       expect(result.current.data).toEqual({ id: 1, name: 'alpha' })
     );
     expect(result.current.isFetching).toBe(false);
+  });
+
+  it('accepts a custom error generic without changing the suspense result contract', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeSuspenseQueryWrapper(client);
+
+    type DomainError = Error & { code: 'DOMAIN_FAILURE' };
+
+    const descriptor = makeQueryDescriptor(
+      ['suspense-item', 'typed-error'],
+      () => Promise.resolve({ id: 2, name: 'beta' })
+    );
+
+    const { result } = renderHook(
+      () => useApiSuspenseQuery<{ id: number; name: string }, DomainError>(descriptor),
+      { wrapper }
+    );
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual({ id: 2, name: 'beta' })
+    );
+    expectTypeOf(result.current.data).toEqualTypeOf<{ id: number; name: string }>();
+    expectTypeOf(result.current.error).toEqualTypeOf<DomainError | null>();
+    expect(result.current.error).toBeNull();
   });
 });
 
@@ -438,6 +679,38 @@ describe('useApiSuspenseInfiniteQuery', () => {
       ])
     );
     expect(result.current.hasNextPage).toBe(false);
+  });
+
+  it('accepts a custom error generic for suspense infinite queries', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeSuspenseQueryWrapper(client);
+
+    type DomainError = Error & { code: 'DOMAIN_FAILURE' };
+    type Page = {
+      items: string[];
+      nextCursor: string | null;
+    };
+
+    const firstPage = makeQueryDescriptor<Page>(
+      ['suspense-messages', 'typed-error', { cursor: null }],
+      () => Promise.resolve({ items: ['typed'], nextCursor: null })
+    );
+
+    const { result } = renderHook(
+      () =>
+        useApiSuspenseInfiniteQuery<Page, DomainError>({
+          initialPage: firstPage,
+          getNextPage: () => undefined,
+        }),
+      { wrapper }
+    );
+
+    await waitFor(() =>
+      expect(result.current.data).toEqual([{ items: ['typed'], nextCursor: null }])
+    );
+    expectTypeOf(result.current.data).toEqualTypeOf<readonly Page[]>();
+    expectTypeOf(result.current.error).toEqualTypeOf<DomainError | null>();
+    expect(result.current.error).toBeNull();
   });
 });
 
@@ -649,6 +922,59 @@ describe('useApiMutation', () => {
   });
   // @cpt-end:cpt-frontx-dod-request-lifecycle-use-api-mutation:p2:inst-test-query-cache-invalidate
 
+  it('uses the latest lifecycle callback closures after rerender while a mutation is in flight', async () => {
+    const client = buildMutationCacheTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    const FIRST_QUERY_KEY = ['@test', 'settled-first'];
+    const SECOND_QUERY_KEY = ['@test', 'settled-second'];
+    client.setQueryData(FIRST_QUERY_KEY, { value: 'first' });
+    client.setQueryData(SECOND_QUERY_KEY, { value: 'second' });
+
+    let resolveMutation!: () => void;
+    const mutationGate = new Promise<void>((resolve) => {
+      resolveMutation = resolve;
+    });
+
+    const endpoint = makeMutationDescriptor<void, void>(
+      ['rerenderedSettledCallback'],
+      async () => {
+        await mutationGate;
+      }
+    );
+
+    const { result, rerender } = renderHook(
+      ({ queryKey }: { queryKey: readonly unknown[] }) =>
+        useApiMutation<void, Error, void>({
+          endpoint,
+          onSettled: async (_data, _error, _variables, _context, { queryCache }) => {
+            await queryCache.invalidate(queryKey);
+          },
+        }),
+      {
+        wrapper,
+        initialProps: { queryKey: FIRST_QUERY_KEY },
+      }
+    );
+
+    let mutatePromise!: Promise<void>;
+    await act(async () => {
+      mutatePromise = result.current.mutateAsync();
+    });
+
+    rerender({ queryKey: SECOND_QUERY_KEY });
+
+    await act(async () => {
+      resolveMutation();
+      await mutatePromise;
+    });
+
+    await waitFor(() =>
+      expect(client.getQueryState(SECOND_QUERY_KEY)?.isInvalidated).toBe(true)
+    );
+    expect(client.getQueryState(FIRST_QUERY_KEY)?.isInvalidated).not.toBe(true);
+  });
+
   // @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-mutation:p2:inst-test-on-error-rollback
   it('onError receives { queryCache } for snapshot rollback on mutation failure', async () => {
     const client = buildMutationCacheTestQueryClient();
@@ -767,6 +1093,64 @@ describe('useApiMutation', () => {
     expect(ranPastGate).toBe(false);
   });
 
+  it('aborts all in-flight descriptor fetch signals on unmount when abortOnUnmount is enabled', async () => {
+    const client = buildTestQueryClient();
+    const wrapper = makeQueryWrapper(client);
+
+    let resolveGate1!: () => void;
+    const gate1 = new Promise<void>((r) => {
+      resolveGate1 = r;
+    });
+    let resolveGate2!: () => void;
+    const gate2 = new Promise<void>((r) => {
+      resolveGate2 = r;
+    });
+
+    let firstRanPastGate = false;
+    let secondRanPastGate = false;
+    const endpoint = makeMutationDescriptor<number, { batch: 1 | 2 }>(
+      ['abortAllOnUnmount'],
+      async (vars, opts) => {
+        await (vars.batch === 1 ? gate1 : gate2);
+        if (opts?.signal?.aborted) {
+          throw new DOMException('Aborted', 'AbortError');
+        }
+        if (vars.batch === 1) {
+          firstRanPastGate = true;
+        } else {
+          secondRanPastGate = true;
+        }
+        return vars.batch;
+      }
+    );
+
+    const { result, unmount } = renderHook(
+      () => useApiMutation<number, Error, { batch: 1 | 2 }>({ endpoint, abortOnUnmount: true }),
+      { wrapper }
+    );
+
+    let firstPromise!: Promise<number>;
+    let secondPromise!: Promise<number>;
+    await act(async () => {
+      firstPromise = result.current.mutateAsync({ batch: 1 });
+    });
+    await act(async () => {
+      secondPromise = result.current.mutateAsync({ batch: 2 });
+    });
+
+    unmount();
+
+    await act(async () => {
+      resolveGate1();
+      resolveGate2();
+      await expect(firstPromise).rejects.toMatchObject({ name: 'AbortError' });
+      await expect(secondPromise).rejects.toMatchObject({ name: 'AbortError' });
+    });
+
+    expect(firstRanPastGate).toBe(false);
+    expect(secondRanPastGate).toBe(false);
+  });
+
   // @cpt-begin:cpt-frontx-dod-request-lifecycle-use-api-mutation:p2:inst-test-abort-supersede
   it('does not abort the prior in-flight fetch when a new mutateAsync starts by default', async () => {
     const client = buildTestQueryClient();
@@ -875,6 +1259,107 @@ describe('useApiMutation', () => {
       resolveGate2();
       await expect(secondPromise).resolves.toBe(2);
     });
+  });
+});
+
+// ============================================================================
+// Cross-root cache sync
+// ============================================================================
+
+describe('QueryCache broadcasts across separate server-state runtimes', () => {
+  it('queryCache.set mirrors optimistic updates into sibling runtimes', async () => {
+    const pluginA = queryCache({ gcTime: 300_000 });
+    const pluginB = queryCache({ gcTime: 300_000 });
+    pluginA.onInit?.(stubApp());
+    pluginB.onInit?.(stubApp());
+
+    const runtimeA = getPluginServerState(pluginA);
+    const runtimeB = getPluginServerState(pluginB);
+    const clientA = runtimeA[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const clientB = runtimeB[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const queryKey = ['@test', 'broadcast', 'set'] as const;
+
+    clientA.setQueryData(queryKey, { value: 'seed-a' });
+    clientB.setQueryData(queryKey, { value: 'seed-b' });
+
+    const endpoint = makeMutationDescriptor<void, void>(['noop-broadcast-set'], async () => undefined);
+
+    const { result } = renderHook(
+      () =>
+        useApiMutation<void, Error, void>({
+          endpoint,
+          onMutate: async (_variables, { queryCache }) => {
+            queryCache.set(queryKey, { value: 'optimistic' });
+          },
+        }),
+      { wrapper: ({ children }) => <HAI3Provider serverState={runtimeA}>{children}</HAI3Provider> }
+    );
+
+    result.current.mutate();
+
+    await waitFor(() => expect(result.current.isPending).toBe(false));
+    expect(clientA.getQueryData(queryKey)).toEqual({ value: 'optimistic' });
+    expect(clientB.getQueryData(queryKey)).toEqual({ value: 'optimistic' });
+
+    pluginA.onDestroy?.(stubApp());
+    pluginB.onDestroy?.(stubApp());
+  });
+
+  it('queryCache.set rollback restores sibling runtimes after mutation failure', async () => {
+    const pluginA = queryCache({ gcTime: 300_000 });
+    const pluginB = queryCache({ gcTime: 300_000 });
+    pluginA.onInit?.(stubApp());
+    pluginB.onInit?.(stubApp());
+
+    const runtimeA = getPluginServerState(pluginA);
+    const runtimeB = getPluginServerState(pluginB);
+    const clientA = runtimeA[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const clientB = runtimeB[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const queryKey = ['@test', 'broadcast', 'rollback'] as const;
+
+    clientA.setQueryData(queryKey, { value: 'original' });
+    clientB.setQueryData(queryKey, { value: 'original' });
+
+    const queryCacheA = createQueryCache(runtimeA);
+
+    queryCacheA.set(queryKey, { value: 'optimistic' });
+    queryCacheA.set(queryKey, { value: 'original' });
+
+    await waitFor(() => {
+      expect(clientA.getQueryData(queryKey)).toEqual({ value: 'original' });
+      expect(clientB.getQueryData(queryKey)).toEqual({ value: 'original' });
+    });
+
+    pluginA.onDestroy?.(stubApp());
+    pluginB.onDestroy?.(stubApp());
+  });
+
+  it('queryCache.invalidate marks sibling runtimes stale', async () => {
+    const pluginA = queryCache({ gcTime: 300_000 });
+    const pluginB = queryCache({ gcTime: 300_000 });
+    pluginA.onInit?.(stubApp());
+    pluginB.onInit?.(stubApp());
+
+    const runtimeA = getPluginServerState(pluginA);
+    const runtimeB = getPluginServerState(pluginB);
+    const clientA = runtimeA[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const clientB = runtimeB[SERVER_STATE_NATIVE_HANDLE] as QueryClient;
+    const queryKey = ['@test', 'broadcast', 'invalidate'] as const;
+
+    clientA.setQueryData(queryKey, { value: 'stale-a' });
+    clientB.setQueryData(queryKey, { value: 'stale-b' });
+
+    const queryCacheA = createQueryCache(runtimeA);
+
+    await queryCacheA.invalidate(queryKey);
+
+    await waitFor(() => {
+      expect(clientA.getQueryState(queryKey)?.isInvalidated).toBe(true);
+      expect(clientB.getQueryState(queryKey)?.isInvalidated).toBe(true);
+    });
+
+    pluginA.onDestroy?.(stubApp());
+    pluginB.onDestroy?.(stubApp());
   });
 });
 
@@ -1291,17 +1776,71 @@ describe('useApiStream', () => {
 });
 
 // ============================================================================
-// QueryClientProvider inside HAI3Provider
+// server-state provider inside HAI3Provider
 // ============================================================================
 
-describe('HAI3Provider provides QueryClient to descendants', () => {
+describe('HAI3Provider provides server-state runtime to descendants', () => {
   afterEach(() => {
     // Nothing to clean up — each renderHook unmounts automatically.
   });
 
+  it('useHAI3 exposes an injected server-state runtime on the provider-owned app', () => {
+    const sharedServerState = buildTestServerState(buildTestQueryClient());
+
+    function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
+      return <HAI3Provider serverState={sharedServerState}>{children}</HAI3Provider>;
+    }
+
+    const { result } = renderHook(
+      () => useHAI3().serverState,
+      { wrapper: Wrapper }
+    );
+
+    expect(result.current).toBe(sharedServerState);
+  });
+
+  it('provider-owned apps with an injected server-state runtime still expose mock actions', () => {
+    const sharedServerState = buildTestServerState(buildTestQueryClient());
+
+    function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
+      return <HAI3Provider serverState={sharedServerState}>{children}</HAI3Provider>;
+    }
+
+    const { result } = renderHook(
+      () => useHAI3().actions.toggleMockMode,
+      { wrapper: Wrapper }
+    );
+
+    expect(typeof result.current).toBe('function');
+  });
+
+  it('useHAI3 exposes the injected server-state runtime when app and serverState props are both provided', () => {
+    const providedApp = createHAI3App();
+    const sharedServerState = buildTestServerState(buildTestQueryClient());
+
+    try {
+      function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
+        return (
+          <HAI3Provider app={providedApp} serverState={sharedServerState}>
+            {children}
+          </HAI3Provider>
+        );
+      }
+
+      const { result } = renderHook(
+        () => useHAI3().serverState,
+        { wrapper: Wrapper }
+      );
+
+      expect(result.current).toBe(sharedServerState);
+    } finally {
+      providedApp.destroy();
+    }
+  });
+
   // @cpt-begin:cpt-frontx-dod-request-lifecycle-query-provider:p2:inst-test-hai3-provider
-  it('useApiQuery resolves inside HAI3Provider (queryCache plugin provides QueryClient)', async () => {
-    // HAI3Provider reads app.queryClient from the queryCache() plugin.
+  it('useApiQuery resolves inside HAI3Provider (queryCache plugin provides serverState)', async () => {
+    // HAI3Provider reads app.serverState from the queryCache() plugin.
     // If the query resolves, the provider wiring through the plugin is correct.
     function Wrapper({ children }: Readonly<{ children: React.ReactNode }>) {
       return <HAI3Provider>{children}</HAI3Provider>;
@@ -1325,14 +1864,14 @@ describe('HAI3Provider provides QueryClient to descendants', () => {
 });
 
 // ============================================================================
-// Shared QueryClient across separately mounted MFE roots
+// Shared server-state runtime across separately mounted MFE roots
 // ============================================================================
 
-describe('HAI3Provider reuses an injected QueryClient across MFE roots', () => {
+describe('HAI3Provider reuses an injected server-state runtime across MFE roots', () => {
   // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-test-mfe-shared-cache
-  it('two HAI3Providers using the same injected QueryClient return the same cached value for the same descriptor key', async () => {
+  it('two HAI3Providers using the same injected server-state runtime return the same cached value for the same descriptor key', async () => {
     // Separate MFE roots each render their own HAI3Provider. Shared cache only
-    // happens when the same QueryClient instance is injected into both roots.
+    // happens when the same runtime is injected into both roots.
     // The first descriptor fetch populates the cache; the second MFE gets the cached result.
     //
     // gcTime must be > 0 so the cache entry survives between the two
@@ -1359,10 +1898,12 @@ describe('HAI3Provider reuses an injected QueryClient across MFE roots', () => {
     const descriptorAlpha = makeQueryDescriptor(['shared-key'], queryFnAlpha);
     const descriptorBeta = makeQueryDescriptor(['shared-key'], queryFnBeta);
 
+    const sharedServerState = buildTestServerState(sharedClient);
+
     function makeMfeWrapper(contextValue: MfeContextValue) {
       return function MfeWrapper({ children }: { children: React.ReactNode }) {
         return (
-          <HAI3Provider queryClient={sharedClient} mfeBridge={contextValue}>
+          <HAI3Provider serverState={sharedServerState} mfeBridge={contextValue}>
             {children}
           </HAI3Provider>
         );

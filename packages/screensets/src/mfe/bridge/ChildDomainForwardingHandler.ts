@@ -14,7 +14,8 @@
  * @internal
  */
 
-import type { ActionHandler } from '../mediator/types';
+import type { ActionExecutionContext, ActionHandler } from '../mediator/types';
+import type { ActionsChain } from '../types';
 import type { ParentMfeBridgeImpl } from './ParentMfeBridge';
 
 /**
@@ -44,17 +45,21 @@ export class ChildDomainForwardingHandler implements ActionHandler {
   // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async handleAction(
     actionTypeId: string,
-    payload: Record<string, unknown> | undefined
+    payload: Record<string, unknown> | undefined,
+    context?: ActionExecutionContext
   ): Promise<void> {
     // Wrap the action in an ActionsChain for bridge transport.
     // The child registry's mediator will unwrap and execute it.
-    const chain = {
+    const chain: ActionsChain = {
       action: {
         type: actionTypeId,
         target: this.childDomainId,
         payload,
       },
     };
+    if (context?.mountRuntimeToken !== undefined) {
+      chain.mountRuntimeToken = context.mountRuntimeToken;
+    }
 
     // sendActionsChain() now returns Promise<void>.
     // Errors are propagated via rejection.

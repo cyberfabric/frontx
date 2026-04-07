@@ -196,7 +196,31 @@ describe('Extension Lifecycle Actions', () => {
 
         expect(callbacks.mountExtension).toHaveBeenCalledWith(
           testExtension1.id,
-          mockContainerProvider.mockContainer
+          mockContainerProvider.mockContainer,
+          undefined
+        );
+      });
+
+      it('forwards mountRuntimeToken to mountExtension', async () => {
+        const callbacks = makeToggleCallbacks();
+
+        const handler = new ExtensionLifecycleActionHandler(
+          toggleDomain.id,
+          callbacks,
+          'toggle',
+          mockContainerProvider
+        );
+
+        await handler.handleAction(
+          HAI3_ACTION_MOUNT_EXT,
+          { subject: testExtension1.id },
+          { mountRuntimeToken: 'hai3-test-mount-token' }
+        );
+
+        expect(callbacks.mountExtension).toHaveBeenCalledWith(
+          testExtension1.id,
+          mockContainerProvider.mockContainer,
+          { mountRuntimeToken: 'hai3-test-mount-token' }
         );
       });
 
@@ -257,7 +281,8 @@ describe('Extension Lifecycle Actions', () => {
         expect(callbacks.unmountExtension).toHaveBeenCalledWith(testExtension2.id);
         expect(callbacks.mountExtension).toHaveBeenCalledWith(
           newExtId,
-          mockContainerProvider.mockContainer
+          mockContainerProvider.mockContainer,
+          undefined
         );
 
         // Verify order: unmount before mount
@@ -306,7 +331,8 @@ describe('Extension Lifecycle Actions', () => {
         expect(callbacks.unmountExtension).not.toHaveBeenCalled();
         expect(callbacks.mountExtension).toHaveBeenCalledWith(
           testExtension2.id,
-          mockContainerProvider.mockContainer
+          mockContainerProvider.mockContainer,
+          undefined
         );
       });
 
@@ -332,7 +358,8 @@ describe('Extension Lifecycle Actions', () => {
         // The inner unmount+mount callbacks are called inside the serialized block
         expect(callbacks.mountExtension).toHaveBeenCalledWith(
           testExtension2.id,
-          mockContainerProvider.mockContainer
+          mockContainerProvider.mockContainer,
+          undefined
         );
       });
 

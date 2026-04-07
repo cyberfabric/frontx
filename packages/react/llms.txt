@@ -8,7 +8,7 @@ Part of the FrontX React Layer (L3) - depends on @cyberfabric/framework. Peer de
 
 - [HAI3Provider](https://frontx.dev/docs/react/provider): Root context provider
 - [MFE Components](https://frontx.dev/docs/react/mfe): ExtensionDomainSlot, MfeProvider, RefContainerProvider
-- `HAI3Provider` accepts optional `queryClient` so separate React roots can share one TanStack Query cache
+- `HAI3Provider` reads `app.serverState` from `queryCache()` and accepts optional `serverState` for explicit multi-root injection; registry `mount_ext` also hands off the host runtime via opaque `mountRuntimeToken` (consumed once in the MFE lifecycle)
 
 ## Hooks
 

@@ -34,18 +34,18 @@ const app = createHAI3().use(screensets()).build();
   <YourApp />
 </HAI3Provider>
 
-// With injected QueryClient for separate MFE roots
-<HAI3Provider app={app} queryClient={sharedQueryClient}>
+// With injected server-state runtime for separate MFE roots
+<HAI3Provider app={app} serverState={sharedServerState}>
   <YourApp />
 </HAI3Provider>
 ```
 
-The `QueryClient` is created and owned by the `queryCache()` framework plugin at L2.
-`HAI3Provider` reads `app.queryClient` from the plugin — it does not create its own.
-When MFEs render in separate React roots, pass the same host-owned `queryClient`
-to each `HAI3Provider` so they share one cache. Host apps should register
-domains/extensions during bootstrap, then let `ExtensionDomainSlot` drive the
-actual `mount_ext` lifecycle for screen content.
+The server-state runtime is created and owned by the `queryCache()` framework plugin at L2.
+`HAI3Provider` reads `app.serverState` from the plugin — it does not create its own `QueryClient` or `ServerStateRuntime`.
+
+When the host executes `mount_ext` via `screensetsRegistry.executeActionsChain`, the `microfrontends` plugin primes an **opaque `mountRuntimeToken`** on each relevant chain link and stores `{ serverState }` in a symbol-backed global map before the chain runs. The child MFE React lifecycle (**e.g.** `ThemeAwareReactLifecycle`) **consumes** that entry once and passes the resolved runtime into `HAI3Provider` (with a narrow fallback to `app.serverState` when extension/domain are set but no token applies).
+
+For separate roots that are **not** driven through that pipeline (tests, custom hosts), pass the same host-owned `ServerStateRuntime` explicitly via the optional **`serverState` prop** so every tree shares one cache. Host apps should register domains/extensions during bootstrap; **`ExtensionDomainSlot`** is the preferred host-side renderer for screen slots while the framework wires `mount_ext` and the token handoff.
 
 ### Data Fetching with Endpoint Descriptors
 
@@ -380,10 +380,12 @@ function LayoutScreen() {
 ```
 
 `ExtensionDomainSlot` is the preferred host-side renderer for screen MFEs. It
-owns mount/unmount and loading/error UI while the runtime mount-context
-resolver returns `MfeMountValues` (e.g. `{ queryClient }`), which the registry
-places on `MfeMountContext.values` at mount so separately mounted roots reuse
-the host cache.
+owns mount/unmount and loading/error UI while host bootstrap handles domain
+registration and shared property setup before slot-driven `mount_ext`.
+The host `ServerStateRuntime` crosses into the MFE React tree through the
+**`mountRuntimeToken` side channel** (primed under the hood for `mount_ext`), not
+by embedding a `QueryClient` on `MfeMountContext` or expecting host React context
+inside Shadow DOM.
 
 When the domain's `ContainerProvider` must point at the same DOM node rendered
 by the slot, pass `containerRef` to `ExtensionDomainSlot` and share that ref

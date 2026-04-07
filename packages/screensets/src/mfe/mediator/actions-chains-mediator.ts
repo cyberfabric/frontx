@@ -179,7 +179,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
     // Execute the action with timeout
     try {
-      await this.executeAction(action);
+      await this.executeAction(action, chain.mountRuntimeToken);
 
       // Add to path on success
       path.push(action.type);
@@ -219,7 +219,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param action - The action to execute
    * @returns Promise that resolves when action completes
    */
-  private async executeAction(action: ActionsChain['action']): Promise<void> {
+  private async executeAction(action: ActionsChain['action'], mountRuntimeToken?: string): Promise<void> {
     // Resolve target (domain or extension handler)
     const handler = this.resolveHandler(action.target);
 
@@ -233,9 +233,12 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
     // Resolve timeout from domain or action
     const timeout = await this.resolveTimeout(action);
 
+    const executionContext =
+      mountRuntimeToken !== undefined ? { mountRuntimeToken } : undefined;
+
     // Track pending action
     const actionPromise = this.executeWithTimeout(
-      async () => await handler.handleAction(action.type, action.payload),
+      async () => await handler.handleAction(action.type, action.payload, executionContext),
       timeout
     );
 

@@ -187,7 +187,45 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       expect(handler).toHaveBeenCalledWith(
         'gts.hai3.mfes.comm.action.v1~test.action.v1~',
-        payload
+        payload,
+        undefined
+      );
+    });
+
+    it('passes mountRuntimeToken from the chain link to the handler', async () => {
+      const handler = vi.fn().mockResolvedValue(undefined);
+
+      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
+        handleAction: handler,
+      });
+
+      const domain: ExtensionDomain = {
+        id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        sharedProperties: [],
+        actions: ['gts.hai3.mfes.comm.action.v1~test.action.v1~'],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain, mockContainerProvider);
+
+      const payload = { data: 'test value' };
+      const chain: ActionsChain = {
+        action: {
+          type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+          target: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+          payload,
+        },
+        mountRuntimeToken: 'mediator-test-token',
+      };
+
+      await mediator.executeActionsChain(chain);
+
+      expect(handler).toHaveBeenCalledWith(
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        payload,
+        { mountRuntimeToken: 'mediator-test-token' }
       );
     });
   });

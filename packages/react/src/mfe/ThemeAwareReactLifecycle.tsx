@@ -2,54 +2,80 @@
 
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { QueryClient } from '@tanstack/react-query';
 import type {
   HAI3App,
   MfeEntryLifecycle,
   ChildMfeBridge,
   MfeMountContext,
+  ServerStateRuntime,
 } from '@cyberfabric/framework';
 import { HAI3Provider } from '../HAI3Provider';
+import {
+  consumeMfeMountRuntimeContext,
+} from './mountRuntimeContext';
 
 interface ProviderMountOptions {
-  queryClient?: QueryClient;
   mfeBridge?: {
     bridge: ChildMfeBridge;
     extensionId: string;
     domainId: string;
   };
-}
-
-type QueryClientLike = Pick<QueryClient, 'getQueryCache' | 'getMutationCache' | 'defaultQueryOptions'>;
-
-function isQueryClientLike(value: unknown): value is QueryClient {
-  const candidate = value as QueryClientLike | undefined;
-
-  return (
-    candidate !== undefined &&
-    typeof candidate.getQueryCache === 'function' &&
-    typeof candidate.getMutationCache === 'function' &&
-    typeof candidate.defaultQueryOptions === 'function'
-  );
+  serverState?: ServerStateRuntime;
 }
 
 function resolveProviderMountOptions(
+  app: HAI3App,
   bridge: ChildMfeBridge,
-  mountContext?: MfeMountContext
+  mountContext?: MfeMountContext,
+  fromHandoff?: ServerStateRuntime
 ): ProviderMountOptions {
-  const queryClient = mountContext?.values?.queryClient;
   const extensionId = mountContext?.extensionId;
   const domainId = mountContext?.domainId;
 
   return {
-    // Host and child MFEs may each bundle TanStack Query, so instanceof is not
-    // reliable across runtime boundaries. Accept any QueryClient-shaped object.
-    queryClient: isQueryClientLike(queryClient) ? queryClient : undefined,
     mfeBridge:
       typeof extensionId === 'string' && typeof domainId === 'string'
         ? { bridge, extensionId, domainId }
         : undefined,
+    serverState:
+      fromHandoff ??
+      (typeof extensionId === 'string' && typeof domainId === 'string'
+        ? app.serverState
+        : undefined),
   };
+}
+
+interface MountRuntimeAwareProviderProps {
+  app: HAI3App;
+  bridge: ChildMfeBridge;
+  initialServerState?: ServerStateRuntime;
+  mountContext?: MfeMountContext;
+  children: React.ReactNode;
+}
+
+function MountRuntimeAwareProvider({
+  app,
+  bridge,
+  initialServerState,
+  mountContext,
+  children,
+}: MountRuntimeAwareProviderProps): React.JSX.Element {
+  const providerMountOptions = resolveProviderMountOptions(
+    app,
+    bridge,
+    mountContext,
+    initialServerState
+  );
+
+  return (
+    <HAI3Provider
+      app={app}
+      mfeBridge={providerMountOptions.mfeBridge}
+      serverState={providerMountOptions.serverState}
+    >
+      {children}
+    </HAI3Provider>
+  );
 }
 
 /**
@@ -84,16 +110,23 @@ export abstract class ThemeAwareReactLifecycle implements MfeEntryLifecycle<Chil
     this.injectBaseResets(container);
     this.initializeStyles(container);
 
+    const mountRuntimeToken = mountContext?.mountRuntimeToken;
+    // Consume the one-shot handoff before React schedules the first commit.
+    const initialServerState =
+      typeof mountRuntimeToken === 'string' && mountRuntimeToken.length > 0
+        ? consumeMfeMountRuntimeContext(mountRuntimeToken)?.serverState
+        : undefined;
+
     this.root = createRoot(container);
-    const providerMountOptions = resolveProviderMountOptions(bridge, mountContext);
     this.root.render(
-      <HAI3Provider
+      <MountRuntimeAwareProvider
         app={this.app}
-        queryClient={providerMountOptions.queryClient}
-        mfeBridge={providerMountOptions.mfeBridge}
+        bridge={bridge}
+        initialServerState={initialServerState}
+        mountContext={mountContext}
       >
         {this.renderContent(bridge)}
-      </HAI3Provider>
+      </MountRuntimeAwareProvider>
     );
   }
 

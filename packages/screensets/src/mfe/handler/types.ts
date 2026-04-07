@@ -68,39 +68,20 @@ export interface ChildMfeBridge {
 }
 
 /**
- * One entry in {@link MfeMountValues}. Opaque at the screensets layer — integrators
- * narrow at L2/L3 (e.g. React host reads `values.queryClient` after checking shape).
- */
-export type MfeMountValue = unknown;
-
-/**
- * String-keyed bag returned by {@link MountContextResolver} and attached to
- * {@link MfeMountContext.values} when the resolver returns a value.
- */
-export type MfeMountValues = Readonly<Record<string, MfeMountValue>>;
-
-/**
  * Runtime values supplied by the host at mount time.
  *
- * The runtime always attaches identity metadata (`extensionId`, `domainId`).
- * Higher layers may additionally pass an opaque values bag for runtime wiring.
+ * The runtime attaches identity metadata (`extensionId`, `domainId`) so child
+ * lifecycles can understand their host context without learning runtime internals.
  */
 export interface MfeMountContext {
-  readonly values?: MfeMountValues;
   readonly extensionId?: string;
   readonly domainId?: string;
+  /**
+   * Correlates this mount with host-owned side-channel data (e.g. serverState handoff).
+   * Unique per `mount_ext` invocation — never rely on extension/domain alone.
+   */
+  readonly mountRuntimeToken?: string;
 }
-
-/**
- * Resolve host-provided runtime values for an extension mount.
- *
- * The runtime always supplies `extensionId` and `domainId`; resolvers add any
- * extra opaque host values needed by the mounted MFE.
- */
-export type MountContextResolver = (
-  extensionId: string,
-  domainId: string
-) => MfeMountValues | undefined;
 
 /**
  * MFE lifecycle interface.

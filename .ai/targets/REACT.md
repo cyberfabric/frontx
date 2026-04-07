@@ -37,16 +37,17 @@ function App() {
   <AppRouter fallback={<Loading />} />
 </HAI3Provider>
 
-// OPTIONAL: With pre-built app — register queryCache() before .build() so app.queryClient
-// exists; HAI3Provider wraps the tree with QueryClientProvider and useApiQuery/useApiMutation work.
+// OPTIONAL: With pre-built app — register queryCache() before .build() so app.serverState
+// exists; HAI3Provider wraps the tree with ServerStateProvider (TanStack QueryClientProvider inside the adapter).
 import { createHAI3, queryCache, screensets } from '@cyberfabric/react';
 const app = createHAI3().use(queryCache()).use(screensets()).build();
 <HAI3Provider app={app}>
   <AppRouter fallback={<Loading />} />
 </HAI3Provider>
 
-// OPTIONAL: Reuse a host-owned QueryClient across separate React roots
-<HAI3Provider app={app} queryClient={sharedQueryClient}>
+// OPTIONAL: Reuse the host-owned ServerStateRuntime across separate React roots (tests, custom hosts).
+// For mount_ext-driven MFEs, the framework primes an opaque mountRuntimeToken and hands off { serverState } once per child root.
+<HAI3Provider app={app} serverState={sharedServerState}>
   <AppRouter fallback={<Loading />} />
 </HAI3Provider>
 ```

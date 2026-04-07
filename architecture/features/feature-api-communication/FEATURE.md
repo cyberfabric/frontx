@@ -103,8 +103,8 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 1. [x] `p1` - Developer declares a class extending `BaseApiService` — `inst-extend-base`
 2. [x] `p1` - Constructor calls `super({ baseURL }, ...protocols)` with at least one protocol instance — `inst-super-call`
 3. [x] `p1` - Constructor optionally calls `this.registerPlugin(protocol, mockPlugin)` to pre-register mock plugins — `inst-register-mock-plugin`
-4. [x] - `p3` - Developer declares read endpoints as `readonly prop = this.query<TData>(path, options?)` or `this.queryWith<TData, TParams>(pathFn, options?)` (always GET) — cache keys are derived automatically from `[baseURL, 'GET', path]` — `inst-declare-query-endpoints`
-5. [x] - `p3` - Developer declares write endpoints as `readonly prop = this.mutation<TData, TVariables>(method, path)` — `inst-declare-mutation-endpoints`
+4. [x] - `p3` - Developer declares read endpoints as `readonly prop = this.protocol(RestEndpointProtocol).query<TData>(path, options?)` or `.queryWith<TData, TParams>(pathFn, options?)` (always GET) — cache keys are derived automatically from `[baseURL, 'GET', path]` for static reads and `[baseURL, 'GET', resolvedPath, params]` for parameterized reads — `inst-declare-query-endpoints`
+5. [x] - `p3` - Developer declares write endpoints as `readonly prop = this.protocol(RestEndpointProtocol).mutation<TData, TVariables>(method, path)` — `inst-declare-mutation-endpoints`
 6. [x] `p1` - Developer calls `apiRegistry.register(ServiceClass)` to instantiate and store the service — `inst-registry-register`
 7. [x] `p1` - Consumer calls `apiRegistry.getService(ServiceClass)` to retrieve the typed instance — `inst-registry-get`
 8. [x] `p1` - `apiRegistry.getService` RETURN typed service instance — `inst-return-service`
@@ -415,7 +415,7 @@ Global mock mode state managed by the framework layer, not within `@cyberfabric/
 - `plugins.add(...)` / `plugins.exclude(...)` / `plugins.getAll()` / `plugins.getExcluded()` / `plugins.getPlugin(Class)`
 - `registerPlugin(protocol, plugin)` stores in `registeredPluginsMap: Map<ApiProtocol, Set<ApiPluginBase>>`; throws if protocol not registered on this service
 - `getPlugins()` returns `ReadonlyMap<ApiProtocol, ReadonlySet<ApiPluginBase>>`
-- `stream<TEvent>(path, options?)` method: returns `StreamDescriptor<TEvent>` with key `[baseURL, 'SSE', path]`; `connect` routes through `SseProtocol.connect()` with plugin chain; default parser is `JSON.parse(event.data)`, overridable via `options.parse`
+- `BaseApiService` exposes registered protocols via `protocol<T>(type)`; declarative descriptor helpers live on protocol-specific contracts: `RestEndpointProtocol.query()` / `queryWith()` / `mutation()` for REST and `SseStreamProtocol.stream()` for SSE
 - `cleanup()` calls `protocol.cleanup()` on each, clears map
 
 **Implements**:
@@ -648,11 +648,13 @@ The `@cyberfabric/api` package exposes a complete, tree-shakeable public surface
 
 **Implementation details**:
 
-- Exports: `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `StreamDescriptor`, `StreamStatus`
+- Exports: `BaseApiService`, `RestProtocol`, `SseProtocol`, `RestEndpointProtocol`, `SseStreamProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MockEventSource`, `StreamDescriptor`, `StreamStatus`
 - Exports: `ApiPluginBase`, `ApiPlugin`, `RestPlugin`, `RestPluginWithConfig`, `SsePlugin`, `SsePluginWithConfig`
 - Exports: `apiRegistry`
 - Exports: `MOCK_PLUGIN`, `isMockPlugin`, `isShortCircuit`, `isRestShortCircuit`, `isSseShortCircuit`
-- Type exports: all types from `types.ts` and config interfaces from plugin files
+- Exports: `createSharedFetchCache`, `getSharedFetchCache`, `peekSharedFetchCache`, `retainSharedFetchCache`, `releaseSharedFetchCache`, `resetSharedFetchCache`
+- Exports: `SHARED_FETCH_CACHE_SYMBOL`, `SHARED_FETCH_CACHE_RETAINERS_SYMBOL`
+- Type exports: all types from `types.ts`, `sharedFetchCache.ts`, and config interfaces from plugin files
 - Peer dependency: `axios` only
 - No `@cyberfabric/*` entries in `dependencies` or `devDependencies`
 

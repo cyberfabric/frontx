@@ -27,9 +27,6 @@ export function MfeScreenContainer() {
   // that the slot manages.
   const containerRef = useRef<HTMLDivElement>(null);
   const app = useHAI3();
-  // @cpt-begin:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
-  const queryClient = app.queryClient;
-  // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-mfe-extract-query-client
   const bootstrappedRef = useRef(false);
 
   // Screen extensions collected after bootstrap, used to pick the initial screen
@@ -42,12 +39,12 @@ export function MfeScreenContainer() {
     // by which time the slot will have rendered and attached the ref.
     if (bootstrappedRef.current) return;
     bootstrappedRef.current = true;
-    bootstrapMFE(app, containerRef, queryClient).then((exts) => {
+    bootstrapMFE(app, containerRef).then((exts) => {
       setScreenExtensions(exts);
     }).catch((error) => {
       console.error('[MFE Bootstrap] Failed to bootstrap MFE:', error);
     });
-  }, [app, queryClient]);
+  }, [app]);
 
   // Reactively track the currently mounted screen extension ID.
   // Any store dispatch (including mount state updates from Menu) triggers a snapshot check.
@@ -55,17 +52,21 @@ export function MfeScreenContainer() {
     (onStoreChange: () => void) => app.store.subscribe(onStoreChange),
     [app.store]
   );
+  const getMountedScreenExtension = useCallback(
+    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
+    [app.screensetsRegistry]
+  );
   const activeExtensionId = useSyncExternalStore(
     subscribe,
-    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
-    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
+    getMountedScreenExtension,
+    getMountedScreenExtension,
   );
 
   // Drive screen selection from the screen domain state. On the very first load,
   // we still honor the current URL passively so direct links can open a screen
   // without wiring menu selection to browser history updates.
   const initialRouteExtensionId = screenExtensions.find(
-    (extension) => extension.presentation.route === globalThis.location.pathname
+    (extension) => extension.presentation.route === globalThis.location?.pathname
   )?.id;
   const resolvedExtensionId = activeExtensionId ?? initialRouteExtensionId ?? screenExtensions[0]?.id;
 

@@ -13,9 +13,6 @@ import type { HAI3Plugin } from '../types';
 import { mockSlice } from '../slices/mockSlice';
 import { initMockEffects, toggleMockMode } from '../effects/mockEffects';
 
-// Store cleanup function per plugin instance
-let cleanup: (() => void) | null = null;
-
 /**
  * Detect if running in development environment.
  * Uses runtime heuristics since framework is pre-built.
@@ -65,6 +62,8 @@ export interface MockPluginConfig {
  */
 // @cpt-begin:cpt-frontx-algo-framework-composition-mock-toggle:p2:inst-1
 export function mock(config?: MockPluginConfig): HAI3Plugin {
+  let cleanup: (() => void) | null = null;
+
   return {
     name: 'mock',
     dependencies: ['effects'],

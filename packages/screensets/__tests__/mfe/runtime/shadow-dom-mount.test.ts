@@ -122,7 +122,6 @@ describe('Shadow DOM Mount Pipeline', () => {
       registerDomainActionHandler: vi.fn(),
       unregisterDomainActionHandler: vi.fn(),
       bridgeFactory,
-      resolveMountContext: () => undefined,
     });
 
     // Register domain

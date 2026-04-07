@@ -55,6 +55,11 @@ export type {
   StreamDescriptor,
   StreamStatus,
 } from './types';
+export type {
+  SharedFetchCache,
+  SharedFetchCacheFetchOptions,
+  SharedFetchCacheInvalidateFilters,
+} from './sharedFetchCache';
 
 // Re-export mock config types from plugin files
 export type { RestMockConfig } from './plugins/RestMockPlugin';
@@ -88,6 +93,16 @@ export { RestProtocol } from './protocols/RestProtocol';
 export { SseProtocol } from './protocols/SseProtocol';
 export { RestEndpointProtocol } from './protocols/RestEndpointProtocol';
 export { SseStreamProtocol } from './protocols/SseStreamProtocol';
+export {
+  SHARED_FETCH_CACHE_SYMBOL,
+  SHARED_FETCH_CACHE_RETAINERS_SYMBOL,
+  createSharedFetchCache,
+  getSharedFetchCache,
+  peekSharedFetchCache,
+  retainSharedFetchCache,
+  releaseSharedFetchCache,
+  resetSharedFetchCache,
+} from './sharedFetchCache';
 
 // Export protocol-specific mock plugins
 export { RestMockPlugin } from './plugins/RestMockPlugin';

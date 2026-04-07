@@ -38,7 +38,8 @@
 - REQUIRED: Define parameterized read endpoints through the descriptor contract's `queryWith<TData, TParams>(pathFn, options?)`.
 - REQUIRED: Define write endpoints through the descriptor contract's `mutation<TData, TVariables>(method, path)`.
 - REQUIRED: Define SSE stream endpoints through an explicit stream contract such as `this.protocol(SseStreamProtocol).stream<TEvent>(path, options?)`.
-- REQUIRED: Cache keys are derived automatically from `[baseURL, method, path]` — never define manual key factories.
+- REQUIRED: Cache keys are derived automatically — never define manual key factories: static reads `[baseURL, 'GET', path]`; parameterized reads `[baseURL, 'GET', resolvedPath, params]`; writes `[baseURL, method, path]`; SSE streams `[baseURL, 'SSE', path]`.
+- REQUIRED: When the host uses `queryCache()`, REST descriptor reads can align with L1 transport dedup: `RestProtocol` / `RestEndpointProtocol` may route GETs through `sharedFetchCache` (same key shape as server-state) while the plugin retains/releases that cache for the app lifetime.
 - REQUIRED: Per-endpoint cache options (`staleTime`, `gcTime`) are set on the descriptor, not in MFE code.
 - FORBIDDEN: Manual query key factory objects (e.g., `accountsKeys = { all: [...] }`).
 - FORBIDDEN: `queryOptions()` calls or parallel query-factory layers in MFE packages — the service IS the data layer.
@@ -87,7 +88,7 @@
 
 ## PRE-DIFF CHECKLIST
 - [ ] Service class created extending BaseApiService.
-- [ ] Read endpoints use an explicit descriptor contract (`RestEndpointProtocol.query()` / `queryWith()`) — no manual query key factories.
+- [ ] Read endpoints use an explicit descriptor contract (`RestEndpointProtocol.query()` / `queryWith()`) — no manual query key factories; keys follow `[baseURL, 'GET', ...]` for reads / `[baseURL, method, path]` for writes / `[baseURL, 'SSE', path]` for streams unless the design explicitly documents otherwise.
 - [ ] Write endpoints use an explicit descriptor contract (`RestEndpointProtocol.mutation()`).
 - [ ] No `queryOptions()` calls or manual key arrays outside descriptors on the service.
 - [ ] Service registered with apiRegistry.register(ServiceClass).
