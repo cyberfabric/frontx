@@ -136,7 +136,7 @@ class HAI3SpanProcessor implements SpanProcessor {
   onStart(span: Span): void {
     span.setAttribute('route.id', _currentRouteId);
     span.setAttribute('session.id', getSessionId());
-    span.setAttribute('app.origin', typeof window !== 'undefined' ? window.location.origin : 'unknown');
+    span.setAttribute('app.origin', typeof globalThis.window === 'undefined' ? 'unknown' : globalThis.window.location.origin);
 
     // Guarantee every span belongs to an action (ambient fallback)
     const relatedAction = findRelatedActionScope(performance.now(), _currentRouteId);
@@ -166,8 +166,8 @@ class HAI3SpanProcessor implements SpanProcessor {
     }
   }
   onEnd(): void {}
-  async shutdown(): Promise<void> {}
-  async forceFlush(): Promise<void> {}
+  async shutdown(): Promise<void> { /* no-op: processor has no pending work */ }
+  async forceFlush(): Promise<void> { /* no-op: processor has no pending work */ }
 }
 
 // ─── Initialization ──────────────────────────────────────────────────────────
@@ -181,7 +181,7 @@ export function initOtel(config: OtelConfig): void {
     [ATTR_SERVICE_VERSION]: config.serviceVersion,
     'deployment.environment': config.environment,
     'session.id': getSessionId(),
-    'app.origin': typeof window !== 'undefined' ? window.location.origin : 'unknown',
+    'app.origin': typeof globalThis.window === 'undefined' ? 'unknown' : globalThis.window.location.origin,
   });
 
   const exporter = new OTLPTraceExporter({
@@ -225,13 +225,13 @@ export function initOtel(config: OtelConfig): void {
   });
 
   // Flush on page hide
-  if (typeof window !== 'undefined') {
-    window.addEventListener('visibilitychange', () => {
+  if (typeof globalThis.window !== 'undefined') {
+    globalThis.window.addEventListener('visibilitychange', () => {
       if (document.visibilityState === 'hidden') {
         _provider?.forceFlush().catch(() => {});
       }
     });
-    window.addEventListener('beforeunload', () => {
+    globalThis.window.addEventListener('beforeunload', () => {
       _provider?.forceFlush().catch(() => {});
     });
   }
@@ -304,5 +304,5 @@ export async function runFrontendWork<T>(
   }
 }
 
-export { trace, context, SpanStatusCode };
-export type { Span };
+export { trace, context, SpanStatusCode } from '@opentelemetry/api';
+export type { Span } from '@opentelemetry/api';

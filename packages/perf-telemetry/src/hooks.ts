@@ -267,7 +267,7 @@ export function useWebVitals(routeId: string, enabled = true) {
     try {
       const lcpObserver = new PerformanceObserver((list) => {
         const entries = list.getEntries();
-        const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number };
+        const lastEntry = entries.at(-1) as PerformanceEntry & { startTime: number };
         if (lastEntry) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
           const span = tracer.startSpan('webvital.lcp', {
@@ -276,7 +276,7 @@ export function useWebVitals(routeId: string, enabled = true) {
               'telemetry.breakdown.kind': 'frontend.webvitals',
               'webvital.name': 'LCP',
               'webvital.value_ms': round2(lastEntry.startTime),
-              'webvital.rating': lastEntry.startTime < 2500 ? 'good' : lastEntry.startTime < 4000 ? 'needs-improvement' : 'poor',
+              'webvital.rating': rateWebVital(lastEntry.startTime, 2500, 4000),
             },
           }, parentCtx);
           span.end();
@@ -306,7 +306,7 @@ export function useWebVitals(routeId: string, enabled = true) {
               'telemetry.breakdown.kind': 'frontend.webvitals',
               'webvital.name': 'CLS',
               'webvital.value': round2(clsValue),
-              'webvital.rating': clsValue < 0.1 ? 'good' : clsValue < 0.25 ? 'needs-improvement' : 'poor',
+              'webvital.rating': rateWebVital(clsValue, 0.1, 0.25),
             },
           }, parentCtx);
           span.end();
@@ -327,7 +327,7 @@ export function useWebVitals(routeId: string, enabled = true) {
                 'telemetry.breakdown.kind': 'frontend.webvitals',
                 'webvital.name': 'INP',
                 'webvital.value_ms': round2(duration),
-                'webvital.rating': duration < 200 ? 'good' : duration < 500 ? 'needs-improvement' : 'poor',
+                'webvital.rating': rateWebVital(duration, 200, 500),
               },
             }, parentCtx);
             span.end();
@@ -426,6 +426,12 @@ export function useResourceTimingObserver(routeId: string, enabled = true) {
 
 function round2(n: number): number {
   return Math.round(n * 100) / 100;
+}
+
+function rateWebVital(value: number, good: number, poor: number): string {
+  if (value < good) return 'good';
+  if (value < poor) return 'needs-improvement';
+  return 'poor';
 }
 
 function getRelatedActionAttributes(routeId: string, atMs: number): Record<string, string> {

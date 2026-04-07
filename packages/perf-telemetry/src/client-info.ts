@@ -8,41 +8,46 @@
 
 type ClientAttributes = Record<string, string | number | boolean>;
 
-function parseUserAgent(): { browser: string; browserVersion: string; os: string; osVersion: string; deviceType: string } {
-  const ua = typeof navigator !== 'undefined' ? navigator.userAgent : '';
-  let browser = 'unknown', browserVersion = '', os = 'unknown', osVersion = '', deviceType = 'desktop';
+function detectBrowser(ua: string): { browser: string; browserVersion: string } {
+  let browser = 'unknown', browserVersion = '';
 
   if (ua.includes('Firefox/')) {
     browser = 'Firefox';
-    browserVersion = ua.match(/Firefox\/(\S+)/)?.[1] || '';
+    browserVersion = (/Firefox\/(\S+)/).exec(ua)?.[1] || '';
   } else if (ua.includes('Edg/')) {
     browser = 'Edge';
-    browserVersion = ua.match(/Edg\/(\S+)/)?.[1] || '';
+    browserVersion = (/Edg\/(\S+)/).exec(ua)?.[1] || '';
   } else if (ua.includes('OPR/') || ua.includes('Opera')) {
     browser = 'Opera';
-    browserVersion = ua.match(/(?:OPR|Opera)\/(\S+)/)?.[1] || '';
+    browserVersion = (/(?:OPR|Opera)\/(\S+)/).exec(ua)?.[1] || '';
   } else if (ua.includes('Chrome/') && !ua.includes('Edg/')) {
     browser = 'Chrome';
-    browserVersion = ua.match(/Chrome\/(\S+)/)?.[1] || '';
+    browserVersion = (/Chrome\/(\S+)/).exec(ua)?.[1] || '';
   } else if (ua.includes('Safari/') && !ua.includes('Chrome')) {
     browser = 'Safari';
-    browserVersion = ua.match(/Version\/(\S+)/)?.[1] || '';
+    browserVersion = (/Version\/(\S+)/).exec(ua)?.[1] || '';
   }
+
+  return { browser, browserVersion };
+}
+
+function detectOS(ua: string): { os: string; osVersion: string; deviceType: string } {
+  let os = 'unknown', osVersion = '', deviceType = 'desktop';
 
   if (ua.includes('Windows NT')) {
     os = 'Windows';
-    const ntVer = ua.match(/Windows NT (\d+\.\d+)/)?.[1] || '';
+    const ntVer = (/Windows NT (\d+\.\d+)/).exec(ua)?.[1] || '';
     const map: Record<string, string> = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
     osVersion = map[ntVer] || ntVer;
   } else if (ua.includes('Mac OS X')) {
     os = 'macOS';
-    osVersion = (ua.match(/Mac OS X ([\d_]+)/)?.[1] || '').replace(/_/g, '.');
+    osVersion = ((/Mac OS X ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.');
   } else if (ua.includes('Android')) {
     os = 'Android';
-    osVersion = ua.match(/Android ([\d.]+)/)?.[1] || '';
+    osVersion = (/Android ([\d.]+)/).exec(ua)?.[1] || '';
   } else if (/iPhone|iPad|iPod/.test(ua)) {
     os = 'iOS';
-    osVersion = (ua.match(/OS ([\d_]+)/)?.[1] || '').replace(/_/g, '.');
+    osVersion = ((/OS ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.');
   } else if (ua.includes('Linux')) {
     os = 'Linux';
   } else if (ua.includes('CrOS')) {
@@ -55,8 +60,16 @@ function parseUserAgent(): { browser: string; browserVersion: string; os: string
     deviceType = 'tablet';
   }
 
+  return { os, osVersion, deviceType };
+}
+
+function parseUserAgent(): { browser: string; browserVersion: string; os: string; osVersion: string; deviceType: string } {
+  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+  const { browser, browserVersion } = detectBrowser(ua);
+  const { os, osVersion, deviceType } = detectOS(ua);
   return { browser, browserVersion, os, osVersion, deviceType };
 }
+
 
 function getWebGLInfo(): { renderer: string; vendor: string } {
   try {
@@ -88,8 +101,8 @@ export function getClientInfo(): ClientAttributes {
       mozConnection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
       webkitConnection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
     }
-    const nav: NavigatorWithConnection | null = typeof navigator !== 'undefined' ? navigator : null;
-    const scr = typeof screen !== 'undefined' ? screen : null;
+    const nav: NavigatorWithConnection | null = typeof navigator === 'undefined' ? null : navigator;
+    const scr = typeof screen === 'undefined' ? null : screen;
     const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
     const gl = getWebGLInfo();
 
@@ -103,11 +116,11 @@ export function getClientInfo(): ClientAttributes {
       'client.timezone': Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone || 'unknown',
       'client.screen.width': scr?.width || 0,
       'client.screen.height': scr?.height || 0,
-      'client.screen.pixel_ratio': typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1,
-      'client.viewport.width': typeof window !== 'undefined' ? window.innerWidth : 0,
-      'client.viewport.height': typeof window !== 'undefined' ? window.innerHeight : 0,
+      'client.screen.pixel_ratio': typeof globalThis.window === 'undefined' ? 1 : globalThis.window.devicePixelRatio || 1,
+      'client.viewport.width': typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerWidth,
+      'client.viewport.height': typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerHeight,
       'client.cpu_cores': nav?.hardwareConcurrency || 0,
-      'client.touch_support': 'ontouchstart' in (typeof window !== 'undefined' ? window : {}),
+      'client.touch_support': 'ontouchstart' in (typeof globalThis.window === 'undefined' ? {} : globalThis.window),
       'client.connection.type': String(conn?.effectiveType || 'unknown'),
       'client.connection.downlink_mbps': Number(conn?.downlink || 0),
       'client.connection.rtt_ms': Number(conn?.rtt || 0),

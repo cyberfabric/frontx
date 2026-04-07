@@ -79,6 +79,6 @@ export class TelemetryStoreProcessor implements SpanProcessor {
     notify();
   }
 
-  async shutdown(): Promise<void> {}
-  async forceFlush(): Promise<void> {}
+  async shutdown(): Promise<void> { /* no-op: spans stored in-memory */ }
+  async forceFlush(): Promise<void> { /* no-op: spans stored in-memory */ }
 }
