@@ -38,7 +38,7 @@ Present the following to the user for approval:
   - Add screen ID to ids.ts
   - Create components per Component Plan (BEFORE screen file)
   - Create screen (orchestrates components, follows EVENTS.md data flow)
-  - Add i18n files for all languages
+  - Add i18n/en.json only (add other locales only if user explicitly requests them)
   - Add to menu (if requested)
   - Validate: `npm run type-check && npm run lint`
   - Test via Chrome DevTools MCP
@@ -53,7 +53,7 @@ After approval, follow the plan strictly:
 3) Create screen following data flow rules from .ai/targets/EVENTS.md:
    - Use actions to trigger state changes
    - FORBIDDEN: Direct slice dispatch from screen
-4) Add i18n with useScreenTranslations(). Export default.
+4) Add i18n/en.json only. Add other locales only if explicitly requested. Export default.
 5) Add to menu if requested.
 6) Validate: `npm run type-check && npm run lint`.
 7) Test via Chrome DevTools MCP (REQUIRED):
