@@ -81,13 +81,23 @@ export interface AuthCheckResult {
   session?: AuthSession;
 }
 
-export type AuthTransitionType = 'redirect' | 'none';
-
-export interface AuthTransition {
-  type: AuthTransitionType;
+/** Redirect transition — requires redirectUrl */
+export interface AuthTransitionRedirect {
+  type: 'redirect';
   /** Plain URL / path — no router semantics */
-  redirectUrl?: string;
+  redirectUrl: string;
 }
+
+/** No-op transition — login/logout completed without navigation */
+export interface AuthTransitionNone {
+  type: 'none';
+}
+
+/**
+ * Discriminated union of auth transition results.
+ * Narrow by `transition.type` to access type-specific fields.
+ */
+export type AuthTransition = AuthTransitionRedirect | AuthTransitionNone;
 
 // ---------------------------------------------------------------------------
 // Permissions
