@@ -1,15 +1,6 @@
 // ---------------------------------------------------------------------------
-// Core identity & session
+// Session types
 // ---------------------------------------------------------------------------
-
-export interface AuthIdentity {
-  id: string;
-  email?: string;
-  name?: string;
-  avatarUrl?: string;
-  /** Provider-specific claims */
-  attributes?: Record<string, string | number | boolean | null>;
-}
 
 /** Bearer token session — Authorization header transport */
 export interface BearerAuthSession {
@@ -88,7 +79,6 @@ export interface AuthCallbackInput {
 export interface AuthCheckResult {
   authenticated: boolean;
   session?: AuthSession;
-  identity?: AuthIdentity;
 }
 
 export type AuthTransitionType = 'redirect' | 'none';
@@ -158,7 +148,6 @@ export type AuthState = 'authenticated' | 'unauthenticated' | 'loading' | 'error
 export interface AuthStateEvent {
   state: AuthState;
   session?: AuthSession;
-  identity?: AuthIdentity;
   error?: Error;
 }
 
@@ -181,8 +170,7 @@ export interface AuthProvider {
   refresh?(ctx?: AuthContext): Promise<AuthSession | null>;
   destroy?(): void | Promise<void>;
 
-  // --- Optional identity & permissions ---
-  getIdentity?(ctx?: AuthContext): Promise<AuthIdentity | null>;
+  // --- Optional permissions ---
   getPermissions?(ctx?: AuthContext): Promise<AuthPermissions>;
   canAccess?<TRecord extends Record<string, string | number | boolean | null> = Record<string, string | number | boolean | null>>(
     query: AccessQuery<TRecord>,

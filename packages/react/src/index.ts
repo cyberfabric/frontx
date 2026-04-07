@@ -247,7 +247,6 @@ export type {
   AuthProvider,
   AuthSession,
   AuthContext,
-  AuthIdentity,
   AuthCheckResult,
   AuthLoginInput,
   AuthCallbackInput,

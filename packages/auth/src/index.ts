@@ -4,7 +4,6 @@ export type {
   BearerAuthSession,
   CookieAuthSession,
   CustomAuthSession,
-  AuthIdentity,
   AccessQuery,
   AccessDecision,
   AuthLoginInput,

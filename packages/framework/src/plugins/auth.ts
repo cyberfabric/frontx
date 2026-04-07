@@ -2,7 +2,6 @@ import type {
   AuthCallbackInput,
   AuthCheckResult,
   AuthContext,
-  AuthIdentity,
   AccessDecision,
   AccessQuery,
   AuthLoginInput,
@@ -31,7 +30,6 @@ export type AuthRuntime = {
   login?: (input: AuthLoginInput, ctx?: AuthContext) => Promise<AuthTransition>;
   handleCallback?: (input: AuthCallbackInput, ctx?: AuthContext) => Promise<AuthTransition>;
   refresh?: (ctx?: AuthContext) => Promise<AuthSession | null>;
-  getIdentity?: (ctx?: AuthContext) => Promise<AuthIdentity | null>;
   getPermissions?: (ctx?: AuthContext) => Promise<AuthPermissions>;
   canAccess?: <TRecord extends Record<string, string | number | boolean | null> = Record<string, string | number | boolean | null>>(query: AccessQuery<TRecord>, ctx?: AuthContext) => Promise<AccessDecision>;
   subscribe?: (listener: AuthStateListener) => AuthUnsubscribe;
@@ -268,7 +266,7 @@ export function auth(config: AuthPluginConfig): HAI3Plugin {
           login: config.provider.login?.bind(config.provider),
           handleCallback: config.provider.handleCallback?.bind(config.provider),
           refresh: config.provider.refresh?.bind(config.provider),
-          getIdentity: config.provider.getIdentity?.bind(config.provider),
+
           getPermissions: config.provider.getPermissions?.bind(config.provider),
           canAccess: config.provider.canAccess?.bind(config.provider),
           subscribe: config.provider.subscribe?.bind(config.provider),
