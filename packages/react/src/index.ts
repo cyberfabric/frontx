@@ -379,8 +379,6 @@ export {
 
 // MFE Types
 export type {
-  ChildMfeBridge,
-  ParentMfeBridge,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -405,12 +403,15 @@ export type {
 
 // MFE Abstract classes
 export {
+  ChildMfeBridge,
+  ParentMfeBridge,
   MfeHandler,
   MfeBridgeFactory,
   ScreensetsRegistry,
   ScreensetsRegistryFactory,
   screensetsRegistryFactory,
   ContainerProvider,
+  ActionHandler,
 } from '@cyberfabric/framework';
 
 // MFE Concrete implementations

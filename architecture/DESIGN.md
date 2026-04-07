@@ -56,7 +56,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-global-shared-property-broadcast`,
 `cpt-frontx-adr-cli-template-based-code-generation`,
 `cpt-frontx-adr-two-tier-cli-e2e-verification`,
-`cpt-frontx-adr-channel-aware-version-locking`
+`cpt-frontx-adr-channel-aware-version-locking`,
+`cpt-frontx-adr-per-action-type-handler-routing`
 
 #### Functional Drivers
 
@@ -668,31 +669,73 @@ interface SharedPropertyBridge {
 
 - [ ] `p1` - **ID**: `cpt-frontx-interface-child-mfe-bridge`
 - **Contract**: `cpt-frontx-interface-child-mfe-bridge`
-- **Technology**: TypeScript interface
+- **Technology**: TypeScript abstract class
 - **Location**: `packages/screensets/src/mfe/handler/types.ts`
 
 ```typescript
-interface ChildMfeBridge {
-  readonly domainId: string;
-  readonly instanceId: string;
-  executeActionsChain(chain: ActionsChain): Promise<void>;
-  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
-  getProperty(propertyTypeId: string): SharedProperty | undefined;
-  registerActionHandler(handler: ActionHandler): void;
+abstract class ChildMfeBridge {
+  abstract readonly domainId: string;
+  abstract readonly instanceId: string;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
+  abstract subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  abstract getProperty(propertyTypeId: string): SharedProperty | undefined;
+  abstract registerActionHandler(actionTypeId: string, handler: ActionHandler): void;
 }
 ```
 
 - [ ] `p1` - **ID**: `cpt-frontx-interface-parent-mfe-bridge`
 - **Contract**: `cpt-frontx-interface-parent-mfe-bridge`
-- **Technology**: TypeScript interface
+- **Technology**: TypeScript abstract class
 - **Location**: `packages/screensets/src/mfe/handler/types.ts`
 
 ```typescript
-interface ParentMfeBridge {
-  readonly instanceId: string;
-  dispose(): void;
+abstract class ParentMfeBridge {
+  abstract readonly instanceId: string;
+  abstract dispose(): void;
 }
 ```
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-action-handler`
+- **Contract**: `cpt-frontx-interface-action-handler`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/mediator/types.ts`
+
+```typescript
+abstract class ActionHandler {
+  abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
+}
+```
+
+`ActionHandler` is the single public handler contract for both domain-side and extension-side action routing. Consistent with every other public component in `@cyberfabric/screensets` (`MfeHandler`, `MfeBridgeFactory`, `RuntimeCoordinator`, `ChildMfeBridge`): it is an abstract class, not a function type. Consumers extend it to implement specific action type behavior. No `CustomActionHandler` callback type or `ActionHandlerFn` alias exists in the public API.
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-actions-chains-mediator`
+- **Contract**: `cpt-frontx-interface-actions-chains-mediator`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/mediator/actions-chains-mediator.ts`
+
+```typescript
+abstract class ActionsChainsMediator {
+  abstract executeActionsChain(chain: ActionsChain): Promise<ActionChainResult>;
+  abstract registerHandler(targetId: string, actionTypeId: string, handler: ActionHandler): void;
+  abstract unregisterAllHandlers(targetId: string): void;
+}
+```
+
+Handler storage uses a unified two-level map: `Map<targetId, Map<actionTypeId, ActionHandler>>`. A single `registerHandler(targetId, actionTypeId, handler)` covers both domain-side and extension-side registration. `unregisterAllHandlers(targetId)` removes the entire inner map entry, covering both bridge dispose and domain unregister. There is no `registerDomainHandler`, `registerExtensionHandler`, or `unregisterDomainHandler` on the abstract class.
+
+**`registerDomain` signature**:
+```typescript
+registerDomain(
+  domain: DomainDescriptor,
+  containerProvider: ContainerProvider,
+  options?: {
+    onInitError?: (error: Error) => void;
+    actionHandlers?: Record<string, ActionHandler>;
+  }
+): void
+```
+
+During `registerDomain()`, the registry registers three small `ActionHandler` subclasses (one per lifecycle action type: `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) via `mediator.registerHandler(domainId, actionTypeId, handler)`. Custom handlers from `options.actionHandlers` are registered the same way — one call per entry in the map. No monolithic `ExtensionLifecycleActionHandler` switch class is constructed.
 
 - [ ] `p1` - **ID**: `cpt-frontx-interface-mfe-json-schemas`
 - **Contract**: `cpt-frontx-interface-mfe-json-schemas`
@@ -941,19 +984,19 @@ sequenceDiagram
 
     Host->>Bridge: executeActionsChain(chain targeting extension ID)
     Bridge->>Mediator: executeActionsChain(chain)
-    Mediator->>Mediator: resolveHandler(action.target)
-    alt extension handler registered
-        Mediator->>Handler: handleAction(actionTypeId, payload)
+    Mediator->>Mediator: resolveHandler(action.target, action.type)
+    alt handler registered for (extensionId, actionTypeId)
+        Mediator->>Handler: handler(actionTypeId, payload)
         Handler-->>Mediator: resolve
         Mediator-->>Bridge: chain complete
-    else no extension handler
+    else no handler registered
         Mediator->>Mediator: no-op (successful return)
         Mediator-->>Bridge: chain complete
     end
     Bridge-->>Host: Promise resolves
 ```
 
-**Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the extension's registered `ActionHandler` instead of the domain's `ExtensionLifecycleActionHandler`. The handler is registered during MFE mount via `ChildMfeBridge.registerActionHandler()`, which wires it to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)`. On dispose, the handler is unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling.
+**Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the handler registered for the `(extensionId, actionTypeId)` pair. Handlers are `ActionHandler` abstract class instances — one small class per action type, consistent with the class-based architecture of the entire package. A handler is registered per action type via `ChildMfeBridge.registerActionHandler(actionTypeId, handler)`, which wires it to `mediator.registerHandler(extensionId, actionTypeId, handler)`. Domain-side lifecycle handlers are also small `ActionHandler` subclasses registered per action type during `registerDomain()` — the mediator stores all handlers in a unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. On bridge dispose, all handlers for the extension are unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling, and eliminates the need for a monolithic switch in any handler class.
 
 ### 3.7 Database schemas & tables
 

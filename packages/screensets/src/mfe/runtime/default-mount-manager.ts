@@ -67,22 +67,22 @@ export class DefaultMountManager extends MountManager {
   private readonly hostRuntime: ScreensetsRegistry;
 
   /**
-   * Callback for registering domain action handlers.
+   * Callback for registering catch-all action handlers (child domain forwarding).
    */
-  private readonly registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
+  private readonly registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
 
   /**
-   * Callback for unregistering domain action handlers.
+   * Callback for unregistering catch-all action handlers.
    */
-  private readonly unregisterDomainActionHandler: (domainId: string) => void;
+  private readonly unregisterCatchAllActionHandler: (domainId: string) => void;
 
   /**
-   * Callback for registering extension action handlers in the parent mediator.
+   * Callback for registering per-(extensionId, actionTypeId) handlers in the parent mediator.
    */
-  private readonly registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler, domainActions: readonly string[]) => void;
+  private readonly registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void;
 
   /**
-   * Callback for unregistering extension action handlers from the parent mediator.
+   * Callback for unregistering all extension handlers from the parent mediator.
    */
   private readonly unregisterExtensionActionHandler: (extensionId: string) => void;
 
@@ -98,9 +98,9 @@ export class DefaultMountManager extends MountManager {
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
     hostRuntime: ScreensetsRegistry;
-    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
-    unregisterDomainActionHandler: (domainId: string) => void;
-    registerExtensionActionHandler: (extensionId: string, domainId: string, entryId: string, handler: ActionHandler, domainActions: readonly string[]) => void;
+    registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
+    unregisterCatchAllActionHandler: (domainId: string) => void;
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void;
     unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
@@ -111,8 +111,8 @@ export class DefaultMountManager extends MountManager {
     this.triggerLifecycle = config.triggerLifecycle;
     this.executeActionsChain = config.executeActionsChain;
     this.hostRuntime = config.hostRuntime;
-    this.registerDomainActionHandler = config.registerDomainActionHandler;
-    this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
+    this.registerCatchAllActionHandler = config.registerCatchAllActionHandler;
+    this.unregisterCatchAllActionHandler = config.unregisterCatchAllActionHandler;
     this.registerExtensionActionHandler = config.registerExtensionActionHandler;
     this.unregisterExtensionActionHandler = config.unregisterExtensionActionHandler;
     this.bridgeFactory = config.bridgeFactory;
@@ -227,9 +227,9 @@ export class DefaultMountManager extends MountManager {
         );
       }
 
-      // Create bridge using bridge factory
-      // domainActions is threaded from the entry so the mediator can enforce
-      // the extension-level action contract at execution time.
+      // Create bridge using bridge factory.
+      // domainActions is passed for API compatibility but is no longer used
+      // for contract enforcement — GTS schema validation handles that.
       const entryDomainActions = extensionState.entry.domainActions;
       const { parentBridge, childBridge } = this.bridgeFactory.createBridge(
         domainState,
@@ -237,9 +237,9 @@ export class DefaultMountManager extends MountManager {
         extensionState.entry.id,
         entryDomainActions,
         (chain: ActionsChain) => this.executeActionsChain(chain),
-        (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
-        (domainId) => this.unregisterDomainActionHandler(domainId),
-        (extId, domainId, entryId, handler, domainActions) => this.registerExtensionActionHandler(extId, domainId, entryId, handler, domainActions),
+        (domainId, handler) => this.registerCatchAllActionHandler(domainId, handler),
+        (domainId) => this.unregisterCatchAllActionHandler(domainId),
+        (extId, actionTypeId, handler) => this.registerExtensionActionHandler(extId, actionTypeId, handler),
         (extId) => this.unregisterExtensionActionHandler(extId)
       );
 

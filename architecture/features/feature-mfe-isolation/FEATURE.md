@@ -39,13 +39,13 @@
   - [hai3-mfe-externalize Vite Plugin](#hai3-mfe-externalize-vite-plugin)
   - [MFE-Internal Dataflow](#mfe-internal-dataflow)
   - [SharedDependencyConfig chunkPath Field](#shareddependencyconfig-chunkpath-field)
-  - [ChildMfeBridge Interface Contract](#childmfebridge-interface-contract)
+  - [ChildMfeBridge Abstract Class Contract](#childmfebridge-abstract-class-contract)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
 
 <!-- /toc -->
 
-- [ ] `p1` - **ID**: `cpt-frontx-featstatus-mfe-isolation`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-mfe-isolation`
 
 - [x] `p2` - `cpt-frontx-feature-mfe-isolation`
 ---
@@ -512,20 +512,20 @@ Each MFE package bootstraps its own isolated `HAI3App` and exposes it for use by
 - `cpt-frontx-fr-blob-source-cache` (chunkPath enables cache keying)
 - `cpt-frontx-fr-sharescope-construction` (chunkPath determines whether blob get() is created)
 
-### ChildMfeBridge Interface Contract
+### ChildMfeBridge Abstract Class Contract
 
-- [ ] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-child-bridge-contract`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-child-bridge-contract`
 
-`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. The interface declares all members the child MFE may access:
+`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. It is an abstract class (consistent with all other public abstractions: `MfeHandler`, `MfeBridgeFactory`, `ScreensetsRegistry`, `ActionsChainsMediator`, `RuntimeCoordinator`) — concrete implementations are `@internal`:
 
 ```typescript
-interface ChildMfeBridge {
-  readonly domainId: string;
-  readonly instanceId: string;
-  executeActionsChain(chain: ActionsChain): Promise<void>;
-  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
-  getProperty(propertyTypeId: string): SharedProperty | undefined;
-  registerActionHandler(handler: ActionHandler): void;
+abstract class ChildMfeBridge {
+  abstract readonly domainId: string;
+  abstract readonly instanceId: string;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
+  abstract subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  abstract getProperty(propertyTypeId: string): SharedProperty | undefined;
+  abstract registerActionHandler(actionTypeId: string, handler: ActionHandler): void;
 }
 ```
 
@@ -533,13 +533,13 @@ interface ChildMfeBridge {
 - `instanceId` — the extension instance ID; used as the routing key for extension-level action delivery
 - `executeActionsChain` — allows the child MFE to send actions back to the host mediator
 - `subscribeToProperty` / `getProperty` — read-only access to shared property values broadcast by the host
-- `registerActionHandler` — registers the MFE's own `ActionHandler` with the mediator so it can receive actions targeted at `instanceId`; the bridge wires this to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler)`; the handler is automatically unregistered when the bridge is disposed
+- `registerActionHandler(actionTypeId, handler)` — registers an `ActionHandler` abstract class instance for a specific action type so the mediator can route actions targeted at `instanceId` and `actionTypeId`; the bridge wires each call to `mediator.registerHandler(extensionId, actionTypeId, handler)`; all handlers are automatically unregistered when the bridge is disposed. The MFE may call this multiple times — once per action type it handles.
 
-The MFE provides the handler; the system manages routing and lifecycle. The handler is never called directly by the MFE — it is invoked by the mediator when an actions chain targets this extension.
+`ActionHandler` is an abstract class: `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>`. It is the only handler contract — no `ActionHandlerFn` function alias, no `ActionHandler` interface. The MFE subclasses `ActionHandler` for each action type it wishes to handle; the system manages routing and lifecycle. Handlers are invoked by the mediator via `handler.handleAction(actionTypeId, payload)` when an actions chain targets this extension.
 
 **`domainActions` field semantics**: The `domainActions` array on `MfeEntry` declares **all action types this entry can receive**, regardless of delivery path. The field name is a legacy from the era when only domain-level delivery existed, but it now covers both paths:
-- **Domain-level delivery** — the domain's `ExtensionLifecycleActionHandler` routes the action to all mounted extensions in the domain
-- **Extension-targeted delivery** — the mediator delivers the action directly to this entry's registered `ActionHandler` when `action.target` equals the extension instance ID
+- **Domain-level delivery** — the domain's per-action-type `ActionHandler` instances route lifecycle actions to all mounted extensions in the domain
+- **Extension-targeted delivery** — the mediator calls `handler.handleAction(actionTypeId, payload)` directly on the registered `ActionHandler` instance when `action.target` equals the extension instance ID
 
 Action target contract enforcement is handled by GTS schema validation: each action schema constrains its `target` field via `x-gts-ref`. Lifecycle action schemas restrict `target` to domain IDs only; custom MFE action schemas restrict `target` to specific extension IDs. The mediator validates each action instance against its schema before routing — invalid targets are rejected by the type system. No runtime `includes()` checks are needed.
 

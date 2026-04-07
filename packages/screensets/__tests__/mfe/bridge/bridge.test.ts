@@ -8,7 +8,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import type { ActionsChain, SharedProperty, ExtensionDomain } from '../../../src/mfe/types';
-import type { ActionHandler } from '../../../src/mfe/mediator/types';
+import { ActionHandler } from '../../../src/mfe/mediator/types';
 import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mfe/errors';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
@@ -567,11 +567,14 @@ describe('Bridge Implementation', () => {
       };
     }
 
-    // Concrete class implementing ActionHandler — no plain objects, per project rules.
-    class SpyActionHandler implements ActionHandler {
+    // Spy ActionHandler that records invocations for assertion.
+    class SpyHandler extends ActionHandler {
       private readonly calls: Array<{ actionTypeId: string; payload: Record<string, unknown> | undefined }> = [];
 
-      async handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void> {
+      async handleAction(
+        actionTypeId: string,
+        payload: Record<string, unknown> | undefined
+      ): Promise<void> {
         this.calls.push({ actionTypeId, payload });
       }
 
@@ -580,24 +583,31 @@ describe('Bridge Implementation', () => {
       }
     }
 
+    const ACTION_TYPE_SPY = 'gts.hai3.mfes.comm.action.v1~test.spy.v1~';
+
     describe('Registration via setRegisterActionHandlerCallback', () => {
-      it('should invoke the wired callback with the provided handler', () => {
+      it('should invoke the wired callback with the provided actionTypeId and handler', () => {
         const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
-        const captured: ActionHandler[] = [];
-        bridge.setRegisterActionHandlerCallback((h) => captured.push(h));
+        const capturedActionTypes: string[] = [];
+        const capturedHandlers: ActionHandler[] = [];
+        bridge.setRegisterActionHandlerCallback((actionTypeId, h) => {
+          capturedActionTypes.push(actionTypeId);
+          capturedHandlers.push(h);
+        });
 
-        const handler = new SpyActionHandler();
-        bridge.registerActionHandler(handler);
+        const spy = new SpyHandler();
+        bridge.registerActionHandler(ACTION_TYPE_SPY, spy);
 
-        expect(captured).toHaveLength(1);
-        expect(captured[0]).toBe(handler);
+        expect(capturedActionTypes).toHaveLength(1);
+        expect(capturedActionTypes[0]).toBe(ACTION_TYPE_SPY);
+        expect(capturedHandlers[0]).toBe(spy);
       });
 
       it('should throw when callback is not wired', () => {
         const bridge = new ChildMfeBridgeImpl('domain-id', 'instance-id');
-        const handler = new SpyActionHandler();
+        const spy = new SpyHandler();
 
-        expect(() => bridge.registerActionHandler(handler)).toThrow(
+        expect(() => bridge.registerActionHandler(ACTION_TYPE_SPY, spy)).toThrow(
           'registerActionHandler callback not wired'
         );
       });
@@ -607,8 +617,8 @@ describe('Bridge Implementation', () => {
         bridge.setRegisterActionHandlerCallback(() => {});
         bridge.cleanup();
 
-        const handler = new SpyActionHandler();
-        expect(() => bridge.registerActionHandler(handler)).toThrow(
+        const spy = new SpyHandler();
+        expect(() => bridge.registerActionHandler(ACTION_TYPE_SPY, spy)).toThrow(
           'registerActionHandler callback not wired'
         );
       });
@@ -617,7 +627,6 @@ describe('Bridge Implementation', () => {
     describe('Full pipeline: bridge → mediator → handler invocation', () => {
       const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.ext.v1~test.ext.handler.v1';
       const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~';
-      const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~';
       const ACTION_TYPE = 'gts.hai3.mfes.comm.action.v1~test.custom.v1~';
 
       let plugin: TypeSystemPlugin;
@@ -653,12 +662,12 @@ describe('Bridge Implementation', () => {
         const bridge = new ChildMfeBridgeImpl(DOMAIN_ID, 'test-instance');
 
         // Wire the callback exactly as DefaultRuntimeBridgeFactory does.
-        bridge.setRegisterActionHandlerCallback((handler) =>
-          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler, [ACTION_TYPE])
+        bridge.setRegisterActionHandlerCallback((actionTypeId, handler) =>
+          mediator.registerHandler(EXTENSION_ID, actionTypeId, handler, DOMAIN_ID)
         );
 
-        const spy = new SpyActionHandler();
-        bridge.registerActionHandler(spy);
+        const spy = new SpyHandler();
+        bridge.registerActionHandler(ACTION_TYPE, spy);
 
         await mediator.executeActionsChain({
           action: { type: ACTION_TYPE, target: EXTENSION_ID },
@@ -669,12 +678,12 @@ describe('Bridge Implementation', () => {
 
       it('should deliver the correct actionTypeId and payload to handleAction', async () => {
         const bridge = new ChildMfeBridgeImpl(DOMAIN_ID, 'test-instance');
-        bridge.setRegisterActionHandlerCallback((handler) =>
-          mediator.registerExtensionHandler(EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler, [ACTION_TYPE])
+        bridge.setRegisterActionHandlerCallback((actionTypeId, handler) =>
+          mediator.registerHandler(EXTENSION_ID, actionTypeId, handler, DOMAIN_ID)
         );
 
-        const spy = new SpyActionHandler();
-        bridge.registerActionHandler(spy);
+        const spy = new SpyHandler();
+        bridge.registerActionHandler(ACTION_TYPE, spy);
 
         const expectedPayload = { userId: 'u-42', refresh: true };
         await mediator.executeActionsChain({
@@ -764,24 +773,20 @@ describe('Bridge Implementation', () => {
       });
 
       it('refresh action targeting profile extension passes GTS validation', async () => {
-        const handler = new SpyActionHandler();
-        gtsMediator.registerExtensionHandler(
-          PROFILE_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, [REFRESH_ACTION]
-        );
+        const spy = new SpyHandler();
+        gtsMediator.registerHandler(PROFILE_EXT_ID, REFRESH_ACTION, spy, SCREEN_DOMAIN_ID);
 
         const result = await gtsMediator.executeActionsChain({
           action: { type: REFRESH_ACTION, target: PROFILE_EXT_ID },
         });
 
         expect(result.completed).toBe(true);
-        expect(handler.getCalls()).toHaveLength(1);
+        expect(spy.getCalls()).toHaveLength(1);
       });
 
       it('refresh action targeting WRONG extension is rejected by GTS x-gts-ref validation', async () => {
-        const handler = new SpyActionHandler();
-        gtsMediator.registerExtensionHandler(
-          HELLOWORLD_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, []
-        );
+        const spy = new SpyHandler();
+        gtsMediator.registerHandler(HELLOWORLD_EXT_ID, REFRESH_ACTION, spy, SCREEN_DOMAIN_ID);
 
         const result = await gtsMediator.executeActionsChain({
           action: { type: REFRESH_ACTION, target: HELLOWORLD_EXT_ID },
@@ -792,9 +797,12 @@ describe('Bridge Implementation', () => {
       });
 
       it('lifecycle action (mount_ext) targeting extension is rejected by GTS — target must be domain', async () => {
-        const handler = new SpyActionHandler();
-        gtsMediator.registerExtensionHandler(
-          PROFILE_EXT_ID, SCREEN_DOMAIN_ID, 'entry-id', handler, []
+        const spy = new SpyHandler();
+        gtsMediator.registerHandler(
+          PROFILE_EXT_ID,
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          spy,
+          SCREEN_DOMAIN_ID
         );
 
         const result = await gtsMediator.executeActionsChain({

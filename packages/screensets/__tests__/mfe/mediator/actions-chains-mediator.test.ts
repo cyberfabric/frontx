@@ -14,10 +14,43 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
-import type { ActionHandler } from '../../../src/mfe/mediator';
+import { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
 import { MockContainerProvider } from '../test-utils';
+
+/**
+ * Test-only ActionHandler that delegates to a vitest mock function.
+ * Allows standard vitest assertions (toHaveBeenCalled, etc.) on the wrapped mock.
+ */
+class MockActionHandler extends ActionHandler {
+  readonly mock = vi.fn<[string, Record<string, unknown> | undefined], Promise<void>>();
+
+  async handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void> {
+    return this.mock(actionTypeId, payload);
+  }
+}
+
+/** Convenience factory — mirrors vi.fn().mockResolvedValue(undefined) */
+function mockHandler(): MockActionHandler {
+  const h = new MockActionHandler();
+  h.mock.mockResolvedValue(undefined);
+  return h;
+}
+
+/** Convenience factory — mirrors vi.fn().mockRejectedValue(...) */
+function failingHandler(error: Error): MockActionHandler {
+  const h = new MockActionHandler();
+  h.mock.mockRejectedValue(error);
+  return h;
+}
+
+/** Convenience factory — mirrors vi.fn().mockImplementation(...) */
+function slowHandler(delayMs: number): MockActionHandler {
+  const h = new MockActionHandler();
+  h.mock.mockImplementation(() => new Promise(resolve => setTimeout(resolve, delayMs)));
+  return h;
+}
 
 // Mock Type System Plugin
 function createMockPlugin(): TypeSystemPlugin {
@@ -112,11 +145,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.1 Success path execution', () => {
     it('should execute action chain with next chain on success', async () => {
-      const handler = vi.fn().mockResolvedValue(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = mockHandler();
 
       // Register domain for timeout resolution
       const domain: ExtensionDomain = {
@@ -132,6 +161,17 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action1.v1~',
+        handler
+      );
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action2.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -153,15 +193,11 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.comm.action.v1~test.action1.v1~',
         'gts.hai3.mfes.comm.action.v1~test.action2.v1~',
       ]);
-      expect(handler).toHaveBeenCalledTimes(2);
+      expect(handler.mock).toHaveBeenCalledTimes(2);
     });
 
     it('should pass payload to handler', async () => {
-      const handler = vi.fn().mockResolvedValue(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = mockHandler();
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -174,6 +210,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
       };
       registry.registerDomain(domain, mockContainerProvider);
 
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
+
       const payload = { data: 'test value' };
       const chain: ActionsChain = {
         action: {
@@ -185,7 +227,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       await mediator.executeActionsChain(chain);
 
-      expect(handler).toHaveBeenCalledWith(
+      expect(handler.mock).toHaveBeenCalledWith(
         'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         payload
       );
@@ -194,13 +236,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.2 Failure path execution', () => {
     it('should execute fallback chain on failure', async () => {
-      const handler = vi.fn()
+      const handler = new MockActionHandler();
+      handler.mock
         .mockRejectedValueOnce(new Error('Action failed'))
         .mockResolvedValueOnce(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -212,6 +251,17 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.fallback.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -233,15 +283,11 @@ describe('ActionsChainsMediator - Phase 9', () => {
         'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         'gts.hai3.mfes.comm.action.v1~test.fallback.v1~',
       ]);
-      expect(handler).toHaveBeenCalledTimes(2);
+      expect(handler.mock).toHaveBeenCalledTimes(2);
     });
 
     it('should propagate error if no fallback defined', async () => {
-      const handler = vi.fn().mockRejectedValue(new Error('Action failed'));
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = failingHandler(new Error('Action failed'));
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -253,6 +299,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -271,11 +323,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.3 Chain termination scenarios', () => {
     it('should terminate when no next chain is defined', async () => {
-      const handler = vi.fn().mockResolvedValue(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = mockHandler();
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -288,6 +336,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
       };
       registry.registerDomain(domain, mockContainerProvider);
 
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
+
       const chain: ActionsChain = {
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~test.action.v1~',
@@ -299,17 +353,14 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       expect(result.completed).toBe(true);
       expect(result.path).toEqual(['gts.hai3.mfes.comm.action.v1~test.action.v1~']);
-      expect(handler).toHaveBeenCalledTimes(1);
+      expect(handler.mock).toHaveBeenCalledTimes(1);
     });
 
     it('should terminate after fallback when no next is defined', async () => {
-      const handler = vi.fn()
+      const handler = new MockActionHandler();
+      handler.mock
         .mockRejectedValueOnce(new Error('Failed'))
         .mockResolvedValueOnce(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -321,6 +372,17 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.fallback.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -383,16 +445,13 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.6 Handler lifecycle', () => {
     it('should register and use extension handler', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockResolvedValue(undefined),
-      };
+      const handler = mockHandler();
 
-      mediator.registerExtensionHandler(
+      mediator.registerHandler(
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         handler,
-        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
       );
 
       const domain: ExtensionDomain = {
@@ -416,39 +475,33 @@ describe('ActionsChainsMediator - Phase 9', () => {
       const result = await mediator.executeActionsChain(chain);
 
       expect(result.completed).toBe(true);
-      expect(handler.handleAction).toHaveBeenCalled();
+      expect(handler.mock).toHaveBeenCalled();
     });
 
     it('should unregister extension handler', () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockResolvedValue(undefined),
-      };
+      const handler = mockHandler();
 
-      mediator.registerExtensionHandler(
+      mediator.registerHandler(
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         handler,
-        []
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
       );
 
-      mediator.unregisterExtensionHandler('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+      mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
 
       // Handler should no longer be registered
       // (Will result in no-op execution)
     });
 
     it('should throw error when unregistering extension with pending actions', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))),
-      };
+      const handler = slowHandler(100);
 
-      mediator.registerExtensionHandler(
+      mediator.registerHandler(
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         handler,
-        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
       );
 
       const domain: ExtensionDomain = {
@@ -477,29 +530,26 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       // Try to unregister while action is pending
       expect(() => {
-        mediator.unregisterExtensionHandler('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
-      }).toThrow(/Cannot unregister extension.*action\(s\) still pending/);
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+      }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
 
       // Wait for action to complete
       await executionPromise;
 
       // Now unregistration should succeed
       expect(() => {
-        mediator.unregisterExtensionHandler('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
       }).not.toThrow();
     });
 
     it('should allow unregistering extension after actions complete', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockResolvedValue(undefined),
-      };
+      const handler = mockHandler();
 
-      mediator.registerExtensionHandler(
+      mediator.registerHandler(
         'gts.hai3.mfes.ext.extension.v1~test.ext.v1~',
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
-        'gts.hai3.mfes.mfe.entry.v1~test.entry.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
         handler,
-        ['gts.hai3.mfes.comm.action.v1~test.action.v1~']
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~'
       );
 
       const domain: ExtensionDomain = {
@@ -525,16 +575,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       // Should succeed after action completes
       expect(() => {
-        mediator.unregisterExtensionHandler('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.extension.v1~test.ext.v1~');
       }).not.toThrow();
     });
 
     it('should register and use domain handler', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockResolvedValue(undefined),
-      };
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', handler);
+      const handler = mockHandler();
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -546,6 +592,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -557,15 +609,11 @@ describe('ActionsChainsMediator - Phase 9', () => {
       const result = await mediator.executeActionsChain(chain);
 
       expect(result.completed).toBe(true);
-      expect(handler.handleAction).toHaveBeenCalled();
+      expect(handler.mock).toHaveBeenCalled();
     });
 
     it('should throw error when unregistering domain with pending actions', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100))),
-      };
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', handler);
+      const handler = slowHandler(100);
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -577,6 +625,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -593,24 +647,20 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       // Try to unregister while action is pending
       expect(() => {
-        mediator.unregisterDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
-      }).toThrow(/Cannot unregister domain.*action\(s\) still pending/);
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
+      }).toThrow(/Cannot unregister handlers.*action\(s\) still pending/);
 
       // Wait for action to complete
       await executionPromise;
 
       // Now unregistration should succeed
       expect(() => {
-        mediator.unregisterDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
       }).not.toThrow();
     });
 
     it('should allow unregistering domain after actions complete', async () => {
-      const handler: ActionHandler = {
-        handleAction: vi.fn().mockResolvedValue(undefined),
-      };
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', handler);
+      const handler = mockHandler();
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -622,6 +672,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -635,18 +691,14 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
       // Should succeed after action completes
       expect(() => {
-        mediator.unregisterDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
+        mediator.unregisterAllHandlers('gts.hai3.mfes.ext.domain.v1~test.domain.v1~');
       }).not.toThrow();
     });
   });
 
   describe('9.3.7-9.3.9 Timeout handling', () => {
     it('should use domain defaultActionTimeout when action.timeout not specified', async () => {
-      const handler = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = slowHandler(100);
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -658,6 +710,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -675,11 +733,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
     });
 
     it('should use action.timeout when specified (overrides domain default)', async () => {
-      const handler = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = slowHandler(100);
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -691,6 +745,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -707,13 +767,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
     });
 
     it('should execute fallback chain on timeout', async () => {
-      const handler = vi.fn()
+      const handler = new MockActionHandler();
+      handler.mock
         .mockImplementationOnce(() => new Promise(resolve => setTimeout(resolve, 100)))
         .mockResolvedValueOnce(undefined);
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -725,6 +782,17 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.fallback.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {
@@ -756,20 +824,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
     const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.contract.ext.v1~test.contract.ext.inst.v1';
     const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.contract.domain.v1~';
-    const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.contract.entry.v1~';
     const ACTION_TYPE = 'gts.hai3.mfes.comm.action.v1~test.action.v1~';
-
-    class ContractTestHandler implements ActionHandler {
-      private readonly invocations: string[] = [];
-
-      async handleAction(actionTypeId: string): Promise<void> {
-        this.invocations.push(actionTypeId);
-      }
-
-      getInvocations(): ReadonlyArray<string> {
-        return this.invocations;
-      }
-    }
 
     it('action targeting extension routes to registered handler', async () => {
       const domain: ExtensionDomain = {
@@ -783,11 +838,14 @@ describe('ActionsChainsMediator - Phase 9', () => {
       };
       registry.registerDomain(domain, mockContainerProvider);
 
-      const handler = new ContractTestHandler();
-      mediator.registerExtensionHandler(
-        EXTENSION_ID, DOMAIN_ID, ENTRY_ID, handler,
-        [ACTION_TYPE]
-      );
+      const invocations: string[] = [];
+      const handler = new class extends ActionHandler {
+        async handleAction(actionTypeId: string): Promise<void> {
+          invocations.push(actionTypeId);
+        }
+      }();
+
+      mediator.registerHandler(EXTENSION_ID, ACTION_TYPE, handler, DOMAIN_ID);
 
       const result = await mediator.executeActionsChain({
         action: { type: ACTION_TYPE, target: EXTENSION_ID },
@@ -796,17 +854,13 @@ describe('ActionsChainsMediator - Phase 9', () => {
       // Mock plugin always validates successfully — the action reaches the handler.
       // Real GTS validation (x-gts-ref) is tested in bridge.test.ts with GtsPlugin.
       expect(result.completed).toBe(true);
-      expect(handler.getInvocations()).toEqual([ACTION_TYPE]);
+      expect(invocations).toEqual([ACTION_TYPE]);
     });
   });
 
   describe('9.3.10 ChainExecutionOptions', () => {
     it('should accept chainTimeout option', async () => {
-      const handler = vi.fn().mockImplementation(() => new Promise(resolve => setTimeout(resolve, 100)));
-
-      mediator.registerDomainHandler('gts.hai3.mfes.ext.domain.v1~test.domain.v1~', {
-        handleAction: handler,
-      });
+      const handler = slowHandler(100);
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
@@ -818,6 +872,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
         extensionsLifecycleStages: [],
       };
       registry.registerDomain(domain, mockContainerProvider);
+
+      mediator.registerHandler(
+        'gts.hai3.mfes.ext.domain.v1~test.domain.v1~',
+        'gts.hai3.mfes.comm.action.v1~test.action.v1~',
+        handler
+      );
 
       const chain: ActionsChain = {
         action: {

@@ -8,33 +8,34 @@
  */
 // @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
 // @cpt-dod:cpt-frontx-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-child-bridge-contract:p1
 
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';
-import type { ActionHandler } from '../mediator/types';
+import { ActionHandler } from '../mediator/types';
 
 /**
- * Parent MFE Bridge interface.
+ * Parent MFE Bridge abstract class.
  * Used by the parent runtime to manage child MFE instances.
  */
-export interface ParentMfeBridge {
+export abstract class ParentMfeBridge {
   /**
    * Unique instance ID for the child MFE.
    */
-  readonly instanceId: string;
+  abstract readonly instanceId: string;
 
   /**
    * Dispose the bridge and clean up resources.
    */
-  dispose(): void;
+  abstract dispose(): void;
 }
 
 /**
- * Child MFE Bridge interface.
+ * Child MFE Bridge abstract class.
  * Provided to child MFEs for communication with the host.
  */
-export interface ChildMfeBridge {
-  readonly domainId: string;
-  readonly instanceId: string;
+export abstract class ChildMfeBridge {
+  abstract readonly domainId: string;
+  abstract readonly instanceId: string;
 
   /**
    * Execute an actions chain via the registry.
@@ -48,7 +49,7 @@ export interface ChildMfeBridge {
    * @param chain - Actions chain to execute
    * @returns Promise resolving when execution is complete
    */
-  executeActionsChain(chain: ActionsChain): Promise<void>;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
 
   /**
    * Subscribe to a specific property's updates.
@@ -57,7 +58,7 @@ export interface ChildMfeBridge {
    * @param callback - Callback invoked when property updates
    * @returns Unsubscribe function
    */
-  subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  abstract subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
 
   /**
    * Get a property's current value synchronously.
@@ -65,16 +66,17 @@ export interface ChildMfeBridge {
    * @param propertyTypeId - Type ID of the property to get
    * @returns Current property value, or undefined if not set
    */
-  getProperty(propertyTypeId: string): SharedProperty | undefined;
+  abstract getProperty(propertyTypeId: string): SharedProperty | undefined;
 
   /**
-   * Register an action handler for this MFE.
-   * The MFE calls this once during mount to register its handler so that the
-   * mediator can route extension-targeted actions to it.
+   * Register a handler for a specific action type on this MFE.
+   * The MFE may call this once per action type it wants to handle.
+   * The mediator routes extension-targeted actions by (extensionId, actionTypeId) pair.
    *
-   * @param handler - The action handler to register
+   * @param actionTypeId - The action type this handler handles
+   * @param handler - The ActionHandler instance to invoke
    */
-  registerActionHandler(handler: ActionHandler): void;
+  abstract registerActionHandler(actionTypeId: string, handler: ActionHandler): void;
 }
 
 /**

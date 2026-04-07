@@ -1,5 +1,6 @@
 // @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
 // @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-mediator-contract:p1
 /**
  * Default Actions Chains Mediator Implementation
  *
@@ -14,9 +15,9 @@ import type { ActionsChain, ExtensionDomain } from '../types';
 import type { ExtensionDomainState } from '../runtime/extension-manager';
 import {
   ActionsChainsMediator,
+  ActionHandler,
   type ChainResult,
   type ChainExecutionOptions,
-  type ActionHandler,
 } from './types';
 
 
@@ -26,22 +27,10 @@ import {
 const DEFAULT_CHAIN_TIMEOUT = 120000;
 
 /**
- * Extension handler metadata.
- */
-interface ExtensionHandlerInfo {
-  extensionId: string;
-  domainId: string;
-  entryId: string;
-  handler: ActionHandler;
-  /** Action type IDs the entry declares it can receive, stored for runtime contract enforcement. */
-  domainActions: readonly string[];
-}
-
-/**
  * Concrete implementation of ActionsChainsMediator.
  *
  * Handles action chain execution with success/failure branching, timeout management,
- * and handler registration.
+ * and per-(targetId, actionTypeId) handler registration.
  *
  * This is the default mediator implementation used by ScreensetsRegistry.
  * It is NOT exported from the package - only the abstract ActionsChainsMediator is exported.
@@ -61,26 +50,32 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   private readonly getDomainState: (domainId: string) => ExtensionDomainState | undefined;
 
   /**
-   * Map of extension IDs to their action handlers.
+   * Unified handler map: targetId → (actionTypeId → handler).
+   * Used for both domain-side and extension-side handlers.
    */
-  private readonly extensionHandlers = new Map<string, ExtensionHandlerInfo>();
+  private readonly actionHandlers = new Map<string, Map<string, ActionHandler>>();
 
   /**
-   * Map of domain IDs to their action handlers.
+   * Maps extension target IDs to their domain IDs.
+   * Populated when registerHandler() is called with a domainId.
+   * Used by resolveDomain() to find the domain for extension-targeted actions
+   * when resolving defaultActionTimeout.
    */
-  private readonly domainHandlers = new Map<string, ActionHandler>();
+  private readonly targetDomainMap = new Map<string, string>();
 
   /**
-   * Map of extension IDs to their pending action promises.
+   * Catch-all handlers registered for a target regardless of action type.
+   * Used by child domain forwarding, which must forward any action type
+   * via bridge transport without knowing the set of action types upfront.
+   * Keyed by targetId.
+   */
+  private readonly catchAllHandlers = new Map<string, ActionHandler>();
+
+  /**
+   * Map of target IDs to their pending action promises.
    * Used to track in-flight actions during unregistration.
    */
-  private readonly pendingExtensionActions = new Map<string, Set<Promise<void>>>();
-
-  /**
-   * Map of domain IDs to their pending action promises.
-   * Used to track in-flight actions during unregistration.
-   */
-  private readonly pendingDomainActions = new Map<string, Set<Promise<void>>>();
+  private readonly pendingActions = new Map<string, Set<Promise<void>>>();
 
   constructor(config: {
     typeSystem: TypeSystemPlugin;
@@ -222,8 +217,8 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @returns Promise that resolves when action completes
    */
   private async executeAction(action: ActionsChain['action']): Promise<void> {
-    // Resolve target (domain or extension handler)
-    const handler = this.resolveHandler(action.target);
+    // Resolve per-(target, actionType) handler
+    const handler = this.resolveHandler(action.target, action.type);
 
     if (!handler) {
       // No handler registered - treat as successful no-op
@@ -259,27 +254,12 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param actionPromise - The action promise to track
    */
   private trackPendingAction(targetId: string, actionPromise: Promise<void>): void {
-    // Check if target is an extension
-    const extensionInfo = this.extensionHandlers.get(targetId);
-    if (extensionInfo) {
-      let pending = this.pendingExtensionActions.get(targetId);
-      if (!pending) {
-        pending = new Set();
-        this.pendingExtensionActions.set(targetId, pending);
-      }
-      pending.add(actionPromise);
-      return;
+    let pending = this.pendingActions.get(targetId);
+    if (!pending) {
+      pending = new Set();
+      this.pendingActions.set(targetId, pending);
     }
-
-    // Check if target is a domain
-    if (this.domainHandlers.has(targetId)) {
-      let pending = this.pendingDomainActions.get(targetId);
-      if (!pending) {
-        pending = new Set();
-        this.pendingDomainActions.set(targetId, pending);
-      }
-      pending.add(actionPromise);
-    }
+    pending.add(actionPromise);
   }
 
   /**
@@ -289,47 +269,39 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param actionPromise - The action promise to untrack
    */
   private untrackPendingAction(targetId: string, actionPromise: Promise<void>): void {
-    // Check extension pending actions
-    const extensionPending = this.pendingExtensionActions.get(targetId);
-    if (extensionPending) {
-      extensionPending.delete(actionPromise);
-      if (extensionPending.size === 0) {
-        this.pendingExtensionActions.delete(targetId);
-      }
-      return;
-    }
-
-    // Check domain pending actions
-    const domainPending = this.pendingDomainActions.get(targetId);
-    if (domainPending) {
-      domainPending.delete(actionPromise);
-      if (domainPending.size === 0) {
-        this.pendingDomainActions.delete(targetId);
+    const pending = this.pendingActions.get(targetId);
+    if (pending) {
+      pending.delete(actionPromise);
+      if (pending.size === 0) {
+        this.pendingActions.delete(targetId);
       }
     }
   }
 
   /**
-   * Resolve the handler for a target.
+   * Resolve the handler for a (targetId, actionTypeId) pair.
+   *
+   * Resolution order:
+   * 1. Check actionHandlers[targetId][actionTypeId] (specific handler)
+   * 2. Check catchAllHandlers[targetId] (bridge forwarding fallback)
    *
    * @param targetId - The target type ID (domain or extension)
-   * @returns The action handler, or undefined if not found
+   * @param actionTypeId - The action type ID
+   * @returns The action handler function, or undefined if not found
    */
   // @cpt-begin:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
-  private resolveHandler(targetId: string): ActionHandler | undefined {
-    // Check if target is a domain
-    const domainHandler = this.domainHandlers.get(targetId);
-    if (domainHandler) {
-      return domainHandler;
+  private resolveHandler(targetId: string, actionTypeId: string): ActionHandler | undefined {
+    // Check per-(target, actionType) handler first
+    const targetHandlers = this.actionHandlers.get(targetId);
+    if (targetHandlers) {
+      const handler = targetHandlers.get(actionTypeId);
+      if (handler) {
+        return handler;
+      }
     }
 
-    // Check if target is an extension
-    const extensionInfo = this.extensionHandlers.get(targetId);
-    if (extensionInfo) {
-      return extensionInfo.handler;
-    }
-
-    return undefined;
+    // Fall back to catch-all handler (used for child domain forwarding via bridge transport)
+    return this.catchAllHandlers.get(targetId);
   }
   // @cpt-end:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
 
@@ -362,6 +334,10 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   /**
    * Resolve the domain for a target.
    *
+   * Resolution order:
+   * 1. Direct domain lookup (target is a domain ID)
+   * 2. Extension→domain lookup via targetDomainMap
+   *
    * @param targetId - The target type ID
    * @returns The domain, or undefined if not found
    */
@@ -372,10 +348,10 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       return domainState.domain;
     }
 
-    // Check if target is an extension, resolve its domain
-    const extensionInfo = this.extensionHandlers.get(targetId);
-    if (extensionInfo) {
-      const extensionDomainState = this.getDomainState(extensionInfo.domainId);
+    // Check targetDomainMap: extension targets registered with a domainId
+    const domainId = this.targetDomainMap.get(targetId);
+    if (domainId) {
+      const extensionDomainState = this.getDomainState(domainId);
       if (extensionDomainState) {
         return extensionDomainState.domain;
       }
@@ -413,79 +389,93 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   }
 
   /**
-   * Register an extension's action handler.
+   * Register a handler for a specific (targetId, actionTypeId) pair.
    *
-   * @param extensionId - ID of the extension
-   * @param domainId - ID of the domain
-   * @param entryId - ID of the MFE entry
-   * @param handler - The action handler
-   * @param domainActions - Action type IDs the entry declares it can receive (from MfeEntry.domainActions)
+   * @param targetId - ID of the target (domain or extension)
+   * @param actionTypeId - The action type this handler handles
+   * @param handler - Handler function to invoke
+   * @param domainId - Optional domain ID for extension targets (enables timeout resolution)
    */
-  registerExtensionHandler(
-    extensionId: string,
-    domainId: string,
-    entryId: string,
+  registerHandler(
+    targetId: string,
+    actionTypeId: string,
     handler: ActionHandler,
-    domainActions: readonly string[]
+    domainId?: string
   ): void {
-    this.extensionHandlers.set(extensionId, {
-      extensionId,
-      domainId,
-      entryId,
-      handler,
-      domainActions,
-    });
+    let targetHandlers = this.actionHandlers.get(targetId);
+    if (!targetHandlers) {
+      targetHandlers = new Map();
+      this.actionHandlers.set(targetId, targetHandlers);
+    }
+    targetHandlers.set(actionTypeId, handler);
+
+    // Track extension→domain mapping for timeout resolution
+    if (domainId !== undefined) {
+      this.targetDomainMap.set(targetId, domainId);
+    }
   }
 
   /**
-   * Unregister an extension's action handler.
+   * Unregister a handler for a specific (targetId, actionTypeId) pair.
    *
-   * @param extensionId - ID of the extension
-   * @throws Error if there are pending actions for this extension
+   * @param targetId - ID of the target
+   * @param actionTypeId - The action type to unregister
    */
-  unregisterExtensionHandler(extensionId: string): void {
-    // Check for pending actions
-    const pending = this.pendingExtensionActions.get(extensionId);
+  unregisterHandler(targetId: string, actionTypeId: string): void {
+    const targetHandlers = this.actionHandlers.get(targetId);
+    if (targetHandlers) {
+      targetHandlers.delete(actionTypeId);
+      if (targetHandlers.size === 0) {
+        this.actionHandlers.delete(targetId);
+        this.targetDomainMap.delete(targetId);
+      }
+    }
+  }
+
+  /**
+   * Unregister all handlers for a target.
+   * Used during dispose (e.g., when an extension is unmounted or a domain is unregistered).
+   *
+   * @param targetId - ID of the target
+   */
+  unregisterAllHandlers(targetId: string): void {
+    // Check for pending actions before removing
+    const pending = this.pendingActions.get(targetId);
     if (pending && pending.size > 0) {
       throw new Error(
-        `Cannot unregister extension "${extensionId}": ${pending.size} action(s) still pending. ` +
+        `Cannot unregister handlers for "${targetId}": ${pending.size} action(s) still pending. ` +
         `Wait for actions to complete before unregistering.`
       );
     }
 
-    // Safe to remove handler
-    this.extensionHandlers.delete(extensionId);
-    this.pendingExtensionActions.delete(extensionId);
+    this.actionHandlers.delete(targetId);
+    this.targetDomainMap.delete(targetId);
+    this.catchAllHandlers.delete(targetId);
+    this.pendingActions.delete(targetId);
   }
 
   /**
-   * Register a domain's action handler.
+   * Register a catch-all handler for a target.
+   * The catch-all handler is invoked for any action type when no specific handler
+   * is registered for the (targetId, actionTypeId) pair.
    *
-   * @param domainId - ID of the domain
-   * @param handler - The action handler
+   * This is an INTERNAL method used exclusively for child domain forwarding via
+   * bridge transport — the parent mediator cannot know the child's action types
+   * at registration time, so the forwarding handler must intercept any action type.
+   *
+   * @param targetId - ID of the target
+   * @param handler - Handler to invoke for any unmatched action type
    */
-  registerDomainHandler(domainId: string, handler: ActionHandler): void {
-    this.domainHandlers.set(domainId, handler);
+  registerCatchAllHandler(targetId: string, handler: ActionHandler): void {
+    this.catchAllHandlers.set(targetId, handler);
   }
 
   /**
-   * Unregister a domain's action handler.
+   * Unregister a catch-all handler for a target.
    *
-   * @param domainId - ID of the domain
-   * @throws Error if there are pending actions for this domain
+   * @param targetId - ID of the target
    */
-  unregisterDomainHandler(domainId: string): void {
-    // Check for pending actions
-    const pending = this.pendingDomainActions.get(domainId);
-    if (pending && pending.size > 0) {
-      throw new Error(
-        `Cannot unregister domain "${domainId}": ${pending.size} action(s) still pending. ` +
-        `Wait for actions to complete before unregistering.`
-      );
-    }
-
-    // Safe to remove handler
-    this.domainHandlers.delete(domainId);
-    this.pendingDomainActions.delete(domainId);
+  unregisterCatchAllHandler(targetId: string): void {
+    this.catchAllHandlers.delete(targetId);
   }
 }

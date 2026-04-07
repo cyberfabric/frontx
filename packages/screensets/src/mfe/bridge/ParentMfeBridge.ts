@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import type { ParentMfeBridge } from '../handler/types';
+import { ParentMfeBridge } from '../handler/types';
 import type { ActionsChain, SharedProperty } from '../types';
 import type { ChildMfeBridgeImpl } from './ChildMfeBridge';
 import { BridgeDisposedError } from '../errors';
@@ -19,8 +19,10 @@ type PropertySubscriber = (propertyTypeId: string, value: unknown) => void;
 /**
  * Internal implementation of ParentMfeBridge.
  * Used by the host to manage a child MFE instance.
+ *
+ * @internal
  */
-export class ParentMfeBridgeImpl implements ParentMfeBridge {
+export class ParentMfeBridgeImpl extends ParentMfeBridge {
   /**
    * Reference to the child bridge.
    */
@@ -49,6 +51,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
   readonly instanceId: string;
 
   constructor(childBridge: ChildMfeBridgeImpl) {
+    super();
     this.childBridge = childBridge;
     this.instanceId = childBridge.instanceId;
   }

@@ -44,7 +44,8 @@ export interface ContractValidationResult {
 }
 
 /**
- * Infrastructure lifecycle actions handled by ExtensionLifecycleActionHandler.
+ * Infrastructure lifecycle actions handled by the per-action-type lifecycle handlers
+ * (LoadExtHandler, MountExtSwapHandler, MountExtToggleHandler, UnmountExtHandler).
  * These actions are NOT handled by MFE application code and should be excluded
  * from rule 3 (domain.actions ⊆ entry.domainActions) validation, and also from
  * mediator-level extension contract enforcement.
@@ -67,8 +68,8 @@ export const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
  *    (MFE can handle all non-infrastructure action types that may target it)
  *
  * Note: Infrastructure lifecycle actions (load_ext, mount_ext, unmount_ext) are
- * handled by ExtensionLifecycleActionHandler, NOT by MFE application code, and
- * are therefore excluded from rule 3 validation.
+ * handled by the lifecycle handler classes (LoadExtHandler, MountExtSwapHandler, etc.),
+ * NOT by MFE application code, and are therefore excluded from rule 3 validation.
  *
  * @param entry - The MFE entry to validate
  * @param domain - The extension domain to validate against

@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import type { ChildMfeBridge } from '../handler/types';
+import { ChildMfeBridge } from '../handler/types';
 import type { ActionHandler } from '../mediator/types';
 import type { SharedProperty, ActionsChain } from '../types';
 import { NoActionsChainHandlerError } from '../errors';
@@ -17,8 +17,10 @@ import { NoActionsChainHandlerError } from '../errors';
 /**
  * Internal implementation of ChildMfeBridge.
  * This class is given to child MFEs for host communication.
+ *
+ * @internal
  */
-export class ChildMfeBridgeImpl implements ChildMfeBridge {
+export class ChildMfeBridgeImpl extends ChildMfeBridge {
   readonly domainId: string;
   readonly instanceId: string;
 
@@ -61,8 +63,9 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
 
   /**
    * Internal: callback for registering this MFE's action handler in the parent mediator.
+   * The callback receives the actionTypeId and handler class instance.
    */
-  private registerActionHandlerCallback: ((handler: ActionHandler) => void) | null = null;
+  private registerActionHandlerCallback: ((actionTypeId: string, handler: ActionHandler) => void) | null = null;
 
   /**
    * Internal: set of child domain IDs registered via registerChildDomain().
@@ -74,6 +77,7 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
     domainId: string,
     instanceId: string
   ) {
+    super();
     this.domainId = domainId;
     this.instanceId = instanceId;
   }
@@ -229,24 +233,25 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
    *
    * @param callback - Callback that registers the handler in the parent mediator
    */
-  setRegisterActionHandlerCallback(callback: (handler: ActionHandler) => void): void {
+  setRegisterActionHandlerCallback(callback: (actionTypeId: string, handler: ActionHandler) => void): void {
     this.registerActionHandlerCallback = callback;
   }
 
   /**
-   * Register an action handler for this MFE.
-   * Delegates to the wired callback which calls mediator.registerExtensionHandler().
-   * The MFE calls this once during mount.
+   * Register a handler for a specific action type on this MFE.
+   * Delegates to the wired callback which calls mediator.registerHandler().
+   * May be called multiple times — once per action type.
    *
-   * @param handler - The action handler to register
+   * @param actionTypeId - The action type this handler handles
+   * @param handler - The ActionHandler instance to invoke
    * @throws Error if the callback was not wired by the bridge factory (programming error)
    */
   // @cpt-begin:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
-  registerActionHandler(handler: ActionHandler): void {
+  registerActionHandler(actionTypeId: string, handler: ActionHandler): void {
     if (!this.registerActionHandlerCallback) {
       throw new Error('registerActionHandler callback not wired');
     }
-    this.registerActionHandlerCallback(handler);
+    this.registerActionHandlerCallback(actionTypeId, handler);
   }
   // @cpt-end:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
 

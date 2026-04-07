@@ -41,6 +41,7 @@
   - [MFE Schema Registration](#mfe-schema-registration)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [MFE Handler Injection](#mfe-handler-injection)
+  - [ActionsChainsMediator Contract](#actionschainsmediator-contract)
   - [TypeSystemPlugin Interface](#typesystemplugin-interface)
   - [Factory-with-Cache Pattern](#factory-with-cache-pattern)
   - [Layer and Build Constraints](#layer-and-build-constraints)
@@ -100,12 +101,12 @@ Success criteria: A host application can register a domain and extension, execut
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-gts-plugin`
 
 1. - [x] `p1` - Host app obtains a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build(config)` - `inst-obtain-registry`
-2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, onInitError?, customActionHandler?)` - `inst-call-register-domain`
+2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, options?)` where `options` is `{ onInitError?: (error: Error) => void; actionHandlers?: Record<string, ActionHandler> }` - `inst-call-register-domain`
 3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-domain-validation` — IF validation fails RETURN `DomainValidationError` or `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
 4. - [x] `p1` - Registry determines domain semantics via `cpt-frontx-algo-screenset-registry-domain-semantics` - `inst-determine-semantics`
-5. - [x] `p1` - Registry constructs `ExtensionLifecycleActionHandler` for the domain and registers it with the mediator - `inst-register-action-handler`
+5. - [x] `p1` - Registry registers individual `ActionHandler` class instances per lifecycle action type (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) with the mediator via `mediator.registerHandler(domainId, actionTypeId, handler)` — one call per action type; each handler is a small class extending `ActionHandler`, not a closure; no monolithic `ExtensionLifecycleActionHandler` switch class is constructed; IF `options.actionHandlers` is provided, each entry is also registered via `mediator.registerHandler(domainId, actionTypeId, handler)` - `inst-register-action-handlers`
 6. - [x] `p1` - Registry stores domain state (properties Map, extensions Set, propertySubscribers Map, mountedExtension undefined) - `inst-store-domain-state`
-7. - [x] `p1` - Registry fires-and-forgets the `init` lifecycle stage for the domain; errors routed to `onInitError` callback if provided, otherwise logged to console.error - `inst-trigger-domain-init`
+7. - [x] `p1` - Registry fires-and-forgets the `init` lifecycle stage for the domain; errors routed to `options.onInitError` callback if provided, otherwise logged to console.error - `inst-trigger-domain-init`
 8. - [x] `p1` - `registerDomain` returns synchronously - `inst-return-sync`
 
 ### Register Extension at Runtime
@@ -146,7 +147,7 @@ Success criteria: A host application can register a domain and extension, execut
 1. - [x] `p1` - Caller invokes `await registry.unregisterDomain(domainId)` - `inst-call-unregister-domain`
 2. - [x] `p1` - Operation is serialized per `domainId` via `OperationSerializer` - `inst-serialize-domain-unregister`
 3. - [x] `p1` - IF domain is not registered, operation is a no-op (idempotent) - `inst-domain-idempotent`
-4. - [x] `p1` - Domain action handler is unregistered from the mediator - `inst-unregister-action-handler`
+4. - [x] `p1` - All per-action-type handlers for the domain are unregistered from the mediator via `mediator.unregisterAllHandlers(domainId)` - `inst-unregister-action-handler`
 5. - [x] `p1` - FOR EACH extension in the domain's extensions Set: `unregisterExtension(extensionId)` is called sequentially - `inst-cascade-unregister`
 6. - [x] `p1` - `destroyed` lifecycle stage is triggered for the domain itself - `inst-trigger-domain-destroyed`
 7. - [x] `p1` - Domain is removed from the domains Map - `inst-remove-domain`
@@ -162,8 +163,8 @@ Success criteria: A host application can register a domain and extension, execut
 3. - [x] `p1` - Mediator resolves the target domain from `chain.action.target` - `inst-resolve-target`
 4. - [x] `p1` - IF target domain is not registered, the chain fails with a recorded error - `inst-target-not-found`
 5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; GTS resolves the schema from `action.type` via `schemaIdFields` config; `typeSystem.validateInstance('')` validates the anonymous instance — IF validation fails the chain fails with a recorded error - `inst-validate-action-anonymous`
-6. - [x] `p1` - Mediator invokes the domain's registered `ExtensionLifecycleActionHandler` - `inst-invoke-handler`
-7. - [x] `p1` - Mediator resolves the handler via `resolveHandler(action.target)`: domain handlers are checked first, then extension handlers. Since GTS schemas enforce that domain-targeted actions use domain IDs and extension-targeted actions use extension IDs, there is no overlap — an action targets exactly one handler. Extension handlers are registered via `ChildMfeBridge.registerActionHandler()` - `inst-resolve-extension-handler`
+6. - [x] `p1` - Mediator resolves the handler by `(action.target, action.type)` pair: looks up `handlers.get(action.target)?.get(action.type)`. Domain handlers and extension handlers are stored in the same unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. Since GTS schemas enforce that domain-targeted actions use domain IDs and extension-targeted actions use extension IDs, there is no overlap — an action targets exactly one handler - `inst-resolve-handler`
+7. - [x] `p1` - IF a handler is found, mediator calls `handler.handleAction(action.type, action.payload)`. IF no handler is registered for `(target, actionType)`, the step is a no-op (successful return) - `inst-invoke-handler`
 8. - [x] `p1` - Action target contract enforcement is handled entirely by GTS schema validation in step 5: each action schema constrains its `target` field via `x-gts-ref` — lifecycle actions restrict target to domain IDs only, custom MFE actions restrict target to specific extension IDs. GTS validates the action instance against its schema and rejects invalid targets before any handler is invoked. No runtime `includes()` checks are needed — the type system IS the contract enforcement - `inst-validate-extension-contract`
 9. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
 10. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
@@ -176,10 +177,10 @@ Success criteria: A host application can register a domain and extension, execut
 
 **Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
 
-1. - [x] `p1` - Child MFE calls `bridge.registerActionHandler(handler)` during mount, providing its `ActionHandler` implementation - `inst-call-register-handler`
-2. - [x] `p1` - `ChildMfeBridge` delegates to `mediator.registerExtensionHandler(extensionId, domainId, entryId, handler, domainActions)` — the bridge holds the `extensionId`, `domainId`, `entryId`, and `domainActions` from its construction context - `inst-bridge-delegates-to-mediator`
-3. - [x] `p1` - Mediator stores the handler and `domainActions` in the `extensionHandlers` map keyed by `extensionId` - `inst-store-extension-handler`
-4. - [x] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters the extension handler for `extensionId` — the `extensionHandlers` entry is removed - `inst-unregister-on-dispose`
+1. - [x] `p1` - Child MFE calls `bridge.registerActionHandler(actionTypeId, handler)` during mount, once per action type it wishes to handle — `handler` is an `ActionHandler` abstract class instance - `inst-call-register-handler`
+2. - [x] `p1` - `ChildMfeBridge` delegates to `mediator.registerHandler(extensionId, actionTypeId, handler)` — the bridge holds `extensionId` from its construction context - `inst-bridge-delegates-to-mediator`
+3. - [x] `p1` - Mediator stores the handler in the unified `handlers` map: `handlers.get(extensionId).set(actionTypeId, handler)` - `inst-store-extension-handler`
+4. - [x] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters all handlers for `extensionId` — the entire inner map entry is removed - `inst-unregister-on-dispose`
 
 ### Update Shared Property
 
@@ -310,7 +311,7 @@ Determines whether a domain uses `swap` or `toggle` mount semantics based on its
 
 1. - [x] `p1` - IF `domain.actions` includes `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` → domain uses `toggle` semantics (sidebar, popup, overlay domains: one extension can be explicitly unmounted) - `inst-toggle-semantics`
 2. - [x] `p1` - IF `domain.actions` does NOT include `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` → domain uses `swap` semantics (screen domain: mounting a new extension automatically unmounts the current one) - `inst-swap-semantics`
-3. - [x] `p1` - The determined semantics value is passed to `ExtensionLifecycleActionHandler` at construction - `inst-pass-semantics`
+3. - [x] `p1` - The determined semantics value is captured in the closure of the per-action-type handlers registered with the mediator during `registerDomain()` - `inst-pass-semantics`
 
 ---
 
@@ -485,6 +486,22 @@ All registration and dispatch paths perform GTS-native validation:
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
 
+### ActionsChainsMediator Contract
+
+- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mediator-contract`
+
+`ActionsChainsMediator` is exported as an abstract class. Handler storage uses a unified two-level map: `Map<targetId, Map<actionTypeId, ActionHandler>>`. A single `registerHandler(targetId, actionTypeId, handler)` API covers both domain-side and extension-side registration. `ActionHandler` is an abstract class with a single `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>` method — consistent with all other public contracts in the package. The `CustomActionHandler` type and any `ActionHandlerFn` alias are removed. Mediator resolution uses `(target, actionType)` pair, not just `target`. Domain-side lifecycle handlers are small classes extending `ActionHandler` (one per lifecycle action type), not closures.
+
+Domain-side: `registerDomain()` registers three handlers (one per lifecycle action type) and `unregisterDomain()` removes all of them. Extension-side: `registerHandler()` is called once per action type; disposing the bridge calls `unregisterAllHandlers(extensionId)` which removes the entire inner map entry.
+
+**Implements**:
+- `cpt-frontx-flow-screenset-registry-execute-chain`
+- `cpt-frontx-flow-screenset-registry-register-extension-handler`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-screensets`
+- `cpt-frontx-seq-extension-action-delivery`
+
 ### TypeSystemPlugin Interface
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-type-system-plugin`
@@ -549,7 +566,7 @@ All registration and dispatch paths perform GTS-native validation:
 
 - [ ] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
 - [ ] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
-- [ ] `registerDomain` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`
+- [ ] `registerDomain(domain, containerProvider, options?)` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
 - [ ] `registerExtension` throws `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
 - [ ] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3
 - [ ] `updateSharedProperty` throws synchronously if GTS validation fails and no domain receives the update; silently no-ops if no domain declares the property

@@ -43,9 +43,15 @@ import { DefaultMountManager } from './default-mount-manager';
 import { OperationSerializer } from './operation-serializer';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
 import { DefaultRuntimeBridgeFactory } from './default-runtime-bridge-factory';
-import { ExtensionLifecycleActionHandler, type ExtensionLifecycleCallbacks, type CustomActionHandler } from './extension-lifecycle-action-handler';
+import {
+  LoadExtHandler,
+  MountExtSwapHandler,
+  MountExtToggleHandler,
+  UnmountExtHandler,
+} from './extension-lifecycle-action-handler';
 import type { ContainerProvider } from './container-provider';
-import { HAI3_ACTION_UNMOUNT_EXT } from '../constants';
+import type { RegisterDomainOptions } from './ScreensetsRegistry';
+import { HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT } from '../constants';
 import { EntryTypeNotHandledError } from '../errors';
 import { extractGtsPackage } from '../gts/extract-package';
 
@@ -195,12 +201,14 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
       triggerLifecycle: (extensionId, stageId) => this.triggerLifecycleStage(extensionId, stageId),
       executeActionsChain: (chain) => this.executeActionsChain(chain),
       hostRuntime: this,
-      registerDomainActionHandler: (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
-      unregisterDomainActionHandler: (domainId) => this.unregisterDomainActionHandler(domainId),
-      registerExtensionActionHandler: (extensionId, domainId, entryId, handler, domainActions) =>
-        this.mediator.registerExtensionHandler(extensionId, domainId, entryId, handler, domainActions),
+      registerCatchAllActionHandler: (domainId, handler) =>
+        this.mediator.registerCatchAllHandler(domainId, handler),
+      unregisterCatchAllActionHandler: (domainId) =>
+        this.mediator.unregisterCatchAllHandler(domainId),
+      registerExtensionActionHandler: (extensionId, actionTypeId, handler) =>
+        this.mediator.registerHandler(extensionId, actionTypeId, handler),
       unregisterExtensionActionHandler: (extensionId) =>
-        this.mediator.unregisterExtensionHandler(extensionId),
+        this.mediator.unregisterAllHandlers(extensionId),
       bridgeFactory: this.bridgeFactory,
     });
 
@@ -263,8 +271,7 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
    *
    * @param domain - Domain to register
    * @param containerProvider - Container provider for the domain
-   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
-   * @param customActionHandler - Optional handler for non-lifecycle domain actions
+   * @param options - Optional registration options (onInitError, actionHandlers)
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
@@ -273,41 +280,55 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   registerDomain(
     domain: ExtensionDomain,
     containerProvider: ContainerProvider,
-    onInitError?: (error: Error) => void,
-    customActionHandler?: CustomActionHandler
+    options?: RegisterDomainOptions
   ): void {
     // Step 1: Register domain state (with onInitError callback)
-    this.extensionManager.registerDomain(domain, onInitError);
+    this.extensionManager.registerDomain(domain, options?.onInitError);
 
-    // Step 2: Determine domain semantics based on actions array
-    // If unmount_ext is NOT supported, use 'swap' semantics (screen domain)
-    // If unmount_ext IS supported, use 'toggle' semantics (sidebar/popup/overlay)
+    // Step 2: Determine domain semantics from actions array.
+    // Domains declaring unmount_ext use 'toggle' semantics (sidebar/popup/overlay).
+    // Domains without unmount_ext use 'swap' semantics (screen domain): mounting a
+    // new extension implicitly unmounts the current one.
     const supportsUnmount = domain.actions.includes(HAI3_ACTION_UNMOUNT_EXT);
-    const domainSemantics = supportsUnmount ? 'toggle' : 'swap';
 
-    // Step 3: Create lifecycle callbacks that route through OperationSerializer to MountManager
-    const lifecycleCallbacks: ExtensionLifecycleCallbacks = {
-      loadExtension: (id) =>
-        this.operationSerializer.serializeOperation(id, () => this.mountManager.loadExtension(id)),
-      mountExtension: (id, container) =>
-        this.operationSerializer.serializeOperation(id, () => this.mountManager.mountExtension(id, container)),
-      unmountExtension: (id) =>
-        this.operationSerializer.serializeOperation(id, () => this.mountManager.unmountExtension(id)),
-      getMountedExtension: (domainId) =>
-        this.extensionManager.getMountedExtension(domainId),
-      serializeOnDomain: (domainId, operation) =>
-        this.operationSerializer.serializeOperation(domainId, operation),
-    };
+    // Step 3: Register per-action-type lifecycle handler instances for this domain.
+    // Each handler class encapsulates exactly one action type's behavior.
+    const loadHandler = new LoadExtHandler(this.operationSerializer, this.mountManager);
+    this.mediator.registerHandler(domain.id, HAI3_ACTION_LOAD_EXT, loadHandler);
 
-    // Step 4: Create and register extension lifecycle action handler for this domain
-    const actionHandler = new ExtensionLifecycleActionHandler(
-      domain.id,
-      lifecycleCallbacks,
-      domainSemantics,
-      containerProvider,
-      customActionHandler
-    );
-    this.registerDomainActionHandler(domain.id, actionHandler);
+    if (supportsUnmount) {
+      // Toggle semantics: mount independently without implicitly unmounting.
+      const mountHandler = new MountExtToggleHandler(
+        this.operationSerializer,
+        this.mountManager,
+        containerProvider
+      );
+      this.mediator.registerHandler(domain.id, HAI3_ACTION_MOUNT_EXT, mountHandler);
+
+      const unmountHandler = new UnmountExtHandler(
+        this.operationSerializer,
+        this.mountManager,
+        containerProvider
+      );
+      this.mediator.registerHandler(domain.id, HAI3_ACTION_UNMOUNT_EXT, unmountHandler);
+    } else {
+      // Swap semantics: atomically unmount current and mount new extension.
+      const mountHandler = new MountExtSwapHandler(
+        domain.id,
+        this.operationSerializer,
+        this.mountManager,
+        this.extensionManager,
+        containerProvider
+      );
+      this.mediator.registerHandler(domain.id, HAI3_ACTION_MOUNT_EXT, mountHandler);
+    }
+
+    // Step 4: Register any caller-supplied custom handlers for this domain.
+    if (options?.actionHandlers) {
+      for (const [actionTypeId, handler] of Object.entries(options.actionHandlers)) {
+        this.mediator.registerHandler(domain.id, actionTypeId, handler);
+      }
+    }
   }
   // @cpt-end:cpt-frontx-flow-screenset-registry-register-domain:p1:inst-1
   // @cpt-end:cpt-frontx-algo-screenset-registry-domain-semantics:p1:inst-1
@@ -331,28 +352,6 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     }
   }
   // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
-
-  /**
-   * INTERNAL: Register a domain's action handler.
-   *
-   * @param domainId - ID of the domain
-   * @param handler - The action handler
-   */
-  private registerDomainActionHandler(
-    domainId: string,
-    handler: import('../mediator').ActionHandler
-  ): void {
-    this.mediator.registerDomainHandler(domainId, handler);
-  }
-
-  /**
-   * INTERNAL: Unregister a domain's action handler.
-   *
-   * @param domainId - ID of the domain
-   */
-  private unregisterDomainActionHandler(domainId: string): void {
-    this.mediator.unregisterDomainHandler(domainId);
-  }
 
   /**
    * Broadcast a shared property value to all registered domains that declare the property.
@@ -490,8 +489,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
   // @cpt-begin:cpt-frontx-flow-screenset-registry-unregister-domain:p1:inst-1
   async unregisterDomain(domainId: string): Promise<void> {
     return this.operationSerializer.serializeOperation(domainId, async () => {
-      // Step 1: Unregister domain action handler
-      this.unregisterDomainActionHandler(domainId);
+      // Step 1: Unregister all per-action-type handlers registered for this domain
+      this.mediator.unregisterAllHandlers(domainId);
 
       // Step 2: Unregister domain from extension manager (cascade-unregisters extensions)
       return this.extensionManager.unregisterDomain(domainId);
