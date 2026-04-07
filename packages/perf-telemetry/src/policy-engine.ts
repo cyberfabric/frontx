@@ -10,6 +10,15 @@
  *   if (engine.isFeatureEnabled('resourceTiming')) { ... }
  */
 
+// ─── CSPRNG Helper ──────────────────────────────────────────────────────────
+
+/** Returns a cryptographically secure random float in [0, 1). */
+function cryptoRandom(): number {
+  const array = new Uint32Array(1);
+  crypto.getRandomValues(array);
+  return array[0] / 4294967296; // 2^32
+}
+
 // ─── Types ──────────────────────────────────────────────────────────────────
 
 export type Lane = 'A' | 'B' | 'C';
@@ -161,7 +170,7 @@ export class PolicyEngine {
   shouldSampleEvent(lane: Lane): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
     const rate = this.currentPolicy.samplingRates[`lane${lane}`];
-    return Math.random() < rate;
+    return cryptoRandom() < rate;
   }
 
   shouldAcceptEvent(lane: Lane): { accept: boolean; reason?: string } {
