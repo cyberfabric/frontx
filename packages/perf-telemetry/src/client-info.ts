@@ -114,7 +114,7 @@ export function getClientInfo(): ClientAttributes {
       'client.webgl_renderer': gl.renderer,
       'client.webgl_vendor': gl.vendor,
     };
-  } catch {
+  } catch { /* fail-open: return empty attrs if fingerprinting fails */
     _cached = {};
   }
 

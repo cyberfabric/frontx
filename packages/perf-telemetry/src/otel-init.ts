@@ -43,10 +43,18 @@ let _sessionId: string | null = null;
 let _initialized = false;
 
 function generateSessionId(): string {
+  // Use cryptographically secure random when available (all modern browsers)
   if (typeof crypto !== 'undefined' && crypto.randomUUID) {
     return crypto.randomUUID();
   }
-  return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+  // Fallback: crypto.getRandomValues is available in all browsers supporting OTel
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+  }
+  // Last resort: timestamp-based (non-cryptographic, acceptable for telemetry session IDs)
+  return `${Date.now()}-${performance.now().toString(36)}`;
 }
 
 function getSessionId(): string {
@@ -59,7 +67,7 @@ function getSessionId(): string {
       _sessionId = generateSessionId();
       sessionStorage.setItem('otel_session_id', _sessionId);
     }
-  } catch {
+  } catch { /* fail-open: sessionStorage may be unavailable (private browsing) */
     _sessionId = generateSessionId();
   }
   return _sessionId;

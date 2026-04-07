@@ -35,7 +35,7 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
     const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
     return { ...DEFAULT_RUNTIME_CONFIG, ...JSON.parse(raw) } as TelemetryRuntimeConfig;
-  } catch {
+  } catch { /* fail-open: corrupted localStorage returns defaults */
     return { ...DEFAULT_RUNTIME_CONFIG };
   }
 }

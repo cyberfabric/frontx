@@ -98,7 +98,7 @@ export function useDoneRendering(
       }, uiParentContext);
 
       beginRouteUiScope({ routeId, signalName, startedAtMs: mountTime, readySpan, uiSpan });
-    } catch {
+    } catch { /* fail-open: reset ref so next mount can retry */
       scopeCreatedRef.current = false;
     }
 
