@@ -45,6 +45,18 @@ function fmt(ms: number): string {
   return `${ms.toFixed(1)}ms`;
 }
 
+function actionBarColor(durationMs: number): string {
+  if (durationMs > 1000) return '#ef4444';
+  if (durationMs > 300) return '#eab308';
+  return '#22c55e';
+}
+
+function webVitalDisplayValue(name: string, s: StoredSpan): string {
+  if (name === 'webvital.cls') return `${Number(s.attributes['webvital.value'] || 0).toFixed(3)}`;
+  if (name === 'webvital.navigation') return `TTFB ${fmt(Number(s.attributes['webvital.ttfb_ms'] || 0))}`;
+  return fmt(Number(s.attributes['webvital.value_ms'] || 0));
+}
+
 function ratingColor(rating: string | number | boolean | undefined): string {
   const r = String(rating);
   if (r === 'good') return 'color: #16a34a';
@@ -90,7 +102,7 @@ function useTelemetryData(store: TelemetryStoreApi | null): StoredSpan[] {
 
 // ─── Sub-panels ─────────────────────────────────────────────────────────────
 
-function ActionsTab({ spans }: { spans: StoredSpan[] }) {
+function ActionsTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   const actions = useMemo(
     () => spans
       .filter((s) => String(s.attributes['telemetry.breakdown.kind'] || '') === 'action.total')
@@ -112,7 +124,7 @@ function ActionsTab({ spans }: { spans: StoredSpan[] }) {
       {actions.map((span) => {
         const actionName = String(span.attributes['action.name'] || span.name);
         const pct = Math.min(100, (span.durationMs / maxDuration) * 100);
-        const barColor = span.durationMs > 1000 ? '#ef4444' : span.durationMs > 300 ? '#eab308' : '#22c55e';
+        const barColor = actionBarColor(span.durationMs);
         return (
           <div key={span.spanId} style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
@@ -131,7 +143,7 @@ function ActionsTab({ spans }: { spans: StoredSpan[] }) {
   );
 }
 
-function ApiTab({ spans }: { spans: StoredSpan[] }) {
+function ApiTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   const grouped = useMemo(() => {
     const apiSpans = spans.filter(
       (s) => String(s.attributes['telemetry.breakdown.kind'] || '') === 'backend.api'
@@ -182,7 +194,7 @@ function ApiTab({ spans }: { spans: StoredSpan[] }) {
   );
 }
 
-function RenderingTab({ spans }: { spans: StoredSpan[] }) {
+function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   const webVitals = useMemo(
     () => spans.filter((s) => s.name.startsWith('webvital.')),
     [spans]
@@ -209,11 +221,7 @@ function RenderingTab({ spans }: { spans: StoredSpan[] }) {
               const s = webVitals.find((x) => x.name === name);
               if (!s) return null;
               const label = name.replace('webvital.', '').toUpperCase();
-              const value = name === 'webvital.cls'
-                ? `${Number(s.attributes['webvital.value'] || 0).toFixed(3)}`
-                : name === 'webvital.navigation'
-                  ? `TTFB ${fmt(Number(s.attributes['webvital.ttfb_ms'] || 0))}`
-                  : fmt(Number(s.attributes['webvital.value_ms'] || 0));
+              const value = webVitalDisplayValue(name, s);
               const rating = s.attributes['webvital.rating'];
               return (
                 <div key={name} style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)' }}>

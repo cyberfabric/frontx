@@ -5,7 +5,7 @@
 
 import type { Span } from '@opentelemetry/api';
 
-export type { Span };
+export type { Span } from '@opentelemetry/api';
 
 export type ActionScope = {
   span: Span;

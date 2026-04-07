@@ -32,7 +32,7 @@ export function setAmbientTracer(factory: () => import('@opentelemetry/api').Tra
 
 // @cpt-hai3-telemetry-perf-state-ambient-lifecycle
 function ensureAmbientAction(routeId: string): ActionScope {
-  if (_ambientScope && _ambientScope.routeId === routeId) {
+  if (_ambientScope?.routeId === routeId) {
     return _ambientScope;
   }
   if (_ambientScope) {

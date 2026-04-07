@@ -77,7 +77,7 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
       try {
         const perfTelemetry = require('@hai3/perf-telemetry');
         if (perfTelemetry.isOtelInitialized()) {
-          void perfTelemetry.flushOtel();
+          perfTelemetry.flushOtel().catch(() => { /* fail-open */ });
         }
       } catch {
         // Fail-open

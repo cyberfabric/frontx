@@ -32,7 +32,7 @@ const listeners = new Set<() => void>();
 
 function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
-    const raw = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null;
+    const raw = typeof localStorage === 'undefined' ? null : localStorage.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
     return { ...DEFAULT_RUNTIME_CONFIG, ...JSON.parse(raw) } as TelemetryRuntimeConfig;
   } catch { /* fail-open: corrupted localStorage returns defaults */

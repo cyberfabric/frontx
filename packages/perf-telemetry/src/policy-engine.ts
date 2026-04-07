@@ -51,8 +51,8 @@ export const BASELINE_POLICY: CollectionPolicy = {
   updatedAt: Date.now(),
   profile: 'baseline',
   samplingRates: {
-    laneA: 1.0,   // Always collect critical errors
-    laneB: 1.0,   // Full collection of UI and network events
+    laneA: 1,   // Always collect critical errors
+    laneB: 1,   // Full collection of UI and network events
     laneC: 0.1,   // 10% sampling for runtime diagnostics
   },
   limits: {
@@ -75,9 +75,9 @@ export const INVESTIGATION_POLICY: CollectionPolicy = {
   updatedAt: Date.now(),
   profile: 'investigation',
   samplingRates: {
-    laneA: 1.0,
-    laneB: 1.0,
-    laneC: 1.0,   // Full collection for deep diagnostics
+    laneA: 1,
+    laneB: 1,
+    laneC: 1,   // Full collection for deep diagnostics
   },
   limits: {
     maxEventsPerMinute: 1200,
@@ -99,8 +99,8 @@ export const SUPPORT_BURST_POLICY: CollectionPolicy = {
   updatedAt: Date.now(),
   profile: 'support-burst',
   samplingRates: {
-    laneA: 1.0,
-    laneB: 1.0,
+    laneA: 1,
+    laneB: 1,
     laneC: 0.5,
   },
   limits: {

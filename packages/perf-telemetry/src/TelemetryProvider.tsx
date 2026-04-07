@@ -5,7 +5,7 @@
  * provides emit() for backward-compat event emission, and flushes on unload.
  */
 
-import { createContext, useContext, useEffect, useRef, useCallback, useState } from 'react';
+import { createContext, useContext, useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { initOtel, getTracer, getOtelSessionId, flushOtel, SpanStatusCode } from './otel-init';
 import { context } from '@opentelemetry/api';
 import { getTelemetryParentContext } from './action-scope';
@@ -55,18 +55,21 @@ export function TelemetryProvider({
         attributes: { 'route.id': routeId, ...flattenPayload(payload) },
       }, parentContext);
       if (type.includes('error')) {
-        span.setStatus({ code: SpanStatusCode.ERROR, message: String(payload.errorMessage || type) });
+        const errorMsg = typeof payload.errorMessage === 'string' ? payload.errorMessage : type;
+        span.setStatus({ code: SpanStatusCode.ERROR, message: errorMsg });
       }
       span.end();
     } catch { /* fail-open */ }
   }, [enabled, isKilled]);
 
-  const value: TelemetryContextValue = {
+  const killSwitch = useCallback(() => setIsKilled(true), []);
+
+  const value = useMemo<TelemetryContextValue>(() => ({
     emit,
     sessionId: getOtelSessionId(),
     enabled: enabled && !isKilled,
-    killSwitch: useCallback(() => setIsKilled(true), []),
-  };
+    killSwitch,
+  }), [emit, enabled, isKilled, killSwitch]);
 
   return <TelemetryContext.Provider value={value}>{children}</TelemetryContext.Provider>;
 }
