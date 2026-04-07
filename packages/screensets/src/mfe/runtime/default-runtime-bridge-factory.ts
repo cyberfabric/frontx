@@ -51,7 +51,7 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterCatchAllActionHandler: (domainId: string) => void,
-    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void,
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void,
     _unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge } {
 
@@ -88,9 +88,12 @@ export class DefaultRuntimeBridgeFactory extends RuntimeBridgeFactory {
     childBridge.setChildDomainCallbacks(registerChildDomainCallback, unregisterChildDomainCallback);
 
     // Wire per-(extensionId, actionTypeId) handler registration.
-    // The bridge captures extensionId from createBridge params.
+    // The bridge captures extensionId and domainId from createBridge params.
+    // domainId is required so the mediator can populate targetDomainMap, which
+    // allows resolveTimeout() to find the domain's defaultActionTimeout for
+    // extension-targeted actions.
     childBridge.setRegisterActionHandlerCallback((actionTypeId, handler) => {
-      registerExtensionActionHandler(extensionId, actionTypeId, handler);
+      registerExtensionActionHandler(extensionId, actionTypeId, handler, domainState.domain.id);
     });
 
     // Populate initial properties from domain state (raw values)

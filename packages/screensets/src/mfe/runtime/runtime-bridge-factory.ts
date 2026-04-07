@@ -41,7 +41,7 @@ export abstract class RuntimeBridgeFactory {
    * @param executeActionsChain - Callback for executing actions chains
    * @param registerCatchAllActionHandler - Callback for registering catch-all handlers (child domain forwarding)
    * @param unregisterCatchAllActionHandler - Callback for unregistering catch-all handlers
-   * @param registerExtensionActionHandler - Callback for registering per-(extensionId, actionTypeId) handlers
+   * @param registerExtensionActionHandler - Callback for registering per-(extensionId, actionTypeId) handlers; domainId enables timeout resolution for extension-targeted actions
    * @param unregisterExtensionActionHandler - Callback for unregistering all extension handlers
    * @returns Object containing parent and child bridge instances
    */
@@ -53,7 +53,7 @@ export abstract class RuntimeBridgeFactory {
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
     registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void,
     unregisterCatchAllActionHandler: (domainId: string) => void,
-    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void,
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void,
     unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };
 

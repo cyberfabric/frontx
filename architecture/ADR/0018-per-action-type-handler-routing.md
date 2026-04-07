@@ -104,12 +104,12 @@ Keep `ActionHandler` interface (`handleAction(actionTypeId, payload)`). Register
 
 ## More Information
 
-`ActionHandler` is an abstract class with a single method: `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>`. It is exported from `@cyberfabric/screensets/mfe/mediator/types`. The `ChildMfeBridge.registerActionHandler(actionTypeId, handler)` signature accepts `actionTypeId` as the first parameter, making the per-type intent explicit at the call site. Domain-side lifecycle handlers are small classes extending `ActionHandler` — one class per lifecycle action type — registered via `mediator.registerHandler(domainId, actionTypeId, handler)` during `registerDomain()`.
+`ActionHandler` is an abstract class with a single method: `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>`. It is exported from `@cyberfabric/screensets`. The `ChildMfeBridge.registerActionHandler(actionTypeId, handler)` signature accepts `actionTypeId` as the first parameter, making the per-type intent explicit at the call site. Domain-side lifecycle handlers are small classes extending `ActionHandler` — one class per lifecycle action type — registered via `mediator.registerHandler(domainId, actionTypeId, handler)` during `registerDomain()`.
 
 `registerDomain` uses an options object as the third parameter:
 ```typescript
 registerDomain(
-  domain: DomainDescriptor,
+  domain: ExtensionDomain,
   containerProvider: ContainerProvider,
   options?: {
     onInitError?: (error: Error) => void;

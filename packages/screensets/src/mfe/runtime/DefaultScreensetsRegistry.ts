@@ -205,8 +205,8 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
         this.mediator.registerCatchAllHandler(domainId, handler),
       unregisterCatchAllActionHandler: (domainId) =>
         this.mediator.unregisterCatchAllHandler(domainId),
-      registerExtensionActionHandler: (extensionId, actionTypeId, handler) =>
-        this.mediator.registerHandler(extensionId, actionTypeId, handler),
+      registerExtensionActionHandler: (extensionId, actionTypeId, handler, domainId) =>
+        this.mediator.registerHandler(extensionId, actionTypeId, handler, domainId),
       unregisterExtensionActionHandler: (extensionId) =>
         this.mediator.unregisterAllHandlers(extensionId),
       bridgeFactory: this.bridgeFactory,
@@ -324,7 +324,22 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     }
 
     // Step 4: Register any caller-supplied custom handlers for this domain.
+    // Guard: lifecycle action type IDs are reserved for the built-in handlers registered
+    // in step 3. Allowing callers to overwrite them would silently break load/mount/unmount.
     if (options?.actionHandlers) {
+      const reservedActionTypeIds = new Set([
+        HAI3_ACTION_LOAD_EXT,
+        HAI3_ACTION_MOUNT_EXT,
+        HAI3_ACTION_UNMOUNT_EXT,
+      ]);
+      for (const actionTypeId of Object.keys(options.actionHandlers)) {
+        if (reservedActionTypeIds.has(actionTypeId)) {
+          throw new Error(
+            `Cannot register custom handler for reserved lifecycle action type '${actionTypeId}' on domain '${domain.id}'. ` +
+            `The action types HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, and HAI3_ACTION_UNMOUNT_EXT are managed internally by the registry.`
+          );
+        }
+      }
       for (const [actionTypeId, handler] of Object.entries(options.actionHandlers)) {
         this.mediator.registerHandler(domain.id, actionTypeId, handler);
       }

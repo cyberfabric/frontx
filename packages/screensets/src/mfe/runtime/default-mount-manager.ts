@@ -78,8 +78,9 @@ export class DefaultMountManager extends MountManager {
 
   /**
    * Callback for registering per-(extensionId, actionTypeId) handlers in the parent mediator.
+   * domainId is forwarded so the mediator can populate targetDomainMap for timeout resolution.
    */
-  private readonly registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void;
+  private readonly registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
 
   /**
    * Callback for unregistering all extension handlers from the parent mediator.
@@ -100,7 +101,7 @@ export class DefaultMountManager extends MountManager {
     hostRuntime: ScreensetsRegistry;
     registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterCatchAllActionHandler: (domainId: string) => void;
-    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler) => void;
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
     unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
@@ -239,7 +240,7 @@ export class DefaultMountManager extends MountManager {
         (chain: ActionsChain) => this.executeActionsChain(chain),
         (domainId, handler) => this.registerCatchAllActionHandler(domainId, handler),
         (domainId) => this.unregisterCatchAllActionHandler(domainId),
-        (extId, actionTypeId, handler) => this.registerExtensionActionHandler(extId, actionTypeId, handler),
+        (extId, actionTypeId, handler, domainId) => this.registerExtensionActionHandler(extId, actionTypeId, handler, domainId),
         (extId) => this.unregisterExtensionActionHandler(extId)
       );
 
