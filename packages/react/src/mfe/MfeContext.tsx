@@ -24,8 +24,8 @@ import type { ChildMfeBridge } from '@hai3/framework';
 export interface MfeContextValue {
   /** Child bridge for communication with host */
   bridge: ChildMfeBridge;
-  /** Extension ID */
-  extensionId: string;
+  /** Extension ID (optional — not currently consumed by any production code) */
+  extensionId?: string;
   /** Domain ID where MFE is mounted */
   domainId: string;
 }
