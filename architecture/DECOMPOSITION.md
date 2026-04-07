@@ -15,6 +15,7 @@
   - [2.9 CLI Tooling ⏳ MEDIUM](#29-cli-tooling--medium)
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
+  - [2.12 Performance Telemetry ⏳ MEDIUM](#212-performance-telemetry--medium)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -710,6 +711,70 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
+### 2.12 [Performance Telemetry](features/feature-perf-telemetry/) ⏳ MEDIUM
+
+- [ ] `p2` - **ID**: `cpt-hai3-feature-perf-telemetry`
+
+- **Purpose**: Provides action-first frontend performance telemetry via OpenTelemetry Browser SDK. Every span belongs to a named action (explicit or ambient fallback), enabling per-action performance breakdown in Datadog APM. Includes a Studio dev panel for local visibility.
+
+- **Depends On**: None (L1 SDK, zero @hai3 dependencies)
+
+- **Scope**:
+  - `@hai3/perf-telemetry` L1 SDK package (action-scope, otel-init, hooks, TelemetryProvider, telemetry-store)
+  - Framework `telemetry()` plugin (opt-in via full preset config)
+  - Studio `PerfTelemetryPanel` section (dev-mode, renders when package installed)
+  - Docker OTel Collector -> Datadog export infrastructure
+  - AI guidelines: `.ai/targets/PERF_TELEMETRY.md`, `.ai/references/telemetry/*`
+
+- **Out of scope**:
+  - Backend/server-side telemetry
+  - Custom Datadog dashboard creation
+  - Production collector infrastructure (only local dev collector provided)
+
+- **Requirements Covered**:
+
+  - [ ] `p1` - `cpt-hai3-fr-perf-action-first-correlation`
+  - [ ] `p1` - `cpt-hai3-fr-perf-route-instrumentation`
+  - [ ] `p1` - `cpt-hai3-fr-perf-action-instrumentation`
+  - [ ] `p1` - `cpt-hai3-fr-perf-api-instrumentation`
+  - [ ] `p1` - `cpt-hai3-fr-perf-web-vitals`
+  - [ ] `p2` - `cpt-hai3-fr-perf-studio-panel`
+  - [ ] `p1` - `cpt-hai3-fr-perf-fail-open`
+
+- **Design Principles Covered**:
+  - Action-first correlation (no orphan spans)
+  - Fail-open (telemetry errors never crash UX)
+
+- **Design Constraints Covered**:
+
+  - [ ] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
+  - [ ] `p1` - `cpt-hai3-constraint-zero-hai3-deps-sdk` (L1 SDK)
+
+- **Domain Model Entities**:
+  - ActionScope, RouteUiScope, StoredSpan, TelemetryRuntimeConfig
+
+- **Design Components**:
+
+  - [ ] `p1` - `cpt-hai3-component-perf-telemetry`
+  - [ ] `p2` - `cpt-hai3-component-studio-perf-panel`
+
+- **API**:
+  - `useRoutePerf(routeId, navigationStartMs)`
+  - `useDoneRendering(signalName, { dataReady })`
+  - `useTelemetryAction(actionName, { routeId })`
+  - `useWebVitals(routeId)`
+  - `instrumentedFetch(url, meta, init)`
+  - `TelemetryProvider` React context
+  - `telemetryStore.subscribe()` for dev panel
+
+- **Sequences**:
+  - Action lifecycle: create span -> register scope -> execute work -> end scope -> export
+  - Ambient resolution: search active -> search recent -> create ambient
+
+- **Data**:
+  - In-memory span buffer (max 500, TelemetryStoreProcessor)
+  - localStorage: `hai3:studio:perfTelemetry` (panel toggle)
+
 ---
 
 ## 3. Feature Dependencies
@@ -720,6 +785,7 @@ cpt-hai3-feature-screenset-registry        (L1, no deps)
 cpt-hai3-feature-api-communication         (L1, no deps)
 cpt-hai3-feature-i18n-infrastructure       (L1, no deps)
 cpt-hai3-feature-studio-devtools           (standalone, no deps)
+cpt-hai3-feature-perf-telemetry            (L1 SDK, no deps)
 cpt-hai3-feature-cli-tooling               (standalone, no deps)
 cpt-hai3-feature-publishing-pipeline       (infrastructure, no deps)
 cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)

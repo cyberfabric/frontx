@@ -87,6 +87,10 @@ export default defineConfig({
           if (id.includes('@hai3/framework') || id.includes('@hai3/react')) {
             return 'hai3-core';
           }
+          // Split perf-telemetry + OTel into own chunk (tree-shakeable when unused)
+          if (id.includes('@hai3/perf-telemetry') || id.includes('@opentelemetry/')) {
+            return 'hai3-telemetry';
+          }
           // Split React and React DOM
           if (id.includes('react') || id.includes('react-dom')) {
             return 'react';

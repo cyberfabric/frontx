@@ -1,0 +1,61 @@
+{
+  "backendMode": "datadog",
+  "profiles": {
+    "baseline": {
+      "enabled": true,
+      "path": [
+        "browser",
+        "otel-collector",
+        "datadog"
+      ]
+    }
+  },
+  "frontend": {
+    "serviceName": "hai3-app",
+    "serviceVersion": "1.0.0",
+    "environment": "development",
+    "localAppUrl": "http://localhost:5173"
+  },
+  "collector": {
+    "protocol": "otlp-http",
+    "baseUrl": "http://localhost:14318",
+    "tracesPath": "/v1/traces",
+    "tracesUrl": "http://localhost:14318/v1/traces",
+    "requiresCors": true
+  },
+  "datadog": {
+    "site": "datadoghq.com",
+    "requiresApiKey": true,
+    "requiredEnv": [
+      "DD_API_KEY",
+      "DD_SITE"
+    ],
+    "apmServiceUrl": "https://app.datadoghq.com/apm/services/hai3-app",
+    "dashboardUrl": "https://app.datadoghq.com/dashboard/lists"
+  },
+  "runtimeEnv": {
+    "VITE_OTEL_COLLECTOR_URL": "http://localhost:14318",
+    "VITE_TELEMETRY_ENABLED": "true",
+    "VITE_SERVICE_NAME": "hai3-app",
+    "VITE_SERVICE_VERSION": "1.0.0",
+    "VITE_ENVIRONMENT": "development",
+    "VITE_DATADOG_APM_URL": "https://app.datadoghq.com/apm/services/hai3-app",
+    "VITE_DATADOG_DASHBOARD_URL": "https://app.datadoghq.com/dashboard/lists"
+  },
+  "collectorEnv": {
+    "DD_API_KEY": "set-in-shell-or-dotenv",
+    "DD_SITE": "datadoghq.com"
+  },
+  "integration": {
+    "routeHook": "useRoutePerf",
+    "doneRenderingHook": "useDoneRendering",
+    "actionHook": "useTelemetryAction",
+    "apiWrapper": "instrumentedFetch"
+  },
+  "validation": {
+    "preferredCommand": "npm run validate:telemetry",
+    "lintCommand": "npm run lint:telemetry",
+    "contractCommand": "npm run test:telemetry-contract",
+    "smokeCommand": "npm run test:telemetry-smoke"
+  }
+}

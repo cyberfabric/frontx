@@ -62,6 +62,15 @@
 - REQUIRED: Studio overlay rendered as a sibling to main app content.
 - FORBIDDEN: Studio bundle included or rendered in production builds.
 
+## PERFORMANCE TELEMETRY PANEL
+- PerfTelemetryPanel is an optional section in ControlPanel.
+- Uses dynamic require('@hai3/perf-telemetry') — renders nothing if package not installed.
+- Subscribes to telemetryStore.subscribe() for live span data.
+- Types from @hai3/perf-telemetry are duplicated locally (StoredSpan, TelemetryStoreApi) to avoid hard dependency.
+- Panel state (enabled, active tab) persisted to hai3:studio:perfTelemetry and hai3:studio:perfTelemetryTab.
+- Uses inline styles (not Tailwind classes) because Studio injects its own CSS.
+- FORBIDDEN: Direct import of @hai3/perf-telemetry at module level (must be dynamic/conditional).
+
 ## PRE-DIFF CHECKLIST
 - [ ] No Redux or custom store for Studio; UI state uses React state or context.
 - [ ] Controls read app state via @hai3/react hooks and emit events via eventBus.

@@ -5,6 +5,7 @@ import { MfePackageSelector } from './MfePackageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { LanguageSelector } from './LanguageSelector';
 import { ApiModeToggle } from './ApiModeToggle';
+import { PerfTelemetryPanel } from './PerfTelemetryPanel';
 
 // @cpt-begin:cpt-hai3-dod-studio-devtools-control-panel:p1:inst-1
 export const ControlPanel: React.FC = () => {
@@ -24,6 +25,9 @@ export const ControlPanel: React.FC = () => {
           <LanguageSelector />
         </div>
       </div>
+
+      {/* Performance Telemetry (renders only when @hai3/perf-telemetry is installed) */}
+      <PerfTelemetryPanel />
     </div>
   );
 };

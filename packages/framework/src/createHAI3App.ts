@@ -42,6 +42,7 @@ export function createHAI3App(config?: HAI3AppConfig): HAI3App {
   return createHAI3(config)
     .useAll(full({
       microfrontends: config?.microfrontends,
+      telemetry: config?.telemetry,
     }))
     .build();
 }

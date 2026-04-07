@@ -16,6 +16,7 @@
 - packages/state -> .ai/targets/STORE.md
 - packages/api -> .ai/targets/API.md
 - packages/i18n -> .ai/targets/I18N.md
+- packages/perf-telemetry -> .ai/targets/PERF_TELEMETRY.md
 - Event patterns -> .ai/targets/EVENTS.md
 ### Framework Layer (L2)
 - packages/framework -> .ai/targets/FRAMEWORK.md
@@ -62,7 +63,7 @@
 - NO React dependencies in Framework layer.
 
 ## BLOCKLIST
-- Telemetry or tracking code.
+- Ad-hoc telemetry or tracking code (use @hai3/perf-telemetry for official performance telemetry).
 - "as unknown as" type casts.
 - unknown in public type definitions.
 - eslint-disable comments.
