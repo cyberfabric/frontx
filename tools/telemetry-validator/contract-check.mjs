@@ -39,6 +39,11 @@ const payloadSchemas = {
 };
 
 for (const [i, event] of events.entries()) {
+  if (typeof event !== 'object' || event === null || Array.isArray(event)) {
+    errors.push(`event[${i}] must be a non-null object`);
+    continue;
+  }
+
   for (const key of requiredTop) {
     if (!(key in event)) errors.push(`event[${i}] missing key '${key}'`);
   }
@@ -63,7 +68,7 @@ for (const [i, event] of events.entries()) {
     errors.push(`event[${i}] rid must be non-empty string`);
   }
 
-  if (typeof event.p !== 'object' || event.p === null) {
+  if (typeof event.p !== 'object' || event.p === null || Array.isArray(event.p)) {
     errors.push(`event[${i}] p must be object`);
   }
 

@@ -14,6 +14,12 @@ import path from 'node:path';
 const root = process.cwd();
 const SOURCE_EXT = new Set(['.ts', '.tsx']);
 
+/**
+ * Recursively collects .ts/.tsx files from a directory, skipping node_modules and dist.
+ * @param {string} dir - Root directory to walk
+ * @param {string[]} out - Accumulator array
+ * @returns {string[]} Absolute paths of all matching source files
+ */
 function walk(dir, out = []) {
   if (!fs.existsSync(dir)) return out;
   const entries = fs.readdirSync(dir, { withFileTypes: true });

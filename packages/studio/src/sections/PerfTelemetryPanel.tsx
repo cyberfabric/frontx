@@ -259,6 +259,7 @@ function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
 
 // ─── Main Panel ─────────────────────────────────────────────────────────────
 
+/** Studio section that renders live performance telemetry KPIs, action timings, API stats, and web vitals. */
 export const PerfTelemetryPanel: React.FC = () => {
   const { t } = useTranslation();
   const store = useTelemetryStore();

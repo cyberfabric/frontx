@@ -21,10 +21,13 @@ function cryptoRandom(): number {
 
 // ─── Types ──────────────────────────────────────────────────────────────────
 
+/** Telemetry event priority lane. A = critical errors, B = UI/network, C = runtime diagnostics. */
 export type Lane = 'A' | 'B' | 'C';
 
+/** Named policy profile controlling sampling rates and feature toggles. */
 export type PolicyProfile = 'baseline' | 'investigation' | 'support-burst';
 
+/** Full collection policy snapshot: sampling rates, rate limits, feature toggles, and kill switch state. */
 export type CollectionPolicy = {
   version: number;
   updatedAt: number;
@@ -55,6 +58,7 @@ export type CollectionPolicy = {
 
 // ─── Predefined Policies ────────────────────────────────────────────────────
 
+/** Default policy: full lane A/B collection, 10% lane C, resource timing and long tasks disabled. */
 export const BASELINE_POLICY: CollectionPolicy = {
   version: 1,
   updatedAt: Date.now(),
@@ -79,6 +83,7 @@ export const BASELINE_POLICY: CollectionPolicy = {
   ttl: 300,
 };
 
+/** High-fidelity policy: all lanes at 100%, all feature toggles on, short TTL for incident investigation. */
 export const INVESTIGATION_POLICY: CollectionPolicy = {
   version: 1,
   updatedAt: Date.now(),
@@ -103,6 +108,7 @@ export const INVESTIGATION_POLICY: CollectionPolicy = {
   ttl: 60,
 };
 
+/** Elevated policy for support sessions: increased limits, resource timing on, 50% lane C. */
 export const SUPPORT_BURST_POLICY: CollectionPolicy = {
   version: 1,
   updatedAt: Date.now(),
@@ -127,6 +133,7 @@ export const SUPPORT_BURST_POLICY: CollectionPolicy = {
   ttl: 120,
 };
 
+/** Emergency policy that sets all sampling to 0 and activates the kill switch. */
 export const KILL_SWITCH_POLICY: CollectionPolicy = {
   version: 1,
   updatedAt: Date.now(),
@@ -140,6 +147,7 @@ export const KILL_SWITCH_POLICY: CollectionPolicy = {
 
 // ─── Lane Classification ────────────────────────────────────────────────────
 
+/** Maps an event type string to a collection lane (A/B/C) based on namespace prefix. */
 export function classifyLane(eventType: string): Lane {
   if (eventType.startsWith('runtime.error') || eventType.startsWith('runtime.kill')) return 'A';
   if (eventType.startsWith('runtime.')) return 'C';
@@ -148,6 +156,7 @@ export function classifyLane(eventType: string): Lane {
 
 // ─── Policy Engine ──────────────────────────────────────────────────────────
 
+/** Runtime policy engine: evaluates sampling decisions and rate limits for each telemetry event. */
 export class PolicyEngine {
   private currentPolicy: CollectionPolicy;
   private eventCounter: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
@@ -158,21 +167,25 @@ export class PolicyEngine {
     this.currentPolicy = initialPolicy;
   }
 
+  /** Replaces the active policy and resets the rate window. */
   updatePolicy(policy: CollectionPolicy): void {
     this.currentPolicy = policy;
     this.resetRateWindow();
   }
 
+  /** Returns the currently active collection policy. */
   getPolicy(): CollectionPolicy {
     return this.currentPolicy;
   }
 
+  /** Returns true if the event should be sampled based on the lane's configured rate. */
   shouldSampleEvent(lane: Lane): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
     const rate = this.currentPolicy.samplingRates[`lane${lane}`];
     return cryptoRandom() < rate;
   }
 
+  /** Evaluates kill switch, rate limit, and sampling in order; returns accept/reject with reason. */
   shouldAcceptEvent(lane: Lane): { accept: boolean; reason?: string } {
     if (this.currentPolicy.killSwitch.active) {
       return { accept: false, reason: 'kill_switch_active' };
@@ -195,27 +208,33 @@ export class PolicyEngine {
     return { accept: true };
   }
 
+  /** Returns true if the given feature toggle is enabled and the kill switch is inactive. */
   isFeatureEnabled(feature: keyof CollectionPolicy['featureToggles']): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
     return this.currentPolicy.featureToggles[feature];
   }
 
+  /** Returns the configured batch flush interval in milliseconds. */
   getFlushIntervalMs(): number {
     return this.currentPolicy.limits.flushIntervalMs;
   }
 
+  /** Returns the maximum allowed batch size in bytes. */
   getMaxBatchSizeBytes(): number {
     return this.currentPolicy.limits.maxBatchSizeBytes;
   }
 
+  /** Returns true if the kill switch is currently active. */
   isKillSwitchActive(): boolean {
     return this.currentPolicy.killSwitch.active;
   }
 
+  /** Returns the human-readable reason the kill switch was activated, or undefined if inactive. */
   getKillSwitchReason(): string | undefined {
     return this.currentPolicy.killSwitch.reason;
   }
 
+  /** Returns per-lane event counts and limits for the current rate window. */
   getStats(): { lane: Lane; count: number; limit: number }[] {
     return (['A', 'B', 'C'] as Lane[]).map((lane) => ({
       lane,
@@ -240,6 +259,7 @@ export class PolicyEngine {
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
+/** Returns a fresh CollectionPolicy instance for the given profile name. */
 export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
   switch (profile) {
     case 'investigation': return { ...INVESTIGATION_POLICY, updatedAt: Date.now() };
@@ -248,6 +268,7 @@ export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
   }
 }
 
+/** Deep-merges policy overrides into a base policy, refreshing the updatedAt timestamp. */
 export function mergePolicy(base: CollectionPolicy, overrides: Partial<CollectionPolicy>): CollectionPolicy {
   return {
     ...base,

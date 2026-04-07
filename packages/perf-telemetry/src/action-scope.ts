@@ -26,6 +26,7 @@ const RENDER_FOLLOWUP_WINDOW_MS = 2500;
 let _ambientScope: ActionScope | null = null;
 let _ambientTracer: (() => import('@opentelemetry/api').Tracer) | null = null;
 
+/** Registers the tracer factory used to create ambient action spans. Must be called before any ambient scope is needed. */
 export function setAmbientTracer(factory: () => import('@opentelemetry/api').Tracer): void {
   _ambientTracer = factory;
 }
@@ -64,6 +65,7 @@ function ensureAmbientAction(routeId: string): ActionScope {
   return _ambientScope;
 }
 
+/** Ends the current ambient action span and clears the ambient scope. */
 export function endAmbientAction(): void {
   if (_ambientScope) {
     _ambientScope.span.end();
@@ -71,15 +73,18 @@ export function endAmbientAction(): void {
   }
 }
 
+/** Returns the currently active ambient scope, or null if none exists. */
 export function getAmbientScope(): ActionScope | null {
   return _ambientScope;
 }
 
 // @cpt-hai3-telemetry-perf-flow-action-lifecycle
+/** Registers an active action scope for span correlation. */
 export function beginActionScope(scope: ActionScope): void {
   activeScopes.set(scope.spanId, scope);
 }
 
+/** Removes an active scope by spanId and archives it in the recent-scopes ring buffer. */
 export function endActionScope(spanId: string, endedAtMs: number): void {
   const scope = activeScopes.get(spanId);
   if (!scope) return;
@@ -87,18 +92,22 @@ export function endActionScope(spanId: string, endedAtMs: number): void {
   recentScopes = [{ ...scope, endedAtMs }, ...recentScopes].slice(0, MAX_RECENT_SCOPES);
 }
 
+/** Returns all currently active (in-flight) action scopes. */
 export function getActiveActionScopes(): ActionScope[] {
   return Array.from(activeScopes.values());
 }
 
+/** Registers the render scope (readySpan + uiSpan) for a route. */
 export function beginRouteUiScope(scope: RouteUiScope): void {
   activeRouteUiScopes.set(scope.routeId, scope);
 }
 
+/** Returns the active render scope for a route, or undefined if none is open. */
 export function getActiveRouteUiScope(routeId: string): RouteUiScope | undefined {
   return activeRouteUiScopes.get(routeId);
 }
 
+/** Closes the render scope for a route and returns it with the end timestamp attached. */
 export function endRouteUiScope(routeId: string, endedAtMs: number): RouteUiScope | undefined {
   const scope = activeRouteUiScopes.get(routeId);
   if (!scope) return undefined;
@@ -107,6 +116,10 @@ export function endRouteUiScope(routeId: string, endedAtMs: number): RouteUiScop
 }
 
 // @cpt-hai3-telemetry-perf-algo-scope-resolution
+/**
+ * Finds the most relevant action scope for a given timestamp.
+ * Checks active scopes first, then recent (within RENDER_FOLLOWUP_WINDOW_MS), then ambient fallback.
+ */
 export function findRelatedActionScope(atMs: number, routeId?: string): ActionScope | undefined {
   const matchingActive = Array.from(activeScopes.values())
     .filter((scope) => (!routeId || scope.routeId === routeId) && scope.startedAtMs <= atMs)
@@ -129,6 +142,7 @@ export function findRelatedActionScope(atMs: number, routeId?: string): ActionSc
 }
 
 // @cpt-hai3-telemetry-perf-algo-parent-context
+/** Returns an OTel Context parented to the nearest action scope for the given timestamp. */
 export function getActionParentContext(atMs: number, routeId?: string): Context | undefined {
   const scope = findRelatedActionScope(atMs, routeId);
   if (!scope) {
@@ -141,12 +155,14 @@ export function getActionParentContext(atMs: number, routeId?: string): Context 
   return trace.setSpan(context.active(), scope.span);
 }
 
+/** Returns an OTel Context parented to the active uiSpan for a route, or undefined if no render scope is open. */
 export function getRouteUiParentContext(routeId: string): Context | undefined {
   const scope = activeRouteUiScopes.get(routeId);
   if (!scope) return undefined;
   return trace.setSpan(context.active(), scope.uiSpan);
 }
 
+/** Prefers routeUiScope context for child spans; falls back to action parent context. */
 export function getTelemetryParentContext(routeId: string, atMs: number): Context | undefined {
   return getRouteUiParentContext(routeId) || getActionParentContext(atMs, routeId);
 }
