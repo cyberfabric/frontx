@@ -79,7 +79,7 @@
   - No console errors or missing registrations.
 
 ## BLOCKLIST
-- Telemetry or tracking code.
+- Ad-hoc telemetry or tracking code (use @hai3/perf-telemetry for official performance telemetry).
 - "as unknown as" type casts.
 - unknown in public type definitions.
 - eslint-disable comments.

@@ -32,11 +32,19 @@ apiRegistry.initialize({});
 
 // Create FrontX app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
+// Performance telemetry is opt-in via VITE_TELEMETRY_ENABLED env var
 const app = createHAI3App({
   microfrontends: {
     typeSystem: gtsPlugin,
     mfeHandlers: [new MfeHandlerMF(HAI3_MFE_ENTRY_MF)],
   },
+  telemetry: import.meta.env.VITE_TELEMETRY_ENABLED === 'true' ? {
+    serviceName: import.meta.env.VITE_SERVICE_NAME || 'hai3-app',
+    serviceVersion: import.meta.env.VITE_SERVICE_VERSION || '1.0.0',
+    collectorUrl: import.meta.env.VITE_OTEL_COLLECTOR_URL || 'http://localhost:14318',
+    environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+    enabled: true,
+  } : undefined,
 });
 
 // Register app-level effects (pass store dispatch)

@@ -94,6 +94,10 @@ export default defineConfig({
           if (id.includes('@cyberfabric/framework') || id.includes('@cyberfabric/react')) {
             return 'frontx-core';
           }
+          // Split perf-telemetry + OTel into own chunk (tree-shakeable when unused)
+          if (id.includes('@hai3/perf-telemetry') || id.includes('@opentelemetry/')) {
+            return 'hai3-telemetry';
+          }
           // Split React and React DOM
           if (id.includes('react') || id.includes('react-dom')) {
             return 'react';

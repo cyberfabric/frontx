@@ -1,0 +1,23 @@
+# @hai3/perf-telemetry
+
+> Action-first performance telemetry for HAI3 using OpenTelemetry Browser SDK. Every span belongs to a named action.
+
+Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Peer dependencies on @opentelemetry/* and react.
+
+## Core API
+
+- [TelemetryProvider](https://hai3.dev/docs/perf-telemetry/provider): React context provider for OTel initialization
+- [useRoutePerf](https://hai3.dev/docs/perf-telemetry/hooks#routeperf): Route navigation span
+- [useDoneRendering](https://hai3.dev/docs/perf-telemetry/hooks#donerendering): Render readiness signal with paint timing
+- [useTelemetryAction](https://hai3.dev/docs/perf-telemetry/hooks#action): Critical action wrapper
+- [instrumentedFetch](https://hai3.dev/docs/perf-telemetry/hooks#fetch): API call with span correlation
+- [useWebVitals](https://hai3.dev/docs/perf-telemetry/hooks#webvitals): LCP, CLS, INP, TTFB collection
+- [telemetryStore](https://hai3.dev/docs/perf-telemetry/store): In-memory span collector for dev tools
+
+## Key Patterns
+
+- Every span MUST belong to a named action (no orphan spans)
+- Ambient action fallback for passive signals (web vitals, long tasks)
+- Fail-open: telemetry errors never crash business flows
+- Action-first correlation: active -> recent -> ambient resolution
+- Export gating: collector export toggleable independently from local capture

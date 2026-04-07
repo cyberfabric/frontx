@@ -126,6 +126,7 @@ export {
   queryCache,
   queryCacheShared,
   subscribeQueryCacheRuntimeChanged,
+  telemetry,
 
   // Registries
   createThemeRegistry,

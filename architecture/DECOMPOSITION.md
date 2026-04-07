@@ -16,6 +16,7 @@
   - [2.10 Publishing Pipeline ⏳ MEDIUM](#210-publishing-pipeline--medium)
   - [2.11 UI Libraries Choice ⏳ HIGH](#211-ui-libraries-choice--high)
   - [2.12 Request Lifecycle & Query Integration ⏳ HIGH](#212-request-lifecycle--query-integration--high)
+  - [2.13 Performance Telemetry ⏳ MEDIUM](#213-performance-telemetry--medium)
 - [3. Feature Dependencies](#3-feature-dependencies)
 
 <!-- /toc -->
@@ -809,6 +810,76 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
   - `cpt-frontx-adr-tanstack-query-data-management`
 
+### 2.13 [Performance Telemetry](feature-perf-telemetry/) ⏳ MEDIUM
+
+- [ ] `p2` - **ID**: `cpt-frontx-feature-perf-telemetry`
+
+- **Purpose**: Provides action-first frontend performance telemetry via OpenTelemetry Browser SDK. Every span belongs to a named action (explicit or ambient fallback), enabling per-action performance breakdown in Datadog APM. Includes a Studio dev panel for local visibility.
+
+- **Depends On**: None (L1 SDK, zero @cyberfabric dependencies)
+
+- **Scope**:
+  - `@cyberfabric/perf-telemetry` L1 SDK package (action-scope, otel-init, hooks, TelemetryProvider, telemetry-store)
+  - Framework `telemetry()` plugin (opt-in via full preset config)
+  - Studio `PerfTelemetryPanel` section (dev-mode, renders when package installed)
+  - Cross-runtime `sharedTelemetryRegistry` on `globalThis` so MFE child runtimes converge on a single host-owned `telemetryStore`
+  - Docker OTel Collector -> Datadog export infrastructure
+  - AI guidelines: `.ai/targets/PERF_TELEMETRY.md`, `.ai/references/telemetry/*`
+
+- **Out of scope**:
+  - Backend/server-side telemetry
+  - Custom Datadog dashboard creation
+  - Production collector infrastructure (only local dev collector provided)
+
+- **Requirements Covered**:
+
+  - [ ] `p1` - `cpt-frontx-fr-perf-action-first-correlation`
+  - [ ] `p1` - `cpt-frontx-fr-perf-route-instrumentation`
+  - [ ] `p1` - `cpt-frontx-fr-perf-action-instrumentation`
+  - [ ] `p1` - `cpt-frontx-fr-perf-api-instrumentation`
+  - [ ] `p1` - `cpt-frontx-fr-perf-web-vitals`
+  - [ ] `p2` - `cpt-frontx-fr-perf-studio-panel`
+  - [ ] `p1` - `cpt-frontx-fr-perf-fail-open`
+  - [ ] `p1` - `cpt-frontx-fr-perf-cross-runtime-registry`
+
+- **Design Principles Covered**:
+  - Action-first correlation (no orphan spans)
+  - Fail-open (telemetry errors never crash UX)
+  - Cross-runtime convergence via `globalThis` registry (matches `sharedFetchCache` precedent)
+
+- **Design Constraints Covered**:
+
+  - [ ] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
+  - [ ] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+
+- **Domain Model Entities**:
+  - ActionScope, RouteUiScope, StoredSpan, TelemetryRuntimeConfig, SharedTelemetryRegistry
+
+- **Design Components**:
+
+  - [ ] `p1` - `cpt-frontx-component-perf-telemetry`
+  - [ ] `p2` - `cpt-frontx-component-studio-perf-panel`
+
+- **API**:
+  - `useRoutePerf(routeId, navigationStartMs)`
+  - `useDoneRendering(signalName, { dataReady })`
+  - `useTelemetryAction(actionName, { routeId })`
+  - `useWebVitals(routeId)`
+  - `instrumentedFetch(url, meta, init)`
+  - `TelemetryProvider` React context
+  - `telemetryStore.subscribe()` for dev panel
+  - `sharedTelemetryRegistry.acquire(runtimeId)` / `release(runtimeId)` for cross-runtime span aggregation
+
+- **Sequences**:
+  - Action lifecycle: create span -> register scope -> execute work -> end scope -> export
+  - Ambient resolution: search active -> search recent -> create ambient
+  - Cross-runtime join: child `initOtel` -> resolve `globalThis[Symbol.for('frontx:telemetry-registry')]` -> retain shared store -> append spans -> release on `shutdownOtel`
+
+- **Data**:
+  - In-memory span buffer (max 500, TelemetryStoreProcessor)
+  - localStorage: `frontx:studio:perfTelemetry` (panel toggle)
+  - `globalThis[Symbol.for('frontx:telemetry-registry')]`: versioned `SharedTelemetryRegistry`
+
 ---
 
 ## 3. Feature Dependencies
@@ -818,6 +889,7 @@ cpt-frontx-feature-state-management          (L1, no deps)
 cpt-frontx-feature-screenset-registry        (L1, no deps)
 cpt-frontx-feature-api-communication         (L1, no deps)
 cpt-frontx-feature-i18n-infrastructure       (L1, no deps)
+cpt-frontx-feature-perf-telemetry            (L1 SDK, no deps)
 cpt-frontx-feature-studio-devtools           (standalone, no deps)
 cpt-frontx-feature-cli-tooling               (standalone, no deps)
 cpt-frontx-feature-publishing-pipeline       (infrastructure, no deps)

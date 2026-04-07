@@ -43,6 +43,8 @@ export {
   microfrontends,
   type MockPluginConfig,
   type QueryCacheConfig,
+  telemetry,
+  type TelemetryPluginConfig,
 } from './plugins';
 
 // Auth contract types (re-exported from @cyberfabric/auth)
