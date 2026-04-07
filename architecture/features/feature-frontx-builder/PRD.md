@@ -97,7 +97,7 @@ Once activated, the Chat Panel (left) and Preview Panel (right) slide into
 place, with a generated UI visible in the preview after a plain-language
 prompt was submitted.
 
-![FrontX Builder prototype — trigger button, chat and preview panels open](./idea-generator-example.jpg)
+![FrontX Builder prototype — trigger button, chat and preview panels open](https://github.com/user-attachments/assets/9b649dba-aaa5-4de6-ae6b-0ba7942e1e89)
 
 This prototype was used to demonstrate the concept internally. It includes
 additional capabilities (Bitbucket repository creation, pull request
