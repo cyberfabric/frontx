@@ -29,6 +29,7 @@ import {
 
 // ─── Route Performance ───────────────────────────────────────────────────────
 
+/** Emits a `route.navigation` span on mount, measuring time from navigationStartMs to component mount. */
 export function useRoutePerf(routeId: string, navigationStartMs: number) {
   const emittedRef = useRef(false);
 
@@ -59,6 +60,11 @@ export function useRoutePerf(routeId: string, navigationStartMs: number) {
 
 // ─── Done Rendering ──────────────────────────────────────────────────────────
 
+/**
+ * Emits a render readiness signal using double-rAF paint timing.
+ * Ends the readySpan and uiSpan once `deps.dataReady` is true and two animation frames have elapsed.
+ * Falls back to a timeout if dataReady never becomes true.
+ */
 export function useDoneRendering(
   signalName: string,
   deps: { dataReady: boolean; [key: string]: string | number | boolean | null | undefined },
@@ -168,6 +174,7 @@ export function useDoneRendering(
 
 // ─── Telemetry Action ────────────────────────────────────────────────────────
 
+/** Returns a stable callback that wraps async work in a named action span with full correlation. */
 export function useTelemetryAction(actionName: string, defaults?: { routeId?: string }) {
   const routeId = defaults?.routeId || 'unknown';
   return useCallback(
@@ -176,6 +183,10 @@ export function useTelemetryAction(actionName: string, defaults?: { routeId?: st
   );
 }
 
+/**
+ * Executes `fn` inside a named action span, recording status and correlating child spans.
+ * Use this outside React or when you need programmatic control over the action boundary.
+ */
 export async function runTelemetryAction<T>(
   actionName: string,
   routeId: string,
@@ -212,6 +223,12 @@ export async function runTelemetryAction<T>(
 
 // ─── Instrumented Fetch ──────────────────────────────────────────────────────
 
+/**
+ * Fetch wrapper that creates an HTTP span correlated to the active action and route UI scope.
+ * @param url - Request URL
+ * @param meta - Route and optional action name for correlation
+ * @param init - Standard RequestInit options
+ */
 export async function instrumentedFetch(
   url: string,
   meta: { routeId: string; actionName?: string },
@@ -246,6 +263,7 @@ export async function instrumentedFetch(
   }
 }
 
+/** Returns a stable `instrumentedFetch` reference bound via useCallback. */
 export function useInstrumentedFetch() {
   return useCallback(
     (url: string, meta: { routeId: string; actionName?: string }, init?: RequestInit) =>
@@ -256,6 +274,7 @@ export function useInstrumentedFetch() {
 
 // ─── Web Vitals ──────────────────────────────────────────────────────────────
 
+/** Observes Core Web Vitals (LCP, CLS, INP, TTFB) and emits a span per measurement. */
 export function useWebVitals(routeId: string, enabled = true) {
   const observersRef = useRef<PerformanceObserver[]>([]);
 
@@ -364,6 +383,7 @@ export function useWebVitals(routeId: string, enabled = true) {
 
 // ─── Long Task Observer ──────────────────────────────────────────────────────
 
+/** Observes `longtask` entries and emits a `runtime.long_task` span for each one. */
 export function useLongTaskObserver(routeId: string, enabled = true) {
   useEffect(() => {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;
@@ -392,6 +412,7 @@ export function useLongTaskObserver(routeId: string, enabled = true) {
 
 // ─── Resource Timing Observer ────────────────────────────────────────────────
 
+/** Observes `resource` timing entries and emits a `runtime.resource` span per loaded asset. */
 export function useResourceTimingObserver(routeId: string, enabled = true) {
   useEffect(() => {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;

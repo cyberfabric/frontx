@@ -22,6 +22,12 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next']);
 // Skip telemetry package internals — we only lint consumer code
 const SKIP_PATHS = ['packages/perf-telemetry', 'tools/telemetry-validator'];
 
+/**
+ * Recursively collects source files from a directory, skipping node_modules, dist, and telemetry internals.
+ * @param {string} dir - Root directory to walk
+ * @param {string[]} out - Accumulator array
+ * @returns {string[]} Absolute paths of all matching source files
+ */
 function walk(dir, out = []) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
@@ -38,10 +44,21 @@ function walk(dir, out = []) {
   return out;
 }
 
+/**
+ * Returns true if `content` contains at least one of the given `patterns` as a substring.
+ * @param {string} content
+ * @param {string[]} patterns
+ * @returns {boolean}
+ */
 function hasAny(content, patterns) {
   return patterns.some((p) => content.includes(p));
 }
 
+/**
+ * Returns the path of `file` relative to the project root for readable error messages.
+ * @param {string} file
+ * @returns {string}
+ */
 function rel(file) {
   return path.relative(root, file);
 }

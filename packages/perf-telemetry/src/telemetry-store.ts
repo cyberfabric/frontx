@@ -20,16 +20,20 @@ function notify() {
   _listeners.forEach((fn) => fn());
 }
 
+/** In-memory span store for the dev tools panel. Subscribe to receive live updates. */
 export const telemetryStore = {
+  /** Returns all currently stored spans, newest first. */
   getSpans(): StoredSpan[] {
     return _spans;
   },
 
+  /** Subscribes to span updates. Returns an unsubscribe function. */
   subscribe(fn: SpanListener): () => void {
     _listeners.add(fn);
     return () => _listeners.delete(fn);
   },
 
+  /** Clears all stored spans and notifies subscribers. */
   clear() {
     _spans = [];
     notify();
@@ -49,6 +53,7 @@ function statusCode(span: ReadableSpan): 'ok' | 'error' | 'unset' {
   return 'unset';
 }
 
+/** OTel SpanProcessor that captures completed spans into telemetryStore for the dev panel. */
 export class TelemetryStoreProcessor implements SpanProcessor {
   onStart(_span: Span): void {}
 
