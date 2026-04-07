@@ -411,8 +411,8 @@ seconds for prompts that do not require clarification.
 
 **Threshold**: Processing indicator < 300ms; full response < 30s.
 
-**Rationale**: Visible feedback under 300ms prevents users from double-
-submitting. A 30-second ceiling keeps the iteration loop from feeling broken.
+**Rationale**: Visible feedback under 300ms prevents users from
+double-submitting. A 30-second ceiling keeps the iteration loop from feeling broken.
 
 #### API Credential Security
 
@@ -438,7 +438,7 @@ to make API calls at the credential owner's expense.
 
 ## 7. Use Cases
 
-#### PM Generates a New UI Idea
+### PM Generates a New UI Idea
 
 - [ ] `p1` - **ID**: `cpt-frontx-builder-usecase-new-idea`
 
@@ -468,7 +468,7 @@ to make API calls at the credential owner's expense.
 - **Generation fails validation**: System auto-corrects; if correction fails,
   user sees an error message and project state is preserved
 
-#### PM Iterates on Generated Output
+### PM Iterates on Generated Output
 
 - [ ] `p1` - **ID**: `cpt-frontx-builder-usecase-iterate`
 
