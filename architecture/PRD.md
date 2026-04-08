@@ -200,11 +200,11 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 | Plugin | Framework-level feature (screensets, themes, i18n, routing, effects, microfrontends, layout) composed via `.use()` on `createHAI3` builder. |
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
 | Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel) and host for the Builder AI idea generator. Only loaded in `import.meta.env.DEV`. |
-| Builder | The embedded AI idea generator inside Studio. Allows non-technical actors to describe a UI concept in plain language and receive a live interactive preview without writing code. |
+| Builder | The embedded AI idea generator inside Studio. Allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code. |
 | Chat Panel | The left-side sliding panel inside the Builder containing the conversation thread and prompt input. |
-| Preview Panel | The right-side sliding panel inside the Builder displaying the live generated UI in an isolated iframe. |
-| AI Backend | The external language model API (Anthropic Claude) that processes prompts and generates TypeScript/React component code conforming to HAI3 screenset conventions. |
-| Personal Sandbox | A private, pre-draft exploration space where a user can generate and refine a UI idea before it enters the official screenset pipeline. |
+| Preview Panel | The right-side sliding panel inside the Builder displaying the live generated UI in an isolated context. |
+| AI Backend | The external language model API (e.g., Anthropic Claude) that processes prompts and generates TypeScript/React component code conforming to HAI3 screenset conventions. |
+| Personal Sandbox | A private, pre-draft exploration space where a user can generate and refine a UI idea before it enters the official screenset pipeline. Future-phase concept — see Future Considerations in the Studio DevTools FEATURE.md. |
 | UI Kit | Component library: per-project choice at creation (local components, shadcn, or third-party). |
 | Registry | Self-registering singleton (ScreensetsRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
 | GTS | Global Type System — schema-based validation for MFE shared properties and action chains. |
@@ -918,18 +918,36 @@ The Builder MUST provide a Chat Panel that slides in from the left edge of the S
 
 - [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-preview`
 
-The Builder MUST provide a Preview Panel that slides in from the right edge of the Studio viewport and renders the AI-generated UI in an isolated iframe. The preview MUST update automatically after each successful AI response. The panel MUST receive the active Studio theme and language selection and apply them to the rendered preview. The panel MUST display a loading state while the dev server initializes, and a reconnecting state if the dev server disconnects.
+The Builder MUST provide a Preview Panel that slides in from the right edge of the Studio viewport and renders the AI-generated UI in an isolated context to prevent style and script interference with the Studio host. The preview MUST update automatically after each successful AI response. The panel MUST receive the active Studio theme and language selection and apply them to the rendered preview. The panel MUST display a loading state while the dev server initializes, and a reconnecting state if the dev server disconnects.
 
-**Rationale**: Automatic preview updates and theme/language forwarding give non-technical actors an accurate, immediate impression of the generated UI; explicit loading and reconnecting states prevent users from misinterpreting server startup delays as failures.
+**Rationale**: Automatic preview updates and theme/language forwarding give non-developer actors an accurate, immediate impression of the generated UI; explicit loading and reconnecting states prevent users from misinterpreting server startup delays as failures.
 **Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
 
 #### Builder AI Code Generation
 
 - [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-codegen`
 
-When a prompt is submitted, the system MUST send the prompt together with sufficient project context (existing source files, screenset conventions) to the AI Backend. The AI Backend MUST return generated TypeScript/React component code. The system MUST write generated files to the correct locations in the active project's screenset directory. When generated code fails validation (parse errors, type errors), the system MUST automatically attempt correction before presenting output; if correction fails the system MUST notify the user and MUST preserve the last valid project state.
+When a prompt is submitted, the system MUST send the prompt together with the minimum required project context — existing screenset source files, type definitions, and framework conventions — to the AI Backend. The AI Backend MUST return generated TypeScript/React component code. The system MUST write generated files to the correct locations in the active project's screenset directory. The system MUST ensure that validation failures do not corrupt the project state and MUST provide actionable feedback to the user when generation cannot be completed successfully.
 
-**Rationale**: Providing full project context produces output that integrates correctly with the existing screenset structure; auto-correction shields non-technical actors from raw compile errors that would break the prototyping flow.
+**Rationale**: Providing full project context produces output that integrates correctly with the existing screenset structure; protecting the project state and surfacing clear feedback shields non-developer actors from low-level errors that would break the prototyping flow.
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+#### Builder Prompt Feedback
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-prompt-feedback`
+
+The system MUST display a visible processing indicator within 300ms of prompt submission and MUST complete the AI response within 30 seconds for prompts that do not require clarification. If the 30-second ceiling is exceeded, the system MUST notify the user with a clear timeout message.
+
+**Rationale**: Visible feedback under 300ms prevents users from double-submitting; a 30-second ceiling keeps the iteration loop from feeling broken.
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+#### Builder Iterative Refinement
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-iterate`
+
+The Builder MUST support iterative refinement: each follow-up prompt MUST be sent with the full conversation history and project context so that each generation builds on the previous result rather than starting over.
+
+**Rationale**: The prototyping value of the Builder depends on the ability to refine output through a conversation rather than restarting from scratch on every prompt.
 **Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
 
 #### Builder Session Persistence
@@ -945,9 +963,9 @@ The system MUST persist the full conversation thread per project. Closing and re
 
 - [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-credentials`
 
-AI Backend credentials MUST be stored server-side only and MUST NOT be transmitted to or accessible from the browser at any point.
+AI Backend credentials MUST NOT be exposed to end users or accessible in client-side code at any point.
 
-**Rationale**: Client-side credential exposure would allow any page visitor to make API calls at the credential owner's expense.
+**Rationale**: Credential exposure would allow any page visitor to make API calls at the credential owner's expense.
 **Actors**: `cpt-hai3-actor-studio-user`
 
 ### 5.15 CLI
@@ -1416,9 +1434,6 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 **Postconditions**:
 - Updated files are written to the project's screenset directory
 - Preview reflects the latest generated state
-
-**Alternative Flows**:
-- **AI asks a clarifying question**: PM types a response; generation proceeds after clarification
 
 ## 9. Acceptance Criteria
 

@@ -59,7 +59,7 @@
 
 ### 1.1 Overview
 
-Studio DevTools is the development-time overlay package (`@hai3/studio`) for HAI3 applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-technical actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
+Studio DevTools is the development-time overlay package (`@hai3/studio`) for HAI3 applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
 
 Problem: During development, iterating on theme, language, and API mock states requires either page reloads, hard-coded configuration, or direct Redux DevTools manipulation — all of which break the iterative feedback loop.
 
@@ -324,7 +324,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 **Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
 
-1. [ ] `p1` - Preview Panel renders the generated UI in an isolated iframe — `inst-render-iframe`
+1. [ ] `p1` - Preview Panel renders the generated UI in an isolated context to prevent style and script interference with the Studio host — `inst-render-isolated`
 2. [ ] `p1` - **IF** the dev server for the generated project is initializing **THEN** Preview Panel displays a loading state — `inst-loading-state`
 3. [ ] `p1` - **WHEN** dev server is ready, iframe loads automatically without user action — `inst-auto-load`
 4. [ ] `p1` - **IF** dev server disconnects after load **THEN** Preview Panel displays a reconnecting state — `inst-reconnecting-state`
@@ -673,7 +673,7 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 
 - [ ] `p1` - **ID**: `cpt-hai3-dod-studio-builder-panels`
 
-The Studio shell renders a persistent Builder trigger control. Activating it opens the Chat Panel (slide-in from left) and Preview Panel (slide-in from right); activating it again closes both with reverse animations. Panel open/closed state persists to localStorage and is restored on remount. The Chat Panel displays the full conversation thread with markdown rendering, provides a prompt input that disables during AI processing, and persists the conversation per project. The Preview Panel renders an isolated iframe, forwards Studio theme and language via `postMessage`, and shows explicit loading/reconnecting states during dev server initialization or disconnection.
+The Studio shell renders a persistent Builder trigger control. Activating it opens the Chat Panel (slide-in from left) and Preview Panel (slide-in from right); activating it again closes both with reverse animations. Panel open/closed state persists to localStorage and is restored on remount. The Chat Panel displays the full conversation thread with markdown rendering, provides a prompt input that disables during AI processing, and persists the conversation per project. The Preview Panel renders the generated UI in an isolated context, forwards Studio theme and language to the preview, and shows explicit loading/reconnecting states during dev server initialization or disconnection.
 
 **Implementation details**:
 - Builder trigger: a persistent button in the Studio shell, reads/writes `hai3:studio:builder:panelState` to localStorage
@@ -790,6 +790,8 @@ All localStorage keys use the prefix `hai3:studio:`. Current keys defined in `ST
 | `hai3:studio:activePackageId` | `string` — active GTS package ID |
 
 #### Builder Storage Keys
+
+`<projectId>` is derived from the active project's root directory path, normalized to a URL-safe string (e.g., `/Users/bill/projects/my-app` → `users-bill-projects-my-app`). It is detected at runtime from the file system and requires no user input. Path-based IDs are unique per machine; no collision handling is needed for the single-user local dev scenario.
 
 | Key | Value stored |
 |-----|-------------|
