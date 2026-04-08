@@ -12,6 +12,8 @@
     - [Application Developer](#application-developer)
     - [Screenset Author](#screenset-author)
     - [Studio User](#studio-user)
+    - [Product Manager](#product-manager)
+    - [Designer](#designer)
     - [End User](#end-user)
   - [2.2 System Actors](#22-system-actors)
     - [Host Application](#host-application)
