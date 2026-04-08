@@ -160,7 +160,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 1. [ ] `p2` - `TelemetryStoreProcessor` captures every completed span in-memory (max 500) — `inst-store-capture`
 2. [ ] `p2` - `PerfTelemetryPanel` subscribes to store changes via `telemetryStore.subscribe()` — `inst-panel-subscribe`
 3. [ ] `p2` - Panel displays KPI cards: total spans, action count, error count — `inst-display-kpis`
-4. [ ] `p2` - Tabs show Actions (with duration bars), API (grouped with avg/p95), Rendering (web vitals + render times) — `inst-display-tabs`
+4. [ ] `p2` - Tabs show Actions (with duration bars), API (grouped with avg and error count), Rendering (web vitals + render times) — `inst-display-tabs`
 5. [ ] `p2` - Clear button empties the store — `inst-clear-store`
 6. [ ] `p2` - Enable/disable toggle persisted to `hai3:studio:perfTelemetry` — `inst-toggle-persist`
 
@@ -356,7 +356,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Data Flow
 
-```
+```text
 Browser App (React)
   -> OTel Browser SDK (hooks + HAI3SpanProcessor)
     -> OTLP/HTTP

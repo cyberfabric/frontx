@@ -44,13 +44,13 @@ let _initialized = false;
 
 function generateSessionId(): string {
   // Use cryptographically secure random when available (all modern browsers)
-  if (typeof crypto !== 'undefined' && crypto.randomUUID) {
-    return crypto.randomUUID();
+  if (globalThis.crypto?.randomUUID) {
+    return globalThis.crypto.randomUUID();
   }
-  // Fallback: crypto.getRandomValues is available in all browsers supporting OTel
-  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+  // Fallback: getRandomValues always exists on Crypto interface
+  if (globalThis.crypto) {
     const bytes = new Uint8Array(16);
-    crypto.getRandomValues(bytes);
+    globalThis.crypto.getRandomValues(bytes);
     return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
   }
   // Last resort: timestamp-based (non-cryptographic, acceptable for telemetry session IDs)
@@ -111,7 +111,11 @@ class ExportGateSpanProcessor implements SpanProcessor {
     if (!_getRuntimeConfig().exportToCollector) return;
     this.delegate.onEnd(span);
   }
-  async shutdown(): Promise<void> { await this.delegate.shutdown(); }
+  async shutdown(): Promise<void> {
+    // Gate shutdown to prevent flushing buffered spans when export is disabled
+    if (!_getRuntimeConfig().exportToCollector) return;
+    await this.delegate.shutdown();
+  }
   async forceFlush(): Promise<void> {
     if (!_getRuntimeConfig().exportToCollector) return;
     await this.delegate.forceFlush();
@@ -134,7 +138,7 @@ export function setCurrentRouteId(routeId: string): void {
 class HAI3SpanProcessor implements SpanProcessor {
   onStart(span: Span): void {
     span.setAttribute('session.id', getSessionId());
-    span.setAttribute('app.origin', typeof globalThis.window === 'undefined' ? 'unknown' : globalThis.window.location.origin);
+    span.setAttribute('app.origin', globalThis.window?.location?.origin ?? 'unknown');
 
     // Guarantee every span belongs to an action (ambient fallback)
     const relatedAction = findRelatedActionScope(performance.now(), _currentRouteId);
@@ -173,66 +177,74 @@ class HAI3SpanProcessor implements SpanProcessor {
 
 export function initOtel(config: OtelConfig): void {
   if (_initialized || !config.enabled) return;
-  _initialized = true;
 
-  const resource = new Resource({
-    [ATTR_SERVICE_NAME]: config.serviceName,
-    [ATTR_SERVICE_VERSION]: config.serviceVersion,
-    'deployment.environment': config.environment,
-    'session.id': getSessionId(),
-    'app.origin': typeof globalThis.window === 'undefined' ? 'unknown' : globalThis.window.location.origin,
-  });
+  // All setup in try block — _initialized only set on full success
+  try {
+    const appOrigin = globalThis.window?.location?.origin ?? 'unknown';
 
-  const exporter = new OTLPTraceExporter({
-    url: `${config.collectorUrl}/v1/traces`,
-  });
-
-  const batchProcessor = new BatchSpanProcessor(exporter, {
-    maxQueueSize: 2048,
-    maxExportBatchSize: 512,
-    scheduledDelayMillis: 5000,
-    exportTimeoutMillis: 30000,
-  });
-  const exportGateProcessor = new ExportGateSpanProcessor(batchProcessor);
-
-  _provider = new WebTracerProvider({
-    resource,
-    spanProcessors: [new HAI3SpanProcessor(), new TelemetryStoreProcessor(), exportGateProcessor],
-  });
-
-  _provider.register({
-    contextManager: new ZoneContextManager(),
-  });
-
-  // Register ambient tracer so orphan spans always get an action parent
-  setAmbientTracer(() => trace.getTracer('hai3-ambient'));
-
-  // Auto-instrumentations
-  registerInstrumentations({
-    instrumentations: [
-      new FetchInstrumentation({
-        ignoreUrls: [/\/v1\/traces/, /\/v1\/metrics/, /\/v1\/logs/],
-        propagateTraceHeaderCorsUrls: [/.*/],
-        clearTimingResources: true,
-      }),
-      new DocumentLoadInstrumentation(),
-      new UserInteractionInstrumentation({
-        eventNames: ['click', 'submit'],
-        shouldPreventSpanCreation: shouldPreventUserInteractionSpanCreation,
-      }),
-    ],
-  });
-
-  // Flush on page hide
-  if (typeof globalThis.window !== 'undefined') {
-    globalThis.window.addEventListener('visibilitychange', () => {
-      if (document.visibilityState === 'hidden') {
-        _provider?.forceFlush().catch(() => {});
-      }
+    const resource = new Resource({
+      [ATTR_SERVICE_NAME]: config.serviceName,
+      [ATTR_SERVICE_VERSION]: config.serviceVersion,
+      'deployment.environment': config.environment,
+      'session.id': getSessionId(),
+      'app.origin': appOrigin,
     });
-    globalThis.window.addEventListener('beforeunload', () => {
-      _provider?.forceFlush().catch(() => {});
+
+    const exporter = new OTLPTraceExporter({
+      url: `${config.collectorUrl}/v1/traces`,
     });
+
+    const batchProcessor = new BatchSpanProcessor(exporter, {
+      maxQueueSize: 2048,
+      maxExportBatchSize: 512,
+      scheduledDelayMillis: 5000,
+      exportTimeoutMillis: 30000,
+    });
+    const exportGateProcessor = new ExportGateSpanProcessor(batchProcessor);
+
+    _provider = new WebTracerProvider({
+      resource,
+      spanProcessors: [new HAI3SpanProcessor(), new TelemetryStoreProcessor(), exportGateProcessor],
+    });
+
+    _provider.register({
+      contextManager: new ZoneContextManager(),
+    });
+
+    // Register ambient tracer so orphan spans always get an action parent
+    setAmbientTracer(() => trace.getTracer('hai3-ambient'));
+
+    // Auto-instrumentations — only propagate trace headers to same-origin requests
+    const corsPattern = appOrigin !== 'unknown' ? [new RegExp(`^${appOrigin.replace('.', '\\.')}`)] : [];
+    registerInstrumentations({
+      instrumentations: [
+        new FetchInstrumentation({
+          ignoreUrls: [/\/v1\/traces/, /\/v1\/metrics/, /\/v1\/logs/],
+          propagateTraceHeaderCorsUrls: corsPattern,
+          clearTimingResources: true,
+        }),
+        new DocumentLoadInstrumentation(),
+        new UserInteractionInstrumentation({
+          eventNames: ['click', 'submit'],
+          shouldPreventSpanCreation: shouldPreventUserInteractionSpanCreation,
+        }),
+      ],
+    });
+
+    // Flush on page hide — visibilitychange on document per spec
+    if (globalThis.document) {
+      globalThis.document.addEventListener('visibilitychange', () => {
+        if (globalThis.document.visibilityState === 'hidden') {
+          _provider?.forceFlush().catch(() => { /* fail-open */ });
+        }
+      });
+    }
+
+    _initialized = true;
+  } catch {
+    // Fail-open: clean up partial init to allow retry
+    _provider = null;
+    return;
   }
 
   try {

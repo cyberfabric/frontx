@@ -76,4 +76,6 @@ export type {
   CollectionPolicy,
   PolicyProfile,
   Lane,
+  ClientAttributes,
+  NavigatorWithConnection,
 } from './types';

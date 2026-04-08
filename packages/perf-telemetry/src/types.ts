@@ -112,3 +112,13 @@ export interface TelemetryProviderProps {
   environment?: string;
   enabled?: boolean;
 }
+
+/** Flat key-value map of client fingerprint attributes attached to spans. */
+export type ClientAttributes = Record<string, string | number | boolean>;
+
+/** Navigator extended with Network Information API (non-standard, vendor-prefixed). */
+export interface NavigatorWithConnection extends Navigator {
+  connection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
+  mozConnection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
+  webkitConnection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
+}

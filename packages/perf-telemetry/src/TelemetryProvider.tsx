@@ -5,7 +5,7 @@
  * provides emit() for backward-compat event emission, and flushes on unload.
  */
 
-import { createContext, useContext, useEffect, useRef, useCallback, useState, useMemo } from 'react';
+import { createContext, useContext, useLayoutEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, SpanStatusCode } from './otel-init';
 import { context } from '@opentelemetry/api';
 import { getTelemetryParentContext } from './action-scope';
@@ -13,12 +13,14 @@ import type { TelemetryContextValue, TelemetryProviderProps } from './types';
 
 const TelemetryContext = createContext<TelemetryContextValue | null>(null);
 
+/** Access the telemetry context. Must be used inside TelemetryProvider. */
 export function useTelemetryContext(): TelemetryContextValue {
   const ctx = useContext(TelemetryContext);
   if (!ctx) throw new Error('useTelemetryContext must be inside TelemetryProvider');
   return ctx;
 }
 
+/** Root provider that initializes OTel SDK and exposes emit/killSwitch/sessionId. */
 export function TelemetryProvider({
   children,
   serviceName = 'my-app',
@@ -26,11 +28,13 @@ export function TelemetryProvider({
   collectorUrl = 'http://localhost:14318',
   environment = 'development',
   enabled = true,
-}: TelemetryProviderProps) {
+}: Readonly<TelemetryProviderProps>) {
   const [isKilled, setIsKilled] = useState(false);
   const initRef = useRef(false);
 
-  useEffect(() => {
+  // useLayoutEffect ensures OTel is initialized synchronously before child effects
+  // (useRoutePerf, useDoneRendering) run, preventing getActionParentContext errors
+  useLayoutEffect(() => {
     if (!enabled || initRef.current) return;
     initRef.current = true;
     try {
@@ -40,13 +44,7 @@ export function TelemetryProvider({
     }
   }, [enabled, serviceName, serviceVersion, collectorUrl, environment]);
 
-  useEffect(() => {
-    const handleUnload = () => { flushOtel().catch(() => {}); };
-    window.addEventListener('beforeunload', handleUnload);
-    return () => window.removeEventListener('beforeunload', handleUnload);
-  }, []);
-
-  const emit = useCallback((type: string, routeId: string, payload: Record<string, unknown>) => {
+  const emit = useCallback((type: string, routeId: string, payload: Record<string, string | number | boolean | null>) => {
     if (!enabled || isKilled) return;
     try {
       const tracer = getTracer('hai3-emit');
@@ -64,7 +62,8 @@ export function TelemetryProvider({
 
   const killSwitch = useCallback(() => {
     setIsKilled(true);
-    flushOtel().then(() => shutdownOtel()).catch(() => { /* fail-open */ });
+    // Always attempt shutdown even if flush fails
+    flushOtel().finally(() => { shutdownOtel().catch(() => { /* fail-open */ }); });
   }, []);
 
   const value = useMemo<TelemetryContextValue>(() => ({
