@@ -3,8 +3,8 @@
  * Telemetry Smoke Test — validates that instrumented screen examples exist
  * and contain the required telemetry hooks.
  *
- * Scans src/mfe_packages/ for files marked with @telemetry-route sentinel
- * and checks they contain the minimum required instrumentation.
+ * Scans src/ for files marked with @telemetry-route sentinel and checks
+ * they contain the minimum required instrumentation.
  *
  * Usage: node tools/telemetry-validator/smoke-telemetry.mjs
  */

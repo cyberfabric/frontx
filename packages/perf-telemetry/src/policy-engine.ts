@@ -126,7 +126,7 @@ export function classifyLane(eventType: string): Lane {
 /** Runtime policy engine: evaluates sampling decisions and rate limits for each telemetry event. */
 export class PolicyEngine {
   private currentPolicy: CollectionPolicy;
-  private eventCounter: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
+  private readonly eventCounter: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
   private windowStartMs: number = Date.now();
   private readonly RATE_WINDOW_MS = 60000;
 
