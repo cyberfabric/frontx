@@ -69,6 +69,41 @@ export type TelemetryContextValue = {
   killSwitch: () => void;
 };
 
+/** Telemetry event priority lane. A = critical errors, B = UI/network, C = runtime diagnostics. */
+export type Lane = 'A' | 'B' | 'C';
+
+/** Named policy profile controlling sampling rates and feature toggles. */
+export type PolicyProfile = 'baseline' | 'investigation' | 'support-burst';
+
+/** Full collection policy snapshot: sampling rates, rate limits, feature toggles, and kill switch state. */
+export type CollectionPolicy = {
+  version: number;
+  updatedAt: number;
+  profile: PolicyProfile;
+  samplingRates: {
+    laneA: number;
+    laneB: number;
+    laneC: number;
+  };
+  limits: {
+    maxEventsPerMinute: number;
+    maxBatchSizeBytes: number;
+    flushIntervalMs: number;
+  };
+  featureToggles: {
+    networkDiagnostics: boolean;
+    actionTracing: boolean;
+    resourceTiming: boolean;
+    longTaskObserver: boolean;
+  };
+  killSwitch: {
+    active: boolean;
+    reason?: string;
+    activatedAt?: number;
+  };
+  ttl: number;
+};
+
 export interface TelemetryProviderProps {
   children: React.ReactNode;
   serviceName?: string;
