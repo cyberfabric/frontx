@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-export-toggle:p2
 /**
  * useTelemetryRuntimeConfig — reactive hook for runtime telemetry config.
  *

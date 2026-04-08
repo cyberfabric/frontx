@@ -1,3 +1,4 @@
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-fail-open:p1
 /**
  * TelemetryProvider — root React context for action-first telemetry
  *

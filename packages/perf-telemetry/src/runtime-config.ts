@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-export-toggle:p2
 /**
  * Runtime Configuration — persistent telemetry config with localStorage backing.
  *

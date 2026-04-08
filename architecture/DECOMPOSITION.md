@@ -32,7 +32,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 **Overall implementation status:**
 
-- [x] `p1` - **ID**: `cpt-hai3-status-overall`
+- [ ] `p1` - **ID**: `cpt-hai3-status-overall`
 
 ### 2.1 [State Management](feature-state-management/) ⏳ HIGH
 
