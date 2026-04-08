@@ -2,8 +2,9 @@
 # hai3:validate-telemetry - Run Telemetry Validation
 
 ## AI WORKFLOW (REQUIRED)
-1) Run the full telemetry validation pipeline.
-2) Report results and fix any issues found.
+1) Follow `.ai/GUIDELINES.md` as the single source of truth.
+2) Run the full telemetry validation pipeline.
+3) Report results and fix any issues found.
 
 ## STEPS
 

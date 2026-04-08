@@ -44,7 +44,7 @@ Preserve these attributes on route, action, and network spans:
 - `telemetry.breakdown.kind`
 - `http.method`
 - `http.status_code`
-- `session.id` for trace drilldown only
+- `session.id` for trace drilldown only (must be opaque synthetic ID — never auth tokens, cookies, or secrets)
 
 ## Datadog investigation flow
 

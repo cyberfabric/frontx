@@ -1,6 +1,6 @@
 # ADR 0017: Action-First Performance Telemetry
 
-- [ ] `p2` - **ID**: `cpt-hai3-adr-action-first-telemetry`
+`p2` — **ID**: `cpt-hai3-adr-action-first-telemetry`
 
 ## Status
 

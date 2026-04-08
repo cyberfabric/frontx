@@ -17,7 +17,7 @@ let _spans: StoredSpan[] = [];
 const _listeners = new Set<SpanListener>();
 
 function notify() {
-  _listeners.forEach((fn) => fn());
+  _listeners.forEach((fn) => { try { fn(); } catch { /* fail-open: subscriber error must not break store */ } });
 }
 
 /** In-memory span store for the dev tools panel. Subscribe to receive live updates. */

@@ -144,7 +144,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 **Actors**: `cpt-hai3-actor-otel-sdk`
 
 1. [ ] `p1` - `findRelatedActionScope(atMs, routeId)` searches active scopes (sorted by recency) — `inst-search-active`
-2. [ ] `p1` - **IF** no active scope found **THEN** search recent scopes within 2500ms followup window — `inst-search-recent`
+2. [ ] `p1` - **IF** no active scope found **THEN** search recent scopes within 2500ms follow-up window — `inst-search-recent`
 3. [ ] `p1` - **IF** no recent scope found **THEN** `ensureAmbientAction(routeId)` creates synthetic `<routeId>.ambient` span — `inst-create-ambient`
 4. [ ] `p1` - Ambient span attributes: `action.name: <routeId>.ambient`, `action.trigger: ambient` — `inst-ambient-attrs`
 5. [ ] `p1` - **RETURN** the resolved scope's OTel Context for child span parenting — `inst-return-context`
@@ -187,7 +187,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 **Input**: `atMs: number` (timestamp), `routeId?: string`
 **Output**: `ActionScope | undefined`
 
-```
+```text
 1. filter activeScopes where routeId matches AND startedAtMs <= atMs
 2. sort by startedAtMs descending (most recent first)
 3. IF match found THEN RETURN match
@@ -203,7 +203,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 - [ ] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-ambient-lifecycle`
 
-```
+```text
 1. IF _ambientScope exists AND routeId matches THEN RETURN existing
 2. IF _ambientScope exists AND routeId differs THEN end old ambient span
 3. Create new ambient span via ambient tracer: name = `${routeId}.ambient`
@@ -217,7 +217,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 - [ ] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-export-gating`
 
-```
+```text
 1. ExportGateSpanProcessor.onEnd(span):
    a. read _getRuntimeConfig().exportToCollector
    b. IF false THEN return (span dropped from export but kept in local store)
@@ -230,7 +230,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 - [ ] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-session-id`
 
-```
+```text
 1. IF _sessionId cached THEN RETURN cached
 2. TRY read sessionStorage 'otel_session_id'
 3. IF found THEN cache and RETURN
@@ -247,7 +247,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 - [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-sdk-lifecycle`
 
-```
+```text
 [uninitialized] --initOtel()--> [initialized]
 [initialized] --shutdownOtel()--> [shutdown]
 Guard: initOtel() is idempotent (no-op if already initialized)
@@ -259,7 +259,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 - [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-action-scope`
 
-```
+```text
 [idle] --beginActionScope()--> [active] (in activeScopes map)
 [active] --endActionScope()--> [recent] (in recentScopes ring buffer, max 100)
 [recent] --buffer overflow--> [evicted]
@@ -271,7 +271,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 - [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-ambient-action`
 
-```
+```text
 [none] --ensureAmbientAction(routeId)--> [active for routeId]
 [active for routeId] --setCurrentRouteId(newRouteId)--> [ended] -> [active for newRouteId]
 [active for routeId] --endAmbientAction()--> [none]

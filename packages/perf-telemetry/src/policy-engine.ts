@@ -185,7 +185,7 @@ export class PolicyEngine {
     return cryptoRandom() < rate;
   }
 
-  /** Evaluates kill switch, rate limit, and sampling in order; returns accept/reject with reason. */
+  /** Evaluates kill switch, per-lane rate limit, and sampling in order. Rate limits are intentionally per-lane (each lane has its own budget, e.g., lane A for critical errors gets a separate quota from lane C diagnostics). */
   shouldAcceptEvent(lane: Lane): { accept: boolean; reason?: string } {
     if (this.currentPolicy.killSwitch.active) {
       return { accept: false, reason: 'kill_switch_active' };
