@@ -45,11 +45,19 @@ export type TelemetryPluginConfig = {
  * ```
  */
 export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
+  // Resolved lazily on init — null if @hai3/perf-telemetry is not installed
+  let resolvedStore: unknown = null;
+
   return {
     name: 'telemetry',
     dependencies: [],
 
-    provides: {},
+    provides: {
+      registries: {
+        /** telemetryStore from @hai3/perf-telemetry, available after onInit. Studio reads this via useHAI3(). */
+        get telemetryStore() { return resolvedStore; },
+      },
+    },
 
     onInit() {
       const enabled = config?.enabled ?? true;
@@ -67,9 +75,11 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
           environment: config?.environment ?? 'development',
           enabled: true,
         });
+
+        // Expose telemetryStore for Studio dev panel (accessed via useHAI3())
+        resolvedStore = perfTelemetry.telemetryStore ?? null;
       } catch {
         // Fail-open: if @hai3/perf-telemetry is not installed, silently skip
-        // This allows the plugin to be in the preset without requiring the package
       }
     },
 
