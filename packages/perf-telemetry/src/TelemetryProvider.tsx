@@ -7,9 +7,10 @@
  */
 
 import { createContext, useContext, useLayoutEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, SpanStatusCode } from './otel-init';
+import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, setRuntimeConfigProvider, SpanStatusCode } from './otel-init';
 import { context } from '@opentelemetry/api';
 import { getTelemetryParentContext } from './action-scope';
+import { getTelemetryRuntimeConfig } from './runtime-config';
 import type { TelemetryContextValue, TelemetryProviderProps } from './types';
 
 const TelemetryContext = createContext<TelemetryContextValue | null>(null);
@@ -39,6 +40,8 @@ export function TelemetryProvider({
     if (!enabled || initRef.current) return;
     initRef.current = true;
     try {
+      // Wire runtime config before init so HAI3SpanProcessor/ExportGate use live values
+      setRuntimeConfigProvider(() => getTelemetryRuntimeConfig());
       initOtel({ serviceName, serviceVersion, collectorUrl, environment, enabled: true });
     } catch (err) {
       console.warn('[Telemetry] OTel init failed (fail-open):', err);

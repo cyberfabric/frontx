@@ -20,6 +20,9 @@
 
 import { useEffect, useRef, useCallback } from 'react';
 import type { ActionTrigger, DoneRenderingDeps, FetchMeta } from './types';
+
+// Module-level guard: navigation timing is only emitted once (page-load entry is static)
+let _navigationTimingEmitted = false;
 import { getTracer, setCurrentRouteId, SpanStatusCode, trace, context } from './otel-init';
 import {
   beginActionScope,
@@ -252,36 +255,44 @@ export async function instrumentedFetch(
   meta: FetchMeta,
   init?: RequestInit,
 ): Promise<Response> {
-  const tracer = getTracer('hai3-api');
-  const methodRaw = String(init?.method || 'GET');
-  const HTTP_UPPER: Record<string, string> = { get: 'GET', post: 'POST', put: 'PUT', patch: 'PATCH', delete: 'DELETE', head: 'HEAD', options: 'OPTIONS', GET: 'GET', POST: 'POST', PUT: 'PUT', PATCH: 'PATCH', DELETE: 'DELETE', HEAD: 'HEAD', OPTIONS: 'OPTIONS' };
-  const method = HTTP_UPPER[methodRaw] ?? methodRaw;
-  const normalizedUrl = normalizeUrlForSpan(url);
-  const startedAt = performance.now();
-  const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
-  const parentContext = getTelemetryParentContext(meta.routeId, startedAt) || context.active();
-  const resolvedActionName = meta.actionName || activeActionAttrs['action.name'] || 'unknown';
-  const span = tracer.startSpan(`${method} ${normalizedUrl}`, {
-    attributes: {
-      ...activeActionAttrs,
-      'route.id': meta.routeId,
-      'action.name': resolvedActionName,
-      'http.url': normalizedUrl,
-      'http.method': method,
-      'telemetry.breakdown.kind': 'backend.api',
-    },
-  }, parentContext);
+  // Fail-open: if telemetry setup throws, fall back to raw fetch
+  let span: ReturnType<ReturnType<typeof getTracer>['startSpan']> | null = null;
+  let parentCtx = context.active();
+  try {
+    const tracer = getTracer('hai3-api');
+    const methodRaw = String(init?.method || 'GET');
+    const HTTP_UPPER: Record<string, string> = { get: 'GET', post: 'POST', put: 'PUT', patch: 'PATCH', delete: 'DELETE', head: 'HEAD', options: 'OPTIONS', GET: 'GET', POST: 'POST', PUT: 'PUT', PATCH: 'PATCH', DELETE: 'DELETE', HEAD: 'HEAD', OPTIONS: 'OPTIONS' };
+    const method = HTTP_UPPER[methodRaw] ?? methodRaw;
+    const normalizedUrl = normalizeUrlForSpan(url);
+    const startedAt = performance.now();
+    const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
+    parentCtx = getTelemetryParentContext(meta.routeId, startedAt) || context.active();
+    const resolvedActionName = meta.actionName || activeActionAttrs['action.name'] || 'unknown';
+    span = tracer.startSpan(`${method} ${normalizedUrl}`, {
+      attributes: {
+        ...activeActionAttrs,
+        'route.id': meta.routeId,
+        'action.name': resolvedActionName,
+        'http.url': normalizedUrl,
+        'http.method': method,
+        'telemetry.breakdown.kind': 'backend.api',
+      },
+    }, parentCtx);
+  } catch { /* fail-open: telemetry setup failed, proceed with raw fetch */ }
 
   try {
-    const response = await context.with(trace.setSpan(parentContext, span), () => fetch(url, init));
-    span.setAttribute('http.status_code', response.status);
-    span.setStatus({ code: response.ok ? SpanStatusCode.OK : SpanStatusCode.ERROR });
+    const fetchCtx = span ? trace.setSpan(parentCtx, span) : parentCtx;
+    const response = await context.with(fetchCtx, () => fetch(url, init));
+    if (span) {
+      span.setAttribute('http.status_code', response.status);
+      span.setStatus({ code: response.ok ? SpanStatusCode.OK : SpanStatusCode.ERROR });
+    }
     return response;
   } catch (error) {
-    span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
+    if (span) span.setStatus({ code: SpanStatusCode.ERROR, message: error instanceof Error ? error.message : String(error) });
     throw error;
   } finally {
-    span.end();
+    span?.end();
   }
 }
 
@@ -333,6 +344,7 @@ export function useWebVitals(routeId: string, enabled = true) {
       let clsValue = 0;
       const clsObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          if (entry.startTime < mountTs) continue;
           const layoutEntry = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
           if (!layoutEntry.hadRecentInput) clsValue += layoutEntry.value || 0;
         }
@@ -386,7 +398,8 @@ export function useWebVitals(routeId: string, enabled = true) {
 
     try {
       const navEntries = performance.getEntriesByType('navigation') as PerformanceNavigationTiming[];
-      if (navEntries.length > 0) {
+      if (navEntries.length > 0 && !_navigationTimingEmitted) {
+        _navigationTimingEmitted = true;
         const nav = navEntries[0];
         const parentCtx = getActionParentContext(performance.now(), routeId);
         const span = tracer.startSpan('webvital.navigation', {
