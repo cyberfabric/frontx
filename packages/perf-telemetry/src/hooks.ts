@@ -282,6 +282,7 @@ export function useWebVitals(routeId: string, enabled = true) {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;
     const tracer = getTracer('hai3-webvitals');
     const observers: PerformanceObserver[] = [];
+    let clsCleanup: (() => void) | null = null;
 
     try {
       const lcpObserver = new PerformanceObserver((list) => {
@@ -332,6 +333,8 @@ export function useWebVitals(routeId: string, enabled = true) {
         }
       };
       document.addEventListener('visibilitychange', reportCLS, { once: true });
+      // Store ref for cleanup (hoisted to closure scope)
+      clsCleanup = () => document.removeEventListener('visibilitychange', reportCLS);
     } catch { /* not supported */ }
 
     try {
@@ -377,7 +380,10 @@ export function useWebVitals(routeId: string, enabled = true) {
     } catch { /* not supported */ }
 
     observersRef.current = observers;
-    return () => { observers.forEach((o) => o.disconnect()); };
+    return () => {
+      observers.forEach((o) => o.disconnect());
+      clsCleanup?.();
+    };
   }, [routeId, enabled]);
 }
 

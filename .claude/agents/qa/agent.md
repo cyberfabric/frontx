@@ -79,7 +79,7 @@ Run independent checks in parallel where possible. Report exact exit codes and e
 
 Read and scan the implementation for violations that automated tools miss.
 
-**Forbidden patterns (GUIDELINES.md blocklist)** — search ALL of `src/` and `__tests__/`:
+**Forbidden patterns (GUIDELINES.md blocklist)** — search ALL of `src/`, `packages/*/src/`, and `__tests__/`:
 - `as any` — BLOCK
 - `as unknown as` — BLOCK
 - `unknown` in public type definitions — BLOCK

@@ -298,13 +298,10 @@ export const PerfTelemetryPanel: React.FC = () => {
     padding: '4px 8px',
     fontSize: '11px',
     fontWeight: active ? 700 : 400,
-    borderBottom: active ? '2px solid var(--primary, #3b82f6)' : '2px solid transparent',
     background: 'none',
     border: 'none',
+    borderBottom: active ? '2px solid var(--primary, #3b82f6)' : '2px solid transparent',
     cursor: 'pointer',
-    borderBottomWidth: '2px',
-    borderBottomStyle: 'solid',
-    borderBottomColor: active ? 'var(--primary, #3b82f6)' : 'transparent',
     opacity: active ? 1 : 0.6,
   });
 

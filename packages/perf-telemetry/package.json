@@ -40,17 +40,17 @@
     "typescript": "^5.4.2"
   },
   "peerDependencies": {
-    "@opentelemetry/api": ">=1.0.0",
-    "@opentelemetry/context-zone": ">=1.0.0",
-    "@opentelemetry/exporter-trace-otlp-http": ">=0.50.0",
-    "@opentelemetry/instrumentation": ">=0.50.0",
-    "@opentelemetry/instrumentation-document-load": ">=0.30.0",
-    "@opentelemetry/instrumentation-fetch": ">=0.50.0",
-    "@opentelemetry/instrumentation-user-interaction": ">=0.30.0",
-    "@opentelemetry/resources": ">=1.0.0",
-    "@opentelemetry/sdk-trace-base": ">=1.0.0",
-    "@opentelemetry/sdk-trace-web": ">=1.0.0",
-    "@opentelemetry/semantic-conventions": ">=1.0.0",
+    "@opentelemetry/api": "^1.9.0",
+    "@opentelemetry/context-zone": "^1.30.0",
+    "@opentelemetry/exporter-trace-otlp-http": "^0.57.0",
+    "@opentelemetry/instrumentation": "^0.57.0",
+    "@opentelemetry/instrumentation-document-load": "^0.43.0",
+    "@opentelemetry/instrumentation-fetch": "^0.57.0",
+    "@opentelemetry/instrumentation-user-interaction": "^0.43.0",
+    "@opentelemetry/resources": "^1.30.0",
+    "@opentelemetry/sdk-trace-base": "^1.30.0",
+    "@opentelemetry/sdk-trace-web": "^1.30.0",
+    "@opentelemetry/semantic-conventions": "^1.28.0",
     "react": ">=18.0.0"
   },
   "publishConfig": {

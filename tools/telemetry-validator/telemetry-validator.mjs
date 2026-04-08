@@ -45,16 +45,6 @@ function walk(dir, out = []) {
 }
 
 /**
- * Returns true if `content` contains at least one of the given `patterns` as a substring.
- * @param {string} content
- * @param {string[]} patterns
- * @returns {boolean}
- */
-function hasAny(content, patterns) {
-  return patterns.some((p) => content.includes(p));
-}
-
-/**
  * Returns the path of `file` relative to the project root for readable error messages.
  * @param {string} file
  * @returns {string}
@@ -63,9 +53,10 @@ function rel(file) {
   return path.relative(root, file);
 }
 
-// Scan src/ and src/mfe_packages/ for consumer code
+// Scan src/ and workspace packages for consumer code
 const scanDirs = [
   path.join(root, 'src'),
+  ...fs.readdirSync(path.join(root, 'packages')).map((p) => path.join(root, 'packages', p, 'src')),
 ].filter((d) => fs.existsSync(d));
 
 const files = scanDirs.flatMap((d) => walk(d));
@@ -92,11 +83,17 @@ for (const file of files) {
     }
   }
 
-  // Check for raw first-party fetch without wrapper
-  const hasForbiddenFetch = hasAny(content, rules.forbiddenFirstPartyFetchPatterns);
-  const hasAllowedWrapper = hasAny(content, rules.allowedApiWrapperPatterns);
-  if (hasForbiddenFetch && !hasAllowedWrapper) {
-    errors.push(`${rel(file)}: raw first-party fetch detected without instrumented wrapper`);
+  // Check each line for raw first-party fetch without wrapper (per-occurrence, not per-file)
+  const lines = content.split('\n');
+  for (let lineNum = 0; lineNum < lines.length; lineNum++) {
+    const line = lines[lineNum];
+    const hasForbidden = rules.forbiddenFirstPartyFetchPatterns.some((p) => line.includes(p));
+    if (hasForbidden) {
+      const hasWrapper = rules.allowedApiWrapperPatterns.some((p) => line.includes(p));
+      if (!hasWrapper) {
+        errors.push(`${rel(file)}:${lineNum + 1}: raw first-party fetch detected without instrumented wrapper`);
+      }
+    }
   }
 }
 

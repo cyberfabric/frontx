@@ -12,7 +12,16 @@
   "forbiddenFirstPartyFetchPatterns": [
     "fetch('/api/",
     "fetch(\"/api/",
-    "fetch(`/api/"
+    "fetch(`/api/",
+    "fetch( '/api/",
+    "fetch( \"/api/",
+    "fetch( `/api/",
+    "window.fetch('/api/",
+    "window.fetch(\"/api/",
+    "window.fetch(`/api/",
+    "globalThis.fetch('/api/",
+    "globalThis.fetch(\"/api/",
+    "globalThis.fetch(`/api/"
   ],
   "allowedApiWrapperPatterns": [
     "instrumentedFetch(",

@@ -94,7 +94,7 @@ jobs:
 
     - name: Validate target files exist
       run: |
-        REQUIRED_TARGETS="EVENTS STORE LAYOUT API I18N FRAMEWORK REACT"
+        REQUIRED_TARGETS="EVENTS STORE LAYOUT API I18N FRAMEWORK REACT PERF_TELEMETRY"
         MISSING=""
 
         for target in $REQUIRED_TARGETS; do
