@@ -1,6 +1,6 @@
 # Feature: Performance Telemetry
 
-- [ ] `p2` - **ID**: `cpt-hai3-featstatus-perf-telemetry`
+- [x] `p2` - **ID**: `cpt-hai3-featstatus-perf-telemetry`
 
 <!-- toc -->
 
@@ -44,7 +44,7 @@
 
 <!-- /toc -->
 
-- [ ] `p2` - `cpt-hai3-feature-perf-telemetry`
+- [x] `p2` - `cpt-hai3-feature-perf-telemetry`
 
 ---
 
@@ -68,11 +68,10 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-frontend-dev` — Developer instrumenting screens with hooks and inspecting the Studio panel
-- `cpt-hai3-actor-sre` — SRE monitoring Datadog APM dashboards and investigating slow actions
-- `cpt-hai3-actor-otel-sdk` — OTel Browser SDK processing spans through HAI3SpanProcessor pipeline
-- `cpt-hai3-actor-collector` — Docker OTel Collector receiving OTLP/HTTP and forwarding to Datadog
+- `cpt-hai3-actor-developer` — Developer instrumenting screens with hooks and inspecting the Studio panel
+- `cpt-hai3-actor-runtime` — Browser runtime executing the OpenTelemetry Browser SDK and HAI3 span processing pipeline
 - `cpt-hai3-actor-framework-plugin` — `telemetry()` plugin initializing OTel in the framework lifecycle
+- `cpt-hai3-actor-studio-user` — Developer using the Studio panel to inspect live performance telemetry
 
 ### 1.4 References
 
@@ -88,99 +87,99 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Route Instrumentation
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-route-instrumentation`
+- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-route-instrumentation`
 
-**Actors**: `cpt-hai3-actor-frontend-dev`, `cpt-hai3-actor-otel-sdk`
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
-1. [ ] `p1` - Frontend Dev adds `useRoutePerf(routeId, navigationStartMs)` to a screen component — `inst-add-route-perf`
-2. [ ] `p1` - On mount, hook calls `setCurrentRouteId(routeId)` to update ambient context — `inst-set-route-id`
-3. [ ] `p1` - Hook creates `route.navigation` span with `startTime: navigationStartMs` — `inst-create-nav-span`
-4. [ ] `p1` - Span attributes: `route.id`, `route.transition_type` (hard/soft), `telemetry.breakdown.kind: frontend.route` — `inst-nav-span-attrs`
-5. [ ] `p1` - Hook calculates `route.navigation_ms` = mount time - navigationStartMs — `inst-calc-nav-ms`
-6. [ ] `p1` - Span ends immediately with navigation duration — `inst-end-nav-span`
+1. [x] `p1` - Frontend Dev adds `useRoutePerf(routeId, navigationStartMs)` to a screen component — `inst-add-route-perf`
+2. [x] `p1` - On mount, hook calls `setCurrentRouteId(routeId)` to update ambient context — `inst-set-route-id`
+3. [x] `p1` - Hook creates `route.navigation` span with `startTime: navigationStartMs` — `inst-create-nav-span`
+4. [x] `p1` - Span attributes: `route.id`, `route.transition_type` (hard/soft), `telemetry.breakdown.kind: frontend.route` — `inst-nav-span-attrs`
+5. [x] `p1` - Hook calculates `route.navigation_ms` = mount time - navigationStartMs — `inst-calc-nav-ms`
+6. [x] `p1` - Span ends immediately with navigation duration — `inst-end-nav-span`
 
 ---
 
 ### Action Instrumentation
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-action-instrumentation`
+- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-action-instrumentation`
 
-**Actors**: `cpt-hai3-actor-frontend-dev`, `cpt-hai3-actor-otel-sdk`
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
-1. [ ] `p1` - Frontend Dev wraps critical work with `useTelemetryAction(actionName, { routeId })` — `inst-create-action-hook`
-2. [ ] `p1` - On invocation, `runTelemetryAction` creates root span with `telemetry.breakdown.kind: action.total` — `inst-create-action-span`
-3. [ ] `p1` - `beginActionScope()` registers the span in the active scopes map — `inst-register-scope`
-4. [ ] `p1` - All child work (API calls, renders) executes within the OTel Context of the action span — `inst-context-propagation`
-5. [ ] `p1` - On completion: `endActionScope()` moves scope to recent buffer, span ends — `inst-end-action`
-6. [ ] `p1` - On error: span records `action.status: error`, `action.error_type`, re-throws — `inst-action-error`
+1. [x] `p1` - Frontend Dev wraps critical work with `useTelemetryAction(actionName, { routeId })` — `inst-create-action-hook`
+2. [x] `p1` - On invocation, `runTelemetryAction` creates root span with `telemetry.breakdown.kind: action.total` — `inst-create-action-span`
+3. [x] `p1` - `beginActionScope()` registers the span in the active scopes map — `inst-register-scope`
+4. [x] `p1` - All child work (API calls, renders) executes within the OTel Context of the action span — `inst-context-propagation`
+5. [x] `p1` - On completion: `endActionScope()` moves scope to recent buffer, span ends — `inst-end-action`
+6. [x] `p1` - On error: span records `action.status: error`, `action.error_type`, re-throws — `inst-action-error`
 
 ---
 
 ### API Auto-Instrumentation
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-api-instrumentation`
+- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-api-instrumentation`
 
-**Actors**: `cpt-hai3-actor-otel-sdk`
+**Actors**: `cpt-hai3-actor-runtime`
 
-1. [ ] `p1` - OTel `FetchInstrumentation` auto-instruments all `fetch()` calls — `inst-auto-fetch`
-2. [ ] `p1` - `HAI3SpanProcessor.onStart()` injects `action.name` from `findRelatedActionScope()` — `inst-inject-action`
-3. [ ] `p1` - Span attributes: `route.id`, `session.id`, `app.origin`, action correlation IDs — `inst-api-attrs`
-4. [ ] `p1` - OTel collector URLs are excluded from instrumentation — `inst-ignore-collector`
+1. [x] `p1` - OTel `FetchInstrumentation` auto-instruments all `fetch()` calls — `inst-auto-fetch`
+2. [x] `p1` - `HAI3SpanProcessor.onStart()` injects `action.name` from `findRelatedActionScope()` — `inst-inject-action`
+3. [x] `p1` - Span attributes: `route.id`, `session.id`, `app.origin`, action correlation IDs — `inst-api-attrs`
+4. [x] `p1` - OTel collector URLs are excluded from instrumentation — `inst-ignore-collector`
 
 ---
 
 ### Web Vitals Collection
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-web-vitals`
+- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-web-vitals`
 
-**Actors**: `cpt-hai3-actor-frontend-dev`, `cpt-hai3-actor-otel-sdk`
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
 
-1. [ ] `p1` - Frontend Dev adds `useWebVitals(routeId)` to screen — `inst-add-web-vitals`
-2. [ ] `p1` - Hook creates PerformanceObservers for LCP, CLS, INP, Navigation timing — `inst-create-observers`
-3. [ ] `p1` - Each metric creates a span with `telemetry.breakdown.kind: frontend.webvitals` — `inst-vital-span`
-4. [ ] `p1` - Spans parented to active/ambient action via `getActionParentContext()` — `inst-vital-parenting`
-5. [ ] `p1` - Rating badges computed: good (<2500ms LCP), needs-improvement, poor — `inst-vital-rating`
+1. [x] `p1` - Frontend Dev adds `useWebVitals(routeId)` to screen — `inst-add-web-vitals`
+2. [x] `p1` - Hook creates PerformanceObservers for LCP, CLS, INP, Navigation timing — `inst-create-observers`
+3. [x] `p1` - Each metric creates a span with `telemetry.breakdown.kind: frontend.webvitals` — `inst-vital-span`
+4. [x] `p1` - Spans parented to active/ambient action via `getActionParentContext()` — `inst-vital-parenting`
+5. [x] `p1` - Rating badges computed: good (<2500ms LCP), needs-improvement, poor — `inst-vital-rating`
 
 ---
 
 ### Ambient Action Fallback
 
-- [ ] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-ambient-fallback`
+- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-ambient-fallback`
 
-**Actors**: `cpt-hai3-actor-otel-sdk`
+**Actors**: `cpt-hai3-actor-runtime`
 
-1. [ ] `p1` - `findRelatedActionScope(atMs, routeId)` searches active scopes (sorted by recency) — `inst-search-active`
-2. [ ] `p1` - **IF** no active scope found **THEN** search recent scopes within 2500ms follow-up window — `inst-search-recent`
-3. [ ] `p1` - **IF** no recent scope found **THEN** `ensureAmbientAction(routeId)` creates synthetic `<routeId>.ambient` span — `inst-create-ambient`
-4. [ ] `p1` - Ambient span attributes: `action.name: <routeId>.ambient`, `action.trigger: ambient` — `inst-ambient-attrs`
-5. [ ] `p1` - **RETURN** the resolved scope's OTel Context for child span parenting — `inst-return-context`
+1. [x] `p1` - `findRelatedActionScope(atMs, routeId)` searches active scopes (sorted by recency) — `inst-search-active`
+2. [x] `p1` - **IF** no active scope found **THEN** search recent scopes within 2500ms follow-up window — `inst-search-recent`
+3. [x] `p1` - **IF** no recent scope found **THEN** `ensureAmbientAction(routeId)` creates synthetic `<routeId>.ambient` span — `inst-create-ambient`
+4. [x] `p1` - Ambient span attributes: `action.name: <routeId>.ambient`, `action.trigger: ambient` — `inst-ambient-attrs`
+5. [x] `p1` - **RETURN** the resolved scope's OTel Context for child span parenting — `inst-return-context`
 
 ---
 
 ### Studio Panel Inspection
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-studio-panel`
+- [x] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-studio-panel`
 
-**Actors**: `cpt-hai3-actor-frontend-dev`
+**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-studio-user`
 
-1. [ ] `p2` - `TelemetryStoreProcessor` captures every completed span in-memory (max 500) — `inst-store-capture`
-2. [ ] `p2` - `PerfTelemetryPanel` subscribes to store changes via `telemetryStore.subscribe()` — `inst-panel-subscribe`
-3. [ ] `p2` - Panel displays KPI cards: total spans, action count, error count — `inst-display-kpis`
-4. [ ] `p2` - Tabs show Actions (with duration bars), API (grouped with avg and error count), Rendering (web vitals + render times) — `inst-display-tabs`
-5. [ ] `p2` - Clear button empties the store — `inst-clear-store`
-6. [ ] `p2` - Enable/disable toggle persisted to `hai3:studio:perfTelemetry` — `inst-toggle-persist`
+1. [x] `p2` - `TelemetryStoreProcessor` captures every completed span in-memory (max 500) — `inst-store-capture`
+2. [x] `p2` - `PerfTelemetryPanel` subscribes to store changes via `telemetryStore.subscribe()` — `inst-panel-subscribe`
+3. [x] `p2` - Panel displays KPI cards: total spans, action count, error count — `inst-display-kpis`
+4. [x] `p2` - Tabs show Actions (with duration bars), API (grouped with avg and error count), Rendering (web vitals + render times) — `inst-display-tabs`
+5. [x] `p2` - Clear button empties the store — `inst-clear-store`
+6. [x] `p2` - Enable/disable toggle persisted to `hai3:studio:perfTelemetry` — `inst-toggle-persist`
 
 ---
 
 ### Collector Export Toggle
 
-- [ ] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-export-toggle`
+- [x] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-export-toggle`
 
-**Actors**: `cpt-hai3-actor-frontend-dev`
+**Actors**: `cpt-hai3-actor-developer`
 
-1. [ ] `p2` - `ExportGateSpanProcessor` wraps `BatchSpanProcessor` — `inst-wrap-batch`
-2. [ ] `p2` - `onEnd(span)`: **IF** `exportToCollector` is false **THEN** drop span (local store still captures it) — `inst-gate-export`
-3. [ ] `p2` - `setRuntimeConfigProvider()` injects live config (account attrs, feature flags) — `inst-inject-runtime`
+1. [x] `p2` - `ExportGateSpanProcessor` wraps `BatchSpanProcessor` — `inst-wrap-batch`
+2. [x] `p2` - `onEnd(span)`: **IF** `exportToCollector` is false **THEN** drop span (local store still captures it) — `inst-gate-export`
+3. [x] `p2` - `setRuntimeConfigProvider()` injects live config (account attrs, feature flags) — `inst-inject-runtime`
 
 ---
 
@@ -188,7 +187,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Scope Resolution Algorithm
 
-- [ ] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-scope-resolution`
+- [x] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-scope-resolution`
 
 **Input**: `atMs: number` (timestamp), `routeId?: string`
 **Output**: `ActionScope | undefined`
@@ -207,7 +206,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Ambient Action Lifecycle
 
-- [ ] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-ambient-lifecycle`
+- [x] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-ambient-lifecycle`
 
 ```text
 1. IF _ambientScope exists AND routeId matches THEN RETURN existing
@@ -221,7 +220,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Span Export Gating
 
-- [ ] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-export-gating`
+- [x] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-export-gating`
 
 ```text
 1. ExportGateSpanProcessor.onEnd(span):
@@ -234,7 +233,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Session ID Generation
 
-- [ ] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-session-id`
+- [x] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-session-id`
 
 ```text
 1. IF _sessionId cached THEN RETURN cached
@@ -251,7 +250,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### OTel SDK Lifecycle
 
-- [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-sdk-lifecycle`
+- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-sdk-lifecycle`
 
 ```text
 [uninitialized] --initOtel()--> [initialized]
@@ -263,7 +262,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Action Scope Lifecycle
 
-- [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-action-scope`
+- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-action-scope`
 
 ```text
 [idle] --beginActionScope()--> [active] (in activeScopes map)
@@ -275,7 +274,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Ambient Action Lifecycle
 
-- [ ] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-ambient-action`
+- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-ambient-action`
 
 ```text
 [none] --ensureAmbientAction(routeId)--> [active for routeId]
@@ -289,55 +288,55 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### DoD: Action-First Correlation
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-action-first`
+- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-action-first`
 
-- [ ] `p1` - Every span has `action.name` attribute (verified in Datadog APM) — `inst-every-span-has-action`
-- [ ] `p1` - `HAI3SpanProcessor.onStart()` injects action correlation on every span — `inst-processor-injects`
-- [ ] `p1` - Ambient fallback creates `<routeId>.ambient` when no explicit action is active — `inst-ambient-fallback`
-- [ ] `p1` - Active and recent scope resolution returns the most recent matching action — `inst-scope-resolution`
+- [x] `p1` - Every span has `action.name` attribute (verified in Datadog APM) — `inst-every-span-has-action`
+- [x] `p1` - `HAI3SpanProcessor.onStart()` injects action correlation on every span — `inst-processor-injects`
+- [x] `p1` - Ambient fallback creates `<routeId>.ambient` when no explicit action is active — `inst-ambient-fallback`
+- [x] `p1` - Active and recent scope resolution returns the most recent matching action — `inst-scope-resolution`
 
 ### DoD: Route and Render Instrumentation
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-route-render`
+- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-route-render`
 
-- [ ] `p1` - `useRoutePerf` emits `route.navigation` span with navigation timing — `inst-route-nav-span`
-- [ ] `p1` - `useDoneRendering` emits `<routeId>.ready` span with double-rAF paint measurement — `inst-done-rendering`
-- [ ] `p1` - Timeout fallback (10s default) ends render span if `dataReady` never fires — `inst-render-timeout`
+- [x] `p1` - `useRoutePerf` emits `route.navigation` span with navigation timing — `inst-route-nav-span`
+- [x] `p1` - `useDoneRendering` emits `<routeId>.ready` span with double-rAF paint measurement — `inst-done-rendering`
+- [x] `p1` - Timeout fallback (10s default) ends render span if `dataReady` never fires — `inst-render-timeout`
 
 ### DoD: API Instrumentation
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-api`
+- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-api`
 
-- [ ] `p1` - `FetchInstrumentation` auto-instruments all fetch calls — `inst-auto-fetch`
-- [ ] `p1` - `instrumentedFetch` creates manual spans with `telemetry.breakdown.kind: backend.api` — `inst-manual-fetch`
-- [ ] `p1` - OTel collector URLs excluded from instrumentation — `inst-ignore-collector-urls`
+- [x] `p1` - `FetchInstrumentation` auto-instruments all fetch calls — `inst-auto-fetch`
+- [x] `p1` - `instrumentedFetch` creates manual spans with `telemetry.breakdown.kind: backend.api` — `inst-manual-fetch`
+- [x] `p1` - OTel collector URLs are excluded from instrumentation — `inst-ignore-collector-urls`
 
 ### DoD: Web Vitals and Runtime Observers
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-vitals`
+- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-vitals`
 
-- [ ] `p1` - LCP, CLS, INP, Navigation timing captured as spans — `inst-capture-vitals`
-- [ ] `p1` - Long tasks (>50ms) captured via PerformanceObserver — `inst-long-tasks`
-- [ ] `p1` - Resource timing captured for resource loading analysis — `inst-resource-timing`
-- [ ] `p1` - All observer spans parented to active/ambient action — `inst-observer-parenting`
+- [x] `p1` - LCP, CLS, INP, Navigation timing captured as spans — `inst-capture-vitals`
+- [x] `p1` - Long tasks (>50ms) captured via PerformanceObserver — `inst-long-tasks`
+- [x] `p1` - Resource timing captured for resource loading analysis — `inst-resource-timing`
+- [x] `p1` - All observer spans parented to active/ambient action — `inst-observer-parenting`
 
 ### DoD: Studio Dev Panel
 
-- [ ] `p2` - **ID**: `cpt-hai3-dod-perf-telemetry-studio-panel`
+- [x] `p2` - **ID**: `cpt-hai3-dod-perf-telemetry-studio-panel`
 
-- [ ] `p2` - `PerfTelemetryPanel` renders inside Studio `ControlPanel` — `inst-panel-in-studio`
-- [ ] `p2` - Panel only renders when `@hai3/perf-telemetry` is installed — `inst-conditional-render`
-- [ ] `p2` - KPI cards show total spans, actions, errors — `inst-kpi-cards`
-- [ ] `p2` - Tabs: Actions (duration bars), API (grouped stats), Rendering (web vitals + render times) — `inst-tabs`
-- [ ] `p2` - Enable/disable toggle persisted to localStorage — `inst-persist-toggle`
+- [x] `p2` - `PerfTelemetryPanel` renders inside Studio `ControlPanel` — `inst-panel-in-studio`
+- [x] `p2` - Panel only renders when `@hai3/perf-telemetry` is installed — `inst-conditional-render`
+- [x] `p2` - KPI cards show total spans, actions, errors — `inst-kpi-cards`
+- [x] `p2` - Tabs: Actions (duration bars), API (grouped stats), Rendering (web vitals + render times) — `inst-tabs`
+- [x] `p2` - Enable/disable toggle persisted to localStorage — `inst-persist-toggle`
 
 ### DoD: Fail-Open Guarantee
 
-- [ ] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-fail-open`
+- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-fail-open`
 
-- [ ] `p1` - Every telemetry operation wrapped in try/catch — `inst-try-catch`
-- [ ] `p1` - `ExportGateSpanProcessor` silently drops spans when export disabled — `inst-gate-drop`
-- [ ] `p1` - Disabling the OTel collector does not affect application business flows — `inst-no-crash`
+- [x] `p1` - Every telemetry operation wrapped in try/catch — `inst-try-catch`
+- [x] `p1` - `ExportGateSpanProcessor` silently drops spans when export disabled — `inst-gate-drop`
+- [x] `p1` - Disabling the OTel collector does not affect application business flows — `inst-no-crash`
 
 ---
 

@@ -1,6 +1,8 @@
 // @cpt-algo:cpt-hai3-algo-perf-telemetry-scope-resolution:p1
 // @cpt-algo:cpt-hai3-algo-perf-telemetry-ambient-lifecycle:p1
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1
 // @cpt-state:cpt-hai3-state-perf-telemetry-action-scope:p1
+// @cpt-state:cpt-hai3-state-perf-telemetry-ambient-action:p1
 /**
  * Action Scope — correlation engine for action-first telemetry
  *
@@ -20,6 +22,10 @@ const activeRouteUiScopes = new Map<string, RouteUiScope>();
 let recentScopes: ActionScope[] = [];
 const MAX_RECENT_SCOPES = 100;
 const RENDER_FOLLOWUP_WINDOW_MS = 2500;
+
+function getRouteUiScopeKey(routeId: string, signalName: string): string {
+  return `${routeId}:${signalName}`;
+}
 
 // ─── Ambient Action ──────────────────────────────────────────────────────────
 // An ambient action is a synthetic root action that exists when no explicit
@@ -102,19 +108,20 @@ export function getActiveActionScopes(): ActionScope[] {
 
 /** Registers the render scope (readySpan + uiSpan) for a route. */
 export function beginRouteUiScope(scope: RouteUiScope): void {
-  activeRouteUiScopes.set(scope.routeId, scope);
+  activeRouteUiScopes.set(getRouteUiScopeKey(scope.routeId, scope.signalName), scope);
 }
 
 /** Returns the active render scope for a route, or undefined if none is open. */
-export function getActiveRouteUiScope(routeId: string): RouteUiScope | undefined {
-  return activeRouteUiScopes.get(routeId);
+export function getActiveRouteUiScope(routeId: string, signalName: string): RouteUiScope | undefined {
+  return activeRouteUiScopes.get(getRouteUiScopeKey(routeId, signalName));
 }
 
 /** Closes the render scope for a route and returns it with the end timestamp attached. */
-export function endRouteUiScope(routeId: string, endedAtMs: number): RouteUiScope | undefined {
-  const scope = activeRouteUiScopes.get(routeId);
+export function endRouteUiScope(routeId: string, signalName: string, endedAtMs: number): RouteUiScope | undefined {
+  const key = getRouteUiScopeKey(routeId, signalName);
+  const scope = activeRouteUiScopes.get(key);
   if (!scope) return undefined;
-  activeRouteUiScopes.delete(routeId);
+  activeRouteUiScopes.delete(key);
   return { ...scope, endedAtMs };
 }
 
@@ -160,9 +167,15 @@ export function getActionParentContext(atMs: number, routeId?: string): Context 
 
 /** Returns an OTel Context parented to the active uiSpan for a route, or undefined if no render scope is open. */
 export function getRouteUiParentContext(routeId: string): Context | undefined {
-  const scope = activeRouteUiScopes.get(routeId);
-  if (!scope) return undefined;
-  return trace.setSpan(context.active(), scope.uiSpan);
+  let latestScope: RouteUiScope | undefined;
+  for (const scope of activeRouteUiScopes.values()) {
+    if (scope.routeId !== routeId) continue;
+    if (!latestScope || scope.startedAtMs > latestScope.startedAtMs) {
+      latestScope = scope;
+    }
+  }
+  if (!latestScope) return undefined;
+  return trace.setSpan(context.active(), latestScope.uiSpan);
 }
 
 /** Prefers routeUiScope context for child spans; falls back to action parent context. */

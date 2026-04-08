@@ -35,7 +35,7 @@
 
 ### 1.1 Architectural Vision
 
-FrontX is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, and screen-set contracts. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@cyberfabric/studio`, `@cyberfabric/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
+FrontX is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, screen-set contracts, and performance telemetry. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@cyberfabric/studio`, `@cyberfabric/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
 
 This layering enforces a strict dependency direction: higher layers depend on lower layers, never the reverse. L1 packages have zero cross-dependencies, meaning any SDK package can be used in isolation — in a Node.js CLI, a web worker, or a non-React rendering engine. The plugin architecture at L2 means the framework never needs modification to add capabilities; all extensions compose through `createHAI3().use(plugin).build()`.
 
@@ -65,7 +65,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-channel-aware-version-locking`,
 `cpt-frontx-adr-per-action-type-handler-routing`,
 `cpt-frontx-adr-tanstack-query-data-management`,
-`cpt-frontx-adr-mf2-manifest-discovery`
+`cpt-frontx-adr-mf2-manifest-discovery`,
+`cpt-frontx-adr-action-first-telemetry`
 
 #### Functional Drivers
 
@@ -181,18 +182,18 @@ Requirements that significantly influence architecture decisions.
 ├─────────────────────────────────────────────────────┤
 │ L2  @cyberfabric/framework                                  │
 │     createHAI3() · plugins · layout slices           │
-├────────┬────────┬──────────┬────────────────────────┤
-│ L1     │ L1     │ L1       │ L1                      │
-│ state  │ screen │ api      │ i18n                    │
-│        │ sets   │          │                         │
-├────────┴────────┴──────────┴────────────────────────┤
-│ Standalone: @cyberfabric/studio · @cyberfabric/cli                            │
+├───────┬────────┬────────┬────────┬──────────────────┤
+│ L1    │ L1     │ L1     │ L1     │ L1               │
+│ state │ screen │ api    │ i18n   │ perf-telemetry   │
+│       │ sets   │        │        │                  │
+├───────┴────────┴────────┴────────┴──────────────────┤
+│ Standalone: @cyberfabric/studio · @cyberfabric/cli                       │
 └─────────────────────────────────────────────────────┘
 ```
 
 | Layer | Responsibility | Technology |
 |-------|---------------|------------|
-| L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure | TypeScript, Redux Toolkit, Axios, i18next |
+| L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure, performance telemetry | TypeScript, Redux Toolkit, Axios, i18next, OpenTelemetry |
 | L2 Framework | Plugin composition, layout orchestration, configuration management, re-exports SDK surface | TypeScript, Redux Toolkit (slices) |
 | L3 React | React bindings, provider tree, hooks, MFE rendering components | React 19, Shadow DOM |
 | Standalone — Studio | Development overlay for theme/i18n/state inspection | React 19, localStorage |
@@ -370,15 +371,15 @@ All direct runtime dependencies MUST use MIT, Apache-2.0, or BSD-compatible lice
 │               │ framework    │                            │
 │               │ createHAI3() │                            │
 │               │ plugins      │                            │
-│               └──┬──┬──┬──┬─┘                            │
-│           depends│  │  │  │on                             │
-│     ┌────────┬──┘  │  │  └──┬────────┐                   │
-│     ▼        ▼     ▼  ▼     ▼        │                   │
-│  ┌──────┐ ┌──────┐ ┌────┐ ┌─────┐   │                   │
-│  │state │ │screen│ │api │ │i18n │   │                   │
-│  │      │ │sets  │ │    │ │     │   │                   │
-│  └──────┘ └──────┘ └────┘ └─────┘   │                   │
-│    L1       L1       L1     L1       │                   │
+│               └──┬──┬──┬──┬──┬────┘                        │
+│           depends│  │  │  │  │on                           │
+│     ┌────────┬──┘  │  │  │  └──┬────────┐                 │
+│     │        │     │  │  │     │        │                 │
+│  ┌──────┐ ┌──────┐ ┌────┐ ┌─────┐ ┌──────────────┐ │
+│  │state │ │screen│ │api │ │i18n │ │perf-telemetry│ │
+│  │      │ │sets  │ │    │ │     │ │              │ │
+│  └──────┘ └──────┘ └────┘ └─────┘ └──────────────┘ │
+│    L1       L1       L1     L1         L1           │
 │  (no cross-dependencies)      ┌──────▼─┐                 │
 │                               │@cyberfabric/  │                 │
 │                               │cli     │                 │
@@ -472,6 +473,34 @@ Provides a unified API service layer that abstracts protocol differences (REST, 
 
 - `cpt-frontx-component-framework` — depends on: framework plugins use `createApiService()` to register domain APIs
 - `cpt-frontx-component-state` — publishes to: API effects dispatch events on the event bus for state updates
+
+#### @cyberfabric/perf-telemetry (L1)
+
+- [x] `p1` - **ID**: `cpt-frontx-component-perf-telemetry`
+
+##### Why this component exists
+
+Provides action-first browser telemetry as an opt-in L1 SDK package so applications can capture route, render, API, runtime, and web-vital spans without introducing `@cyberfabric/*` runtime dependencies.
+
+##### Responsibility scope
+
+- **Action correlation**: Active scopes, recent scopes, and ambient fallback ensure every span is correlated to a named action
+- **Instrumentation APIs**: Exports hooks and helpers for route timing, render readiness, action wrapping, API calls, web vitals, and runtime observers
+- **Span processing**: Initializes OTel Browser SDK, enriches spans with session/runtime metadata, gates export, and mirrors completed spans into an in-memory store
+- **Cross-runtime convergence**: Joins a `globalThis`-keyed `sharedTelemetryRegistry` so MFE child runtimes append spans to the host-owned `telemetryStore`
+- **Fail-open behavior**: Telemetry failures are swallowed so business flows continue uninterrupted
+- **Studio integration surface**: Exposes `telemetryStore` for local inspection without coupling the package to Studio UI concerns
+
+##### Responsibility boundaries
+
+- Does NOT depend on any other `@cyberfabric/*` package
+- Does NOT require the framework layer — framework only provides an opt-in plugin wrapper around initialization and shutdown
+- Does NOT own dashboard UI — Studio renders the panel using the exposed telemetry store
+
+##### Related components (by ID)
+
+- `cpt-frontx-component-framework` — depends on: the `telemetry()` plugin initializes, flushes, and shuts down the telemetry SDK
+- `cpt-frontx-component-studio` — used by: Studio reads the telemetry store to render the perf panel
 
 #### @cyberfabric/i18n (L1)
 

@@ -7,7 +7,7 @@
  */
 
 import { createContext, useContext, useLayoutEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, setRuntimeConfigProvider, SpanStatusCode } from './otel-init';
+import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, setRuntimeConfigProvider, SpanStatusCode, isOtelInitialized } from './otel-init';
 import { context } from '@opentelemetry/api';
 import { getTelemetryParentContext } from './action-scope';
 import { getTelemetryRuntimeConfig } from './runtime-config';
@@ -46,6 +46,9 @@ export function TelemetryProvider({
     } catch (err) {
       console.warn('[Telemetry] OTel init failed (fail-open):', err);
     }
+    if (!isOtelInitialized()) {
+      initRef.current = false;
+    }
   }, [enabled, serviceName, serviceVersion, collectorUrl, environment]);
 
   const emit = useCallback((type: string, routeId: string, payload: Record<string, string | number | boolean | null>) => {
@@ -53,8 +56,16 @@ export function TelemetryProvider({
     try {
       const tracer = getTracer('hai3-emit');
       const parentContext = getTelemetryParentContext(routeId, performance.now()) || context.active();
+      const flattenedPayload = flattenPayload(payload);
+      const breakdownKind = typeof flattenedPayload['telemetry.breakdown.kind'] === 'string'
+        ? flattenedPayload['telemetry.breakdown.kind']
+        : 'frontend.internal';
       const span = tracer.startSpan(type, {
-        attributes: { 'route.id': routeId, ...flattenPayload(payload) },
+        attributes: {
+          ...flattenedPayload,
+          'route.id': routeId,
+          'telemetry.breakdown.kind': breakdownKind,
+        },
       }, parentContext);
       if (type.includes('error')) {
         const errorMsg = typeof payload.errorMessage === 'string' ? payload.errorMessage : type;
@@ -67,7 +78,7 @@ export function TelemetryProvider({
   const killSwitch = useCallback(() => {
     setIsKilled(true);
     // Always attempt shutdown even if flush fails
-    flushOtel().finally(() => { shutdownOtel().catch(() => { /* fail-open */ }); });
+    flushOtel().catch(() => undefined).finally(() => { shutdownOtel().catch(() => { /* fail-open */ }); });
   }, []);
 
   const value = useMemo<TelemetryContextValue>(() => ({

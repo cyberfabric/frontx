@@ -51,6 +51,7 @@
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
     "@cyberfabric/i18n": "*",
+    "@cyberfabric/perf-telemetry": "*",
     "@tanstack/query-core": "^5.0.0"
   },
   "peerDependenciesMeta": {
@@ -71,6 +72,9 @@
     },
     "@tanstack/query-core": {
       "optional": false
+    },
+    "@cyberfabric/perf-telemetry": {
+      "optional": true
     }
   },
   "publishConfig": {

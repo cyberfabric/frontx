@@ -106,6 +106,12 @@ export type CollectionPolicy = {
   ttl: number;
 };
 
+export type PolicyOverrides = {
+  [K in keyof CollectionPolicy]?: CollectionPolicy[K] extends Record<string, string | number | boolean | undefined>
+    ? Partial<CollectionPolicy[K]>
+    : CollectionPolicy[K];
+};
+
 export interface TelemetryProviderProps {
   children: ReactNode;
   serviceName?: string;

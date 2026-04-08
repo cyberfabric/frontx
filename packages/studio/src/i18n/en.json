@@ -12,5 +12,38 @@
     "language": "Language:",
     "mockApi": "Mock API",
     "gts_package": "GTS Package"
+  },
+  "perfTelemetry": {
+    "title": "Performance",
+    "clear": "Clear",
+    "disabled": "Performance panel disabled",
+    "toggle": {
+      "on": "On",
+      "off": "Off"
+    },
+    "kpis": {
+      "spans": "Spans",
+      "actions": "Actions",
+      "errors": "Errors"
+    },
+    "tabs": {
+      "actions": "Actions",
+      "api": "API",
+      "rendering": "Rendering"
+    },
+    "empty": {
+      "actions": "No actions yet",
+      "api": "No API calls yet",
+      "rendering": "No rendering data yet"
+    },
+    "api": {
+      "calls": "calls",
+      "avg": "avg",
+      "errors": "errors"
+    },
+    "sections": {
+      "webVitals": "Web Vitals",
+      "routeRendering": "Route Rendering"
+    }
   }
 }

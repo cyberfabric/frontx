@@ -812,7 +812,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.13 [Performance Telemetry](feature-perf-telemetry/) ⏳ MEDIUM
 
-- [ ] `p2` - **ID**: `cpt-frontx-feature-perf-telemetry`
+- [x] `p2` - **ID**: `cpt-frontx-feature-perf-telemetry`
 
 - **Purpose**: Provides action-first frontend performance telemetry via OpenTelemetry Browser SDK. Every span belongs to a named action (explicit or ambient fallback), enabling per-action performance breakdown in Datadog APM. Includes a Studio dev panel for local visibility.
 
@@ -833,13 +833,13 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Requirements Covered**:
 
-  - [ ] `p1` - `cpt-frontx-fr-perf-action-first-correlation`
-  - [ ] `p1` - `cpt-frontx-fr-perf-route-instrumentation`
-  - [ ] `p1` - `cpt-frontx-fr-perf-action-instrumentation`
-  - [ ] `p1` - `cpt-frontx-fr-perf-api-instrumentation`
-  - [ ] `p1` - `cpt-frontx-fr-perf-web-vitals`
-  - [ ] `p2` - `cpt-frontx-fr-perf-studio-panel`
-  - [ ] `p1` - `cpt-frontx-fr-perf-fail-open`
+  - [x] `p1` - `cpt-frontx-fr-perf-action-first-correlation`
+  - [x] `p1` - `cpt-frontx-fr-perf-route-instrumentation`
+  - [x] `p1` - `cpt-frontx-fr-perf-action-instrumentation`
+  - [x] `p1` - `cpt-frontx-fr-perf-api-instrumentation`
+  - [x] `p1` - `cpt-frontx-fr-perf-web-vitals`
+  - [x] `p2` - `cpt-frontx-fr-perf-studio-panel`
+  - [x] `p1` - `cpt-frontx-fr-perf-fail-open`
   - [ ] `p1` - `cpt-frontx-fr-perf-cross-runtime-registry`
 
 - **Design Principles Covered**:
@@ -849,16 +849,16 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Design Constraints Covered**:
 
-  - [ ] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
-  - [ ] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1` (L1 SDK)
 
 - **Domain Model Entities**:
   - ActionScope, RouteUiScope, StoredSpan, TelemetryRuntimeConfig, SharedTelemetryRegistry
 
 - **Design Components**:
 
-  - [ ] `p1` - `cpt-frontx-component-perf-telemetry`
-  - [ ] `p2` - `cpt-frontx-component-studio-perf-panel`
+  - [x] `p1` - `cpt-frontx-component-perf-telemetry`
+  - [x] `p2` - `cpt-frontx-component-studio-perf-panel`
 
 - **API**:
   - `useRoutePerf(routeId, navigationStartMs)`

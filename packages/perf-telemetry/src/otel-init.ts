@@ -128,6 +128,10 @@ class ExportGateSpanProcessor implements SpanProcessor {
 
 let _currentRouteId = 'unknown';
 
+type SpanWithAttributes = Span & {
+  readonly attributes?: Record<string, string | number | boolean>;
+};
+
 export function setCurrentRouteId(routeId: string): void {
   if (_currentRouteId !== routeId) {
     endAmbientAction();
@@ -144,15 +148,25 @@ class HAI3SpanProcessor implements SpanProcessor {
     span.setAttribute('session.id', getSessionId());
     span.setAttribute('app.origin', globalThis.window?.location?.origin ?? 'unknown');
 
-    // Guarantee every span belongs to an action (ambient fallback)
-    const relatedAction = findRelatedActionScope(performance.now(), _currentRouteId);
-    if (relatedAction) {
-      span.setAttribute('action.name', relatedAction.actionName);
-      span.setAttribute('action.scope_span_id', relatedAction.spanId);
-      span.setAttribute('action.scope_trace_id', relatedAction.traceId);
-      span.setAttribute('route.id', relatedAction.routeId);
+    const currentRouteId = _currentRouteId;
+    const existingActionName = (span as SpanWithAttributes).attributes?.['action.name'];
+    if (typeof existingActionName === 'string' && existingActionName.length > 0) {
+      span.setAttribute('action.scope_span_id', span.spanContext().spanId);
+      span.setAttribute('action.scope_trace_id', span.spanContext().traceId);
+      if (!(typeof (span as SpanWithAttributes).attributes?.['route.id'] === 'string')) {
+        span.setAttribute('route.id', currentRouteId);
+      }
     } else {
-      span.setAttribute('route.id', _currentRouteId);
+      // Guarantee every non-root span belongs to an action (ambient fallback)
+      const relatedAction = findRelatedActionScope(performance.now(), currentRouteId);
+      if (relatedAction) {
+        span.setAttribute('action.name', relatedAction.actionName);
+        span.setAttribute('action.scope_span_id', relatedAction.spanId);
+        span.setAttribute('action.scope_trace_id', relatedAction.traceId);
+        span.setAttribute('route.id', relatedAction.routeId);
+      } else {
+        span.setAttribute('route.id', currentRouteId);
+      }
     }
 
     // Client fingerprint (basic always, high-cardinality only when debug enabled)
