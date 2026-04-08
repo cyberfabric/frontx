@@ -79,7 +79,7 @@ function getSessionId(): string {
 // account attributes, export toggles) without coupling this package to any app module.
 
 // Default no-op config — overridden by the host app via setRuntimeConfigProvider()
-let _runtimeConfig: TelemetryRuntimeConfig = {
+const _runtimeConfig: TelemetryRuntimeConfig = {
   exportToCollector: true,
   includeDebugData: false,
   policyProfile: 'baseline',

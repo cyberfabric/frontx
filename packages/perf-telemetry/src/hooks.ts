@@ -158,7 +158,7 @@ export function useDoneRendering(
         });
       });
     }
-  }, [deps.dataReady, signalName]);
+  }, [deps.dataReady, signalName, routeId]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -177,7 +177,7 @@ export function useDoneRendering(
       }
     }, timeoutMs);
     return () => clearTimeout(timer);
-  }, [timeoutMs, signalName]);
+  }, [timeoutMs, signalName, routeId]);
 }
 
 // ─── Telemetry Action ────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ export async function instrumentedFetch(
   init?: RequestInit,
 ): Promise<Response> {
   const tracer = getTracer('hai3-api');
-  const method = String(init?.method || 'GET').toUpperCase();
+  const method = String(init?.method || 'GET').toUpperCase(); // L1 SDK: no lodash dep, trivial string op
   const normalizedUrl = normalizeUrlForSpan(url);
   const startedAt = performance.now();
   const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
