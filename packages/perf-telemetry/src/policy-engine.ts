@@ -243,7 +243,7 @@ export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
 
 /** Shallow-merge policy overrides for top-level fields; nested objects (samplingRates, limits, featureToggles, killSwitch) are merged one level deep. */
 export type PolicyOverrides = {
-  [K in keyof CollectionPolicy]?: CollectionPolicy[K] extends Record<string, unknown>
+  [K in keyof CollectionPolicy]?: CollectionPolicy[K] extends Record<string, string | number | boolean | undefined>
     ? Partial<CollectionPolicy[K]>
     : CollectionPolicy[K];
 };
