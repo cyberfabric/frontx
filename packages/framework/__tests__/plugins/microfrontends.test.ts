@@ -7,7 +7,7 @@
  * @packageDocumentation
  */
 
-import { describe, it, expect, afterEach } from 'vitest';
+import { describe, it, expect, afterEach, beforeEach } from 'vitest';
 import { createHAI3 } from '../../src/createHAI3';
 import { screensets } from '../../src/plugins/screensets';
 import {
@@ -15,6 +15,7 @@ import {
 } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
 import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
 import type { ScreensetsRegistry } from '@hai3/framework';
 import { ContainerProvider } from '@hai3/framework';
 import type { HAI3App } from '../../src/types';
@@ -47,6 +48,14 @@ describe('microfrontends plugin - Phase 7.9', () => {
   // Load layout domains once for all tests
   const [sidebarDomain, popupDomain, screenDomain, overlayDomain] = loadLayoutDomains();
   let apps: HAI3App[] = [];
+
+  beforeEach(() => {
+    // The layout domains reference application-layer property schemas (theme, language).
+    // Register them on the gtsPlugin singleton so GTS can validate domain sharedProperties.
+    gtsPlugin.registerSchema(themeSchema);
+    gtsPlugin.registerSchema(languageSchema);
+    gtsPlugin.registerSchema(extensionScreenSchema);
+  });
 
   afterEach(() => {
     apps.forEach(app => app.destroy());

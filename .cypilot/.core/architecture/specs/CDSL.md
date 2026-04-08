@@ -118,7 +118,7 @@ purpose: Define syntax and grammar for behavior description language
 
 **Algorithm: [Name]**
 
-Input: [parameters]
+Input: [parameters]  
 Output: [result]
 
 1. [ ] - `p1` - [Step description] - `inst-step-one`
@@ -203,7 +203,7 @@ Output: [result]
 
 **Algorithm: Enable Entity with Dependencies**
 
-Input: entity_id, tenants, security_context
+Input: entity_id, tenants, security_context  
 Output: List of enabled entity IDs
 
 1. [x] - `p1` - Initialize empty list: enabled_entities - `inst-init-enabled-entities`
@@ -231,7 +231,7 @@ Output: List of enabled entity IDs
 
 **Flow: Admin Creates Dashboard**
 
-Actor: Admin
+Actor: Admin  
 Goal: Create new dashboard
 
 1. [ ] - `p1` - User opens Dashboard page - `inst-open-dashboard-page`

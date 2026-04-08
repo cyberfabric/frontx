@@ -14,8 +14,8 @@
   - [Create MFE Project with a Third-Party UI Library](#create-mfe-project-with-a-third-party-ui-library)
   - [Create MFE Project with No UI Library](#create-mfe-project-with-no-ui-library)
   - [Generate Screenset Respecting the Active UI Kit](#generate-screenset-respecting-the-active-ui-kit)
-  - [Add Shadcn Component to an Existing MFE](#add-shadcn-component-to-an-existing-mfe)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+  - [Add Shadcn Component to an Existing MFE (Manual Process)](#add-shadcn-component-to-an-existing-mfe-manual-process)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [UI Kit Type Resolution from hai3.config.json](#ui-kit-type-resolution-from-hai3configjson)
   - [CLI Template Selection Based on UI Kit Type](#cli-template-selection-based-on-ui-kit-type)
   - [UIKit Bridge Generation for Third-Party Libraries](#uikit-bridge-generation-for-third-party-libraries)
@@ -91,10 +91,10 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 1. [x] - `p2` - Developer invokes `hai3 create` and specifies project name and target directory - `inst-create-shadcn-1`
 2. [x] - `p2` - CLI presents UI kit selection prompt with options: `shadcn`, `none`, or a custom package name - `inst-create-shadcn-2`
 3. [x] - `p2` - Developer selects `shadcn` - `inst-create-shadcn-3`
-4. [x] - `p2` - CLI writes `"uikit": "shadcn"` into the generated `hai3.config.json` - `inst-create-shadcn-4`
-5. [x] - `p2` - CLI resolves the shadcn layout template from `manifest.yaml` and scaffolds project files including `components/ui/` directory - `inst-create-shadcn-5`
-6. [x] - `p2` - CLI copies the base set of shadcn/ui components (button, input, card, dialog, form, toast) into `components/ui/` with React 19 ref-as-prop compatibility applied per `cpt-hai3-adr-react-19-ref-as-prop` - `inst-create-shadcn-6`
-7. [x] - `p2` - CLI generates `components/ui/index.ts` barrel export for all scaffolded components - `inst-create-shadcn-7`
+4. [x] - `p2` - CLI writes `"uikit": "shadcn"` into the generated `hai3.config.json`
+5. [x] - `p2` - CLI resolves the shadcn layout template from `manifest.yaml` and scaffolds project files including `components/ui/` directory
+6. [x] - `p2` - CLI copies the base set of shadcn/ui components (button, input, card, dialog, form, toast) into `components/ui/` with React 19 ref-as-prop compatibility applied per `cpt-hai3-adr-react-19-ref-as-prop`
+7. [x] - `p2` - CLI generates `components/ui/index.ts` barrel export for all scaffolded components
 8. [x] - `p2` - **RETURN** project scaffold with locally owned shadcn components - `inst-create-shadcn-8`
 
 ### Create MFE Project with a Third-Party UI Library
@@ -114,9 +114,10 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 2. [x] - `p2` - CLI presents UI kit selection prompt - `inst-create-thirdparty-2`
 3. [x] - `p2` - Developer enters a third-party package name (e.g., `@mui/material`, `antd`) - `inst-create-thirdparty-3`
 4. [x] - `p2` - CLI validates that the entered value is not `shadcn` or `none`, treats it as a third-party library identifier, and writes it to `hai3.config.json` as `"uikit"` - `inst-create-thirdparty-4`
-5. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml` - `inst-create-thirdparty-5`
-6. [x] - `p2` - CLI scaffolds the project with the custom layout template and generates a UIKit bridge file that re-exports primitives from the declared third-party package under normalized names - `inst-create-thirdparty-6`
-7. [x] - `p2` - CLI adds the third-party package to `package.json` dependencies - `inst-create-thirdparty-7`
+5. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml`
+6. [x] - `p2` - CLI scaffolds the project with the custom layout template and generates a UIKit bridge file that re-exports primitives from the declared third-party package under normalized names
+7. [x] - `p2` - CLI adds the third-party package to `package.json` dependencies
+8. [x] - `p2` - **IF** the provided value is a syntactically valid npm package name: query the npm registry to verify the package exists; **IF** unreachable or network error: treat as present with a warning — surfaced as validation logic before the project files are written - `inst-create-thirdparty-validate-npm`
 8. [x] - `p2` - **RETURN** project scaffold with the chosen third-party library wired up - `inst-create-thirdparty-8`
 
 ### Create MFE Project with No UI Library
@@ -133,10 +134,10 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 
 **Steps**:
 1. [x] - `p2` - Developer invokes `hai3 create` and selects `none` as the UI kit option - `inst-create-none-1`
-2. [x] - `p2` - CLI writes `"uikit": "none"` into `hai3.config.json` - `inst-create-none-2`
-3. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml` - `inst-create-none-3`
-4. [x] - `p2` - CLI scaffolds the project with the custom layout template and creates an empty `uikit/` directory containing a placeholder `index.ts` - `inst-create-none-4`
-5. [x] - `p2` - No UI library is added to `package.json` dependencies - `inst-create-none-5`
+2. [x] - `p2` - CLI writes `"uikit": "none"` into `hai3.config.json`
+3. [x] - `p2` - CLI resolves the `layout-custom-uikit/` template from `manifest.yaml`
+4. [x] - `p2` - CLI scaffolds the project with the custom layout template and creates an empty `uikit/` directory containing a placeholder `index.ts`
+5. [x] - `p2` - No UI library is added to `package.json` dependencies
 6. [x] - `p2` - **RETURN** minimal project scaffold where all UI components are authored manually in `uikit/` - `inst-create-none-6`
 
 ### Generate Screenset Respecting the Active UI Kit
@@ -152,33 +153,41 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 - `hai3.config.json` absent or `uikit` field missing; CLI surfaces actionable error
 
 **Steps**:
-1. [x] - `p2` - Developer invokes `hai3 screenset` with a screenset name from within an MFE project directory - `inst-screenset-generate-1`
-2. [x] - `p2` - CLI reads `hai3.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-2`
-3. [x] - `p2` - **IF** `uikit` is `"shadcn"`: CLI selects the shadcn screenset template, imports from `components/ui/` - `inst-screenset-generate-3`
-4. [x] - `p2` - **IF** `uikit` is `"none"`: CLI selects the custom screenset template, imports from `uikit/` - `inst-screenset-generate-4`
-5. [x] - `p2` - **IF** `uikit` is a third-party identifier: CLI selects the custom-uikit screenset template, imports from the declared package - `inst-screenset-generate-5`
-6. [x] - `p2` - CLI generates the screenset files (screen definitions, registry entry, layout) using the resolved template - `inst-screenset-generate-6`
-7. [x] - `p2` - **RETURN** fully wired screenset consistent with the project's UI kit choice - `inst-screenset-generate-7`
+1. [x] - `p2` - Provide template string replacement functions (`applyMfeReplacements`) that substitute blank-MFE placeholders (name, PascalCase name, port) into generated file contents - `inst-screenset-mfe-replacements`
+2. [x] - `p2` - Provide file rename function (`applyMfeFileRename`) that renames `_BlankApiService` placeholders in file names to the target screenset name - `inst-screenset-mfe-rename`
+3. [x] - `p2` - Provide recursive `readDirRecursive` function that reads all files from a directory tree and returns them as `GeneratedFile[]` with relative paths - `inst-screenset-read-dir`
+4. [x] - `p2` - Provide `getUsedMfePorts` function that scans `src/mfe_packages/` to collect port numbers already in use from `mfe.json` manifests - `inst-screenset-port-scan`
+5. [x] - `p2` - Provide `assignMfePort` function that finds the next available port starting from 3001, skipping any ports already returned by `getUsedMfePorts` - `inst-screenset-port-assign`
+6. [x] - `p2` - Provide `regenerateMfeManifests` function that scans all `src/mfe_packages/*/mfe.json` files and rewrites `generated-mfe-manifests.ts` so the bootstrap auto-imports every registered MFE - `inst-screenset-regenerate-manifests`
+7. [x] - `p2` - Provide `buildMfeManifestsContent` utility that assembles the content of `generated-mfe-manifests.ts` from a list of MFE package directory names - `inst-screenset-build-manifests`
+8. [x] - `p2` - Provide `isReservedScreensetName` predicate and `RESERVED_SCREENSET_NAMES` list that prevents using system-reserved names (`screenset`, `screen`, `index`, `api`, `core`) as screenset identifiers - `inst-screenset-reserved-names`
+9. [x] - `p2` - Provide `validateNameAndLoadConfig` validation function that checks name validity and loads project config; define TypeScript types for command args and result - `inst-screenset-name-validation`
+10. [x] - `p2` - Developer invokes `hai3 screenset` with a screenset name from within an MFE project directory; CLI defines command schema (name, port, project root options) - `inst-screenset-cmd-types`
+11. [x] - `p2` - CLI registers the `screenset` command definition with validation and execute callbacks - `inst-screenset-cmd-definition`
+12. [x] - `p2` - CLI execute handler reads `hai3.config.json`, resolves the screenset name, determines the next available port, resolves uikit type, then delegates to the screenset generator - `inst-screenset-cmd-execute`
+13. [x] - `p2` - CLI validates the screenset name; reads `hai3.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-setup`
+14. [x] - `p2` - Developer invokes `hai3 screenset` with a screenset name from within an MFE project directory - `inst-screenset-generate-1`
+15. [x] - `p2` - CLI reads `hai3.config.json` from the project root and extracts the `uikit` field - `inst-screenset-generate-2`
+16. [x] - `p2` - **IF** `uikit` is `"shadcn"`: CLI selects the shadcn screenset template, imports from `components/ui/` - `inst-screenset-generate-3`
+17. [x] - `p2` - **IF** `uikit` is `"none"`: CLI selects the custom screenset template, imports from `uikit/` - `inst-screenset-generate-4`
+18. [x] - `p2` - **IF** `uikit` is a third-party identifier: CLI selects the custom-uikit screenset template, imports from the declared package - `inst-screenset-generate-5`
+19. [x] - `p2` - Strip shadcn-specific dependencies (`tailwindcss`, `clsx`, `tailwind-merge`, `class-variance-authority`, `@radix-ui/react-slot`) from the generated MFE `package.json` when uikit is not `shadcn` - `inst-screenset-strip-shadcn-deps`
+20. [x] - `p2` - CLI generates the screenset files (screen definitions, registry entry, layout) using the resolved template - `inst-screenset-generate-6`
+21. [x] - `p2` - Ensure `src/mfe_packages/shared/` directory exists; write all generated files to the MFE package directory; regenerate `generated-mfe-manifests.ts` so bootstrap picks up the new MFE - `inst-screenset-generate-finalize`
+22. [x] - `p2` - **RETURN** fully wired screenset consistent with the project's UI kit choice - `inst-screenset-generate-7`
 
-### Add Shadcn Component to an Existing MFE
+### Add Shadcn Component to an Existing MFE (Manual Process)
 
-<!-- N/A for CLI: manual developer process using external shadcn CLI -->
-- [x] `p2` - **ID**: `cpt-hai3-flow-ui-libraries-choice-add-component`
+This is a manual developer process using the external shadcn CLI — not implemented by HAI3 code.
 
 **Actor**: `cpt-hai3-actor-developer`
 
-**Success Scenarios**:
-- New shadcn component added locally to MFE's `components/ui/`
-
-**Error Scenarios**:
-- Project not configured for shadcn; developer must add component manually
-
 **Steps**:
-1. [x] - `p2` - Developer runs a shadcn CLI command (e.g., `npx shadcn add <component>`) within the MFE project directory - `inst-add-component-1` <!-- N/A: external CLI action -->
-2. [x] - `p2` - shadcn CLI reads the project's `components.json` configuration (generated by `hai3 create` for shadcn projects) and resolves the output path to `components/ui/` - `inst-add-component-2` <!-- N/A: external CLI behavior; components.json generated by inst-create-shadcn-7 -->
-3. [x] - `p2` - shadcn CLI writes the new component source file into `components/ui/` - `inst-add-component-3` <!-- N/A: external CLI action -->
-4. [x] - `p2` - Developer updates the `components/ui/index.ts` barrel export to include the new component - `inst-add-component-4` <!-- N/A: manual developer action -->
-5. [x] - `p2` - **RETURN** new component locally owned by the MFE and not shared with other packages - `inst-add-component-5` <!-- N/A: outcome of manual process -->
+1. Developer runs a shadcn CLI command (e.g., `npx shadcn add <component>`) within the MFE project directory
+2. shadcn CLI reads the project's `components.json` configuration (generated by `hai3 create` for shadcn projects) and resolves the output path to `components/ui/`
+3. shadcn CLI writes the new component source file into `components/ui/`
+4. Developer updates the `components/ui/index.ts` barrel export to include the new component
+5. **Result**: new component locally owned by the MFE and not shared with other packages
 
 ---
 
@@ -193,13 +202,15 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 **Output**: Discriminated union — `shadcn | none | third-party(packageId) | unknown(error)`
 
 **Steps**:
-1. [x] - `p1` - Read `hai3.config.json` from the MFE project root - `inst-uikit-resolution-1`
-2. [x] - `p1` - Extract the `uikit` string field - `inst-uikit-resolution-2`
-3. [x] - `p1` - **IF** the field is absent or the file does not exist: **RETURN** type `unknown`, surface a configuration error to the caller - `inst-uikit-resolution-3`
-4. [x] - `p1` - **IF** the value is exactly `"shadcn"`: **RETURN** type `shadcn` - `inst-uikit-resolution-4`
-5. [x] - `p1` - **IF** the value is exactly `"none"`: **RETURN** type `none` - `inst-uikit-resolution-5`
-6. [x] - `p1` - **IF** the value is a non-empty string that is neither `"shadcn"` nor `"none"`: **RETURN** type `third-party` with the raw string as the package identifier - `inst-uikit-resolution-6`
-7. [x] - `p1` - **IF** the value is an empty string or a non-string type: **RETURN** type `unknown`, surface a validation error - `inst-uikit-resolution-7`
+1. [x] - `p1` - Provide project utility module with `CONFIG_FILE` constant, `loadConfig()` helper that reads and parses `hai3.config.json`, and `findProjectRoot()` helper that walks directories upward; export `isCustomUikit` and related predicates — implementation foundation for all config-based UI kit resolution - `inst-uikit-project-utils`
+2. [x] - `p1` - Provide `normalizeUikit()` function that maps legacy uikit aliases (e.g., `hai3` → `shadcn`) to current canonical values, and exports the npm package name validation regex and `isValidPackageName` predicate - `inst-uikit-resolution-normalize`
+3. [x] - `p1` - Read `hai3.config.json` from the MFE project root - `inst-uikit-resolution-1`
+4. [x] - `p1` - Extract the `uikit` string field - `inst-uikit-resolution-2`
+5. [x] - `p1` - **IF** the field is absent or the file does not exist: **RETURN** type `unknown`, surface a configuration error to the caller
+6. [x] - `p1` - **IF** the value is exactly `"shadcn"`: **RETURN** type `shadcn` - `inst-uikit-resolution-4`
+7. [x] - `p1` - **IF** the value is exactly `"none"`: **RETURN** type `none`
+8. [x] - `p1` - **IF** the value is a non-empty string that is neither `"shadcn"` nor `"none"`: **RETURN** type `third-party` with the raw string as the package identifier - `inst-uikit-resolution-6`
+9. [x] - `p1` - **IF** the value is an empty string or a non-string type: **RETURN** type `unknown`, surface a validation error - `inst-uikit-resolution-7`
 
 ### CLI Template Selection Based on UI Kit Type
 
@@ -210,12 +221,16 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 **Output**: Resolved template path and metadata
 
 **Steps**:
-1. [x] - `p1` - Receive resolved UI kit type from the UI Kit Type Resolution algorithm - `inst-template-selection-1`
-2. [x] - `p1` - Load `manifest.yaml` for the relevant CLI command context (project creation or screenset generation) - `inst-template-selection-2`
-3. [x] - `p1` - **IF** UI kit type is `shadcn`: resolve the standard shadcn layout template entry from `manifest.yaml` - `inst-template-selection-3`
-4. [x] - `p1` - **IF** UI kit type is `none` or `third-party`: resolve the `layout-custom-uikit/` template entry from `manifest.yaml` - `inst-template-selection-4`
-5. [x] - `p1` - **IF** the resolved template entry does not exist in `manifest.yaml`: surface a fatal CLI error, halt scaffolding - `inst-template-selection-5`
-6. [x] - `p1` - **RETURN** the resolved template path and associated metadata for use by the file scaffolding step - `inst-template-selection-6`
+1. [x] - `p1` - Define `NO_UIKIT_UTILS_TEMPLATE` path constant and `NO_UIKIT_UTILS_CONTENT` inline fallback — a minimal `cn()` utility implementation used when the shadcn `utils.ts` template is not applicable - `inst-template-no-uikit-utils`
+2. [x] - `p1` - Provide `getProjectUtilsTemplate()` function that returns the correct utils template path: `src/app/lib/utils.ts` for shadcn projects, `src/app/lib/utils.no-uikit.ts` for all others - `inst-template-utils`
+3. [x] - `p1` - Define `TemplateCopyInput`, `AiTargetsInput`, and `PackageJsonInput` type shapes; define `TEMPLATE_VARIANT_FILES` (files that have ui-kit-specific variants) and `UI_DEPENDENT_TEMPLATE_FILES` (files only included for shadcn projects) constant arrays - `inst-template-types`
+4. [x] - `p1` - Receive resolved UI kit type from the UI Kit Type Resolution algorithm
+5. [x] - `p1` - Load `manifest.json` from the CLI templates directory; **IF** not found **RETURN** error directing the developer to rebuild the CLI package - `inst-template-manifest-load`
+6. [x] - `p1` - Receive resolved manifest from the manifest load step and extract `rootFiles` and `directories` from `stage1b`
+7. [x] - `p1` - **IF** UI kit type is `shadcn`: resolve the standard shadcn layout template entry from the manifest - `inst-template-selection-3`
+8. [x] - `p1` - **IF** UI kit type is `none` or `third-party`: resolve the `layout-custom-uikit/` template entry from the manifest - `inst-template-selection-4`
+9. [x] - `p1` - **IF** the resolved template entry does not exist in the manifest: surface a fatal CLI error, halt scaffolding
+10. [x] - `p1` - **RETURN** the resolved template path and associated metadata for use by the file scaffolding step
 
 ### UIKit Bridge Generation for Third-Party Libraries
 
@@ -230,10 +245,11 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 2. [x] - `p1` - Validate that the package identifier is a syntactically valid npm package name (matches `^(@[a-z0-9-~][a-z0-9-._~]*/)?[a-z0-9-~][a-z0-9-._~]*$`). **IF** validation fails: surface an error and halt generation — the identifier will be interpolated into generated code and must be safe - `inst-bridge-generation-1b`
 3. [x] - `p1` - Load the bridge template appropriate for the `layout-custom-uikit/` scaffold - `inst-bridge-generation-2`
 4. [x] - `p1` - Substitute the package identifier into all import statements within the bridge template - `inst-bridge-generation-3`
-5. [x] - `p1` - **FOR EACH** normalized primitive name (Button, Input, Card, Dialog, Form, Notification) defined in the bridge contract: emit a re-export statement mapping from the third-party package to the normalized name - `inst-bridge-generation-4`
-6. [x] - `p1` - Write the generated bridge file to the MFE project at the path defined by the template manifest - `inst-bridge-generation-5`
-7. [x] - `p1` - Write the third-party package name into `package.json` dependencies with a permissive semver range - `inst-bridge-generation-6`
-8. [x] - `p1` - **IF** any normalized primitive cannot be mapped (package does not export an obvious match): emit a warning comment in the bridge file at the unmapped export site rather than silently omitting it - `inst-bridge-generation-7`
+5. [x] - `p1` - **FOR EACH** normalized primitive name (Button, Input, Card, Dialog, Form, Notification) defined in the bridge contract: emit a re-export statement mapping from the third-party package to the normalized name
+6. [x] - `p1` - Write the generated bridge file to the MFE project at the path defined by the template manifest
+7. [x] - `p1` - Write the third-party package name into `package.json` dependencies with a permissive semver range
+8. [x] - `p1` - **IF** any normalized primitive cannot be mapped (package does not export an obvious match): emit a warning comment in the bridge file at the unmapped export site rather than silently omitting it
+9. [x] - `p1` - **FOR EACH** CSS `@import` line in the bridge's `cssImports`: resolve the subpath against the installed package root and verify the CSS file exists; **IF** the package is not installed in the CLI environment treat the import as present to avoid silently dropping imports for unresolved packages - `inst-bridge-css-import-check`
 
 ### CSS Variable Theme Propagation for All UI Kit Types
 
@@ -250,6 +266,8 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 4. [x] - `p1` - **IF** UI kit type is `third-party`: the UIKit bridge file is responsible for mapping shadcn CSS variable values to the third-party library's theming API (e.g., MUI `createTheme`, Ant Design `ConfigProvider`) — this mapping is defined in the bridge template - `inst-theme-propagation-4`
 5. [x] - `p1` - **IF** UI kit type is `none`: the MFE developer is responsible for consuming the CSS variables in custom components; the scaffolded `uikit/` directory includes a `theme.css` file with variable forwarding - `inst-theme-propagation-5`
 6. [x] - `p1` - Theme token changes propagate to all UI kit types through the CSS cascade without requiring re-initialization - `inst-theme-propagation-6` <!-- N/A for CLI: inherent CSS cascade behavior -->
+7. [x] - `p1` - Build the `adapter.ts` content for unknown UI libraries: assembles `hai3Themes` export with `ThemeConfig[]` entries containing inline HSL variable values for default light and dark themes - `inst-theme-adapter-build`
+8. [x] - `p1` - Generate `globals.css` for custom UI kit projects: **IF** bridge is a known css-alias bridge filter CSS `@import` lines that resolve to missing files, then prepend remaining imports and a `./themes/bridge.css` import; **IF** bridge is unknown generate generic `:root` CSS variables with fallback HSL values - `inst-theme-custom-globals-css`
 
 ---
 

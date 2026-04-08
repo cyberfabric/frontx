@@ -16,8 +16,8 @@ date: 2025-11-15
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Single screenset-level translation file containing all content](#single-screenset-level-translation-file-containing-all-content)
-  - [Pure per-screen model — each screen owns all its translations including shared titles](#pure-per-screen-model-each-screen-owns-all-its-translations-including-shared-titles)
-  - [Two-tier hybrid model — screenset-level for menu titles only, screen-level for all content](#two-tier-hybrid-model-screenset-level-for-menu-titles-only-screen-level-for-all-content)
+  - [Pure per-screen model — each screen owns all its translations including shared titles](#pure-per-screen-model--each-screen-owns-all-its-translations-including-shared-titles)
+  - [Two-tier hybrid model — screenset-level for menu titles only, screen-level for all content](#two-tier-hybrid-model--screenset-level-for-menu-titles-only-screen-level-for-all-content)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 

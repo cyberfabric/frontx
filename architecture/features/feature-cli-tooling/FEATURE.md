@@ -19,7 +19,7 @@
   - [Apply Code Migrations](#apply-code-migrations)
   - [Run PR E2E Scenario](#run-pr-e2e-scenario)
   - [Run Nightly E2E Scenario](#run-nightly-e2e-scenario)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Validate Project Name](#validate-project-name)
   - [Generate Project Files](#generate-project-files)
   - [Resolve Package Manager Policy](#resolve-package-manager-policy)
@@ -225,7 +225,7 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 2. [x] - `p2` - Build `@hai3/cli` via `npm run build --workspace=@hai3/cli` - `inst-e2e-nightly-build-cli`
 3. [x] - `p2` - Algorithm: create harness using `cpt-hai3-algo-cli-tooling-e2e-harness-step` with suite name `nightly` - `inst-e2e-nightly-create-harness`
 4. [x] - `p2` - Run `hai3 create nightly-app --no-studio --uikit shadcn --package-manager npm`, then install, build, and type-check - `inst-e2e-nightly-create-default`
-5. [x] - `p2` - Run `hai3 create nightly-pnpm --no-studio --uikit shadcn --package-manager pnpm` and `hai3 create nightly-yarn --no-studio --uikit shadcn --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands - `inst-e2e-nightly-create-alt-managers`
+5. [x] - `p2` - Run `hai3 create nightly-pnpm --no-studio --uikit shadcn --package-manager pnpm` and `hai3 create nightly-yarn --no-studio --uikit shadcn --package-manager yarn`; assert manager-specific metadata/files, then install, build, and type-check using manager-appropriate commands
 6. [x] - `p2` - Run `hai3 migrate --list` and `hai3 migrate --status` on the default app - `inst-e2e-nightly-migrate-commands`
 7. [x] - `p2` - Run `hai3 ai sync --tool all --diff` twice and assert both succeed (idempotency) - `inst-e2e-nightly-ai-sync-idempotent`
 8. [x] - `p2` - Run `hai3 create nightly-custom --no-studio --uikit none`, then install, build, and type-check - `inst-e2e-nightly-custom-uikit`
@@ -253,24 +253,24 @@ Success criteria: A developer runs `hai3 create my-app`, selects or passes a sup
 
 Constructs the complete set of `GeneratedFile` entries for a new HAI3 project from bundled templates and dynamic content.
 
-1. [x] - `p1` - Load `templates/manifest.json` from the CLI package; **IF** manifest is not found **RETURN** error indicating CLI needs rebuild - `inst-load-manifest`
-2. [x] - `p1` - **FOR EACH** file in `manifest.stage1b.rootFiles`: copy from the templates directory to the file list; apply variant selection for `src/app/main.tsx` (uikit variant) and `src/app/App.tsx` (uikit + studio variant) - `inst-copy-root-files`
-3. [x] - `p1` - **IF** `uikit === 'none'` **THEN** exclude `tailwind.config.ts`, `postcss.config.ts`, `src/app/themes/`, `src/app/components/` from the file list - `inst-filter-uikit-none`
-4. [x] - `p1` - **FOR EACH** directory in `manifest.stage1b.directories`: read all files recursively and add to the file list; skip `src/app/themes` and `src/app/components` when `uikit === 'none'` - `inst-copy-template-dirs`
-5. [x] - `p1` - **IF** `uikit === 'shadcn'` **THEN** copy layout templates from the shadcn layout template into `src/app/layout/` - `inst-copy-layout-templates`
-6. [x] - `p1` - Copy `.ai/targets/*.md` files with layer-aware filtering: include only files whose `TARGET_LAYERS` mapping includes the resolved layer - `inst-copy-ai-targets`
-7. [x] - `p1` - Select and copy the GUIDELINES variant for the resolved layer: `GUIDELINES.sdk.md` for sdk, `GUIDELINES.framework.md` for framework, `GUIDELINES.md` for react/app — output always as `.ai/GUIDELINES.md` - `inst-select-guidelines-variant`
-8. [x] - `p1` - Copy `.ai/company/` and `.ai/project/` placeholder directories - `inst-copy-hierarchy-dirs`
-9. [x] - `p1` - Copy IDE config directories `.claude/`, `.cursor/`, `.windsurf/` from templates - `inst-copy-ide-dirs`
-10. [x] - `p1` - **FOR EACH** command group in `templates/commands-bundle/`: select the most specific layer variant using `selectCommandVariant(baseName, layer, availableFiles)` and copy the selected file to `.ai/commands/<baseName>` - `inst-select-command-variants`
-11. [x] - `p1` - Copy user command stubs from `templates/.ai/commands/user/` - `inst-copy-user-commands`
-12. [x] - `p1` - Copy `eslint-plugin-local/` and `scripts/` directories; **IF** `uikit === 'none'` exclude `scripts/generate-colors.ts` - `inst-copy-support-dirs`
-13. [x] - `p1` - Copy root config files: `CLAUDE.md`, `README.md`, `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `.dependency-cruiser.cjs`, `.pre-commit-config.yaml`, `.npmrc`, `.nvmrc`; **IF** `uikit === 'shadcn'` also include `postcss.config.js` - `inst-copy-root-configs`
-14. [x] - `p1` - Generate `hai3.config.json` dynamically with `{ hai3: true, layer, uikit, packageManager }`; include `linkerMode: "node-modules"` when the selected manager is `yarn` - `inst-generate-hai3-config`
-15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@hai3/*` packages at `alpha` tag; include `@hai3/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]` - `inst-generate-package-json`
-16. [x] - `p1` - Generate manager-specific workspace/config files (`pnpm-workspace.yaml` for pnpm, `.yarnrc.yml` for yarn) - `inst-generate-package-manager-workspace-files`
-17. [x] - `p1` - Rewrite npm-centric command snippets in generated text files to manager-specific commands using `cpt-hai3-algo-cli-tooling-package-manager-policy` - `inst-transform-package-manager-text`
-18. [x] - `p1` - **RETURN** complete `GeneratedFile[]` array - `inst-return-generated-files`
+1. [x] - `p1` - Load `templates/manifest.json` from the CLI package; **IF** manifest is not found **RETURN** error indicating CLI needs rebuild
+2. [x] - `p1` - **FOR EACH** file in `manifest.stage1b.rootFiles`: copy from the templates directory to the file list; apply variant selection for `src/app/main.tsx` (uikit variant) and `src/app/App.tsx` (uikit + studio variant)
+3. [x] - `p1` - **IF** `uikit === 'none'` **THEN** exclude `tailwind.config.ts`, `postcss.config.ts`, `src/app/themes/`, `src/app/components/` from the file list
+4. [x] - `p1` - **FOR EACH** directory in `manifest.stage1b.directories`: read all files recursively and add to the file list; skip `src/app/themes` and `src/app/components` when `uikit === 'none'`
+5. [x] - `p1` - **IF** `uikit === 'shadcn'` **THEN** copy layout templates from the shadcn layout template into `src/app/layout/`
+6. [x] - `p1` - Copy `.ai/targets/*.md` files with layer-aware filtering: include only files whose `TARGET_LAYERS` mapping includes the resolved layer
+7. [x] - `p1` - Select and copy the GUIDELINES variant for the resolved layer: `GUIDELINES.sdk.md` for sdk, `GUIDELINES.framework.md` for framework, `GUIDELINES.md` for react/app — output always as `.ai/GUIDELINES.md`
+8. [x] - `p1` - Copy `.ai/company/` and `.ai/project/` placeholder directories
+9. [x] - `p1` - Copy IDE config directories `.claude/`, `.cursor/`, `.windsurf/` from templates
+10. [x] - `p1` - **FOR EACH** command group in `templates/commands-bundle/`: select the most specific layer variant using `selectCommandVariant(baseName, layer, availableFiles)` and copy the selected file to `.ai/commands/<baseName>`
+11. [x] - `p1` - Copy user command stubs from `templates/.ai/commands/user/`
+12. [x] - `p1` - Copy `eslint-plugin-local/` and `scripts/` directories; **IF** `uikit === 'none'` exclude `scripts/generate-colors.ts`
+13. [x] - `p1` - Copy root config files: `CLAUDE.md`, `README.md`, `eslint.config.js`, `tsconfig.json`, `vite.config.ts`, `.dependency-cruiser.cjs`, `.pre-commit-config.yaml`, `.npmrc`, `.nvmrc`; **IF** `uikit === 'shadcn'` also include `postcss.config.js`
+14. [x] - `p1` - Generate `hai3.config.json` dynamically with `{ hai3: true, layer, uikit, packageManager }`; include `linkerMode: "node-modules"` when the selected manager is `yarn`
+15. [x] - `p1` - Generate `package.json` dynamically with resolved dependencies: always include core `@hai3/*` packages at `alpha` tag; include `@hai3/studio` in devDependencies only if `studio === true`; set manager-specific `packageManager`, centralized manager-specific `engines`, and `workspaces: ["eslint-plugin-local"]`
+16. [x] - `p1` - Generate manager-specific workspace/config files (`pnpm-workspace.yaml` for pnpm, `.yarnrc.yml` for yarn)
+17. [x] - `p1` - Rewrite npm-centric command snippets in generated text files to manager-specific commands using `cpt-hai3-algo-cli-tooling-package-manager-policy`
+18. [x] - `p1` - **RETURN** complete `GeneratedFile[]` array
 
 ### Resolve Package Manager Policy
 
@@ -399,8 +399,8 @@ The `copy-templates.ts` script assembles the complete templates directory inside
 4. [x] - `p1` - Copy GUIDELINES variants (`.sdk.md`, `.framework.md`, `.md`) into `templates/.ai/` - `inst-copy-guidelines-variants`
 5. [x] - `p1` - Bundle command files from `.ai/commands/` into `templates/commands-bundle/` with layer suffixes preserved (`.sdk.md`, `.framework.md`, `.react.md`, `.md`) - `inst-bundle-commands`
 6. [x] - `p1` - Copy IDE adapter directories (`.claude/`, `.cursor/`, `.windsurf/`) into templates - `inst-copy-ide-adapters`
-7. [x] - `p1` - Generate IDE rules files for supported tools (`CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, `.github/copilot-instructions.md`) - `inst-generate-ide-rules`
-8. [x] - `p1` - Log generated adapter and bundled-command counts for traceability during template assembly - `inst-log-build-counts`
+7. [x] - `p1` - Generate IDE rules files for supported tools (`CLAUDE.md`, `.cursor/rules/hai3.mdc`, `.windsurf/rules/hai3.md`, `.github/copilot-instructions.md`)
+8. [x] - `p1` - Log generated adapter and bundled-command counts for traceability during template assembly
 
 ### Execute E2E Harness Step
 

@@ -15,11 +15,11 @@
   - [Theme Change and MFE Propagation](#theme-change-and-mfe-propagation)
   - [Language Change and MFE Propagation](#language-change-and-mfe-propagation)
   - [MFE Extension Registration](#mfe-extension-registration)
-  - [MFE Extension Lifecycle (Load / Mount / Unmount)](#mfe-extension-lifecycle-load-mount-unmount)
+  - [MFE Extension Lifecycle (Load / Mount / Unmount)](#mfe-extension-lifecycle-load--mount--unmount)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [App Configuration via Events](#app-configuration-via-events)
   - [Application Teardown](#application-teardown)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Builder Dependency Resolution (Topological Sort)](#builder-dependency-resolution-topological-sort)
   - [Plugin Provides Aggregation](#plugin-provides-aggregation)
   - [GTS Shared Property Validation](#gts-shared-property-validation)
@@ -39,12 +39,13 @@
   - [Shared Property Broadcast with GTS Validation](#shared-property-broadcast-with-gts-validation)
   - [Presets](#presets)
   - [SDK Re-exports and Convenience Surface](#sdk-re-exports-and-convenience-surface)
+  - [GTS Derived Schemas for Application-Layer Registration](#gts-derived-schemas-for-application-layer-registration)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
   - [Plugin Lifecycle Sequence](#plugin-lifecycle-sequence)
   - [MFE Effects Initialization Exception](#mfe-effects-initialization-exception)
   - [Shared Property Late Registration Limitation](#shared-property-late-registration-limitation)
-  - [No `updateDomainProperty` / `updateDomainProperties`](#no-updatedomainproperty-updatedomainproperties)
+  - [No `updateDomainProperty` / `updateDomainProperties`](#no-updatedomainproperty--updatedomainproperties)
   - [HAI3Config Fields](#hai3config-fields)
 
 <!-- /toc -->
@@ -533,6 +534,20 @@ All presets are exported from `@hai3/framework`. The `presets` object collects a
 - From `@hai3/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.
+
+---
+
+### GTS Derived Schemas for Application-Layer Registration
+
+- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-derived-schemas`
+
+`@hai3/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@hai3/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the HAI3 app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-mfe-shared-property`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-framework`
 
 **Covers (PRD)**:
 - `cpt-hai3-fr-sdk-framework-layer`

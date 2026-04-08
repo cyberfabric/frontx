@@ -12,7 +12,7 @@
   - [MFE Load via Blob URL Isolation](#mfe-load-via-blob-url-isolation)
   - [MFE Build with Externalize Plugin](#mfe-build-with-externalize-plugin)
   - [MFE-Internal Bootstrap](#mfe-internal-bootstrap)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Build Share Scope](#build-share-scope)
   - [Blob URL Get Closure](#blob-url-get-closure)
   - [Fetch Source Text (with Cache)](#fetch-source-text-with-cache)

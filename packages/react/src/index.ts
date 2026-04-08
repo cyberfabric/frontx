@@ -416,6 +416,9 @@ export {
 // MFE Concrete implementations
 export { MfeHandlerMF, gtsPlugin } from '@hai3/framework';
 
+// GTS Derived Schemas (application-layer registration)
+export { themeSchema, languageSchema, extensionScreenSchema } from '@hai3/framework';
+
 // MFE Utilities
 export {
   createShadowRoot,

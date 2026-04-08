@@ -21,7 +21,7 @@
   - [Settings Restore on Mount](#settings-restore-on-mount)
   - [Viewport Position Clamping](#viewport-position-clamping)
   - [Conditional Loading and Production Exclusion](#conditional-loading-and-production-exclusion)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Position Clamping Algorithm](#position-clamping-algorithm)
   - [Default Position Derivation](#default-position-derivation)
   - [Persistence Initialization](#persistence-initialization)

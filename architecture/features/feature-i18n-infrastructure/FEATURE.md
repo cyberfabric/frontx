@@ -15,7 +15,7 @@
   - [Screen Translation Registration and Lazy Load](#screen-translation-registration-and-lazy-load)
   - [Translation Key Resolution](#translation-key-resolution)
   - [Formatter Usage](#formatter-usage)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Language File Mapping](#language-file-mapping)
   - [Create Translation Loader](#create-translation-loader)
   - [Namespace Lazy-Load Exclusion](#namespace-lazy-load-exclusion)
