@@ -253,7 +253,9 @@ export async function instrumentedFetch(
   init?: RequestInit,
 ): Promise<Response> {
   const tracer = getTracer('hai3-api');
-  const method = String(init?.method || 'GET').toUpperCase(); // L1 SDK: no lodash dep, trivial string op
+  const methodRaw = String(init?.method || 'GET');
+  const HTTP_UPPER: Record<string, string> = { get: 'GET', post: 'POST', put: 'PUT', patch: 'PATCH', delete: 'DELETE', head: 'HEAD', options: 'OPTIONS', GET: 'GET', POST: 'POST', PUT: 'PUT', PATCH: 'PATCH', DELETE: 'DELETE', HEAD: 'HEAD', OPTIONS: 'OPTIONS' };
+  const method = HTTP_UPPER[methodRaw] ?? methodRaw;
   const normalizedUrl = normalizeUrlForSpan(url);
   const startedAt = performance.now();
   const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);

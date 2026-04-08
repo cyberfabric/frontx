@@ -41,11 +41,11 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    const parsed = JSON.parse(raw) as Record<string, string | number | boolean>;
     const result = { ...DEFAULT_RUNTIME_CONFIG };
     for (const key of PERSISTABLE_KEYS) {
       if (key in parsed && typeof parsed[key] === typeof DEFAULT_RUNTIME_CONFIG[key]) {
-        (result as Record<string, unknown>)[key] = parsed[key];
+        (result as Record<string, string | number | boolean>)[key] = parsed[key];
       }
     }
     return result;
@@ -58,7 +58,7 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
 function persistRuntimeConfig(): void {
   try {
     if (!globalThis.localStorage) return;
-    const safe: Record<string, unknown> = {};
+    const safe: Record<string, string | number | boolean> = {};
     for (const key of PERSISTABLE_KEYS) {
       safe[key] = runtimeConfig[key];
     }
