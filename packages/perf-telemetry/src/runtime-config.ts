@@ -39,15 +39,19 @@ const listeners = new Set<() => void>();
 /** Loads config from localStorage, whitelisting only known keys. */
 function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
+    // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
+    // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
     const parsed = JSON.parse(raw) as PrimitiveRecord;
     const result = { ...DEFAULT_RUNTIME_CONFIG };
+    // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-restore-whitelisted-keys
     for (const key of PERSISTABLE_KEYS) {
       if (key in parsed && typeof parsed[key] === typeof DEFAULT_RUNTIME_CONFIG[key]) {
         (result as PrimitiveRecord)[key] = parsed[key];
       }
     }
+    // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-restore-whitelisted-keys
     return result;
   } catch { /* fail-open: corrupted localStorage returns defaults */
     return { ...DEFAULT_RUNTIME_CONFIG };
@@ -58,17 +62,23 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
 function persistRuntimeConfig(): void {
   try {
     if (!globalThis.localStorage) return;
+    // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-build-persistable-payload
     const safe: PrimitiveRecord = {};
     for (const key of PERSISTABLE_KEYS) {
       safe[key] = runtimeConfig[key];
     }
+    // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-build-persistable-payload
+    // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
     globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+    // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
   } catch { /* fail-open */ }
 }
 
+// @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-notify-subscribers
 function notify(): void {
   listeners.forEach((listener) => listener());
 }
+// @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-notify-subscribers
 
 /** Get current runtime config snapshot (defensive copy). */
 export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
@@ -77,16 +87,20 @@ export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
 
 /** Subscribe to runtime config changes. Returns unsubscribe function. */
 export function subscribeTelemetryRuntimeConfig(listener: () => void): () => void {
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-subscribe-runtime-config
   listeners.add(listener);
   return () => listeners.delete(listener);
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-subscribe-runtime-config
 }
 
 /** Patch runtime config, persist to localStorage, and notify subscribers. Returns defensive copy. */
 export function updateTelemetryRuntimeConfig(patch: Partial<TelemetryRuntimeConfig>): TelemetryRuntimeConfig {
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-apply-runtime-config-patch
   runtimeConfig = { ...runtimeConfig, ...patch };
   persistRuntimeConfig();
   notify();
   return { ...runtimeConfig };
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-apply-runtime-config-patch
 }
 
 /** Returns current consent mode based on includeDebugData flag. */
