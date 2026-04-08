@@ -322,9 +322,9 @@ export function useWebVitals(routeId: string, enabled = true) {
 
     try {
       const lcpObserver = new PerformanceObserver((list) => {
-        // Filter buffered entries to only include those from current route mount
-        const entries = list.getEntries().filter((e) => e.startTime >= mountTs);
-        const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number } | undefined;
+       // Filter buffered entries to only include those from current route mount
+       const entries = list.getEntries().filter((e) => e.startTime >= mountTs);
+        const lastEntry = entries.slice(-1)[0] as PerformanceEntry & { startTime: number } | undefined;
         if (lastEntry) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
           const span = tracer.startSpan('webvital.lcp', {
