@@ -151,7 +151,6 @@ jobs:
   # Optional: Run promptfoo tests if configured
   promptfoo-tests:
     runs-on: ubuntu-latest
-    if: true  # conditionally skipped in step below if promptfoo config is missing
 
     steps:
     - name: Checkout code

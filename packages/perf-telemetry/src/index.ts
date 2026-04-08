@@ -14,7 +14,6 @@ export {
   useResourceTimingObserver,
   useLongTaskObserver,
 } from './hooks';
-export type { ActionTrigger } from './hooks';
 export {
   initOtel,
   getOtelSessionId,
@@ -79,4 +78,7 @@ export type {
   Lane,
   ClientAttributes,
   NavigatorWithConnection,
+  ActionTrigger,
+  DoneRenderingDeps,
+  FetchMeta,
 } from './types';
