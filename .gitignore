@@ -52,3 +52,4 @@ packages/cli/template-sources/layout/
 
 # Local CLI e2e artifacts
 .artifacts/
+.prs/

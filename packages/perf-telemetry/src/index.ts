@@ -14,6 +14,7 @@ export {
   useResourceTimingObserver,
   useLongTaskObserver,
 } from './hooks';
+export type { ActionTrigger } from './hooks';
 export {
   initOtel,
   getOtelSessionId,

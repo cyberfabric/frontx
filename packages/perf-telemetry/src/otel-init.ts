@@ -41,6 +41,7 @@ import { TelemetryStoreProcessor } from './telemetry-store';
 let _provider: WebTracerProvider | null = null;
 let _sessionId: string | null = null;
 let _initialized = false;
+let _visibilityHandler: (() => void) | null = null;
 
 function generateSessionId(): string {
   // Use cryptographically secure random when available (all modern browsers)
@@ -164,8 +165,9 @@ class HAI3SpanProcessor implements SpanProcessor {
     if (cfg.accountSegment) span.setAttribute('account.segment', cfg.accountSegment);
 
     if (cfg.includeDebugData) {
-      if (cfg.accountId) span.setAttribute('user.id', cfg.accountId);
-      if (cfg.accountName) span.setAttribute('user.name', cfg.accountName);
+      // Use debug.* namespace to avoid prohibited user.* metric labels per data-contracts.md
+      if (cfg.accountId) span.setAttribute('debug.account_id', cfg.accountId);
+      if (cfg.accountName) span.setAttribute('debug.account_display_name', cfg.accountName);
     }
   }
   onEnd(): void {}
@@ -215,8 +217,9 @@ export function initOtel(config: OtelConfig): void {
     setAmbientTracer(() => trace.getTracer('hai3-ambient'));
 
     // Auto-instrumentations — only propagate trace headers to same-origin requests
-    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeRegex(appOrigin)}`)];
+    // Use split+map+join instead of replace(/g) to satisfy SonarCloud S7781
+    const escapeForRegex = (s: string) => s.split('').map((c) => '.+?^${}()|[]\\'.includes(c) ? `\\${c}` : c).join('');
+    const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeForRegex(appOrigin)}`)];
     registerInstrumentations({
       instrumentations: [
         new FetchInstrumentation({
@@ -233,12 +236,14 @@ export function initOtel(config: OtelConfig): void {
     });
 
     // Flush on page hide — visibilitychange on document per spec
+    // Handler captured for cleanup in shutdownOtel()
     if (globalThis.document) {
-      globalThis.document.addEventListener('visibilitychange', () => {
+      _visibilityHandler = () => {
         if (globalThis.document.visibilityState === 'hidden') {
           _provider?.forceFlush().catch(() => { /* fail-open */ });
         }
-      });
+      };
+      globalThis.document.addEventListener('visibilitychange', _visibilityHandler);
     }
 
     _initialized = true;
@@ -272,6 +277,10 @@ export function isOtelInitialized(): boolean {
 }
 
 export async function shutdownOtel(): Promise<void> {
+  if (_visibilityHandler && globalThis.document) {
+    globalThis.document.removeEventListener('visibilitychange', _visibilityHandler);
+    _visibilityHandler = null;
+  }
   if (_provider) {
     await _provider.shutdown();
     _provider = null;

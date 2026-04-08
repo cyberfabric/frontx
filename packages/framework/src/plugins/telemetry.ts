@@ -47,6 +47,7 @@ export type TelemetryPluginConfig = {
 export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
   // Resolved lazily on init — null if @hai3/perf-telemetry is not installed
   let resolvedStore: unknown = null;
+  let _mod: Record<string, (...args: never[]) => unknown> | null = null;
 
   return {
     name: 'telemetry',
@@ -64,20 +65,20 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
       if (!enabled) return;
 
       try {
-        // Dynamic import to keep @hai3/perf-telemetry optional
-        // Consumers must install @hai3/perf-telemetry and its OTel peer deps
-        const perfTelemetry = require('@hai3/perf-telemetry');
+        // Dynamic import to keep @hai3/perf-telemetry optional — cached for onDestroy
+        _mod = require('@hai3/perf-telemetry');
+        if (!_mod) return;
 
-        perfTelemetry.initOtel({
+        _mod.initOtel({
           serviceName: config?.serviceName ?? 'hai3-app',
           serviceVersion: config?.serviceVersion ?? '1.0.0',
           collectorUrl: config?.collectorUrl ?? 'http://localhost:14318',
           environment: config?.environment ?? 'development',
           enabled: true,
-        });
+        } as never);
 
-        // Expose telemetryStore for Studio dev panel (accessed via useHAI3())
-        resolvedStore = perfTelemetry.telemetryStore ?? null;
+        // Expose telemetryStore for Studio dev panel
+        resolvedStore = (_mod as Record<string, unknown>).telemetryStore ?? null;
       } catch {
         // Fail-open: if @hai3/perf-telemetry is not installed, silently skip
       }
@@ -85,10 +86,10 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
 
     onDestroy() {
       try {
-        const perfTelemetry = require('@hai3/perf-telemetry');
-        if (perfTelemetry.isOtelInitialized()) {
-          perfTelemetry.flushOtel()
-            .finally(() => perfTelemetry.shutdownOtel().catch(() => { /* fail-open */ }));
+        const mod = _mod ?? require('@hai3/perf-telemetry');
+        if (mod?.isOtelInitialized?.()) {
+          (mod.flushOtel() as Promise<void>)
+            .finally(() => (mod.shutdownOtel() as Promise<void>).catch(() => { /* fail-open */ }));
         }
       } catch {
         // Fail-open

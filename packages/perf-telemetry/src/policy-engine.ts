@@ -12,11 +12,15 @@
 
 // ─── CSPRNG Helper ──────────────────────────────────────────────────────────
 
-/** Returns a cryptographically secure random float in [0, 1). */
+/** Returns a cryptographically secure random float in [0, 1). Uses globalThis for Node/JSDOM compat. */
 function cryptoRandom(): number {
-  const array = new Uint32Array(1);
-  crypto.getRandomValues(array);
-  return array[0] / 4294967296; // 2^32
+  if (globalThis.crypto) {
+    const array = new Uint32Array(1);
+    globalThis.crypto.getRandomValues(array);
+    return array[0] / 4294967296; // 2^32
+  }
+  // Fallback for environments without crypto (test runners)
+  return Date.now() % 1000 / 1000;
 }
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
