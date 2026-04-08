@@ -109,7 +109,7 @@ export const SUPPORT_BURST_POLICY: Readonly<CollectionPolicy> = Object.freeze({
 export const KILL_SWITCH_POLICY: Readonly<CollectionPolicy> = Object.freeze({
   version: 1,
   updatedAt: Date.now(),
-  profile: 'baseline',
+  profile: 'kill-switch',
   samplingRates: { laneA: 0, laneB: 0, laneC: 0 },
   limits: { maxEventsPerMinute: 0, maxBatchSizeBytes: 0, flushIntervalMs: 0 },
   featureToggles: { networkDiagnostics: false, actionTracing: false, resourceTiming: false, longTaskObserver: false },
@@ -237,6 +237,7 @@ export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
   switch (profile) {
     case 'investigation': return { ...structuredClone(INVESTIGATION_POLICY), updatedAt: Date.now() };
     case 'support-burst': return { ...structuredClone(SUPPORT_BURST_POLICY), updatedAt: Date.now() };
+    case 'kill-switch': return { ...structuredClone(KILL_SWITCH_POLICY), updatedAt: Date.now() };
     default: return { ...structuredClone(BASELINE_POLICY), updatedAt: Date.now() };
   }
 }

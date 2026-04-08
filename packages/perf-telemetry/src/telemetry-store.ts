@@ -65,7 +65,7 @@ export class TelemetryStoreProcessor implements SpanProcessor {
     const stored: StoredSpan = {
       spanId: span.spanContext().spanId,
       traceId: span.spanContext().traceId,
-      parentSpanId: (span as ReadableSpan & { parentSpanId?: string }).parentSpanId || undefined,
+      parentSpanId: (span as ReadableSpan & { parentSpanContext?: { spanId?: string } }).parentSpanContext?.spanId,
       name: span.name,
       startTimeMs: startMs,
       endTimeMs: endMs,

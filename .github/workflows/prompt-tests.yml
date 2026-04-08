@@ -174,7 +174,7 @@ jobs:
     - name: Run promptfoo tests
       run: |
         if [ -f ".ai/tests/promptfoo.yaml" ]; then
-          promptfoo eval
+          promptfoo eval -c .ai/tests/promptfoo.yaml
         else
           echo "No promptfoo config found, skipping"
         fi

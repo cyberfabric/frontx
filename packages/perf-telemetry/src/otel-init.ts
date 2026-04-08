@@ -222,7 +222,8 @@ export function initOtel(config: OtelConfig): void {
     // Auto-instrumentations — only propagate trace headers to same-origin requests
     // Use split+map+join instead of replace(/g) to satisfy SonarCloud S7781
     const escapeForRegex = (s: string) => s.split('').map((c) => '.+?^${}()|[]\\'.includes(c) ? `\\${c}` : c).join('');
-    const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeForRegex(appOrigin)}`)];
+    // Match exact origin followed by path separator or end — prevents lookalike host matches
+    const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeForRegex(appOrigin)}(/|$)`)];
     registerInstrumentations({
       instrumentations: [
         new FetchInstrumentation({

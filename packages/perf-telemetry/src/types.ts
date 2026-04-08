@@ -75,7 +75,7 @@ export type TelemetryContextValue = {
 export type Lane = 'A' | 'B' | 'C';
 
 /** Named policy profile controlling sampling rates and feature toggles. */
-export type PolicyProfile = 'baseline' | 'investigation' | 'support-burst';
+export type PolicyProfile = 'baseline' | 'investigation' | 'support-burst' | 'kill-switch';
 
 /** Full collection policy snapshot: sampling rates, rate limits, feature toggles, and kill switch state. */
 export type CollectionPolicy = {
