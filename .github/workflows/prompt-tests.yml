@@ -42,7 +42,7 @@ jobs:
 
     - name: Validate SDK package documentation
       run: |
-        SDK_PACKAGES="events store layout api i18n perf-telemetry framework react"
+        SDK_PACKAGES="state screensets api i18n perf-telemetry framework react"
         MISSING=""
 
         for pkg in $SDK_PACKAGES; do
@@ -113,7 +113,7 @@ jobs:
       run: |
         # Check that GUIDELINES.md contains routing entries for all SDK packages
         GUIDELINES=".ai/GUIDELINES.md"
-        PACKAGES="packages/events packages/store packages/layout packages/api packages/i18n packages/perf-telemetry packages/framework packages/react"
+        PACKAGES="packages/state packages/screensets packages/api packages/i18n packages/perf-telemetry packages/framework packages/react"
         MISSING=""
 
         for pkg in $PACKAGES; do
@@ -130,7 +130,7 @@ jobs:
 
     - name: Check package.json files array
       run: |
-        SDK_PACKAGES="events store layout api i18n perf-telemetry framework react"
+        SDK_PACKAGES="state screensets api i18n perf-telemetry framework react"
         ISSUES=""
 
         for pkg in $SDK_PACKAGES; do
