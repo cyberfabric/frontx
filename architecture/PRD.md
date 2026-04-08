@@ -199,7 +199,12 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 | Extension Domain | Contract definition for a category of extensions: shared properties, actions host can send, actions extensions can send, lifecycle. |
 | Plugin | Framework-level feature (screensets, themes, i18n, routing, effects, microfrontends, layout) composed via `.use()` on `createHAI3` builder. |
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
-| Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel). Only loaded in `import.meta.env.DEV`. |
+| Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel) and host for the Builder AI idea generator. Only loaded in `import.meta.env.DEV`. |
+| Builder | The embedded AI idea generator inside Studio. Allows non-technical actors to describe a UI concept in plain language and receive a live interactive preview without writing code. |
+| Chat Panel | The left-side sliding panel inside the Builder containing the conversation thread and prompt input. |
+| Preview Panel | The right-side sliding panel inside the Builder displaying the live generated UI in an isolated iframe. |
+| AI Backend | The external language model API (Anthropic Claude) that processes prompts and generates TypeScript/React component code conforming to HAI3 screenset conventions. |
+| Personal Sandbox | A private, pre-draft exploration space where a user can generate and refine a UI idea before it enters the official screenset pipeline. |
 | UI Kit | Component library: per-project choice at creation (local components, shadcn, or third-party). |
 | Registry | Self-registering singleton (ScreensetsRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
 | GTS | Global Type System — schema-based validation for MFE shared properties and action chains. |
@@ -231,6 +236,20 @@ HAI3 solves these by enforcing a proven architectural model with four isolated l
 
 **Role**: Developer using the floating dev panel to toggle themes, screensets, languages, and mock API mode during development.
 **Needs**: Quick access (keyboard shortcut), persistent settings, zero production footprint.
+
+#### Product Manager
+
+**ID**: `cpt-hai3-actor-pm`
+
+**Role**: Creates new draft UI ideas using plain-language prompts in the Builder. Iterates on generated output through follow-up messages. Shares preview links informally before committing anything to the official project.
+**Needs**: A zero-configuration way to go from an idea to a visible, interactive UI prototype without writing code or using the CLI.
+
+#### Designer
+
+**ID**: `cpt-hai3-actor-designer`
+
+**Role**: Reviews AI-generated drafts in the Builder and submits refinement prompts to adjust visual layout, color, and interaction patterns.
+**Needs**: A fast feedback loop for visual iteration without depending on a developer to implement changes.
 
 #### End User
 
@@ -877,6 +896,60 @@ The system MUST clamp Studio button and panel positions to the current viewport 
 **Rationale**: Zero production footprint.
 **Actors**: `cpt-hai3-actor-build-system`
 
+#### Builder Trigger
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-trigger`
+
+The Studio shell MUST render a persistent trigger control that, when activated, opens the Builder (Chat Panel and Preview Panel together). Activating the trigger when the Builder is already open MUST close the entire Builder experience.
+
+**Rationale**: The Builder must be instantly accessible from anywhere in Studio without navigating away from the current context; users also need a clear way to dismiss it and reclaim screen space.
+**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+#### Builder Chat Panel
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-chat`
+
+The Builder MUST provide a Chat Panel that slides in from the left edge of the Studio viewport. The panel MUST display the full conversation thread for the active session (user messages and AI responses visually distinguished, markdown rendered), and MUST provide a text input for composing and submitting prompts via keyboard or explicit send control. Input MUST be disabled while the AI Backend is processing.
+
+**Rationale**: The conversation thread is the primary interface for iterating on a generated UI; keyboard submission and clear processing feedback are essential for a fast, non-confusing iteration loop.
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+#### Builder Preview Panel
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-preview`
+
+The Builder MUST provide a Preview Panel that slides in from the right edge of the Studio viewport and renders the AI-generated UI in an isolated iframe. The preview MUST update automatically after each successful AI response. The panel MUST receive the active Studio theme and language selection and apply them to the rendered preview. The panel MUST display a loading state while the dev server initializes, and a reconnecting state if the dev server disconnects.
+
+**Rationale**: Automatic preview updates and theme/language forwarding give non-technical actors an accurate, immediate impression of the generated UI; explicit loading and reconnecting states prevent users from misinterpreting server startup delays as failures.
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
+
+#### Builder AI Code Generation
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-codegen`
+
+When a prompt is submitted, the system MUST send the prompt together with sufficient project context (existing source files, screenset conventions) to the AI Backend. The AI Backend MUST return generated TypeScript/React component code. The system MUST write generated files to the correct locations in the active project's screenset directory. When generated code fails validation (parse errors, type errors), the system MUST automatically attempt correction before presenting output; if correction fails the system MUST notify the user and MUST preserve the last valid project state.
+
+**Rationale**: Providing full project context produces output that integrates correctly with the existing screenset structure; auto-correction shields non-technical actors from raw compile errors that would break the prototyping flow.
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+#### Builder Session Persistence
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-session`
+
+The system MUST persist the full conversation thread per project. Closing and reopening the Builder MUST restore the previous conversation state. Panel open/closed state MUST also be persisted.
+
+**Rationale**: Prototyping sessions span multiple sittings; losing conversation history forces users to reconstruct context manually.
+**Actors**: `cpt-hai3-actor-pm`
+
+#### Builder Credential Security
+
+- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-credentials`
+
+AI Backend credentials MUST be stored server-side only and MUST NOT be transmitted to or accessible from the browser at any point.
+
+**Rationale**: Client-side credential exposure would allow any page visitor to make API calls at the credential owner's expense.
+**Actors**: `cpt-hai3-actor-studio-user`
+
 ### 5.15 CLI
 
 #### Package Structure
@@ -1297,6 +1370,56 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 **Alternative Flows**:
 - **Directory exists**: CLI prompts for `--force` flag to overwrite
 
+#### PM Generates a New UI Idea
+
+- [ ] `p1` - **ID**: `cpt-hai3-usecase-builder-new-idea`
+
+**Actor**: `cpt-hai3-actor-pm`
+
+**Preconditions**:
+- Studio is running with an active project
+
+**Main Flow**:
+1. PM clicks the Builder trigger in the Studio shell
+2. Chat Panel slides in from the left; Preview Panel slides in from the right
+3. PM types a plain-language description of the desired UI
+4. System sends prompt and project context to the AI Backend
+5. AI Backend returns generated component code
+6. System writes generated files to the project's screenset directory
+7. Preview Panel automatically updates to show the live generated UI
+8. PM reviews the result
+
+**Postconditions**:
+- Generated files exist in the project's screenset directory
+- Preview Panel displays the generated UI
+- Conversation is persisted to the session
+
+**Alternative Flows**:
+- **Generation fails validation**: System auto-corrects; if correction fails, user sees an error message and project state is preserved
+
+#### PM Iterates on Generated Output
+
+- [ ] `p1` - **ID**: `cpt-hai3-usecase-builder-iterate`
+
+**Actor**: `cpt-hai3-actor-pm`
+
+**Preconditions**:
+- A prior generation exists in the active Builder session
+
+**Main Flow**:
+1. PM reviews the Preview Panel and identifies a desired change
+2. PM types a follow-up prompt describing the change
+3. System sends updated prompt with full conversation history and project context to the AI Backend
+4. AI Backend returns updated code
+5. Preview Panel updates to reflect the change
+
+**Postconditions**:
+- Updated files are written to the project's screenset directory
+- Preview reflects the latest generated state
+
+**Alternative Flows**:
+- **AI asks a clarifying question**: PM types a response; generation proceeds after clarification
+
 ## 9. Acceptance Criteria
 
 - [x] All published workspace packages build successfully in layer dependency order
@@ -1309,6 +1432,14 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 - [x] All formatters return `''` for invalid inputs without throwing
 - [x] Studio panel is excluded from production builds via tree-shaking
 - [x] CLI scaffolds functional project with `hai3 create` + `hai3 scaffold layout`
+- [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
+- [ ] A processing indicator is visible within 300ms of prompt submission
+- [ ] Submitting a prompt results in visible AI-generated UI in the Preview Panel within 30 seconds
+- [ ] The Preview Panel reflects the active Studio theme and language without manual intervention
+- [ ] Closing and reopening the Builder restores the previous conversation thread
+- [ ] AI Backend credentials are not present in any browser network request or browser storage
+- [ ] A failed code generation does not corrupt the last valid project state
+- [ ] Follow-up prompts refine the existing generated output without starting over
 
 ## 10. Dependencies
 
@@ -1328,6 +1459,7 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 | Radix UI primitives (20+ packages) | Accessible UI for local UI | p2 |
 | `recharts` | Chart visualization for local UI | p3 |
 | `sonner` | Toast notifications for local UI | p3 |
+| AI Backend API (Anthropic Claude) | External LLM API for Builder prompt processing and code generation | p1 |
 
 ## 11. Assumptions
 
@@ -1354,3 +1486,6 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 | Large change surface for breaking changes | Alpha status means API changes are expected | CLI migration runners automate codemod transformations |
 | Infinite retry loops | API/MFE retry could loop indefinitely | maxRetryDepth (default: 10) in RestProtocol; retries config (default: 2) in MfeHandlerMF |
 | Single Module Federation implementation lock-in | Only vite-plugin-federation supported | MfeHandler is abstract; custom handlers pluggable via microfrontends config |
+| AI Backend generates code that does not conform to HAI3 screenset conventions | Preview fails to render; user sees error | Include screenset rules and existing source context in every prompt; validate and auto-correct before writing files |
+| AI Backend latency exceeds user tolerance | User abandons session, loses confidence in the Builder | Show streaming progress indicator within 300ms of submission; enforce a hard timeout with a user-facing message |
+| Dev server startup time creates perceived Preview Panel failure | User thinks generation failed when dev server is merely initializing | Explicit loading and reconnecting states in the Preview Panel that clearly distinguish initializing from error |

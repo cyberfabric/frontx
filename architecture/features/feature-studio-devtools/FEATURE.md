@@ -59,7 +59,7 @@
 
 ### 1.1 Overview
 
-Studio DevTools is the development-time overlay package (`@hai3/studio`) for HAI3 applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application.
+Studio DevTools is the development-time overlay package (`@hai3/studio`) for HAI3 applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-technical actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
 
 Problem: During development, iterating on theme, language, and API mock states requires either page reloads, hard-coded configuration, or direct Redux DevTools manipulation — all of which break the iterative feedback loop.
 
@@ -79,6 +79,8 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 - `cpt-hai3-actor-build-system` — Vite build process that tree-shakes Studio from production bundles
 - `cpt-hai3-actor-runtime` — Browser that evaluates conditional imports, manages localStorage, and fires resize events
 - `cpt-hai3-actor-framework-plugin` — Framework plugins (`themes()`, `i18n()`, `mock()`) that respond to events Studio emits during settings restore
+- `cpt-hai3-actor-pm` — Product Manager who uses the Builder to generate draft UI ideas from plain-language prompts without writing code
+- `cpt-hai3-actor-designer` — Designer who uses the Builder to submit refinement prompts and review AI-generated visual output
 
 ### 1.4 References
 
@@ -282,6 +284,73 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 3. [ ] `p1` - Mount `StudioOverlay` inside `StudioProvider` beneath `HAI3Provider` — `inst-mount-overlay`
 4. [ ] `p1` - **IF** `import.meta.env.DEV` is false: Vite tree-shakes the entire conditional branch and `@hai3/studio` package — `inst-treeshake`
 5. [ ] `p1` - Production bundle contains zero Studio code and zero Studio UIKit imports — `inst-zero-prod-footprint`
+
+---
+
+### Builder Activation
+
+- [ ] `p1` - **ID**: `cpt-hai3-flow-studio-builder-activation`
+
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
+
+1. [ ] `p1` - Actor clicks the Builder trigger control in the Studio shell — `inst-trigger-click`
+2. [ ] `p1` - **IF** Builder is currently closed **THEN** open the entire Builder experience: Chat Panel slides in from the left, Preview Panel slides in from the right — `inst-open-builder`
+3. [ ] `p1` - **IF** Builder is currently open **THEN** close the entire Builder experience with reverse slide-out animations on both panels — `inst-close-builder`
+4. [ ] `p1` - Builder open/closed state and chat panel width are persisted to `hai3:studio:builder:panelState` in localStorage — `inst-persist-panel-state`
+
+---
+
+### Chat Panel Interaction
+
+- [ ] `p1` - **ID**: `cpt-hai3-flow-studio-builder-chat`
+
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+1. [ ] `p1` - Actor views the conversation thread for the active project session — `inst-view-thread`
+2. [ ] `p1` - User messages and AI responses are visually distinguished; AI responses containing markdown are rendered as formatted content — `inst-render-thread`
+3. [ ] `p1` - Actor types a prompt in the text input at the bottom of the Chat Panel — `inst-type-prompt`
+4. [ ] `p1` - Actor submits the prompt via `Enter` key or explicit send control — `inst-submit-prompt`
+5. [ ] `p1` - Prompt input is disabled and a processing indicator is displayed — `inst-disable-input`
+6. [ ] `p1` - System sends the prompt with project context to the AI Backend — `inst-send-to-ai`
+7. [ ] `p1` - AI Backend response is appended to the conversation thread — `inst-append-response`
+8. [ ] `p1` - Prompt input is re-enabled after the AI Backend response is received — `inst-reenable-input`
+9. [ ] `p1` - Conversation thread is persisted to `hai3:studio:builder:conversation:<projectId>` — `inst-persist-thread`
+
+---
+
+### Preview Panel Rendering
+
+- [ ] `p1` - **ID**: `cpt-hai3-flow-studio-builder-preview`
+
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
+
+1. [ ] `p1` - Preview Panel renders the generated UI in an isolated iframe — `inst-render-iframe`
+2. [ ] `p1` - **IF** the dev server for the generated project is initializing **THEN** Preview Panel displays a loading state — `inst-loading-state`
+3. [ ] `p1` - **WHEN** dev server is ready, iframe loads automatically without user action — `inst-auto-load`
+4. [ ] `p1` - **IF** dev server disconnects after load **THEN** Preview Panel displays a reconnecting state — `inst-reconnecting-state`
+5. [ ] `p1` - **WHEN** connectivity is restored, iframe reloads automatically — `inst-auto-reload`
+6. [ ] `p1` - Studio forwards the active theme (light/dark and palette tokens) to the iframe via `postMessage` — `inst-forward-theme`
+7. [ ] `p1` - Studio forwards the active language selection to the iframe via `postMessage` — `inst-forward-language`
+8. [ ] `p1` - After each successful AI code generation, Preview Panel reloads automatically to reflect updated files — `inst-auto-refresh`
+
+---
+
+### AI Code Generation
+
+- [ ] `p1` - **ID**: `cpt-hai3-flow-studio-builder-codegen`
+
+**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+
+1. [ ] `p1` - System collects the submitted prompt and the full conversation history — `inst-collect-prompt`
+2. [ ] `p1` - System reads the active project's existing source files and screenset conventions as context — `inst-collect-context`
+3. [ ] `p1` - System sends the prompt, conversation history, and project context to the AI Backend — `inst-send-request`
+4. [ ] `p1` - AI Backend returns generated TypeScript/React component code — `inst-receive-code`
+5. [ ] `p1` - System validates the generated code (parse errors, type errors) — `inst-validate-code`
+6. [ ] `p1` - **IF** validation passes **THEN** write generated files to the screenset directory — `inst-write-files`
+7. [ ] `p1` - **IF** validation fails **THEN** automatically send the errors back to the AI Backend for correction — `inst-auto-correct`
+8. [ ] `p1` - **IF** auto-correction produces valid code **THEN** write corrected files to the screenset directory — `inst-write-corrected`
+9. [ ] `p1` - **IF** auto-correction fails **THEN** notify the user with an error message and preserve the last valid project state — `inst-preserve-last-valid`
+10. [ ] `p1` - Preview Panel reloads to reflect the newly written files — `inst-trigger-preview-refresh`
 
 ---
 
@@ -600,6 +669,61 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 
 ---
 
+### DoD: Builder Panels and Activation
+
+- [ ] `p1` - **ID**: `cpt-hai3-dod-studio-builder-panels`
+
+The Studio shell renders a persistent Builder trigger control. Activating it opens the Chat Panel (slide-in from left) and Preview Panel (slide-in from right); activating it again closes both with reverse animations. Panel open/closed state persists to localStorage and is restored on remount. The Chat Panel displays the full conversation thread with markdown rendering, provides a prompt input that disables during AI processing, and persists the conversation per project. The Preview Panel renders an isolated iframe, forwards Studio theme and language via `postMessage`, and shows explicit loading/reconnecting states during dev server initialization or disconnection.
+
+**Implementation details**:
+- Builder trigger: a persistent button in the Studio shell, reads/writes `hai3:studio:builder:panelState` to localStorage
+- Chat Panel: slide-in CSS transition from `left: -100%` to `left: 0`; renders message thread with markdown (react-markdown or equivalent); prompt `<textarea>` with `disabled` during AI request
+- Preview Panel: slide-in CSS transition from `right: -100%` to `right: 0`; `<iframe sandbox="allow-scripts allow-same-origin">`; `window.postMessage` for theme and language tokens
+- Preview readiness detection: poll iframe URL or listen for `load`/`error` events; display distinct loading vs. reconnecting UI states
+- Conversation persisted to `hai3:studio:builder:conversation:<projectId>` as JSON array
+
+**Implements**:
+- `cpt-hai3-flow-studio-builder-activation`
+- `cpt-hai3-flow-studio-builder-chat`
+- `cpt-hai3-flow-studio-builder-preview`
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-studio-builder-trigger`
+- `cpt-hai3-fr-studio-builder-chat`
+- `cpt-hai3-fr-studio-builder-preview`
+- `cpt-hai3-fr-studio-builder-session`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-studio`
+
+---
+
+### DoD: AI Code Generation and Preview
+
+- [ ] `p1` - **ID**: `cpt-hai3-dod-studio-builder-codegen`
+
+When a prompt is submitted, the system sends it with full project context to the AI Backend (Anthropic Claude via server-side proxy). Generated TypeScript/React code is validated before being written to the project's screenset directory. Validation failures trigger an automatic correction round; if correction also fails the last valid state is preserved and the user is notified. AI Backend credentials are never exposed in browser network traffic or storage. The Preview Panel reloads automatically after each successful file write.
+
+**Implementation details**:
+- Server-side proxy endpoint forwards prompt + context to AI Backend; stores credentials in server environment variables only — never sent to browser
+- Project context: reads active screenset directory source files; sends as structured prompt context
+- Validation: run TypeScript compiler API or `tsc --noEmit` on generated files; collect diagnostics
+- Auto-correct: re-submit diagnostics to AI Backend with correction instruction; single correction attempt per generation
+- Last valid state: keep a snapshot of the previous file contents; restore on correction failure
+- Preview reload: after successful file write, reload the iframe `src` or trigger a dev server HMR signal
+
+**Implements**:
+- `cpt-hai3-flow-studio-builder-codegen`
+
+**Covers (PRD)**:
+- `cpt-hai3-fr-studio-builder-codegen`
+- `cpt-hai3-fr-studio-builder-credentials`
+
+**Covers (DESIGN)**:
+- `cpt-hai3-component-studio`
+
+---
+
 ## 6. Acceptance Criteria
 
 - [x] Studio panel renders as a fixed glassmorphic overlay in development mode and does not appear in production builds
@@ -614,10 +738,41 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 - [x] Panel and button positions are clamped to the visible viewport on load and re-clamped on window resize; no unnecessary persistence occurs when position is unchanged
 - [x] No Studio code executes in production (`import.meta.env.DEV` guard confirmed via bundle analysis)
 - [x] All `@hai3/studio` code compiles with TypeScript strict mode and zero `any`/`as unknown as` violations
+- [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
+- [ ] Builder open/closed state and chat panel width are restored correctly after page reload
+- [ ] A processing indicator is visible within 300ms of prompt submission
+- [ ] Submitting a prompt disables the input, appends the user message to the thread, and re-enables input after the AI response arrives within 30 seconds
+- [ ] The conversation thread survives a page reload for the same project
+- [ ] The Preview Panel forwards the active Studio theme and language to the iframe without manual intervention
+- [ ] The Preview Panel shows a loading state during dev server initialization and a reconnecting state on disconnection; it auto-reloads when the server is ready
+- [ ] A failed code generation does not corrupt the last valid project state
+- [ ] AI Backend credentials are absent from all browser network requests and browser storage
 
 ---
 
 ## Additional Context
+
+### Builder Working Prototype
+
+The following screenshot is from a working prototype of the Builder used to validate the concept. The trigger control — an "Idea Generator" button anchored to the far left of the Studio shell — opens the Builder. Once activated, the Chat Panel (left) and Preview Panel (right) slide into place, with a generated UI visible in the preview after a plain-language prompt was submitted.
+
+![FrontX Builder prototype — trigger button, chat and preview panels open](https://github.com/user-attachments/assets/9b649dba-aaa5-4de6-ae6b-0ba7942e1e89)
+
+The prototype also demonstrated VCS integration (repository creation and pull request automation) that is intentionally out of scope for this phase.
+
+---
+
+### Builder Future Considerations
+
+The following directions are out of scope for the current phase but should inform future design decisions.
+
+**VCS-Backed Personal Sandbox** — A working prototype included VCS integration where each generated project was backed by its own repository, giving users a persistent, shareable artifact. This was excluded from Phase 1 to keep the proposal focused on the core chat and preview experience, and to avoid coupling the concept to a specific VCS provider or authentication model.
+
+**Personal Forks as Sandboxes** — Personal forks of the main project repo could serve as the sandbox mechanism: each user works in their own fork, the Builder generates screensets into that fork, and sharing is handled through the standard fork-and-PR model. This aligns with how open-source contributors already work and avoids the need for a separate hosted preview service. This has not been fully designed and is an open question for a future phase.
+
+**Promotion to Official Draft** — A future phase should define the explicit path by which a personal sandbox screenset is promoted into the shared project as an official `draft`-stage screenset, including what approval or review steps are required before it appears in Studio's screenset selector for the broader team.
+
+---
 
 ### Storage Key Namespace
 
@@ -633,6 +788,13 @@ All localStorage keys use the prefix `hai3:studio:`. Current keys defined in `ST
 | `hai3:studio:language` | `string` — language code |
 | `hai3:studio:mockEnabled` | `boolean` — mock API enabled state |
 | `hai3:studio:activePackageId` | `string` — active GTS package ID |
+
+#### Builder Storage Keys
+
+| Key | Value stored |
+|-----|-------------|
+| `hai3:studio:builder:panelState` | `{ open: boolean, chatWidth: number }` — whether the Builder is open and the chat panel width |
+| `hai3:studio:builder:conversation:<projectId>` | `Array<{ role: 'user' \| 'assistant', content: string }>` — conversation thread per project |
 
 ### Studio Event Namespace
 
