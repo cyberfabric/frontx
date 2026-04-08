@@ -67,3 +67,5 @@ packages/cli/src/generated/
 
 # Cypilot execution plans
 .cypilot/.plans/
+
+.prs/

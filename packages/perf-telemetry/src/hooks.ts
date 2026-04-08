@@ -182,12 +182,16 @@ export function useDoneRendering(
 
 // ─── Telemetry Action ────────────────────────────────────────────────────────
 
+/** Action trigger types per data contract. */
+export type ActionTrigger = 'click' | 'navigation' | 'polling' | 'timer' | 'lifecycle' | 'ambient';
+
 /** Returns a stable callback that wraps async work in a named action span with full correlation. */
-export function useTelemetryAction(actionName: string, defaults?: { routeId?: string }) {
+export function useTelemetryAction(actionName: string, defaults?: { routeId?: string; trigger?: ActionTrigger }) {
   const routeId = defaults?.routeId || 'unknown';
+  const trigger = defaults?.trigger || 'click';
   return useCallback(
-    async <T>(fn: () => Promise<T> | T): Promise<T> => runTelemetryAction(actionName, routeId, fn),
-    [actionName, routeId]
+    async <T>(fn: () => Promise<T> | T): Promise<T> => runTelemetryAction(actionName, routeId, fn, trigger),
+    [actionName, routeId, trigger]
   );
 }
 
@@ -198,7 +202,8 @@ export function useTelemetryAction(actionName: string, defaults?: { routeId?: st
 export async function runTelemetryAction<T>(
   actionName: string,
   routeId: string,
-  fn: () => Promise<T> | T
+  fn: () => Promise<T> | T,
+  trigger: ActionTrigger = 'click'
 ): Promise<T> {
   const tracer = getTracer('hai3-action');
   const startedAtMs = performance.now();
@@ -207,6 +212,7 @@ export async function runTelemetryAction<T>(
       'action.name': actionName,
       'route.id': routeId,
       'telemetry.breakdown.kind': 'action.total',
+      'action.trigger': trigger,
     },
   });
   const spanContext = span.spanContext();
@@ -286,7 +292,6 @@ export function useInstrumentedFetch() {
 
 /** Observes Core Web Vitals (LCP, CLS, INP, TTFB) and emits a span per measurement. */
 export function useWebVitals(routeId: string, enabled = true) {
-  const observersRef = useRef<PerformanceObserver[]>([]);
 
   useEffect(() => {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;
@@ -391,7 +396,6 @@ export function useWebVitals(routeId: string, enabled = true) {
       }
     } catch { /* not supported */ }
 
-    observersRef.current = observers;
     return () => {
       observers.forEach((o) => o.disconnect());
       clsCleanup?.();

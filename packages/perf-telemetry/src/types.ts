@@ -37,7 +37,7 @@ export type OtelConfig = {
 export type TelemetryRuntimeConfig = {
   exportToCollector: boolean;
   includeDebugData: boolean;
-  policyProfile: string;
+  policyProfile: PolicyProfile;
   accountId: string;
   /** Pseudonymous display name only — never store real PII */
   accountName: string;
