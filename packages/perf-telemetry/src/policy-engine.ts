@@ -253,7 +253,12 @@ export function mergePolicy(base: CollectionPolicy, overrides: PolicyOverrides):
     samplingRates: { ...cloned.samplingRates, ...overrides.samplingRates },
     limits: { ...cloned.limits, ...overrides.limits },
     featureToggles: { ...cloned.featureToggles, ...overrides.featureToggles },
-    killSwitch: { ...cloned.killSwitch, ...overrides.killSwitch },
+    killSwitch: (() => {
+      const merged = { ...cloned.killSwitch, ...overrides.killSwitch };
+      // Clear stale metadata when kill switch is deactivated
+      if (!merged.active) { merged.reason = undefined; merged.activatedAt = undefined; }
+      return merged;
+    })(),
     updatedAt: Date.now(),
   };
 }
