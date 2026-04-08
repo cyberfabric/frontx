@@ -301,7 +301,7 @@ export async function runFrontendWork<T>(
 ): Promise<T> {
   const tracer = getTracer('hai3-frontend-work');
   const routeId = typeof attributes['route.id'] === 'string'
-    ? String(attributes['route.id'])
+    ? attributes['route.id']
     : _currentRouteId;
   const parentContext = getTelemetryParentContext(routeId, performance.now()) || context.active();
   const span = tracer.startSpan(workName, {

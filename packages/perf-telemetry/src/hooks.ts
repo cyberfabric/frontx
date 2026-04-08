@@ -15,6 +15,7 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
+import type { ActionTrigger, DoneRenderingDeps, FetchMeta } from './types';
 import { getTracer, setCurrentRouteId, SpanStatusCode, trace, context } from './otel-init';
 import {
   beginActionScope,
@@ -67,7 +68,7 @@ export function useRoutePerf(routeId: string, navigationStartMs: number) {
  */
 export function useDoneRendering(
   signalName: string,
-  deps: { dataReady: boolean; [key: string]: string | number | boolean | null | undefined },
+  deps: DoneRenderingDeps,
   opts?: { timeoutMs?: number }
 ) {
   const firedRef = useRef(false);
@@ -182,8 +183,7 @@ export function useDoneRendering(
 
 // ─── Telemetry Action ────────────────────────────────────────────────────────
 
-/** Action trigger types per data contract. */
-export type ActionTrigger = 'click' | 'navigation' | 'polling' | 'timer' | 'lifecycle' | 'ambient';
+// ActionTrigger, DoneRenderingDeps, FetchMeta defined in ./types.ts (single source of truth)
 
 /** Returns a stable callback that wraps async work in a named action span with full correlation. */
 export function useTelemetryAction(actionName: string, defaults?: { routeId?: string; trigger?: ActionTrigger }) {
@@ -245,7 +245,7 @@ export async function runTelemetryAction<T>(
  */
 export async function instrumentedFetch(
   url: string,
-  meta: { routeId: string; actionName?: string },
+  meta: FetchMeta,
   init?: RequestInit,
 ): Promise<Response> {
   const tracer = getTracer('hai3-api');
@@ -282,7 +282,7 @@ export async function instrumentedFetch(
 /** Returns a stable `instrumentedFetch` reference bound via useCallback. */
 export function useInstrumentedFetch() {
   return useCallback(
-    (url: string, meta: { routeId: string; actionName?: string }, init?: RequestInit) =>
+    (url: string, meta: FetchMeta, init?: RequestInit) =>
       instrumentedFetch(url, meta, init),
     []
   );
@@ -357,6 +357,7 @@ export function useWebVitals(routeId: string, enabled = true) {
     try {
       const inpObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          if (entry.startTime < mountTs) continue;
           const duration = (entry as PerformanceEntry & { duration?: number }).duration || 0;
           if (duration > 0) {
             const parentCtx = getActionParentContext(performance.now(), routeId);
@@ -411,8 +412,10 @@ export function useLongTaskObserver(routeId: string, enabled = true) {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;
     try {
       const tracer = getTracer('hai3-runtime');
+      const mountTime = performance.now();
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          if (entry.startTime < mountTime) continue;
           if (entry.entryType === 'longtask') {
             const parentCtx = getActionParentContext(entry.startTime, routeId);
             const span = tracer.startSpan('runtime.long_task', {
@@ -440,8 +443,10 @@ export function useResourceTimingObserver(routeId: string, enabled = true) {
     if (!enabled || typeof PerformanceObserver === 'undefined') return;
     try {
       const tracer = getTracer('hai3-runtime');
+      const mountTime = performance.now();
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
+          if (entry.startTime < mountTime) continue;
           if (entry.entryType === 'resource') {
             const res = entry as PerformanceResourceTiming;
             const parentCtx = getActionParentContext(res.startTime, routeId);

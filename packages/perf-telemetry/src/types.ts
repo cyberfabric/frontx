@@ -4,6 +4,7 @@
  */
 
 import type { Span } from '@opentelemetry/api';
+import type { ReactNode } from 'react';
 
 export type { Span } from '@opentelemetry/api';
 
@@ -105,13 +106,22 @@ export type CollectionPolicy = {
 };
 
 export interface TelemetryProviderProps {
-  children: React.ReactNode;
+  children: ReactNode;
   serviceName?: string;
   serviceVersion?: string;
   collectorUrl?: string;
   environment?: string;
   enabled?: boolean;
 }
+
+/** Action trigger types per data contract: click, navigation, polling, timer, lifecycle, ambient. */
+export type ActionTrigger = 'click' | 'navigation' | 'polling' | 'timer' | 'lifecycle' | 'ambient';
+
+/** Dependency map for useDoneRendering — dataReady is required, extra keys for custom tracking. */
+export type DoneRenderingDeps = { dataReady: boolean; [key: string]: string | number | boolean | null | undefined };
+
+/** Metadata for instrumentedFetch correlation. */
+export type FetchMeta = { routeId: string; actionName?: string };
 
 /** Flat key-value map of client fingerprint attributes attached to spans. */
 export type ClientAttributes = Record<string, string | number | boolean>;
