@@ -151,7 +151,7 @@ jobs:
   # Optional: Run promptfoo tests if configured
   promptfoo-tests:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('promptfoo.yaml') != '' }}
+    if: true  # conditionally skipped in step below if promptfoo config is missing
 
     steps:
     - name: Checkout code
@@ -173,6 +173,11 @@ jobs:
       run: npm install -g promptfoo
 
     - name: Run promptfoo tests
-      run: promptfoo eval
+      run: |
+        if [ -f ".ai/tests/promptfoo.yaml" ]; then
+          promptfoo eval
+        else
+          echo "No promptfoo config found, skipping"
+        fi
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
