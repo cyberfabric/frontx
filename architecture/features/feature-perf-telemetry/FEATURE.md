@@ -35,6 +35,12 @@
   - [DoD: Fail-Open Guarantee](#dod-fail-open-guarantee)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
+  - [Package Layer](#package-layer)
+  - [Data Flow](#data-flow)
+  - [Span Attribute Contract](#span-attribute-contract)
+  - [Breakdown Kinds](#breakdown-kinds)
+  - [Studio Storage Keys](#studio-storage-keys)
+  - [Collector Ports](#collector-ports)
 
 <!-- /toc -->
 

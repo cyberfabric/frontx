@@ -23,6 +23,15 @@ export type TelemetryPluginConfig = {
   enabled?: boolean;
 };
 
+/** Shape of the @hai3/perf-telemetry module (avoids require + unknown). */
+type PerfTelemetryModule = {
+  initOtel: (config: { serviceName: string; serviceVersion: string; collectorUrl: string; environment: string; enabled: boolean }) => void;
+  isOtelInitialized: () => boolean;
+  flushOtel: () => Promise<void>;
+  shutdownOtel: () => Promise<void>;
+  telemetryStore: Record<string, (...args: never[]) => void>;
+};
+
 /**
  * Telemetry plugin factory.
  *
@@ -45,9 +54,8 @@ export type TelemetryPluginConfig = {
  * ```
  */
 export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
-  // Resolved lazily on init — null if @hai3/perf-telemetry is not installed
-  let resolvedStore: unknown = null;
-  let _mod: Record<string, (...args: never[]) => unknown> | null = null;
+  let resolvedStore: PerfTelemetryModule['telemetryStore'] | null = null;
+  let _mod: PerfTelemetryModule | null = null;
 
   return {
     name: 'telemetry',
@@ -55,19 +63,18 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
 
     provides: {
       registries: {
-        /** telemetryStore from @hai3/perf-telemetry, available after onInit. Studio reads this via useHAI3(). */
+        /** telemetryStore from @hai3/perf-telemetry, available after onInit. */
         get telemetryStore() { return resolvedStore; },
       },
     },
 
-    onInit() {
+    async onInit() {
       const enabled = config?.enabled ?? true;
       if (!enabled) return;
 
       try {
         // Dynamic import to keep @hai3/perf-telemetry optional — cached for onDestroy
-        _mod = require('@hai3/perf-telemetry');
-        if (!_mod) return;
+        _mod = await import('@hai3/perf-telemetry') as PerfTelemetryModule;
 
         _mod.initOtel({
           serviceName: config?.serviceName ?? 'hai3-app',
@@ -75,21 +82,20 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
           collectorUrl: config?.collectorUrl ?? 'http://localhost:14318',
           environment: config?.environment ?? 'development',
           enabled: true,
-        } as never);
+        });
 
-        // Expose telemetryStore for Studio dev panel
-        resolvedStore = (_mod as Record<string, unknown>).telemetryStore ?? null;
+        resolvedStore = _mod.telemetryStore ?? null;
       } catch {
         // Fail-open: if @hai3/perf-telemetry is not installed, silently skip
       }
     },
 
     onDestroy() {
+      if (!_mod) return;
       try {
-        const mod = _mod ?? require('@hai3/perf-telemetry');
-        if (mod?.isOtelInitialized?.()) {
-          (mod.flushOtel() as Promise<void>)
-            .finally(() => (mod.shutdownOtel() as Promise<void>).catch(() => { /* fail-open */ }));
+        if (_mod.isOtelInitialized()) {
+          _mod.flushOtel()
+            .finally(() => _mod?.shutdownOtel().catch(() => { /* fail-open */ }));
         }
       } catch {
         // Fail-open

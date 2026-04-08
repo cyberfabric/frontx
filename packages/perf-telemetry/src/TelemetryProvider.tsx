@@ -76,7 +76,9 @@ export function TelemetryProvider({
   return <TelemetryContext.Provider value={value}>{children}</TelemetryContext.Provider>;
 }
 
-function flattenPayload(payload: Record<string, unknown>, prefix = ''): Record<string, string | number | boolean> {
+type PayloadValue = string | number | boolean | null | undefined | PayloadValue[] | { [k: string]: PayloadValue };
+
+function flattenPayload(payload: Record<string, PayloadValue>, prefix = ''): Record<string, string | number | boolean> {
   const result: Record<string, string | number | boolean> = {};
   for (const [key, value] of Object.entries(payload)) {
     const attrKey = prefix ? `${prefix}.${key}` : key;
@@ -86,7 +88,7 @@ function flattenPayload(payload: Record<string, unknown>, prefix = ''): Record<s
     } else if (Array.isArray(value)) {
       result[attrKey] = JSON.stringify(value);
     } else if (typeof value === 'object') {
-      Object.assign(result, flattenPayload(value as Record<string, unknown>, attrKey));
+      Object.assign(result, flattenPayload(value as Record<string, PayloadValue>, attrKey));
     }
   }
   return result;
