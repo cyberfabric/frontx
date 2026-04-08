@@ -3,7 +3,7 @@
 
 ## AI WORKFLOW (REQUIRED)
 1) Summarize 3-6 rules from this file before making changes.
-2) STOP if you add telemetry hooks outside @hai3/perf-telemetry package.
+2) STOP if you create new telemetry hook implementations outside @hai3/perf-telemetry. Using hooks (useRoutePerf, useTelemetryAction, etc.) in app screens is required.
 
 ## SCOPE
 - Package: `packages/perf-telemetry/`

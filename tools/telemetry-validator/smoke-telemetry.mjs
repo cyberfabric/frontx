@@ -43,8 +43,14 @@ const routeFiles = files.filter((f) => {
   return content.includes('@telemetry-route');
 });
 
+const strictMode = process.argv.includes('--strict');
+
 if (routeFiles.length === 0) {
-  console.log('Telemetry smoke: no files marked with @telemetry-route found. Skipping.');
+  if (strictMode) {
+    console.error('Telemetry smoke: no @telemetry-route files found (strict mode).');
+    process.exit(1);
+  }
+  console.log('Telemetry smoke: no @telemetry-route files found. Skipping (use --strict to enforce).');
   process.exit(0);
 }
 

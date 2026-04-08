@@ -39,8 +39,8 @@ export type TelemetryRuntimeConfig = {
   includeDebugData: boolean;
   policyProfile: string;
   accountId: string;
+  /** Pseudonymous display name only — never store real PII */
   accountName: string;
-  accountEmail: string;
   accountPlan: string;
   accountRegion: string;
   accountSegment: string;

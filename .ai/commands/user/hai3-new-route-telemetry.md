@@ -16,7 +16,7 @@ FORBIDDEN: Orphan spans (every span MUST have action.name).
 1. Define stable `routeId` (e.g., `billing.overview`).
 2. Add `@telemetry-route` comment sentinel at file top.
 3. Add `useRoutePerf(routeId, performance.now())`.
-4. Add `useDoneRendering('${routeId}.ready', { dataReady })`.
+4. Add `` useDoneRendering(`${routeId}.ready`, { dataReady }) ``.
 5. Optionally add `useWebVitals(routeId)` for Core Web Vitals.
 6. Ensure route-level API calls use `apiRegistry.getService()` (auto-instrumented via OTel FetchInstrumentation).
 7. Validate: `npm run lint:telemetry`.

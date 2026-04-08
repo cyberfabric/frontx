@@ -6,7 +6,7 @@
  */
 
 import { createContext, useContext, useEffect, useRef, useCallback, useState, useMemo } from 'react';
-import { initOtel, getTracer, getOtelSessionId, flushOtel, SpanStatusCode } from './otel-init';
+import { initOtel, getTracer, getOtelSessionId, flushOtel, shutdownOtel, SpanStatusCode } from './otel-init';
 import { context } from '@opentelemetry/api';
 import { getTelemetryParentContext } from './action-scope';
 import type { TelemetryContextValue, TelemetryProviderProps } from './types';
@@ -62,7 +62,10 @@ export function TelemetryProvider({
     } catch { /* fail-open */ }
   }, [enabled, isKilled]);
 
-  const killSwitch = useCallback(() => setIsKilled(true), []);
+  const killSwitch = useCallback(() => {
+    setIsKilled(true);
+    flushOtel().then(() => shutdownOtel()).catch(() => { /* fail-open */ });
+  }, []);
 
   const value = useMemo<TelemetryContextValue>(() => ({
     emit,

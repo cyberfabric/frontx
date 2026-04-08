@@ -86,6 +86,11 @@ export default defineConfig({
               return 'vendor-lodash';
             }
 
+            // Split OTel packages into telemetry chunk
+            if (id.includes('@opentelemetry/')) {
+              return 'hai3-telemetry';
+            }
+
             // All other node_modules go to vendor chunk
             return 'vendor';
           }
@@ -94,8 +99,8 @@ export default defineConfig({
           if (id.includes('@cyberfabric/framework') || id.includes('@cyberfabric/react')) {
             return 'frontx-core';
           }
-          // Split perf-telemetry + OTel into own chunk (tree-shakeable when unused)
-          if (id.includes('@hai3/perf-telemetry') || id.includes('@opentelemetry/')) {
+          // Split perf-telemetry source into telemetry chunk
+          if (id.includes('@hai3/perf-telemetry')) {
             return 'hai3-telemetry';
           }
           // Split React and React DOM

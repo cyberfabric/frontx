@@ -164,18 +164,18 @@ export class PolicyEngine {
   private readonly RATE_WINDOW_MS = 60000;
 
   constructor(initialPolicy: CollectionPolicy = BASELINE_POLICY) {
-    this.currentPolicy = initialPolicy;
+    this.currentPolicy = structuredClone(initialPolicy);
   }
 
-  /** Replaces the active policy and resets the rate window. */
+  /** Replaces the active policy (deep-cloned) and resets the rate window. */
   updatePolicy(policy: CollectionPolicy): void {
-    this.currentPolicy = policy;
+    this.currentPolicy = structuredClone(policy);
     this.resetRateWindow();
   }
 
-  /** Returns the currently active collection policy. */
+  /** Returns a deep copy of the currently active collection policy. */
   getPolicy(): CollectionPolicy {
-    return this.currentPolicy;
+    return structuredClone(this.currentPolicy);
   }
 
   /** Returns true if the event should be sampled based on the lane's configured rate. */
