@@ -24,7 +24,7 @@ function notify() {
 export const telemetryStore = {
   /** Returns all currently stored spans, newest first. */
   getSpans(): StoredSpan[] {
-    return _spans;
+    return [..._spans];
   },
 
   /** Subscribes to span updates. Returns an unsubscribe function. */

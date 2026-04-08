@@ -11,7 +11,17 @@ type ClientAttributes = Record<string, string | number | boolean>;
 function detectBrowser(ua: string): { browser: string; browserVersion: string } {
   let browser = 'unknown', browserVersion = '';
 
-  if (ua.includes('Firefox/')) {
+  // iOS-specific browser tokens (must check before generic Chrome/Firefox/Edge)
+  if (ua.includes('CriOS/')) {
+    browser = 'Chrome (iOS)';
+    browserVersion = (/CriOS\/(\S+)/).exec(ua)?.[1] || '';
+  } else if (ua.includes('FxiOS/')) {
+    browser = 'Firefox (iOS)';
+    browserVersion = (/FxiOS\/(\S+)/).exec(ua)?.[1] || '';
+  } else if (ua.includes('EdgiOS/')) {
+    browser = 'Edge (iOS)';
+    browserVersion = (/EdgiOS\/(\S+)/).exec(ua)?.[1] || '';
+  } else if (ua.includes('Firefox/')) {
     browser = 'Firefox';
     browserVersion = (/Firefox\/(\S+)/).exec(ua)?.[1] || '';
   } else if (ua.includes('Edg/')) {
@@ -34,7 +44,11 @@ function detectBrowser(ua: string): { browser: string; browserVersion: string } 
 function detectOS(ua: string): { os: string; osVersion: string; deviceType: string } {
   let os = 'unknown', osVersion = '', deviceType = 'desktop';
 
-  if (ua.includes('Windows NT')) {
+  // iOS detection BEFORE macOS (iPad user agents contain "Mac OS X")
+  if (/iPhone|iPad|iPod/.test(ua)) {
+    os = 'iOS';
+    osVersion = ((/OS ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.');
+  } else if (ua.includes('Windows NT')) {
     os = 'Windows';
     const ntVer = (/Windows NT (\d+\.\d+)/).exec(ua)?.[1] || '';
     const map: Record<string, string> = { '10.0': '10/11', '6.3': '8.1', '6.2': '8', '6.1': '7' };
@@ -45,9 +59,6 @@ function detectOS(ua: string): { os: string; osVersion: string; deviceType: stri
   } else if (ua.includes('Android')) {
     os = 'Android';
     osVersion = (/Android ([\d.]+)/).exec(ua)?.[1] || '';
-  } else if (/iPhone|iPad|iPod/.test(ua)) {
-    os = 'iOS';
-    osVersion = ((/OS ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.');
   } else if (ua.includes('Linux')) {
     os = 'Linux';
   } else if (ua.includes('CrOS')) {
@@ -88,11 +99,13 @@ function getWebGLInfo(): { renderer: string; vendor: string } {
   return { renderer: 'unknown', vendor: 'unknown' };
 }
 
-let _cached: ClientAttributes | null = null;
+let _cachedBasic: ClientAttributes | null = null;
+let _cachedFull: ClientAttributes | null = null;
 
-/** Collect client fingerprint attributes. Cached after first call. */
-export function getClientInfo(): ClientAttributes {
-  if (_cached) return _cached;
+/** Collect client fingerprint attributes. High-cardinality fields only included when includeDebugData is true. */
+export function getClientInfo(includeDebugData = false): ClientAttributes {
+  if (includeDebugData && _cachedFull) return _cachedFull;
+  if (!includeDebugData && _cachedBasic) return _cachedBasic;
 
   try {
     const { browser, browserVersion, os, osVersion, deviceType } = parseUserAgent();
@@ -102,34 +115,41 @@ export function getClientInfo(): ClientAttributes {
       webkitConnection?: { effectiveType?: string; downlink?: number; rtt?: number; saveData?: boolean };
     }
     const nav: NavigatorWithConnection | null = typeof navigator === 'undefined' ? null : navigator;
-    const scr = typeof screen === 'undefined' ? null : screen;
     const conn = nav?.connection || nav?.mozConnection || nav?.webkitConnection;
-    const gl = getWebGLInfo();
 
-    _cached = {
+    // Basic attributes — always included (low cardinality)
+    const attrs: ClientAttributes = {
       'client.browser.name': browser,
       'client.browser.version': browserVersion,
       'client.os.name': os,
       'client.os.version': osVersion,
       'client.device.type': deviceType,
-      'client.language': nav?.language || 'unknown',
-      'client.timezone': Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone || 'unknown',
-      'client.screen.width': scr?.width || 0,
-      'client.screen.height': scr?.height || 0,
-      'client.screen.pixel_ratio': typeof globalThis.window === 'undefined' ? 1 : globalThis.window.devicePixelRatio || 1,
-      'client.viewport.width': typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerWidth,
-      'client.viewport.height': typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerHeight,
-      'client.cpu_cores': nav?.hardwareConcurrency || 0,
-      'client.touch_support': 'ontouchstart' in (typeof globalThis.window === 'undefined' ? {} : globalThis.window),
       'client.connection.type': String(conn?.effectiveType || 'unknown'),
-      'client.connection.downlink_mbps': Number(conn?.downlink || 0),
-      'client.connection.rtt_ms': Number(conn?.rtt || 0),
-      'client.webgl_renderer': gl.renderer,
-      'client.webgl_vendor': gl.vendor,
     };
-  } catch { /* fail-open: return empty attrs if fingerprinting fails */
-    _cached = {};
-  }
 
-  return _cached;
+    // High-cardinality attributes — only when debug data is enabled
+    if (includeDebugData) {
+      const scr = typeof screen === 'undefined' ? null : screen;
+      const gl = getWebGLInfo();
+      attrs['client.language'] = nav?.language || 'unknown';
+      attrs['client.timezone'] = Intl?.DateTimeFormat()?.resolvedOptions()?.timeZone || 'unknown';
+      attrs['client.screen.width'] = scr?.width || 0;
+      attrs['client.screen.height'] = scr?.height || 0;
+      attrs['client.screen.pixel_ratio'] = typeof globalThis.window === 'undefined' ? 1 : globalThis.window.devicePixelRatio || 1;
+      attrs['client.viewport.width'] = typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerWidth;
+      attrs['client.viewport.height'] = typeof globalThis.window === 'undefined' ? 0 : globalThis.window.innerHeight;
+      attrs['client.cpu_cores'] = nav?.hardwareConcurrency || 0;
+      attrs['client.touch_support'] = 'ontouchstart' in (typeof globalThis.window === 'undefined' ? {} : globalThis.window);
+      attrs['client.connection.downlink_mbps'] = Number(conn?.downlink || 0);
+      attrs['client.connection.rtt_ms'] = Number(conn?.rtt || 0);
+      attrs['client.webgl_renderer'] = gl.renderer;
+      attrs['client.webgl_vendor'] = gl.vendor;
+      _cachedFull = attrs;
+    } else {
+      _cachedBasic = attrs;
+    }
+    return attrs;
+  } catch { /* fail-open: return empty attrs if fingerprinting fails */
+    return {};
+  }
 }

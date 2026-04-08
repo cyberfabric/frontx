@@ -19,7 +19,6 @@ const DEFAULT_RUNTIME_CONFIG: TelemetryRuntimeConfig = {
   policyProfile: 'baseline',
   accountId: '',
   accountName: '',
-  accountEmail: '',
   accountPlan: '',
   accountRegion: '',
   accountSegment: '',
@@ -42,9 +41,10 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
 
 function persistRuntimeConfig(): void {
   try {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(runtimeConfig));
-    }
+    if (typeof localStorage === 'undefined') return;
+    // Strip PII before persisting — only non-sensitive toggles stored
+    const safe = { ...runtimeConfig, accountId: '', accountName: '' };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
   } catch { /* fail-open */ }
 }
 

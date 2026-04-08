@@ -84,7 +84,6 @@ let _runtimeConfig: TelemetryRuntimeConfig = {
   policyProfile: 'baseline',
   accountId: '',
   accountName: '',
-  accountEmail: '',
   accountPlan: '',
   accountRegion: '',
   accountSegment: '',
@@ -134,7 +133,6 @@ export function setCurrentRouteId(routeId: string): void {
  */
 class HAI3SpanProcessor implements SpanProcessor {
   onStart(span: Span): void {
-    span.setAttribute('route.id', _currentRouteId);
     span.setAttribute('session.id', getSessionId());
     span.setAttribute('app.origin', typeof globalThis.window === 'undefined' ? 'unknown' : globalThis.window.location.origin);
 
@@ -145,10 +143,12 @@ class HAI3SpanProcessor implements SpanProcessor {
       span.setAttribute('action.scope_span_id', relatedAction.spanId);
       span.setAttribute('action.scope_trace_id', relatedAction.traceId);
       span.setAttribute('route.id', relatedAction.routeId);
+    } else {
+      span.setAttribute('route.id', _currentRouteId);
     }
 
-    // Client fingerprint (cached after first call)
-    const clientInfo = getClientInfo();
+    // Client fingerprint (basic always, high-cardinality only when debug enabled)
+    const clientInfo = getClientInfo(_getRuntimeConfig().includeDebugData);
     for (const [key, value] of Object.entries(clientInfo)) {
       span.setAttribute(key, value);
     }
@@ -162,7 +162,6 @@ class HAI3SpanProcessor implements SpanProcessor {
     if (cfg.includeDebugData) {
       if (cfg.accountId) span.setAttribute('user.id', cfg.accountId);
       if (cfg.accountName) span.setAttribute('user.name', cfg.accountName);
-      if (cfg.accountEmail) span.setAttribute('user.email', cfg.accountEmail);
     }
   }
   onEnd(): void {}

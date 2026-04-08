@@ -33,8 +33,8 @@ export class TelemetryErrorBoundary extends Component<TelemetryErrorBoundaryProp
 
   render(): ReactNode {
     if (this.state.hasError) {
-      // Fail-open: render fallback if provided, otherwise still render children
-      return this.props.fallback ?? this.props.children;
+      // Fail-open: render fallback if provided, otherwise gracefully degrade
+      return this.props.fallback ?? null;
     }
     return this.props.children;
   }

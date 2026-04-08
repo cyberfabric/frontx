@@ -8,7 +8,6 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useTranslation } from '@hai3/react';
-import { useStudioContext } from '../StudioProvider';
 import { loadStudioState, saveStudioState } from '../utils/persistence';
 
 // ─── Types (from @hai3/perf-telemetry, defined here to avoid hard dependency) ─
@@ -57,12 +56,12 @@ function webVitalDisplayValue(name: string, s: StoredSpan): string {
   return fmt(Number(s.attributes['webvital.value_ms'] || 0));
 }
 
-function ratingColor(rating: string | number | boolean | undefined): string {
+function ratingColor(rating: string | number | boolean | undefined): React.CSSProperties {
   const r = String(rating);
-  if (r === 'good') return 'color: #16a34a';
-  if (r === 'needs-improvement') return 'color: #ca8a04';
-  if (r === 'poor') return 'color: #dc2626';
-  return 'color: #6b7280';
+  if (r === 'good') return { color: '#16a34a' };
+  if (r === 'needs-improvement') return { color: '#ca8a04' };
+  if (r === 'poor') return { color: '#dc2626' };
+  return { color: '#6b7280' };
 }
 
 // ─── useTelemetryStore ──────────────────────────────────────────────────────
@@ -227,7 +226,7 @@ function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
                 <div key={name} style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '10px', fontWeight: 700, opacity: 0.6 }}>
                     <span>{label}</span>
-                    {rating && <span style={ratingColor(rating) as React.CSSProperties}>{String(rating)}</span>}
+                    {rating && <span style={ratingColor(rating)}>{String(rating)}</span>}
                   </div>
                   <div style={{ fontSize: '14px', fontWeight: 700 }}>{value}</div>
                 </div>
