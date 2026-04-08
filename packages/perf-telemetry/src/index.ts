@@ -64,11 +64,6 @@ export {
   KILL_SWITCH_POLICY,
 } from './policy-engine';
 export type {
-  CollectionPolicy,
-  PolicyProfile,
-  Lane,
-} from './policy-engine';
-export type {
   OtelConfig,
   TelemetryRuntimeConfig,
   TelemetryContextValue,
@@ -77,4 +72,7 @@ export type {
   RouteUiScope,
   StoredSpan,
   SpanListener,
+  CollectionPolicy,
+  PolicyProfile,
+  Lane,
 } from './types';
