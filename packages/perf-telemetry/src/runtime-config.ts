@@ -10,7 +10,7 @@
  * via setRuntimeConfigProvider(() => getTelemetryRuntimeConfig()).
  */
 
-import type { TelemetryRuntimeConfig } from './types';
+import type { TelemetryRuntimeConfig, PrimitiveRecord } from './types';
 
 const STORAGE_KEY = 'hai3.telemetry.runtime-config.v1';
 
@@ -41,11 +41,11 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
     const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
-    const parsed = JSON.parse(raw) as Record<string, string | number | boolean>;
+    const parsed = JSON.parse(raw) as PrimitiveRecord;
     const result = { ...DEFAULT_RUNTIME_CONFIG };
     for (const key of PERSISTABLE_KEYS) {
       if (key in parsed && typeof parsed[key] === typeof DEFAULT_RUNTIME_CONFIG[key]) {
-        (result as Record<string, string | number | boolean>)[key] = parsed[key];
+        (result as PrimitiveRecord)[key] = parsed[key];
       }
     }
     return result;
@@ -58,7 +58,7 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
 function persistRuntimeConfig(): void {
   try {
     if (!globalThis.localStorage) return;
-    const safe: Record<string, string | number | boolean> = {};
+    const safe: PrimitiveRecord = {};
     for (const key of PERSISTABLE_KEYS) {
       safe[key] = runtimeConfig[key];
     }

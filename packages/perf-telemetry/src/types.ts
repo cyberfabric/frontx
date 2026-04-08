@@ -118,6 +118,9 @@ export interface TelemetryProviderProps {
 /** Action trigger types per data contract: click, navigation, polling, timer, lifecycle, ambient. */
 export type ActionTrigger = 'click' | 'navigation' | 'polling' | 'timer' | 'lifecycle' | 'ambient';
 
+/** Serializable primitive record used for JSON-safe config and span attributes. */
+export type PrimitiveRecord = Record<string, string | number | boolean>;
+
 /** Dependency map for useDoneRendering — dataReady is required, extra keys for custom tracking. */
 export type DoneRenderingDeps = { dataReady: boolean; [key: string]: string | number | boolean | null | undefined };
 
