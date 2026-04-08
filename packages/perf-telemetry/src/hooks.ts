@@ -236,14 +236,15 @@ export async function instrumentedFetch(
 ): Promise<Response> {
   const tracer = getTracer('hai3-api');
   const method = String(init?.method || 'GET').toUpperCase();
+  const normalizedUrl = normalizeUrlForSpan(url);
   const startedAt = performance.now();
   const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
   const parentContext = getTelemetryParentContext(meta.routeId, startedAt) || context.active();
-  const span = tracer.startSpan(`${method} ${url}`, {
+  const span = tracer.startSpan(`${method} ${normalizedUrl}`, {
     attributes: {
       'route.id': meta.routeId,
       'action.name': meta.actionName || activeActionAttrs['action.name'] || 'unknown',
-      'http.url': url,
+      'http.url': normalizedUrl,
       'http.method': method,
       'telemetry.breakdown.kind': 'backend.api',
       ...activeActionAttrs,
@@ -459,6 +460,18 @@ function rateWebVital(value: number, good: number, poor: number): string {
   if (value < good) return 'good';
   if (value < poor) return 'needs-improvement';
   return 'poor';
+}
+
+/** Strips query string and hash from a URL to prevent cardinality explosion and data leakage. */
+function normalizeUrlForSpan(url: string): string {
+  try {
+    const parsed = new URL(url, globalThis.window?.location?.origin || 'http://localhost');
+    // Return origin + pathname only (no query, no hash)
+    return parsed.origin === 'null' ? parsed.pathname : `${parsed.origin}${parsed.pathname}`;
+  } catch {
+    // Fallback: strip after ? or # manually
+    return url.split('?')[0].split('#')[0];
+  }
 }
 
 function getRelatedActionAttributes(routeId: string, atMs: number): Record<string, string> {
