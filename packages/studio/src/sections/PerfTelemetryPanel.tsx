@@ -66,18 +66,18 @@ function ratingColor(rating: string | number | boolean | undefined): React.CSSPr
 
 // ─── useTelemetryStore ──────────────────────────────────────────────────────
 
+/** Resolves telemetryStore via dynamic require. Fail-open: returns null if not installed. */
 function useTelemetryStore(): TelemetryStoreApi | null {
   const [store, setStore] = useState<TelemetryStoreApi | null>(null);
 
   useEffect(() => {
     try {
-      // Dynamic require to keep @hai3/perf-telemetry optional
       const mod = require('@hai3/perf-telemetry');
       if (mod?.telemetryStore) {
         setStore(mod.telemetryStore);
       }
     } catch {
-      // Not installed — no telemetry panel
+      // Not installed — panel won't render
     }
   }, []);
 
