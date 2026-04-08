@@ -1,3 +1,4 @@
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-action-first:p1
 /**
  * @hai3/perf-telemetry - Type Definitions
  * Action-first performance telemetry types.

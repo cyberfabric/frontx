@@ -1,3 +1,6 @@
+// @cpt-state:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1
+// @cpt-algo:cpt-hai3-algo-perf-telemetry-export-gating:p2
+// @cpt-algo:cpt-hai3-algo-perf-telemetry-session-id:p2
 /**
  * OpenTelemetry Browser SDK initialization — action-first telemetry
  *

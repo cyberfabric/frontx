@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-studio-panel:p2
 /**
  * PerfTelemetryPanel — Performance telemetry dev panel for HAI3 Studio
  *

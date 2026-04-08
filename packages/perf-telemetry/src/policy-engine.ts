@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-export-toggle:p2
 /**
  * Policy Engine — collection policies, sampling, rate limiting, and kill switch.
  *

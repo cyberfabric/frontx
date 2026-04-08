@@ -1,3 +1,4 @@
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-action-first:p1
 /**
  * Client Fingerprint — collects browser, OS, device, network, and hardware info.
  *

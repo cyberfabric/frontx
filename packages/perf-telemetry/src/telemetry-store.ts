@@ -1,3 +1,4 @@
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-studio-panel:p2
 /**
  * TelemetryStore — in-memory span collector for the in-app dashboard.
  *

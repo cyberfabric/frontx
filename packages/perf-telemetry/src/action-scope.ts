@@ -1,3 +1,6 @@
+// @cpt-algo:cpt-hai3-algo-perf-telemetry-scope-resolution:p1
+// @cpt-algo:cpt-hai3-algo-perf-telemetry-ambient-lifecycle:p1
+// @cpt-state:cpt-hai3-state-perf-telemetry-action-scope:p1
 /**
  * Action Scope — correlation engine for action-first telemetry
  *
