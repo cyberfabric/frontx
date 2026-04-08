@@ -23,10 +23,10 @@ function cryptoRandom(): number {
 
 import type { Lane, PolicyProfile, CollectionPolicy } from './types';
 
-// ─── Predefined Policies ────────────────────────────────────────────────────
+// ─── Predefined Policies (frozen — use getPolicyByProfile() for mutable copies) ─
 
 /** Default policy: full lane A/B collection, 10% lane C, resource timing and long tasks disabled. */
-export const BASELINE_POLICY: CollectionPolicy = {
+export const BASELINE_POLICY: Readonly<CollectionPolicy> = Object.freeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'baseline',
@@ -48,10 +48,10 @@ export const BASELINE_POLICY: CollectionPolicy = {
   },
   killSwitch: { active: false },
   ttl: 300,
-};
+});
 
 /** High-fidelity policy: all lanes at 100%, all feature toggles on, short TTL for incident investigation. */
-export const INVESTIGATION_POLICY: CollectionPolicy = {
+export const INVESTIGATION_POLICY: Readonly<CollectionPolicy> = Object.freeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'investigation',
@@ -73,10 +73,10 @@ export const INVESTIGATION_POLICY: CollectionPolicy = {
   },
   killSwitch: { active: false },
   ttl: 60,
-};
+});
 
 /** Elevated policy for support sessions: increased limits, resource timing on, 50% lane C. */
-export const SUPPORT_BURST_POLICY: CollectionPolicy = {
+export const SUPPORT_BURST_POLICY: Readonly<CollectionPolicy> = Object.freeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'support-burst',
@@ -98,10 +98,10 @@ export const SUPPORT_BURST_POLICY: CollectionPolicy = {
   },
   killSwitch: { active: false },
   ttl: 120,
-};
+});
 
 /** Emergency policy that sets all sampling to 0 and activates the kill switch. */
-export const KILL_SWITCH_POLICY: CollectionPolicy = {
+export const KILL_SWITCH_POLICY: Readonly<CollectionPolicy> = Object.freeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'baseline',
@@ -110,7 +110,7 @@ export const KILL_SWITCH_POLICY: CollectionPolicy = {
   featureToggles: { networkDiagnostics: false, actionTracing: false, resourceTiming: false, longTaskObserver: false },
   killSwitch: { active: true, reason: 'Manual kill switch activated', activatedAt: Date.now() },
   ttl: 60,
-};
+});
 
 // ─── Lane Classification ────────────────────────────────────────────────────
 
@@ -201,8 +201,9 @@ export class PolicyEngine {
     return this.currentPolicy.killSwitch.reason;
   }
 
-  /** Returns per-lane event counts and limits for the current rate window. */
+  /** Returns per-lane event counts and limits for the current rate window. Resets stale windows before returning. */
   getStats(): { lane: Lane; count: number; limit: number }[] {
+    this.checkRateWindow();
     return (['A', 'B', 'C'] as Lane[]).map((lane) => ({
       lane,
       count: this.eventCounter.get(lane) || 0,
@@ -229,21 +230,30 @@ export class PolicyEngine {
 /** Returns a fresh CollectionPolicy instance for the given profile name. */
 export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
   switch (profile) {
-    case 'investigation': return { ...INVESTIGATION_POLICY, updatedAt: Date.now() };
-    case 'support-burst': return { ...SUPPORT_BURST_POLICY, updatedAt: Date.now() };
-    default: return { ...BASELINE_POLICY, updatedAt: Date.now() };
+    case 'investigation': return { ...structuredClone(INVESTIGATION_POLICY), updatedAt: Date.now() };
+    case 'support-burst': return { ...structuredClone(SUPPORT_BURST_POLICY), updatedAt: Date.now() };
+    default: return { ...structuredClone(BASELINE_POLICY), updatedAt: Date.now() };
   }
 }
 
-/** Deep-merges policy overrides into a base policy, refreshing the updatedAt timestamp. */
-export function mergePolicy(base: CollectionPolicy, overrides: Partial<CollectionPolicy>): CollectionPolicy {
+/** Shallow-merge policy overrides for top-level fields; nested objects (samplingRates, limits, featureToggles, killSwitch) are merged one level deep. */
+export type PolicyOverrides = {
+  [K in keyof CollectionPolicy]?: CollectionPolicy[K] extends Record<string, unknown>
+    ? Partial<CollectionPolicy[K]>
+    : CollectionPolicy[K];
+};
+
+export function mergePolicy(base: CollectionPolicy, overrides: PolicyOverrides): CollectionPolicy {
+  const cloned = structuredClone(base);
   return {
-    ...base,
-    ...overrides,
-    samplingRates: { ...base.samplingRates, ...overrides.samplingRates },
-    limits: { ...base.limits, ...overrides.limits },
-    featureToggles: { ...base.featureToggles, ...overrides.featureToggles },
-    killSwitch: { ...base.killSwitch, ...overrides.killSwitch },
+    ...cloned,
+    ...(overrides.version !== undefined && { version: overrides.version }),
+    ...(overrides.profile !== undefined && { profile: overrides.profile }),
+    ...(overrides.ttl !== undefined && { ttl: overrides.ttl }),
+    samplingRates: { ...cloned.samplingRates, ...overrides.samplingRates },
+    limits: { ...cloned.limits, ...overrides.limits },
+    featureToggles: { ...cloned.featureToggles, ...overrides.featureToggles },
+    killSwitch: { ...cloned.killSwitch, ...overrides.killSwitch },
     updatedAt: Date.now(),
   };
 }
