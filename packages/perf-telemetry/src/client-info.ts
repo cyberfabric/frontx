@@ -47,7 +47,7 @@ function detectBrowser(ua: string): { browser: string; browserVersion: string } 
 function detectOS(ua: string): { os: string; osVersion: string } {
   // iOS detection BEFORE macOS (iPad user agents contain "Mac OS X")
   if (/iPhone|iPad|iPod/.test(ua)) {
-    return { os: 'iOS', osVersion: ((/OS ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.') };
+    return { os: 'iOS', osVersion: ((/OS ([\d_]+)/).exec(ua)?.[1] || '').split('_').join('.') };
   }
   if (ua.includes('Windows NT')) {
     const ntVer = (/Windows NT (\d+\.\d+)/).exec(ua)?.[1] || '';
@@ -55,7 +55,7 @@ function detectOS(ua: string): { os: string; osVersion: string } {
     return { os: 'Windows', osVersion: map[ntVer] || ntVer };
   }
   if (ua.includes('Mac OS X')) {
-    return { os: 'macOS', osVersion: ((/Mac OS X ([\d_]+)/).exec(ua)?.[1] || '').replaceAll('_', '.') };
+    return { os: 'macOS', osVersion: ((/Mac OS X ([\d_]+)/).exec(ua)?.[1] || '').split('_').join('.') };
   }
   if (ua.includes('Android')) {
     return { os: 'Android', osVersion: (/Android ([\d.]+)/).exec(ua)?.[1] || '' };

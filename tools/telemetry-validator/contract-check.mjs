@@ -10,18 +10,18 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+const root = globalThis.process.cwd();
 const file = path.join(root, 'tools/telemetry-validator/poc-events.json');
 
 if (!fs.existsSync(file)) {
-  console.error('Missing tools/telemetry-validator/poc-events.json');
-  process.exit(1);
+  globalThis.console.error('Missing tools/telemetry-validator/poc-events.json');
+  globalThis.process.exit(1);
 }
 
 const events = JSON.parse(fs.readFileSync(file, 'utf8'));
 if (!Array.isArray(events) || events.length === 0) {
-  console.error('poc-events.json must contain a non-empty array');
-  process.exit(1);
+  globalThis.console.error('poc-events.json must contain a non-empty array');
+  globalThis.process.exit(1);
 }
 
 const requiredTop = ['v', 't', 'ts', 'sid', 'rid', 'p'];
@@ -73,7 +73,7 @@ for (const [i, event] of events.entries()) {
   }
 
   const eventJson = JSON.stringify(event);
-  if (Buffer.byteLength(eventJson, 'utf8') > MAX_EVENT_SIZE_BYTES) {
+  if (globalThis.Buffer.byteLength(eventJson, 'utf8') > MAX_EVENT_SIZE_BYTES) {
     errors.push(`event[${i}] exceeds max size of ${MAX_EVENT_SIZE_BYTES} bytes`);
   }
 
@@ -93,9 +93,9 @@ for (const [i, event] of events.entries()) {
 }
 
 if (errors.length > 0) {
-  console.error('\nTelemetry contract check failed:\n');
-  for (const error of errors) console.error(`- ${error}`);
-  process.exit(1);
+  globalThis.console.error('\nTelemetry contract check failed:\n');
+  for (const error of errors) globalThis.console.error(`- ${error}`);
+  globalThis.process.exit(1);
 }
 
-console.log(`Telemetry contract check passed (${events.length} events validated).`);
+globalThis.console.log(`Telemetry contract check passed (${events.length} events validated).`);

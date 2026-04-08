@@ -17,7 +17,7 @@
 
 - `http.method`
 - `http.status_code`
-- `ui.signal`
+- `signal.name`
 - `action.trigger` — on action root spans: `click`, `navigation`, `polling`, `timer`, `lifecycle`, `ambient`
 
 ## Forbidden attributes

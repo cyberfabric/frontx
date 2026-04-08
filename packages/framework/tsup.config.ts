@@ -15,6 +15,7 @@ export default defineConfig({
     '@hai3/screensets',
     '@hai3/api',
     '@hai3/i18n',
+    '@hai3/perf-telemetry',
     '@reduxjs/toolkit',
     'react',
   ],

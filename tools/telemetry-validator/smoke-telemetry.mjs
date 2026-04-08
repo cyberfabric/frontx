@@ -11,7 +11,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+const root = globalThis.process.cwd();
+const rulesPath = path.join(root, 'tools', 'telemetry-validator', 'validator-rules.json');
+const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
 const SOURCE_EXT = new Set(['.ts', '.tsx']);
 
 /**
@@ -35,23 +37,24 @@ function walk(dir, out = []) {
 // Scan app source and MFE packages
 const scanDirs = [
   path.join(root, 'src'),
+  path.join(root, 'tools', 'telemetry-validator', 'fixtures'),
 ];
 
 const files = scanDirs.flatMap((d) => walk(d));
 const routeFiles = files.filter((f) => {
   const content = fs.readFileSync(f, 'utf8');
-  return content.includes('@telemetry-route');
+  return content.includes(rules.routeSentinel);
 });
 
-const strictMode = process.argv.includes('--strict');
+const strictMode = globalThis.process.argv.includes('--strict');
 
 if (routeFiles.length === 0) {
   if (strictMode) {
-    console.error('Telemetry smoke: no @telemetry-route files found (strict mode).');
-    process.exit(1);
+    globalThis.console.error('Telemetry smoke: no @telemetry-route files found (strict mode).');
+    globalThis.process.exit(1);
   }
-  console.log('Telemetry smoke: no @telemetry-route files found. Skipping (use --strict to enforce).');
-  process.exit(0);
+  globalThis.console.log('Telemetry smoke: no @telemetry-route files found. Skipping (use --strict to enforce).');
+  globalThis.process.exit(0);
 }
 
 const errors = [];
@@ -60,18 +63,17 @@ for (const file of routeFiles) {
   const content = fs.readFileSync(file, 'utf8');
   const rel = path.relative(root, file);
 
-  if (!content.includes('useRoutePerf(')) {
-    errors.push(`${rel}: marked @telemetry-route but missing useRoutePerf()`);
-  }
-  if (!content.includes('useDoneRendering(')) {
-    errors.push(`${rel}: marked @telemetry-route but missing useDoneRendering()`);
+  for (const pattern of rules.requiredRoutePatterns) {
+    if (!content.includes(pattern)) {
+      errors.push(`${rel}: marked ${rules.routeSentinel} but missing ${pattern}`);
+    }
   }
 }
 
 if (errors.length > 0) {
-  console.error('\nTelemetry smoke failed:\n');
-  for (const error of errors) console.error(`- ${error}`);
-  process.exit(1);
+  globalThis.console.error('\nTelemetry smoke failed:\n');
+  for (const error of errors) globalThis.console.error(`- ${error}`);
+  globalThis.process.exit(1);
 }
 
-console.log(`Telemetry smoke passed (${routeFiles.length} instrumented route files validated).`);
+globalThis.console.log(`Telemetry smoke passed (${routeFiles.length} instrumented route files validated).`);

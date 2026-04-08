@@ -26,7 +26,7 @@ function cryptoRandom(): number {
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
 
-import type { Lane, PolicyProfile, CollectionPolicy } from './types';
+import type { Lane, PolicyProfile, CollectionPolicy, PolicyOverrides } from './types';
 
 // ─── Predefined Policies (frozen — use getPolicyByProfile() for mutable copies) ─
 
@@ -234,21 +234,23 @@ export class PolicyEngine {
 
 /** Returns a fresh CollectionPolicy instance for the given profile name. */
 export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
+  const now = Date.now();
   switch (profile) {
-    case 'investigation': return { ...structuredClone(INVESTIGATION_POLICY), updatedAt: Date.now() };
-    case 'support-burst': return { ...structuredClone(SUPPORT_BURST_POLICY), updatedAt: Date.now() };
-    case 'kill-switch': return { ...structuredClone(KILL_SWITCH_POLICY), updatedAt: Date.now() };
-    default: return { ...structuredClone(BASELINE_POLICY), updatedAt: Date.now() };
+    case 'investigation': return { ...structuredClone(INVESTIGATION_POLICY), updatedAt: now };
+    case 'support-burst': return { ...structuredClone(SUPPORT_BURST_POLICY), updatedAt: now };
+    case 'kill-switch': {
+      const policy = structuredClone(KILL_SWITCH_POLICY);
+      return {
+        ...policy,
+        killSwitch: { ...policy.killSwitch, activatedAt: now },
+        updatedAt: now,
+      };
+    }
+    default: return { ...structuredClone(BASELINE_POLICY), updatedAt: now };
   }
 }
 
 /** Shallow-merge policy overrides for top-level fields; nested objects (samplingRates, limits, featureToggles, killSwitch) are merged one level deep. */
-export type PolicyOverrides = {
-  [K in keyof CollectionPolicy]?: CollectionPolicy[K] extends Record<string, string | number | boolean | undefined>
-    ? Partial<CollectionPolicy[K]>
-    : CollectionPolicy[K];
-};
-
 export function mergePolicy(base: CollectionPolicy, overrides: PolicyOverrides): CollectionPolicy {
   const cloned = structuredClone(base);
   return {

@@ -1,4 +1,5 @@
 // @cpt-flow:cpt-hai3-flow-perf-telemetry-studio-panel:p2
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-studio-panel:p2
 /**
  * PerfTelemetryPanel — Performance telemetry dev panel for HAI3 Studio
  *
@@ -35,6 +36,12 @@ interface TelemetryStoreApi {
 
 const STORAGE_KEY_PERF_ENABLED = 'hai3:studio:perfTelemetry';
 const STORAGE_KEY_PERF_TAB = 'hai3:studio:perfTelemetryTab';
+const WEB_VITAL_LABELS = {
+  'webvital.lcp': 'LCP',
+  'webvital.cls': 'CLS',
+  'webvital.inp': 'INP',
+  'webvital.navigation': 'TTFB',
+} as const;
 
 type PerfTab = 'actions' | 'api' | 'rendering';
 
@@ -65,6 +72,11 @@ function ratingColor(rating: string | number | boolean | undefined): React.CSSPr
   return { color: '#6b7280' };
 }
 
+function studioText(t: (key: string) => string, key: string, fallback: string): string {
+  const value = t(key);
+  return value === key ? fallback : value;
+}
+
 // ─── useTelemetryStore ──────────────────────────────────────────────────────
 
 /** Resolves telemetryStore via dynamic require. Fail-open: returns null if not installed. */
@@ -73,7 +85,10 @@ function useTelemetryStore(): TelemetryStoreApi | null {
 
   useEffect(() => {
     try {
-      const mod = require('@hai3/perf-telemetry');
+      const dynamicRequire = typeof require === 'function'
+        ? require as (id: string) => { telemetryStore?: TelemetryStoreApi }
+        : undefined;
+      const mod = dynamicRequire?.('@hai3/perf-telemetry');
       if (mod?.telemetryStore) {
         setStore(mod.telemetryStore);
       }
@@ -102,7 +117,7 @@ function useTelemetryData(store: TelemetryStoreApi | null): StoredSpan[] {
 
 // ─── Sub-panels ─────────────────────────────────────────────────────────────
 
-function ActionsTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
+function ActionsTab({ spans, emptyLabel }: Readonly<{ spans: StoredSpan[]; emptyLabel: string }>) {
   const actions = useMemo(
     () => spans
       .filter((s) => String(s.attributes['telemetry.breakdown.kind'] || '') === 'action.total')
@@ -116,7 +131,7 @@ function ActionsTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   );
 
   if (actions.length === 0) {
-    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>No actions yet</div>;
+    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>{emptyLabel}</div>;
   }
 
   return (
@@ -143,7 +158,7 @@ function ActionsTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   );
 }
 
-function ApiTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
+function ApiTab({ spans, emptyLabel, callsLabel, avgLabel, errorsLabel }: Readonly<{ spans: StoredSpan[]; emptyLabel: string; callsLabel: string; avgLabel: string; errorsLabel: string }>) {
   const grouped = useMemo(() => {
     const apiSpans = spans.filter(
       (s) => String(s.attributes['telemetry.breakdown.kind'] || '') === 'backend.api'
@@ -173,7 +188,7 @@ function ApiTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   }, [spans]);
 
   if (grouped.length === 0) {
-    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>No API calls yet</div>;
+    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>{emptyLabel}</div>;
   }
 
   return (
@@ -184,9 +199,9 @@ function ApiTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
             {g.key}
           </div>
           <div style={{ display: 'flex', gap: '12px', opacity: 0.7 }}>
-            <span>{g.count} calls</span>
-            <span>avg {fmt(g.avgMs)}</span>
-            {g.errors > 0 && <span style={{ color: '#dc2626' }}>{g.errors} errors</span>}
+            <span>{g.count} {callsLabel}</span>
+            <span>{avgLabel} {fmt(g.avgMs)}</span>
+            {g.errors > 0 && <span style={{ color: '#dc2626' }}>{g.errors} {errorsLabel}</span>}
           </div>
         </div>
       ))}
@@ -194,7 +209,7 @@ function ApiTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   );
 }
 
-function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
+function RenderingTab({ spans, emptyLabel, webVitalsLabel, routeRenderingLabel }: Readonly<{ spans: StoredSpan[]; emptyLabel: string; webVitalsLabel: string; routeRenderingLabel: string }>) {
   const webVitals = useMemo(
     () => spans.filter((s) => s.name.startsWith('webvital.')),
     [spans]
@@ -207,7 +222,7 @@ function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
   );
 
   if (webVitals.length === 0 && renderSpans.length === 0) {
-    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>No rendering data yet</div>;
+    return <div style={{ padding: '16px', textAlign: 'center', fontSize: '12px', opacity: 0.6 }}>{emptyLabel}</div>;
   }
 
   return (
@@ -215,12 +230,12 @@ function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
       {/* Web Vitals */}
       {webVitals.length > 0 && (
         <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>Web Vitals</div>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>{webVitalsLabel}</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '4px' }}>
             {(['webvital.lcp', 'webvital.cls', 'webvital.inp', 'webvital.navigation'] as const).map((name) => {
               const s = webVitals.find((x) => x.name === name);
               if (!s) return null;
-              const label = name.replace('webvital.', '').toUpperCase();
+              const label = WEB_VITAL_LABELS[name];
               const value = webVitalDisplayValue(name, s);
               const rating = s.attributes['webvital.rating'];
               return (
@@ -240,7 +255,7 @@ function RenderingTab({ spans }: Readonly<{ spans: StoredSpan[] }>) {
       {/* Render spans */}
       {renderSpans.length > 0 && (
         <div>
-          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>Route Rendering</div>
+          <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>{routeRenderingLabel}</div>
           {renderSpans.map((s) => {
             const signal = String(s.attributes['signal.name'] || s.name);
             const total = Number(s.attributes['render.total_ms'] || s.durationMs);
@@ -266,6 +281,27 @@ export const PerfTelemetryPanel: React.FC = () => {
   const spans = useTelemetryData(store);
   const [enabled, setEnabled] = useState(() => loadStudioState(STORAGE_KEY_PERF_ENABLED, true));
   const [tab, setTab] = useState<PerfTab>(() => loadStudioState(STORAGE_KEY_PERF_TAB, 'actions') as PerfTab);
+  const labels = useMemo(() => ({
+    title: studioText(t, 'studio:perfTelemetry.title', 'Performance'),
+    clear: studioText(t, 'studio:perfTelemetry.clear', 'Clear'),
+    toggleOn: studioText(t, 'studio:perfTelemetry.toggle.on', 'On'),
+    toggleOff: studioText(t, 'studio:perfTelemetry.toggle.off', 'Off'),
+    disabled: studioText(t, 'studio:perfTelemetry.disabled', 'Performance panel disabled'),
+    spans: studioText(t, 'studio:perfTelemetry.kpis.spans', 'Spans'),
+    actions: studioText(t, 'studio:perfTelemetry.kpis.actions', 'Actions'),
+    errors: studioText(t, 'studio:perfTelemetry.kpis.errors', 'Errors'),
+    tabActions: studioText(t, 'studio:perfTelemetry.tabs.actions', 'Actions'),
+    tabApi: studioText(t, 'studio:perfTelemetry.tabs.api', 'API'),
+    tabRendering: studioText(t, 'studio:perfTelemetry.tabs.rendering', 'Rendering'),
+    noActions: studioText(t, 'studio:perfTelemetry.empty.actions', 'No actions yet'),
+    noApi: studioText(t, 'studio:perfTelemetry.empty.api', 'No API calls yet'),
+    noRendering: studioText(t, 'studio:perfTelemetry.empty.rendering', 'No rendering data yet'),
+    calls: studioText(t, 'studio:perfTelemetry.api.calls', 'calls'),
+    avg: studioText(t, 'studio:perfTelemetry.api.avg', 'avg'),
+    apiErrors: studioText(t, 'studio:perfTelemetry.api.errors', 'errors'),
+    webVitals: studioText(t, 'studio:perfTelemetry.sections.webVitals', 'Web Vitals'),
+    routeRendering: studioText(t, 'studio:perfTelemetry.sections.routeRendering', 'Route Rendering'),
+  }), [t]);
 
   const toggleEnabled = useCallback(() => {
     setEnabled((prev: boolean) => {
@@ -311,7 +347,7 @@ export const PerfTelemetryPanel: React.FC = () => {
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <h3 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.6, margin: 0 }}>
-          {t('studio:perfTelemetry.title') === 'studio:perfTelemetry.title' ? 'Performance' : t('studio:perfTelemetry.title')}
+          {labels.title}
         </h3>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {enabled && (
@@ -319,19 +355,19 @@ export const PerfTelemetryPanel: React.FC = () => {
               onClick={() => store.clear()}
               style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', border: '1px solid var(--border, #e5e7eb)', background: 'none', cursor: 'pointer' }}
             >
-              Clear
+              {labels.clear}
             </button>
           )}
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', cursor: 'pointer' }}>
             <input type="checkbox" checked={enabled} onChange={toggleEnabled} style={{ width: '14px', height: '14px' }} />
-            {enabled ? 'On' : 'Off'}
+            {enabled ? labels.toggleOn : labels.toggleOff}
           </label>
         </div>
       </div>
 
       {!enabled && (
         <div style={{ fontSize: '11px', opacity: 0.5, textAlign: 'center', padding: '8px' }}>
-          Performance panel disabled
+          {labels.disabled}
         </div>
       )}
 
@@ -340,31 +376,31 @@ export const PerfTelemetryPanel: React.FC = () => {
           {/* KPI row */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
             <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', opacity: 0.6 }}>Spans</div>
+              <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.spans}</div>
               <div style={{ fontSize: '16px', fontWeight: 700 }}>{summary.total}</div>
             </div>
             <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', opacity: 0.6 }}>Actions</div>
+              <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.actions}</div>
               <div style={{ fontSize: '16px', fontWeight: 700 }}>{summary.actions}</div>
             </div>
             <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
-              <div style={{ fontSize: '10px', opacity: 0.6 }}>Errors</div>
+              <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.errors}</div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: summary.errors > 0 ? '#dc2626' : undefined }}>{summary.errors}</div>
             </div>
           </div>
 
           {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: '8px' }}>
-            <button style={tabStyle(tab === 'actions')} onClick={() => switchTab('actions')}>Actions</button>
-            <button style={tabStyle(tab === 'api')} onClick={() => switchTab('api')}>API</button>
-            <button style={tabStyle(tab === 'rendering')} onClick={() => switchTab('rendering')}>Rendering</button>
+            <button style={tabStyle(tab === 'actions')} onClick={() => switchTab('actions')}>{labels.tabActions}</button>
+            <button style={tabStyle(tab === 'api')} onClick={() => switchTab('api')}>{labels.tabApi}</button>
+            <button style={tabStyle(tab === 'rendering')} onClick={() => switchTab('rendering')}>{labels.tabRendering}</button>
           </div>
 
           {/* Tab content */}
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-            {tab === 'actions' && <ActionsTab spans={spans} />}
-            {tab === 'api' && <ApiTab spans={spans} />}
-            {tab === 'rendering' && <RenderingTab spans={spans} />}
+            {tab === 'actions' && <ActionsTab spans={spans} emptyLabel={labels.noActions} />}
+            {tab === 'api' && <ApiTab spans={spans} emptyLabel={labels.noApi} callsLabel={labels.calls} avgLabel={labels.avg} errorsLabel={labels.apiErrors} />}
+            {tab === 'rendering' && <RenderingTab spans={spans} emptyLabel={labels.noRendering} webVitalsLabel={labels.webVitals} routeRenderingLabel={labels.routeRendering} />}
           </div>
         </>
       )}

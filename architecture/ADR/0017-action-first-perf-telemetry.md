@@ -1,13 +1,28 @@
 # ADR 0017: Action-First Performance Telemetry
 
-`p2` — **ID**: `cpt-hai3-adr-action-first-telemetry`
+<!-- toc -->
+
+- [Context and Problem Statement](#context-and-problem-statement)
+- [Decision Drivers](#decision-drivers)
+- [Considered Options](#considered-options)
+- [Decision Outcome](#decision-outcome)
+  - [Consequences](#consequences)
+  - [Confirmation](#confirmation)
+- [Pros and Cons of the Options](#pros-and-cons-of-the-options)
+  - [Action-First OTel with Ambient Fallback](#action-first-otel-with-ambient-fallback)
+  - [Datadog RUM SDK](#datadog-rum-sdk)
+  - [Custom Fetch Wrapper Only](#custom-fetch-wrapper-only)
+  - [No Telemetry](#no-telemetry)
+- [More Information](#more-information)
+
+<!-- /toc -->
+
+**ID**: `cpt-hai3-adr-action-first-telemetry`
 
 ## Context and Problem Statement
-
 HAI3 applications need frontend performance observability for diagnosing slow user interactions, API bottlenecks, and rendering issues. Standard OpenTelemetry Browser SDK instrumentation produces orphan spans (spans without a logical grouping), making per-action performance breakdown impossible. How should we instrument the frontend to guarantee 100% span correlation while maintaining fail-open semantics?
 
 ## Decision Drivers
-
 - Every span must belong to a named action for per-action % breakdown
 - Telemetry must never crash application business flows (fail-open)
 - Vendor-neutral instrumentation (avoid lock-in)

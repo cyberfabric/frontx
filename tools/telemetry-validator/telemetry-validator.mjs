@@ -10,11 +10,11 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
+const root = globalThis.process.cwd();
 const rulesPath = path.join(root, 'tools/telemetry-validator/validator-rules.json');
 const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
 
-const modeArg = process.argv.find((arg) => arg.startsWith('--mode='));
+const modeArg = globalThis.process.argv.find((arg) => arg.startsWith('--mode='));
 const mode = modeArg ? modeArg.split('=')[1] : 'lint';
 
 const SOURCE_EXT = new Set(['.ts', '.tsx', '.js', '.jsx', '.mjs', '.cjs']);
@@ -98,13 +98,13 @@ for (const file of files) {
 }
 
 if (mode !== 'lint') {
-  console.log(`[telemetry-validator] unknown mode '${mode}', running lint checks.`);
+  globalThis.console.log(`[telemetry-validator] unknown mode '${mode}', running lint checks.`);
 }
 
 if (errors.length > 0) {
-  console.error('\nTelemetry lint failed:\n');
-  for (const error of errors) console.error(`- ${error}`);
-  process.exit(1);
+  globalThis.console.error('\nTelemetry lint failed:\n');
+  for (const error of errors) globalThis.console.error(`- ${error}`);
+  globalThis.process.exit(1);
 }
 
-console.log(`Telemetry lint passed (${files.length} source files scanned).`);
+globalThis.console.log(`Telemetry lint passed (${files.length} source files scanned).`);

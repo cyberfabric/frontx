@@ -64,7 +64,7 @@ export {
   SUPPORT_BURST_POLICY,
   KILL_SWITCH_POLICY,
 } from './policy-engine';
-export type { PolicyOverrides } from './policy-engine';
+export type { PolicyOverrides } from './types';
 export type {
   OtelConfig,
   TelemetryRuntimeConfig,

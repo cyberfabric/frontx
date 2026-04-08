@@ -1,7 +1,10 @@
 // @cpt-flow:cpt-hai3-flow-perf-telemetry-route-instrumentation:p1
 // @cpt-flow:cpt-hai3-flow-perf-telemetry-action-instrumentation:p1
+// @cpt-flow:cpt-hai3-flow-perf-telemetry-api-instrumentation:p1
 // @cpt-flow:cpt-hai3-flow-perf-telemetry-web-vitals:p1
 // @cpt-dod:cpt-hai3-dod-perf-telemetry-route-render:p1
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-api:p1
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-vitals:p1
 /**
  * Telemetry Hooks — HAI3-style instrumentation primitives
  *
@@ -94,7 +97,7 @@ export function useDoneRendering(
   }, [signalName]);
 
   useEffect(() => {
-    if (scopeCreatedRef.current || getActiveRouteUiScope(routeId)) return;
+    if (scopeCreatedRef.current || getActiveRouteUiScope(routeId, signalName)) return;
     scopeCreatedRef.current = true;
 
     try {
@@ -127,7 +130,7 @@ export function useDoneRendering(
     return () => {
       if (!firedRef.current) {
         const now = performance.now();
-        const scope = endRouteUiScope(routeId, now);
+        const scope = endRouteUiScope(routeId, signalName, now);
         if (scope) { scope.uiSpan.end(now); scope.readySpan.end(now); }
       }
     };
@@ -146,7 +149,7 @@ export function useDoneRendering(
             const paintTime = performance.now();
             const mountTime = mountTimeRef.current;
             const dataReadyTime = dataReadyTimeRef.current || jsEndTime;
-            const scope = endRouteUiScope(routeId, paintTime);
+            const scope = endRouteUiScope(routeId, signalName, paintTime);
             if (!scope?.readySpan || !scope?.uiSpan) return;
 
             scope.readySpan.setAttribute('render.total_ms', round2(paintTime - mountTime));
@@ -174,7 +177,7 @@ export function useDoneRendering(
         firedRef.current = true;
         try {
           const now = performance.now();
-          const scope = endRouteUiScope(routeId, now);
+          const scope = endRouteUiScope(routeId, signalName, now);
           if (!scope?.readySpan || !scope?.uiSpan) return;
           scope.readySpan.setAttribute('render.total_ms', round2(now - mountTimeRef.current));
           scope.readySpan.setAttribute('render.method', 'timeout-fallback');
@@ -321,7 +324,7 @@ export function useWebVitals(routeId: string, enabled = true) {
       const lcpObserver = new PerformanceObserver((list) => {
         // Filter buffered entries to only include those from current route mount
         const entries = list.getEntries().filter((e) => e.startTime >= mountTs);
-        const lastEntry = entries.at(-1) as PerformanceEntry & { startTime: number };
+        const lastEntry = entries[entries.length - 1] as PerformanceEntry & { startTime: number } | undefined;
         if (lastEntry) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
           const span = tracer.startSpan('webvital.lcp', {
@@ -342,6 +345,7 @@ export function useWebVitals(routeId: string, enabled = true) {
 
     try {
       let clsValue = 0;
+      let clsReported = false;
       const clsObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.startTime < mountTs) continue;
@@ -353,6 +357,8 @@ export function useWebVitals(routeId: string, enabled = true) {
       observers.push(clsObserver);
 
       const reportCLS = () => {
+        if (clsReported) return;
+        clsReported = true;
         if (clsValue > 0) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
           const span = tracer.startSpan('webvital.cls', {
@@ -369,7 +375,10 @@ export function useWebVitals(routeId: string, enabled = true) {
       };
       document.addEventListener('visibilitychange', reportCLS, { once: true });
       // On unmount: report accumulated CLS then remove listener
-      clsCleanup = () => { reportCLS(); document.removeEventListener('visibilitychange', reportCLS); };
+      clsCleanup = () => {
+        document.removeEventListener('visibilitychange', reportCLS);
+        if (!clsReported) reportCLS();
+      };
     } catch { /* not supported */ }
 
     try {
