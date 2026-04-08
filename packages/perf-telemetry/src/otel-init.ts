@@ -215,7 +215,8 @@ export function initOtel(config: OtelConfig): void {
     setAmbientTracer(() => trace.getTracer('hai3-ambient'));
 
     // Auto-instrumentations — only propagate trace headers to same-origin requests
-    const corsPattern = appOrigin !== 'unknown' ? [new RegExp(`^${appOrigin.replace('.', '\\.')}`)] : [];
+    const escapeRegex = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeRegex(appOrigin)}`)];
     registerInstrumentations({
       instrumentations: [
         new FetchInstrumentation({

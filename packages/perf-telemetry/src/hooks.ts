@@ -77,6 +77,14 @@ export function useDoneRendering(
   const timeoutMs = opts?.timeoutMs ?? 10000;
   const routeId = signalName.endsWith('.ready') ? signalName.slice(0, -'.ready'.length) : 'unknown';
 
+  // Reset refs when signalName/routeId changes so stale state doesn't block new spans
+  useEffect(() => {
+    firedRef.current = false;
+    scopeCreatedRef.current = false;
+    mountTimeRef.current = performance.now();
+    dataReadyTimeRef.current = null;
+  }, [signalName]);
+
   useEffect(() => {
     if (scopeCreatedRef.current || getActiveRouteUiScope(routeId)) return;
     scopeCreatedRef.current = true;
@@ -240,14 +248,15 @@ export async function instrumentedFetch(
   const startedAt = performance.now();
   const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
   const parentContext = getTelemetryParentContext(meta.routeId, startedAt) || context.active();
+  const resolvedActionName = meta.actionName || activeActionAttrs['action.name'] || 'unknown';
   const span = tracer.startSpan(`${method} ${normalizedUrl}`, {
     attributes: {
+      ...activeActionAttrs,
       'route.id': meta.routeId,
-      'action.name': meta.actionName || activeActionAttrs['action.name'] || 'unknown',
+      'action.name': resolvedActionName,
       'http.url': normalizedUrl,
       'http.method': method,
       'telemetry.breakdown.kind': 'backend.api',
-      ...activeActionAttrs,
     },
   }, parentContext);
 
@@ -284,10 +293,12 @@ export function useWebVitals(routeId: string, enabled = true) {
     const tracer = getTracer('hai3-webvitals');
     const observers: PerformanceObserver[] = [];
     let clsCleanup: (() => void) | null = null;
+    const mountTs = performance.now();
 
     try {
       const lcpObserver = new PerformanceObserver((list) => {
-        const entries = list.getEntries();
+        // Filter buffered entries to only include those from current route mount
+        const entries = list.getEntries().filter((e) => e.startTime >= mountTs);
         const lastEntry = entries.at(-1) as PerformanceEntry & { startTime: number };
         if (lastEntry) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
@@ -334,8 +345,8 @@ export function useWebVitals(routeId: string, enabled = true) {
         }
       };
       document.addEventListener('visibilitychange', reportCLS, { once: true });
-      // Store ref for cleanup (hoisted to closure scope)
-      clsCleanup = () => document.removeEventListener('visibilitychange', reportCLS);
+      // On unmount: report accumulated CLS then remove listener
+      clsCleanup = () => { reportCLS(); document.removeEventListener('visibilitychange', reportCLS); };
     } catch { /* not supported */ }
 
     try {
@@ -370,7 +381,7 @@ export function useWebVitals(routeId: string, enabled = true) {
           attributes: {
             'route.id': routeId,
             'telemetry.breakdown.kind': 'frontend.webvitals',
-            'webvital.ttfb_ms': round2(nav.responseStart - nav.requestStart),
+            'webvital.ttfb_ms': round2(nav.responseStart - nav.startTime),
             'webvital.dom_interactive_ms': round2(nav.domInteractive - nav.fetchStart),
             'webvital.dom_complete_ms': round2(nav.domComplete - nav.fetchStart),
             'webvital.load_event_ms': round2(nav.loadEventEnd - nav.fetchStart),
