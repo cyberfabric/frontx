@@ -2,27 +2,30 @@
 
 `p2` — **ID**: `cpt-hai3-adr-action-first-telemetry`
 
-## Status
+## Context and Problem Statement
 
-Accepted
+HAI3 applications need frontend performance observability for diagnosing slow user interactions, API bottlenecks, and rendering issues. Standard OpenTelemetry Browser SDK instrumentation produces orphan spans (spans without a logical grouping), making per-action performance breakdown impossible. How should we instrument the frontend to guarantee 100% span correlation while maintaining fail-open semantics?
 
-## Context
+## Decision Drivers
 
-HAI3 applications need frontend performance observability for diagnosing slow user interactions, API bottlenecks, and rendering issues. Standard OpenTelemetry Browser SDK instrumentation produces orphan spans (spans without a logical grouping), making per-action performance breakdown impossible.
+- Every span must belong to a named action for per-action % breakdown
+- Telemetry must never crash application business flows (fail-open)
+- Vendor-neutral instrumentation (avoid lock-in)
+- Local dev visibility without requiring a collector
+- L1 SDK (zero @hai3 deps) for broad reusability
+
+## Considered Options
+
+1. Action-first OTel with ambient fallback
+2. Datadog RUM SDK
+3. Custom fetch wrapper only
+4. No telemetry
 
 ## Decision Outcome
 
-Adopt an **action-first correlation model** where every span MUST belong to a named action:
+Chosen option: **Action-first OTel with ambient fallback**, because it provides 100% span correlation through a three-tier resolution algorithm (active scope, recent scope within 2500ms window, ambient fallback) while maintaining vendor-neutral OTel instrumentation and fail-open semantics.
 
-1. **Explicit actions** — `useTelemetryAction` wraps user-triggered work (clicks, submits, navigation) in a named action span. All child spans (API calls, renders) are automatically correlated.
-
-2. **Ambient fallback** — when no explicit action is active, a synthetic `<routeId>.ambient` action is created automatically. Web vitals, long tasks, and auto-instrumented fetch spans are parented to it.
-
-3. **Three-tier resolution** — `findRelatedActionScope(atMs, routeId)` searches: (a) active scopes, (b) recent scopes within 2500ms follow-up window, (c) ambient action fallback. This guarantees 100% correlation.
-
-The system is implemented as `@hai3/perf-telemetry` (L1 SDK, zero @hai3 deps) with a framework plugin and Studio dev panel.
-
-Backend path: Browser -> OTLP/HTTP -> OTel Collector (Docker) -> Datadog APM.
+The system is implemented as `@hai3/perf-telemetry` (L1 SDK, zero @hai3 deps) with a framework plugin and Studio dev panel. Backend path: Browser -> OTLP/HTTP -> OTel Collector (Docker) -> Datadog APM.
 
 ### Consequences
 
@@ -41,11 +44,6 @@ Backend path: Browser -> OTLP/HTTP -> OTel Collector (Docker) -> Datadog APM.
 - Docker collector required for Datadog export (CORS + credential isolation)
 - Zone.js dependency via ZoneContextManager for async context propagation
 
-#### Risks
-
-- OTel Browser SDK is less mature than Node.js SDK
-- Datadog connector in OTel Collector may have version-specific quirks
-
 ### Confirmation
 
 Decision confirmed by:
@@ -56,11 +54,12 @@ Decision confirmed by:
 
 ## Pros and Cons of the Options
 
-### Action-First OTel with Ambient Fallback (chosen)
+### Action-First OTel with Ambient Fallback
 
 - Good: 100% correlation guarantee, no orphan spans
 - Good: Standard OTel vendor-neutral instrumentation
 - Good: Fail-open — no business impact from telemetry failures
+- Good: Local dev panel without collector
 - Bad: Ambient actions add span volume
 - Bad: OTel peer deps add ~50KB bundle size
 
@@ -83,3 +82,9 @@ Decision confirmed by:
 - Good: Zero complexity, zero bundle cost
 - Bad: 2-4 hour diagnosis time per performance incident
 - Bad: No data-driven performance optimization possible
+
+## More Information
+
+- FEATURE spec: `architecture/features/feature-perf-telemetry/FEATURE.md`
+- Data contracts: `.ai/references/telemetry/data-contracts.md`
+- Privacy governance: `.ai/references/telemetry/privacy-and-governance.md`
