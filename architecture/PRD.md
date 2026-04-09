@@ -144,14 +144,14 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 
 #### Product Manager
 
-**ID**: `cpt-hai3-actor-pm`
+**ID**: `cpt-frontx-actor-pm`
 
 **Role**: Creates new draft UI ideas using plain-language prompts in the Builder. Iterates on generated output through follow-up messages. Shares preview links informally before committing anything to the official project.
 **Needs**: A zero-configuration way to go from an idea to a visible, interactive UI prototype without writing code or using the CLI.
 
 #### Designer
 
-**ID**: `cpt-hai3-actor-designer`
+**ID**: `cpt-frontx-actor-designer`
 
 **Role**: Reviews AI-generated drafts in the Builder and submits refinement prompts to adjust visual layout, color, and interaction patterns.
 **Needs**: A fast feedback loop for visual iteration without depending on a developer to implement changes.
@@ -832,75 +832,75 @@ The system MUST clamp Studio button and panel positions to the current viewport 
 
 #### Builder Trigger
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-trigger`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-trigger`
 
 The Studio shell MUST render a persistent trigger control that, when activated, opens the Builder (Chat Panel and Preview Panel together). Activating the trigger when the Builder is already open MUST close the entire Builder experience.
 
 **Rationale**: The Builder must be instantly accessible from anywhere in Studio without navigating away from the current context; users also need a clear way to dismiss it and reclaim screen space.
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
 
 #### Builder Chat Panel
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-chat`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-chat`
 
 The Builder MUST provide a Chat Panel that slides in from the left edge of the Studio viewport. The panel MUST display the full conversation thread for the active session (user messages and AI responses visually distinguished, markdown rendered), and MUST provide a text input for composing and submitting prompts via keyboard or explicit send control. Input MUST be disabled while the AI Backend is processing.
 
 **Rationale**: The conversation thread is the primary interface for iterating on a generated UI; keyboard submission and clear processing feedback are essential for a fast, non-confusing iteration loop.
-**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
 
 #### Builder Preview Panel
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-preview`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-preview`
 
 The Builder MUST provide a Preview Panel that slides in from the right edge of the Studio viewport and renders the AI-generated UI in an isolated context to prevent style and script interference with the Studio host. The preview MUST update automatically after each successful AI response. The panel MUST receive the active Studio theme and language selection and apply them to the rendered preview. The panel MUST display a loading state while the dev server initializes, and a reconnecting state if the dev server disconnects.
 
 **Rationale**: Automatic preview updates and theme/language forwarding give non-developer actors an accurate, immediate impression of the generated UI; explicit loading and reconnecting states prevent users from misinterpreting server startup delays as failures.
-**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`, `cpt-hai3-actor-studio-user`
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`, `cpt-frontx-actor-studio-user`
 
 #### Builder AI Code Generation
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-codegen`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-codegen`
 
 When a prompt is submitted, the system MUST send the prompt together with the minimum required project context — existing screenset source files, type definitions, and framework conventions — to the AI Backend. The AI Backend MUST return generated TypeScript/React component code. The system MUST write generated files to the correct locations in the active project's screenset directory. The system MUST ensure that validation failures do not corrupt the project state and MUST provide actionable feedback to the user when generation cannot be completed successfully.
 
 **Rationale**: Providing full project context produces output that integrates correctly with the existing screenset structure; protecting the project state and surfacing clear feedback shields non-developer actors from low-level errors that would break the prototyping flow.
-**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
 
 #### Builder Prompt Feedback
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-prompt-feedback`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-prompt-feedback`
 
 The system MUST display a visible processing indicator within 300ms of prompt submission and MUST complete the AI response within 30 seconds for prompts that do not require clarification. If the 30-second ceiling is exceeded, the system MUST notify the user with a clear timeout message.
 
 **Rationale**: Visible feedback under 300ms prevents users from double-submitting; a 30-second ceiling keeps the iteration loop from feeling broken.
-**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
 
 #### Builder Iterative Refinement
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-iterate`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-iterate`
 
 The Builder MUST support iterative refinement: each follow-up prompt MUST be sent with the full conversation history and project context so that each generation builds on the previous result rather than starting over.
 
 **Rationale**: The prototyping value of the Builder depends on the ability to refine output through a conversation rather than restarting from scratch on every prompt.
-**Actors**: `cpt-hai3-actor-pm`, `cpt-hai3-actor-designer`
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
 
 #### Builder Session Persistence
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-session`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-session`
 
 The system MUST persist the full conversation thread per project. Closing and reopening the Builder MUST restore the previous conversation state. Panel open/closed state MUST also be persisted.
 
 **Rationale**: Prototyping sessions span multiple sittings; losing conversation history forces users to reconstruct context manually.
-**Actors**: `cpt-hai3-actor-pm`
+**Actors**: `cpt-frontx-actor-pm`
 
 #### Builder Credential Security
 
-- [ ] `p1` - **ID**: `cpt-hai3-fr-studio-builder-credentials`
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-credentials`
 
 AI Backend credentials MUST NOT be exposed to end users or accessible in client-side code at any point.
 
 **Rationale**: Credential exposure would allow any page visitor to make API calls at the credential owner's expense.
-**Actors**: `cpt-hai3-actor-studio-user`
+**Actors**: `cpt-frontx-actor-studio-user`
 
 ### 5.15 CLI
 

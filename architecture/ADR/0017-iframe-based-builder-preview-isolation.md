@@ -23,7 +23,7 @@ date: 2026-04-09
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-iframe-based-builder-preview-isolation`
+**ID**: `cpt-frontx-adr-iframe-based-builder-preview-isolation`
 
 ## Context and Problem Statement
 
@@ -89,5 +89,5 @@ The `allow-scripts allow-same-origin` sandbox flags are the minimum needed for a
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-studio-builder-preview` — Preview Panel renders AI-generated UI in an isolated context
-* `cpt-hai3-component-studio` — Studio package boundary; Builder preview is a sub-system of Studio
+* `cpt-frontx-fr-studio-builder-preview` — Preview Panel renders AI-generated UI in an isolated context
+* `cpt-frontx-component-studio` — Studio package boundary; Builder preview is a sub-system of Studio

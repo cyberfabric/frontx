@@ -23,15 +23,15 @@ date: 2026-04-09
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-server-side-ai-backend-proxy`
+**ID**: `cpt-frontx-adr-server-side-ai-backend-proxy`
 
 ## Context and Problem Statement
 
-The Builder must send prompts and project context to an external AI Backend (Anthropic Claude). A choice must be made about where API credentials are stored and from where requests originate. The credential security requirement (`cpt-hai3-fr-studio-builder-credentials`) states that credentials must never be present in browser network traffic or browser storage. Builder is a development-only feature; a local dev server is already running.
+The Builder must send prompts and project context to an external AI Backend (Anthropic Claude). A choice must be made about where API credentials are stored and from where requests originate. The credential security requirement (`cpt-frontx-fr-studio-builder-credentials`) states that credentials must never be present in browser network traffic or browser storage. Builder is a development-only feature; a local dev server is already running.
 
 ## Decision Drivers
 
-* `cpt-hai3-fr-studio-builder-credentials` — AI Backend credentials must not be exposed to end users or accessible in client-side code at any point
+* `cpt-frontx-fr-studio-builder-credentials` — AI Backend credentials must not be exposed to end users or accessible in client-side code at any point
 * Builder operates exclusively in development (`import.meta.env.DEV`); a companion server process alongside the Vite dev server is an acceptable constraint in that context
 * Vite's dev server supports custom middleware and proxy configuration, making a server-side endpoint a natural extension of the existing dev toolchain
 
@@ -43,7 +43,7 @@ The Builder must send prompts and project context to an external AI Backend (Ant
 
 ## Decision Outcome
 
-Chosen option: "Local server-side proxy with credentials in server environment only", because it is the only option that satisfies `cpt-hai3-fr-studio-builder-credentials`. Credentials never leave the server process; the browser never sees the key in network requests, responses, or storage. A companion dev server endpoint is an accepted cost in a development-only context where a Vite dev server is already running.
+Chosen option: "Local server-side proxy with credentials in server environment only", because it is the only option that satisfies `cpt-frontx-fr-studio-builder-credentials`. Credentials never leave the server process; the browser never sees the key in network requests, responses, or storage. A companion dev server endpoint is an accepted cost in a development-only context where a Vite dev server is already running.
 
 ### Consequences
 
@@ -62,13 +62,13 @@ A local server-side endpoint (e.g., Vite plugin custom middleware or a lightweig
 
 * Good, because simplest implementation — no server process required
 * Bad, because Vite exposes `VITE_`-prefixed environment variables to the browser bundle; any credential stored this way is visible in the compiled JavaScript and in browser DevTools network requests
-* Bad, because violates `cpt-hai3-fr-studio-builder-credentials`
+* Bad, because violates `cpt-frontx-fr-studio-builder-credentials`
 
 ### User-supplied API key stored in browser localStorage
 
 * Good, because each developer uses their own credentials; no shared key to protect
 * Bad, because any key in `localStorage` is accessible to any JavaScript running on the page, including AI-generated code in the preview context
-* Bad, because still violates `cpt-hai3-fr-studio-builder-credentials` — the key is present in browser storage
+* Bad, because still violates `cpt-frontx-fr-studio-builder-credentials` — the key is present in browser storage
 
 ### Local server-side proxy with credentials in server environment only
 
@@ -87,6 +87,6 @@ The companion server runs only when `NODE_ENV=development`. Production builds of
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-studio-builder-credentials` — credential security requirement for the AI Backend
-* `cpt-hai3-fr-studio-builder-codegen` — AI code generation flow routed through the proxy
-* `cpt-hai3-component-studio` — Studio package boundary; proxy is a dev-only companion to Studio
+* `cpt-frontx-fr-studio-builder-credentials` — credential security requirement for the AI Backend
+* `cpt-frontx-fr-studio-builder-codegen` — AI code generation flow routed through the proxy
+* `cpt-frontx-component-studio` — Studio package boundary; proxy is a dev-only companion to Studio
