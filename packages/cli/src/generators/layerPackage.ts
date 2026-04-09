@@ -40,31 +40,24 @@ function getLayerDependencies(layer: LayerType): {
     globals: '^15.0.0',
     eslint: '^9.0.0',
   };
+  const baseSdkLikeDependencies = {
+    dependencies: {},
+    peerDependencies: {},
+    devDependencies: {
+      ...eslintDevDeps,
+      typescript: '^5.4.0',
+      tsup: '^8.0.0',
+    },
+  };
 
   switch (layer) {
     case 'sdk':
       // SDK layer has no HAI3 dependencies
-      return {
-        dependencies: {},
-        peerDependencies: {},
-        devDependencies: {
-          ...eslintDevDeps,
-          typescript: '^5.4.0',
-          tsup: '^8.0.0',
-        },
-      };
+      return baseSdkLikeDependencies;
 
     case 'framework':
       // Framework layer depends only on SDK packages
-      return {
-        dependencies: {},
-        peerDependencies: {},
-        devDependencies: {
-          ...eslintDevDeps,
-          typescript: '^5.4.0',
-          tsup: '^8.0.0',
-        },
-      };
+      return baseSdkLikeDependencies;
 
     case 'react':
       // React layer depends on Framework and React
