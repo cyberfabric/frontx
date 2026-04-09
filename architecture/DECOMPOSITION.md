@@ -493,7 +493,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - [x] `p2` - **ID**: `cpt-hai3-feature-studio-devtools`
 
-- **Purpose**: Provides a development-time overlay for inspecting and tweaking theme, i18n, viewport, and state. Conditionally loaded via `import.meta.env.DEV` for zero production bundle impact. Persists panel state to localStorage.
+- **Purpose**: Provides a development-time overlay for inspecting and tweaking theme, i18n, viewport, and state, and hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code. Conditionally loaded via `import.meta.env.DEV` for zero production bundle impact. Persists panel state to localStorage.
 
 - **Depends On**: None
 
@@ -504,6 +504,10 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Panel state persistence (open/closed, position, preferences) via localStorage
   - Build independence (excluded from production via tree-shaking)
   - Event-driven persistence (subscribes to framework events)
+  - Builder trigger control in the Studio shell (toggles Chat Panel and Preview Panel together)
+  - Chat Panel: left slide-in panel with conversation thread, markdown rendering, prompt input, and per-project session persistence
+  - Preview Panel: right slide-in panel with iframe-based isolated rendering, postMessage theme/language forwarding, and loading/reconnecting states
+  - Local server-side proxy: receives prompt and project context from Chat Panel, forwards to AI Backend with server-held credentials, validates generated TypeScript, writes files on success, auto-corrects on failure
 
 - **Out of scope**:
   - Framework state modification (dispatches through standard event flow)
@@ -516,6 +520,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-hai3-fr-studio-persistence`
   - [x] `p1` - `cpt-hai3-fr-studio-viewport`
   - [x] `p1` - `cpt-hai3-fr-studio-independence`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-trigger`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-chat`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-preview`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-codegen`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-prompt-feedback`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-iterate`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-session`
+  - [ ] `p1` - `cpt-hai3-fr-studio-builder-credentials`
 
 - **Design Principles Covered**:
   - (Studio is standalone; operates through event-driven patterns)
@@ -534,9 +546,12 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **API**:
   - `import('@hai3/studio')` (dev-only dynamic import)
   - Studio panel toggle
+  - Builder trigger control
+  - `POST /builder/generate` (local server-side proxy endpoint)
 
 - **Sequences**:
-  - None
+
+  - `cpt-hai3-seq-builder-codegen`
 
 - **Data**:
   - N/A (client-side library)
