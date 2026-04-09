@@ -1347,7 +1347,7 @@ Architecture MUST be verifiable via `npm run arch:check`, `arch:deps`, and `arch
 - [x] CLI scaffolds functional project with `hai3 create` + `hai3 scaffold layout`
 - [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
 - [ ] A processing indicator is visible within 300ms of prompt submission
-- [ ] Submitting a prompt results in visible AI-generated UI in the Preview Panel within 30 seconds
+- [ ] A prompt that does not require clarification receives a complete AI response within 30 seconds; if the ceiling is exceeded, a timeout message is displayed
 - [ ] The Preview Panel reflects the active Studio theme and language without manual intervention
 - [ ] Closing and reopening the Builder restores the previous conversation thread
 - [ ] AI Backend credentials are not present in any browser network request or browser storage
