@@ -22,7 +22,14 @@
  */
 
 import { useEffect, useRef, useCallback } from 'react';
-import type { ActionTrigger, DoneRenderingDeps, FetchMeta } from './types';
+import type {
+  ActionSnapshot,
+  ActionTrigger,
+  DoneRenderingDeps,
+  DoneRenderingOptions,
+  FetchMeta,
+  TelemetryActionOptions,
+} from './types';
 
 // Module-level guard: navigation timing is only emitted once (page-load entry is static)
 let _navigationTimingEmitted = false;
@@ -79,7 +86,7 @@ export function useRoutePerf(routeId: string, navigationStartMs: number) {
 export function useDoneRendering(
   signalName: string,
   deps: DoneRenderingDeps,
-  opts?: { timeoutMs?: number }
+  opts?: DoneRenderingOptions
 ) {
   const firedRef = useRef(false);
   const mountTimeRef = useRef(performance.now());
@@ -103,7 +110,7 @@ export function useDoneRendering(
     try {
       const mountTime = mountTimeRef.current;
       const tracer = getTracer('hai3-render');
-      const parentContext = getActionParentContext(mountTime, routeId);
+      const { actionSnapshot, parentContext } = resolveActionSnapshotAndParentContext(routeId, mountTime);
       const readySpan = tracer.startSpan(signalName, {
         startTime: mountTime,
         attributes: {
@@ -122,7 +129,8 @@ export function useDoneRendering(
         },
       }, uiParentContext);
 
-      beginRouteUiScope({ routeId, signalName, startedAtMs: mountTime, readySpan, uiSpan });
+      applyActionSnapshotAttributes(actionSnapshot, readySpan, uiSpan);
+      beginRouteUiScope({ routeId, signalName, startedAtMs: mountTime, readySpan, uiSpan, actionSnapshot });
     } catch { /* fail-open: reset ref so next mount can retry */
       scopeCreatedRef.current = false;
     }
@@ -131,7 +139,11 @@ export function useDoneRendering(
       if (!firedRef.current) {
         const now = performance.now();
         const scope = endRouteUiScope(routeId, signalName, now);
-        if (scope) { scope.uiSpan.end(now); scope.readySpan.end(now); }
+        if (scope) {
+          applyActionSnapshotAttributes(scope.actionSnapshot, scope.readySpan, scope.uiSpan);
+          scope.uiSpan.end(now);
+          scope.readySpan.end(now);
+        }
       }
     };
   }, [routeId, signalName]);
@@ -157,11 +169,7 @@ export function useDoneRendering(
             scope.readySpan.setAttribute('render.js_to_paint_ms', round2(paintTime - dataReadyTime));
             scope.readySpan.setAttribute('render.method', 'dom-stable-double-raf');
 
-            const relatedAttrs = getRelatedActionAttributes(routeId, paintTime);
-            for (const [k, v] of Object.entries(relatedAttrs)) {
-              scope.readySpan.setAttribute(k, v);
-              scope.uiSpan.setAttribute(k, v);
-            }
+            applyActionSnapshotAttributes(scope.actionSnapshot, scope.readySpan, scope.uiSpan);
 
             scope.uiSpan.end(paintTime);
             scope.readySpan.end(paintTime);
@@ -179,6 +187,7 @@ export function useDoneRendering(
           const now = performance.now();
           const scope = endRouteUiScope(routeId, signalName, now);
           if (!scope?.readySpan || !scope?.uiSpan) return;
+          applyActionSnapshotAttributes(scope.actionSnapshot, scope.readySpan, scope.uiSpan);
           scope.readySpan.setAttribute('render.total_ms', round2(now - mountTimeRef.current));
           scope.readySpan.setAttribute('render.method', 'timeout-fallback');
           scope.readySpan.setAttribute('render.timed_out', true);
@@ -196,7 +205,7 @@ export function useDoneRendering(
 // ActionTrigger, DoneRenderingDeps, FetchMeta defined in ./types.ts (single source of truth)
 
 /** Returns a stable callback that wraps async work in a named action span with full correlation. */
-export function useTelemetryAction(actionName: string, defaults?: { routeId?: string; trigger?: ActionTrigger }) {
+export function useTelemetryAction(actionName: string, defaults?: TelemetryActionOptions) {
   const routeId = defaults?.routeId || 'unknown';
   const trigger = defaults?.trigger || 'click';
   return useCallback(
@@ -522,12 +531,66 @@ function normalizeUrlForSpan(url: string): string {
   }
 }
 
-function getRelatedActionAttributes(routeId: string, atMs: number): Record<string, string> {
+function resolveActionSnapshotAndParentContext(
+  routeId: string,
+  atMs: number
+): {
+  actionSnapshot: ActionSnapshot | undefined;
+  parentContext: ReturnType<typeof getActionParentContext>;
+} {
   const relatedAction = findRelatedActionScope(atMs, routeId);
-  if (!relatedAction) return {};
+  if (relatedAction) {
+    return {
+      actionSnapshot: getActionSnapshotFromScope(relatedAction),
+      parentContext: trace.setSpan(context.active(), relatedAction.span),
+    };
+  }
+
+  const parentContext = getActionParentContext(atMs, routeId);
   return {
-    'action.name': relatedAction.actionName,
-    'action.scope_span_id': relatedAction.spanId,
-    'action.scope_trace_id': relatedAction.traceId,
+    actionSnapshot: getActionSnapshotFromScope(findRelatedActionScope(atMs, routeId)),
+    parentContext,
+  };
+}
+
+function getActionSnapshot(routeId: string, atMs: number): ActionSnapshot | undefined {
+  return getActionSnapshotFromScope(findRelatedActionScope(atMs, routeId));
+}
+
+function getActionSnapshotFromScope(
+  relatedAction: ReturnType<typeof findRelatedActionScope>
+): ActionSnapshot | undefined {
+  if (!relatedAction) return undefined;
+  return {
+    actionName: relatedAction.actionName,
+    spanId: relatedAction.spanId,
+    traceId: relatedAction.traceId,
+    routeId: relatedAction.routeId,
+  };
+}
+
+function applyActionSnapshotAttributes(
+  actionSnapshot: ActionSnapshot | undefined,
+  ...spans: Array<{ setAttribute: (key: string, value: string) => void }>
+): void {
+  const actionAttributes = getActionSnapshotAttributes(actionSnapshot);
+  for (const span of spans) {
+    for (const [key, value] of Object.entries(actionAttributes)) {
+      span.setAttribute(key, value);
+    }
+  }
+}
+
+function getRelatedActionAttributes(routeId: string, atMs: number): Record<string, string> {
+  return getActionSnapshotAttributes(getActionSnapshot(routeId, atMs));
+}
+
+function getActionSnapshotAttributes(actionSnapshot: ActionSnapshot | undefined): Record<string, string> {
+  if (!actionSnapshot) return {};
+  return {
+    'action.name': actionSnapshot.actionName,
+    'action.scope_span_id': actionSnapshot.spanId,
+    'action.scope_trace_id': actionSnapshot.traceId,
+    'route.id': actionSnapshot.routeId,
   };
 }

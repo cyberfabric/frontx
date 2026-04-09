@@ -13,6 +13,28 @@
 
 // ─── CSPRNG Helper ──────────────────────────────────────────────────────────
 
+type FreezableValue = FreezableRecord | string | number | boolean | null | undefined;
+
+interface FreezableRecord {
+  [key: string]: FreezableValue;
+}
+
+function deepFreeze<T>(value: T): Readonly<T> {
+  if (!value || typeof value !== 'object' || Object.isFrozen(value)) {
+    return value as Readonly<T>;
+  }
+
+  for (const nestedValue of Object.values(
+    value as FreezableRecord
+  )) {
+    if (nestedValue && typeof nestedValue === 'object') {
+      deepFreeze(nestedValue);
+    }
+  }
+
+  return Object.freeze(value);
+}
+
 /** Returns a cryptographically secure random float in [0, 1). Uses globalThis for Node/JSDOM compat. */
 function cryptoRandom(): number {
   if (globalThis.crypto) {
@@ -21,7 +43,7 @@ function cryptoRandom(): number {
     return array[0] / 4294967296; // 2^32
   }
   // Fallback for environments without crypto (test runners)
-  return Date.now() % 1000 / 1000;
+  return Math.random();
 }
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
@@ -31,7 +53,7 @@ import type { Lane, PolicyProfile, CollectionPolicy, PolicyOverrides } from './t
 // ─── Predefined Policies (frozen — use getPolicyByProfile() for mutable copies) ─
 
 /** Default policy: full lane A/B collection, 10% lane C, resource timing and long tasks disabled. */
-export const BASELINE_POLICY: Readonly<CollectionPolicy> = Object.freeze({
+export const BASELINE_POLICY: Readonly<CollectionPolicy> = deepFreeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'baseline',
@@ -56,7 +78,7 @@ export const BASELINE_POLICY: Readonly<CollectionPolicy> = Object.freeze({
 });
 
 /** High-fidelity policy: all lanes at 100%, all feature toggles on, short TTL for incident investigation. */
-export const INVESTIGATION_POLICY: Readonly<CollectionPolicy> = Object.freeze({
+export const INVESTIGATION_POLICY: Readonly<CollectionPolicy> = deepFreeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'investigation',
@@ -81,7 +103,7 @@ export const INVESTIGATION_POLICY: Readonly<CollectionPolicy> = Object.freeze({
 });
 
 /** Elevated policy for support sessions: increased limits, resource timing on, 50% lane C. */
-export const SUPPORT_BURST_POLICY: Readonly<CollectionPolicy> = Object.freeze({
+export const SUPPORT_BURST_POLICY: Readonly<CollectionPolicy> = deepFreeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'support-burst',
@@ -106,7 +128,7 @@ export const SUPPORT_BURST_POLICY: Readonly<CollectionPolicy> = Object.freeze({
 });
 
 /** Emergency policy that sets all sampling to 0 and activates the kill switch. */
-export const KILL_SWITCH_POLICY: Readonly<CollectionPolicy> = Object.freeze({
+export const KILL_SWITCH_POLICY: Readonly<CollectionPolicy> = deepFreeze({
   version: 1,
   updatedAt: Date.now(),
   profile: 'kill-switch',
@@ -203,7 +225,7 @@ export class PolicyEngine {
 
   /** Returns the human-readable reason the kill switch was activated, or undefined if inactive. */
   getKillSwitchReason(): string | undefined {
-    return this.currentPolicy.killSwitch.reason;
+    return this.currentPolicy.killSwitch.active ? this.currentPolicy.killSwitch.reason : undefined;
   }
 
   /** Returns per-lane event counts and limits for the current rate window. Resets stale windows before returning. */

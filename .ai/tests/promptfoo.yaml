@@ -33,9 +33,9 @@ tests:
         value: "SCREENSETS.md"
       - type: javascript
         value: |
-          output.includes('REQUIRED') ||
-          output.includes('FORBIDDEN') ||
-          output.includes('STOP')
+          return output.includes('REQUIRED') ||
+            output.includes('FORBIDDEN') ||
+            output.includes('STOP');
 
   # Test: frontx-new-screen structure
   - description: frontx-new-screen has workflow

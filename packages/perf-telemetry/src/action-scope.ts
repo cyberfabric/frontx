@@ -42,8 +42,12 @@ export function setAmbientTracer(factory: () => import('@opentelemetry/api').Tra
   _ambientTracer = factory;
 }
 
+export function clearAmbientTracer(): void {
+  _ambientTracer = null;
+}
+
 // @cpt-hai3-telemetry-perf-state-ambient-lifecycle
-function ensureAmbientAction(routeId: string): ActionScope {
+function ensureAmbientAction(routeId: string, atMs?: number): ActionScope {
   // @cpt-begin:cpt-hai3-algo-perf-telemetry-ambient-lifecycle:p1:inst-reuse-matching-ambient
   if (_ambientScope?.routeId === routeId) {
     return _ambientScope;
@@ -62,8 +66,10 @@ function ensureAmbientAction(routeId: string): ActionScope {
   // @cpt-end:cpt-hai3-algo-perf-telemetry-ambient-lifecycle:p1:inst-guard-ambient-tracer
   const tracer = _ambientTracer();
   const actionName = `${routeId}.ambient`;
+  const startedAtMs = atMs ?? performance.now();
   // @cpt-begin:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-start-ambient-action-span
   const span = tracer.startSpan(actionName, {
+    startTime: startedAtMs,
     attributes: {
       'action.name': actionName,
       'route.id': routeId,
@@ -80,7 +86,7 @@ function ensureAmbientAction(routeId: string): ActionScope {
     traceId: spanContext.traceId,
     actionName,
     routeId,
-    startedAtMs: performance.now(),
+    startedAtMs,
   };
   // @cpt-end:cpt-hai3-state-perf-telemetry-ambient-action:p1:inst-cache-ambient-scope
   return _ambientScope;
@@ -177,7 +183,7 @@ export function findRelatedActionScope(atMs: number, routeId?: string): ActionSc
 
   // Fallback: use ambient action so no span is ever orphaned
   // @cpt-begin:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-fallback-to-ambient-action
-  if (routeId) return ensureAmbientAction(routeId);
+  if (routeId) return ensureAmbientAction(routeId, atMs);
   // @cpt-end:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-fallback-to-ambient-action
 
   return undefined;
@@ -192,7 +198,7 @@ export function getActionParentContext(atMs: number, routeId?: string): Context 
   if (!scope) {
     if (routeId) {
       // @cpt-begin:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-parent-context-from-ambient
-      const ambient = ensureAmbientAction(routeId);
+      const ambient = ensureAmbientAction(routeId, atMs);
       return trace.setSpan(context.active(), ambient.span);
       // @cpt-end:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-parent-context-from-ambient
     }

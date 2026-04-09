@@ -35,7 +35,13 @@ import { UserInteractionInstrumentation } from '@opentelemetry/instrumentation-u
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
 import { trace, context, type Context, type Tracer, type Span, SpanStatusCode } from '@opentelemetry/api';
 import type { OtelConfig, TelemetryRuntimeConfig } from './types';
-import { findRelatedActionScope, getTelemetryParentContext, setAmbientTracer, endAmbientAction } from './action-scope';
+import {
+  clearAmbientTracer,
+  findRelatedActionScope,
+  getTelemetryParentContext,
+  setAmbientTracer,
+  endAmbientAction,
+} from './action-scope';
 import { getClientInfo } from './client-info';
 import { TelemetryStoreProcessor } from './telemetry-store';
 
@@ -45,6 +51,7 @@ let _provider: WebTracerProvider | null = null;
 let _sessionId: string | null = null;
 let _initialized = false;
 let _visibilityHandler: (() => void) | null = null;
+let _disableInstrumentations: (() => void) | null = null;
 
 function generateSessionId(): string {
   // Use cryptographically secure random when available (all modern browsers)
@@ -164,6 +171,7 @@ function getSpanAttributes(span: Span): SpanWithAttributes['attributes'] {
 function applySpanActionContext(span: Span, currentRouteId: string): void {
   const attributes = getSpanAttributes(span);
   const existingActionName = attributes?.['action.name'];
+  const lookupRouteId = typeof attributes?.['route.id'] === 'string' ? attributes['route.id'] : currentRouteId;
 
   if (typeof existingActionName === 'string' && existingActionName.length > 0) {
     // @cpt-begin:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
@@ -171,14 +179,14 @@ function applySpanActionContext(span: Span, currentRouteId: string): void {
     span.setAttribute('action.scope_span_id', spanContext.spanId);
     span.setAttribute('action.scope_trace_id', spanContext.traceId);
     if (typeof attributes?.['route.id'] !== 'string') {
-      span.setAttribute('route.id', currentRouteId);
+      span.setAttribute('route.id', lookupRouteId);
     }
     // @cpt-end:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
     return;
   }
 
   // Guarantee every non-root span belongs to an action (ambient fallback)
-  const relatedAction = findRelatedActionScope(performance.now(), currentRouteId);
+  const relatedAction = findRelatedActionScope(performance.now(), lookupRouteId);
   if (relatedAction) {
     // @cpt-begin:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-apply-related-action-context
     span.setAttribute('action.name', relatedAction.actionName);
@@ -190,8 +198,30 @@ function applySpanActionContext(span: Span, currentRouteId: string): void {
   }
 
   // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
-  span.setAttribute('route.id', currentRouteId);
+  span.setAttribute('route.id', lookupRouteId);
   // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
+}
+
+function cleanupPartialInit(): void {
+  if (_visibilityHandler && globalThis.document) {
+    globalThis.document.removeEventListener('visibilitychange', _visibilityHandler);
+    _visibilityHandler = null;
+  }
+
+  _disableInstrumentations?.();
+  _disableInstrumentations = null;
+
+  if (_provider) {
+    _provider.forceFlush().catch(() => { /* fail-open */ });
+    _provider.shutdown().catch(() => { /* fail-open */ });
+  }
+
+  endAmbientAction();
+  clearAmbientTracer();
+  trace.disable();
+  context.disable();
+  _provider = null;
+  _initialized = false;
 }
 
 function applySpanClientInfo(span: Span, includeDebugData: boolean): void {
@@ -296,7 +326,7 @@ export function initOtel(config: OtelConfig): void {
     // Match exact origin followed by path separator or end — prevents lookalike host matches
     const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeForRegex(appOrigin)}(/|$)`)];
     // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-auto-instrumentations
-    registerInstrumentations({
+    _disableInstrumentations = registerInstrumentations({
       instrumentations: [
         new FetchInstrumentation({
           ignoreUrls: [/\/v1\/traces/, /\/v1\/metrics/, /\/v1\/logs/],
@@ -331,7 +361,7 @@ export function initOtel(config: OtelConfig): void {
   } catch {
     // Fail-open: clean up partial init to allow retry
     // @cpt-begin:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
-    _provider = null;
+    cleanupPartialInit();
     return;
     // @cpt-end:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
   }
@@ -366,6 +396,10 @@ export async function shutdownOtel(): Promise<void> {
     _visibilityHandler = null;
     // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-remove-visibility-handler
   }
+  _disableInstrumentations?.();
+  _disableInstrumentations = null;
+  endAmbientAction();
+  clearAmbientTracer();
   if (_provider) {
     // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
     await _provider.shutdown();
@@ -373,6 +407,8 @@ export async function shutdownOtel(): Promise<void> {
     _initialized = false;
     // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
   }
+  trace.disable();
+  context.disable();
 }
 
 export async function flushOtel(): Promise<void> {

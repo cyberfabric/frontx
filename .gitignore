@@ -69,3 +69,4 @@ packages/cli/src/generated/
 .cypilot/.plans/
 
 .prs/
+.ai/tests/results.json

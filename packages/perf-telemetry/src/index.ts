@@ -80,6 +80,9 @@ export type {
   ClientAttributes,
   NavigatorWithConnection,
   ActionTrigger,
+  ActionSnapshot,
   DoneRenderingDeps,
+  DoneRenderingOptions,
   FetchMeta,
+  TelemetryActionOptions,
 } from './types';
