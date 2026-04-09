@@ -333,7 +333,7 @@ export function useWebVitals(routeId: string, enabled = true) {
       const lcpObserver = new PerformanceObserver((list) => {
         // Filter buffered entries to only include those from current route mount
         const entries = list.getEntries().filter((e) => e.startTime >= mountTs);
-        const [lastEntry] = entries.slice(-1) as Array<PerformanceEntry & { startTime: number }>;
+        const lastEntry = entries.slice(-1).pop();
         if (lastEntry) {
           const parentCtx = getActionParentContext(performance.now(), routeId);
           const span = tracer.startSpan('webvital.lcp', {
