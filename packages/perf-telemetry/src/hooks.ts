@@ -92,23 +92,30 @@ export function useDoneRendering(
   const mountTimeRef = useRef(performance.now());
   const dataReadyTimeRef = useRef<number | null>(null);
   const scopeCreatedRef = useRef(false);
+  const rafIdsRef = useRef<number[]>([]);
   const timeoutMs = opts?.timeoutMs ?? 10000;
   const routeId = signalName.endsWith('.ready') ? signalName.slice(0, -'.ready'.length) : 'unknown';
 
   // Reset refs when signalName/routeId changes so stale state doesn't block new spans
   useEffect(() => {
+    cancelPendingAnimationFrames(rafIdsRef.current);
+    rafIdsRef.current = [];
     firedRef.current = false;
     scopeCreatedRef.current = false;
     mountTimeRef.current = performance.now();
     dataReadyTimeRef.current = null;
+    return () => {
+      cancelPendingAnimationFrames(rafIdsRef.current);
+      rafIdsRef.current = [];
+    };
   }, [signalName]);
 
   useEffect(() => {
     if (scopeCreatedRef.current || getActiveRouteUiScope(routeId, signalName)) return;
     scopeCreatedRef.current = true;
+    const mountTime = mountTimeRef.current;
 
     try {
-      const mountTime = mountTimeRef.current;
       const tracer = getTracer('hai3-render');
       const { actionSnapshot, parentContext } = resolveActionSnapshotAndParentContext(routeId, mountTime);
       const readySpan = tracer.startSpan(signalName, {
@@ -138,7 +145,7 @@ export function useDoneRendering(
     return () => {
       if (!firedRef.current) {
         const now = performance.now();
-        const scope = endRouteUiScope(routeId, signalName, now);
+        const scope = endCapturedRouteUiScope(routeId, signalName, mountTime, now);
         if (scope) {
           applyActionSnapshotAttributes(scope.actionSnapshot, scope.readySpan, scope.uiSpan);
           scope.uiSpan.end(now);
@@ -153,15 +160,16 @@ export function useDoneRendering(
     if (deps.dataReady) {
       const jsEndTime = performance.now();
       if (!dataReadyTimeRef.current) dataReadyTimeRef.current = jsEndTime;
+      const mountTime = mountTimeRef.current;
+      const dataReadyTime = dataReadyTimeRef.current || jsEndTime;
       firedRef.current = true;
 
-      requestAnimationFrame(() => {
-        requestAnimationFrame(() => {
+      const firstRafId = requestAnimationFrame(() => {
+        const secondRafId = requestAnimationFrame(() => {
+          rafIdsRef.current = [];
           try {
             const paintTime = performance.now();
-            const mountTime = mountTimeRef.current;
-            const dataReadyTime = dataReadyTimeRef.current || jsEndTime;
-            const scope = endRouteUiScope(routeId, signalName, paintTime);
+            const scope = endCapturedRouteUiScope(routeId, signalName, mountTime, paintTime);
             if (!scope?.readySpan || !scope?.uiSpan) return;
 
             scope.readySpan.setAttribute('render.total_ms', round2(paintTime - mountTime));
@@ -175,20 +183,23 @@ export function useDoneRendering(
             scope.readySpan.end(paintTime);
           } catch { /* fail-open */ }
         });
+        rafIdsRef.current.push(secondRafId);
       });
+      rafIdsRef.current.push(firstRafId);
     }
   }, [deps.dataReady, signalName, routeId]);
 
   useEffect(() => {
+    const mountTime = mountTimeRef.current;
     const timer = setTimeout(() => {
       if (!firedRef.current) {
         firedRef.current = true;
         try {
           const now = performance.now();
-          const scope = endRouteUiScope(routeId, signalName, now);
+          const scope = endCapturedRouteUiScope(routeId, signalName, mountTime, now);
           if (!scope?.readySpan || !scope?.uiSpan) return;
           applyActionSnapshotAttributes(scope.actionSnapshot, scope.readySpan, scope.uiSpan);
-          scope.readySpan.setAttribute('render.total_ms', round2(now - mountTimeRef.current));
+          scope.readySpan.setAttribute('render.total_ms', round2(now - mountTime));
           scope.readySpan.setAttribute('render.method', 'timeout-fallback');
           scope.readySpan.setAttribute('render.timed_out', true);
           scope.uiSpan.end(now);
@@ -277,8 +288,8 @@ export async function instrumentedFetch(
     const method = HTTP_UPPER[methodRaw] ?? methodRaw;
     const normalizedUrl = normalizeUrlForSpan(url);
     const startedAt = performance.now();
-    const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
     parentCtx = getTelemetryParentContext(meta.routeId, startedAt) || context.active();
+    const activeActionAttrs = getRelatedActionAttributes(meta.routeId, startedAt);
     const resolvedActionName = meta.actionName || activeActionAttrs['action.name'] || 'unknown';
     span = tracer.startSpan(`${method} ${normalizedUrl}`, {
       attributes: {
@@ -532,6 +543,23 @@ function normalizeUrlForSpan(url: string): string {
     // Fallback: strip after ? or # manually
     return url.split('?')[0].split('#')[0];
   }
+}
+
+function cancelPendingAnimationFrames(rafIds: number[]): void {
+  for (const rafId of rafIds) {
+    cancelAnimationFrame(rafId);
+  }
+}
+
+function endCapturedRouteUiScope(
+  routeId: string,
+  signalName: string,
+  startedAtMs: number,
+  endedAtMs: number
+) {
+  const scope = getActiveRouteUiScope(routeId, signalName);
+  if (!scope || scope.startedAtMs !== startedAtMs) return undefined;
+  return endRouteUiScope(routeId, signalName, endedAtMs);
 }
 
 function resolveActionSnapshotAndParentContext(
