@@ -2,7 +2,7 @@
 
 <!-- artifact-version: 1.1 -->
 
-- [x] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
+- [ ] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
 
 <!-- toc -->
 
@@ -23,6 +23,10 @@
   - [Settings Restore on Mount](#settings-restore-on-mount)
   - [Viewport Position Clamping](#viewport-position-clamping)
   - [Conditional Loading and Production Exclusion](#conditional-loading-and-production-exclusion)
+  - [Builder Activation](#builder-activation)
+  - [Chat Panel Interaction](#chat-panel-interaction)
+  - [Preview Panel Rendering](#preview-panel-rendering)
+  - [AI Code Generation](#ai-code-generation)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Position Clamping Algorithm](#position-clamping-algorithm)
   - [Default Position Derivation](#default-position-derivation)
@@ -42,8 +46,12 @@
   - [DoD: Viewport Position Clamping](#dod-viewport-position-clamping)
   - [DoD: Keyboard Shortcut and Focus](#dod-keyboard-shortcut-and-focus)
   - [DoD: Conditional Loading and Zero Production Footprint](#dod-conditional-loading-and-zero-production-footprint)
+  - [DoD: Builder Panels and Activation](#dod-builder-panels-and-activation)
+  - [DoD: AI Code Generation and Preview](#dod-ai-code-generation-and-preview)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
+  - [Builder Working Prototype](#builder-working-prototype)
+  - [Builder Future Considerations](#builder-future-considerations)
   - [Storage Key Namespace](#storage-key-namespace)
   - [Studio Event Namespace](#studio-event-namespace)
   - [UIKit Component Organization](#uikit-component-organization)

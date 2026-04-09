@@ -31,7 +31,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 **Overall implementation status:**
 
-- [x] `p1` - **ID**: `cpt-frontx-status-overall`
+- [ ] `p1` - **ID**: `cpt-frontx-status-overall`
 
 ### 2.1 [State Management](feature-state-management/) ⏳ HIGH
 
@@ -491,7 +491,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.8 [Studio DevTools](feature-studio-devtools/) ⏳ MEDIUM
 
-- [x] `p2` - **ID**: `cpt-frontx-feature-studio-devtools`
+- [ ] `p2` - **ID**: `cpt-frontx-feature-studio-devtools`
 
 - **Purpose**: Provides a development-time overlay for inspecting and tweaking theme, i18n, viewport, and state, and hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code. Conditionally loaded via `import.meta.env.DEV` for zero production bundle impact. Persists panel state to localStorage.
 
