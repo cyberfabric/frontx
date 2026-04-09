@@ -42,8 +42,7 @@ function cryptoRandom(): number {
     globalThis.crypto.getRandomValues(array);
     return array[0] / 4294967296; // 2^32
   }
-  // Fallback for environments without crypto (test runners)
-  return Math.random();
+  return 1;
 }
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
