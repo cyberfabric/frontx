@@ -558,7 +558,7 @@ function endCapturedRouteUiScope(
   endedAtMs: number
 ) {
   const scope = getActiveRouteUiScope(routeId, signalName);
-  if (!scope || scope.startedAtMs !== startedAtMs) return undefined;
+  if (scope?.startedAtMs !== startedAtMs) return undefined;
   return endRouteUiScope(routeId, signalName, endedAtMs);
 }
 
