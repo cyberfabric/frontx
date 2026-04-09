@@ -57,7 +57,9 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-cli-template-based-code-generation`,
 `cpt-frontx-adr-two-tier-cli-e2e-verification`,
 `cpt-frontx-adr-channel-aware-version-locking`,
-`cpt-frontx-adr-per-action-type-handler-routing`
+`cpt-frontx-adr-per-action-type-handler-routing`,
+`cpt-frontx-adr-iframe-based-builder-preview-isolation`,
+`cpt-frontx-adr-server-side-ai-backend-proxy`
 
 #### Functional Drivers
 
@@ -120,6 +122,14 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-studio-persistence` | Theme, language, mock API state, GTS package persisted to localStorage; restored on Studio mount |
 | `cpt-frontx-fr-studio-viewport` | Studio button and panel clamped to viewport (20px margin) on load and window resize |
 | `cpt-frontx-fr-studio-independence` | `@cyberfabric/studio` standalone package; `"sideEffects": false`; excluded from production via `import.meta.env.DEV` |
+| `cpt-frontx-fr-studio-builder-trigger` | Studio shell renders a persistent Builder trigger button; clicking toggles the entire Builder experience (Chat Panel + Preview Panel) open or closed together |
+| `cpt-frontx-fr-studio-builder-chat` | Chat Panel slides in from the left; conversation thread with markdown rendering; `<textarea>` disabled during AI request; session persisted to localStorage per project |
+| `cpt-frontx-fr-studio-builder-preview` | Preview Panel slides in from the right; `<iframe sandbox="allow-scripts allow-same-origin">` for full JS/CSS isolation; theme and language forwarded via `postMessage`; explicit loading and reconnecting states |
+| `cpt-frontx-fr-studio-builder-codegen` | Local server-side proxy collects prompt + project context; forwards to AI Backend; validates generated TypeScript (`tsc --noEmit`); writes files to screenset directory on success; auto-corrects on validation failure |
+| `cpt-frontx-fr-studio-builder-prompt-feedback` | Processing indicator rendered within 300ms of prompt submission; hard 30-second timeout enforced by the server-side proxy with a user-facing message on expiry |
+| `cpt-frontx-fr-studio-builder-iterate` | Full conversation history and project context included with each prompt so AI Backend builds on prior output rather than starting over |
+| `cpt-frontx-fr-studio-builder-session` | Conversation persisted to `frontx:studio:builder:conversation:<projectId>` in localStorage; panel open/closed state to `frontx:studio:builder:panelState`; both restored on Studio remount |
+| `cpt-frontx-fr-studio-builder-credentials` | AI Backend credentials stored in server environment variables only; never present in browser network requests, responses, or storage; all AI calls routed through local server-side proxy |
 | `cpt-frontx-fr-cli-package` | `@cyberfabric/cli` workspace package with binary `frontx`; ESM (Node 18+) and programmatic API |
 | `cpt-frontx-fr-cli-commands` | CLI commands: create, update, scaffold layout/screenset, validate components, ai sync, migrate |
 | `cpt-frontx-fr-cli-templates` | Template system with `copy-templates.ts` build script, `manifest.json`; templates are user-owned |
@@ -557,12 +567,17 @@ Provides a development-time overlay for inspecting and tweaking theme, i18n, vie
 - **Persistence**: Panel state (open/closed, section visibility, preferences) stored in `localStorage`
 - **Viewport simulation**: Responsive preview at configurable breakpoints
 - **Build independence**: Excluded from production builds; no impact on production bundle
+- **Builder**: AI idea generator embedded in the Studio shell; surfaces as two sliding panels toggled by a persistent trigger control
+- **Chat Panel**: Left slide-in panel; displays conversation thread with markdown rendering; prompt `<textarea>` disabled during AI request; conversation persisted to `localStorage` per project
+- **Preview Panel**: Right slide-in panel; `<iframe sandbox="allow-scripts allow-same-origin">` renders the generated UI in a fully isolated browsing context; theme and language forwarded to the iframe via `postMessage`; explicit loading and reconnecting states during dev server startup or disconnection
+- **AI Backend proxy**: Local server-side endpoint receives prompt and project context from the Chat Panel, forwards the request to the external AI Backend with credentials held in server environment variables only, validates the generated TypeScript, and writes files to the screenset directory on success
 
 ##### Responsibility boundaries
 
 - Does NOT modify framework state directly — dispatches actions through the standard event flow
 - Does NOT affect production builds — tree-shaken out when `process.env.NODE_ENV === 'production'`
 - Minimal coupling: reads from store selectors, does not import framework internals
+- Does NOT expose AI Backend credentials to the browser — all AI calls are routed through the local server-side proxy; credentials never appear in browser network traffic or storage
 
 ##### Related components (by ID)
 
@@ -774,7 +789,7 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 | `cpt-frontx-interface-i18n` | `@cyberfabric/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-frontx-interface-framework` | `@cyberfabric/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
 | `cpt-frontx-interface-react` | `@cyberfabric/react` | HAI3Provider, typed hooks, MFE hooks, ExtensionDomainSlot, RefContainerProvider, re-exports all L2 APIs |
-| `cpt-frontx-interface-studio` | `@cyberfabric/studio` | Dev-only floating overlay with MFE package selector, theme/language/mock controls, persistence, viewport clamping |
+| `cpt-frontx-interface-studio` | `@cyberfabric/studio` | Dev-only floating overlay with MFE package selector, theme/language/mock controls, persistence, viewport clamping, and Builder — an AI-powered idea generator with Chat Panel and Preview Panel |
 | `cpt-frontx-interface-cli` | `@cyberfabric/cli` | Project scaffolding, code generation, migration runners, AI tool configuration sync |
 
 **External Integration Contracts**
@@ -840,6 +855,12 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 | Dependency | Version | Used By | Purpose |
 |-----------|---------|---------|---------|
 | `axios` | ^1.x | `@cyberfabric/api` (peer) | HTTP client for REST protocol adapter |
+
+#### AI Backend
+
+| Dependency | Version | Used By | Purpose |
+|-----------|---------|---------|---------|
+| Anthropic Claude API | external | `@hai3/studio` server-side proxy | AI Backend for Builder prompt processing and TypeScript/React code generation |
 
 ### 3.6 Interactions & Sequences
 
@@ -997,6 +1018,52 @@ sequenceDiagram
 ```
 
 **Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the handler registered for the `(extensionId, actionTypeId)` pair. Handlers are `ActionHandler` abstract class instances — one small class per action type, consistent with the class-based architecture of the entire package. A handler is registered per action type via `ChildMfeBridge.registerActionHandler(actionTypeId, handler)`, which wires it to `mediator.registerHandler(extensionId, actionTypeId, handler)`. Domain-side lifecycle handlers are also small `ActionHandler` subclasses registered per action type during `registerDomain()` — the mediator stores all handlers in a unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. On bridge dispose, all handlers for the extension are unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling, and eliminates the need for a monolithic switch in any handler class.
+
+#### Builder AI Code Generation
+
+**ID**: `cpt-frontx-seq-builder-codegen`
+
+**Use cases**: `cpt-frontx-usecase-builder-new-idea`, `cpt-frontx-usecase-builder-iterate`
+
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+```mermaid
+sequenceDiagram
+    participant Actor as PM / Designer
+    participant Chat as Chat Panel
+    participant Proxy as Local Server Proxy
+    participant AI as AI Backend
+    participant FS as File System
+    participant Preview as Preview Panel
+
+    Actor->>Chat: submit prompt
+    Chat->>Chat: disable input, show processing indicator (<300ms)
+    Chat->>Proxy: POST /builder/generate {prompt, history, projectContext}
+    Proxy->>AI: forward request with server-held credentials
+    AI-->>Proxy: generated TypeScript/React code
+    Proxy->>Proxy: validate (tsc --noEmit)
+    alt validation passes
+        Proxy->>FS: write files to screenset directory
+        Proxy-->>Chat: success response
+        Chat->>Preview: reload iframe
+    else validation fails — auto-correct
+        Proxy->>AI: re-submit with diagnostics and correction instruction
+        AI-->>Proxy: corrected code
+        Proxy->>Proxy: validate corrected code
+        alt correction passes
+            Proxy->>FS: write corrected files
+            Proxy-->>Chat: success response
+            Chat->>Preview: reload iframe
+        else correction fails
+            Proxy->>FS: restore last valid state snapshot
+            Proxy-->>Chat: error response
+            Chat->>Actor: display error message
+        end
+    end
+    Chat->>Chat: re-enable input
+```
+
+**Description**: When a prompt is submitted, the Chat Panel disables input and shows a processing indicator within 300ms. The local server-side proxy receives the prompt alongside full conversation history and project context, then forwards the request to the AI Backend using credentials held only in the server environment. Generated TypeScript/React code is validated before being written to the screenset directory. A single auto-correction round is attempted on validation failure. If correction also fails, the last valid file state is restored and the user is notified. The Preview Panel reloads its iframe after each successful file write.
 
 ### 3.7 Database schemas & tables
 

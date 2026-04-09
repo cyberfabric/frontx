@@ -2,7 +2,7 @@
 
 <!-- artifact-version: 1.1 -->
 
-- [x] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
+- [ ] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
 
 <!-- toc -->
 
@@ -23,6 +23,10 @@
   - [Settings Restore on Mount](#settings-restore-on-mount)
   - [Viewport Position Clamping](#viewport-position-clamping)
   - [Conditional Loading and Production Exclusion](#conditional-loading-and-production-exclusion)
+  - [Builder Activation](#builder-activation)
+  - [Chat Panel Interaction](#chat-panel-interaction)
+  - [Preview Panel Rendering](#preview-panel-rendering)
+  - [AI Code Generation](#ai-code-generation)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Position Clamping Algorithm](#position-clamping-algorithm)
   - [Default Position Derivation](#default-position-derivation)
@@ -42,8 +46,12 @@
   - [DoD: Viewport Position Clamping](#dod-viewport-position-clamping)
   - [DoD: Keyboard Shortcut and Focus](#dod-keyboard-shortcut-and-focus)
   - [DoD: Conditional Loading and Zero Production Footprint](#dod-conditional-loading-and-zero-production-footprint)
+  - [DoD: Builder Panels and Activation](#dod-builder-panels-and-activation)
+  - [DoD: AI Code Generation and Preview](#dod-ai-code-generation-and-preview)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
+  - [Builder Working Prototype](#builder-working-prototype)
+  - [Builder Future Considerations](#builder-future-considerations)
   - [Storage Key Namespace](#storage-key-namespace)
   - [Studio Event Namespace](#studio-event-namespace)
   - [UIKit Component Organization](#uikit-component-organization)
@@ -53,7 +61,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-frontx-feature-studio-devtools`
+- [ ] `p2` - `cpt-frontx-feature-studio-devtools`
 
 ---
 
@@ -61,7 +69,7 @@
 
 ### 1.1 Overview
 
-Studio DevTools is the development-time overlay package (`@cyberfabric/studio`) for FrontX applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application.
+Studio DevTools is the development-time overlay package (`@cyberfabric/studio`) for FrontX applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
 
 Problem: During development, iterating on theme, language, and API mock states requires either page reloads, hard-coded configuration, or direct Redux DevTools manipulation — all of which break the iterative feedback loop.
 
@@ -81,6 +89,8 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 - `cpt-frontx-actor-build-system` — Vite build process that tree-shakes Studio from production bundles
 - `cpt-frontx-actor-runtime` — Browser that evaluates conditional imports, manages localStorage, and fires resize events
 - `cpt-frontx-actor-framework-plugin` — Framework plugins (`themes()`, `i18n()`, `mock()`) that respond to events Studio emits during settings restore
+- `cpt-frontx-actor-pm` — Product Manager who uses the Builder to generate draft UI ideas from plain-language prompts without writing code
+- `cpt-frontx-actor-designer` — Designer who uses the Builder to submit refinement prompts and review AI-generated visual output
 
 ### 1.4 References
 
@@ -101,7 +111,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 1. [ ] `p1` - Studio User presses `Shift+\`` (Backquote) — `inst-keyboard-shortcut`
 2. [ ] `p1` - **IF** panel is currently collapsed **THEN** expand panel, show `StudioPanel`, hide `CollapsedButton` — `inst-expand-on-shortcut`
 3. [ ] `p1` - **IF** panel is currently expanded **THEN** collapse panel, hide `StudioPanel`, show `CollapsedButton` — `inst-collapse-on-shortcut`
-4. [ ] `p1` - Collapsed state is saved to `hai3:studio:collapsed` in localStorage — `inst-persist-collapsed`
+4. [ ] `p1` - Collapsed state is saved to `frontx:studio:collapsed` in localStorage — `inst-persist-collapsed`
 5. [ ] `p1` - **RETURN** focus to the previously focused element — `inst-restore-focus`
 
 ---
@@ -121,7 +131,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
    - [x] `p1` - Set panel position state to clamped value — `inst-set-position`
    - [x] `p1` - Emit `studio/positionChanged` event with new position — `inst-emit-position`
 5. [ ] `p1` - On `mouseup`, `isDragging` transitions to `false`; cursor reverts to `grab` — `inst-mouseup`
-6. [ ] `p1` - Persistence effect receives `studio/positionChanged` and writes position to `hai3:studio:position` — `inst-persist-panel-pos`
+6. [ ] `p1` - Persistence effect receives `studio/positionChanged` and writes position to `frontx:studio:position` — `inst-persist-panel-pos`
 
 ---
 
@@ -133,7 +143,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 1. [ ] `p1` - Studio User presses mouse button down on `CollapsedButton` — `inst-button-mousedown`
 2. [ ] `p1` - Record drag start cursor position — `inst-record-start-pos`
-3. [ ] `p1` - `useDraggable` hook activates with `storageKey = hai3:studio:buttonPosition` — `inst-button-draggable`
+3. [ ] `p1` - `useDraggable` hook activates with `storageKey = frontx:studio:buttonPosition` — `inst-button-draggable`
 4. [ ] `p1` - On `mouseup`, compute total cursor displacement from start position — `inst-compute-displacement`
 5. [ ] `p1` - **IF** displacement is less than 5px in both axes — `inst-click-threshold`
    - [x] `p1` - Treat interaction as a click: call `toggleCollapsed()` to expand the panel — `inst-toggle-on-click`
@@ -142,7 +152,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
    - [x] `p1` - Treat interaction as a drag: follow cursor with viewport clamping — `inst-drag-button`
    - [x] `p1` - Emit `studio/buttonPositionChanged` with new position — `inst-emit-button-pos`
    - [x] `p1` - Panel does NOT expand — `inst-no-expand-on-drag`
-7. [ ] `p1` - Persistence effect receives `studio/buttonPositionChanged` and writes to `hai3:studio:buttonPosition` — `inst-persist-button-pos`
+7. [ ] `p1` - Persistence effect receives `studio/buttonPositionChanged` and writes to `frontx:studio:buttonPosition` — `inst-persist-button-pos`
 
 ---
 
@@ -161,7 +171,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
    - [x] `p1` - Clamp height to `[400, 800]` px — `inst-clamp-height`
    - [x] `p1` - Set size state; emit `studio/sizeChanged` with new size — `inst-emit-size`
 5. [ ] `p1` - On `mouseup`, cursor and text selection restored — `inst-resize-mouseup`
-6. [ ] `p1` - Persistence effect receives `studio/sizeChanged` and writes size to `hai3:studio:size` — `inst-persist-size`
+6. [ ] `p1` - Persistence effect receives `studio/sizeChanged` and writes size to `frontx:studio:size` — `inst-persist-size`
 
 ---
 
@@ -176,7 +186,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 3. [ ] `p1` - Studio User selects a theme — `inst-select-theme`
 4. [ ] `p1` - `ThemeSelector` calls `setTheme(themeId)` — `inst-call-set-theme`
 5. [ ] `p1` - Framework emits `theme/changed` event with `{ themeId }` — `inst-theme-event`
-6. [ ] `p1` - Persistence effect subscribes to `theme/changed`; writes `themeId` to `hai3:studio:theme` — `inst-persist-theme`
+6. [ ] `p1` - Persistence effect subscribes to `theme/changed`; writes `themeId` to `frontx:studio:theme` — `inst-persist-theme`
 7. [ ] `p1` - Application theme updates immediately — `inst-theme-applied`
 
 ---
@@ -193,7 +203,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 4. [ ] `p1` - Studio User selects a language — `inst-select-lang`
 5. [ ] `p1` - `LanguageSelector` calls `setLanguage(languageCode)` — `inst-call-set-lang`
 6. [ ] `p1` - Framework emits `i18n/language/changed` event with `{ language }` — `inst-lang-event`
-7. [ ] `p1` - Persistence effect subscribes to `i18n/language/changed`; writes `language` to `hai3:studio:language` — `inst-persist-lang`
+7. [ ] `p1` - Persistence effect subscribes to `i18n/language/changed`; writes `language` to `frontx:studio:language` — `inst-persist-lang`
 8. [ ] `p1` - Application language updates immediately — `inst-lang-applied`
 
 ---
@@ -208,7 +218,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 2. [ ] `p1` - `ApiModeToggle` reads current mock state from Redux via `useAppSelector` — `inst-read-mock-state`
 3. [ ] `p1` - `ApiModeToggle` calls `toggleMockMode(newEnabled)` — `inst-call-toggle-mock`
 4. [ ] `p1` - Framework emits `mock/toggle` event with `{ enabled }` — `inst-mock-event`
-5. [ ] `p1` - Persistence effect subscribes to `mock/toggle`; writes `enabled` to `hai3:studio:mockEnabled` — `inst-persist-mock`
+5. [ ] `p1` - Persistence effect subscribes to `mock/toggle`; writes `enabled` to `frontx:studio:mockEnabled` — `inst-persist-mock`
 6. [ ] `p1` - All API services switch between real and mock responses — `inst-api-switched`
 
 ---
@@ -229,7 +239,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 8. [ ] `p1` - Sort screen extensions by `presentation.order` ascending — `inst-sort-extensions`
 9. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
 10. [ ] `p1` - Emit `studio/activePackageChanged` with `{ activePackageId }` — `inst-emit-pkg-changed`
-11. [ ] `p1` - Persistence effect subscribes to `studio/activePackageChanged`; writes `activePackageId` to `hai3:studio:activePackageId` — `inst-persist-pkg`
+11. [ ] `p1` - Persistence effect subscribes to `studio/activePackageChanged`; writes `activePackageId` to `frontx:studio:activePackageId` — `inst-persist-pkg`
 
 ---
 
@@ -240,14 +250,14 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 **Actors**: `cpt-frontx-actor-runtime`, `cpt-frontx-actor-framework-plugin`
 
 1. [ ] `p1` - `StudioProvider` mounts; `useRestoreStudioSettings()` effect runs once — `inst-restore-effect`
-2. [ ] `p1` - Read `hai3:studio:theme` from localStorage — `inst-read-theme`
+2. [ ] `p1` - Read `frontx:studio:theme` from localStorage — `inst-read-theme`
 3. [ ] `p1` - **IF** value is a non-empty string, emit `theme/changed` with `{ themeId }` — `inst-restore-theme`
-4. [ ] `p1` - Read `hai3:studio:language` from localStorage — `inst-read-lang`
+4. [ ] `p1` - Read `frontx:studio:language` from localStorage — `inst-read-lang`
 5. [ ] `p1` - **IF** value is a non-empty string, emit `i18n/language/changed` with `{ language }` — `inst-restore-lang`
-6. [ ] `p1` - Read `hai3:studio:mockEnabled` from localStorage — `inst-read-mock`
+6. [ ] `p1` - Read `frontx:studio:mockEnabled` from localStorage — `inst-read-mock`
 7. [ ] `p1` - **IF** value is a boolean, emit `mock/toggle` with `{ enabled }` — `inst-restore-mock`
 8. [ ] `p1` - `RestoreGtsPackageOnMount` component obtains `screensetsRegistry` from `useHAI3()` — `inst-get-registry`
-9. [ ] `p1` - Read `hai3:studio:activePackageId` from localStorage — `inst-read-pkg-id`
+9. [ ] `p1` - Read `frontx:studio:activePackageId` from localStorage — `inst-read-pkg-id`
 10. [ ] `p1` - **IF** no `activePackageId` stored OR registry unavailable **RETURN** without action — `inst-no-restore-pkg`
 11. [ ] `p1` - Retrieve screen extensions for the persisted package and sort by `presentation.order` — `inst-restore-sort-ext`
 12. [ ] `p1` - **IF** no screen extensions found, skip restore silently — `inst-no-ext-skip`
@@ -287,6 +297,73 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ---
 
+### Builder Activation
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-studio-builder-activation`
+
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`, `cpt-frontx-actor-studio-user`
+
+1. [ ] `p1` - Actor clicks the Builder trigger control in the Studio shell — `inst-trigger-click`
+2. [ ] `p1` - **IF** Builder is currently closed **THEN** open the entire Builder experience: Chat Panel slides in from the left, Preview Panel slides in from the right — `inst-open-builder`
+3. [ ] `p1` - **IF** Builder is currently open **THEN** close the entire Builder experience with reverse slide-out animations on both panels — `inst-close-builder`
+4. [ ] `p1` - Builder open/closed state and chat panel width are persisted to `frontx:studio:builder:panelState` in localStorage — `inst-persist-panel-state`
+
+---
+
+### Chat Panel Interaction
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-studio-builder-chat`
+
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+1. [ ] `p1` - Actor views the conversation thread for the active project session — `inst-view-thread`
+2. [ ] `p1` - User messages and AI responses are visually distinguished; AI responses containing markdown are rendered as formatted content — `inst-render-thread`
+3. [ ] `p1` - Actor types a prompt in the text input at the bottom of the Chat Panel — `inst-type-prompt`
+4. [ ] `p1` - Actor submits the prompt via `Enter` key or explicit send control — `inst-submit-prompt`
+5. [ ] `p1` - Prompt input is disabled and a processing indicator is displayed — `inst-disable-input`
+6. [ ] `p1` - System sends the prompt with project context to the AI Backend — `inst-send-to-ai`
+7. [ ] `p1` - AI Backend response is appended to the conversation thread — `inst-append-response`
+8. [ ] `p1` - Prompt input is re-enabled after the AI Backend response is received — `inst-reenable-input`
+9. [ ] `p1` - Conversation thread is persisted to `frontx:studio:builder:conversation:<projectId>` — `inst-persist-thread`
+
+---
+
+### Preview Panel Rendering
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-studio-builder-preview`
+
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`, `cpt-frontx-actor-studio-user`
+
+1. [ ] `p1` - Preview Panel renders the generated UI in an isolated context to prevent style and script interference with the Studio host — `inst-render-isolated`
+2. [ ] `p1` - **IF** the dev server for the generated project is initializing **THEN** Preview Panel displays a loading state — `inst-loading-state`
+3. [ ] `p1` - **WHEN** dev server is ready, iframe loads automatically without user action — `inst-auto-load`
+4. [ ] `p1` - **IF** dev server disconnects after load **THEN** Preview Panel displays a reconnecting state — `inst-reconnecting-state`
+5. [ ] `p1` - **WHEN** connectivity is restored, iframe reloads automatically — `inst-auto-reload`
+6. [ ] `p1` - Studio forwards the active theme (light/dark and palette tokens) to the iframe via `postMessage` — `inst-forward-theme`
+7. [ ] `p1` - Studio forwards the active language selection to the iframe via `postMessage` — `inst-forward-language`
+8. [ ] `p1` - After each successful AI code generation, Preview Panel reloads automatically to reflect updated files — `inst-auto-refresh`
+
+---
+
+### AI Code Generation
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-studio-builder-codegen`
+
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+1. [ ] `p1` - System collects the submitted prompt and the full conversation history — `inst-collect-prompt`
+2. [ ] `p1` - System reads the active project's existing source files and screenset conventions as context — `inst-collect-context`
+3. [ ] `p1` - System sends the prompt, conversation history, and project context to the AI Backend — `inst-send-request`
+4. [ ] `p1` - AI Backend returns generated TypeScript/React component code — `inst-receive-code`
+5. [ ] `p1` - System validates the generated code (parse errors, type errors) — `inst-validate-code`
+6. [ ] `p1` - **IF** validation passes **THEN** write generated files to the screenset directory — `inst-write-files`
+7. [ ] `p1` - **IF** validation fails **THEN** automatically send the errors back to the AI Backend for correction — `inst-auto-correct`
+8. [ ] `p1` - **IF** auto-correction produces valid code **THEN** write corrected files to the screenset directory — `inst-write-corrected`
+9. [ ] `p1` - **IF** auto-correction fails **THEN** notify the user with an error message and preserve the last valid project state — `inst-preserve-last-valid`
+10. [ ] `p1` - Preview Panel reloads to reflect the newly written files — `inst-trigger-preview-refresh`
+
+---
+
 ## 3. Processes / Business Logic (CDSL)
 
 ### Position Clamping Algorithm
@@ -320,13 +397,13 @@ Used when no stored position exists in localStorage:
 
 Called once when `StudioProvider` mounts via `initPersistenceEffects()`:
 
-1. [ ] `p1` - Subscribe `studio/positionChanged` → write payload `position` to `hai3:studio:position` — `inst-sub-position`
-2. [ ] `p1` - Subscribe `studio/sizeChanged` → write payload `size` to `hai3:studio:size` — `inst-sub-size`
-3. [ ] `p1` - Subscribe `studio/buttonPositionChanged` → write payload `position` to `hai3:studio:buttonPosition` — `inst-sub-button-pos`
-4. [ ] `p1` - Subscribe `theme/changed` → write payload `themeId` to `hai3:studio:theme` — `inst-sub-theme`
-5. [ ] `p1` - Subscribe `i18n/language/changed` → write payload `language` to `hai3:studio:language` — `inst-sub-lang`
-6. [ ] `p1` - Subscribe `mock/toggle` → write payload `enabled` to `hai3:studio:mockEnabled` — `inst-sub-mock`
-7. [ ] `p1` - Subscribe `studio/activePackageChanged` → write payload `activePackageId` to `hai3:studio:activePackageId` — `inst-sub-pkg`
+1. [ ] `p1` - Subscribe `studio/positionChanged` → write payload `position` to `frontx:studio:position` — `inst-sub-position`
+2. [ ] `p1` - Subscribe `studio/sizeChanged` → write payload `size` to `frontx:studio:size` — `inst-sub-size`
+3. [ ] `p1` - Subscribe `studio/buttonPositionChanged` → write payload `position` to `frontx:studio:buttonPosition` — `inst-sub-button-pos`
+4. [ ] `p1` - Subscribe `theme/changed` → write payload `themeId` to `frontx:studio:theme` — `inst-sub-theme`
+5. [ ] `p1` - Subscribe `i18n/language/changed` → write payload `language` to `frontx:studio:language` — `inst-sub-lang`
+6. [ ] `p1` - Subscribe `mock/toggle` → write payload `enabled` to `frontx:studio:mockEnabled` — `inst-sub-mock`
+7. [ ] `p1` - Subscribe `studio/activePackageChanged` → write payload `activePackageId` to `frontx:studio:activePackageId` — `inst-sub-pkg`
 8. [ ] `p1` - **RETURN** cleanup function that calls `.unsubscribe()` on all seven subscriptions — `inst-return-cleanup`
 
 ---
@@ -401,7 +478,7 @@ Prevents dropdowns from being clipped by the glassmorphic panel's `backdrop-filt
 3. [ ] `p1` - **FROM** `COLLAPSED` **TO** `EXPANDED` **WHEN** Studio User clicks `CollapsedButton` without dragging (displacement < 5px) — `inst-expand-via-click`
 4. [ ] `p1` - **FROM** `COLLAPSED` **TO** `EXPANDED` **WHEN** Studio User presses `Shift+\`` — `inst-expand-via-kbd`
 5. [ ] `p1` - **FROM** any state **TO** same state (no transition) **WHEN** Studio User drags `CollapsedButton` (displacement ≥ 5px) — `inst-drag-no-transition`
-6. [ ] `p1` - Visibility state is persisted to `hai3:studio:collapsed` on every transition — `inst-persist-visibility`
+6. [ ] `p1` - Visibility state is persisted to `frontx:studio:collapsed` on every transition — `inst-persist-visibility`
 
 ---
 
@@ -504,7 +581,7 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 All Studio control panel settings (theme, language, mock mode, active GTS package) and all UI state (panel position, panel size, collapsed state, button position) are persisted to localStorage on change and restored on Studio mount. All persistence logic lives exclusively inside `@cyberfabric/studio`.
 
 **Implementation details**:
-- Storage keys under prefix `hai3:studio:` — see `STORAGE_KEYS` in `packages/studio/src/types.ts`
+- Storage keys under prefix `frontx:studio:` — see `STORAGE_KEYS` in `packages/studio/src/types.ts`
 - `initPersistenceEffects()` registers seven event subscriptions in `StudioProvider` mount effect; returns cleanup
 - `useRestoreStudioSettings()` runs once on mount; emits `theme/changed`, `i18n/language/changed`, `mock/toggle` if values exist
 - `useRestoreGtsPackage(registry)` runs once when registry becomes available; calls `executeActionsChain` with error guard
@@ -602,6 +679,61 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 
 ---
 
+### DoD: Builder Panels and Activation
+
+- [ ] `p1` - **ID**: `cpt-frontx-dod-studio-builder-panels`
+
+The Studio shell renders a persistent Builder trigger control. Activating it opens the Chat Panel (slide-in from left) and Preview Panel (slide-in from right); activating it again closes both with reverse animations. Panel open/closed state persists to localStorage and is restored on remount. The Chat Panel displays the full conversation thread with markdown rendering, provides a prompt input that disables during AI processing, and persists the conversation per project. The Preview Panel renders the generated UI in an isolated context, forwards Studio theme and language to the preview, and shows explicit loading/reconnecting states during dev server initialization or disconnection.
+
+**Implementation details**:
+- Builder trigger: a persistent button in the Studio shell, reads/writes `frontx:studio:builder:panelState` to localStorage
+- Chat Panel: slide-in CSS transition from `left: -100%` to `left: 0`; renders message thread with markdown (react-markdown or equivalent); prompt `<textarea>` with `disabled` during AI request
+- Preview Panel: slide-in CSS transition from `right: -100%` to `right: 0`; `<iframe sandbox="allow-scripts allow-same-origin">`; `window.postMessage` for theme and language tokens
+- Preview readiness detection: poll iframe URL or listen for `load`/`error` events; display distinct loading vs. reconnecting UI states
+- Conversation persisted to `frontx:studio:builder:conversation:<projectId>` as JSON array
+
+**Implements**:
+- `cpt-frontx-flow-studio-builder-activation`
+- `cpt-frontx-flow-studio-builder-chat`
+- `cpt-frontx-flow-studio-builder-preview`
+
+**Covers (PRD)**:
+- `cpt-frontx-fr-studio-builder-trigger`
+- `cpt-frontx-fr-studio-builder-chat`
+- `cpt-frontx-fr-studio-builder-preview`
+- `cpt-frontx-fr-studio-builder-session`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-studio`
+
+---
+
+### DoD: AI Code Generation and Preview
+
+- [ ] `p1` - **ID**: `cpt-frontx-dod-studio-builder-codegen`
+
+When a prompt is submitted, the system sends it with full project context to the AI Backend (Anthropic Claude via server-side proxy). Generated TypeScript/React code is validated before being written to the project's screenset directory. Validation failures trigger an automatic correction round; if correction also fails the last valid state is preserved and the user is notified. AI Backend credentials are never exposed in browser network traffic or storage. The Preview Panel reloads automatically after each successful file write.
+
+**Implementation details**:
+- Server-side proxy endpoint forwards prompt + context to AI Backend; stores credentials in server environment variables only — never sent to browser
+- Project context: reads active screenset directory source files; sends as structured prompt context
+- Validation: run TypeScript compiler API or `tsc --noEmit` on generated files; collect diagnostics
+- Auto-correct: re-submit diagnostics to AI Backend with correction instruction; single correction attempt per generation
+- Last valid state: keep a snapshot of the previous file contents; restore on correction failure
+- Preview reload: after successful file write, reload the iframe `src` or trigger a dev server HMR signal
+
+**Implements**:
+- `cpt-frontx-flow-studio-builder-codegen`
+
+**Covers (PRD)**:
+- `cpt-frontx-fr-studio-builder-codegen`
+- `cpt-frontx-fr-studio-builder-credentials`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-studio`
+
+---
+
 ## 6. Acceptance Criteria
 
 - [x] Studio panel renders as a fixed glassmorphic overlay in development mode and does not appear in production builds
@@ -616,25 +748,65 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 - [x] Panel and button positions are clamped to the visible viewport on load and re-clamped on window resize; no unnecessary persistence occurs when position is unchanged
 - [x] No Studio code executes in production (`import.meta.env.DEV` guard confirmed via bundle analysis)
 - [x] All `@cyberfabric/studio` code compiles with TypeScript strict mode and zero `any`/`as unknown as` violations
+- [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
+- [ ] Builder open/closed state and chat panel width are restored correctly after page reload
+- [ ] A processing indicator is visible within 300ms of prompt submission
+- [ ] Submitting a prompt disables the input, appends the user message to the thread, and re-enables input after the AI response arrives within 30 seconds
+- [ ] The conversation thread survives a page reload for the same project
+- [ ] The Preview Panel forwards the active Studio theme and language to the iframe without manual intervention
+- [ ] The Preview Panel shows a loading state during dev server initialization and a reconnecting state on disconnection; it auto-reloads when the server is ready
+- [ ] A failed code generation does not corrupt the last valid project state
+- [ ] AI Backend credentials are absent from all browser network requests and browser storage
 
 ---
 
 ## Additional Context
 
+### Builder Working Prototype
+
+The following screenshot is from a working prototype of the Builder used to validate the concept. The trigger control — an "Idea Generator" button anchored to the far left of the Studio shell — opens the Builder. Once activated, the Chat Panel (left) and Preview Panel (right) slide into place, with a generated UI visible in the preview after a plain-language prompt was submitted.
+
+![FrontX Builder prototype — trigger button, chat and preview panels open](https://github.com/user-attachments/assets/9b649dba-aaa5-4de6-ae6b-0ba7942e1e89)
+
+The prototype also demonstrated VCS integration (repository creation and pull request automation) that is intentionally out of scope for this phase.
+
+---
+
+### Builder Future Considerations
+
+The following directions are out of scope for the current phase but should inform future design decisions.
+
+**VCS-Backed Personal Sandbox** — A working prototype included VCS integration where each generated project was backed by its own repository, giving users a persistent, shareable artifact. This was excluded from Phase 1 to keep the proposal focused on the core chat and preview experience, and to avoid coupling the concept to a specific VCS provider or authentication model.
+
+**Personal Forks as Sandboxes** — Personal forks of the main project repo could serve as the sandbox mechanism: each user works in their own fork, the Builder generates screensets into that fork, and sharing is handled through the standard fork-and-PR model. This aligns with how open-source contributors already work and avoids the need for a separate hosted preview service. This has not been fully designed and is an open question for a future phase.
+
+**Promotion to Official Draft** — A future phase should define the explicit path by which a personal sandbox screenset is promoted into the shared project as an official `draft`-stage screenset, including what approval or review steps are required before it appears in Studio's screenset selector for the broader team.
+
+---
+
 ### Storage Key Namespace
 
-All localStorage keys use the prefix `hai3:studio:`. Current keys defined in `STORAGE_KEYS`:
+All localStorage keys use the prefix `frontx:studio:`. Current keys defined in `STORAGE_KEYS`:
 
 | Key | Value stored |
 |-----|-------------|
-| `hai3:studio:position` | `{ x: number, y: number }` — panel position |
-| `hai3:studio:size` | `{ width: number, height: number }` — panel size |
-| `hai3:studio:collapsed` | `boolean` — panel collapsed state |
-| `hai3:studio:buttonPosition` | `{ x: number, y: number }` — collapsed button position |
-| `hai3:studio:theme` | `string` — theme ID |
-| `hai3:studio:language` | `string` — language code |
-| `hai3:studio:mockEnabled` | `boolean` — mock API enabled state |
-| `hai3:studio:activePackageId` | `string` — active GTS package ID |
+| `frontx:studio:position` | `{ x: number, y: number }` — panel position |
+| `frontx:studio:size` | `{ width: number, height: number }` — panel size |
+| `frontx:studio:collapsed` | `boolean` — panel collapsed state |
+| `frontx:studio:buttonPosition` | `{ x: number, y: number }` — collapsed button position |
+| `frontx:studio:theme` | `string` — theme ID |
+| `frontx:studio:language` | `string` — language code |
+| `frontx:studio:mockEnabled` | `boolean` — mock API enabled state |
+| `frontx:studio:activePackageId` | `string` — active GTS package ID |
+
+#### Builder Storage Keys
+
+`<projectId>` is derived from the active project's root directory path, normalized to a URL-safe string (e.g., `/Users/bill/projects/my-app` → `users-bill-projects-my-app`). It is detected at runtime from the file system and requires no user input. Path-based IDs are unique per machine; no collision handling is needed for the single-user local dev scenario.
+
+| Key | Value stored |
+|-----|-------------|
+| `frontx:studio:builder:panelState` | `{ open: boolean, chatWidth: number }` — whether the Builder is open and the chat panel width |
+| `frontx:studio:builder:conversation:<projectId>` | `Array<{ role: 'user' \| 'assistant', content: string }>` — conversation thread per project |
 
 ### Studio Event Namespace
 

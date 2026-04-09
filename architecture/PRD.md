@@ -94,7 +94,12 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 | Extension Domain | Contract definition for a category of extensions: shared properties, actions host can send, actions extensions can send, lifecycle. |
 | Plugin | Framework-level feature (screensets, themes, i18n, routing, effects, microfrontends, layout) composed via `.use()` on `createHAI3` builder. |
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
-| Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel). Only loaded in `import.meta.env.DEV`. |
+| Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel) and host for the Builder AI idea generator. Only loaded in `import.meta.env.DEV`. |
+| Builder | The embedded AI idea generator inside Studio. Allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code. |
+| Chat Panel | The left-side sliding panel inside the Builder containing the conversation thread and prompt input. |
+| Preview Panel | The right-side sliding panel inside the Builder displaying the live generated UI in an isolated context. |
+| AI Backend | The external language model API (e.g., Anthropic Claude) that processes prompts and generates TypeScript/React component code conforming to HAI3 screenset conventions. |
+| Personal Sandbox | A private, pre-draft exploration space where a user can generate and refine a UI idea before it enters the official screenset pipeline. Future-phase concept — see Future Considerations in the Studio DevTools FEATURE.md. |
 | UI Kit | Component library: per-project choice at creation (local components, shadcn, or third-party). |
 | Registry | Self-registering singleton (ScreensetsRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
 | GTS | Global Type System — schema-based validation for MFE shared properties and action chains. |
@@ -130,6 +135,20 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 
 **Role**: Developer using the floating dev panel to toggle themes, screensets, languages, and mock API mode during development.
 **Needs**: Quick access (keyboard shortcut), persistent settings, zero production footprint.
+
+#### Product Manager
+
+**ID**: `cpt-frontx-actor-pm`
+
+**Role**: Creates new draft UI ideas using plain-language prompts in the Builder. Iterates on generated output through follow-up messages. Shares preview links informally before committing anything to the official project.
+**Needs**: A zero-configuration way to go from an idea to a visible, interactive UI prototype without writing code or using the CLI.
+
+#### Designer
+
+**ID**: `cpt-frontx-actor-designer`
+
+**Role**: Reviews AI-generated drafts in the Builder and submits refinement prompts to adjust visual layout, color, and interaction patterns.
+**Needs**: A fast feedback loop for visual iteration without depending on a developer to implement changes.
 
 #### End User
 
@@ -805,6 +824,78 @@ The system MUST clamp Studio button and panel positions to the current viewport 
 **Rationale**: Zero production footprint.
 **Actors**: `cpt-frontx-actor-build-system`
 
+#### Builder Trigger
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-trigger`
+
+The Studio shell MUST render a persistent trigger control that, when activated, opens the Builder (Chat Panel and Preview Panel together). Activating the trigger when the Builder is already open MUST close the entire Builder experience.
+
+**Rationale**: The Builder must be instantly accessible from anywhere in Studio without navigating away from the current context; users also need a clear way to dismiss it and reclaim screen space.
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+#### Builder Chat Panel
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-chat`
+
+The Builder MUST provide a Chat Panel that slides in from the left edge of the Studio viewport. The panel MUST display the full conversation thread for the active session (user messages and AI responses visually distinguished, markdown rendered), and MUST provide a text input for composing and submitting prompts via keyboard or explicit send control. Input MUST be disabled while the AI Backend is processing.
+
+**Rationale**: The conversation thread is the primary interface for iterating on a generated UI; keyboard submission and clear processing feedback are essential for a fast, non-confusing iteration loop.
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+#### Builder Preview Panel
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-preview`
+
+The Builder MUST provide a Preview Panel that slides in from the right edge of the Studio viewport and renders the AI-generated UI in an isolated context to prevent style and script interference with the Studio host. The preview MUST update automatically after each successful AI response. The panel MUST receive the active Studio theme and language selection and apply them to the rendered preview. The panel MUST display a loading state while the dev server initializes, and a reconnecting state if the dev server disconnects.
+
+**Rationale**: Automatic preview updates and theme/language forwarding give non-developer actors an accurate, immediate impression of the generated UI; explicit loading and reconnecting states prevent users from misinterpreting server startup delays as failures.
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`, `cpt-frontx-actor-studio-user`
+
+#### Builder AI Code Generation
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-codegen`
+
+When a prompt is submitted, the system MUST send the prompt together with the minimum required project context — existing screenset source files, type definitions, and framework conventions — to the AI Backend. The AI Backend MUST return generated TypeScript/React component code. The system MUST write generated files to the correct locations in the active project's screenset directory. The system MUST ensure that validation failures do not corrupt the project state and MUST provide actionable feedback to the user when generation cannot be completed successfully.
+
+**Rationale**: Providing full project context produces output that integrates correctly with the existing screenset structure; protecting the project state and surfacing clear feedback shields non-developer actors from low-level errors that would break the prototyping flow.
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+#### Builder Prompt Feedback
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-prompt-feedback`
+
+The system MUST display a visible processing indicator within 300ms of prompt submission and MUST complete the AI response within 30 seconds for prompts that do not require clarification. If the 30-second ceiling is exceeded, the system MUST notify the user with a clear timeout message.
+
+**Rationale**: Visible feedback under 300ms prevents users from double-submitting; a 30-second ceiling keeps the iteration loop from feeling broken.
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+#### Builder Iterative Refinement
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-iterate`
+
+The Builder MUST support iterative refinement: each follow-up prompt MUST be sent with the full conversation history and project context so that each generation builds on the previous result rather than starting over.
+
+**Rationale**: The prototyping value of the Builder depends on the ability to refine output through a conversation rather than restarting from scratch on every prompt.
+**Actors**: `cpt-frontx-actor-pm`, `cpt-frontx-actor-designer`
+
+#### Builder Session Persistence
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-session`
+
+The system MUST persist the full conversation thread per project. Closing and reopening the Builder MUST restore the previous conversation state. Panel open/closed state MUST also be persisted.
+
+**Rationale**: Prototyping sessions span multiple sittings; losing conversation history forces users to reconstruct context manually.
+**Actors**: `cpt-frontx-actor-pm`
+
+#### Builder Credential Security
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-studio-builder-credentials`
+
+AI Backend credentials MUST NOT be exposed to end users or accessible in client-side code at any point.
+
+**Rationale**: Credential exposure would allow any page visitor to make API calls at the credential owner's expense.
+**Actors**: `cpt-frontx-actor-studio-user`
+
 ### 5.15 CLI
 
 #### Package Structure
@@ -1455,6 +1546,53 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Alternative Flows**:
 - **One product needs a customized version**: Developer creates an isolated copy of the package for that product's screenset (per `cpt-frontx-fr-package-isolation`)
 
+#### PM Generates a New UI Idea
+
+- [ ] `p1` - **ID**: `cpt-frontx-usecase-builder-new-idea`
+
+**Actor**: `cpt-frontx-actor-pm`
+
+**Preconditions**:
+- Studio is running with an active project
+
+**Main Flow**:
+1. PM clicks the Builder trigger in the Studio shell
+2. Chat Panel slides in from the left; Preview Panel slides in from the right
+3. PM types a plain-language description of the desired UI
+4. System sends prompt and project context to the AI Backend
+5. AI Backend returns generated component code
+6. System writes generated files to the project's screenset directory
+7. Preview Panel automatically updates to show the live generated UI
+8. PM reviews the result
+
+**Postconditions**:
+- Generated files exist in the project's screenset directory
+- Preview Panel displays the generated UI
+- Conversation is persisted to the session
+
+**Alternative Flows**:
+- **Generation fails validation**: System auto-corrects; if correction fails, user sees an error message and project state is preserved
+
+#### PM Iterates on Generated Output
+
+- [ ] `p1` - **ID**: `cpt-frontx-usecase-builder-iterate`
+
+**Actor**: `cpt-frontx-actor-pm`
+
+**Preconditions**:
+- A prior generation exists in the active Builder session
+
+**Main Flow**:
+1. PM reviews the Preview Panel and identifies a desired change
+2. PM types a follow-up prompt describing the change
+3. System sends updated prompt with full conversation history and project context to the AI Backend
+4. AI Backend returns updated code
+5. Preview Panel updates to reflect the change
+
+**Postconditions**:
+- Updated files are written to the project's screenset directory
+- Preview reflects the latest generated state
+
 ## 9. Acceptance Criteria
 
 - [x] All published workspace packages build successfully in layer dependency order
@@ -1479,6 +1617,14 @@ Non-production screensets MUST NOT be included in the production build's module 
 - [ ] Active screenset selection persists across dev server restarts
 - [ ] All screenset operations work as standalone CLI commands without AI tooling
 - [ ] Multiple production screensets for different products can be built independently
+- [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
+- [ ] A processing indicator is visible within 300ms of prompt submission
+- [ ] A prompt that does not require clarification receives a complete AI response within 30 seconds; if the ceiling is exceeded, a timeout message is displayed
+- [ ] The Preview Panel reflects the active Studio theme and language without manual intervention
+- [ ] Closing and reopening the Builder restores the previous conversation thread
+- [ ] AI Backend credentials are not present in any browser network request or browser storage
+- [ ] A failed code generation does not corrupt the last valid project state
+- [ ] Follow-up prompts refine the existing generated output without starting over
 
 ## 10. Dependencies
 
@@ -1498,6 +1644,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 | Radix UI primitives (20+ packages) | Accessible UI for local UI | p2 |
 | `recharts` | Chart visualization for local UI | p3 |
 | `sonner` | Toast notifications for local UI | p3 |
+| AI Backend API (Anthropic Claude) | External LLM API for Builder prompt processing and code generation | p1 |
 
 ## 11. Assumptions
 
@@ -1534,3 +1681,6 @@ Non-production screensets MUST NOT be included in the production build's module 
 | Package isolation mechanism introduces subtle bugs | Modified packages may lose correct bindings to other screensets' domains | Comprehensive validation of isolated packages after modification |
 | Shared package updates break dependent screensets | Bug fix in a shared package changes behavior that a screenset relied on | Package modification isolation ensures screensets that customized a package are not affected; shared packages should have stable interfaces |
 | Framework upgrades require per-screenset shell updates | Since each screenset owns its shell code, a framework upgrade must be applied to every screenset independently | Provide shell diffing/update tooling; document recommended upgrade practices |
+| AI Backend generates code that does not conform to FrontX screenset conventions | Preview fails to render; user sees error | Include screenset rules and existing source context in every prompt; validate and auto-correct before writing files |
+| AI Backend latency exceeds user tolerance | User abandons session, loses confidence in the Builder | Show streaming progress indicator within 300ms of submission; enforce a hard timeout with a user-facing message |
+| Dev server startup time creates perceived Preview Panel failure | User thinks generation failed when dev server is merely initializing | Explicit loading and reconnecting states in the Preview Panel that clearly distinguish initializing from error |
