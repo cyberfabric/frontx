@@ -5,6 +5,7 @@
   "navigation_title": "ナビゲーション例",
   "navigation_description": "下のボタンをクリックしてテーマ画面にプログラムでナビゲートします。",
   "go_to_theme": "テーマ画面へ",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

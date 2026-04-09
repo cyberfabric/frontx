@@ -1,5 +1,5 @@
 /**
- * HAI3 Dependency Cruiser Screenset Configuration (L4)
+ * FrontX Dependency Cruiser Screenset Configuration (L4)
  * Rules for user code (screensets, components, etc.)
  *
  * This includes ALL existing screenset isolation rules and flux architecture rules.

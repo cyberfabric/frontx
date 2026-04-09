@@ -1,5 +1,5 @@
 /**
- * HAI3 Application Component (no Studio)
+ * FrontX Application Component (no Studio)
  *
  * Same as App.tsx but without StudioOverlay.
  * Used for projects created with --no-studio.

@@ -37,18 +37,24 @@ export abstract class RuntimeBridgeFactory {
    * @param domainState - Domain state containing properties and subscribers
    * @param extensionId - ID of the extension
    * @param entryTypeId - Type ID of the MFE entry
+   * @param domainActions - Action type IDs the entry declares it can receive
    * @param executeActionsChain - Callback for executing actions chains
-   * @param registerDomainActionHandler - Callback for registering child domain action handlers
-   * @param unregisterDomainActionHandler - Callback for unregistering child domain action handlers
+   * @param registerCatchAllActionHandler - Callback for registering catch-all handlers (child domain forwarding)
+   * @param unregisterCatchAllActionHandler - Callback for unregistering catch-all handlers
+   * @param registerExtensionActionHandler - Callback for registering per-(extensionId, actionTypeId) handlers; domainId enables timeout resolution for extension-targeted actions
+   * @param unregisterExtensionActionHandler - Callback for unregistering all extension handlers
    * @returns Object containing parent and child bridge instances
    */
   abstract createBridge(
     domainState: ExtensionDomainState,
     extensionId: string,
     entryTypeId: string,
+    domainActions: readonly string[],
     executeActionsChain: (chain: ActionsChain) => Promise<void>,
-    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void,
-    unregisterDomainActionHandler: (domainId: string) => void
+    registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void,
+    unregisterCatchAllActionHandler: (domainId: string) => void,
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void,
+    unregisterExtensionActionHandler: (extensionId: string) => void
   ): { parentBridge: ParentMfeBridge; childBridge: ChildMfeBridge };
 
   /**

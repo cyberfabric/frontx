@@ -19,9 +19,9 @@ import {
   selectExtensionState,
   selectExtensionError,
 } from '../../../src/plugins/microfrontends';
-import { eventBus, resetStore } from '@hai3/state';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-import type { Extension } from '@hai3/screensets';
+import { eventBus, resetStore } from '@cyberfabric/state';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { Extension } from '@cyberfabric/screensets';
 import type { HAI3App } from '../../../src/types';
 
 describe('microfrontends plugin - Phase 13', () => {
@@ -98,9 +98,9 @@ describe('microfrontends plugin - Phase 13', () => {
 
       expect(spy).toHaveBeenCalledWith({
         action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
           target: testDomainId,
-          payload: { extensionId: testExtensionId },
+          payload: { subject: testExtensionId },
         },
       });
     });

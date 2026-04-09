@@ -1,5 +1,7 @@
 # Feature: Framework Composition
 
+<!-- artifact-version: 1.1 -->
+
 
 <!-- toc -->
 
@@ -50,49 +52,49 @@
 
 <!-- /toc -->
 
-- [x] `p1` - **ID**: `cpt-hai3-featstatus-framework-composition`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-framework-composition`
 
-- [x] `p2` - `cpt-hai3-feature-framework-composition`
+- [x] `p2` - `cpt-frontx-feature-framework-composition`
 ---
 
 ## 1. Feature Context
 
 ### 1.1 Overview
 
-Framework Composition is the L2 layer that stitches together the four L1 SDK packages (`@hai3/state`, `@hai3/screensets`, `@hai3/api`, `@hai3/i18n`) into a cohesive, production-ready application framework. It does this through a plugin architecture centered on the `createHAI3()` builder: the host application chains `.use(plugin)` calls and calls `.build()` to produce an assembled `HAI3App` instance that owns a Redux store, theme registry, i18n registry, API registry, MFE-enabled screensets registry, and a complete set of typed actions.
+Framework Composition is the L2 layer that stitches together the four L1 SDK packages (`@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`) into a cohesive, production-ready application framework. It does this through a plugin architecture centered on the `createHAI3()` builder: the host application chains `.use(plugin)` calls and calls `.build()` to produce an assembled `HAI3App` instance that owns a Redux store, theme registry, i18n registry, API registry, MFE-enabled screensets registry, and a complete set of typed actions.
 
 **Problem this solves**: Without this layer each application would manually wire state slices, event subscriptions, registries, and lifecycle hooks across four packages — a complex and error-prone process that produces inconsistent patterns across projects.
 
-**Primary value**: A single call to `createHAI3App()` (or a composed `.use()` chain) yields a framework instance that the React layer (`@hai3/react`) can consume directly, with all cross-cutting concerns (theme, language, MFE lifecycle, mock mode, layout state) already coordinated.
+**Primary value**: A single call to `createHAI3App()` (or a composed `.use()` chain) yields a framework instance that the React layer (`@cyberfabric/react`) can consume directly, with all cross-cutting concerns (theme, language, MFE lifecycle, mock mode, layout state) already coordinated.
 
 **Key assumptions**:
 - Applications run in a browser environment; no SSR.
 - Each plugin declares name and optional dependencies; the builder performs topological ordering.
-- The framework has no React dependency — all React integration lives in `@hai3/react` (L3).
+- The framework has no React dependency — all React integration lives in `@cyberfabric/react` (L3).
 
 ### 1.2 Purpose
 
-Enable host applications to compose a fully-wired HAI3 framework instance by assembling plugins via a fluent builder API, with theme/language propagation to MFEs, GTS-validated shared property broadcast, layout state management, and base-path-aware navigation configuration — all without modifying framework source code.
+Enable host applications to compose a fully-wired FrontX framework instance by assembling plugins via a fluent builder API, with theme/language propagation to MFEs, GTS-validated shared property broadcast, layout state management, and base-path-aware navigation configuration — all without modifying framework source code.
 
-**Success criteria**: A host application initializes a complete HAI3 framework instance with one function call; plugins register slices and effects without order dependency; theme and language changes propagate to all registered MFE domains within the same synchronous call chain.
+**Success criteria**: A host application initializes a complete FrontX framework instance with one function call; plugins register slices and effects without order dependency; theme and language changes propagate to all registered MFE domains within the same synchronous call chain.
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-host-app`
-- `cpt-hai3-actor-framework-plugin`
-- `cpt-hai3-actor-developer`
-- `cpt-hai3-actor-runtime`
-- `cpt-hai3-actor-microfrontend`
-- `cpt-hai3-actor-gts-plugin`
+- `cpt-frontx-actor-host-app`
+- `cpt-frontx-actor-framework-plugin`
+- `cpt-frontx-actor-developer`
+- `cpt-frontx-actor-runtime`
+- `cpt-frontx-actor-microfrontend`
+- `cpt-frontx-actor-gts-plugin`
 
 ### 1.4 References
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — entry 2.6
 - PRD: [PRD.md](../../PRD.md) — sections 5.2 (App Configuration), 5.10 (Shared Property Broadcast), 5.11 (Shared Property Validation), 5.18 (Microfrontend Plugin)
-- Design component: `cpt-hai3-component-framework`
-- Sequences: `cpt-hai3-seq-app-bootstrap`, `cpt-hai3-seq-shared-property-broadcast`
-- ADRs: `cpt-hai3-adr-plugin-based-framework-composition`, `cpt-hai3-adr-four-layer-sdk-architecture`, `cpt-hai3-adr-global-shared-property-broadcast`
+- Design component: `cpt-frontx-component-framework`
+- Sequences: `cpt-frontx-seq-app-bootstrap`, `cpt-frontx-seq-shared-property-broadcast`
+- ADRs: `cpt-frontx-adr-plugin-based-framework-composition`, `cpt-frontx-adr-four-layer-sdk-architecture`, `cpt-frontx-adr-global-shared-property-broadcast`
 
 ---
 
@@ -100,9 +102,9 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Application Bootstrap
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-app-bootstrap`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-app-bootstrap`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - Host calls `createHAI3(config?)` to obtain a builder instance - `inst-create-builder`
 2. [ ] `p1` - Host chains one or more `.use(plugin)` calls, each appending a resolved plugin to the pending list - `inst-use-plugin`
@@ -118,9 +120,9 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Plugin Registration with Dependency Enforcement
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-plugin-dependency`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-plugin-dependency`
 
-**Actors**: `cpt-hai3-actor-framework-plugin`, `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-host-app`
 
 1. [ ] `p1` - Builder receives a plugin instance or factory; resolves factory if needed - `inst-resolve-factory`
 2. [ ] `p1` - During `build()` topological sort, visit each plugin's declared `dependencies` array - `inst-visit-deps`
@@ -131,9 +133,9 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Convenience Full-Preset Bootstrap
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-full-preset`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-full-preset`
 
-**Actors**: `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-host-app`
 
 1. [ ] `p1` - Host calls `createHAI3App(config?)` - `inst-call-createapp`
 2. [ ] `p1` - `createHAI3App` delegates to `createHAI3(config).useAll(full(presetConfig)).build()` - `inst-delegate-full`
@@ -142,35 +144,35 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Theme Change and MFE Propagation
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-theme-propagation`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-theme-propagation`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-framework-plugin`, `cpt-hai3-actor-microfrontend`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host or developer calls `app.actions.changeTheme({ themeId })` - `inst-call-change-theme`
 2. [ ] `p1` - Action emits `theme/changed` event on the event bus - `inst-emit-theme-changed`
 3. [ ] `p1` - The `themes` plugin's `onInit` handler receives the event - `inst-themes-plugin-handler`
 4. [ ] `p1` - Handler calls `themeRegistry.apply(themeId)` to update the in-process theme - `inst-apply-theme`
 5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` to broadcast to all MFE domains - `inst-broadcast-theme`
-6. [ ] `p1` - **CATCH** log error `"[HAI3] Failed to propagate theme to MFE domains"` without re-throwing - `inst-catch-theme-error`
+6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate theme to MFE domains"` without re-throwing - `inst-catch-theme-error`
 
 ### Language Change and MFE Propagation
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-i18n-propagation`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-i18n-propagation`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-framework-plugin`, `cpt-hai3-actor-microfrontend`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host or developer calls `app.actions.setLanguage({ language })` - `inst-call-set-language`
 2. [ ] `p1` - Action emits `i18n/language/changed` event on the event bus - `inst-emit-lang-changed`
 3. [ ] `p1` - The `i18n` plugin's `onInit` handler receives the event - `inst-i18n-plugin-handler`
 4. [ ] `p1` - Handler calls `i18nRegistry.setLanguage(language)` asynchronously - `inst-set-language`
 5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` to broadcast to all MFE domains - `inst-broadcast-lang`
-6. [ ] `p1` - **CATCH** log error `"[HAI3] Failed to propagate language to MFE domains"` without re-throwing - `inst-catch-lang-error`
+6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate language to MFE domains"` without re-throwing - `inst-catch-lang-error`
 
 ### MFE Extension Registration
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-mfe-registration`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-mfe-registration`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-microfrontend`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host calls `app.actions.registerExtension(extension)` - `inst-call-register-ext`
 2. [ ] `p1` - Action emits `mfe/registerExtensionRequested` event on the event bus - `inst-emit-register-event`
@@ -181,27 +183,27 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### MFE Extension Lifecycle (Load / Mount / Unmount)
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-mfe-lifecycle`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-mfe-lifecycle`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-microfrontend`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host calls `app.actions.loadExtension(extensionId)` - `inst-call-load-ext`
-2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `screensetsRegistry.executeActionsChain` with `HAI3_ACTION_LOAD_EXT` — fire-and-forget - `inst-execute-load-chain`
+2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `screensetsRegistry.executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~` — fire-and-forget - `inst-execute-load-chain`
 3. [ ] `p1` - Host calls `app.actions.mountExtension(extensionId)` - `inst-call-mount-ext`
-4. [ ] `p1` - Action resolves domain ID; calls `executeActionsChain` with `HAI3_ACTION_MOUNT_EXT` - `inst-execute-mount-chain`
-5. [ ] `p1` - On successful mount completion, dispatch `setExtensionMounted({ domainId, extensionId })` to the MFE slice - `inst-dispatch-mounted`
+4. [ ] `p1` - Action resolves domain ID; calls `executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` - `inst-execute-mount-chain`
+5. [ ] `p1` - On successful mount completion, dispatch `setExtensionMounted({ domainId, subject })` to the MFE slice - `inst-dispatch-mounted`
 6. [ ] `p2` - Host calls `app.actions.unmountExtension(extensionId)` - `inst-call-unmount-ext`
-7. [ ] `p2` - Action resolves domain ID; calls `executeActionsChain` with `HAI3_ACTION_UNMOUNT_EXT` - `inst-execute-unmount-chain`
+7. [ ] `p2` - Action resolves domain ID; calls `executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` - `inst-execute-unmount-chain`
 8. [ ] `p2` - On successful unmount completion, dispatch `setExtensionUnmounted({ domainId })` to the MFE slice - `inst-dispatch-unmounted`
 
 ### Shared Property Broadcast
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-shared-property-broadcast`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-shared-property-broadcast`
 
-**Actors**: `cpt-hai3-actor-host-app`, `cpt-hai3-actor-gts-plugin`, `cpt-hai3-actor-microfrontend`
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-gts-plugin`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - A framework plugin (or host) calls `screensetsRegistry.updateSharedProperty(propertyId, value)` - `inst-call-update-sp`
-2. [ ] `p1` - Registry performs GTS validation via algorithm `cpt-hai3-algo-framework-composition-gts-validation` — BEFORE any propagation - `inst-validate-sp`
+2. [ ] `p1` - Registry performs GTS validation via algorithm `cpt-frontx-algo-framework-composition-gts-validation` — BEFORE any propagation - `inst-validate-sp`
 3. [ ] `p1` - **IF** validation fails **RETURN** throw error with validation details; property is NOT stored and NOT propagated - `inst-sp-validation-fail`
 4. [ ] `p1` - **FOR EACH** registered domain whose `sharedProperties` array includes `propertyId`: propagate the validated value to all domain subscribers - `inst-broadcast-sp`
 5. [ ] `p1` - Domains that do NOT declare `propertyId` in their `sharedProperties` array receive NO update - `inst-sp-domain-filter`
@@ -209,9 +211,9 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### App Configuration via Events
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-framework-composition-app-config`
+- [x] `p1` - **ID**: `cpt-frontx-flow-framework-composition-app-config`
 
-**Actors**: `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-host-app`
 
 1. [ ] `p1` - Host emits a tenant event on the event bus: `app/tenant/changed` with `{ tenant: Tenant }` payload - `inst-emit-tenant`
 2. [ ] `p1` - Tenant effect handler receives the event and dispatches `setTenant(tenant)` to the tenant slice - `inst-tenant-reducer`
@@ -220,9 +222,9 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Application Teardown
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-framework-composition-teardown`
+- [x] `p2` - **ID**: `cpt-frontx-flow-framework-composition-teardown`
 
-**Actors**: `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-host-app`
 
 1. [ ] `p2` - Host calls `app.destroy()` - `inst-call-destroy`
 2. [ ] `p2` - Builder iterates plugins in reverse initialization order; invokes `onDestroy(app)` for each that defines it - `inst-call-on-destroy`
@@ -234,7 +236,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Builder Dependency Resolution (Topological Sort)
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-framework-composition-dep-resolution`
+- [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-dep-resolution`
 
 1. [ ] `p1` - Maintain a `visited` set (fully resolved) and a `visiting` set (in-progress DFS) — both keyed by plugin name - `inst-init-visited-sets`
 2. [ ] `p1` - **FOR EACH** registered plugin: call `visit(plugin)` - `inst-visit-each`
@@ -247,7 +249,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Plugin Provides Aggregation
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-framework-composition-provides-aggregation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-provides-aggregation`
 
 1. [ ] `p1` - Initialize empty `registries` record, `slices` array, `effects` array, `actions` partial object - `inst-init-accumulators`
 2. [ ] `p1` - **FOR EACH** plugin in resolved order: **IF** `plugin.provides` is absent skip to next - `inst-check-provides`
@@ -259,7 +261,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### GTS Shared Property Validation
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-framework-composition-gts-validation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-gts-validation`
 
 1. [ ] `p1` - Construct `ephemeralId` by appending the runtime suffix to the property type ID: `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"` - `inst-build-ephemeral-id`
 2. [ ] `p1` - Call `typeSystem.register({ id: ephemeralId, value })` to register the candidate instance in the GTS store (overwrites any prior registration for the same deterministic ID) - `inst-gts-register`
@@ -271,7 +273,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Base Path Resolution
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-framework-composition-base-path`
+- [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-base-path`
 
 1. [ ] `p1` - Receive raw `base` string from `HAI3Config`; **IF** empty or undefined **RETURN** `"/"` - `inst-empty-base`
 2. [ ] `p1` - **IF** `base` does not start with `"/"`: prepend `"/"` - `inst-add-leading-slash`
@@ -284,7 +286,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### Mock Mode Toggle
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-framework-composition-mock-toggle`
+- [x] `p2` - **ID**: `cpt-frontx-algo-framework-composition-mock-toggle`
 
 1. [ ] `p2` - Host calls `app.actions.toggleMockMode(enabled)` - `inst-call-toggle-mock`
 2. [ ] `p2` - Action emits a mock-toggle event on the event bus - `inst-emit-mock-event`
@@ -297,7 +299,7 @@ Enable host applications to compose a fully-wired HAI3 framework instance by ass
 
 ### MFE Extension Registration State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-framework-composition-mfe-registration`
+- [x] `p1` - **ID**: `cpt-frontx-state-framework-composition-mfe-registration`
 
 Tracked in `state.mfe.registrationStates[extensionId]`.
 
@@ -309,16 +311,16 @@ Tracked in `state.mfe.registrationStates[extensionId]`.
 
 ### MFE Domain Mount State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-framework-composition-mfe-mount`
+- [x] `p1` - **ID**: `cpt-frontx-state-framework-composition-mfe-mount`
 
 Tracked in `state.mfe.mountedExtensions[domainId]` as an extension ID string or `undefined`.
 
-1. [ ] `p1` - **FROM** `undefined` **TO** `extensionId` **WHEN** `HAI3_ACTION_MOUNT_EXT` chain completes successfully - `inst-domain-mounted`
-2. [ ] `p2` - **FROM** `extensionId` **TO** `undefined` **WHEN** `HAI3_ACTION_UNMOUNT_EXT` chain completes successfully - `inst-domain-unmounted`
+1. [ ] `p1` - **FROM** `undefined` **TO** `subject` **WHEN** `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` chain completes successfully - `inst-domain-mounted`
+2. [ ] `p2` - **FROM** `subject` **TO** `undefined` **WHEN** `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` chain completes successfully - `inst-domain-unmounted`
 
 ### Plugin Builder State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-framework-composition-builder`
+- [x] `p1` - **ID**: `cpt-frontx-state-framework-composition-builder`
 
 Lifecycle state of the `HAI3AppBuilder` instance.
 
@@ -328,7 +330,7 @@ Lifecycle state of the `HAI3AppBuilder` instance.
 
 ### Tenant State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-framework-composition-tenant`
+- [x] `p1` - **ID**: `cpt-frontx-state-framework-composition-tenant`
 
 Tracked in `state.tenant`.
 
@@ -342,9 +344,9 @@ Tracked in `state.tenant`.
 
 ### Builder API and Plugin System
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-builder`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-builder`
 
-Host applications can compose a HAI3 framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
+Host applications can compose a FrontX framework instance by chaining `.use(plugin)` calls on the builder returned by `createHAI3()` and calling `.build()`. The builder resolves plugin dependencies topologically, aggregates all slice/effect/action/registry contributions, creates the Redux store, and returns a `HAI3App` with fully initialized registries and actions. Duplicate plugins (same name) are silently ignored. Circular dependencies throw immediately. Missing dependencies throw in `strictMode` or warn otherwise.
 
 **API surface**:
 - `createHAI3(config?: HAI3Config): HAI3AppBuilder`
@@ -354,32 +356,32 @@ Host applications can compose a HAI3 framework instance by chaining `.use(plugin
 - `createHAI3App(config?: HAI3AppConfig): HAI3App` (convenience, uses `full()` preset)
 
 **Implements**:
-- `cpt-hai3-flow-framework-composition-app-bootstrap`
-- `cpt-hai3-flow-framework-composition-plugin-dependency`
-- `cpt-hai3-flow-framework-composition-full-preset`
-- `cpt-hai3-algo-framework-composition-dep-resolution`
-- `cpt-hai3-algo-framework-composition-provides-aggregation`
-- `cpt-hai3-state-framework-composition-builder`
+- `cpt-frontx-flow-framework-composition-app-bootstrap`
+- `cpt-frontx-flow-framework-composition-plugin-dependency`
+- `cpt-frontx-flow-framework-composition-full-preset`
+- `cpt-frontx-algo-framework-composition-dep-resolution`
+- `cpt-frontx-algo-framework-composition-provides-aggregation`
+- `cpt-frontx-state-framework-composition-builder`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-framework-layer`
-- `cpt-hai3-fr-sdk-plugin-arch`
-- `cpt-hai3-fr-sdk-layer-deps`
+- `cpt-frontx-fr-sdk-framework-layer`
+- `cpt-frontx-fr-sdk-plugin-arch`
+- `cpt-frontx-fr-sdk-layer-deps`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-plugin-first-composition`
-- `cpt-hai3-principle-layer-isolation`
-- `cpt-hai3-constraint-no-react-below-l3`
-- `cpt-hai3-component-framework`
-- `cpt-hai3-seq-app-bootstrap`
+- `cpt-frontx-principle-plugin-first-composition`
+- `cpt-frontx-principle-layer-isolation`
+- `cpt-frontx-constraint-no-react-below-l3`
+- `cpt-frontx-component-framework`
+- `cpt-frontx-seq-app-bootstrap`
 
 ---
 
 ### Layout Orchestration
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-layout`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-layout`
 
-The `layout()` plugin registers Redux slices for all seven layout domains (header, footer, menu, sidebar, screen, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. The `screensets()` plugin registers the screen slice. All layout state types are exported from `@hai3/framework`.
+The `layout()` plugin registers Redux slices for all seven layout domains (header, footer, menu, sidebar, screen, popup, overlay), subscribes to layout events on the event bus, and dispatches corresponding reducer actions to keep state consistent. The `screensets()` plugin registers the screen slice. All layout state types are exported from `@cyberfabric/framework`.
 
 **Layout domains and their slices**:
 - `header`: `HeaderState` — user info, loading
@@ -391,16 +393,16 @@ The `layout()` plugin registers Redux slices for all seven layout domains (heade
 - `overlay`: `OverlayState` — visible
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-appconfig-layout-visibility`
+- `cpt-frontx-fr-appconfig-layout-visibility`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-framework`
+- `cpt-frontx-component-framework`
 
 ---
 
 ### App Configuration and Event-Driven API
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-app-config`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-app-config`
 
 The framework provides an event-driven API for configuring tenant, language, theme, and navigation. All configuration changes propagate via the event bus rather than direct state mutation. The `Tenant` type has shape `{ id: string }` and tenant state is typed `Tenant | null`. Router mode is configurable via `HAI3Config.routerMode` (`'browser'` | `'hash'` | `'memory'`). Base path normalization handles leading slash insertion, trailing slash removal, and empty-string-to-root conversion.
 
@@ -411,25 +413,25 @@ The framework provides an event-driven API for configuring tenant, language, the
 - `i18n/language/changed` → `i18nRegistry.setLanguage(language)`
 
 **Implements**:
-- `cpt-hai3-flow-framework-composition-app-config`
-- `cpt-hai3-algo-framework-composition-base-path`
-- `cpt-hai3-state-framework-composition-tenant`
+- `cpt-frontx-flow-framework-composition-app-config`
+- `cpt-frontx-algo-framework-composition-base-path`
+- `cpt-frontx-state-framework-composition-tenant`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-appconfig-tenant`
-- `cpt-hai3-fr-appconfig-event-api`
-- `cpt-hai3-fr-appconfig-router-config`
-- `cpt-hai3-fr-appconfig-layout-visibility`
+- `cpt-frontx-fr-appconfig-tenant`
+- `cpt-frontx-fr-appconfig-event-api`
+- `cpt-frontx-fr-appconfig-router-config`
+- `cpt-frontx-fr-appconfig-layout-visibility`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-event-driven-architecture`
-- `cpt-hai3-component-framework`
+- `cpt-frontx-principle-event-driven-architecture`
+- `cpt-frontx-component-framework`
 
 ---
 
 ### Theme and Language Propagation to MFEs
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-propagation`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-propagation`
 
 When the host changes theme or language, the respective plugin propagates the new value to all registered MFE domains by calling `screensetsRegistry.updateSharedProperty()` with the appropriate shared property constant. Errors from the registry call are caught and logged; they never crash the host application. On initialization, the `themes()` plugin applies the first registered theme; the `i18n()` plugin loads English translations in the background.
 
@@ -438,25 +440,25 @@ When the host changes theme or language, the respective plugin propagates the ne
 - `HAI3_SHARED_PROPERTY_LANGUAGE` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~`)
 
 **Implements**:
-- `cpt-hai3-flow-framework-composition-theme-propagation`
-- `cpt-hai3-flow-framework-composition-i18n-propagation`
+- `cpt-frontx-flow-framework-composition-theme-propagation`
+- `cpt-frontx-flow-framework-composition-i18n-propagation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-mfe-theme-propagation`
-- `cpt-hai3-fr-mfe-i18n-propagation`
-- `cpt-hai3-nfr-rel-error-handling`
+- `cpt-frontx-fr-mfe-theme-propagation`
+- `cpt-frontx-fr-mfe-i18n-propagation`
+- `cpt-frontx-nfr-rel-error-handling`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-framework`
-- `cpt-hai3-seq-shared-property-broadcast`
+- `cpt-frontx-component-framework`
+- `cpt-frontx-seq-shared-property-broadcast`
 
 ---
 
 ### Microfrontends Plugin and MFE Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-mfe-plugin`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-mfe-plugin`
 
-The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.screensetsRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the HAI3 actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
+The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.screensetsRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the FrontX actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
 
 **Domain constants** (GTS instance IDs):
 - `HAI3_SCREEN_DOMAIN` — main content area
@@ -465,73 +467,73 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 - `HAI3_OVERLAY_DOMAIN` — full-screen overlay
 
 **Implements**:
-- `cpt-hai3-flow-framework-composition-mfe-registration`
-- `cpt-hai3-flow-framework-composition-mfe-lifecycle`
-- `cpt-hai3-state-framework-composition-mfe-registration`
-- `cpt-hai3-state-framework-composition-mfe-mount`
+- `cpt-frontx-flow-framework-composition-mfe-registration`
+- `cpt-frontx-flow-framework-composition-mfe-lifecycle`
+- `cpt-frontx-state-framework-composition-mfe-registration`
+- `cpt-frontx-state-framework-composition-mfe-mount`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-mfe-plugin`
-- `cpt-hai3-fr-mfe-dynamic-registration`
+- `cpt-frontx-fr-mfe-plugin`
+- `cpt-frontx-fr-mfe-dynamic-registration`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-framework`
-- `cpt-hai3-seq-app-bootstrap`
+- `cpt-frontx-component-framework`
+- `cpt-frontx-seq-app-bootstrap`
 
 ---
 
 ### Shared Property Broadcast with GTS Validation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-shared-property`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-shared-property`
 
 `ScreensetsRegistry.updateSharedProperty(propertyId, value)` is the sole write path for shared property values. The implementation validates the value against the GTS-derived schema before any propagation. Validation uses `typeSystem.register({ id: ephemeralId, value })` + `typeSystem.validateInstance(ephemeralId)` where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. If validation fails, the method throws and no domain receives the update. Only domains whose `sharedProperties` array includes `propertyId` receive the update. No matching domains is a silent no-op. The deprecated `updateDomainProperty()` and `updateDomainProperties()` methods do NOT exist on the abstract class or implementation.
 
 **Implements**:
-- `cpt-hai3-flow-framework-composition-shared-property-broadcast`
-- `cpt-hai3-algo-framework-composition-gts-validation`
+- `cpt-frontx-flow-framework-composition-shared-property-broadcast`
+- `cpt-frontx-algo-framework-composition-gts-validation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-broadcast-write-api`
-- `cpt-hai3-fr-broadcast-matching`
-- `cpt-hai3-fr-broadcast-validate`
-- `cpt-hai3-fr-validation-gts`
-- `cpt-hai3-fr-validation-reject`
-- `cpt-hai3-nfr-sec-type-validation`
+- `cpt-frontx-fr-broadcast-write-api`
+- `cpt-frontx-fr-broadcast-matching`
+- `cpt-frontx-fr-broadcast-validate`
+- `cpt-frontx-fr-validation-gts`
+- `cpt-frontx-fr-validation-reject`
+- `cpt-frontx-nfr-sec-type-validation`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-framework`
-- `cpt-hai3-seq-shared-property-broadcast`
+- `cpt-frontx-component-framework`
+- `cpt-frontx-seq-shared-property-broadcast`
 
 ---
 
 ### Presets
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-presets`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-presets`
 
 Three presets are provided as functions returning `HAI3Plugin[]`:
 - `full(config?)` — all seven plugins (`effects`, `screensets`, `themes`, `layout`, `i18n`, `mock`, `microfrontends`)
 - `minimal()` — `screensets` + `themes` only
 - `headless()` — `screensets` only
 
-All presets are exported from `@hai3/framework`. The `presets` object collects all three under named keys.
+All presets are exported from `@cyberfabric/framework`. The `presets` object collects all three under named keys.
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-plugin-arch`
+- `cpt-frontx-fr-sdk-plugin-arch`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-plugin-first-composition`
+- `cpt-frontx-principle-plugin-first-composition`
 
 ---
 
 ### SDK Re-exports and Convenience Surface
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-reexports`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-reexports`
 
-`@hai3/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
-- From `@hai3/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
-- From `@hai3/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
-- From `@hai3/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
-- From `@hai3/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
+`@cyberfabric/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
+- From `@cyberfabric/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
+- From `@cyberfabric/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
+- From `@cyberfabric/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards
+- From `@cyberfabric/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
 The framework does NOT export `createAction` to consumers; actions are handwritten functions.
 
@@ -539,22 +541,22 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 
 ### GTS Derived Schemas for Application-Layer Registration
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-framework-composition-derived-schemas`
+- [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-derived-schemas`
 
-`@hai3/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@hai3/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the HAI3 app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
-
-**Covers (PRD)**:
-- `cpt-hai3-fr-mfe-shared-property`
-
-**Covers (DESIGN)**:
-- `cpt-hai3-component-framework`
+`@cyberfabric/framework` exports three GTS derived schemas (`themeSchema`, `languageSchema`, `extensionScreenSchema`) for application-layer registration. These schemas encode application-level constraints — valid theme values, supported languages, screen extension presentation shape — and are NOT part of the core type system in `@cyberfabric/screensets` (L1). The application registers them on the `TypeSystemPlugin` instance before constructing the FrontX app via `gtsPlugin.registerSchema()`. This keeps the L1 SDK generic and allows projects to substitute custom schemas.
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-framework-layer`
-- `cpt-hai3-nfr-maint-zero-crossdeps`
+- `cpt-frontx-fr-mfe-shared-property`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-no-react-below-l3`
+- `cpt-frontx-component-framework`
+
+**Covers (PRD)**:
+- `cpt-frontx-fr-sdk-framework-layer`
+- `cpt-frontx-nfr-maint-zero-crossdeps`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-constraint-no-react-below-l3`
 
 ---
 
@@ -570,12 +572,12 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 - [x] `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` propagates to all domains declaring the property; domains not declaring it receive no update
 - [x] `app.actions.registerExtension(ext)` transitions `state.mfe.registrationStates[ext.id]` from `'unregistered'` → `'registering'` → `'registered'`
 - [x] A failing `screensetsRegistry.registerExtension()` call transitions state to `'error'` with the error message recorded
-- [x] `app.actions.mountExtension(extensionId)` after successful execution sets `state.mfe.mountedExtensions[domainId]` to `extensionId`
+- [x] `app.actions.mountExtension(extensionId)` after successful execution sets `state.mfe.mountedExtensions[domainId]` to the extension's `subject` reference
 - [x] `normalizeBase('/console/')` returns `'/console'`; `normalizeBase('')` returns `'/'`; `normalizeBase('console')` returns `'/console'`
 - [x] `stripBase('/console/dashboard', '/console')` returns `'/dashboard'`; `stripBase('/admin/x', '/console')` returns `null`; `stripBase('/console-admin', '/console')` returns `null`
 - [x] `createHAI3App()` uses the `full()` preset and returns a valid `HAI3App` without configuration
-- [x] `@hai3/framework` has no React import (enforced by `dependency-cruiser`)
-- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `ScreenState`, `PopupState`, `OverlayState`) are exported from `@hai3/framework`
+- [x] `@cyberfabric/framework` has no React import (enforced by `dependency-cruiser`)
+- [x] All layout domain types (`HeaderState`, `FooterState`, `MenuState`, `SidebarState`, `ScreenState`, `PopupState`, `OverlayState`) are exported from `@cyberfabric/framework`
 
 ---
 
@@ -601,13 +603,13 @@ The broadcast model is fire-and-forget: `updateSharedProperty()` propagates only
 
 ### No `updateDomainProperty` / `updateDomainProperties`
 
-These methods were removed as part of the global shared property broadcast model (`cpt-hai3-adr-global-shared-property-broadcast`). Shared properties are global — a property ID means the same thing across all domains that declare it, so domain-targeted writes are semantically incorrect. `updateSharedProperty(propertyId, value)` is the only write path.
+These methods were removed as part of the global shared property broadcast model (`cpt-frontx-adr-global-shared-property-broadcast`). Shared properties are global — a property ID means the same thing across all domains that declare it, so domain-targeted writes are semantically incorrect. `updateSharedProperty(propertyId, value)` is the only write path.
 
 ### HAI3Config Fields
 
 | Field | Type | Default | Description |
 |-------|------|---------|-------------|
-| `name` | `string` | `'HAI3 App'` | Application identifier |
+| `name` | `string` | `'FrontX App'` | Application identifier |
 | `devMode` | `boolean` | `false` | Enables duplicate plugin warnings |
 | `strictMode` | `boolean` | `false` | Throws on missing plugin dependencies |
 | `autoNavigate` | `boolean` | `true` | Deprecated — auto-route to first screen on mount |

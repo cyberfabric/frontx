@@ -23,10 +23,10 @@ date: 2025-11-16
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-protocol-separated-api-architecture`
+**ID**: `cpt-frontx-adr-protocol-separated-api-architecture`
 ## Context and Problem Statement
 
-HAI3 needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another.
+FrontX needed to support multiple API protocols (REST, SSE, potentially others) without coupling services to specific transports. A monolithic configuration object containing all protocol options would grow unwieldy as protocols are added and would couple the evolution of one protocol to changes in another.
 
 ## Decision Drivers
 
@@ -80,9 +80,9 @@ Protocols query `apiRegistry` during request execution rather than receiving plu
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-sse-protocol` — SSE protocol implementation and configuration
-* `cpt-hai3-fr-sse-protocol-registry` — protocol registry and plugin discovery at request time
-* `cpt-hai3-fr-sdk-api-package` — api package structure and public contracts
-* `cpt-hai3-nfr-rel-api-retry` — retry plugin integration through the global registry
-* `cpt-hai3-component-api` — api package component boundary
-* `cpt-hai3-interface-api-service` — ApiService interface and protocol configuration contracts
+* `cpt-frontx-fr-sse-protocol` — SSE protocol implementation and configuration
+* `cpt-frontx-fr-sse-protocol-registry` — protocol registry and plugin discovery at request time
+* `cpt-frontx-fr-sdk-api-package` — api package structure and public contracts
+* `cpt-frontx-nfr-rel-api-retry` — retry plugin integration through the global registry
+* `cpt-frontx-component-api` — api package component boundary
+* `cpt-frontx-interface-api-service` — ApiService interface and protocol configuration contracts

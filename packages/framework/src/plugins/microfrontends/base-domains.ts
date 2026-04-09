@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-mfe-plugin:p1
 
 /**
  * Base ExtensionDomain Constants (Framework L2)
@@ -23,7 +23,7 @@
  * @packageDocumentation
  */
 
-import type { ExtensionDomain } from '@hai3/screensets';
+import type { ExtensionDomain } from '@cyberfabric/screensets';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
@@ -31,7 +31,7 @@ import {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
   HAI3_SCREEN_EXTENSION_TYPE,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 import {
   HAI3_SCREEN_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,
@@ -73,7 +73,7 @@ const DEFAULT_LIFECYCLE_STAGES: readonly string[] = [
  * always visible, never destroyed during the application lifespan. Extensions
  * within the screen domain still go through all 4 stages (extensionsLifecycleStages).
  */
-// @cpt-begin:cpt-hai3-dod-framework-composition-mfe-plugin:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-mfe-plugin:p1:inst-1
 export const screenDomain: ExtensionDomain = {
   id: HAI3_SCREEN_DOMAIN,
   actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
@@ -139,4 +139,4 @@ export const overlayDomain: ExtensionDomain = {
   extensionsLifecycleStages: [...DEFAULT_LIFECYCLE_STAGES],
   lifecycle: undefined,
 };
-// @cpt-end:cpt-hai3-dod-framework-composition-mfe-plugin:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-mfe-plugin:p1:inst-1

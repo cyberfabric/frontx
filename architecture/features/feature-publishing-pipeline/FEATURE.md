@@ -12,6 +12,8 @@
   - [Publish on PR Merge](#publish-on-pr-merge)
   - [Publish Single Package](#publish-single-package)
   - [Developer Version Bump](#developer-version-bump)
+  - [Gitflow Channel Publishing](#gitflow-channel-publishing)
+  - [Build-Time Version Injection](#build-time-version-injection)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Resolve Dist-Tag](#resolve-dist-tag)
   - [Publish with Retry](#publish-with-retry)
@@ -35,17 +37,17 @@
 
 <!-- /toc -->
 
-- [x] `p2` - **ID**: `cpt-hai3-featstatus-publishing-pipeline`
+- [x] `p2` - **ID**: `cpt-frontx-featstatus-publishing-pipeline`
 
-- [x] `p2` - `cpt-hai3-feature-publishing-pipeline`
+- [x] `p2` - `cpt-frontx-feature-publishing-pipeline`
 ---
 
 ## 1. Feature Context
 
 ### 1.1 Overview
 
-Automated NPM package publishing pipeline for the HAI3 monorepo. When a pull request that
-bumps one or more `@hai3/*` package versions is merged to `main`, the CI/CD system detects
+Automated NPM package publishing pipeline for the FrontX monorepo. When a pull request that
+bumps one or more `@cyberfabric/*` package versions is merged to `main`, the CI/CD system detects
 which packages changed, builds them in strict layer order, verifies each version does not
 already exist on the NPM registry, and publishes affected packages with an appropriate dist-tag.
 
@@ -64,21 +66,22 @@ live under `packages/` in the monorepo root and are built via `npm run build:pac
 Guarantee that every version bump merged to `main` results in a correct, idempotent, and
 layer-ordered NPM publish with no human intervention after the PR merge.
 
-Success criteria: A PR that bumps `@hai3/state` from `0.3.0` to `0.4.0-alpha.0` triggers
+Success criteria: A PR that bumps `@cyberfabric/state` from `0.3.0` to `0.4.0-alpha.0` triggers
 exactly one publish of that version; subsequent re-runs of the same workflow skip it.
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-ci-cd`
-- `cpt-hai3-actor-build-system`
-- `cpt-hai3-actor-developer`
+- `cpt-frontx-actor-ci-cd`
+- `cpt-frontx-actor-build-system`
+- `cpt-frontx-actor-developer`
 
 ### 1.4 References
 
 - DECOMPOSITION: [feature #11 — Publishing Pipeline](../../DECOMPOSITION.md#211-publishing-pipeline)
 - DESIGN: [Layer Isolation principle](../../DESIGN.md#layer-isolation), [ESM-First constraint](../../DESIGN.md#esm-first-module-format)
 - PRD: [PRD.md](../../PRD.md) — section 5.16 (Publishing)
-- ADR: `cpt-hai3-adr-automated-layer-ordered-publishing`, `cpt-hai3-adr-esm-first-module-format`
+- ADR: `cpt-frontx-adr-automated-layer-ordered-publishing`, `cpt-frontx-adr-esm-first-module-format`, `cpt-frontx-adr-channel-aware-version-locking`
+- DESIGN: [Publishing Pipeline Architecture](../../DESIGN.md#38-publishing-pipeline-architecture)
 - Workflow source: [`.github/workflows/publish-packages.yml`](../../../.github/workflows/publish-packages.yml)
 
 ---
@@ -87,9 +90,9 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 ### Publish on PR Merge
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-publishing-pipeline-publish-on-merge`
+- [x] `p1` - **ID**: `cpt-frontx-flow-publishing-pipeline-publish-on-merge`
 
-**Actors**: `cpt-hai3-actor-ci-cd`, `cpt-hai3-actor-build-system`
+**Actors**: `cpt-frontx-actor-ci-cd`, `cpt-frontx-actor-build-system`
 
 **Trigger**: Push event on the `main` branch (GitHub Actions `push: branches: [main]`)
 
@@ -101,24 +104,24 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 6. [x] `p1` - CI/CD sorts candidates by layer priority: L1 SDK packages (`state`, `screensets`, `api`, `i18n`) → L2 (`framework`) → L3 (`react`) → Studio → CLI — `inst-sort-by-layer`
 7. [x] `p1` - CI/CD runs `npm ci` to install dependencies — `inst-install-deps`
 8. [x] `p1` - CI/CD runs `npm run build:packages` to build all packages in layer order — `inst-build-packages`
-9. [x] `p1` - FOR EACH package in the sorted candidate list, CI/CD runs the publish sub-flow using `cpt-hai3-flow-publishing-pipeline-publish-single-package` — `inst-publish-each`
+9. [x] `p1` - FOR EACH package in the sorted candidate list, CI/CD runs the publish sub-flow using `cpt-frontx-flow-publishing-pipeline-publish-single-package` — `inst-publish-each`
 10. [x] `p1` - CI/CD emits a job summary listing all published and skipped packages — `inst-summary`
 
 ---
 
 ### Publish Single Package
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-publishing-pipeline-publish-single-package`
+- [x] `p1` - **ID**: `cpt-frontx-flow-publishing-pipeline-publish-single-package`
 
-**Actors**: `cpt-hai3-actor-ci-cd`
+**Actors**: `cpt-frontx-actor-ci-cd`
 
 **Precondition**: Package has been built; `NODE_AUTH_TOKEN` env var is set from `NPM_TOKEN` secret.
 
-1. [x] `p1` - CI/CD determines the dist-tag by applying `cpt-hai3-algo-publishing-pipeline-resolve-dist-tag` to the package version — `inst-resolve-tag`
+1. [x] `p1` - CI/CD determines the dist-tag by applying `cpt-frontx-algo-publishing-pipeline-resolve-dist-tag` to the package version — `inst-resolve-tag`
 2. [x] `p1` - CI/CD queries NPM registry: `npm view <name>@<version> version` — `inst-npm-view`
 3. [x] `p1` - IF the version already exists on NPM THEN CI/CD logs "Skipping `<name>@<version>` — already exists on NPM" and continues to the next package — `inst-skip-existing`
 4. [x] `p1` - CI/CD changes working directory to `packages/<dir>` — `inst-cd-pkg`
-5. [x] `p1` - CI/CD calls `cpt-hai3-algo-publishing-pipeline-publish-with-retry` with the resolved dist-tag — `inst-call-retry-algo`
+5. [x] `p1` - CI/CD calls `cpt-frontx-algo-publishing-pipeline-publish-with-retry` with the resolved dist-tag — `inst-call-retry-algo`
 6. [x] `p1` - IF all retry attempts fail THEN CI/CD logs "FAILED: `<name>@<version>` publish failed after retries" and exits with status 1, stopping all further publishing — `inst-fail-fast`
 7. [x] `p1` - IF publish succeeds THEN CI/CD logs "SUCCESS: Published `<name>@<version>`" and records the package in the published list — `inst-record-success`
 
@@ -126,9 +129,9 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 ### Developer Version Bump
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-publishing-pipeline-developer-version-bump`
+- [x] `p2` - **ID**: `cpt-frontx-flow-publishing-pipeline-developer-version-bump`
 
-**Actors**: `cpt-hai3-actor-developer`
+**Actors**: `cpt-frontx-actor-developer`
 
 **Purpose**: Describes the developer action that triggers the automated pipeline.
 
@@ -139,11 +142,47 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 ---
 
+### Gitflow Channel Publishing
+
+- [x] `p2` - **ID**: `cpt-frontx-flow-publishing-pipeline-gitflow-channel-publish`
+
+**Actors**: `cpt-frontx-actor-ci-cd`
+
+**Trigger**: Push event on `develop`, `main`, `release/X.Y.Z`, or `release/vN` branch
+
+1. [x] `p2` - CI/CD determines the source branch from `github.ref` — `inst-detect-branch`
+2. [x] `p2` - CI/CD maps branch to dist-tag — `inst-branch-tag-map`:
+   - `develop` → `alpha`
+   - `main` → `latest` (with version-based fallback for safety)
+   - `release/X.Y.Z` → `next` (short-lived RC branches)
+   - `release/vN` → `vN` (long-lived maintenance branches, e.g. `release/v1` → `v1`)
+3. [x] `p2` - CI/CD proceeds with existing publish-on-merge flow using the resolved dist-tag — `inst-delegate-publish`
+
+---
+
+### Build-Time Version Injection
+
+- [x] `p2` - **ID**: `cpt-frontx-flow-publishing-pipeline-version-injection`
+
+**Actors**: `cpt-frontx-actor-build-system`
+
+**Trigger**: CLI build step (before `tsup`)
+
+**ADR**: `cpt-frontx-adr-channel-aware-version-locking`
+
+1. [x] `p2` - Build system runs `generate-versions.ts` script — `inst-run-gen-versions`
+2. [x] `p2` - Script reads all `packages/*/package.json` files, extracts `name` and `version` — `inst-read-pkg-versions`
+3. [x] `p2` - Script writes `src/generated/versions.ts` with exported constants mapping package names to version strings — `inst-write-versions-ts`
+4. [x] `p2` - CLI generators import version constants from `src/generated/versions.ts` instead of hardcoded strings — `inst-import-versions`
+5. [x] `p2` - `tsup` bundles the CLI with the generated version constants baked in — `inst-bundle-with-versions`
+
+---
+
 ## 3. Processes / Business Logic (CDSL)
 
 ### Resolve Dist-Tag
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-publishing-pipeline-resolve-dist-tag`
+- [x] `p1` - **ID**: `cpt-frontx-algo-publishing-pipeline-resolve-dist-tag`
 
 Determines the NPM dist-tag for a given version string.
 
@@ -156,7 +195,7 @@ Determines the NPM dist-tag for a given version string.
 
 ### Publish with Retry
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-publishing-pipeline-publish-with-retry`
+- [x] `p1` - **ID**: `cpt-frontx-algo-publishing-pipeline-publish-with-retry`
 
 Attempts `npm publish --access public --tag <dist-tag>` with exponential backoff. Operates
 inside the package directory (`packages/<dir>`). Maximum three attempts with delays of 5 s,
@@ -172,7 +211,7 @@ inside the package directory (`packages/<dir>`). Maximum three attempts with del
 
 ### Detect Version Changes
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-publishing-pipeline-detect-version-changes`
+- [x] `p1` - **ID**: `cpt-frontx-algo-publishing-pipeline-detect-version-changes`
 
 Compares the current `HEAD` state against the pre-push commit to identify packages whose
 `version` field changed.
@@ -187,7 +226,7 @@ Compares the current `HEAD` state against the pre-push commit to identify packag
 
 ### Validate Package Metadata
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-publishing-pipeline-validate-metadata`
+- [x] `p2` - **ID**: `cpt-frontx-algo-publishing-pipeline-validate-metadata`
 
 Each package's `package.json` must satisfy the publishing metadata contract before the
 package is considered publishable. This validation is a pre-condition for a successful
@@ -195,7 +234,7 @@ package is considered publishable. This validation is a pre-condition for a succ
 
 Required fields for all packages:
 
-- `author` set to `"HAI3org"` or `"HAI3"`
+- `author` set to `"Cyber Fabric"` or `"Cyber Fabric"`
 - `license` set to `"Apache-2.0"`
 - `publishConfig.access` set to `"public"`
 - `files` array listing `"dist"` and at minimum a README
@@ -210,7 +249,7 @@ Required fields for all packages:
 
 ### Layer Sort Order
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-publishing-pipeline-layer-sort`
+- [x] `p1` - **ID**: `cpt-frontx-algo-publishing-pipeline-layer-sort`
 
 Maps a package directory name to a numeric sort key that enforces the correct build and
 publish order. Lower numbers publish first.
@@ -233,7 +272,7 @@ publish order. Lower numbers publish first.
 
 ### Workflow Run State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-publishing-pipeline-workflow-run`
+- [x] `p1` - **ID**: `cpt-frontx-state-publishing-pipeline-workflow-run`
 
 Describes the state of a single GitHub Actions publish workflow run from trigger to
 completion.
@@ -250,7 +289,7 @@ completion.
 
 ### Package Publish State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-publishing-pipeline-package-publish`
+- [x] `p1` - **ID**: `cpt-frontx-state-publishing-pipeline-package-publish`
 
 Describes the publishing state of a single package within one workflow run.
 
@@ -268,9 +307,9 @@ Describes the publishing state of a single package within one workflow run.
 
 ### Package Metadata Contract
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-publishing-pipeline-metadata-contract`
+- [x] `p1` - **ID**: `cpt-frontx-dod-publishing-pipeline-metadata-contract`
 
-All `@hai3/*` packages include the required NPM publishing metadata in their `package.json`.
+All `@cyberfabric/*` packages include the required NPM publishing metadata in their `package.json`.
 Running `npm pack` on any package produces a tarball containing only `dist/` files plus any
 documented extras (README, CLAUDE.md), with no source TypeScript files.
 
@@ -285,28 +324,28 @@ documented extras (README, CLAUDE.md), with no source TypeScript files.
 - CLI package additionally exposes a `bin` entry pointing to the executable
 
 **Implements**:
-- `cpt-hai3-flow-publishing-pipeline-developer-version-bump`
-- `cpt-hai3-algo-publishing-pipeline-validate-metadata`
+- `cpt-frontx-flow-publishing-pipeline-developer-version-bump`
+- `cpt-frontx-algo-publishing-pipeline-validate-metadata`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-pub-metadata`
-- `cpt-hai3-fr-pub-esm`
-- `cpt-hai3-nfr-compat-node`
-- `cpt-hai3-nfr-compat-typescript`
-- `cpt-hai3-nfr-compat-esm`
-- `cpt-hai3-nfr-perf-treeshake`
+- `cpt-frontx-fr-pub-metadata`
+- `cpt-frontx-fr-pub-esm`
+- `cpt-frontx-nfr-compat-node`
+- `cpt-frontx-nfr-compat-typescript`
+- `cpt-frontx-nfr-compat-esm`
+- `cpt-frontx-nfr-perf-treeshake`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-esm-first-module-format`
-- `cpt-hai3-constraint-typescript-strict-mode`
+- `cpt-frontx-constraint-esm-first-module-format`
+- `cpt-frontx-constraint-typescript-strict-mode`
 
 ---
 
 ### Version Alignment
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-publishing-pipeline-version-alignment`
+- [x] `p1` - **ID**: `cpt-frontx-dod-publishing-pipeline-version-alignment`
 
-All `@hai3/*` packages that are published together carry the same version string. A PR that
+All `@cyberfabric/*` packages that are published together carry the same version string. A PR that
 bumps versions bumps them uniformly (e.g., all go from `0.3.0` to `0.4.0-alpha.0`).
 
 **Implementation details**:
@@ -317,16 +356,16 @@ bumps versions bumps them uniformly (e.g., all go from `0.3.0` to `0.4.0-alpha.0
   alignment was missed
 
 **Implements**:
-- `cpt-hai3-flow-publishing-pipeline-developer-version-bump`
+- `cpt-frontx-flow-publishing-pipeline-developer-version-bump`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-pub-versions`
+- `cpt-frontx-fr-pub-versions`
 
 ---
 
 ### Automated CI Publish Workflow
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-publishing-pipeline-ci-workflow`
+- [x] `p1` - **ID**: `cpt-frontx-dod-publishing-pipeline-ci-workflow`
 
 The GitHub Actions workflow at `.github/workflows/publish-packages.yml` correctly implements
 version detection, layer-ordered building, NPM registry pre-check, publish with retry, and
@@ -341,28 +380,28 @@ fail-fast error handling. The workflow triggers on push to `main` only.
 - `summary` job renders a Markdown table of published and skipped packages to `$GITHUB_STEP_SUMMARY`
 
 **Implements**:
-- `cpt-hai3-flow-publishing-pipeline-publish-on-merge`
-- `cpt-hai3-flow-publishing-pipeline-publish-single-package`
-- `cpt-hai3-algo-publishing-pipeline-detect-version-changes`
-- `cpt-hai3-algo-publishing-pipeline-layer-sort`
-- `cpt-hai3-algo-publishing-pipeline-resolve-dist-tag`
-- `cpt-hai3-algo-publishing-pipeline-publish-with-retry`
+- `cpt-frontx-flow-publishing-pipeline-publish-on-merge`
+- `cpt-frontx-flow-publishing-pipeline-publish-single-package`
+- `cpt-frontx-algo-publishing-pipeline-detect-version-changes`
+- `cpt-frontx-algo-publishing-pipeline-layer-sort`
+- `cpt-frontx-algo-publishing-pipeline-resolve-dist-tag`
+- `cpt-frontx-algo-publishing-pipeline-publish-with-retry`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-pub-ci`
-- `cpt-hai3-fr-sdk-flat-packages` (flat package structure is the publish unit)
-- `cpt-hai3-nfr-maint-arch-enforcement` (layer sort mirrors architectural layer order)
+- `cpt-frontx-fr-pub-ci`
+- `cpt-frontx-fr-sdk-flat-packages` (flat package structure is the publish unit)
+- `cpt-frontx-nfr-maint-arch-enforcement` (layer sort mirrors architectural layer order)
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-layer-isolation` (L1 always published before L2, L2 before L3)
-- `cpt-hai3-constraint-esm-first-module-format`
-- `cpt-hai3-constraint-no-package-internals-imports`
+- `cpt-frontx-principle-layer-isolation` (L1 always published before L2, L2 before L3)
+- `cpt-frontx-constraint-esm-first-module-format`
+- `cpt-frontx-constraint-no-package-internals-imports`
 
 ---
 
 ### Idempotent Registry Check
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-publishing-pipeline-idempotent-check`
+- [x] `p1` - **ID**: `cpt-frontx-dod-publishing-pipeline-idempotent-check`
 
 Re-running the workflow after a successful publish does not produce errors or duplicate
 publishes. Packages whose version already exists on NPM are silently skipped.
@@ -375,17 +414,17 @@ publishes. Packages whose version already exists on NPM are silently skipped.
 - The `summary` job reports skipped packages separately from published ones
 
 **Implements**:
-- `cpt-hai3-flow-publishing-pipeline-publish-single-package` (step 3)
-- `cpt-hai3-state-publishing-pipeline-package-publish` (CHECKING → SKIPPED transition)
+- `cpt-frontx-flow-publishing-pipeline-publish-single-package` (step 3)
+- `cpt-frontx-state-publishing-pipeline-package-publish` (CHECKING → SKIPPED transition)
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-pub-ci` (idempotency clause)
+- `cpt-frontx-fr-pub-ci` (idempotency clause)
 
 ---
 
 ## 6. Acceptance Criteria
 
-- [ ] A PR that bumps the version of a single `@hai3/*` package triggers exactly one successful `npm publish` for that package upon merge to `main`
+- [ ] A PR that bumps the version of a single `@cyberfabric/*` package triggers exactly one successful `npm publish` for that package upon merge to `main`
 - [ ] A PR that bumps versions in multiple packages across layers publishes them in layer order: L1 SDK first, CLI last
 - [ ] If a version already exists on NPM, the workflow skips that package, logs the skip reason, and continues with remaining packages
 - [ ] If any `npm publish` command fails after three attempts, the workflow exits immediately and does not publish subsequent packages
@@ -411,7 +450,7 @@ the higher-layer package that depends on it.
 ### Prerelease Dist-Tag Strategy
 
 NPM treats a publish without an explicit `--tag` as `latest`, which would make unstable
-alpha/beta versions the default install target. The `cpt-hai3-algo-publishing-pipeline-resolve-dist-tag`
+alpha/beta versions the default install target. The `cpt-frontx-algo-publishing-pipeline-resolve-dist-tag`
 algorithm prevents this by detecting version pre-release identifiers and mapping them to
 explicit dist-tags. This preserves `latest` for stable releases only.
 
@@ -420,12 +459,12 @@ explicit dist-tags. This preserves `latest` for stable releases only.
 The current implementation is fail-fast: the first unrecoverable publish failure halts the
 entire run. This is intentional. If a lower-layer package fails to publish, allowing
 higher-layer packages to publish would produce an inconsistent registry state where consumers
-see a new `@hai3/framework` but cannot resolve its new `@hai3/state` dependency. Fail-fast
+see a new `@cyberfabric/framework` but cannot resolve its new `@cyberfabric/state` dependency. Fail-fast
 and the fixed layer order together guarantee registry consistency.
 
 ### Architecture Enforcement Connection
 
-The layer publish order directly mirrors the `cpt-hai3-principle-layer-isolation` design
+The layer publish order directly mirrors the `cpt-frontx-principle-layer-isolation` design
 principle. The same dependency direction (L1 → L2 → L3) that governs source imports also
 governs the sequence in which packages land on NPM. This is not incidental — it is the
 runtime expression of the architectural constraint, enforced mechanically by the CI workflow

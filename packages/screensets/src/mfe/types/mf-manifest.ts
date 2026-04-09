@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-mfe-isolation-chunk-path-type:p1
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-chunk-path-type:p1
 
 /**
  * Configuration for a shared dependency in Module Federation.
@@ -17,7 +17,7 @@
  * instance state (React fiber tree, hooks, etc.).
  */
 export interface SharedDependencyConfig {
-  /** Package name (e.g., 'react', 'lodash', '@hai3/screensets') */
+  /** Package name (e.g., 'react', 'lodash', '@cyberfabric/screensets') */
   name: string;
   /**
    * Semver range (e.g., '^18.0.0', '^4.17.0').

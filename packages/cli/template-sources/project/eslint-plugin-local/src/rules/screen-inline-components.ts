@@ -1,6 +1,6 @@
 /**
  * @fileoverview Detect inline React.FC definitions in Screen files
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

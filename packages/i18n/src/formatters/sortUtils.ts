@@ -3,11 +3,11 @@
  *
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
  */
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-formatters:p1
 
 import { getLocale } from './utils';
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-9
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-9
 /**
  * Compare two strings according to the current locale (for sorting).
  *
@@ -24,9 +24,9 @@ export function compareStrings(
   const locale = getLocale();
   return new Intl.Collator(locale, options).compare(a, b);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-9
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-9
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-10
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-10
 /**
  * Create a Collator for the current locale (reuse for many comparisons, e.g. in tables).
  *
@@ -37,4 +37,4 @@ export function createCollator(options?: Intl.CollatorOptions): Intl.Collator {
   const locale = getLocale();
   return new Intl.Collator(locale, options);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-10
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-10

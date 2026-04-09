@@ -1,5 +1,5 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-update-layout:p2
-// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-update-layout:p2
+// @cpt-dod:cpt-frontx-dod-cli-tooling-package:p1
 import path from 'path';
 import fs from 'fs-extra';
 import type { CommandDefinition } from '../../core/command.js';
@@ -25,9 +25,9 @@ export interface UpdateLayoutResult {
 /**
  * Update layout command implementation
  *
- * Updates layout components from HAI3 layout templates.
+ * Updates layout components from FrontX layout templates.
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout
+// @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout
 export const updateLayoutCommand: CommandDefinition<
   UpdateLayoutArgs,
   UpdateLayoutResult
@@ -45,31 +45,31 @@ export const updateLayoutCommand: CommandDefinition<
     },
   ],
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-check-project-root-update-layout
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-check-project-root-update-layout
   validate(_args, ctx) {
     if (!ctx.projectRoot) {
       return validationError(
         'NOT_IN_PROJECT',
-        'Not inside a HAI3 project. Run this command from a project root.'
+        'Not inside a FrontX project. Run this command from a project root.'
       );
     }
 
     return validationOk();
   },
-  // @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-check-project-root-update-layout
+  // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-check-project-root-update-layout
 
   async execute(args, ctx): Promise<UpdateLayoutResult> {
     const { logger, projectRoot, prompt } = ctx;
     const force = args.force ?? false;
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-compare-layout-files
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-compare-layout-files
     // Check for existing layout
     const layoutDir = path.join(projectRoot!, 'src', 'app', 'layout');
     if (await fs.pathExists(layoutDir)) {
       const existingFiles = await fs.readdir(layoutDir);
-      // @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-compare-layout-files
+      // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-compare-layout-files
 
-      // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-prompt-confirm-layout-overwrite
+      // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-prompt-confirm-layout-overwrite
       if (existingFiles.length > 0 && !force) {
         logger.warn('Existing layout files will be overwritten:');
         for (const file of existingFiles.slice(0, 5)) {
@@ -97,7 +97,7 @@ export const updateLayoutCommand: CommandDefinition<
           };
         }
       }
-      // @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-prompt-confirm-layout-overwrite
+      // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-prompt-confirm-layout-overwrite
     }
 
     logger.newline();
@@ -110,10 +110,10 @@ export const updateLayoutCommand: CommandDefinition<
       force: true, // Already confirmed above
     });
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-write-updated-layout
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-write-updated-layout
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectRoot!, files);
-    // @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-write-updated-layout
+    // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-write-updated-layout
 
     logger.success(`Updated ${writtenFiles.length} layout files`);
     logger.newline();
@@ -123,12 +123,12 @@ export const updateLayoutCommand: CommandDefinition<
     }
     logger.newline();
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-return-update-layout
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-return-update-layout
     return {
       layoutPath: layoutDir,
       files: writtenFiles,
     };
-    // @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-return-update-layout
+    // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-return-update-layout
   },
 };
-// @cpt-end:cpt-hai3-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout
+// @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-invoke-update-layout

@@ -5,7 +5,7 @@
  *
  * Uncomment the module augmentation below and add your event types:
  *
- * declare module '@hai3/react' {
+ * declare module '@cyberfabric/react' {
  *   interface EventPayloadMap {
  *     'mfe/home/data-fetch-requested': undefined;
  *   }

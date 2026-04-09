@@ -1,4 +1,4 @@
-# HAI3 AI Guidelines (Framework Layer)
+# FrontX AI Guidelines (Framework Layer)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.
@@ -37,7 +37,7 @@
 
 ## IMPORT RULES
 - Inside same package: relative paths.
-- SDK packages: @hai3/state, @hai3/api, @hai3/i18n, @hai3/events.
+- SDK packages: @cyberfabric/state, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/events.
 - External deps: lodash, @reduxjs/toolkit.
 - Index files: only when aggregating 3 or more exports.
 - Redux slices: import directly (no barrels).

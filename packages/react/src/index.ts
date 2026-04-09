@@ -1,12 +1,12 @@
 /**
- * @hai3/react - React Bindings
+ * @cyberfabric/react - React Bindings
  *
  * This package provides:
  * - HAI3Provider context provider
  * - Type-safe hooks for state and actions
  * - MFE context, hooks, and components
  *
- * Layer: L3 (Depends on @hai3/framework)
+ * Layer: L3 (Depends on @cyberfabric/framework)
  */
 
 // ============================================================================
@@ -69,11 +69,11 @@ export type {
 } from './types';
 
 // ============================================================================
-// Re-exports from @hai3/framework for convenience
+// Re-exports from @cyberfabric/framework for convenience
 // ============================================================================
 
-// These re-exports allow users to import everything from @hai3/react
-// without needing to import from @hai3/framework directly
+// These re-exports allow users to import everything from @cyberfabric/react
+// without needing to import from @cyberfabric/framework directly
 
 export {
   // Core
@@ -213,12 +213,12 @@ export {
   createI18nRegistry,
   SUPPORTED_LANGUAGES,
   getLanguageMetadata,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
-// Re-export i18n types from @hai3/framework (correct layer access)
-export { Language, TextDirection, LanguageDisplayMode } from '@hai3/framework';
+// Re-export i18n types from @cyberfabric/framework (correct layer access)
+export { Language, TextDirection, LanguageDisplayMode } from '@cyberfabric/framework';
 
-// Re-export types from @hai3/framework
+// Re-export types from @cyberfabric/framework
 export type {
   // Config
   HAI3Config,
@@ -317,17 +317,17 @@ export type {
   TranslationDictionary,
   LanguageMetadata,
   I18nRegistryType,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // ============================================================================
-// MFE Re-exports from @hai3/framework (Layering Compliance)
+// MFE Re-exports from @cyberfabric/framework (Layering Compliance)
 // ============================================================================
 
 // MFE Plugin factories
 export {
   microfrontends,
   mock,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Action functions
 export {
@@ -336,14 +336,14 @@ export {
   unmountExtension,
   registerExtension,
   unregisterExtension,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Selectors
 export {
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Domain constants
 export {
@@ -356,31 +356,29 @@ export {
   sidebarDomain,
   popupDomain,
   overlayDomain,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Type constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_MFE_ENTRY_MF,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Action constants
 export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Shared Property constants
 export {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Types
 export type {
-  ChildMfeBridge,
-  ParentMfeBridge,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -401,30 +399,33 @@ export type {
   UnmountExtPayload,
   ScreensetsRegistryConfig,
   TypeSystemPlugin,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Abstract classes
 export {
+  ChildMfeBridge,
+  ParentMfeBridge,
   MfeHandler,
   MfeBridgeFactory,
   ScreensetsRegistry,
   ScreensetsRegistryFactory,
   screensetsRegistryFactory,
   ContainerProvider,
-} from '@hai3/framework';
+  ActionHandler,
+} from '@cyberfabric/framework';
 
 // MFE Concrete implementations
-export { MfeHandlerMF, gtsPlugin } from '@hai3/framework';
+export { MfeHandlerMF, gtsPlugin } from '@cyberfabric/framework';
 
 // GTS Derived Schemas (application-layer registration)
-export { themeSchema, languageSchema, extensionScreenSchema } from '@hai3/framework';
+export { themeSchema, languageSchema, extensionScreenSchema } from '@cyberfabric/framework';
 
 // MFE Utilities
 export {
   createShadowRoot,
   injectCssVariables,
   extractGtsPackage,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // MFE Plugin types
 export type {
@@ -432,21 +433,21 @@ export type {
   ExtensionRegistrationState,
   RegisterExtensionPayload,
   UnregisterExtensionPayload,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // ============================================================================
 // Module Augmentation Support - EventPayloadMap Re-declaration
 // ============================================================================
 
 /**
- * Re-declare EventPayloadMap to enable module augmentation on @hai3/react
+ * Re-declare EventPayloadMap to enable module augmentation on @cyberfabric/react
  *
- * This creates a new declaration site in @hai3/react that TypeScript can augment.
- * App-layer code can now use `declare module '@hai3/react'` instead of importing
+ * This creates a new declaration site in @cyberfabric/react that TypeScript can augment.
+ * App-layer code can now use `declare module '@cyberfabric/react'` instead of importing
  * from L1 packages directly, maintaining proper layer architecture.
  *
  * ARCHITECTURE: This pattern allows L3+ code to augment event types without
- * violating layer boundaries by importing from L1 (@hai3/state).
+ * violating layer boundaries by importing from L1 (@cyberfabric/state).
  *
  * IMPORTANT: We must also re-export eventBus with the augmented type to ensure
  * type safety. The eventBus instance uses this augmented EventPayloadMap.
@@ -454,9 +455,9 @@ export type {
  * @example
  * ```typescript
  * // In app-layer code (e.g., src/app/events/bootstrapEvents.ts)
- * import '@hai3/react';
+ * import '@cyberfabric/react';
  *
- * declare module '@hai3/react' {
+ * declare module '@cyberfabric/react' {
  *   interface EventPayloadMap {
  *     'app/user/fetch': void;
  *     'app/user/loaded': { user: ApiUser };
@@ -464,17 +465,17 @@ export type {
  * }
  * ```
  */
-import type { EventPayloadMap as FrameworkEventPayloadMap, EventBus } from '@hai3/framework';
-import { eventBus as frameworkEventBus } from '@hai3/framework';
+import type { EventPayloadMap as FrameworkEventPayloadMap, EventBus } from '@cyberfabric/framework';
+import { eventBus as frameworkEventBus } from '@cyberfabric/framework';
 
-// @cpt-dod:cpt-hai3-dod-react-bindings-event-payload-map:p2
-// @cpt-begin:cpt-hai3-dod-react-bindings-event-payload-map:p2:inst-event-payload-map
+// @cpt-dod:cpt-frontx-dod-react-bindings-event-payload-map:p2
+// @cpt-begin:cpt-frontx-dod-react-bindings-event-payload-map:p2:inst-event-payload-map
 export interface EventPayloadMap extends FrameworkEventPayloadMap { }
 
 /**
  * Re-export eventBus with augmented EventPayloadMap type.
- * This ensures that code importing eventBus from @hai3/react gets
+ * This ensures that code importing eventBus from @cyberfabric/react gets
  * type-safe access to both framework events and app-layer augmented events.
  */
 export const eventBus: EventBus<EventPayloadMap> = frameworkEventBus as EventBus<EventPayloadMap>;
-// @cpt-end:cpt-hai3-dod-react-bindings-event-payload-map:p2:inst-event-payload-map
+// @cpt-end:cpt-frontx-dod-react-bindings-event-payload-map:p2:inst-event-payload-map

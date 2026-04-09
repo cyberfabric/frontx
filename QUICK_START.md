@@ -1,9 +1,9 @@
-# HAI3 Quick Start Guide
+# FrontX Quick Start Guide
 
 > **TARGET AUDIENCE:** Humans
 > **PURPOSE:** Quick start guide for developers
 
-This guide will help you get started with HAI3 development.
+This guide will help you get started with FrontX development.
 
 ## Installation
 
@@ -127,7 +127,7 @@ const [open, setOpen] = useState(false);
 
 ### Read state
 ```typescript
-import { useAppSelector } from '@hai3/react';
+import { useAppSelector } from '@cyberfabric/react';
 
 const MyComponent = () => {
   const collapsed = useAppSelector(state => state['layout/menu'].collapsed);
@@ -138,7 +138,7 @@ const MyComponent = () => {
 
 ### Use event-driven actions (recommended)
 ```typescript
-import { useHAI3Actions } from '@hai3/react';
+import { useHAI3Actions } from '@cyberfabric/react';
 
 const MyComponent = () => {
   const { toggleMenu } = useHAI3Actions();
@@ -146,11 +146,11 @@ const MyComponent = () => {
 };
 ```
 
-HAI3 uses event-driven architecture. Prefer action creators that emit events over direct dispatch.
+FrontX uses event-driven architecture. Prefer action creators that emit events over direct dispatch.
 
 ## Styling with Tailwind
 
-HAI3 uses Tailwind CSS with custom theme tokens:
+FrontX uses Tailwind CSS with custom theme tokens:
 
 ```typescript
 <div className="bg-background text-foreground">
@@ -216,14 +216,14 @@ HAI3 uses Tailwind CSS with custom theme tokens:
 
 ## Creating a Screenset
 
-Screensets are vertical slices of your application. Use the HAI3 CLI to create them:
+Screensets are vertical slices of your application. Use the FrontX CLI to create them:
 
 ```bash
 # Create a new screenset
-hai3 screenset create my-screenset
+frontx screenset create my-screenset
 
 # Or copy an existing one with transformed IDs
-hai3 screenset copy demo myDemo
+frontx screenset copy demo myDemo
 ```
 
 ### Example Screenset Structure:

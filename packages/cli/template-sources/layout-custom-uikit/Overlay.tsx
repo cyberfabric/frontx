@@ -1,5 +1,5 @@
 import React from 'react';
-import { useAppSelector, type OverlayState } from '@hai3/react';
+import { useAppSelector, type OverlayState } from '@cyberfabric/react';
 
 export interface OverlayProps {
   children?: React.ReactNode;

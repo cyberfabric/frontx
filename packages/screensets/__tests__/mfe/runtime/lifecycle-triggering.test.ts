@@ -318,7 +318,7 @@ describe('Lifecycle Stage Triggering', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -358,7 +358,7 @@ describe('Lifecycle Stage Triggering', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -370,7 +370,7 @@ describe('Lifecycle Stage Triggering', () => {
         action: {
           type: HAI3_ACTION_UNMOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 

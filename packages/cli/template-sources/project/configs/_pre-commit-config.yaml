@@ -19,6 +19,11 @@ repos:
   # Local hooks for project-specific checks
   - repo: local
     hooks:
+      - id: audit-high
+        name: Audit dependencies for high severity vulnerabilities
+        entry: npm audit --audit-level=high --omit=dev
+        language: system
+        pass_filenames: false
       - id: arch-check
         name: Architecture check
         entry: npm run arch:check

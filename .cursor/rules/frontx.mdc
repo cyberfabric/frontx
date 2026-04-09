@@ -1,0 +1,7 @@
+---
+description: FrontX development guidelines
+globs: ["**/*"]
+alwaysApply: true
+---
+
+Use `.ai/GUIDELINES.md` as the single source of truth for FrontX development guidelines.

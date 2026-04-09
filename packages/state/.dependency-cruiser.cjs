@@ -1,9 +1,9 @@
 /**
- * @hai3/state Dependency Cruiser Configuration
+ * @cyberfabric/state Dependency Cruiser Configuration
  * Extends SDK layer config - enforces zero @hai3 dependencies and no React
  */
 
-const sdkConfig = require('@hai3/depcruise-config/sdk.cjs');
+const sdkConfig = require('@cyberfabric/depcruise-config/sdk.cjs');
 
 module.exports = {
   forbidden: sdkConfig.forbidden,

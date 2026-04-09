@@ -1,7 +1,7 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-ai-sync:p1
-// @cpt-algo:cpt-hai3-algo-cli-tooling-generate-ai-config:p1
-// @cpt-algo:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1
-// @cpt-dod:cpt-hai3-dod-cli-tooling-ai-sync:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-ai-sync:p1
+// @cpt-algo:cpt-frontx-algo-cli-tooling-generate-ai-config:p1
+// @cpt-algo:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-ai-sync:p1
 import path from 'path';
 import fs from 'fs-extra';
 import lodash from 'lodash';
@@ -114,16 +114,16 @@ function showDiff(
 async function extractCommandDescription(filePath: string): Promise<string> {
   try {
     const content = await fs.readFile(filePath, 'utf-8');
-    // Look for "# hai3:command-name - Description" pattern
-    const h1Match = content.match(/^#\s+hai3:\S+\s+-\s+(.+)$/m);
+    // Look for "# frontx:command-name - Description" pattern
+    const h1Match = content.match(/^#\s+frontx:\S+\s+-\s+(.+)$/m);
     if (h1Match) {
       return trim(h1Match[1]);
     }
     // Fallback: use filename
     const name = path.basename(filePath, '.md');
-    return `HAI3 ${name.replace('hai3-', '').replace(/-/g, ' ')} command`;
+    return `FrontX ${name.replace('frontx-', '').replace(/-/g, ' ')} command`;
   } catch {
-    return 'HAI3 command';
+    return 'FrontX command';
   }
 }
 
@@ -153,7 +153,7 @@ async function resolveUikitRule(projectRoot: string): Promise<string> {
 /**
  * Generate CLAUDE.md file
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
+// @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
 async function generateClaudeMd(
   projectRoot: string,
   userRules: string | null,
@@ -161,7 +161,7 @@ async function generateClaudeMd(
 ): Promise<{ file: string; changed: boolean }> {
   let content = `# CLAUDE.md
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
+Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
 
 For routing to specific topics, see the ROUTING section in GUIDELINES.md.
 `;
@@ -188,17 +188,17 @@ ${userRules}
   }
 
   await fs.writeFile(filePath, content);
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-return-ai-config
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-return-ai-config
   return { file: 'CLAUDE.md', changed: oldContent !== content };
-  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-return-ai-config
+  // @cpt-end:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-return-ai-config
 }
 
-// @cpt-end:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
+// @cpt-end:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-claude
 
 /**
  * Generate .github/copilot-instructions.md
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-copilot
+// @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-copilot
 async function generateCopilotInstructions(
   projectRoot: string,
   userRules: string | null,
@@ -207,7 +207,7 @@ async function generateCopilotInstructions(
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
   const archCheckCommand = getRunScriptCommand(packageManager, 'arch:check');
-  let content = `# HAI3 Development Guidelines for GitHub Copilot
+  let content = `# FrontX Development Guidelines for GitHub Copilot
 
 Always read \`.ai/GUIDELINES.md\` before making changes.
 
@@ -233,13 +233,13 @@ For detailed guidance, use these resources:
 ## Available Commands
 
 Use \`.ai/commands/\` for detailed workflows:
-- \`hai3-new-screenset\` - Create new screenset
-- \`hai3-new-screen\` - Add screen to screenset
-- \`hai3-new-action\` - Create action handler
-- \`hai3-new-api-service\` - Add API service
-- \`hai3-new-component\` - Add UI component
-- \`hai3-validate\` - Validate changes
-- \`hai3-quick-ref\` - Quick reference guide
+- \`frontx-new-screenset\` - Create new screenset
+- \`frontx-new-screen\` - Add screen to screenset
+- \`frontx-new-action\` - Create action handler
+- \`frontx-new-api-service\` - Add API service
+- \`frontx-new-component\` - Add UI component
+- \`frontx-validate\` - Validate changes
+- \`frontx-quick-ref\` - Quick reference guide
 
 ## Routing
 
@@ -271,24 +271,24 @@ ${userRules}
   return { file: '.github/copilot-instructions.md', changed: oldContent !== content };
 }
 
-// @cpt-end:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-copilot
+// @cpt-end:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-copilot
 
 /**
- * Generate .cursor/rules/hai3.mdc
+ * Generate .cursor/rules/frontx.mdc
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-cursor
+// @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-cursor
 async function generateCursorRules(
   projectRoot: string,
   userRules: string | null,
   options: GenerateOptions = {}
 ): Promise<{ file: string; changed: boolean }> {
   let content = `---
-description: HAI3 development guidelines
+description: FrontX development guidelines
 globs: ["**/*"]
 alwaysApply: true
 ---
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
+Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
 `;
 
   if (userRules) {
@@ -300,28 +300,28 @@ ${userRules}
   }
 
   const dir = path.join(projectRoot, '.cursor', 'rules');
-  const filePath = path.join(dir, 'hai3.mdc');
+  const filePath = path.join(dir, 'frontx.mdc');
   let oldContent: string | null = null;
   if (await fs.pathExists(filePath)) {
     oldContent = await fs.readFile(filePath, 'utf-8');
   }
 
   if (options.showDiff && options.logger) {
-    const changed = showDiff('.cursor/rules/hai3.mdc', oldContent, content, options.logger);
-    return { file: '.cursor/rules/hai3.mdc', changed };
+    const changed = showDiff('.cursor/rules/frontx.mdc', oldContent, content, options.logger);
+    return { file: '.cursor/rules/frontx.mdc', changed };
   }
 
   await fs.ensureDir(dir);
   await fs.writeFile(filePath, content);
-  return { file: '.cursor/rules/hai3.mdc', changed: oldContent !== content };
+  return { file: '.cursor/rules/frontx.mdc', changed: oldContent !== content };
 }
 
-// @cpt-end:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-cursor
+// @cpt-end:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-cursor
 
 /**
- * Generate .windsurf/rules/hai3.md
+ * Generate .windsurf/rules/frontx.md
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-windsurf
+// @cpt-begin:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-windsurf
 async function generateWindsurfRules(
   projectRoot: string,
   userRules: string | null,
@@ -331,7 +331,7 @@ async function generateWindsurfRules(
 trigger: always_on
 ---
 
-Use \`.ai/GUIDELINES.md\` as the single source of truth for HAI3 development guidelines.
+Use \`.ai/GUIDELINES.md\` as the single source of truth for FrontX development guidelines.
 `;
 
   if (userRules) {
@@ -343,32 +343,32 @@ ${userRules}
   }
 
   const dir = path.join(projectRoot, '.windsurf', 'rules');
-  const filePath = path.join(dir, 'hai3.md');
+  const filePath = path.join(dir, 'frontx.md');
   let oldContent: string | null = null;
   if (await fs.pathExists(filePath)) {
     oldContent = await fs.readFile(filePath, 'utf-8');
   }
 
   if (options.showDiff && options.logger) {
-    const changed = showDiff('.windsurf/rules/hai3.md', oldContent, content, options.logger);
-    return { file: '.windsurf/rules/hai3.md', changed };
+    const changed = showDiff('.windsurf/rules/frontx.md', oldContent, content, options.logger);
+    return { file: '.windsurf/rules/frontx.md', changed };
   }
 
   await fs.ensureDir(dir);
   await fs.writeFile(filePath, content);
-  return { file: '.windsurf/rules/hai3.md', changed: oldContent !== content };
+  return { file: '.windsurf/rules/frontx.md', changed: oldContent !== content };
 }
 
-// @cpt-end:cpt-hai3-algo-cli-tooling-generate-ai-config:p1:inst-generate-windsurf
+// @cpt-end:cpt-frontx-algo-cli-tooling-generate-ai-config:p1:inst-generate-windsurf
 
 /**
- * Scan installed @hai3 packages for commands
+ * Scan installed @cyberfabric packages for commands
  */
 async function scanPackageCommands(
   projectRoot: string
 ): Promise<{ package: string; commandPath: string; name: string }[]> {
   const commands: { package: string; commandPath: string; name: string }[] = [];
-  const nodeModulesDir = path.join(projectRoot, 'node_modules', '@hai3');
+  const nodeModulesDir = path.join(projectRoot, 'node_modules', '@cyberfabric');
 
   if (!(await fs.pathExists(nodeModulesDir))) {
     return commands;
@@ -383,11 +383,11 @@ async function scanPackageCommands(
     const entries = await fs.readdir(commandsDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
-      // Skip hai3dev-* commands (monorepo-only)
-      if (entry.name.startsWith('hai3dev-')) continue;
+      // Skip frontxdev-* commands (monorepo-only)
+      if (entry.name.startsWith('frontxdev-')) continue;
 
       commands.push({
-        package: `@hai3/${pkg}`,
+        package: `@cyberfabric/${pkg}`,
         commandPath: path.join(commandsDir, entry.name),
         name: entry.name,
       });
@@ -414,8 +414,8 @@ async function scanCommandsInDirectory(
 
   for (const entry of entries) {
     if (!entry.isFile() || !entry.name.endsWith('.md')) continue;
-    // Skip hai3dev-* commands (monorepo-only)
-    if (entry.name.startsWith('hai3dev-')) continue;
+    // Skip frontxdev-* commands (monorepo-only)
+    if (entry.name.startsWith('frontxdev-')) continue;
 
     const baseName = entry.name.replace(/\.md$/, '');
     const srcPath = path.join(commandsDir, entry.name);
@@ -429,7 +429,7 @@ async function scanCommandsInDirectory(
 
 /**
  * Generate command adapters for an IDE
- * Implements precedence: project > company > hai3 > packages
+ * Implements precedence: project > company > frontx > packages
  */
 async function generateCommandAdapters(
   projectRoot: string,
@@ -440,36 +440,36 @@ async function generateCommandAdapters(
   await fs.ensureDir(targetDir);
   let count = 0;
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-scan-four-tiers
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-scan-four-tiers
   // Scan commands from all levels with precedence
-  const hai3Commands = await scanCommandsInDirectory(commandsDir, 'commands/');
+  const frontxCommands = await scanCommandsInDirectory(commandsDir, 'commands/');
   const companyCommandsDir = path.join(projectRoot, '.ai', 'company', 'commands');
   const companyCommands = await scanCommandsInDirectory(companyCommandsDir, 'company/commands/');
   const projectCommandsDir = path.join(projectRoot, '.ai', 'project', 'commands');
   const projectCommands = await scanCommandsInDirectory(projectCommandsDir, 'project/commands/');
-  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-scan-four-tiers
+  // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-scan-four-tiers
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-collect-command-names
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-collect-command-names
   // Collect all unique command names
   const allCommandNames = new Set<string>();
-  hai3Commands.forEach((_, name) => allCommandNames.add(name));
+  frontxCommands.forEach((_, name) => allCommandNames.add(name));
   companyCommands.forEach((_, name) => allCommandNames.add(name));
   projectCommands.forEach((_, name) => allCommandNames.add(name));
   packageCommands.forEach(cmd => allCommandNames.add(cmd.name.replace(/\.md$/, '')));
-  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-collect-command-names
+  // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-collect-command-names
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-resolve-precedence
-  // Generate adapters with precedence: project > company > hai3 > packages
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-resolve-precedence
+  // Generate adapters with precedence: project > company > frontx > packages
   for (const baseName of allCommandNames) {
     const targetPath = path.join(targetDir, `${baseName}.md`);
 
     // Check project level first (highest precedence)
     if (projectCommands.has(baseName)) {
       const cmd = projectCommands.get(baseName)!;
-      // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-extract-description
+      // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-extract-description
       const description = await extractCommandDescription(cmd.srcPath);
-      // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-extract-description
-      // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-write-adapter
+      // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-extract-description
+      // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-write-adapter
       const adapterContent = `---
 description: ${description}
 ---
@@ -477,7 +477,7 @@ description: ${description}
 Use \`.ai/${cmd.relativePath}\` as the single source of truth.
 `;
       await fs.writeFile(targetPath, adapterContent);
-      // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-write-adapter
+      // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-write-adapter
       count++;
       continue;
     }
@@ -497,9 +497,9 @@ Use \`.ai/${cmd.relativePath}\` as the single source of truth.
       continue;
     }
 
-    // Check hai3 level
-    if (hai3Commands.has(baseName)) {
-      const cmd = hai3Commands.get(baseName)!;
+    // Check frontx level
+    if (frontxCommands.has(baseName)) {
+      const cmd = frontxCommands.get(baseName)!;
       const description = await extractCommandDescription(cmd.srcPath);
       const adapterContent = `---
 description: ${description}
@@ -520,11 +520,11 @@ Use \`.ai/${cmd.relativePath}\` as the single source of truth.
       count++;
     }
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-resolve-precedence
+  // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-resolve-precedence
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-return-adapter-count
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-return-adapter-count
   return count;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-generate-command-adapters:p1:inst-return-adapter-count
+  // @cpt-end:cpt-frontx-algo-cli-tooling-generate-command-adapters:p1:inst-return-adapter-count
 }
 
 /**
@@ -544,7 +544,7 @@ async function generateCopilotCommands(
  *
  * Generates IDE-specific configuration files from .ai/ directory.
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-invoke-ai-sync
+// @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-invoke-ai-sync
 export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
   name: 'ai:sync',
   description: 'Sync AI assistant configuration files',
@@ -561,7 +561,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     {
       name: 'detect-packages',
       shortName: 'd',
-      description: 'Detect installed @hai3 packages and include their CLAUDE.md',
+      description: 'Detect installed @cyberfabric packages and include their CLAUDE.md',
       type: 'boolean',
       defaultValue: false,
     },
@@ -573,27 +573,27 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     },
   ],
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-check-project-root-ai-sync
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-check-project-root-ai-sync
   validate(_args, ctx) {
     if (!ctx.projectRoot) {
       return validationError(
         'NOT_IN_PROJECT',
-        'Not inside a HAI3 project. Run this command from a project root.'
+        'Not inside a FrontX project. Run this command from a project root.'
       );
     }
 
     return validationOk();
   },
-  // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-check-project-root-ai-sync
+  // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-check-project-root-ai-sync
 
   async execute(args, ctx): Promise<AiSyncResult> {
     const { logger, projectRoot } = ctx;
     const tool = (args.tool ?? 'all') as AiTool;
     const detectPackages = args.detectPackages ?? false;
     const showDiff = args.diff ?? false;
-    // @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+    // @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
     const packageManager = (await detectPackageManager(projectRoot!, ctx.config)).manager;
-    // @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+    // @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
     if (showDiff) {
       logger.info('Showing diff of AI assistant configuration changes...');
@@ -609,7 +609,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     const aiDir = path.join(projectRoot!, '.ai');
     const commandsDir = path.join(aiDir, 'commands');
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
     // Check if .ai/ directory exists
     if (!(await fs.pathExists(aiDir))) {
       if (showDiff) {
@@ -620,21 +620,21 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
       await fs.ensureDir(aiDir);
       await fs.writeFile(
         path.join(aiDir, 'GUIDELINES.md'),
-        '# HAI3 Development Guidelines\n\nAdd your project-specific guidelines here.\n'
+        '# FrontX Development Guidelines\n\nAdd your project-specific guidelines here.\n'
       );
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-create-ai-dir
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
     // Read user's custom rules from .ai/rules/app.md (preserved across syncs)
     const userRules = await readUserRules(projectRoot!);
     const uikitRule = await resolveUikitRule(projectRoot!);
     if (userRules && !showDiff) {
       logger.log('  ✓ Found user rules in .ai/rules/app.md');
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-read-user-rules
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-scan-package-commands
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-scan-package-commands
     // Scan installed package commands if --detect-packages is enabled
     let packageCommands: { package: string; commandPath: string; name: string }[] = [];
     if (detectPackages) {
@@ -643,11 +643,11 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
         logger.log(`  ✓ Found ${packageCommands.length} commands from installed packages`);
       }
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-scan-package-commands
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-scan-package-commands
 
     const genOptions: GenerateOptions = { showDiff, logger };
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-generate-per-tool
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-generate-per-tool
     // Generate files for each tool
     if (tool === 'all' || tool === 'claude') {
       const result = await generateClaudeMd(projectRoot!, userRules, genOptions);
@@ -704,7 +704,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
         );
         commandsGenerated += cursorCount;
         toolsUpdated.push('Cursor');
-        logger.log(`  ✓ Cursor: .cursor/rules/hai3.mdc + ${cursorCount} command adapters`);
+        logger.log(`  ✓ Cursor: .cursor/rules/frontx.mdc + ${cursorCount} command adapters`);
       } else {
         toolsUpdated.push('Cursor');
       }
@@ -723,16 +723,16 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
         );
         commandsGenerated += windsurfCount;
         toolsUpdated.push('Windsurf');
-        logger.log(`  ✓ Windsurf: .windsurf/rules/hai3.md + ${windsurfCount} workflow adapters`);
+        logger.log(`  ✓ Windsurf: .windsurf/rules/frontx.md + ${windsurfCount} workflow adapters`);
       } else {
         toolsUpdated.push('Windsurf');
       }
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-generate-per-tool
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-generate-per-tool
 
     // Report detected packages
     if (detectPackages) {
-      const nodeModulesDir = path.join(projectRoot!, 'node_modules', '@hai3');
+      const nodeModulesDir = path.join(projectRoot!, 'node_modules', '@cyberfabric');
       if (await fs.pathExists(nodeModulesDir)) {
         const packages = await fs.readdir(nodeModulesDir);
         const packageDocs: string[] = [];
@@ -740,13 +740,13 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
         for (const pkg of packages) {
           const claudeMdPath = path.join(nodeModulesDir, pkg, 'CLAUDE.md');
           if (await fs.pathExists(claudeMdPath)) {
-            packageDocs.push(`@hai3/${pkg}`);
+            packageDocs.push(`@cyberfabric/${pkg}`);
           }
         }
 
         if (packageDocs.length > 0) {
           logger.newline();
-          logger.log(`Detected ${packageDocs.length} @hai3 packages with documentation:`);
+          logger.log(`Detected ${packageDocs.length} @cyberfabric packages with documentation:`);
           for (const pkg of packageDocs) {
             logger.log(`  • ${pkg}`);
           }
@@ -755,7 +755,7 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
     }
 
     logger.newline();
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-diff-mode
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-diff-mode
     if (showDiff) {
       if (filesGenerated.length > 0) {
         logger.info(`${filesGenerated.length} files would be changed`);
@@ -763,21 +763,21 @@ export const aiSyncCommand: CommandDefinition<AiSyncArgs, AiSyncResult> = {
         logger.success('All files are up to date (no changes needed)');
       }
     } else {
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-diff-mode
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-write-ai-configs
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-diff-mode
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-write-ai-configs
       logger.success(
         `Synced ${filesGenerated.length} files for ${toolsUpdated.length} AI tools`
       );
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-write-ai-configs
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-write-ai-configs
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
     return {
       filesGenerated,
       commandsGenerated,
       toolsUpdated,
     };
-    // @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
+    // @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-return-ai-sync
   },
 };
-// @cpt-end:cpt-hai3-flow-cli-tooling-ai-sync:p1:inst-invoke-ai-sync
+// @cpt-end:cpt-frontx-flow-cli-tooling-ai-sync:p1:inst-invoke-ai-sync

@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 
 /**
- * HAI3 Architecture Validation Script (Standalone)
- * Tests that the codebase follows HAI3 architectural patterns
+ * FrontX Architecture Validation Script (Standalone)
+ * Tests that the codebase follows FrontX architectural patterns
  *
  * This is the single source of truth for standalone project architecture tests.
  * - Monorepo extends this via presets/monorepo/scripts/test-architecture.ts
@@ -72,7 +72,7 @@ interface ArchCheck {
 
 type PackageManager = 'npm' | 'pnpm' | 'yarn';
 
-// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+// @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 function detectPackageManager(): PackageManager {
   try {
     const packageJson = JSON.parse(
@@ -87,31 +87,38 @@ function detectPackageManager(): PackageManager {
   }
   return 'npm';
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+// @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
-// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+// @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 function runScriptCommand(packageManager: PackageManager, scriptName: string): string {
   if (packageManager === 'yarn') {
     return `yarn ${scriptName}`;
   }
   return `${packageManager} run ${scriptName}`;
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+// @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 
 /**
  * Standalone architecture checks
- * These run in all HAI3 projects (standalone and monorepo)
+ * These run in all FrontX projects (standalone and monorepo)
  */
 function getStandaloneChecks(packageManager: PackageManager = detectPackageManager()): ArchCheck[] {
-  return [
-    { command: runScriptCommand(packageManager, 'generate:colors'), description: 'Generate theme colors' },
+  const checks: ArchCheck[] = [
     {
       command: runScriptCommand(packageManager, 'lint'),
       description: 'ESLint rules'
     },
     { command: runScriptCommand(packageManager, 'type-check'), description: 'TypeScript type check' },
-    { command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' },
   ];
+
+  const nodeVersion = Number.parseInt(process.versions.node.split('.')[0], 10);
+  if (nodeVersion >= 24) {
+    checks.push({ command: runScriptCommand(packageManager, 'arch:deps'), description: 'Dependency rules' });
+  } else {
+    log(`⚠️  Dependency rules - SKIPPED (requires Node >= 24, current: ${process.versions.node})`, 'yellow');
+  }
+
+  return checks;
 }
 
 /**
@@ -141,7 +148,7 @@ function validateArchitecture(): ValidationResult {
   const packageManager = detectPackageManager();
   return runValidation(
     getStandaloneChecks(packageManager),
-    `HAI3 Architecture Validation (${packageManager})`
+    `FrontX Architecture Validation (${packageManager})`
   );
 }
 

@@ -5,8 +5,8 @@
     "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
   ],
   "actions": [
-    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1",
-    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1"
+    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~",
+    "gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~"
   ],
   "extensionsActions": [],
   "extensionsTypeId": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~",

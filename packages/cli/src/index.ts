@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 /**
- * HAI3 CLI Entry Point
+ * FrontX CLI Entry Point
  *
  * Commands:
- *   hai3 create <project-name>              Create a new HAI3 project
- *   hai3 update                             Update CLI and project packages
- *   hai3 validate components [path]         Validate component structure
- *   hai3 migrate [version]                  Apply codemod migrations
+ *   frontx create <project-name>              Create a new FrontX project
+ *   frontx update                             Update CLI and project packages
+ *   frontx validate components [path]         Validate component structure
+ *   frontx migrate [version]                  Apply codemod migrations
  */
-// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-package:p1
 
 import { Command } from 'commander';
 import { registry, executeCommand } from './core/index.js';
@@ -50,17 +50,17 @@ const parsePortOption = (value: string): number => {
 };
 
 program
-  .name('hai3')
-  .description('HAI3 CLI - Project scaffolding and package management')
+  .name('frontx')
+  .description('FrontX CLI - Project scaffolding and package management')
   .version(VERSION);
 
 // Global quiet flag
 program.option('-q, --quiet', 'Suppress non-essential output');
 
-// hai3 create <project-name>
+// frontx create <project-name>
 program
   .command('create <project-name>')
-  .description('Create a new HAI3 project or layer package')
+  .description('Create a new FrontX project or layer package')
   .option('--studio', 'Include Studio package')
   .option('--no-studio', 'Exclude Studio package')
   .option('--uikit <type>', "UI components ('shadcn' for shadcn/ui, 'none' for no UI components)")
@@ -69,7 +69,7 @@ program
     "Package manager to use ('npm', 'pnpm', 'yarn')"
   )
   .option('-l, --layer <type>', 'Create a package for a specific SDK layer (sdk, framework, react)')
-  .option('--local', 'Use local @hai3 packages from monorepo (file:) instead of npm')
+  .option('--local', 'Use local @cyberfabric packages from monorepo (file:) instead of npm')
   .action(async (projectName: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
       createCommand,
@@ -89,15 +89,15 @@ program
     }
   });
 
-// hai3 update subcommand
+// frontx update subcommand
 const updateCmd = program
   .command('update')
-  .description('Update commands for HAI3 projects');
+  .description('Update commands for FrontX projects');
 
-// hai3 update (default - updates CLI and packages)
+// frontx update (default - updates CLI and packages)
 updateCmd
   .command('packages', { isDefault: true })
-  .description('Update HAI3 CLI and project packages')
+  .description('Update FrontX CLI and project packages')
   .option('-a, --alpha', 'Update to latest alpha/prerelease version')
   .option('-s, --stable', 'Update to latest stable version')
   .option('--templates-only', 'Only sync templates (skip CLI and package updates)')
@@ -119,7 +119,7 @@ updateCmd
     }
   });
 
-// hai3 update layout
+// frontx update layout
 updateCmd
   .command('layout')
   .description('Update layout components from templates')
@@ -138,12 +138,12 @@ updateCmd
     }
   });
 
-// hai3 validate subcommand
+// frontx validate subcommand
 const validateCmd = program
   .command('validate')
   .description('Validation commands');
 
-// hai3 validate components [path]
+// frontx validate components [path]
 validateCmd
   .command('components [path]')
   .description('Validate component structure and placement')
@@ -159,12 +159,12 @@ validateCmd
     }
   });
 
-// hai3 scaffold subcommand
+// frontx scaffold subcommand
 const scaffoldCmd = program
   .command('scaffold')
   .description('Generate project components from templates');
 
-// hai3 scaffold layout
+// frontx scaffold layout
 scaffoldCmd
   .command('layout')
   .description('Generate HAI3 layout components in your project')
@@ -183,12 +183,12 @@ scaffoldCmd
     }
   });
 
-// hai3 ai subcommand
+// frontx ai subcommand
 const aiCmd = program
   .command('ai')
   .description('AI assistant configuration commands');
 
-// hai3 ai sync
+// frontx ai sync
 aiCmd
   .command('sync')
   .description('Sync AI assistant configuration files')
@@ -197,7 +197,7 @@ aiCmd
     'Specific tool to sync (claude, copilot, cursor, windsurf, all)',
     'all'
   )
-  .option('-d, --detect-packages', 'Detect installed @hai3 packages')
+  .option('-d, --detect-packages', 'Detect installed @cyberfabric packages')
   .option('--diff', 'Show diff of changes without writing files')
   .action(async (options: Record<string, unknown>) => {
     const result = await executeCommand(
@@ -215,12 +215,12 @@ aiCmd
     }
   });
 
-// hai3 screenset subcommand
+// frontx screenset subcommand
 const screensetCmd = program
   .command('screenset')
   .description('Screenset management commands');
 
-// hai3 screenset create <name>
+// frontx screenset create <name>
 screensetCmd
   .command('create <name>')
   .description('Create a new MFE screenset package')
@@ -240,10 +240,10 @@ screensetCmd
     }
   });
 
-// hai3 migrate [version]
+// frontx migrate [version]
 program
   .command('migrate [targetVersion]')
-  .description('Apply codemod migrations to update HAI3 projects')
+  .description('Apply codemod migrations to update FrontX projects')
   .option('-d, --dry-run', 'Preview changes without applying')
   .option('-l, --list', 'List available migrations')
   .option('-s, --status', 'Show migration status')

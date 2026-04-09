@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/depcruise-config",
-  "version": "0.1.0-alpha.0",
-  "description": "Layered dependency-cruiser configuration for HAI3 SDK architecture",
+  "name": "@cyberfabric/depcruise-config",
+  "version": "0.2.0-alpha.0",
+  "description": "Layered dependency-cruiser configuration for FrontX SDK architecture",
   "private": true,
   "type": "commonjs",
   "main": "index.cjs",
@@ -19,6 +19,6 @@
   "keywords": [
     "dependency-cruiser",
     "depcruise",
-    "hai3"
+    "frontx"
   ]
 }

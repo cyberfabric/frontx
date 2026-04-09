@@ -1,4 +1,4 @@
-# Decomposition: HAI3 Dev Kit
+# Decomposition: FrontX Dev Kit
 
 <!-- toc -->
 
@@ -31,13 +31,13 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 **Overall implementation status:**
 
-- [x] `p1` - **ID**: `cpt-hai3-status-overall`
+- [x] `p1` - **ID**: `cpt-frontx-status-overall`
 
 ### 2.1 [State Management](feature-state-management/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-state-management`
+- [x] `p1` - **ID**: `cpt-frontx-feature-state-management`
 
-- **Purpose**: Provides the foundational state management and event infrastructure for the entire HAI3 system. Implements the typed EventBus, Redux Toolkit store with dynamic slice registration, action factory, and effect system that enforce the Action → Event → Effect → Reducer data flow pattern.
+- **Purpose**: Provides the foundational state management and event infrastructure for the entire FrontX system. Implements the typed EventBus, Redux Toolkit store with dynamic slice registration, action factory, and effect system that enforce the Action → Event → Effect → Reducer data flow pattern.
 
 - **Depends On**: None
 
@@ -50,31 +50,31 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Module augmentation support for type-safe slice extensions
 
 - **Out of scope**:
-  - React hooks for state access (see `cpt-hai3-feature-react-bindings`)
+  - React hooks for state access (see `cpt-frontx-feature-react-bindings`)
   - Domain-specific slices (registered by each plugin)
   - Persistence or DevTools middleware
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-state-interface`
-  - [x] `p2` - `cpt-hai3-fr-sdk-flux-terminology`
-  - [x] `p1` - `cpt-hai3-fr-sdk-action-pattern`
-  - [x] `p2` - `cpt-hai3-fr-sdk-module-augmentation`
-  - [x] `p1` - `cpt-hai3-nfr-rel-serialization`
-  - [x] `p2` - `cpt-hai3-nfr-perf-action-timeout`
-  - [x] `p1` - `cpt-hai3-nfr-maint-event-driven`
+  - [x] `p1` - `cpt-frontx-fr-sdk-state-interface`
+  - [x] `p2` - `cpt-frontx-fr-sdk-flux-terminology`
+  - [x] `p1` - `cpt-frontx-fr-sdk-action-pattern`
+  - [x] `p2` - `cpt-frontx-fr-sdk-module-augmentation`
+  - [x] `p1` - `cpt-frontx-nfr-rel-serialization`
+  - [x] `p2` - `cpt-frontx-nfr-perf-action-timeout`
+  - [x] `p1` - `cpt-frontx-nfr-maint-event-driven`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-event-driven-architecture`
-  - [x] `p1` - `cpt-hai3-principle-action-event-effect-reducer-flux`
+  - [x] `p1` - `cpt-frontx-principle-event-driven-architecture`
+  - [x] `p1` - `cpt-frontx-principle-action-event-effect-reducer-flux`
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3`
-  - [x] `p1` - `cpt-hai3-constraint-zero-cross-deps-at-l1`
-  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
-  - [x] `p1` - `cpt-hai3-constraint-esm-first-module-format`
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
+  - [x] `p1` - `cpt-frontx-constraint-esm-first-module-format`
 
 - **Domain Model Entities**:
   - State (Store)
@@ -84,7 +84,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-state`
+  - [x] `p1` - `cpt-frontx-component-state`
 
 - **API**:
   - `eventBus.publish()` / `eventBus.subscribe()`
@@ -94,14 +94,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Sequences**:
 
-  - `cpt-hai3-seq-screenset-data-flow`
+  - `cpt-frontx-seq-screenset-data-flow`
 
 - **Data**:
   - N/A (client-side library)
 
 ### 2.2 [Screenset Registry & Contracts](feature-screenset-registry/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-screenset-registry`
+- [x] `p1` - **ID**: `cpt-frontx-feature-screenset-registry`
 
 - **Purpose**: Defines the contract between host application and microfrontend extensions. Manages the screen-set registry, MFE type contracts (entry types, domain declarations, shared property schemas, action types), and auto-discovery via Vite glob imports.
 
@@ -116,28 +116,28 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Screenset self-containment conventions (slice name = state key = screenset ID)
 
 - **Out of scope**:
-  - Blob URL isolation (see `cpt-hai3-feature-mfe-isolation`)
-  - React rendering of MFEs (see `cpt-hai3-feature-react-bindings`)
-  - Theme/i18n propagation (see `cpt-hai3-feature-framework-composition`)
+  - Blob URL isolation (see `cpt-frontx-feature-mfe-isolation`)
+  - React rendering of MFEs (see `cpt-frontx-feature-react-bindings`)
+  - Theme/i18n propagation (see `cpt-frontx-feature-framework-composition`)
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-screensets-package`
-  - [x] `p1` - `cpt-hai3-fr-mfe-entry-types`
-  - [x] `p1` - `cpt-hai3-fr-mfe-ext-domain`
-  - [x] `p1` - `cpt-hai3-fr-mfe-shared-property`
-  - [x] `p1` - `cpt-hai3-fr-mfe-action-types`
-  - [x] `p1` - `cpt-hai3-fr-mfe-dynamic-registration`
+  - [x] `p1` - `cpt-frontx-fr-sdk-screensets-package`
+  - [x] `p1` - `cpt-frontx-fr-mfe-entry-types`
+  - [x] `p1` - `cpt-frontx-fr-mfe-ext-domain`
+  - [x] `p1` - `cpt-frontx-fr-mfe-shared-property`
+  - [x] `p1` - `cpt-frontx-fr-mfe-action-types`
+  - [x] `p1` - `cpt-frontx-fr-mfe-dynamic-registration`
 
 - **Design Principles Covered**:
 
-  - [x] `p2` - `cpt-hai3-principle-self-registering-registries`
+  - [x] `p2` - `cpt-frontx-principle-self-registering-registries`
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3`
-  - [x] `p1` - `cpt-hai3-constraint-zero-cross-deps-at-l1`
-  - [x] `p2` - `cpt-hai3-constraint-no-barrel-exports-for-registries`
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+  - [x] `p2` - `cpt-frontx-constraint-no-barrel-exports-for-registries`
 
 - **Domain Model Entities**:
   - ScreenSet
@@ -147,7 +147,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-screensets`
+  - [x] `p1` - `cpt-frontx-component-screensets`
 
 - **API**:
   - `screensetsRegistryFactory.build()`
@@ -162,15 +162,15 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.3 [MFE Blob URL Isolation](feature-mfe-isolation/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-mfe-isolation`
+- [x] `p1` - **ID**: `cpt-frontx-feature-mfe-isolation`
 
 - **Purpose**: Implements per-MFE JavaScript isolation through blob URL evaluation. Each MFE bundle is fetched, its import specifiers rewritten to blob URLs, and evaluated in a fresh module scope. This ensures each MFE has its own module-level state (EventBus, store) independent of the host and other MFEs.
 
-- **Depends On**: `cpt-hai3-feature-screenset-registry`
+- **Depends On**: `cpt-frontx-feature-screenset-registry`
 
 - **Scope**:
   - Blob URL creation from fetched source text
-  - Import specifier rewriting (bare `@hai3/*` → blob URLs)
+  - Import specifier rewriting (bare `@cyberfabric/*` → blob URLs)
   - Source text caching after first fetch
   - Recursive chain loading for transitive dependencies
   - Per-load import map management
@@ -181,41 +181,41 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Share scope construction from manifest
 
 - **Out of scope**:
-  - CSS isolation via Shadow DOM (see `cpt-hai3-feature-react-bindings`)
-  - MFE lifecycle orchestration (see `cpt-hai3-feature-framework-composition`)
+  - CSS isolation via Shadow DOM (see `cpt-frontx-feature-react-bindings`)
+  - MFE lifecycle orchestration (see `cpt-frontx-feature-framework-composition`)
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-blob-fresh-eval`
-  - [x] `p2` - `cpt-hai3-fr-blob-no-revoke`
-  - [x] `p1` - `cpt-hai3-fr-blob-source-cache`
-  - [x] `p1` - `cpt-hai3-fr-blob-import-rewriting`
-  - [x] `p1` - `cpt-hai3-fr-blob-recursive-chain`
-  - [x] `p2` - `cpt-hai3-fr-blob-per-load-map`
-  - [x] `p1` - `cpt-hai3-fr-externalize-transform`
-  - [x] `p1` - `cpt-hai3-fr-externalize-filenames`
-  - [x] `p2` - `cpt-hai3-fr-externalize-build-only`
-  - [x] `p1` - `cpt-hai3-fr-dataflow-internal-app`
-  - [x] `p1` - `cpt-hai3-fr-dataflow-no-redux`
-  - [x] `p1` - `cpt-hai3-fr-sharescope-construction`
-  - [x] `p2` - `cpt-hai3-fr-sharescope-concurrent`
-  - [x] `p2` - `cpt-hai3-nfr-perf-blob-overhead`
-  - [x] `p1` - `cpt-hai3-nfr-sec-csp-blob`
+  - [x] `p1` - `cpt-frontx-fr-blob-fresh-eval`
+  - [x] `p2` - `cpt-frontx-fr-blob-no-revoke`
+  - [x] `p1` - `cpt-frontx-fr-blob-source-cache`
+  - [x] `p1` - `cpt-frontx-fr-blob-import-rewriting`
+  - [x] `p1` - `cpt-frontx-fr-blob-recursive-chain`
+  - [x] `p2` - `cpt-frontx-fr-blob-per-load-map`
+  - [x] `p1` - `cpt-frontx-fr-externalize-transform`
+  - [x] `p1` - `cpt-frontx-fr-externalize-filenames`
+  - [x] `p2` - `cpt-frontx-fr-externalize-build-only`
+  - [x] `p1` - `cpt-frontx-fr-dataflow-internal-app`
+  - [x] `p1` - `cpt-frontx-fr-dataflow-no-redux`
+  - [x] `p1` - `cpt-frontx-fr-sharescope-construction`
+  - [x] `p2` - `cpt-frontx-fr-sharescope-concurrent`
+  - [x] `p2` - `cpt-frontx-nfr-perf-blob-overhead`
+  - [x] `p1` - `cpt-frontx-nfr-sec-csp-blob`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-mfe-isolation`
+  - [x] `p1` - `cpt-frontx-principle-mfe-isolation`
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-zero-cross-deps-at-l1`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
 
 - **Domain Model Entities**:
   - Microfrontend
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-screensets` (blob loader subsystem)
+  - [x] `p1` - `cpt-frontx-component-screensets` (blob loader subsystem)
 
 - **API**:
   - `blobLoader.load()`
@@ -225,14 +225,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Sequences**:
 
-  - `cpt-hai3-seq-mfe-loading`
+  - `cpt-frontx-seq-mfe-loading`
 
 - **Data**:
   - N/A (client-side library)
 
 ### 2.4 [API Communication](feature-api-communication/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-api-communication`
+- [x] `p1` - **ID**: `cpt-frontx-feature-api-communication`
 
 - **Purpose**: Provides a unified API service layer abstracting REST and SSE protocols behind consistent interfaces. Includes global and instance-level plugin systems for cross-cutting concerns, mock mode control via symbol-based plugin identification, and protocol-specific configuration.
 
@@ -257,30 +257,30 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-api-package`
-  - [x] `p1` - `cpt-hai3-fr-sse-protocol`
-  - [x] `p2` - `cpt-hai3-fr-sse-mock-mode`
-  - [x] `p1` - `cpt-hai3-fr-sse-protocol-registry`
-  - [x] `p2` - `cpt-hai3-fr-sse-type-safe-events`
-  - [x] `p2` - `cpt-hai3-fr-mock-toggle`
-  - [x] `p2` - `cpt-hai3-nfr-rel-api-retry`
+  - [x] `p1` - `cpt-frontx-fr-sdk-api-package`
+  - [x] `p1` - `cpt-frontx-fr-sse-protocol`
+  - [x] `p2` - `cpt-frontx-fr-sse-mock-mode`
+  - [x] `p1` - `cpt-frontx-fr-sse-protocol-registry`
+  - [x] `p2` - `cpt-frontx-fr-sse-type-safe-events`
+  - [x] `p2` - `cpt-frontx-fr-mock-toggle`
+  - [x] `p2` - `cpt-frontx-nfr-rel-api-retry`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-event-driven-architecture` (mock toggle via events)
+  - [x] `p1` - `cpt-frontx-principle-event-driven-architecture` (mock toggle via events)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3`
-  - [x] `p1` - `cpt-hai3-constraint-zero-cross-deps-at-l1`
-  - [x] `p2` - `cpt-hai3-constraint-no-package-internals-imports`
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
+  - [x] `p2` - `cpt-frontx-constraint-no-package-internals-imports`
 
 - **Domain Model Entities**:
   - Event (SSE events)
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-api`
+  - [x] `p1` - `cpt-frontx-component-api`
 
 - **API**:
   - `createApiService()`
@@ -296,7 +296,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.5 [Internationalization Infrastructure](feature-i18n-infrastructure/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-i18n-infrastructure`
+- [x] `p1` - **ID**: `cpt-frontx-feature-i18n-infrastructure`
 
 - **Purpose**: Provides internationalization infrastructure supporting 36 languages with locale-aware formatting, hybrid namespace model for menu/screen-level translations, and lazy chunk loading.
 
@@ -312,34 +312,34 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Strict content separation enforcement (screenset files = menu titles only)
 
 - **Out of scope**:
-  - React `useTranslation()` hook (see `cpt-hai3-feature-react-bindings`)
+  - React `useTranslation()` hook (see `cpt-frontx-feature-react-bindings`)
   - Translation content (provided by consuming applications)
-  - Language propagation to MFEs (see `cpt-hai3-feature-framework-composition`)
+  - Language propagation to MFEs (see `cpt-frontx-feature-framework-composition`)
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-i18n-package`
-  - [x] `p1` - `cpt-hai3-fr-i18n-formatters`
-  - [x] `p1` - `cpt-hai3-fr-i18n-formatter-exports`
-  - [x] `p2` - `cpt-hai3-fr-i18n-graceful-invalid`
-  - [x] `p1` - `cpt-hai3-fr-i18n-hybrid-namespace`
-  - [x] `p1` - `cpt-hai3-fr-i18n-lazy-chunks`
+  - [x] `p1` - `cpt-frontx-fr-sdk-i18n-package`
+  - [x] `p1` - `cpt-frontx-fr-i18n-formatters`
+  - [x] `p1` - `cpt-frontx-fr-i18n-formatter-exports`
+  - [x] `p2` - `cpt-frontx-fr-i18n-graceful-invalid`
+  - [x] `p1` - `cpt-frontx-fr-i18n-hybrid-namespace`
+  - [x] `p1` - `cpt-frontx-fr-i18n-lazy-chunks`
 
 - **Design Principles Covered**:
 
-  - [x] `p2` - `cpt-hai3-principle-self-registering-registries` (i18n namespace registration)
+  - [x] `p2` - `cpt-frontx-principle-self-registering-registries` (i18n namespace registration)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3`
-  - [x] `p1` - `cpt-hai3-constraint-zero-cross-deps-at-l1`
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3`
+  - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
 
 - **Domain Model Entities**:
   - (i18n infrastructure — no explicit domain entity in DESIGN)
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-i18n`
+  - [x] `p1` - `cpt-frontx-component-i18n`
 
 - **API**:
   - `I18nRegistry.createLoader()`
@@ -354,11 +354,11 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.6 [Framework Composition](feature-framework-composition/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-framework-composition`
+- [x] `p1` - **ID**: `cpt-frontx-feature-framework-composition`
 
 - **Purpose**: Composes L1 SDK packages into a cohesive application framework through the plugin architecture. Provides the builder API, plugin system, layout orchestration, configuration management, microfrontends lifecycle plugin, shared property bridge with GTS validation, and theme/i18n propagation to MFEs.
 
-- **Depends On**: `cpt-hai3-feature-state-management`, `cpt-hai3-feature-screenset-registry`, `cpt-hai3-feature-api-communication`, `cpt-hai3-feature-i18n-infrastructure`
+- **Depends On**: `cpt-frontx-feature-state-management`, `cpt-frontx-feature-screenset-registry`, `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-i18n-infrastructure`
 
 - **Scope**:
   - `createHAI3()` builder with `.use(plugin).build()` chaining
@@ -376,39 +376,39 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - SDK re-exports for consumer convenience
 
 - **Out of scope**:
-  - React provider/hooks (see `cpt-hai3-feature-react-bindings`)
-  - Blob URL isolation mechanics (see `cpt-hai3-feature-mfe-isolation`)
-  - App-owned UI component implementations (see `cpt-hai3-feature-ui-libraries-choice`)
+  - React provider/hooks (see `cpt-frontx-feature-react-bindings`)
+  - Blob URL isolation mechanics (see `cpt-frontx-feature-mfe-isolation`)
+  - App-owned UI component implementations (see `cpt-frontx-feature-ui-libraries-choice`)
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-framework-layer`
-  - [x] `p1` - `cpt-hai3-fr-sdk-plugin-arch`
-  - [x] `p1` - `cpt-hai3-fr-sdk-layer-deps`
-  - [x] `p1` - `cpt-hai3-fr-appconfig-tenant`
-  - [x] `p1` - `cpt-hai3-fr-appconfig-event-api`
-  - [x] `p1` - `cpt-hai3-fr-appconfig-router-config`
-  - [x] `p2` - `cpt-hai3-fr-appconfig-layout-visibility`
-  - [x] `p1` - `cpt-hai3-fr-mfe-theme-propagation`
-  - [x] `p1` - `cpt-hai3-fr-mfe-i18n-propagation`
-  - [x] `p1` - `cpt-hai3-fr-broadcast-write-api`
-  - [x] `p1` - `cpt-hai3-fr-broadcast-matching`
-  - [x] `p1` - `cpt-hai3-fr-broadcast-validate`
-  - [x] `p1` - `cpt-hai3-fr-validation-gts`
-  - [x] `p1` - `cpt-hai3-fr-validation-reject`
-  - [x] `p1` - `cpt-hai3-fr-mfe-plugin`
-  - [x] `p1` - `cpt-hai3-nfr-rel-error-handling`
-  - [x] `p1` - `cpt-hai3-nfr-sec-type-validation`
-  - [x] `p1` - `cpt-hai3-nfr-maint-zero-crossdeps`
+  - [x] `p1` - `cpt-frontx-fr-sdk-framework-layer`
+  - [x] `p1` - `cpt-frontx-fr-sdk-plugin-arch`
+  - [x] `p1` - `cpt-frontx-fr-sdk-layer-deps`
+  - [x] `p1` - `cpt-frontx-fr-appconfig-tenant`
+  - [x] `p1` - `cpt-frontx-fr-appconfig-event-api`
+  - [x] `p1` - `cpt-frontx-fr-appconfig-router-config`
+  - [x] `p2` - `cpt-frontx-fr-appconfig-layout-visibility`
+  - [x] `p1` - `cpt-frontx-fr-mfe-theme-propagation`
+  - [x] `p1` - `cpt-frontx-fr-mfe-i18n-propagation`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-write-api`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-matching`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-validate`
+  - [x] `p1` - `cpt-frontx-fr-validation-gts`
+  - [x] `p1` - `cpt-frontx-fr-validation-reject`
+  - [x] `p1` - `cpt-frontx-fr-mfe-plugin`
+  - [x] `p1` - `cpt-frontx-nfr-rel-error-handling`
+  - [x] `p1` - `cpt-frontx-nfr-sec-type-validation`
+  - [x] `p1` - `cpt-frontx-nfr-maint-zero-crossdeps`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-plugin-first-composition`
-  - [x] `p1` - `cpt-hai3-principle-layer-isolation`
+  - [x] `p1` - `cpt-frontx-principle-plugin-first-composition`
+  - [x] `p1` - `cpt-frontx-principle-layer-isolation`
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3`
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3`
 
 - **Domain Model Entities**:
   - Plugin
@@ -417,7 +417,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-framework`
+  - [x] `p1` - `cpt-frontx-component-framework`
 
 - **API**:
   - `createHAI3()` / `.use()` / `.build()`
@@ -427,19 +427,19 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Sequences**:
 
-  - `cpt-hai3-seq-app-bootstrap`
-  - `cpt-hai3-seq-shared-property-broadcast`
+  - `cpt-frontx-seq-app-bootstrap`
+  - `cpt-frontx-seq-shared-property-broadcast`
 
 - **Data**:
   - N/A (client-side library)
 
 ### 2.7 [React Bindings](feature-react-bindings/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-react-bindings`
+- [x] `p1` - **ID**: `cpt-frontx-feature-react-bindings`
 
 - **Purpose**: Bridges the framework layer to React 19, providing the root provider, typed hooks, MFE rendering with Shadow DOM CSS isolation, and error boundaries. This is the primary API surface that application developers interact with.
 
-- **Depends On**: `cpt-hai3-feature-framework-composition`
+- **Depends On**: `cpt-frontx-feature-framework-composition`
 
 - **Scope**:
   - `HAI3Provider` root component (Redux store, i18n, theme, framework context)
@@ -450,23 +450,23 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Screen component with React.lazy() wrapping and Suspense fallback
 
 - **Out of scope**:
-  - App-owned UI component implementations (see `cpt-hai3-feature-ui-libraries-choice`)
-  - Framework plugin logic (see `cpt-hai3-feature-framework-composition`)
+  - App-owned UI component implementations (see `cpt-frontx-feature-ui-libraries-choice`)
+  - Framework plugin logic (see `cpt-frontx-feature-framework-composition`)
 
 - **Requirements Covered**:
 
-  - [x] `p2` - `cpt-hai3-fr-sdk-react-layer`
-  - [x] `p1` - `cpt-hai3-nfr-sec-shadow-dom`
-  - [x] `p1` - `cpt-hai3-nfr-compat-react`
-  - [x] `p1` - `cpt-hai3-nfr-perf-lazy-loading`
+  - [x] `p2` - `cpt-frontx-fr-sdk-react-layer`
+  - [x] `p1` - `cpt-frontx-nfr-sec-shadow-dom`
+  - [x] `p1` - `cpt-frontx-nfr-compat-react`
+  - [x] `p1` - `cpt-frontx-nfr-perf-lazy-loading`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-layer-isolation` (React confined to L3)
+  - [x] `p1` - `cpt-frontx-principle-layer-isolation` (React confined to L3)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-no-react-below-l3` (this feature IS the React boundary)
+  - [x] `p1` - `cpt-frontx-constraint-no-react-below-l3` (this feature IS the React boundary)
 
 - **Domain Model Entities**:
   - Screen
@@ -474,7 +474,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-react`
+  - [x] `p1` - `cpt-frontx-component-react`
 
 - **API**:
   - `<HAI3Provider>`
@@ -484,14 +484,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Sequences**:
 
-  - [x] `p1` - `cpt-hai3-seq-app-bootstrap` (initialization sequence)
+  - [x] `p1` - `cpt-frontx-seq-app-bootstrap` (initialization sequence)
 
 - **Data**:
   - N/A (client-side library)
 
 ### 2.8 [Studio DevTools](feature-studio-devtools/) ⏳ MEDIUM
 
-- [x] `p2` - **ID**: `cpt-hai3-feature-studio-devtools`
+- [x] `p2` - **ID**: `cpt-frontx-feature-studio-devtools`
 
 - **Purpose**: Provides a development-time overlay for inspecting and tweaking theme, i18n, viewport, and state, and hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code. Conditionally loaded via `import.meta.env.DEV` for zero production bundle impact. Persists panel state to localStorage.
 
@@ -515,36 +515,36 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-studio-panel`
-  - [x] `p1` - `cpt-hai3-fr-studio-controls`
-  - [x] `p1` - `cpt-hai3-fr-studio-persistence`
-  - [x] `p1` - `cpt-hai3-fr-studio-viewport`
-  - [x] `p1` - `cpt-hai3-fr-studio-independence`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-trigger`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-chat`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-preview`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-codegen`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-prompt-feedback`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-iterate`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-session`
-  - [ ] `p1` - `cpt-hai3-fr-studio-builder-credentials`
+  - [x] `p1` - `cpt-frontx-fr-studio-panel`
+  - [x] `p1` - `cpt-frontx-fr-studio-controls`
+  - [x] `p1` - `cpt-frontx-fr-studio-persistence`
+  - [x] `p1` - `cpt-frontx-fr-studio-viewport`
+  - [x] `p1` - `cpt-frontx-fr-studio-independence`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-trigger`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-chat`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-preview`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-codegen`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-prompt-feedback`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-iterate`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-session`
+  - [ ] `p1` - `cpt-frontx-fr-studio-builder-credentials`
 
 - **Design Principles Covered**:
   - (Studio is standalone; operates through event-driven patterns)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
 
 - **Domain Model Entities**:
   - (No domain entities uniquely owned by Studio)
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-studio`
+  - [x] `p1` - `cpt-frontx-component-studio`
 
 - **API**:
-  - `import('@hai3/studio')` (dev-only dynamic import)
+  - `import('@cyberfabric/studio')` (dev-only dynamic import)
   - Studio panel toggle
   - Builder trigger control
   - `POST /builder/generate` (local server-side proxy endpoint)
@@ -558,14 +558,14 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.9 [CLI Tooling](feature-cli-tooling/) ⏳ MEDIUM
 
-- [x] `p2` - **ID**: `cpt-hai3-feature-cli-tooling`
+- [x] `p2` - **ID**: `cpt-frontx-feature-cli-tooling`
 
 - **Purpose**: Reduces boilerplate and enforces conventions through interactive scaffolding commands. Generates screen-sets, MFE packages, and components from real project files used as templates. Supports both interactive (human) and programmatic (AI agent) execution modes.
 
 - **Depends On**: None
 
 - **Scope**:
-  - `hai3` binary entry point via Commander.js
+  - `frontx` binary entry point via Commander.js
   - Commands: `create`, `generate`, `dev`, `update`, `validate`
   - Template-based code generation from real project files
   - Plugin-based command registry with `CommandDefinition` interface
@@ -580,32 +580,32 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-cli-package`
-  - [x] `p1` - `cpt-hai3-fr-cli-commands`
-  - [x] `p1` - `cpt-hai3-fr-cli-templates`
-  - [x] `p1` - `cpt-hai3-fr-cli-skills`
-  - [x] `p1` - `cpt-hai3-fr-cli-e2e-verification`
+  - [x] `p1` - `cpt-frontx-fr-cli-package`
+  - [x] `p1` - `cpt-frontx-fr-cli-commands`
+  - [x] `p1` - `cpt-frontx-fr-cli-templates`
+  - [x] `p1` - `cpt-frontx-fr-cli-skills`
+  - [x] `p1` - `cpt-frontx-fr-cli-e2e-verification`
 
 - **Design Principles Covered**:
   - (CLI is tooling; doesn't uniquely own architecture principles)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-esm-first-module-format`
+  - [x] `p1` - `cpt-frontx-constraint-esm-first-module-format`
 
 - **Domain Model Entities**:
   - (No domain entities uniquely owned by CLI)
 
 - **Design Components**:
 
-  - [x] `p2` - `cpt-hai3-component-cli`
+  - [x] `p2` - `cpt-frontx-component-cli`
 
 - **API**:
-  - `hai3 create [project-name]`
-  - `hai3 generate screenset|mfe|component [name]`
-  - `hai3 update`
-  - `hai3 validate`
-  - `hai3 dev`
+  - `frontx create [project-name]`
+  - `frontx generate screenset|mfe|component [name]`
+  - `frontx update`
+  - `frontx validate`
+  - `frontx dev`
 
 - **Sequences**:
   - None
@@ -615,7 +615,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.10 [Publishing Pipeline](feature-publishing-pipeline/) ⏳ MEDIUM
 
-- [x] `p2` - **ID**: `cpt-hai3-feature-publishing-pipeline`
+- [x] `p2` - **ID**: `cpt-frontx-feature-publishing-pipeline`
 
 - **Purpose**: Automates NPM package publishing with correct layer-order dependency resolution, version detection via git diff, and idempotent CI workflow. Ensures all packages have correct metadata, ESM output, and consistent versioning.
 
@@ -636,26 +636,26 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-sdk-flat-packages`
-  - [x] `p1` - `cpt-hai3-fr-pub-metadata`
-  - [x] `p1` - `cpt-hai3-fr-pub-versions`
-  - [x] `p1` - `cpt-hai3-fr-pub-esm`
-  - [x] `p1` - `cpt-hai3-fr-pub-ci`
-  - [x] `p1` - `cpt-hai3-nfr-compat-node`
-  - [x] `p1` - `cpt-hai3-nfr-compat-typescript`
-  - [x] `p1` - `cpt-hai3-nfr-compat-esm`
-  - [x] `p1` - `cpt-hai3-nfr-perf-treeshake`
-  - [x] `p2` - `cpt-hai3-nfr-maint-arch-enforcement`
+  - [x] `p1` - `cpt-frontx-fr-sdk-flat-packages`
+  - [x] `p1` - `cpt-frontx-fr-pub-metadata`
+  - [x] `p1` - `cpt-frontx-fr-pub-versions`
+  - [x] `p1` - `cpt-frontx-fr-pub-esm`
+  - [x] `p1` - `cpt-frontx-fr-pub-ci`
+  - [x] `p1` - `cpt-frontx-nfr-compat-node`
+  - [x] `p1` - `cpt-frontx-nfr-compat-typescript`
+  - [x] `p1` - `cpt-frontx-nfr-compat-esm`
+  - [x] `p1` - `cpt-frontx-nfr-perf-treeshake`
+  - [x] `p2` - `cpt-frontx-nfr-maint-arch-enforcement`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-layer-isolation` (build order enforces layer deps)
+  - [x] `p1` - `cpt-frontx-principle-layer-isolation` (build order enforces layer deps)
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-esm-first-module-format`
-  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
-  - [x] `p2` - `cpt-hai3-constraint-no-package-internals-imports`
+  - [x] `p1` - `cpt-frontx-constraint-esm-first-module-format`
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
+  - [x] `p2` - `cpt-frontx-constraint-no-package-internals-imports`
 
 - **Domain Model Entities**:
   - (No domain entities — infrastructure concern)
@@ -675,49 +675,49 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 ### 2.11 [UI Libraries Choice](feature-ui-libraries-choice/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-hai3-feature-ui-libraries-choice`
+- [x] `p1` - **ID**: `cpt-frontx-feature-ui-libraries-choice`
 
-- **Purpose**: Provides a per-project UI strategy chosen at creation time. When running `hai3 create`, the developer selects a UI approach for the project: copy-owned shadcn/ui components, a third-party library (MUI, Ant Design, etc.), or fully custom components. The CLI reads `hai3.config.json` to determine the active UI kit and scaffolds accordingly.
+- **Purpose**: Provides a per-project UI strategy chosen at creation time. When running `frontx create`, the developer selects a UI approach for the project: copy-owned shadcn/ui components, a third-party library (MUI, Ant Design, etc.), or fully custom components. The CLI reads `frontx.config.json` to determine the active UI kit and scaffolds accordingly.
 
-- **Depends On**: `cpt-hai3-feature-cli-tooling`
+- **Depends On**: `cpt-frontx-feature-cli-tooling`
 
 - **Scope**:
-  - `hai3.config.json` `uikit` field supporting `"shadcn"`, `"none"`, or a third-party package name
-  - CLI `hai3 create` scaffolding per UI kit type (shadcn components, bridge file, or empty uikit)
-  - CLI `hai3 screenset` generation respecting the project's configured UI kit
+  - `frontx.config.json` `uikit` field supporting `"shadcn"`, `"none"`, or a third-party package name
+  - CLI `frontx create` scaffolding per UI kit type (shadcn components, bridge file, or empty uikit)
+  - CLI `frontx screenset` generation respecting the project's configured UI kit
   - UIKit bridge generation for third-party libraries
   - CSS variable theme propagation for all UI kit types
   - AI guidelines updated (UIKIT.md, SCREENSETS.md)
 
 - **Out of scope**:
-  - MFE isolation mechanics (see `cpt-hai3-feature-mfe-isolation`)
+  - MFE isolation mechanics (see `cpt-frontx-feature-mfe-isolation`)
 
 - **Requirements Covered**:
 
-  - [x] `p1` - `cpt-hai3-fr-cli-commands`
-  - [x] `p1` - `cpt-hai3-fr-cli-templates`
-  - [x] `p1` - `cpt-hai3-nfr-maint-zero-crossdeps`
+  - [x] `p1` - `cpt-frontx-fr-cli-commands`
+  - [x] `p1` - `cpt-frontx-fr-cli-templates`
+  - [x] `p1` - `cpt-frontx-nfr-maint-zero-crossdeps`
 
 - **Design Principles Covered**:
 
-  - [x] `p1` - `cpt-hai3-principle-mfe-isolation`
-  - [x] `p2` - `cpt-hai3-principle-self-registering-registries`
+  - [x] `p1` - `cpt-frontx-principle-mfe-isolation`
+  - [x] `p2` - `cpt-frontx-principle-self-registering-registries`
 
 - **Design Constraints Covered**:
 
-  - [x] `p1` - `cpt-hai3-constraint-typescript-strict-mode`
+  - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
 
 - **Domain Model Entities**:
   - Component
 
 - **Design Components**:
 
-  - [x] `p1` - `cpt-hai3-component-cli`
+  - [x] `p1` - `cpt-frontx-component-cli`
 
 - **API**:
-  - `hai3 create` (UI kit selection prompt)
-  - `hai3 screenset` (UI kit-aware generation)
-  - `hai3.config.json` `uikit` field
+  - `frontx create` (UI kit selection prompt)
+  - `frontx screenset` (UI kit-aware generation)
+  - `frontx.config.json` `uikit` field
 
 - **Sequences**:
   - None
@@ -730,30 +730,30 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 ## 3. Feature Dependencies
 
 ```text
-cpt-hai3-feature-state-management          (L1, no deps)
-cpt-hai3-feature-screenset-registry        (L1, no deps)
-cpt-hai3-feature-api-communication         (L1, no deps)
-cpt-hai3-feature-i18n-infrastructure       (L1, no deps)
-cpt-hai3-feature-studio-devtools           (standalone, no deps)
-cpt-hai3-feature-cli-tooling               (standalone, no deps)
-cpt-hai3-feature-publishing-pipeline       (infrastructure, no deps)
-cpt-hai3-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
+cpt-frontx-feature-state-management          (L1, no deps)
+cpt-frontx-feature-screenset-registry        (L1, no deps)
+cpt-frontx-feature-api-communication         (L1, no deps)
+cpt-frontx-feature-i18n-infrastructure       (L1, no deps)
+cpt-frontx-feature-studio-devtools           (standalone, no deps)
+cpt-frontx-feature-cli-tooling               (standalone, no deps)
+cpt-frontx-feature-publishing-pipeline       (infrastructure, no deps)
+cpt-frontx-feature-ui-libraries-choice       (standalone, requires: cli-tooling)
     │
-    ├─→ cpt-hai3-feature-mfe-isolation
+    ├─→ cpt-frontx-feature-mfe-isolation
     │       requires: screenset-registry
     │
-    ├─→ cpt-hai3-feature-framework-composition
+    ├─→ cpt-frontx-feature-framework-composition
     │       requires: state-management, screenset-registry,
     │                 api-communication, i18n-infrastructure
     │
-    └─→ cpt-hai3-feature-react-bindings
+    └─→ cpt-frontx-feature-react-bindings
             requires: framework-composition
 ```
 
 **Dependency Rationale**:
 
-- `cpt-hai3-feature-mfe-isolation` requires `cpt-hai3-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
-- `cpt-hai3-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
-- `cpt-hai3-feature-react-bindings` requires `cpt-hai3-feature-framework-composition`: React layer consumes the built framework output
-- `cpt-hai3-feature-ui-libraries-choice` requires `cpt-hai3-feature-cli-tooling`: CLI commands (`hai3 create`, `hai3 screenset`) implement the UI kit scaffolding
+- `cpt-frontx-feature-mfe-isolation` requires `cpt-frontx-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
+- `cpt-frontx-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
+- `cpt-frontx-feature-react-bindings` requires `cpt-frontx-feature-framework-composition`: React layer consumes the built framework output
+- `cpt-frontx-feature-ui-libraries-choice` requires `cpt-frontx-feature-cli-tooling`: CLI commands (`frontx create`, `frontx screenset`) implement the UI kit scaffolding
 - All L1 features, standalone features, and publishing-pipeline are independent and can be developed in parallel

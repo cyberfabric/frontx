@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Loader2 } from "lucide-react"
-import { trim } from "lodash"
+import trim from "lodash/trim"
 
 import { cn } from "../../lib/utils"
 

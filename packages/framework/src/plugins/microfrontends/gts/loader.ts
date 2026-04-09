@@ -2,12 +2,12 @@
  * GTS Layout Domain Loader (Framework L2)
  *
  * Loads layout domain instances from JSON files.
- * These are HAI3's base extension domains for UI layout.
+ * These are FrontX's base extension domains for UI layout.
  *
  * @packageDocumentation
  */
 
-import type { ExtensionDomain } from '@hai3/screensets';
+import type { ExtensionDomain } from '@cyberfabric/screensets';
 
 // Import layout domain instances
 import sidebarDomainInstance from './hai3.screensets/instances/domains/sidebar.v1.json';

@@ -20,7 +20,7 @@ You can:
 
 ## Preservation
 
-This directory and all files within it are preserved during `hai3 update`. Your project guidelines will never be overwritten by HAI3 CLI updates.
+This directory and all files within it are preserved during `frontx update`. Your project guidelines will never be overwritten by FrontX CLI updates.
 
 ## Example
 

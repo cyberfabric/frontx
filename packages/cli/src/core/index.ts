@@ -28,6 +28,7 @@ export {
   getPackageManagerEngines,
   detectPackageManager,
   getInstallCommand,
+  getCiInstallCommand,
   getRunScriptCommand,
   getWorkspaceRunScriptCommand,
   getExecCommand,

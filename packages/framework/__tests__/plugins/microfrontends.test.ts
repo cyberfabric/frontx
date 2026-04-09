@@ -14,10 +14,10 @@ import {
   microfrontends,
 } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
-import type { ScreensetsRegistry } from '@hai3/framework';
-import { ContainerProvider } from '@hai3/framework';
+import type { ScreensetsRegistry } from '@cyberfabric/framework';
+import { ContainerProvider } from '@cyberfabric/framework';
 import type { HAI3App } from '../../src/types';
 
 // Mock Container Provider for framework tests
@@ -352,17 +352,17 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(sidebarDomain.actions.length).toBe(3);
 
       // Verify action IDs
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
 
     it('should handle screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
       // Screen domain should have load_ext and mount_ext, but not unmount_ext (swap semantics)
       expect(screenDomain.actions.length).toBe(2);
-      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
-      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
+      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
   });
 
@@ -377,9 +377,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -398,9 +398,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -419,8 +419,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -442,9 +442,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,

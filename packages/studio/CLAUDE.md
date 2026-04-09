@@ -1,10 +1,10 @@
-# @hai3/studio
+# @cyberfabric/studio
 
-HAI3 Studio overlay package for runtime inspection and control of MFE applications.
+FrontX Studio overlay package for runtime inspection and control of MFE applications.
 
 ## Studio Layer
 
-This package is part of the **Studio Layer (L4)** - it provides developer tooling for inspecting and controlling HAI3 applications at runtime.
+This package is part of the **Studio Layer (L4)** - it provides developer tooling for inspecting and controlling FrontX applications at runtime.
 
 ## What This Package Contains
 
@@ -25,7 +25,7 @@ This package is part of the **Studio Layer (L4)** - it provides developer toolin
 Displays a dropdown of registered GTS packages and allows switching between them by mounting the first screen extension of the selected package.
 
 ```tsx
-import { MfePackageSelector } from '@hai3/studio';
+import { MfePackageSelector } from '@cyberfabric/studio';
 
 function ControlPanel() {
   return (
@@ -59,5 +59,5 @@ Toggle switch for switching between mock and live API modes. Uses `useApiMode()`
 
 1. **Developer tooling only** - Studio is for development inspection, not production features
 2. **Overlay pattern** - Studio renders as a fixed overlay on top of the application
-3. **React-only** - Studio is built with React and depends on `@hai3/react` hooks
+3. **React-only** - Studio is built with React and depends on `@cyberfabric/react` hooks
 4. **No direct state mutation** - All state changes go through registry and hooks

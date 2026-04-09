@@ -26,7 +26,7 @@ export {
   type RegisterExtensionPayload,
   type UnregisterExtensionPayload,
   type MicrofrontendsConfig,
-  // HAI3 layout domain constants
+  // FrontX layout domain constants
   HAI3_POPUP_DOMAIN,
   HAI3_SIDEBAR_DOMAIN,
   HAI3_SCREEN_DOMAIN,

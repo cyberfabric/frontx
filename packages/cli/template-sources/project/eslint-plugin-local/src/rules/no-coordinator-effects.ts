@@ -1,6 +1,6 @@
 /**
  * @fileoverview Prevent coordinator effects files (chatEffects.ts, demoEffects.ts)
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

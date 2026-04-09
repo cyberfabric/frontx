@@ -1,12 +1,12 @@
-# @hai3/framework
+# @cyberfabric/framework
 
-Plugin-based application framework for HAI3 applications. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
+Plugin-based application framework for FrontX applications. Orchestrates SDK packages into cohesive applications with MFE (Microfrontend) support.
 
 ## Framework Layer
 
-This package is part of the **Framework Layer (L2)** - it depends on SDK packages (@hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n). It provides the plugin architecture and **owns the layout slices** (header, footer, menu, sidebar, screen, popup, overlay).
+This package is part of the **Framework Layer (L2)** - it depends on SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n). It provides the plugin architecture and **owns the layout slices** (header, footer, menu, sidebar, screen, popup, overlay).
 
-> **NOTE:** @hai3/uicore is deprecated. Layout slices are defined in @hai3/framework.
+> **NOTE:** @cyberfabric/uicore is deprecated. Layout slices are defined in @cyberfabric/framework.
 
 ## Core Concepts
 
@@ -15,7 +15,7 @@ This package is part of the **Framework Layer (L2)** - it depends on SDK package
 Build applications by composing plugins:
 
 ```typescript
-import { createHAI3, screensets, themes, layout, microfrontends, i18n } from '@hai3/framework';
+import { createHAI3, screensets, themes, layout, microfrontends, i18n } from '@cyberfabric/framework';
 
 const app = createHAI3()
   .use(screensets())
@@ -31,7 +31,7 @@ const app = createHAI3()
 Pre-configured plugin combinations:
 
 ```typescript
-import { createHAI3App, presets } from '@hai3/framework';
+import { createHAI3App, presets } from '@cyberfabric/framework';
 
 // Full preset (default) - all plugins including MFE support
 const fullApp = createHAI3App();
@@ -63,12 +63,12 @@ const headlessApp = createHAI3()
 The `mock()` plugin provides centralized mock mode control. It's included in the `full()` preset by default, so apps don't need manual setup:
 
 ```typescript
-import { createHAI3App } from '@hai3/framework';
+import { createHAI3App } from '@cyberfabric/framework';
 
 // Full preset includes mock plugin automatically
 const app = createHAI3App();
 
-// Toggle mock mode via actions (used by HAI3 Studio ApiModeToggle)
+// Toggle mock mode via actions (used by FrontX Studio ApiModeToggle)
 app.actions.toggleMockMode(true);  // Activates all registered mock plugins
 app.actions.toggleMockMode(false); // Deactivates all registered mock plugins
 ```
@@ -76,7 +76,7 @@ app.actions.toggleMockMode(false); // Deactivates all registered mock plugins
 For custom plugin compositions:
 
 ```typescript
-import { createHAI3, effects, mock } from '@hai3/framework';
+import { createHAI3, effects, mock } from '@cyberfabric/framework';
 
 const app = createHAI3()
   .use(effects())  // Required dependency
@@ -97,7 +97,7 @@ const app = createHAI3App();
 app.screensetsRegistry.registerDomain(screenDomain, containerProvider);
 await app.screensetsRegistry.registerExtension(homeExtension);
 await app.screensetsRegistry.executeActionsChain({
-  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { extensionId: 'home' } }
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { subject: 'home' } }
 });
 
 // Access other registries
@@ -136,7 +136,7 @@ import {
   unmountExtension,
   registerExtension,
   unregisterExtension,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // Load extension code
 await loadExtension({ extensionId: 'home' });
@@ -163,7 +163,7 @@ import {
   selectExtensionState,
   selectRegisteredExtensions,
   selectExtensionError,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // Get extension state
 const extensionState = selectExtensionState(state, 'home');
@@ -187,7 +187,7 @@ import {
   sidebarDomain,
   popupDomain,
   overlayDomain,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // String constants (GTS instance IDs)
 HAI3_SCREEN_DOMAIN   // 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1'
@@ -213,12 +213,12 @@ import {
   HAI3_ACTION_UNMOUNT_EXT,
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 // Action IDs
-HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'
-HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1'
-HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1'
+HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~'
+HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~'
+HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~'
 
 // Shared property IDs
 HAI3_SHARED_PROPERTY_THEME    // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'
@@ -227,10 +227,10 @@ HAI3_SHARED_PROPERTY_LANGUAGE // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfe
 
 ## Creating Custom Plugins
 
-Extend HAI3 with custom functionality:
+Extend FrontX with custom functionality:
 
 ```typescript
-import type { HAI3Plugin } from '@hai3/framework';
+import type { HAI3Plugin } from '@cyberfabric/framework';
 
 export function myPlugin(): HAI3Plugin {
   return {
@@ -258,19 +258,19 @@ export function myPlugin(): HAI3Plugin {
 2. **Compose plugins for customization** - Use `createHAI3().use()` pattern
 3. **Dependencies are auto-resolved** - Plugin order doesn't matter
 4. **Access via app instance** - All registries and actions on `app.*`
-5. **NO React in this package** - Framework is headless, use @hai3/react for React bindings
+5. **NO React in this package** - Framework is headless, use @cyberfabric/react for React bindings
 6. **MFE is the primary architecture** - Use `screensetsRegistry` for domain/extension management
 
 ## Re-exports
 
 For convenience, this package re-exports from SDK packages:
 
-- From @hai3/state: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`
-- From @hai3/screensets: `LayoutDomain`, `ScreensetsRegistry`, `Extension`, `ScreenExtension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `ParentMfeBridge`, `ChildMfeBridge`, action/property constants, contracts/types
-- From @hai3/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MOCK_PLUGIN`, `isMockPlugin`
-- From @hai3/i18n: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, `getLanguageMetadata`
+- From @cyberfabric/state: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`
+- From @cyberfabric/screensets: `LayoutDomain`, `ScreensetsRegistry`, `Extension`, `ScreenExtension`, `ExtensionDomain`, `MfeHandler`, `MfeBridgeFactory`, `ParentMfeBridge`, `ChildMfeBridge`, action/property constants, contracts/types
+- From @cyberfabric/api: `apiRegistry`, `BaseApiService`, `RestProtocol`, `RestMockPlugin`, `SseMockPlugin`, `MOCK_PLUGIN`, `isMockPlugin`
+- From @cyberfabric/i18n: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, `getLanguageMetadata`
 
-**Layout Slices (owned by @hai3/framework):**
+**Layout Slices (owned by @cyberfabric/framework):**
 - `layoutReducer`, `layoutDomainReducers`, `LAYOUT_SLICE_NAME`
 - Domain slices: `headerSlice`, `footerSlice`, `menuSlice`, `sidebarSlice`, `screenSlice`, `popupSlice`, `overlaySlice`
 - Domain actions: `headerActions`, `footerActions`, `menuActions`, `sidebarActions`, `screenActions`, `popupActions`, `overlayActions`
@@ -283,7 +283,7 @@ For convenience, this package re-exports from SDK packages:
 
 **NOTE:** `createAction` is NOT exported to consumers. Actions should be handwritten functions in extensions that contain business logic and emit events via `eventBus.emit()`.
 
-**NOTE:** "Selector" is Redux terminology and is not used in HAI3. Access state via `useAppSelector` hook from @hai3/react:
+**NOTE:** "Selector" is Redux terminology and is not used in FrontX. Access state via `useAppSelector` hook from @cyberfabric/react:
 ```typescript
 const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 ```
@@ -309,7 +309,7 @@ const menu = useAppSelector((state: RootStateWithLayout) => state.layout.menu);
 
 ## Migration from Legacy API
 
-The legacy screenset navigation API has been removed. HAI3 now uses the MFE architecture exclusively:
+The legacy screenset navigation API has been removed. FrontX now uses the MFE architecture exclusively:
 
 ### Removed APIs
 - `screensetRegistry` (replaced by `screensetsRegistry`)
@@ -337,7 +337,7 @@ await app.actions.mountExtension({
 
 **OLD**: Register screenset
 ```typescript
-import { screensetRegistry, ScreensetDefinition } from '@hai3/framework';
+import { screensetRegistry, ScreensetDefinition } from '@cyberfabric/framework';
 
 const screenset: ScreensetDefinition = {
   id: 'demo',
@@ -352,7 +352,7 @@ screensetRegistry.register(screenset);
 
 **NEW**: Register domain and extensions
 ```typescript
-import { screensetsRegistry, ExtensionDomain, Extension } from '@hai3/framework';
+import { screensetsRegistry, ExtensionDomain, Extension } from '@cyberfabric/framework';
 
 // Register domain
 app.screensetsRegistry.registerDomain(screenDomain, containerProvider);

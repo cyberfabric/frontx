@@ -7,9 +7,9 @@
  * SDK Layer: L1 (Zero dependencies)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-sse-mock-plugin:p2
-// @cpt-flow:cpt-hai3-flow-api-communication-mock-activation:p2
-// @cpt-algo:cpt-hai3-algo-api-communication-sse-mock-match:p2
+// @cpt-dod:cpt-frontx-dod-api-communication-sse-mock-plugin:p2
+// @cpt-flow:cpt-frontx-flow-api-communication-mock-activation:p2
+// @cpt-algo:cpt-frontx-algo-api-communication-sse-mock-match:p2
 
 import {
   SsePluginWithConfig,
@@ -77,8 +77,8 @@ export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
    * Intercept SSE connection and return MockEventSource if available.
    * Returns SseShortCircuitResponse to skip real EventSource connection.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-mock-activation:p2:inst-1
-  // @cpt-begin:cpt-hai3-algo-api-communication-sse-mock-match:p2:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-mock-activation:p2:inst-1
+  // @cpt-begin:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-1
   async onConnect(
     context: SseConnectContext
   ): Promise<SseConnectContext | SseShortCircuitResponse> {
@@ -97,8 +97,8 @@ export class SseMockPlugin extends SsePluginWithConfig<SseMockConfig> {
     // No mock found, pass through to real EventSource
     return context;
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-mock-activation:p2:inst-1
-  // @cpt-end:cpt-hai3-algo-api-communication-sse-mock-match:p2:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-mock-activation:p2:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-sse-mock-match:p2:inst-1
 
   /**
    * Find mock events for the given URL.

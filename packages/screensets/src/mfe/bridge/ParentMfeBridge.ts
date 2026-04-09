@@ -1,5 +1,5 @@
-// @cpt-flow:cpt-hai3-flow-mfe-isolation-load:p1
-// @cpt-flow:cpt-hai3-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-mfe-isolation-load:p1
+// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
 /**
  * Parent MFE Bridge Implementation
  *
@@ -9,7 +9,7 @@
  * @packageDocumentation
  */
 
-import type { ParentMfeBridge } from '../handler/types';
+import { ParentMfeBridge } from '../handler/types';
 import type { ActionsChain, SharedProperty } from '../types';
 import type { ChildMfeBridgeImpl } from './ChildMfeBridge';
 import { BridgeDisposedError } from '../errors';
@@ -19,8 +19,10 @@ type PropertySubscriber = (propertyTypeId: string, value: unknown) => void;
 /**
  * Internal implementation of ParentMfeBridge.
  * Used by the host to manage a child MFE instance.
+ *
+ * @internal
  */
-export class ParentMfeBridgeImpl implements ParentMfeBridge {
+export class ParentMfeBridgeImpl extends ParentMfeBridge {
   /**
    * Reference to the child bridge.
    */
@@ -49,6 +51,7 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
   readonly instanceId: string;
 
   constructor(childBridge: ChildMfeBridgeImpl) {
+    super();
     this.childBridge = childBridge;
     this.instanceId = childBridge.instanceId;
   }
@@ -61,14 +64,14 @@ export class ParentMfeBridgeImpl implements ParentMfeBridge {
    * @returns Promise resolving when execution is complete
    * @throws {BridgeDisposedError} If bridge has been disposed
    */
-  // @cpt-begin:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async sendActionsChain(chain: ActionsChain): Promise<void> {
     if (this.disposed) {
       throw new BridgeDisposedError(this.instanceId);
     }
     return this.childBridge.handleParentActionsChain(chain);
   }
-  // @cpt-end:cpt-hai3-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
 
   /**
    * Register a handler for actions sent from the child MFE to the host.

@@ -1,6 +1,6 @@
 /**
  * @fileoverview Prevent barrel exports (index.ts) in events/ or effects/ folders
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

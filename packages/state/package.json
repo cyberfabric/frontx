@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/state",
-  "version": "0.4.0-alpha.0",
-  "description": "State management for HAI3 SDK - event bus, store, and effects",
+  "name": "@cyberfabric/state",
+  "version": "0.2.0-alpha.0",
+  "description": "State management for FrontX SDK - event bus, store, and effects",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -35,7 +35,7 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "state",
     "state-management",
     "events",
@@ -45,6 +45,6 @@
     "pub-sub",
     "typescript"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

@@ -40,6 +40,9 @@ src/app/mfe/generated-mfe-manifests.ts
 packages/cli/templates
 packages/cli/template-sources/layout/
 
+# CLI build-time generated version constants
+packages/cli/src/generated/
+
 # NPM pack artifacts
 *.tgz
 
@@ -47,8 +50,11 @@ packages/cli/template-sources/layout/
 .claude/settings.local.json
 .claude/worktrees/
 
-# HAI3 migration tracker (project-local state)
-.hai3/
+# FrontX migration tracker (project-local state)
+.frontx/
 
 # Local CLI e2e artifacts
 .artifacts/
+
+# Cypilot execution plans
+.cypilot/.plans/

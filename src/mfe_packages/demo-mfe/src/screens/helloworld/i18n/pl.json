@@ -1,10 +1,11 @@
 {
   "title": "Witaj świecie",
-  "welcome": "Witamy w zestawie ekranów demo HAI3",
-  "description": "To prosty ekran demonstracyjny pokazujący framework HAI3 w działaniu. Nawiguj przez menu, aby poznać różne funkcje.",
+  "welcome": "Witamy w zestawie ekranów demo FrontX",
+  "description": "To prosty ekran demonstracyjny pokazujący framework FrontX w działaniu. Nawiguj przez menu, aby poznać różne funkcje.",
   "navigation_title": "Przykład nawigacji",
   "navigation_description": "Kliknij przycisk poniżej, aby programowo przejść do ekranu motywu.",
   "go_to_theme": "Przejdź do ekranu motywu",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

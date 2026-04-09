@@ -1,7 +1,7 @@
 /**
- * HAI3 ESLint Configuration Package
+ * FrontX ESLint Configuration Package
  *
- * Layered configuration for the HAI3 SDK architecture:
+ * Layered configuration for the FrontX SDK architecture:
  * - L0 (base): Universal rules for all code
  * - L1 (sdk): SDK packages with zero @hai3 dependencies
  * - L2 (framework): Framework package with only SDK deps

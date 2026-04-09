@@ -1,9 +1,9 @@
 /**
- * HAI3 MFE Constants
+ * FrontX MFE Constants
  *
- * Convenience constants for HAI3 MFE type IDs and action IDs.
+ * Convenience constants for FrontX MFE type IDs and action IDs.
  * These are ADDITIONAL constants beyond the type ID reference constants
- * already defined in init.ts (HAI3_CORE_TYPE_IDS, HAI3_MF_TYPE_IDS, HAI3_LIFECYCLE_STAGE_IDS).
+ * already defined in init.ts (FrontX_CORE_TYPE_IDS, FrontX_MF_TYPE_IDS, FrontX_LIFECYCLE_STAGE_IDS).
  *
  * @packageDocumentation
  */
@@ -55,26 +55,26 @@ export const HAI3_SCREEN_EXTENSION_TYPE = 'gts.hai3.mfes.ext.extension.v1~hai3.s
 export const HAI3_EXT_ACTION = 'gts.hai3.mfes.comm.action.v1~';
 
 // ============================================================================
-// Action Instance IDs (generic actions for all domains)
+// Action Schema Type IDs (generic actions for all domains)
 // ============================================================================
 
 /**
- * Load extension action instance ID.
+ * Load extension action schema type ID.
  * Preload an extension's bundle (fetch JS, no DOM rendering).
  */
-export const HAI3_ACTION_LOAD_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1';
+export const HAI3_ACTION_LOAD_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~';
 
 /**
- * Mount extension action instance ID.
+ * Mount extension action schema type ID.
  * Mount an extension into a domain (render to DOM).
  */
-export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1';
+export const HAI3_ACTION_MOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~';
 
 /**
- * Unmount extension action instance ID.
+ * Unmount extension action schema type ID.
  * Unmount an extension from a domain (remove from DOM).
  */
-export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1';
+export const HAI3_ACTION_UNMOUNT_EXT = 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~';
 
 // ============================================================================
 // Shared Property Type IDs (built-in property schemas for all domains)

@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-scaffold-layout:p1
 import path from 'path';
 import fs from 'fs-extra';
 import type { GeneratedFile, LayerType, PackageManager } from '../core/types.js';
@@ -43,7 +43,7 @@ function getLayerDependencies(layer: LayerType): {
 
   switch (layer) {
     case 'sdk':
-      // SDK layer has no HAI3 dependencies
+      // SDK layer has no FrontX dependencies
       return {
         dependencies: {},
         peerDependencies: {},
@@ -59,13 +59,13 @@ function getLayerDependencies(layer: LayerType): {
       return {
         dependencies: {},
         peerDependencies: {
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
+          '@cyberfabric/events': 'alpha',
+          '@cyberfabric/store': 'alpha',
         },
         devDependencies: {
           ...eslintDevDeps,
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
+          '@cyberfabric/events': 'alpha',
+          '@cyberfabric/store': 'alpha',
           typescript: '^5.4.0',
           tsup: '^8.0.0',
         },
@@ -76,14 +76,14 @@ function getLayerDependencies(layer: LayerType): {
       return {
         dependencies: {},
         peerDependencies: {
-          '@hai3/framework': 'alpha',
+          '@cyberfabric/framework': 'alpha',
           react: '^19.2.4',
           'react-dom': '^19.2.4',
         },
         devDependencies: {
           ...eslintDevDeps,
           'eslint-plugin-react-hooks': '^5.0.0',
-          '@hai3/framework': 'alpha',
+          '@cyberfabric/framework': 'alpha',
           '@types/react': '^19.0.0',
           '@types/react-dom': '^19.0.0',
           react: '^19.2.4',
@@ -104,7 +104,7 @@ function getLayerDependencies(layer: LayerType): {
 
 /**
  * Get ESLint config content for a layer
- * Generates self-contained configs that don't depend on @hai3/eslint-config
+ * Generates self-contained configs that don't depend on @cyberfabric/eslint-config
  */
 function getEslintConfig(layer: LayerType): string {
   const baseConfig = `import js from '@eslint/js';
@@ -195,7 +195,7 @@ export default [
           patterns: [
             {
               group: ['react', 'react-dom', 'react/*', 'react-dom/*'],
-              message: 'Framework layer cannot import React directly. Use @hai3/react for React bindings.',
+              message: 'Framework layer cannot import React directly. Use @cyberfabric/react for React bindings.',
             },
           ],
         },
@@ -307,7 +307,7 @@ function getTsConfig(layer: LayerType): string {
 /**
  * Generate files for a layer package
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+// @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
 export async function generateLayerPackage(input: LayerPackageInput): Promise<GeneratedFile[]> {
   const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
   const files: GeneratedFile[] = [];
@@ -378,7 +378,7 @@ export default defineConfig({
     content: `/**
  * ${packageName}
  *
- * A HAI3 ${layer}-layer package.
+ * A FrontX ${layer}-layer package.
  */
 
 export const VERSION = '0.1.0';
@@ -430,7 +430,7 @@ ${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 ## Layer: ${layer}
 
 This package follows HAI3's ${layer}-layer architecture conventions:
-${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@hai3/events, @hai3/store, etc.)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency' : ''}
+${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@cyberfabric/events, @cyberfabric/store, etc.)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@cyberfabric/framework)\n- React peer dependency' : ''}
 
 ## License
 
@@ -451,12 +451,12 @@ Apache-2.0
     ) + '\n',
   });
 
-  // hai3.config.json with layer info
+  // frontx.config.json with layer info
   files.push({
-    path: 'hai3.config.json',
+    path: 'frontx.config.json',
     content: JSON.stringify(
       {
-        hai3: true,
+        frontx: true,
         layer,
         packageManager,
       },
@@ -547,4 +547,4 @@ Apache-2.0
 
   return files;
 }
-// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files
+// @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-write-layout-files

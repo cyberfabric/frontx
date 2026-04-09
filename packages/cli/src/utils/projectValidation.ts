@@ -1,5 +1,5 @@
-// @cpt-dod:cpt-hai3-dod-cli-tooling-validate:p1
-// @cpt-flow:cpt-hai3-flow-cli-tooling-validate-components:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-validate:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-validate-components:p1
 import { execSync } from 'child_process';
 import type { Logger } from '../core/logger.js';
 import { detectPackageManager, getRunScriptCommand } from '../core/packageManager.js';
@@ -85,9 +85,9 @@ export async function runProjectValidation(
 
   const steps: ValidationStepResult[] = [];
   const checksToRun = checks ?? ['typeCheck', 'lint', 'archCheck'];
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
   const manager = (await detectPackageManager(projectRoot)).manager;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+  // @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
   logger.newline();
   logger.info('Running validation...');
@@ -143,8 +143,8 @@ export async function runProjectValidation(
   if (allPassed) {
     logger.success('All validations passed!');
   } else {
-    logger.error('Validation failed. Run `hai3 validate` for details.');
-    logger.info('Tip: Use `/hai3-fix-violation` to fix common issues.');
+    logger.error('Validation failed. Run `frontx validate` for details.');
+    logger.info('Tip: Use `/frontx-fix-violation` to fix common issues.');
   }
 
   return {

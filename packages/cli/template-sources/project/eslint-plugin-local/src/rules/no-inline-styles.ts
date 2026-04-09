@@ -1,6 +1,6 @@
 /**
  * @fileoverview Disallow inline styles and hex colors outside base UI component folders
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

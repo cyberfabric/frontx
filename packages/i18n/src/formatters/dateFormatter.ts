@@ -4,8 +4,8 @@
  * Uses i18nRegistry.getLanguage() for locale; fallback to Language.English when null.
  * Invalid date inputs return ''.
  */
-// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-formatter-usage:p1
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-formatters:p1
+// @cpt-flow:cpt-frontx-flow-i18n-infrastructure-formatter-usage:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-formatters:p1
 
 import { getLocale } from './utils';
 
@@ -20,8 +20,8 @@ function toDate(value: DateInput): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-// @cpt-begin:cpt-hai3-flow-i18n-infrastructure-formatter-usage:p1:inst-1
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-i18n-infrastructure-formatter-usage:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-1
 /**
  * Format a date according to the current locale.
  *
@@ -35,10 +35,10 @@ export function formatDate(date: DateInput, format: DateFormatStyle): string {
   const locale = getLocale();
   return new Intl.DateTimeFormat(locale, { dateStyle: format }).format(d);
 }
-// @cpt-end:cpt-hai3-flow-i18n-infrastructure-formatter-usage:p1:inst-1
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-1
+// @cpt-end:cpt-frontx-flow-i18n-infrastructure-formatter-usage:p1:inst-1
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-1
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-2
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-2
 /**
  * Format the time portion of a date according to the current locale.
  *
@@ -52,9 +52,9 @@ export function formatTime(date: DateInput, format: TimeFormatStyle): string {
   const locale = getLocale();
   return new Intl.DateTimeFormat(locale, { timeStyle: format }).format(d);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-2
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-2
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-3
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-3
 /**
  * Format date and time according to the current locale.
  *
@@ -76,7 +76,7 @@ export function formatDateTime(
     timeStyle: timeFormat,
   }).format(d);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-3
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-3
 
 const MS_PER_SECOND = 1000;
 const MS_PER_MINUTE = 60 * MS_PER_SECOND;
@@ -128,7 +128,7 @@ function getRelativeUnit(
   return { value: diffDays === 0 ? sign * 1 : diffDays, unit: 'day' };
 }
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-4
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-4
 /**
  * Format a date as relative time (e.g. "2 hours ago", "in 3 days").
  *
@@ -146,4 +146,4 @@ export function formatRelative(date: DateInput, base?: DateInput): string {
   const { value, unit } = getRelativeUnit(d, baseDate);
   return rtf.format(value, unit);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-formatters:p1:inst-4
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-formatters:p1:inst-4

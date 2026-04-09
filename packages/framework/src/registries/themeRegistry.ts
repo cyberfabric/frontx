@@ -3,9 +3,9 @@
  *
  * Framework Layer: L2
  */
-// @cpt-flow:cpt-hai3-flow-framework-composition-theme-propagation:p1
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-theme-propagation:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-theme-propagation:p1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-theme-propagation:p1
 
 import type { ThemeRegistry, ThemeConfig } from '../types';
 

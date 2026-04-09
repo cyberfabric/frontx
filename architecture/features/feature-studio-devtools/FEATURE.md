@@ -1,6 +1,8 @@
 # Feature: Studio DevTools
 
-- [x] `p1` - **ID**: `cpt-hai3-featstatus-studio-devtools`
+<!-- artifact-version: 1.1 -->
+
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
 
 <!-- toc -->
 
@@ -51,7 +53,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-hai3-feature-studio-devtools`
+- [x] `p2` - `cpt-frontx-feature-studio-devtools`
 
 ---
 
@@ -59,13 +61,13 @@
 
 ### 1.1 Overview
 
-Studio DevTools is the development-time overlay package (`@hai3/studio`) for HAI3 applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
+Studio DevTools is the development-time overlay package (`@cyberfabric/studio`) for FrontX applications. It provides a floating glassmorphic panel that developers can use to switch themes, languages, GTS packages, and API mock mode without leaving the running application. Studio also hosts the Builder — an AI-powered idea generator that allows non-developer actors to describe a UI concept in plain language and receive a live interactive preview without writing code, surfaced as Chat and Preview panels within the Studio shell.
 
 Problem: During development, iterating on theme, language, and API mock states requires either page reloads, hard-coded configuration, or direct Redux DevTools manipulation — all of which break the iterative feedback loop.
 
 Primary value: A single persistent panel accessible via keyboard shortcut gives developers instant control over the application's runtime configuration, with all changes preserved across page reloads through localStorage persistence.
 
-Key assumptions: Studio is only mounted when `import.meta.env.DEV` is true. All state changes flow through the existing framework event bus — Studio does not bypass the standard Action → Event → Effect → Reducer flow. No framework or application code is modified to support Studio; all logic lives inside `@hai3/studio`.
+Key assumptions: Studio is only mounted when `import.meta.env.DEV` is true. All state changes flow through the existing framework event bus — Studio does not bypass the standard Action → Event → Effect → Reducer flow. No framework or application code is modified to support Studio; all logic lives inside `@cyberfabric/studio`.
 
 ### 1.2 Purpose
 
@@ -75,18 +77,18 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-studio-user` — Developer using the floating panel to adjust runtime configuration
-- `cpt-hai3-actor-build-system` — Vite build process that tree-shakes Studio from production bundles
-- `cpt-hai3-actor-runtime` — Browser that evaluates conditional imports, manages localStorage, and fires resize events
-- `cpt-hai3-actor-framework-plugin` — Framework plugins (`themes()`, `i18n()`, `mock()`) that respond to events Studio emits during settings restore
-- `cpt-hai3-actor-pm` — Product Manager who uses the Builder to generate draft UI ideas from plain-language prompts without writing code
-- `cpt-hai3-actor-designer` — Designer who uses the Builder to submit refinement prompts and review AI-generated visual output
+- `cpt-frontx-actor-studio-user` — Developer using the floating panel to adjust runtime configuration
+- `cpt-frontx-actor-build-system` — Vite build process that tree-shakes Studio from production bundles
+- `cpt-frontx-actor-runtime` — Browser that evaluates conditional imports, manages localStorage, and fires resize events
+- `cpt-frontx-actor-framework-plugin` — Framework plugins (`themes()`, `i18n()`, `mock()`) that respond to events Studio emits during settings restore
+- `cpt-frontx-actor-pm` — Product Manager who uses the Builder to generate draft UI ideas from plain-language prompts without writing code
+- `cpt-frontx-actor-designer` — Designer who uses the Builder to submit refinement prompts and review AI-generated visual output
 
 ### 1.4 References
 
-- Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-hai3-component-studio`
-- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-studio-devtools` (section 2.9)
-- ADR: `cpt-hai3-adr-standalone-studio-dev-conditional`
+- Overall Design: [DESIGN.md](../../DESIGN.md) — `cpt-frontx-component-studio`
+- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-frontx-feature-studio-devtools` (section 2.9)
+- ADR: `cpt-frontx-adr-standalone-studio-dev-conditional`
 
 ---
 
@@ -94,9 +96,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Panel Toggle and Keyboard Access
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-panel-toggle`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-panel-toggle`
 
-**Actors**: `cpt-hai3-actor-studio-user`
+**Actors**: `cpt-frontx-actor-studio-user`
 
 1. [ ] `p1` - Studio User presses `Shift+\`` (Backquote) — `inst-keyboard-shortcut`
 2. [ ] `p1` - **IF** panel is currently collapsed **THEN** expand panel, show `StudioPanel`, hide `CollapsedButton` — `inst-expand-on-shortcut`
@@ -108,9 +110,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Panel Drag and Reposition
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-drag-panel`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-drag-panel`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - Studio User presses mouse button down on panel header — `inst-drag-mousedown`
 2. [ ] `p1` - `useDraggable` hook records drag start offset (cursor position relative to panel top-left) — `inst-record-offset`
@@ -127,9 +129,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### CollapsedButton Drag with Click Distinction
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-drag-button`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-drag-button`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - Studio User presses mouse button down on `CollapsedButton` — `inst-button-mousedown`
 2. [ ] `p1` - Record drag start cursor position — `inst-record-start-pos`
@@ -148,9 +150,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Panel Resize
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-resize-panel`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-resize-panel`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - Studio User presses mouse button down on bottom-right resize handle — `inst-resize-mousedown`
 2. [ ] `p1` - `useResizable` hook records resize start state: current mouse coordinates and current panel dimensions — `inst-record-resize-start`
@@ -167,9 +169,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Theme Change
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-theme-change`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-theme-change`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-framework-plugin`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-framework-plugin`
 
 1. [ ] `p1` - Studio User opens theme dropdown in `ThemeSelector` — `inst-open-theme-dropdown`
 2. [ ] `p1` - Dropdown reads available themes from `useTheme().themes` — `inst-load-themes`
@@ -183,9 +185,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Language Change
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-language-change`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-language-change`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-framework-plugin`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-framework-plugin`
 
 1. [ ] `p1` - Studio User opens language dropdown in `LanguageSelector` — `inst-open-lang-dropdown`
 2. [ ] `p1` - Dropdown lists all 36 supported languages from `SUPPORTED_LANGUAGES`; native script names displayed by default (`LanguageDisplayMode.Native`) — `inst-load-langs`
@@ -200,9 +202,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### API Mock Mode Toggle
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-mock-toggle`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-mock-toggle`
 
-**Actors**: `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-framework-plugin`
+**Actors**: `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-framework-plugin`
 
 1. [ ] `p1` - Studio User clicks the `ApiModeToggle` switch — `inst-click-mock-toggle`
 2. [ ] `p1` - `ApiModeToggle` reads current mock state from Redux via `useAppSelector` — `inst-read-mock-state`
@@ -215,9 +217,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### GTS Package Selection
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-gts-package`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-gts-package`
 
-**Actors**: `cpt-hai3-actor-studio-user`
+**Actors**: `cpt-frontx-actor-studio-user`
 
 1. [ ] `p1` - Studio User opens GTS package dropdown in `MfePackageSelector` — `inst-open-pkg-dropdown`
 2. [ ] `p1` - Dropdown lists all registered packages from `useRegisteredPackages()` — `inst-load-packages`
@@ -227,7 +229,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 6. [ ] `p1` - Filter extensions to those with `domain === HAI3_SCREEN_DOMAIN` and `isScreenExtension()` — `inst-filter-screen-ext`
 7. [ ] `p1` - **IF** no screen extensions exist **RETURN** warning logged, no further action — `inst-no-screen-ext`
 8. [ ] `p1` - Sort screen extensions by `presentation.order` ascending — `inst-sort-extensions`
-9. [ ] `p1` - Call `registry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
+9. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
 10. [ ] `p1` - Emit `studio/activePackageChanged` with `{ activePackageId }` — `inst-emit-pkg-changed`
 11. [ ] `p1` - Persistence effect subscribes to `studio/activePackageChanged`; writes `activePackageId` to `hai3:studio:activePackageId` — `inst-persist-pkg`
 
@@ -235,9 +237,9 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Settings Restore on Mount
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-restore-settings`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-restore-settings`
 
-**Actors**: `cpt-hai3-actor-runtime`, `cpt-hai3-actor-framework-plugin`
+**Actors**: `cpt-frontx-actor-runtime`, `cpt-frontx-actor-framework-plugin`
 
 1. [ ] `p1` - `StudioProvider` mounts; `useRestoreStudioSettings()` effect runs once — `inst-restore-effect`
 2. [ ] `p1` - Read `hai3:studio:theme` from localStorage — `inst-read-theme`
@@ -251,16 +253,16 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 10. [ ] `p1` - **IF** no `activePackageId` stored OR registry unavailable **RETURN** without action — `inst-no-restore-pkg`
 11. [ ] `p1` - Retrieve screen extensions for the persisted package and sort by `presentation.order` — `inst-restore-sort-ext`
 12. [ ] `p1` - **IF** no screen extensions found, skip restore silently — `inst-no-ext-skip`
-13. [ ] `p1` - Call `registry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` for the first extension — `inst-restore-mount`
+13. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` for the first extension — `inst-restore-mount`
 14. [ ] `p1` - **TRY** — on any error during GTS package restore, catch and skip; application remains in current state — `inst-restore-catch`
 
 ---
 
 ### Viewport Position Clamping
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-viewport-clamp`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-viewport-clamp`
 
-**Actors**: `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - `useDraggable` initializes position by reading stored value from localStorage (or default) — `inst-init-pos`
 2. [ ] `p1` - Immediately clamp the loaded position via `clampToViewport(storedPosition, elementSize)` — `inst-clamp-on-load`
@@ -275,14 +277,14 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Conditional Loading and Production Exclusion
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-conditional-load`
+- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-conditional-load`
 
-**Actors**: `cpt-hai3-actor-build-system`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-runtime`
 
 1. [ ] `p1` - Host application wraps Studio import with `import.meta.env.DEV` guard — `inst-dev-guard`
-2. [ ] `p1` - **IF** `import.meta.env.DEV` is true: dynamically import `StudioOverlay` from `@hai3/studio` — `inst-dev-import`
+2. [ ] `p1` - **IF** `import.meta.env.DEV` is true: dynamically import `StudioOverlay` from `@cyberfabric/studio` — `inst-dev-import`
 3. [ ] `p1` - Mount `StudioOverlay` inside `StudioProvider` beneath `HAI3Provider` — `inst-mount-overlay`
-4. [ ] `p1` - **IF** `import.meta.env.DEV` is false: Vite tree-shakes the entire conditional branch and `@hai3/studio` package — `inst-treeshake`
+4. [ ] `p1` - **IF** `import.meta.env.DEV` is false: Vite tree-shakes the entire conditional branch and `@cyberfabric/studio` package — `inst-treeshake`
 5. [ ] `p1` - Production bundle contains zero Studio code and zero Studio UIKit imports — `inst-zero-prod-footprint`
 
 ---
@@ -358,7 +360,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ### Position Clamping Algorithm
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-clamp-to-viewport`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-clamp-to-viewport`
 
 Given element position `{x, y}` and element size `{width, height}`:
 
@@ -371,7 +373,7 @@ Given element position `{x, y}` and element size `{width, height}`:
 
 ### Default Position Derivation
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-default-position`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-default-position`
 
 Used when no stored position exists in localStorage:
 
@@ -383,7 +385,7 @@ Used when no stored position exists in localStorage:
 
 ### Persistence Initialization
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-persistence-init`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-persistence-init`
 
 Called once when `StudioProvider` mounts via `initPersistenceEffects()`:
 
@@ -400,7 +402,7 @@ Called once when `StudioProvider` mounts via `initPersistenceEffects()`:
 
 ### localStorage Read/Write with Error Guard
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-localStorage-guard`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-localStorage-guard`
 
 All reads and writes to localStorage use guarded utilities:
 
@@ -415,7 +417,7 @@ All reads and writes to localStorage use guarded utilities:
 
 ### GTS Package Restore Validation
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-restore-gts-validation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-restore-gts-validation`
 
 Executed once when `screensetsRegistry` first becomes available:
 
@@ -432,7 +434,7 @@ Executed once when `screensetsRegistry` first becomes available:
 
 ### Event Routing for Dual Draggable Elements
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-event-routing`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-event-routing`
 
 `useDraggable` selects the correct event name based on `storageKey`:
 
@@ -445,7 +447,7 @@ Executed once when `screensetsRegistry` first becomes available:
 
 ### Dropdown Portal Management
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-studio-devtools-portal-management`
+- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-portal-management`
 
 Prevents dropdowns from being clipped by the glassmorphic panel's `backdrop-filter` stacking context:
 
@@ -461,7 +463,7 @@ Prevents dropdowns from being clipped by the glassmorphic panel's `backdrop-filt
 
 ### Panel Visibility State Machine
 
-- [x] `p1` - **ID**: `cpt-hai3-state-studio-devtools-panel-visibility`
+- [x] `p1` - **ID**: `cpt-frontx-state-studio-devtools-panel-visibility`
 
 1. [ ] `p1` - **FROM** `EXPANDED` **TO** `COLLAPSED` **WHEN** Studio User clicks collapse button in panel header — `inst-collapse-via-header`
 2. [ ] `p1` - **FROM** `EXPANDED` **TO** `COLLAPSED` **WHEN** Studio User presses `Shift+\`` — `inst-collapse-via-kbd`
@@ -474,7 +476,7 @@ Prevents dropdowns from being clipped by the glassmorphic panel's `backdrop-filt
 
 ### Drag State Machine
 
-- [x] `p1` - **ID**: `cpt-hai3-state-studio-devtools-drag`
+- [x] `p1` - **ID**: `cpt-frontx-state-studio-devtools-drag`
 
 Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 
@@ -487,7 +489,7 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 
 ### Resize State Machine
 
-- [x] `p1` - **ID**: `cpt-hai3-state-studio-devtools-resize`
+- [x] `p1` - **ID**: `cpt-frontx-state-studio-devtools-resize`
 
 1. [ ] `p1` - **FROM** `IDLE` **TO** `RESIZING` **WHEN** `mousedown` on bottom-right resize handle — `inst-resize-start`
 2. [ ] `p1` - **FROM** `RESIZING` **TO** `RESIZING` **WHEN** `mousemove` (size updates within constraints, event emitted) — `inst-resize-move`
@@ -501,7 +503,7 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 
 ### DoD: Floating Panel and Glassmorphic Overlay
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-panel-overlay`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-panel-overlay`
 
 `StudioPanel` renders as a fixed-position floating overlay with glassmorphic styling, a draggable header, collapsible state, and a bottom-right resize handle. `CollapsedButton` is a 48×48 circular glassmorphic button that appears when the panel is collapsed and supports independent dragging.
 
@@ -514,29 +516,29 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 - UI components from Studio local `packages/studio/src/uikit/`
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-drag-panel`
-- `cpt-hai3-flow-studio-devtools-drag-button`
-- `cpt-hai3-flow-studio-devtools-resize-panel`
-- `cpt-hai3-algo-studio-devtools-clamp-to-viewport`
-- `cpt-hai3-algo-studio-devtools-portal-management`
-- `cpt-hai3-state-studio-devtools-panel-visibility`
-- `cpt-hai3-state-studio-devtools-drag`
-- `cpt-hai3-state-studio-devtools-resize`
+- `cpt-frontx-flow-studio-devtools-drag-panel`
+- `cpt-frontx-flow-studio-devtools-drag-button`
+- `cpt-frontx-flow-studio-devtools-resize-panel`
+- `cpt-frontx-algo-studio-devtools-clamp-to-viewport`
+- `cpt-frontx-algo-studio-devtools-portal-management`
+- `cpt-frontx-state-studio-devtools-panel-visibility`
+- `cpt-frontx-state-studio-devtools-drag`
+- `cpt-frontx-state-studio-devtools-resize`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-panel`
-- `cpt-hai3-fr-studio-viewport`
-- `cpt-hai3-nfr-perf-treeshake`
+- `cpt-frontx-fr-studio-panel`
+- `cpt-frontx-fr-studio-viewport`
+- `cpt-frontx-nfr-perf-treeshake`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
-- `cpt-hai3-constraint-typescript-strict-mode`
+- `cpt-frontx-component-studio`
+- `cpt-frontx-constraint-typescript-strict-mode`
 
 ---
 
 ### DoD: Control Panel Sections
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-control-panel`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-control-panel`
 
 `ControlPanel` renders four sections vertically: `MfePackageSelector`, `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Controls use Studio local UI (`packages/studio/src/uikit/`) or project-chosen components. Dropdowns render inside the high-z-index portal container to prevent clipping by the panel's `backdrop-filter` stacking context.
 
@@ -548,27 +550,27 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 - All dropdown `DropdownMenuContent` elements receive `container={portalContainer}` and `className="z-[99999] pointer-events-auto"`
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-theme-change`
-- `cpt-hai3-flow-studio-devtools-language-change`
-- `cpt-hai3-flow-studio-devtools-mock-toggle`
-- `cpt-hai3-flow-studio-devtools-gts-package`
-- `cpt-hai3-algo-studio-devtools-portal-management`
+- `cpt-frontx-flow-studio-devtools-theme-change`
+- `cpt-frontx-flow-studio-devtools-language-change`
+- `cpt-frontx-flow-studio-devtools-mock-toggle`
+- `cpt-frontx-flow-studio-devtools-gts-package`
+- `cpt-frontx-algo-studio-devtools-portal-management`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-controls`
-- `cpt-hai3-fr-mock-toggle`
+- `cpt-frontx-fr-studio-controls`
+- `cpt-frontx-fr-mock-toggle`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
-- `cpt-hai3-principle-event-driven-architecture`
+- `cpt-frontx-component-studio`
+- `cpt-frontx-principle-event-driven-architecture`
 
 ---
 
 ### DoD: Settings Persistence and Restore
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-persistence`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-persistence`
 
-All Studio control panel settings (theme, language, mock mode, active GTS package) and all UI state (panel position, panel size, collapsed state, button position) are persisted to localStorage on change and restored on Studio mount. All persistence logic lives exclusively inside `@hai3/studio`.
+All Studio control panel settings (theme, language, mock mode, active GTS package) and all UI state (panel position, panel size, collapsed state, button position) are persisted to localStorage on change and restored on Studio mount. All persistence logic lives exclusively inside `@cyberfabric/studio`.
 
 **Implementation details**:
 - Storage keys under prefix `hai3:studio:` — see `STORAGE_KEYS` in `packages/studio/src/types.ts`
@@ -581,22 +583,22 @@ All Studio control panel settings (theme, language, mock mode, active GTS packag
 - No framework or application code is modified; restore uses existing framework events
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-restore-settings`
-- `cpt-hai3-algo-studio-devtools-persistence-init`
-- `cpt-hai3-algo-studio-devtools-localStorage-guard`
-- `cpt-hai3-algo-studio-devtools-restore-gts-validation`
+- `cpt-frontx-flow-studio-devtools-restore-settings`
+- `cpt-frontx-algo-studio-devtools-persistence-init`
+- `cpt-frontx-algo-studio-devtools-localStorage-guard`
+- `cpt-frontx-algo-studio-devtools-restore-gts-validation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-persistence`
+- `cpt-frontx-fr-studio-persistence`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
+- `cpt-frontx-component-studio`
 
 ---
 
 ### DoD: Viewport Position Clamping
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-viewport-clamping`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-viewport-clamping`
 
 Both `StudioPanel` and `CollapsedButton` always remain fully visible within the viewport with a 20px margin from all edges, both on initial mount and after window resize.
 
@@ -607,22 +609,22 @@ Both `StudioPanel` and `CollapsedButton` always remain fully visible within the 
 - Single `VIEWPORT_MARGIN = 20` constant defined once in `useDraggable.ts`
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-viewport-clamp`
-- `cpt-hai3-algo-studio-devtools-clamp-to-viewport`
-- `cpt-hai3-algo-studio-devtools-default-position`
-- `cpt-hai3-algo-studio-devtools-event-routing`
+- `cpt-frontx-flow-studio-devtools-viewport-clamp`
+- `cpt-frontx-algo-studio-devtools-clamp-to-viewport`
+- `cpt-frontx-algo-studio-devtools-default-position`
+- `cpt-frontx-algo-studio-devtools-event-routing`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-viewport`
+- `cpt-frontx-fr-studio-viewport`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
+- `cpt-frontx-component-studio`
 
 ---
 
 ### DoD: Keyboard Shortcut and Focus
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-keyboard`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-keyboard`
 
 Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.code === 'Backquote'` for cross-keyboard-layout reliability.
 
@@ -633,39 +635,39 @@ Studio panel toggling is accessible via `Shift+\`` keyboard shortcut using `e.co
 - Handler is `toggleCollapsed` from `StudioContext`
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-panel-toggle` (steps 1–5)
+- `cpt-frontx-flow-studio-devtools-panel-toggle` (steps 1–5)
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-panel`
+- `cpt-frontx-fr-studio-panel`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
+- `cpt-frontx-component-studio`
 
 ---
 
 ### DoD: Conditional Loading and Zero Production Footprint
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-studio-devtools-conditional-loading`
+- [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-conditional-loading`
 
-`@hai3/studio` is a standalone workspace package with `"sideEffects": false`. The host application loads it only in development via a `import.meta.env.DEV`-guarded dynamic `import()`. Production builds contain no Studio code.
+`@cyberfabric/studio` is a standalone workspace package with `"sideEffects": false`. The host application loads it only in development via a `import.meta.env.DEV`-guarded dynamic `import()`. Production builds contain no Studio code.
 
 **Implementation details**:
-- Package: `@hai3/studio`, ESM-first, `"type": "module"`, `"sideEffects": false`
-- Host entry point pattern: `if (import.meta.env.DEV) { const { StudioOverlay } = await import('@hai3/studio'); ... }`
+- Package: `@cyberfabric/studio`, ESM-first, `"type": "module"`, `"sideEffects": false`
+- Host entry point pattern: `if (import.meta.env.DEV) { const { StudioOverlay } = await import('@cyberfabric/studio'); ... }`
 - Vite tree-shakes the entire branch in production; no Studio chunk emitted
 - Studio translations registered automatically when `StudioProvider` is imported (side-effect-free i18n registry call at module scope)
 
 **Implements**:
-- `cpt-hai3-flow-studio-devtools-conditional-load`
+- `cpt-frontx-flow-studio-devtools-conditional-load`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-studio-independence`
-- `cpt-hai3-nfr-perf-treeshake`
+- `cpt-frontx-fr-studio-independence`
+- `cpt-frontx-nfr-perf-treeshake`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-component-studio`
-- `cpt-hai3-constraint-typescript-strict-mode`
-- `cpt-hai3-constraint-esm-first-module-format`
+- `cpt-frontx-component-studio`
+- `cpt-frontx-constraint-typescript-strict-mode`
+- `cpt-frontx-constraint-esm-first-module-format`
 
 ---
 
@@ -737,7 +739,7 @@ When a prompt is submitted, the system sends it with full project context to the
 - [x] GTS package restore skips gracefully when the persisted package ID is no longer registered or the registry is unavailable
 - [x] Panel and button positions are clamped to the visible viewport on load and re-clamped on window resize; no unnecessary persistence occurs when position is unchanged
 - [x] No Studio code executes in production (`import.meta.env.DEV` guard confirmed via bundle analysis)
-- [x] All `@hai3/studio` code compiles with TypeScript strict mode and zero `any`/`as unknown as` violations
+- [x] All `@cyberfabric/studio` code compiles with TypeScript strict mode and zero `any`/`as unknown as` violations
 - [ ] Clicking the Builder trigger opens the entire Builder experience (Chat Panel and Preview Panel together) with slide-in animations from their respective sides; clicking again closes both
 - [ ] Builder open/closed state and chat panel width are restored correctly after page reload
 - [ ] A processing indicator is visible within 300ms of prompt submission
@@ -800,7 +802,7 @@ All localStorage keys use the prefix `hai3:studio:`. Current keys defined in `ST
 
 ### Studio Event Namespace
 
-Studio-internal events use the `studio/` prefix and are declared via TypeScript module augmentation on `EventPayloadMap` from `@hai3/state`. Framework events consumed by Studio (`theme/changed`, `i18n/language/changed`, `mock/toggle`) are not owned by Studio.
+Studio-internal events use the `studio/` prefix and are declared via TypeScript module augmentation on `EventPayloadMap` from `@cyberfabric/state`. Framework events consumed by Studio (`theme/changed`, `i18n/language/changed`, `mock/toggle`) are not owned by Studio.
 
 ### UIKit Component Organization
 
@@ -826,7 +828,7 @@ Following screenset conventions:
 
 ### Dependency Boundary
 
-`@hai3/studio` depends on `@hai3/react` (for hooks, `eventBus`, `HAI3Provider` context). UI components are supplied from Studio local `packages/studio/src/uikit/`. Dependencies are direct compile-time, tree-shaken in production because the entire Studio conditional branch is eliminated. Studio does NOT depend on `@hai3/framework` or any L1 package directly.
+`@cyberfabric/studio` depends on `@cyberfabric/react` (for hooks, `eventBus`, `HAI3Provider` context). UI components are supplied from Studio local `packages/studio/src/uikit/`. Dependencies are direct compile-time, tree-shaken in production because the entire Studio conditional branch is eliminated. Studio does NOT depend on `@cyberfabric/framework` or any L1 package directly.
 
 ### i18n Self-Registration
 

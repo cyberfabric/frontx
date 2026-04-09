@@ -1,6 +1,6 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-persistence:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-viewport-clamping:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-panel-overlay:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-persistence:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-viewport-clamping:p1
 /**
  * Position coordinates for the Studio panel
  */

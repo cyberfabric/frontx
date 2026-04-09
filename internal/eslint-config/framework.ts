@@ -1,12 +1,12 @@
 /**
- * HAI3 ESLint Framework Configuration (L2)
- * Rules for @hai3/framework package
+ * FrontX ESLint Framework Configuration (L2)
+ * Rules for @cyberfabric/framework package
  *
  * Framework package CAN import:
- * - @hai3/state, @hai3/screensets, @hai3/api, @hai3/i18n (SDK packages)
+ * - @cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n (SDK packages)
  *
  * Framework package CANNOT import:
- * - @hai3/react (would create circular dependency)
+ * - @cyberfabric/react (would create circular dependency)
  * - react, react-dom (framework is headless)
  */
 
@@ -25,8 +25,8 @@ export const frameworkConfig: ConfigArray = [
         {
           patterns: [
             {
-              group: ['@hai3/react'],
-              message: 'FRAMEWORK VIOLATION: Framework cannot import @hai3/react (circular dependency).',
+              group: ['@cyberfabric/react'],
+              message: 'FRAMEWORK VIOLATION: Framework cannot import @cyberfabric/react (circular dependency).',
             },
             {
               group: ['react', 'react-dom', 'react/*'],

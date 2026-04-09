@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 import { ButtonVariant, ButtonSize, IconButtonSize } from '../types';
 
 /**
- * IconButton component for HAI3 UI-Core
+ * IconButton component for FrontX UI-Core
  * Provides a consistent icon-only button across all screens
  * Composes UI Kit Button with icon size variant
  */

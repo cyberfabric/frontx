@@ -19,6 +19,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v5
+        with:
+          ref: develop
 
       - name: Setup Node.js 24.14.x
         uses: actions/setup-node@v5
@@ -36,11 +38,11 @@ jobs:
         run: npm run build:packages
 
       - name: Run CLI nightly E2E
-        run: npm run test:e2e:nightly --workspace=@hai3/cli
+        run: npm run test:e2e:nightly --workspace=@cyberfabric/cli
         env:
           CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/nightly
-          HAI3_USE_LOCAL: '1'
-          HAI3_MONOREPO_ROOT: ${{ github.workspace }}
+          FRONTX_USE_LOCAL: '1'
+          FRONTX_MONOREPO_ROOT: ${{ github.workspace }}
 
       - name: Upload CLI E2E artifacts
         if: always()

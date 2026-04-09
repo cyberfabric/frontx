@@ -1,6 +1,6 @@
 # MFE Vendor Development Guide
 
-This guide explains how third-party vendors can develop microfrontend (MFE) extensions for HAI3 applications.
+This guide explains how third-party vendors can develop microfrontend (MFE) extensions for FrontX applications.
 
 ## Table of Contents
 
@@ -16,7 +16,7 @@ This guide explains how third-party vendors can develop microfrontend (MFE) exte
 
 ## Overview
 
-HAI3's MFE system enables vendors to create extensions that integrate into host applications through well-defined contracts. Key features:
+FrontX's MFE system enables vendors to create extensions that integrate into host applications through well-defined contracts. Key features:
 
 - **Framework Agnostic**: MFEs can use any UI framework (React, Vue, Angular, Svelte, etc.)
 - **Instance-Level Isolation**: Each MFE instance has its own runtime and state (default handler)
@@ -28,7 +28,7 @@ HAI3's MFE system enables vendors to create extensions that integrate into host 
 
 ### Type System Plugin
 
-HAI3 uses a pluggable Type System abstraction. The default implementation is GTS (`@globaltypesystem/gts-ts`). All type IDs are opaque strings - the plugin handles parsing and validation.
+FrontX uses a pluggable Type System abstraction. The default implementation is GTS (`@globaltypesystem/gts-ts`). All type IDs are opaque strings - the plugin handles parsing and validation.
 
 **Key Principle**: When you need metadata about a type ID, call `plugin.parseTypeId()`, `plugin.getAttribute()`, or other plugin methods directly.
 
@@ -61,7 +61,7 @@ For an MFE to mount in a domain, three rules must ALL be true:
 ### 1. Install Dependencies
 
 ```bash
-npm install @hai3/screensets @globaltypesystem/gts-ts
+npm install @cyberfabric/screensets @globaltypesystem/gts-ts
 ```
 
 ### 2. Import Core Types
@@ -76,8 +76,8 @@ import type {
   Action,
   ActionsChain,
   ChildMfeBridge,
-} from '@hai3/screensets';
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+} from '@cyberfabric/screensets';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 ```
 
 ### 3. Understand the Entry Type Hierarchy
@@ -93,7 +93,7 @@ MfeEntry (abstract base)
 ### Basic MFE Entry (Pure Contract)
 
 ```typescript
-import type { MfeEntry } from '@hai3/screensets';
+import type { MfeEntry } from '@cyberfabric/screensets';
 
 const myEntry: MfeEntry = {
   // Instance ID (does NOT end with ~)
@@ -126,7 +126,7 @@ const myEntry: MfeEntry = {
 For Module Federation deployments, use `MfeEntryMF` which extends `MfeEntry` with manifest info:
 
 ```typescript
-import type { MfeEntryMF, MfManifest } from '@hai3/screensets';
+import type { MfeEntryMF, MfManifest } from '@cyberfabric/screensets';
 
 // Define the manifest (can be inline or referenced)
 const manifest: MfManifest = {
@@ -168,7 +168,7 @@ const mfEntry: MfeEntryMF = {
 An Extension binds an MFE Entry to a Domain:
 
 ```typescript
-import type { Extension } from '@hai3/screensets';
+import type { Extension } from '@cyberfabric/screensets';
 
 const myExtension: Extension = {
   // Instance ID (does NOT end with ~)
@@ -282,7 +282,7 @@ const action: Action = {
 Actions can be chained with success (`next`) and failure (`fallback`) paths:
 
 ```typescript
-import type { ActionsChain } from '@hai3/screensets';
+import type { ActionsChain } from '@cyberfabric/screensets';
 
 const chain: ActionsChain = {
   action: {
@@ -311,7 +311,7 @@ const chain: ActionsChain = {
 MFEs receive a `ChildMfeBridge` for communicating with the host:
 
 ```typescript
-import type { ChildMfeBridge, MfeEntryLifecycle } from '@hai3/screensets';
+import type { ChildMfeBridge, MfeEntryLifecycle } from '@cyberfabric/screensets';
 
 export const ChartWidget: MfeEntryLifecycle = {
   async mount(container: Element, bridge: ChildMfeBridge) {
@@ -351,7 +351,7 @@ export const ChartWidget: MfeEntryLifecycle = {
 
 ### Default Lifecycle Stages
 
-HAI3 provides 4 default lifecycle stages:
+FrontX provides 4 default lifecycle stages:
 
 1. **init** - `gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1`
    - Triggered: After extension registration
@@ -421,7 +421,7 @@ const extensionWithHooks: Extension = {
 Extensions can be registered at any time during runtime:
 
 ```typescript
-import { ContainerProvider } from '@hai3/screensets';
+import { ContainerProvider } from '@cyberfabric/screensets';
 
 // Define a ContainerProvider for your domain
 class WidgetContainerProvider extends ContainerProvider {

@@ -1,13 +1,13 @@
 /**
- * HAI3 Dependency Cruiser Framework Configuration (L2)
- * Rules for @hai3/framework package
+ * FrontX Dependency Cruiser Framework Configuration (L2)
+ * Rules for @cyberfabric/framework package
  *
  * Framework package CAN import:
- * - @hai3/state, @hai3/layout, @hai3/api, @hai3/i18n (SDK packages)
+ * - @cyberfabric/state, @cyberfabric/layout, @cyberfabric/api, @cyberfabric/i18n (SDK packages)
  *
  * Framework package CANNOT import:
- * - @hai3/react (would create circular dependency)
- * - @hai3/uicore (deprecated)
+ * - @cyberfabric/react (would create circular dependency)
+ * - @cyberfabric/uicore (deprecated)
  * - react, react-dom (framework is headless)
  */
 
@@ -22,8 +22,8 @@ module.exports = {
       name: 'framework-only-sdk-deps',
       severity: 'error',
       from: { path: '^packages/framework/src' },
-      to: { path: 'node_modules/@hai3/(react|uicore)' },
-      comment: 'FRAMEWORK VIOLATION: Framework can only import SDK packages (@hai3/state, layout, api, i18n).',
+      to: { path: 'node_modules/@cyberfabric/(react|uicore)' },
+      comment: 'FRAMEWORK VIOLATION: Framework can only import SDK packages (@cyberfabric/state, layout, api, i18n).',
     },
     {
       name: 'framework-no-react',

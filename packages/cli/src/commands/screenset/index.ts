@@ -1,4 +1,4 @@
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-types
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-types
 import path from 'path';
 import fs from 'fs-extra';
 import type { CommandDefinition } from '../../core/command.js';
@@ -43,16 +43,16 @@ function parsePortArg(port: ScreensetCreateArgs['port']): number | undefined {
 function isValidPortNumber(port: number): boolean {
   return Number.isInteger(port) && port >= 1 && port <= 65535;
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-types
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-types
 
 /**
  * screenset create command implementation
  *
  * Scaffolds a new MFE screenset package from the _blank-mfe template.
  */
-// @cpt-flow:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-screenset-generation:p2
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-definition
+// @cpt-flow:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-screenset-generation:p2
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-definition
 export const screensetCreateCommand: CommandDefinition<
   ScreensetCreateArgs,
   ScreensetCreateResult
@@ -73,9 +73,9 @@ export const screensetCreateCommand: CommandDefinition<
       type: 'string',
     },
   ],
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-definition
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-definition
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
   validate(args, ctx) {
     const { name } = args;
 
@@ -100,7 +100,7 @@ export const screensetCreateCommand: CommandDefinition<
     if (!ctx.projectRoot) {
       return validationError(
         'NOT_IN_PROJECT',
-        'Not inside a HAI3 project. Run this command from a project root.'
+        'Not inside a FrontX project. Run this command from a project root.'
       );
     }
 
@@ -116,9 +116,9 @@ export const screensetCreateCommand: CommandDefinition<
 
     return validationOk();
   },
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
 
-  // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-execute
+  // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-execute
   async execute(args, ctx): Promise<ScreensetCreateResult> {
     const { logger, projectRoot } = ctx;
     const { name } = args;
@@ -135,7 +135,7 @@ export const screensetCreateCommand: CommandDefinition<
       );
     }
 
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
     const configResult = await loadConfig(projectRoot!);
     if (!configResult.ok) {
       throw new Error(configResult.message);
@@ -143,15 +143,15 @@ export const screensetCreateCommand: CommandDefinition<
     const config = configResult.config;
     if (!config.uikit) {
       throw new Error(
-        'Missing "uikit" field in hai3.config.json. Recreate the project with `hai3 create` or add a "uikit" field ("shadcn", "none", or an npm package name).'
+        'Missing "uikit" field in frontx.config.json. Recreate the project with `frontx create` or add a "uikit" field ("shadcn", "none", or an npm package name).'
       );
     }
     if (isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
       throw new Error(
-        `Invalid "uikit" value in hai3.config.json: "${config.uikit}" is not a valid npm package name.`
+        `Invalid "uikit" value in frontx.config.json: "${config.uikit}" is not a valid npm package name.`
       );
     }
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-2
 
     // Assign port
     const parsedPort = parsePortArg(args.port);
@@ -160,13 +160,13 @@ export const screensetCreateCommand: CommandDefinition<
     logger.info(`Creating screenset '${name}' (port: ${port})...`);
     logger.newline();
 
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
     const result = await generateScreenset({
       name,
       port,
       projectRoot: projectRoot!,
     });
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-6
 
     logger.success(`Created screenset '${name}' at src/mfe_packages/${mfeDirName}/`);
     logger.newline();
@@ -191,5 +191,5 @@ export const screensetCreateCommand: CommandDefinition<
       port,
     };
   },
-  // @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-execute
+  // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-execute
 };

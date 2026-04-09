@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-bootstrap:p1
 
 /**
  * Bootstrap Actions
@@ -7,14 +7,14 @@
  * Following flux architecture: Actions emit events, Effects listen and dispatch.
  */
 
-import { eventBus } from '@hai3/react';
+import { eventBus } from '@cyberfabric/react';
 import type { ApiUser } from '@/app/api';
 
 /**
  * Fetch current user
  * Emits 'app/user/fetch' event
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1
 export function fetchCurrentUser(): void {
   eventBus.emit('app/user/fetch');
 }
@@ -27,4 +27,4 @@ export function fetchCurrentUser(): void {
 export function notifyUserLoaded(user: ApiUser): void {
   eventBus.emit('app/user/loaded', { user });
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1

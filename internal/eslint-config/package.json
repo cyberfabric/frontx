@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/eslint-config",
-  "version": "0.1.0-alpha.0",
-  "description": "Layered ESLint configuration for HAI3 SDK architecture",
+  "name": "@cyberfabric/eslint-config",
+  "version": "0.2.0-alpha.0",
+  "description": "Layered ESLint configuration for FrontX SDK architecture",
   "private": true,
   "type": "module",
   "exports": {
@@ -38,6 +38,6 @@
   "keywords": [
     "eslint",
     "eslint-config",
-    "hai3"
+    "frontx"
   ]
 }

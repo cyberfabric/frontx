@@ -2,7 +2,7 @@ name: Publish Packages
 
 on:
   push:
-    branches: [main]
+    branches: [main, develop, 'release/v*']
 
 permissions:
   contents: read
@@ -95,10 +95,26 @@ jobs:
           PUBLISHED_PACKAGES=()
           SKIPPED_PACKAGES=()
 
-          # Determine npm tag based on version (prerelease versions need explicit tag)
+          # Determine npm tag based on branch first, then version as fallback.
+          # Branch-aware: release/vN branches publish to the "vN" dist-tag.
+          BRANCH="${GITHUB_REF#refs/heads/}"
           get_npm_tag() {
             local version="$1"
-            if [[ "$version" == *"-alpha"* ]]; then
+            # Long-lived release branches: release/v1 → v1, release/v2 → v2
+            if [[ "$BRANCH" =~ ^release/v([0-9]+)$ ]]; then
+              echo "v${BASH_REMATCH[1]}"
+            elif [[ "$BRANCH" == "develop" ]]; then
+              echo "alpha"
+            elif [[ "$BRANCH" == "main" ]]; then
+              # Version-based fallback for safety (alpha versions on main = misconfiguration)
+              if [[ "$version" == *"-alpha"* ]]; then
+                echo "alpha"
+              elif [[ "$version" == *"-rc"* ]]; then
+                echo "next"
+              else
+                echo "latest"
+              fi
+            elif [[ "$version" == *"-alpha"* ]]; then
               echo "alpha"
             elif [[ "$version" == *"-beta"* ]]; then
               echo "beta"

@@ -1,6 +1,6 @@
 # Type ID Principles and ActionsChain Structure
 
-This document explains two critical principles of HAI3's MFE system:
+This document explains two critical principles of FrontX's MFE system:
 
 1. **Opaque Type ID Principle** - Type IDs are opaque strings; call plugin methods when metadata is needed
 2. **ActionsChain Structure** - ActionsChain contains Action instances (not type ID references)
@@ -9,7 +9,7 @@ This document explains two critical principles of HAI3's MFE system:
 
 ### Overview
 
-In HAI3's MFE system, type IDs are treated as **opaque strings**. The screensets package never parses or interprets type IDs directly - all type ID understanding is delegated to the `TypeSystemPlugin`.
+In FrontX's MFE system, type IDs are treated as **opaque strings**. The screensets package never parses or interprets type IDs directly - all type ID understanding is delegated to the `TypeSystemPlugin`.
 
 ### Why Opaque Type IDs?
 
@@ -25,7 +25,7 @@ In HAI3's MFE system, type IDs are treated as **opaque strings**. The screensets
 ### Correct Usage
 
 ```typescript
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 
 // ✅ Correct - calling plugin method
 const typeId = 'gts.hai3.mfes.mfe.entry.v1~acme.analytics.mfe.chart.v1';
@@ -319,7 +319,7 @@ const chain = {
 ### Example 1: Using Plugin Methods for Type Metadata
 
 ```typescript
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 
 function logTypeInfo(typeId: string) {
   // Use plugin to check validity
@@ -526,4 +526,4 @@ plugin.validateInstance(action.type);
 }
 ```
 
-Following these principles ensures your MFE integrates correctly with HAI3's type system abstraction and action mediation system.
+Following these principles ensures your MFE integrates correctly with FrontX's type system abstraction and action mediation system.

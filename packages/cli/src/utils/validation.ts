@@ -1,8 +1,8 @@
 /**
  * Validation utilities for CLI commands
  */
-// @cpt-algo:cpt-hai3-algo-cli-tooling-validate-project-name:p1
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-name-validation
+// @cpt-algo:cpt-frontx-algo-cli-tooling-validate-project-name:p1
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-name-validation
 
 import lodash from 'lodash';
 const { toLower } = lodash;
@@ -11,12 +11,12 @@ const { toLower } = lodash;
  * Validate npm package name
  * Based on npm package name rules
  */
-// @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
+// @cpt-begin:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
 export function isValidPackageName(name: string): boolean {
   if (!name || name.length === 0) return false;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
+  // @cpt-end:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
   if (name.length > 214) return false;
   if (name.startsWith('.') || name.startsWith('_')) return false;
   if (name !== toLower(name)) return false;
@@ -32,11 +32,11 @@ export function isValidPackageName(name: string): boolean {
       return false;
     }
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
+  // @cpt-end:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-npm-name-pattern
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
   return true;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
+  // @cpt-end:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-return-name-valid
 }
 
 /**
@@ -63,13 +63,13 @@ export function isPascalCase(str: string): boolean {
   return true;
 }
 
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-name-validation
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-name-validation
 
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-normalize
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-normalize
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1
 const NPM_PACKAGE_NAME_RE = /^(@[a-z0-9-~][a-z0-9-._~]*\/)?[a-z0-9-~][a-z0-9-._~]*$/;
 const LEGACY_UIKIT_ALIAS: Record<string, string> = {
-  hai3: 'shadcn',
+  frontx: 'shadcn',
 };
 
 /**
@@ -79,14 +79,14 @@ export function normalizeUikit(uikit: string): string {
   return LEGACY_UIKIT_ALIAS[uikit] ?? uikit;
 }
 
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-normalize
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-normalize
 
 /**
  * Defense-in-depth guard: asserts that a uikit value is safe to interpolate
  * into generated code (e.g. `export * from '${uikit}'`).
  * Throws if the value doesn't match strict npm package-name syntax.
  */
-// @cpt-begin:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1b
+// @cpt-begin:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1b
 export function assertValidUikitForCodegen(uikit: string): void {
   if (!NPM_PACKAGE_NAME_RE.test(uikit)) {
     throw new Error(
@@ -94,17 +94,17 @@ export function assertValidUikitForCodegen(uikit: string): void {
     );
   }
 }
-// @cpt-end:cpt-hai3-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1b
+// @cpt-end:cpt-frontx-algo-ui-libraries-choice-bridge-generation:p1:inst-bridge-generation-1b
 
 /**
  * Check if a uikit value is a custom npm package (not a built-in preset)
  */
-// @cpt-dod:cpt-hai3-dod-ui-libraries-choice-uikit-resolution-impl:p1
+// @cpt-dod:cpt-frontx-dod-ui-libraries-choice-uikit-resolution-impl:p1
 export function isCustomUikit(uikit: string): boolean {
   const resolvedUikit = normalizeUikit(uikit);
-  // @cpt-begin:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-6
+  // @cpt-begin:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-6
   return resolvedUikit !== 'shadcn' && resolvedUikit !== 'none';
-  // @cpt-end:cpt-hai3-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-6
+  // @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-6
 }
 
 /**
@@ -112,8 +112,8 @@ export function isCustomUikit(uikit: string): boolean {
  * Returns { exists: true } on success, { exists: false, error } on 404,
  * or { exists: true } with a warning on network failure (graceful degradation).
  */
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-validate-npm
-// @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-validate-npm
+// @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2
 export async function validateNpmPackage(
   packageName: string
 ): Promise<{ exists: boolean; error?: string; warning?: string }> {
@@ -147,9 +147,9 @@ export async function validateNpmPackage(
   }
 }
 
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-validate-npm
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-validate-npm
 
-// @cpt-begin:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-reserved-names
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-reserved-names
 /**
  * Reserved screenset names that cannot be used
  */
@@ -161,4 +161,4 @@ const RESERVED_SCREENSET_NAMES = ['screenset', 'screen', 'index', 'api', 'core']
 export function isReservedScreensetName(name: string): boolean {
   return RESERVED_SCREENSET_NAMES.includes(toLower(name));
 }
-// @cpt-end:cpt-hai3-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-reserved-names
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-reserved-names

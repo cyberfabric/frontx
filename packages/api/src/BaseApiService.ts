@@ -7,11 +7,11 @@
  * SDK Layer: L1 (Only peer dependency on axios)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-base-service:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-service-registration:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-service-cleanup:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-plugin-exclusion:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
+// @cpt-dod:cpt-frontx-dod-api-communication-base-service:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-service-registration:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-service-cleanup:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-plugin-exclusion:p1
+// @cpt-algo:cpt-frontx-algo-api-communication-plugin-ordering:p1
 
 import type {
   ApiServiceConfig,
@@ -58,7 +58,7 @@ export abstract class BaseApiService {
   /** Registered plugins for framework management (generic storage - not mock-specific) */
   private registeredPluginsMap: Map<ApiProtocol, Set<ApiPluginBase>> = new Map();
 
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-service-registration:p1:inst-1
   constructor(config: ApiServiceConfig, ...protocols: ApiProtocol[]) {
     this.config = Object.freeze({ ...config });
 
@@ -71,7 +71,7 @@ export abstract class BaseApiService {
       this.protocols.set(protocol.constructor.name, protocol);
     });
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-service-registration:p1:inst-1
 
   // ============================================================================
   // Namespaced Plugin API (Service-Level)
@@ -124,11 +124,11 @@ export abstract class BaseApiService {
      * }
      * ```
      */
-    // @cpt-begin:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-1
+    // @cpt-begin:cpt-frontx-flow-api-communication-plugin-exclusion:p1:inst-1
     exclude: (...pluginClasses: PluginClass[]): void => {
       pluginClasses.forEach((cls) => this.excludedPluginClasses.add(cls));
     },
-    // @cpt-end:cpt-hai3-flow-api-communication-plugin-exclusion:p1:inst-1
+    // @cpt-end:cpt-frontx-flow-api-communication-plugin-exclusion:p1:inst-1
 
     /**
      * Get all excluded plugin classes.
@@ -265,7 +265,7 @@ export abstract class BaseApiService {
    * }
    * ```
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-api-communication-service-registration:p1:inst-2
   registerPlugin(protocol: ApiProtocol, plugin: ApiPluginBase): void {
     if (!this.protocols.has(protocol.constructor.name)) {
       throw new Error(
@@ -278,7 +278,7 @@ export abstract class BaseApiService {
     }
     this.registeredPluginsMap.get(protocol)!.add(plugin);
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-api-communication-service-registration:p1:inst-2
 
   /**
    * Get all registered plugins (GENERIC - returns all plugins).
@@ -339,11 +339,11 @@ export abstract class BaseApiService {
    * Cleanup service resources.
    * Called when service is destroyed.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-cleanup:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-service-cleanup:p1:inst-1
   cleanup(): void {
     // Cleanup all protocols
     this.protocols.forEach((protocol) => protocol.cleanup());
     this.protocols.clear();
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-cleanup:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-service-cleanup:p1:inst-1
 }
