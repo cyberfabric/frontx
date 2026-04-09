@@ -19,6 +19,7 @@
 - packages/screensets -> .ai/targets/LAYOUT.md
 - packages/api -> .ai/targets/API.md
 - packages/i18n -> .ai/targets/I18N.md
+- packages/perf-telemetry -> .ai/targets/PERF_TELEMETRY.md
 
 ### Framework Layer (L2) - Depends on SDK packages
 - packages/framework -> .ai/targets/FRAMEWORK.md
@@ -83,7 +84,7 @@
   - No console errors or missing registrations.
 
 ## BLOCKLIST
-- Telemetry or tracking code.
+- Ad-hoc telemetry or tracking code (use @hai3/perf-telemetry for official performance telemetry).
 - "as unknown as" type casts.
 - unknown in public type definitions.
 - eslint-disable comments.

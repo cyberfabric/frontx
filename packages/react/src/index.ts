@@ -93,6 +93,7 @@ export {
   layout,
   i18n,
   effects,
+  telemetry,
 
   // Registries
   createThemeRegistry,

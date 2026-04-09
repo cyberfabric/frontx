@@ -39,7 +39,8 @@
     "@hai3/state": "*",
     "@hai3/screensets": "*",
     "@hai3/api": "*",
-    "@hai3/i18n": "*"
+    "@hai3/i18n": "*",
+    "@hai3/perf-telemetry": "*"
   },
   "peerDependenciesMeta": {
     "@hai3/state": {
@@ -53,6 +54,9 @@
     },
     "@hai3/i18n": {
       "optional": false
+    },
+    "@hai3/perf-telemetry": {
+      "optional": true
     }
   },
   "publishConfig": {

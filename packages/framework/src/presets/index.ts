@@ -15,6 +15,7 @@ import { i18n } from '../plugins/i18n';
 import { effects } from '../plugins/effects';
 import { mock } from '../plugins/mock';
 import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfrontends';
+import { telemetry, type TelemetryPluginConfig } from '../plugins/telemetry';
 
 /**
  * Full preset configuration.
@@ -22,6 +23,8 @@ import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfront
 export interface FullPresetConfig {
   /** Configuration for microfrontends plugin */
   microfrontends?: MicrofrontendsConfig;
+  /** Configuration for performance telemetry plugin */
+  telemetry?: TelemetryPluginConfig;
 }
 
 /**
@@ -64,6 +67,9 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
   ];
   if (config?.microfrontends) {
     plugins.push(microfrontends(config.microfrontends));
+  }
+  if (config?.telemetry) {
+    plugins.push(telemetry(config.telemetry));
   }
   return plugins;
 }

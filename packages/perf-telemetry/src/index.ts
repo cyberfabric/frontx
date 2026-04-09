@@ -1,0 +1,88 @@
+// @cpt-dod:cpt-hai3-dod-perf-telemetry-action-first:p1
+/**
+ * @hai3/perf-telemetry — Action-first performance telemetry for HAI3
+ */
+
+export { TelemetryProvider, useTelemetryContext } from './TelemetryProvider';
+export {
+  useRoutePerf,
+  useDoneRendering,
+  useTelemetryAction,
+  runTelemetryAction,
+  useInstrumentedFetch,
+  instrumentedFetch,
+  useWebVitals,
+  useResourceTimingObserver,
+  useLongTaskObserver,
+} from './hooks';
+export {
+  initOtel,
+  getOtelSessionId,
+  flushOtel,
+  shutdownOtel,
+  setRuntimeConfigProvider,
+  runFrontendWork,
+  getTracer,
+  isOtelInitialized,
+  setCurrentRouteId,
+} from './otel-init';
+export {
+  beginActionScope,
+  endActionScope,
+  getActiveActionScopes,
+  findRelatedActionScope,
+  getActionParentContext,
+  getTelemetryParentContext,
+  setAmbientTracer,
+  endAmbientAction,
+  getAmbientScope,
+  beginRouteUiScope,
+  endRouteUiScope,
+  getActiveRouteUiScope,
+  getRouteUiParentContext,
+} from './action-scope';
+export {
+  telemetryStore,
+  TelemetryStoreProcessor,
+} from './telemetry-store';
+export {
+  getTelemetryRuntimeConfig,
+  subscribeTelemetryRuntimeConfig,
+  updateTelemetryRuntimeConfig,
+  getTelemetryConsentMode,
+} from './runtime-config';
+export { useTelemetryRuntimeConfig } from './useTelemetryRuntimeConfig';
+export { getClientInfo } from './client-info';
+export { TelemetryErrorBoundary } from './TelemetryErrorBoundary';
+export {
+  PolicyEngine,
+  getPolicyByProfile,
+  mergePolicy,
+  classifyLane,
+  BASELINE_POLICY,
+  INVESTIGATION_POLICY,
+  SUPPORT_BURST_POLICY,
+  KILL_SWITCH_POLICY,
+} from './policy-engine';
+export type { PolicyOverrides } from './types';
+export type {
+  OtelConfig,
+  TelemetryRuntimeConfig,
+  TelemetryContextValue,
+  TelemetryProviderProps,
+  ActionScope,
+  RouteUiScope,
+  StoredSpan,
+  SpanListener,
+  CollectionPolicy,
+  PolicyProfile,
+  Lane,
+  ClientAttributes,
+  NavigatorWithConnection,
+  ActionTrigger,
+  ActionSnapshot,
+  DoneRenderingDeps,
+  DoneRenderingOptions,
+  FetchMeta,
+  TelemetryActionOptions,
+} from './types';

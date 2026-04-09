@@ -27,6 +27,7 @@ export interface LayerPackageInput {
 /**
  * Get dependencies for a layer
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getLayerDependencies(layer: LayerType): {
   dependencies: Record<string, string>;
   peerDependencies: Record<string, string>;
@@ -40,36 +41,29 @@ function getLayerDependencies(layer: LayerType): {
     globals: '^15.0.0',
     eslint: '^9.0.0',
   };
+  const buildBaseLayerDependencies = (peerDependencies: Record<string, string>) => ({
+    dependencies: {},
+    peerDependencies,
+    devDependencies: {
+      ...eslintDevDeps,
+      typescript: '^5.4.0',
+      tsup: '^8.0.0',
+    },
+  });
 
   switch (layer) {
     case 'sdk':
       // SDK layer has no HAI3 dependencies
-      return {
-        dependencies: {},
-        peerDependencies: {},
-        devDependencies: {
-          ...eslintDevDeps,
-          typescript: '^5.4.0',
-          tsup: '^8.0.0',
-        },
-      };
+      return buildBaseLayerDependencies({});
 
     case 'framework':
       // Framework layer depends only on SDK packages
-      return {
-        dependencies: {},
-        peerDependencies: {
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
-        },
-        devDependencies: {
-          ...eslintDevDeps,
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
-          typescript: '^5.4.0',
-          tsup: '^8.0.0',
-        },
-      };
+      return buildBaseLayerDependencies({
+        '@hai3/state': 'alpha',
+        '@hai3/screensets': 'alpha',
+        '@hai3/api': 'alpha',
+        '@hai3/i18n': 'alpha',
+      });
 
     case 'react':
       // React layer depends on Framework and React
@@ -101,11 +95,13 @@ function getLayerDependencies(layer: LayerType): {
       };
   }
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Get ESLint config content for a layer
  * Generates self-contained configs that don't depend on @hai3/eslint-config
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getEslintConfig(layer: LayerType): string {
   const baseConfig = `import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
@@ -269,10 +265,12 @@ export default [
   return `${baseConfig}];
 `;
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Get tsconfig content for a layer
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getTsConfig(layer: LayerType): string {
   const compilerOptions: Record<string, unknown> = {
     target: 'ES2022',
@@ -303,6 +301,7 @@ function getTsConfig(layer: LayerType): string {
     2
   );
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Generate files for a layer package
@@ -312,6 +311,17 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
   const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
+  // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
+  let layerReadmeDetails = '';
+
+  if (layer === 'sdk') {
+    layerReadmeDetails = '- No HAI3 package dependencies\n- No React dependencies';
+  } else if (layer === 'framework') {
+    layerReadmeDetails = `- Can depend on SDK packages (${Object.keys(deps.peerDependencies).join(', ')})\n- No React dependencies`;
+  } else if (layer === 'react') {
+    layerReadmeDetails = '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency';
+  }
+  // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
   // package.json
   const packageJson = {
@@ -430,7 +440,7 @@ ${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 ## Layer: ${layer}
 
 This package follows HAI3's ${layer}-layer architecture conventions:
-${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@hai3/events, @hai3/store, etc.)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency' : ''}
+${layerReadmeDetails}
 
 ## License
 

@@ -27,7 +27,7 @@
 
 ### 1.1 Architectural Vision
 
-HAI3 is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, and screen-set contracts. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@hai3/studio`, `@hai3/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
+HAI3 is a four-layer monorepo architecture that separates concerns vertically by abstraction level and horizontally by domain. The lowest layer (L1 SDK) provides framework-agnostic primitives for state, API communication, localization, screen-set contracts, and performance telemetry. The middle layer (L2 Framework) composes these primitives through a plugin system. The upper layer (L3 React) binds the framework to React 19. Standalone packages (`@hai3/studio`, `@hai3/cli`) operate outside the layer hierarchy with minimal coupling, while UI implementation remains app-owned.
 
 This layering enforces a strict dependency direction: higher layers depend on lower layers, never the reverse. L1 packages have zero cross-dependencies, meaning any SDK package can be used in isolation — in a Node.js CLI, a web worker, or a non-React rendering engine. The plugin architecture at L2 means the framework never needs modification to add capabilities; all extensions compose through `createHAI3().use(plugin).build()`.
 
@@ -53,7 +53,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-symbol-based-mock-plugin-identification`,
 `cpt-hai3-adr-global-shared-property-broadcast`,
 `cpt-hai3-adr-cli-template-based-code-generation`,
-`cpt-hai3-adr-two-tier-cli-e2e-verification`
+`cpt-hai3-adr-two-tier-cli-e2e-verification`,
+`cpt-hai3-adr-action-first-telemetry`
 
 #### Functional Drivers
 
@@ -162,18 +163,18 @@ Requirements that significantly influence architecture decisions.
 ├─────────────────────────────────────────────────────┤
 │ L2  @hai3/framework                                  │
 │     createHAI3() · plugins · layout slices           │
-├────────┬────────┬──────────┬────────────────────────┤
-│ L1     │ L1     │ L1       │ L1                      │
-│ state  │ screen │ api      │ i18n                    │
-│        │ sets   │          │                         │
-├────────┴────────┴──────────┴────────────────────────┤
+├───────┬────────┬────────┬────────┬──────────────────┤
+│ L1    │ L1     │ L1     │ L1     │ L1               │
+│ state │ screen │ api    │ i18n   │ perf-telemetry   │
+│       │ sets   │        │        │                  │
+├───────┴────────┴────────┴────────┴──────────────────┤
 │ Standalone: @hai3/studio · @hai3/cli                            │
 └─────────────────────────────────────────────────────┘
 ```
 
 | Layer | Responsibility | Technology |
 |-------|---------------|------------|
-| L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure | TypeScript, Redux Toolkit, Axios, i18next |
+| L1 SDK | Framework-agnostic primitives: state management, screen-set contracts, API protocols, i18n infrastructure, performance telemetry | TypeScript, Redux Toolkit, Axios, i18next, OpenTelemetry |
 | L2 Framework | Plugin composition, layout orchestration, configuration management, re-exports SDK surface | TypeScript, Redux Toolkit (slices) |
 | L3 React | React bindings, provider tree, hooks, MFE rendering components | React 19, Shadow DOM |
 | Standalone — Studio | Development overlay for theme/i18n/state inspection | React 19, localStorage |
@@ -343,15 +344,15 @@ All packages output ESM as the primary module format. `package.json` files inclu
 │               │ framework    │                            │
 │               │ createHAI3() │                            │
 │               │ plugins      │                            │
-│               └──┬──┬──┬──┬─┘                            │
-│           depends│  │  │  │on                             │
-│     ┌────────┬──┘  │  │  └──┬────────┐                   │
-│     ▼        ▼     ▼  ▼     ▼        │                   │
-│  ┌──────┐ ┌──────┐ ┌────┐ ┌─────┐   │                   │
-│  │state │ │screen│ │api │ │i18n │   │                   │
-│  │      │ │sets  │ │    │ │     │   │                   │
-│  └──────┘ └──────┘ └────┘ └─────┘   │                   │
-│    L1       L1       L1     L1       │                   │
+│               └──┬──┬──┬──┬──┬────┘                        │
+│           depends│  │  │  │  │on                           │
+│     ┌────────┬──┘  │  │  │  └──┬────────┐                 │
+│     │        │     │  │  │     │        │                 │
+│  ┌──────┐ ┌──────┐ ┌────┐ ┌─────┐ ┌──────────────┐ │
+│  │state │ │screen│ │api │ │i18n │ │perf-telemetry│ │
+│  │      │ │sets  │ │    │ │     │ │              │ │
+│  └──────┘ └──────┘ └────┘ └─────┘ └──────────────┘ │
+│    L1       L1       L1     L1         L1           │
 │  (no cross-dependencies)      ┌──────▼─┐                 │
 │                               │@hai3/  │                 │
 │                               │cli     │                 │
@@ -444,6 +445,33 @@ Provides a unified API service layer that abstracts protocol differences (REST, 
 
 - `cpt-hai3-component-framework` — depends on: framework plugins use `createApiService()` to register domain APIs
 - `cpt-hai3-component-state` — publishes to: API effects dispatch events on the event bus for state updates
+
+#### @hai3/perf-telemetry (L1)
+
+- [x] `p1` - **ID**: `cpt-hai3-component-perf-telemetry`
+
+##### Why this component exists
+
+Provides action-first browser telemetry as an opt-in L1 SDK package so applications can capture route, render, API, runtime, and web-vital spans without introducing `@hai3/*` runtime dependencies.
+
+##### Responsibility scope
+
+- **Action correlation**: Active scopes, recent scopes, and ambient fallback ensure every span is correlated to a named action
+- **Instrumentation APIs**: Exports hooks and helpers for route timing, render readiness, action wrapping, API calls, web vitals, and runtime observers
+- **Span processing**: Initializes OTel Browser SDK, enriches spans with session/runtime metadata, gates export, and mirrors completed spans into an in-memory store
+- **Fail-open behavior**: Telemetry failures are swallowed so business flows continue uninterrupted
+- **Studio integration surface**: Exposes `telemetryStore` for local inspection without coupling the package to Studio UI concerns
+
+##### Responsibility boundaries
+
+- Does NOT depend on any other `@hai3/*` package
+- Does NOT require the framework layer — framework only provides an opt-in plugin wrapper around initialization and shutdown
+- Does NOT own dashboard UI — Studio renders the panel using the exposed telemetry store
+
+##### Related components (by ID)
+
+- `cpt-hai3-component-framework` — depends on: the `telemetry()` plugin initializes, flushes, and shuts down the telemetry SDK
+- `cpt-hai3-component-studio` — used by: Studio reads the telemetry store to render the perf panel
 
 #### @hai3/i18n (L1)
 

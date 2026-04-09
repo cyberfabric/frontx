@@ -32,6 +32,8 @@ export {
   mock,
   microfrontends,
   type MockPluginConfig,
+  telemetry,
+  type TelemetryPluginConfig,
 } from './plugins';
 
 // MFE Plugin Exports

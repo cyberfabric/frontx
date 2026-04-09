@@ -8,6 +8,7 @@ export { layout } from './layout';
 export { i18n } from './i18n';
 export { effects } from './effects';
 export { mock, type MockPluginConfig } from './mock';
+export { telemetry, type TelemetryPluginConfig } from './telemetry';
 export {
   microfrontends,
   // MFE actions
