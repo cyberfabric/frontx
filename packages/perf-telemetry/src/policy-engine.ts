@@ -36,14 +36,17 @@ function deepFreeze<T>(value: T): Readonly<T> {
 }
 
 /** Returns a cryptographically secure random float in [0, 1). Uses globalThis for Node/JSDOM compat. */
-function cryptoRandom(): number {
-  if (globalThis.crypto) {
-    const array = new Uint32Array(1);
-    globalThis.crypto.getRandomValues(array);
-    return array[0] / 4294967296; // 2^32
-  }
-  return Math.random();
+// @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-check-crypto-rng
+function hasCryptoRandomValues(): boolean {
+  return typeof globalThis.crypto?.getRandomValues === 'function';
 }
+
+function cryptoRandom(): number {
+  const array = new Uint32Array(1);
+  globalThis.crypto.getRandomValues(array);
+  return array[0] / 4294967296; // 2^32
+}
+// @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-check-crypto-rng
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
 
@@ -153,11 +156,12 @@ export function classifyLane(eventType: string): Lane {
 export class PolicyEngine {
   private currentPolicy: CollectionPolicy;
   private readonly eventCounter: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
+  private readonly sampleCarry: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
   private windowStartMs: number = Date.now();
   private readonly RATE_WINDOW_MS = 60000;
-  private readonly random: () => number;
+  private readonly random?: () => number;
 
-  constructor(initialPolicy: CollectionPolicy = BASELINE_POLICY, random: () => number = cryptoRandom) {
+  constructor(initialPolicy: CollectionPolicy = BASELINE_POLICY, random?: () => number) {
     this.currentPolicy = structuredClone(initialPolicy);
     this.random = random;
   }
@@ -165,6 +169,7 @@ export class PolicyEngine {
   /** Replaces the active policy (deep-cloned) and resets the rate window. */
   updatePolicy(policy: CollectionPolicy): void {
     this.currentPolicy = structuredClone(policy);
+    this.resetSampleCarry();
     this.resetRateWindow();
   }
 
@@ -174,13 +179,28 @@ export class PolicyEngine {
   }
 
   /** Returns true if the event should be sampled based on the lane's configured rate. */
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-sample-event
   shouldSampleEvent(lane: Lane): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
     const rate = this.currentPolicy.samplingRates[`lane${lane}`];
-    return this.random() < rate;
+    if (rate <= 0) return false;
+    if (rate >= 1) return true;
+
+    const randomValue = this.random?.();
+    if (typeof randomValue === 'number') {
+      return randomValue < rate;
+    }
+
+    if (hasCryptoRandomValues()) {
+      return cryptoRandom() < rate;
+    }
+
+    return this.shouldSampleDeterministically(lane, rate);
   }
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-sample-event
 
   /** Evaluates kill switch, per-lane rate limit, and sampling in order. Rate limits are intentionally per-lane (each lane has its own budget, e.g., lane A for critical errors gets a separate quota from lane C diagnostics). */
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-accept-event
   shouldAcceptEvent(lane: Lane): { accept: boolean; reason?: string } {
     if (this.currentPolicy.killSwitch.active) {
       return { accept: false, reason: 'kill_switch_active' };
@@ -202,6 +222,7 @@ export class PolicyEngine {
 
     return { accept: true };
   }
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-accept-event
 
   /** Returns true if the given feature toggle is enabled and the kill switch is inactive. */
   isFeatureEnabled(feature: keyof CollectionPolicy['featureToggles']): boolean {
@@ -251,11 +272,33 @@ export class PolicyEngine {
     this.eventCounter.set('B', 0);
     this.eventCounter.set('C', 0);
   }
+
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-reset-deterministic-sampler
+  private resetSampleCarry(): void {
+    this.sampleCarry.set('A', 0);
+    this.sampleCarry.set('B', 0);
+    this.sampleCarry.set('C', 0);
+  }
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-reset-deterministic-sampler
+
+  // @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-deterministic-sampling-fallback
+  private shouldSampleDeterministically(lane: Lane, rate: number): boolean {
+    const nextCarry = (this.sampleCarry.get(lane) || 0) + rate;
+    if (nextCarry >= 1) {
+      this.sampleCarry.set(lane, nextCarry - 1);
+      return true;
+    }
+
+    this.sampleCarry.set(lane, nextCarry);
+    return false;
+  }
+  // @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-deterministic-sampling-fallback
 }
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
 /** Returns a fresh CollectionPolicy instance for the given profile name. */
+// @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-get-policy-profile
 export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
   const now = Date.now();
   switch (profile) {
@@ -272,8 +315,10 @@ export function getPolicyByProfile(profile: PolicyProfile): CollectionPolicy {
     default: return { ...structuredClone(BASELINE_POLICY), updatedAt: now };
   }
 }
+// @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-get-policy-profile
 
 /** Shallow-merge policy overrides for top-level fields; nested objects (samplingRates, limits, featureToggles, killSwitch) are merged one level deep. */
+// @cpt-begin:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-merge-policy-overrides
 export function mergePolicy(base: CollectionPolicy, overrides: PolicyOverrides): CollectionPolicy {
   const cloned = structuredClone(base);
   return {
@@ -293,3 +338,4 @@ export function mergePolicy(base: CollectionPolicy, overrides: PolicyOverrides):
     updatedAt: Date.now(),
   };
 }
+// @cpt-end:cpt-hai3-flow-perf-telemetry-export-toggle:p2:inst-merge-policy-overrides

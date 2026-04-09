@@ -13,7 +13,7 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { isAbsolute, join, relative, resolve } from 'path';
 
 interface TestResult {
   name: string;
@@ -42,9 +42,9 @@ function log(message: string, color: keyof typeof colors = 'reset'): void {
 }
 
 function readPackageJson(packagePath: string): PackageJson | null {
-  const pkgPath = path.resolve(packagePath, 'package.json');
-  const relative = path.relative(path.resolve(packagePath), pkgPath);
-  if (relative.startsWith('..') || path.isAbsolute(relative)) {
+  const pkgPath = resolve(packagePath, 'package.json');
+  const relativePath = relative(resolve(packagePath), pkgPath);
+  if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
     return null;
   }
   if (!existsSync(pkgPath)) {
@@ -64,7 +64,7 @@ function getHai3Dependencies(pkg: PackageJson): string[] {
 // SDK packages that should have ZERO @hai3 dependencies
 // Note: @hai3/events + @hai3/store were consolidated into @hai3/state
 // Note: @hai3/layout was deleted, layout slices now in @hai3/framework
-const SDK_PACKAGES = ['state', 'api', 'i18n', 'screensets'];
+const SDK_PACKAGES = ['state', 'api', 'i18n', 'screensets', 'perf-telemetry'];
 
 // Framework can only import these SDK packages
 const ALLOWED_SDK_DEPS = [
@@ -72,6 +72,7 @@ const ALLOWED_SDK_DEPS = [
   '@hai3/api',
   '@hai3/i18n',
   '@hai3/screensets', // Screenset contracts and registry
+  '@hai3/perf-telemetry',
 ];
 
 // Deprecated packages that should not be imported

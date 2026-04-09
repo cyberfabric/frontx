@@ -27,6 +27,7 @@ export interface LayerPackageInput {
 /**
  * Get dependencies for a layer
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getLayerDependencies(layer: LayerType): {
   dependencies: Record<string, string>;
   peerDependencies: Record<string, string>;
@@ -94,11 +95,13 @@ function getLayerDependencies(layer: LayerType): {
       };
   }
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Get ESLint config content for a layer
  * Generates self-contained configs that don't depend on @hai3/eslint-config
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getEslintConfig(layer: LayerType): string {
   const baseConfig = `import js from '@eslint/js';
 import tseslint from 'typescript-eslint';
@@ -262,10 +265,12 @@ export default [
   return `${baseConfig}];
 `;
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Get tsconfig content for a layer
  */
+// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 function getTsConfig(layer: LayerType): string {
   const compilerOptions: Record<string, unknown> = {
     target: 'ES2022',
@@ -296,6 +301,7 @@ function getTsConfig(layer: LayerType): string {
     2
   );
 }
+// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
 /**
  * Generate files for a layer package
@@ -305,6 +311,7 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
   const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
+  // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
   const layerReadmeDetails = layer === 'sdk'
     ? '- No HAI3 package dependencies\n- No React dependencies'
     : layer === 'framework'
@@ -312,6 +319,7 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
       : layer === 'react'
         ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency'
         : '';
+  // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
   // package.json
   const packageJson = {
