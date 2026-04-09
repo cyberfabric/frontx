@@ -13,8 +13,7 @@ import {
   screensets,
   themes,
   layout,
-  navigation,
-  routing,
+  telemetry,
   i18n,
   effects,
 } from '@cyberfabric/framework';
@@ -57,7 +56,7 @@ console.log('\n=== 10.7.1 Headless Preset Tests ===\n');
 
 test('10.7.1.1 Create app with headless preset', () => {
   const app = createHAI3()
-    .use(presets.headless())
+    .useAll(presets.headless())
     .build();
 
   assert(app !== null, 'App should be created');
@@ -69,38 +68,32 @@ test('10.7.1.1 Create app with headless preset', () => {
 
 test('10.7.1.2 Only screensets plugin is active (headless)', () => {
   const app = createHAI3()
-    .use(presets.headless())
+    .useAll(presets.headless())
     .build();
 
-  // screensetRegistry should exist
-  assert(typeof app.screensetRegistry !== 'undefined', 'screensetRegistry should exist');
+  // screensetsRegistry should not exist without the microfrontends plugin
+  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should NOT exist in headless');
 
   // themeRegistry should NOT exist (no themes plugin)
-  assert(typeof (app as Record<string, unknown>).themeRegistry === 'undefined', 'themeRegistry should NOT exist in headless');
+  assert(typeof app.themeRegistry === 'undefined', 'themeRegistry should NOT exist in headless');
 
   app.destroy();
 });
 
 test('10.7.1.3 screensetRegistry is available and works', () => {
   const app = createHAI3()
-    .use(presets.headless())
+    .useAll(presets.headless())
     .build();
 
-  // Registry should have methods
-  assert(typeof app.screensetRegistry.register === 'function', 'register method should exist');
-  assert(typeof app.screensetRegistry.get === 'function', 'get method should exist');
-  assert(typeof app.screensetRegistry.getAll === 'function', 'getAll method should exist');
-
-  // Should return empty array initially
-  const all = app.screensetRegistry.getAll();
-  assert(Array.isArray(all), 'getAll should return array');
+  assert(typeof app.actions.setActiveScreen === 'function', 'setActiveScreen action should exist');
+  assert(typeof app.actions.setScreenLoading === 'function', 'setScreenLoading action should exist');
 
   app.destroy();
 });
 
 test('10.7.1.4 Store is configured with screen slice only', () => {
   const app = createHAI3()
-    .use(presets.headless())
+    .useAll(presets.headless())
     .build();
 
   const state = app.store.getState() as Record<string, unknown>;
@@ -118,22 +111,23 @@ test('10.7.1.4 Store is configured with screen slice only', () => {
 
 test('10.7.1.5 Layout domains are NOT registered in headless', () => {
   const app = createHAI3()
-    .use(presets.headless())
+    .useAll(presets.headless())
     .build();
 
-  const state = app.store.getState();
+  const state = app.store.getState() as Record<string, unknown>;
+  const layoutState = typeof state.layout === 'object' && state.layout !== null
+    ? state.layout as Record<string, unknown>
+    : undefined;
 
   // In headless mode, layout domains should not be present
   // unless explicitly added via layout() plugin
-  const hasFullLayout = state.layout &&
-    'header' in state.layout &&
-    'footer' in state.layout &&
-    'menu' in state.layout;
+  const hasFullLayout = !!layoutState
+    && 'header' in layoutState
+    && 'footer' in layoutState
+    && 'menu' in layoutState;
 
   // For headless preset, we expect minimal layout or no full layout domains
-  // The actual assertion depends on implementation details
-  // Just verify no error is thrown and state is valid
-  assert(typeof state === 'object', 'State should be an object');
+  assert(hasFullLayout === false, 'Headless preset should not register full layout domains');
 
   app.destroy();
 });
@@ -151,8 +145,10 @@ test('10.7.2.1 screensets + themes composition works', () => {
     .build();
 
   assert(app !== null, 'App should be created');
-  assert(typeof app.screensetRegistry !== 'undefined', 'screensetRegistry should exist');
   assert(typeof app.themeRegistry !== 'undefined', 'themeRegistry should exist');
+  assert(typeof app.actions.setActiveScreen === 'function', 'setActiveScreen action should exist');
+  assert(typeof app.actions.changeTheme === 'function', 'changeTheme action should exist');
+  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should not exist without microfrontends');
 
   app.destroy();
 });
@@ -162,16 +158,14 @@ test('10.7.2.2 Individual plugins can be imported and used', () => {
   const screensetsPlugin = screensets();
   const themesPlugin = themes();
   const layoutPlugin = layout();
-  const navigationPlugin = navigation();
-  const routingPlugin = routing();
+  const telemetryPlugin = telemetry({ enabled: false });
   const i18nPlugin = i18n();
   const effectsPlugin = effects();
 
   assert(screensetsPlugin.name === 'screensets', 'screensets plugin should have correct name');
   assert(themesPlugin.name === 'themes', 'themes plugin should have correct name');
   assert(layoutPlugin.name === 'layout', 'layout plugin should have correct name');
-  assert(navigationPlugin.name === 'navigation', 'navigation plugin should have correct name');
-  assert(routingPlugin.name === 'routing', 'routing plugin should have correct name');
+  assert(telemetryPlugin.name === 'telemetry', 'telemetry plugin should have correct name');
   assert(i18nPlugin.name === 'i18n', 'i18n plugin should have correct name');
   assert(effectsPlugin.name === 'effects', 'effects plugin should have correct name');
 });
@@ -192,52 +186,51 @@ test('10.7.2.3 Plugin composition order does not matter', () => {
     .build();
 
   // Both should work
-  assert(app1.screensetRegistry !== undefined, 'app1 should have screensetRegistry');
-  assert(app2.screensetRegistry !== undefined, 'app2 should have screensetRegistry');
+  assert(typeof app1.actions.setActiveScreen === 'function', 'app1 should expose screensets actions');
+  assert(typeof app2.actions.setActiveScreen === 'function', 'app2 should expose screensets actions');
+  assert(typeof app1.actions.changeTheme === 'function', 'app1 should expose theme actions');
+  assert(typeof app2.actions.changeTheme === 'function', 'app2 should expose theme actions');
 
   app1.destroy();
   app2.destroy();
 });
 
 test('10.7.2.4 Plugin dependency auto-resolution works', () => {
-  // Navigation depends on screensets and routing
-  // The app builder should handle this automatically
+  // Layout depends on screensets.
+  // The app builder should handle this automatically.
   const app = createHAI3()
-    .use(effects())
+    .use(layout())
     .use(screensets())
-    .use(routing())
-    .use(navigation())
     .build();
 
   // If we got here without error, dependencies were resolved
   assert(app !== null, 'App should be created with dependencies resolved');
-  assert(typeof app.actions.navigateToScreen === 'function', 'navigateToScreen action should exist');
+  assert(typeof app.actions.showPopup === 'function', 'showPopup action should exist');
 
   app.destroy();
 });
 
 test('10.7.2.5 Full preset creates complete app', () => {
-  const app = createHAI3App(); // Uses full preset
+  const app = createHAI3App({ telemetry: { enabled: false } }); // Uses full preset + telemetry
 
-  assert(app.screensetRegistry !== undefined, 'screensetRegistry should exist');
   assert(app.themeRegistry !== undefined, 'themeRegistry should exist');
-  assert(app.routeRegistry !== undefined, 'routeRegistry should exist');
   assert(app.i18nRegistry !== undefined, 'i18nRegistry should exist');
+  assert(typeof app.actions.changeTheme === 'function', 'changeTheme action should exist');
+  assert(typeof app.actions.setLanguage === 'function', 'setLanguage action should exist');
+  assert(typeof app.actions.toggleMockMode === 'function', 'toggleMockMode action should exist');
 
   app.destroy();
 });
 
 test('10.7.2.6 Minimal preset has only screensets and themes', () => {
   const app = createHAI3()
-    .use(presets.minimal())
+    .useAll(presets.minimal())
     .build();
 
-  assert(app.screensetRegistry !== undefined, 'screensetRegistry should exist');
   assert(app.themeRegistry !== undefined, 'themeRegistry should exist');
-
-  // Navigation actions should not exist in minimal preset
-  const hasNavigateToScreen = typeof (app.actions as Record<string, unknown>).navigateToScreen === 'function';
-  // Note: depending on implementation, this might still exist as a no-op
+  assert(typeof app.actions.setActiveScreen === 'function', 'setActiveScreen action should exist');
+  assert(typeof app.actions.changeTheme === 'function', 'changeTheme action should exist');
+  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should not exist without microfrontends');
 
   app.destroy();
 });
