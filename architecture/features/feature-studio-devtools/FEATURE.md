@@ -61,7 +61,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-frontx-feature-studio-devtools`
+- [ ] `p2` - `cpt-frontx-feature-studio-devtools`
 
 ---
 
