@@ -305,6 +305,13 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
   const { packageName, layer, packageManager = DEFAULT_PACKAGE_MANAGER } = input;
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
+  const layerReadmeDetails = layer === 'sdk'
+    ? '- No HAI3 package dependencies\n- No React dependencies'
+    : layer === 'framework'
+      ? `- Can depend on SDK packages (${Object.keys(deps.peerDependencies).join(', ')})\n- No React dependencies`
+      : layer === 'react'
+        ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency'
+        : '';
 
   // package.json
   const packageJson = {
@@ -423,7 +430,7 @@ ${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 ## Layer: ${layer}
 
 This package follows HAI3's ${layer}-layer architecture conventions:
-${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@hai3/events, @hai3/store, etc.)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency' : ''}
+${layerReadmeDetails}
 
 ## License
 
