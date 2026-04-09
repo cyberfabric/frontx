@@ -72,10 +72,10 @@ test('10.7.1.2 Only screensets plugin is active (headless)', () => {
     .build();
 
   // screensetsRegistry should not exist without the microfrontends plugin
-  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should NOT exist in headless');
+  assert(app.screensetsRegistry === undefined, 'screensetsRegistry should NOT exist in headless');
 
   // themeRegistry should NOT exist (no themes plugin)
-  assert(typeof app.themeRegistry === 'undefined', 'themeRegistry should NOT exist in headless');
+  assert(app.themeRegistry === undefined, 'themeRegistry should NOT exist in headless');
 
   app.destroy();
 });
@@ -145,10 +145,10 @@ test('10.7.2.1 screensets + themes composition works', () => {
     .build();
 
   assert(app !== null, 'App should be created');
-  assert(typeof app.themeRegistry !== 'undefined', 'themeRegistry should exist');
+  assert(app.themeRegistry !== undefined, 'themeRegistry should exist');
   assert(typeof app.actions.setActiveScreen === 'function', 'setActiveScreen action should exist');
   assert(typeof app.actions.changeTheme === 'function', 'changeTheme action should exist');
-  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should not exist without microfrontends');
+  assert(app.screensetsRegistry === undefined, 'screensetsRegistry should not exist without microfrontends');
 
   app.destroy();
 });
@@ -230,7 +230,7 @@ test('10.7.2.6 Minimal preset has only screensets and themes', () => {
   assert(app.themeRegistry !== undefined, 'themeRegistry should exist');
   assert(typeof app.actions.setActiveScreen === 'function', 'setActiveScreen action should exist');
   assert(typeof app.actions.changeTheme === 'function', 'changeTheme action should exist');
-  assert(typeof app.screensetsRegistry === 'undefined', 'screensetsRegistry should not exist without microfrontends');
+  assert(app.screensetsRegistry === undefined, 'screensetsRegistry should not exist without microfrontends');
 
   app.destroy();
 });

@@ -312,13 +312,15 @@ export async function generateLayerPackage(input: LayerPackageInput): Promise<Ge
   const files: GeneratedFile[] = [];
   const deps = getLayerDependencies(layer);
   // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
-  const layerReadmeDetails = layer === 'sdk'
-    ? '- No HAI3 package dependencies\n- No React dependencies'
-    : layer === 'framework'
-      ? `- Can depend on SDK packages (${Object.keys(deps.peerDependencies).join(', ')})\n- No React dependencies`
-      : layer === 'react'
-        ? '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency'
-        : '';
+  let layerReadmeDetails = '';
+
+  if (layer === 'sdk') {
+    layerReadmeDetails = '- No HAI3 package dependencies\n- No React dependencies';
+  } else if (layer === 'framework') {
+    layerReadmeDetails = `- Can depend on SDK packages (${Object.keys(deps.peerDependencies).join(', ')})\n- No React dependencies`;
+  } else if (layer === 'react') {
+    layerReadmeDetails = '- Can depend on Framework packages (@hai3/framework)\n- React peer dependency';
+  }
   // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
 
   // package.json
