@@ -551,7 +551,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Sequences**:
 
-  - `cpt-hai3-seq-builder-codegen`
+  - `cpt-frontx-seq-builder-codegen`
 
 - **Data**:
   - N/A (client-side library)
