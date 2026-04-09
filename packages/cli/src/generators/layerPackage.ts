@@ -58,14 +58,9 @@ function getLayerDependencies(layer: LayerType): {
       // Framework layer depends only on SDK packages
       return {
         dependencies: {},
-        peerDependencies: {
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
-        },
+        peerDependencies: {},
         devDependencies: {
           ...eslintDevDeps,
-          '@hai3/events': 'alpha',
-          '@hai3/store': 'alpha',
           typescript: '^5.4.0',
           tsup: '^8.0.0',
         },

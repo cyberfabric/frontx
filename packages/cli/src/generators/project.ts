@@ -498,7 +498,12 @@ async function copyTemplateFiles(input: TemplateCopyInput): Promise<GeneratedFil
   for (const dir of directories) {
     if (dir === 'src/app/themes' && uikit !== 'shadcn') continue;
     if (dir === 'src/app/components' && uikit !== 'shadcn') continue;
-    files.push(...(await readDirRecursive(path.join(templatesDir, dir), dir)));
+    const dirFiles = await readDirRecursive(path.join(templatesDir, dir), dir);
+    files.push(...(
+      dir === 'src/app/lib' && uikit !== 'shadcn'
+        ? dirFiles.filter((file) => file.path !== 'src/app/lib/utils.ts')
+        : dirFiles
+    ));
   }
 
   const mfeCoreFiles = ['MfeScreenContainer.tsx', 'bootstrap.ts'];

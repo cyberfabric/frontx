@@ -6,13 +6,17 @@ description: HAI3 AI Command Quality Tests
 # Define prompts with raw option to avoid template parsing
 prompts:
   - id: hai3-new-screenset
+    label: hai3-new-screenset
     raw: file://../commands/user/hai3-new-screenset.md
   - id: hai3-new-screen
+    label: hai3-new-screen
     raw: file://../commands/user/hai3-new-screen.md
   - id: hai3-validate
-    raw: file://../commands/user/hai3-validate.md
+    label: hai3-validate
+    raw: file://../../packages/cli/templates/commands-bundle/hai3-validate.md
   - id: hai3-fix-violation
-    raw: file://../commands/user/hai3-fix-violation.md
+    label: hai3-fix-violation
+    raw: file://../../packages/cli/templates/commands-bundle/hai3-fix-violation.md
 
 providers:
   - id: echo
@@ -22,6 +26,8 @@ providers:
 tests:
   # Test: hai3-new-screenset structure
   - description: hai3-new-screenset delegates to CLI
+    prompts:
+      - hai3-new-screenset
     vars:
       prompt: hai3-new-screenset
     assert:
@@ -33,12 +39,14 @@ tests:
         value: "SCREENSETS.md"
       - type: javascript
         value: |
-          output.includes('REQUIRED') ||
-          output.includes('FORBIDDEN') ||
-          output.includes('STOP')
+          return output.includes('REQUIRED') ||
+            output.includes('FORBIDDEN') ||
+            output.includes('STOP');
 
   # Test: hai3-new-screen structure
   - description: hai3-new-screen has workflow
+    prompts:
+      - hai3-new-screen
     vars:
       prompt: hai3-new-screen
     assert:
@@ -49,6 +57,8 @@ tests:
 
   # Test: hai3-validate structure
   - description: hai3-validate references guidelines
+    prompts:
+      - hai3-validate
     vars:
       prompt: hai3-validate
     assert:
@@ -59,6 +69,8 @@ tests:
 
   # Test: hai3-fix-violation structure
   - description: hai3-fix-violation has workflow
+    prompts:
+      - hai3-fix-violation
     vars:
       prompt: hai3-fix-violation
     assert:

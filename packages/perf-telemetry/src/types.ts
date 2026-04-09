@@ -19,12 +19,20 @@ export type ActionScope = {
   endedAtMs?: number;
 };
 
+export type ActionSnapshot = {
+  actionName: string;
+  spanId: string;
+  traceId: string;
+  routeId: string;
+};
+
 export type RouteUiScope = {
   routeId: string;
   signalName: string;
   startedAtMs: number;
   readySpan: Span;
   uiSpan: Span;
+  actionSnapshot?: ActionSnapshot;
   endedAtMs?: number;
 };
 
@@ -127,8 +135,12 @@ export type ActionTrigger = 'click' | 'navigation' | 'polling' | 'timer' | 'life
 /** Serializable primitive record used for JSON-safe config and span attributes. */
 export type PrimitiveRecord = Record<string, string | number | boolean>;
 
+export type DoneRenderingOptions = { timeoutMs?: number };
+
 /** Dependency map for useDoneRendering — dataReady is required, extra keys for custom tracking. */
 export type DoneRenderingDeps = { dataReady: boolean; [key: string]: string | number | boolean | null | undefined };
+
+export type TelemetryActionOptions = { routeId?: string; trigger?: ActionTrigger };
 
 /** Metadata for instrumentedFetch correlation. */
 export type FetchMeta = { routeId: string; actionName?: string };
