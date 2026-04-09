@@ -1,6 +1,6 @@
 # Feature: Screenset Registry & Contracts
 
-<!-- artifact-version: 1.1 -->
+<!-- artifact-version: 1.3 -->
 
 
 <!-- toc -->
@@ -39,6 +39,7 @@
   - [MFE Type Contracts](#mfe-type-contracts)
   - [GTS-Based Validation](#gts-based-validation)
   - [MFE Schema Registration](#mfe-schema-registration)
+  - [MfManifest GTS Schema and Type Update](#mfmanifest-gts-schema-and-type-update)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [MFE Handler Injection](#mfe-handler-injection)
   - [ActionsChainsMediator Contract](#actionschainsmediator-contract)
@@ -89,6 +90,18 @@ Success criteria: A host application can register a domain and extension, execut
 - Design constraint: `cpt-frontx-constraint-no-react-below-l3`
 - Design constraint: `cpt-frontx-constraint-zero-cross-deps-at-l1`
 - Design constraint: `cpt-frontx-constraint-no-barrel-exports-for-registries`
+
+#### Non-Applicable Domains
+
+- **OPS**: Client-side library, no server deployment
+- **COMPL**: No regulatory data handling
+- **UX**: Infrastructure capability, no direct user interface
+- **DATA**: No database persistence
+- **INT**: No external service integrations
+- **BIZ**: Infrastructure capability; business value derived transitively
+- **PERF**: No hot code paths beyond validation (sub-millisecond operations)
+- **MAINT**: No formal SLA or support tier — maintained under FrontX iterative development model
+- **SEC**: No authentication or authorization implementation; security concerns (input validation, schema enforcement) are addressed through GTS validation already covered by `cpt-frontx-nfr-sec-type-validation`
 
 ---
 
@@ -385,8 +398,30 @@ Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
 All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and architecture artifacts:
 
 - `MfeEntry`: `id`, `requiredProperties`, `actions`, `domainActions`, optional `optionalProperties`
-- `MfeEntryMF` extends `MfeEntry`: adds `manifest` (`string | MfManifest`), `exposedModule`
-- `MfManifest`: `id`, `remoteEntry`, `remoteName`, optional `sharedDependencies`; `SharedDependencyConfig` has `name`, optional `requiredVersion`; no `singleton` field
+- `MfeEntryMF` extends `MfeEntry`: adds `manifest` (`string | MfManifest`), `exposedModule`, `exposeAssets`. Fields:
+  - `manifest` — reference to the package-level manifest. Two resolution paths:
+    1. **GTS type reference (string)**: resolved from the ManifestCache by GTS ID at load time
+    2. **Inline MfManifest object**: validated and cached at load time
+  - `exposedModule` — which module to load from the MFE package (e.g., `"./lifecycle"`)
+  - `exposeAssets` — chunk paths and CSS assets for THIS specific exposed module:
+    - `js` — `{ sync: string[], async: string[] }` — JS chunk filenames relative to manifest's `publicPath`
+    - `css` — `{ sync: string[], async: string[] }` — CSS asset filenames relative to manifest's `publicPath`
+  - The `exposeAssets` data originates from the `exposes[]` array in `mf-manifest.json` but is split out at registration time — the manifest entity carries shared data, the entry carries per-module data
+- `MfManifest` (GTS schema `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`): package-level metadata shared across all entries from the same MFE package. Contains ONLY what is common between entries — knows nothing about individual entries or exposed modules. Fields:
+  - `id` — GTS instance ID (required)
+  - `name` — federation container name (required)
+  - `metaData` — build and entry metadata (required):
+    - `publicPath` — base URL for resolving chunk paths (e.g., `http://localhost:3001/`)
+    - `remoteEntry` — entry point location: `{ path, name, type }` (e.g., `{ path: "/js/", name: "remoteEntry.js", type: "module" }`)
+    - `name` — federation name (same as top-level `name`)
+    - `buildInfo` — `{ buildVersion, buildName }`
+    - `globalName` — global variable name for script-tag loading
+  - `shared` — array of shared dependency declarations (required). Each entry:
+    - `name` — package name (e.g., `"react"`)
+    - `version` — actual installed version (e.g., `"19.0.0"`)
+    - `requiredVersion` — semver range (e.g., `"^19.0.0"`)
+    - `assets` — `{ js: { sync: string[], async: string[] }, css: { sync: string[], async: string[] } }` — chunk filenames
+  - Fields present in `mf-manifest.json` but excluded from `MfManifest`: `exposes` (per-module data — split into `MfeEntryMF.exposeAssets` at registration time), `remotes` (not used by the handler), `singleton` (meaningless under blob URL isolation), `hash`, `fallback`/`fallbackName`/`fallbackType`
 - `ExtensionDomain`: `id`, `sharedProperties`, `actions`, `extensionsActions`, `defaultActionTimeout` (required number), `lifecycleStages` (required), `extensionsLifecycleStages` (required), optional `extensionsTypeId`, optional `lifecycle`
 - `Extension`: `id`, `domain`, `entry`, optional `lifecycle`
 - `ScreenExtension` extends `Extension`: adds required `presentation` (`ExtensionPresentation`)
@@ -435,16 +470,33 @@ All registration and dispatch paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
 
-`mfe.json` carries an optional top-level `schemas` array of inline GTS JSON Schema definitions. During MFE loading (before entries and extensions are registered), the bootstrap loader iterates `mfe.json.schemas` and calls `typeSystem.registerSchema(schema)` for each entry. Deduplication is automatic because GTS overwrites any schema with the same `$id`. This makes each MFE package self-describing — the host application never needs to hard-code MFE-specific action schemas.
+`mfe.json` is the human-authored, environment-independent MFE configuration file. It contains entries (without `exposeAssets`), extensions, and an optional `schemas` array of inline GTS JSON Schema definitions. It has no `manifest` section, no URLs, and no chunk paths — those belong to the generated output. The bootstrap loader does not import `mfe.json` directly at runtime; instead it imports `mfe.generated.json` (produced by the generation script, see `cpt-frontx-fr-manifest-generation-script`), which contains the complete `MfManifest` GTS entity and entries with `exposeAssets` populated from the build output.
+
+`mfe.generated.json` is the complete registration source: it carries all data from `mfe.json` plus the `MfManifest` GTS entity and `exposeAssets` on each entry. The bootstrap registers the `MfManifest` GTS entity, iterates `schemas` (if present) calling `typeSystem.registerSchema(schema)` for each, then registers entries and extensions. Deduplication is automatic because GTS overwrites any schema with the same `$id`.
 
 **Rules**:
-- Schema registration happens before `registerEntry` and before `registerExtension` calls for the loaded package
+- `mfe.json` MUST NOT contain a `manifest` section, URLs, or chunk paths
+- `mfe.generated.json` is produced at deploy time by the generation script with `--base-url`; it is NOT checked into version control
+- Schema registration in the bootstrap happens before `registerEntry` and before `registerExtension` calls for the loaded package
 - Missing or empty `schemas` array is silently skipped
 - Each schema element must carry a `$id` — the GTS `registerSchema` implementation enforces this at runtime
 - Registration is idempotent: loading the same MFE package twice does not produce errors
 
 **Implements**:
 - `cpt-frontx-interface-mfe-json-schemas`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-screensets`
+
+### MfManifest GTS Schema and Type Update
+
+- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfmanifest-schema-update`
+
+The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (registered as `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`) are updated to match the `mf-manifest.json` structure emitted by `@module-federation/vite`. The `GtsPlugin` registers `mf_manifest.v1.json` as a first-class schema alongside all other built-in schemas. All runtime code (`MfeHandlerMF`, `ManifestCache`, `MfeBridgeFactory`) works with the `MfManifest` TypeScript interface and never imports or inspects GTS JSON schemas directly. The GTS layer is the validation boundary; the TypeScript interface is the runtime contract.
+
+**Covers (PRD)**:
+- `cpt-frontx-fr-mfe-entry-types`
+- `cpt-frontx-contract-mfe-manifest`
 
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
@@ -564,16 +616,16 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 ## 6. Acceptance Criteria
 
-- [ ] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
-- [ ] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
-- [ ] `registerDomain(domain, containerProvider, options?)` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
-- [ ] `registerExtension` throws `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
-- [ ] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3
-- [ ] `updateSharedProperty` throws synchronously if GTS validation fails and no domain receives the update; silently no-ops if no domain declares the property
-- [ ] `unregisterExtension` auto-unmounts a mounted extension before triggering the `destroyed` lifecycle stage
-- [ ] `unregisterDomain` cascade-unregisters all extensions before triggering the domain's `destroyed` lifecycle stage
-- [ ] Concurrent `registerExtension` calls for the same extension ID are serialized via `OperationSerializer`; calls for different IDs proceed concurrently
-- [ ] `getRegisteredPackages()` returns packages in discovery order; `getExtensionsForPackage(packageId)` returns only live (still-registered) extensions
-- [ ] `dispose()` clears all internal state, disposes all bridges, and clears the `packages` Map
-- [ ] `@cyberfabric/screensets` package has zero `@cyberfabric/*` dependencies and zero React imports, confirmed by CI dependency-cruiser check
-- [ ] All source compiles without TypeScript errors under `"strict": true`
+- [x] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
+- [x] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
+- [x] `registerDomain(domain, containerProvider, options?)` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
+- [x] `registerExtension` throws `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
+- [x] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3
+- [x] `updateSharedProperty` throws synchronously if GTS validation fails and no domain receives the update; silently no-ops if no domain declares the property
+- [x] `unregisterExtension` auto-unmounts a mounted extension before triggering the `destroyed` lifecycle stage
+- [x] `unregisterDomain` cascade-unregisters all extensions before triggering the domain's `destroyed` lifecycle stage
+- [x] Concurrent `registerExtension` calls for the same extension ID are serialized via `OperationSerializer`; calls for different IDs proceed concurrently
+- [x] `getRegisteredPackages()` returns packages in discovery order; `getExtensionsForPackage(packageId)` returns only live (still-registered) extensions
+- [x] `dispose()` clears all internal state, disposes all bridges, and clears the `packages` Map
+- [x] `@cyberfabric/screensets` package has zero `@cyberfabric/*` dependencies and zero React imports, confirmed by CI dependency-cruiser check
+- [x] All source compiles without TypeScript errors under `"strict": true`

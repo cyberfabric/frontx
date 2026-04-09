@@ -1,6 +1,6 @@
 # Technical Design — FrontX Dev Kit
 
-<!-- artifact-version: 1.1 -->
+<!-- artifact-version: 1.3 -->
 
 <!-- toc -->
 
@@ -21,6 +21,12 @@
   - [3.7 Database schemas & tables](#37-database-schemas--tables)
 - [3.8 Publishing Pipeline Architecture](#38-publishing-pipeline-architecture)
 - [4. Additional context](#4-additional-context)
+  - [4.5 Security Considerations](#45-security-considerations)
+  - [4.6 Error Handling Strategy](#46-error-handling-strategy)
+  - [4.7 API Evolution](#47-api-evolution)
+  - [4.7b Documentation Strategy](#47b-documentation-strategy)
+  - [4.8 Known Limitations](#48-known-limitations)
+  - [4.9 Non-Applicable Domains](#49-non-applicable-domains)
 - [5. Traceability](#5-traceability)
 
 <!-- /toc -->
@@ -58,7 +64,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-two-tier-cli-e2e-verification`,
 `cpt-frontx-adr-channel-aware-version-locking`,
 `cpt-frontx-adr-per-action-type-handler-routing`,
-`cpt-frontx-adr-tanstack-query-data-management`
+`cpt-frontx-adr-tanstack-query-data-management`,
+`cpt-frontx-adr-mf2-manifest-discovery`
 
 #### Functional Drivers
 
@@ -70,13 +77,13 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sdk-action-pattern` | All mutations flow through `createAction()` → eventBus dispatch → effect handler → Redux reducer |
 | `cpt-frontx-fr-mfe-dynamic-registration` | Runtime MFE registration via `screensetsRegistryFactory.build()` with handler injection |
 | `cpt-frontx-fr-blob-fresh-eval` | Blob URL isolation: each MFE bundle fetched, rewritten, and evaluated in a fresh blob context |
-| `cpt-frontx-fr-blob-import-rewriting` | Import specifiers in MFE bundles rewritten to blob URLs via `importRewriter` before evaluation |
+| `cpt-frontx-fr-blob-import-rewriting` | Import specifiers in MFE bundles rewritten to blob URLs via `importRewriter` before evaluation; `import.meta.url` references rewritten to the real base URL |
 | `cpt-frontx-fr-dataflow-no-redux` | MFEs use internal `useReducer`/`useState`; no access to host Redux store |
 | `cpt-frontx-fr-broadcast-write-api` | Shared properties bridge host↔MFE via `setSharedProperty()`/`useSharedProperty()` |
 | `cpt-frontx-fr-appconfig-event-api` | Application-level config changes propagated via `app/*` events, not direct store mutations |
 | `cpt-frontx-fr-sse-protocol` | `@cyberfabric/api` abstracts REST and SSE behind `createApiService()` with protocol-specific adapters |
 | `cpt-frontx-fr-i18n-lazy-chunks` | Namespace-based lazy loading: translation chunks loaded on demand per screen-set |
-| `cpt-frontx-fr-externalize-transform` | Vite plugin externalizes `@cyberfabric/*` imports in MFE builds; host provides shared scope at runtime |
+| `cpt-frontx-fr-externalize-transform` | `@module-federation/vite` declares `@cyberfabric/*` as shared dependencies; build plugin transforms imports across all chunks; host provides per-load runtime shim at runtime via blob URL isolation pipeline |
 | `cpt-frontx-fr-mfe-plugin` | `microfrontends()` plugin integrates MFE lifecycle, theme propagation, i18n, and shared property bridging into framework |
 | `cpt-frontx-fr-mock-toggle` | `mock()` plugin with `toggleMockMode` action enabling runtime switch between real and mock API responses |
 | `cpt-frontx-fr-sdk-state-interface` | `@cyberfabric/state` exports EventBus, `createStore`, slice management APIs, and all associated types |
@@ -102,13 +109,13 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
 | `cpt-frontx-fr-blob-no-revoke` | Blob URLs kept alive for page lifetime; `URL.revokeObjectURL()` never called after `import()` resolves |
 | `cpt-frontx-fr-blob-source-cache` | In-memory cache of fetched source text keyed by chunk URL; at most one network fetch per chunk across all loads |
-| `cpt-frontx-fr-blob-recursive-chain` | `createBlobUrlChain` recursively creates blob URLs for chunk and all static dependencies |
-| `cpt-frontx-fr-blob-per-load-map` | `blobUrlMap` scoped per MFE load; different loads have independent instances preventing cross-load reuse |
+| `cpt-frontx-fr-blob-recursive-chain` | MFE handler recursively creates blob URLs for chunk and all static dependencies |
+| `cpt-frontx-fr-blob-per-load-map` | Blob URL mapping scoped per MFE load; different loads have independent instances preventing cross-load reuse |
 | `cpt-frontx-fr-externalize-filenames` | Shared dependency chunks use deterministic filenames without content hashes for stable MFE manifests |
-| `cpt-frontx-fr-externalize-build-only` | `hai3-mfe-externalize` plugin operates at `vite build` only; does not transform imports during `vite dev` |
+| `cpt-frontx-fr-externalize-build-only` | `@module-federation/vite` shared dependency transforms apply at `vite build` only; during `vite dev`, imports resolve through standard Vite dev server resolution |
 | `cpt-frontx-fr-dataflow-internal-app` | Each MFE creates isolated `HAI3App` via `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` with `HAI3Provider` (shared QueryClient owned by host) |
-| `cpt-frontx-fr-sharescope-construction` | `MfeHandlerMF` constructs `shareScope` from manifest, writes to `globalThis.__federation_shared__` |
-| `cpt-frontx-fr-sharescope-concurrent` | Concurrent MFE loads have independent `LoadBlobState`; at most one network fetch per chunk URL |
+| `cpt-frontx-fr-sharescope-construction` | `MfeHandlerMF` builds a per-load runtime shim with `loadShare()` and resolves `globalThis["__mf_init__<key>__"].initPromise` with it before chunk evaluation; no writes to `globalThis.__federation_shared__` |
+| `cpt-frontx-fr-sharescope-concurrent` | Each load creates an independent shim captured by its own `LoadBlobState`; manifest-name-scoped `__mf_init__` keys prevent concurrent-load interference; at most one network fetch per chunk URL |
 | `cpt-frontx-fr-broadcast-matching` | `updateSharedProperty()` propagates only to domains declaring the property in their `sharedProperties` array |
 | `cpt-frontx-fr-broadcast-validate` | GTS validation occurs before propagation; invalid values never stored or broadcast to any domain |
 | `cpt-frontx-fr-validation-gts` | `typeSystem.register()` + `typeSystem.validateInstance()` pattern validates shared property values |
@@ -136,6 +143,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-framework-query-cache-plugin` | `queryCache(config?)` owns the host shared `QueryClient`; `queryCacheShared()` joins it for child apps; cache clears on mock toggle, handles `cache/invalidate`/`cache/set`/`cache/remove`, and keeps `sharedFetchCache` in sync |
 | `cpt-frontx-fr-react-query-hooks` | `useApiQuery`, `useApiMutation`, `useApiStream`, `useQueryCache` hooks consume descriptors; HAI3-owned result types; no `queryOptions` re-export |
 | `cpt-frontx-fr-react-query-client-isolation` | `HAI3Provider` resolves the shared `QueryClient` from the app instance; separately mounted MFEs receive the same host client through `queryCache()` / `queryCacheShared()` shared-client reuse rather than L1 token plumbing, and expose only the restricted `QueryCache` interface |
+| `cpt-frontx-fr-manifest-generation-script` | Generation script merges `mfe.json` + `mf-manifest.json` into `mfe.generated.json` with `--base-url` for environment-specific `publicPath` |
 
 #### NFR Allocation
 
@@ -191,6 +199,8 @@ Requirements that significantly influence architecture decisions.
 | Tooling — CLI | Scaffolding, code generation, AI skill integration | Node.js, Commander |
 
 **Build order**: SDK (L1) → Framework (L2) → React (L3) → Studio → CLI (`npm run build:packages`)
+
+**MFE package build pipeline**: `vite build` (produces chunks + `mf-manifest.json`) → generation script with `--base-url` (reads `mfe.json` + `mf-manifest.json`, writes `mfe.generated.json`) → host dev server / deployment. The generation script is the boundary between environment-neutral build artifacts and environment-specific registration config. `mf-manifest.json` does not leave the build stage; only `mfe.generated.json` is consumed at runtime.
 
 ## 2. Principles & Constraints
 
@@ -248,7 +258,7 @@ The terminology follows Redux Toolkit conventions: slices, reducers, selectors, 
 
 - [x] `p1` - **ID**: `cpt-frontx-principle-mfe-isolation`
 
-**ADRs**: `cpt-frontx-adr-blob-url-mfe-isolation`
+**ADRs**: `cpt-frontx-adr-blob-url-mfe-isolation`, `cpt-frontx-adr-mf2-manifest-discovery`
 
 Microfrontend extensions execute in an isolated context. JavaScript isolation is achieved through blob URL evaluation: each MFE bundle is fetched, its import specifiers are rewritten to point to blob URLs of shared dependencies, and the rewritten bundle is evaluated in a new module scope. CSS isolation uses Shadow DOM containers. MFEs have no access to the host Redux store; they communicate with the host exclusively through shared properties and the event bus.
 
@@ -305,6 +315,12 @@ All packages compile with `"strict": true` in `tsconfig.json`. Use of `any`, `as
 All packages output ESM as the primary module format. `package.json` files include `"type": "module"` and `"exports"` field with ESM entry points. CJS is not supported. This ensures compatibility with modern bundlers, enables tree-shaking, and aligns with the platform direction of Node.js and browsers.
 
 **Enforcement**: tsup build configuration with `format: ['esm']`; `package.json` validation in CI.
+
+#### Dependency Licensing
+
+- [x] `p2` - **ID**: `cpt-frontx-constraint-oss-licensing`
+
+All direct runtime dependencies MUST use MIT, Apache-2.0, or BSD-compatible licenses. Copyleft licenses (GPL, AGPL) are prohibited for runtime dependencies.
 
 ## 3. Technical Architecture
 
@@ -608,6 +624,8 @@ Reduces boilerplate and enforces conventions by generating screen-sets, MFE pack
 
 FrontX is a frontend framework; all API contracts are TypeScript interfaces consumed at build time. There are no REST/GraphQL server endpoints defined by FrontX itself.
 
+> **Note**: Interface signatures below are structural summaries for architecture reference. The canonical source is the TypeScript source file listed in each `Location` field.
+
 - [x] `p1` - **ID**: `cpt-frontx-interface-plugin`
 - **Contract**: cpt-frontx-contract-hai3-plugin
 - **Technology**: TypeScript interface
@@ -777,7 +795,6 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 
 ```json
 {
-  "manifest": { "..." : "..." },
   "schemas": [
     {
       "$id": "gts://gts.hai3.mfes.comm.action.v1~vendor.action.refresh.v1~",
@@ -790,10 +807,13 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 }
 ```
 
+`mfe.json` is human-authored and environment-independent: it contains entries (without `exposeAssets`), extensions, and schemas only. There is no `manifest` section, no URLs, and no chunk paths. The generation script (see `cpt-frontx-fr-manifest-generation-script`) reads `mfe.json` together with the build-generated `mf-manifest.json` and produces `mfe.generated.json` — the complete registration config with the `MfManifest` GTS entity and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` is an intermediate artifact consumed by the generation script only and never reaches runtime.
+
 **Registration flow** (parent side):
-1. Parse `mfe.json`.
-2. FOR EACH schema in `mfe.json.schemas` (if present): call `typeSystem.registerSchema(schema)`. Deduplication is automatic — GTS overwrites any existing entry with the same `$id`.
-3. Register entries and extensions as normal.
+1. Import `mfe.generated.json` (produced by the generation script with environment-specific `--base-url`).
+2. FOR EACH schema in `mfe.json.schemas` (present in the generated config if authored in `mfe.json`): call `typeSystem.registerSchema(schema)`. Deduplication is automatic — GTS overwrites any existing entry with the same `$id`.
+3. Register the `MfManifest` GTS entity from the generated config.
+4. Register entries (with `exposeAssets` populated from the generated config) and extensions as normal.
 
 **Public Package Interfaces**
 
@@ -812,8 +832,8 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 
 | Contract | Description |
 |----------|-------------|
-| `cpt-frontx-contract-mfe-manifest` | MFE packages provide a manifest (JSON) declaring remoteEntry, exposedModules, and sharedDependencies with optional chunkPath |
-| `cpt-frontx-contract-federation-runtime` | Federation runtime's `importShared()` resolves from `globalThis.__federation_shared__` (compatible with vite-plugin-federation v1.4.x) |
+| `cpt-frontx-contract-mfe-manifest` | MFE packages provide two files: `mfe.json` (human-authored, environment-independent — entries without `exposeAssets`, extensions, schemas; no manifest section, no URLs) and `mfe.generated.json` (generated by the manifest generation script — contains the complete `MfManifest` GTS entity and entries with `exposeAssets`). `mf-manifest.json` is a build-time intermediate consumed by the generation script only and never reaches runtime. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
+| `cpt-frontx-contract-federation-runtime` | The handler resolves the `MfManifest` GTS entity for package-level metadata (shared deps, base URL) and reads per-module chunk paths from `entry.exposeAssets`. The blob URL isolation pipeline (ADR-0004) consumes these paths for per-load module evaluation. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
 
 ### 3.4 Internal Dependencies
 
@@ -948,17 +968,19 @@ sequenceDiagram
     participant Host as Host App
     participant FW as Framework
     participant SS as Screensets
-    participant Blob as Blob Loader
-    participant MFE as MFE Bundle
+    participant Handler as MFE Handler
+    participant Remote as MFE Remote
 
     Host->>FW: microfrontends() plugin init
     FW->>SS: register MFE handler
     Host->>SS: load MFE by name
-    SS->>Blob: fetch(bundleUrl)
-    Blob->>Blob: cache source text
-    Blob->>Blob: rewrite imports → blob URLs
-    Blob->>Blob: recursive chain load deps
-    Blob-->>SS: blob URL module
+    SS->>Handler: load(entry)
+    Handler->>Handler: resolve MfManifest GTS entity (shared deps, base URL)
+    Handler->>Handler: read entry.exposeAssets (chunk paths, CSS)
+    Handler->>Remote: fetch expose chunk source text
+    Handler->>Handler: rewrite imports → per-load blob URLs
+    Handler->>Handler: recursive blob URL chain (transitive deps)
+    Handler-->>SS: blob URL module + lifecycle
     SS-->>FW: MFE module loaded
     FW->>FW: propagate theme
     FW->>FW: propagate i18n
@@ -966,7 +988,7 @@ sequenceDiagram
     Host->>Host: ExtensionDomainSlot renders in host screen container
 ```
 
-**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler fetches the bundle, caches the source text, rewrites `@cyberfabric/*` import specifiers to blob URLs referencing the host's shared scope, recursively resolves transitive dependencies, and returns the loaded module. The framework propagates theme and i18n settings. The React layer uses `ExtensionDomainSlot` plus a host-managed container provider to render the MFE into a Shadow DOM container for CSS isolation.
+**Description**: The `microfrontends()` plugin registers an MFE handler with the screen-sets registry. When a screen-set requests an MFE, the handler resolves the `MfManifest` GTS entity for package-level metadata (shared dependencies, base URL) and reads per-module chunk paths and CSS assets from `entry.exposeAssets` (ADR: `cpt-frontx-adr-mf2-manifest-discovery`). The `MfManifest` GTS entity is pre-registered at bootstrap time from `mfe.generated.json` — it is not fetched at runtime. The handler then fetches the expose chunk source text, rewrites import specifiers to per-load blob URLs (ADR: `cpt-frontx-adr-blob-url-mfe-isolation`), recursively resolves transitive dependencies through the blob URL chain, and returns the loaded module with its lifecycle. The framework propagates theme and i18n settings. The React layer uses `ExtensionDomainSlot` plus a host-managed container provider to render the MFE content inside a Shadow DOM container for CSS isolation. CDN hosting for MFE bundles with appropriate cache headers is a deployment concern owned by the consuming application.
 
 #### Shared Property Broadcast
 
@@ -1097,6 +1119,49 @@ declare module '@cyberfabric/state' {
 This provides type-safe access to `store.getState().myDomain` across the entire application while keeping the state package unaware of domain-specific slices.
 
 **Build Orchestration**: The monorepo uses npm workspaces. Build order matters because higher layers import from lower layers' built output: `npm run build:packages` executes SDK → Framework → React → Studio → CLI sequentially.
+
+### 4.5 Security Considerations
+
+MFE bundles are fetched from remote URLs and evaluated via blob URLs — the primary security surface.
+
+**Trust boundary**: MFE remotes are configured by the host application. The host trusts the configured remote origins to serve legitimate bundles. Remote URLs MUST use HTTPS in production.
+
+**Threat vectors and mitigations**:
+- *Malicious MFE bundle*: mitigated by HTTPS-only fetch, CSP `blob:` in `script-src` (no `eval()` or `new Function()`), GTS schema validation of manifest structure
+- *MITM on manifest/bundle fetch*: mitigated by HTTPS transport; no fallback to HTTP
+- *Supply chain compromise of MFE remote*: mitigated by host-controlled remote URL configuration + GTS schema validation; the host decides which remotes to trust
+
+**Consumer responsibilities**: configure trusted MFE remote origins, enforce HTTPS, review CSP policy, audit MFE packages before deployment.
+
+### 4.6 Error Handling Strategy
+
+Errors are classified by origin: **MFE loading** (`MfeLoadError` with typed causes — manifest fetch failure, JSON parse error, missing expose metadata, blob URL creation failure, lifecycle validation failure), **plugin initialization** (caught and logged per plugin; never crashes the host), **action chains** (timeout after configurable duration, fallback branch on failure), **shared property validation** (GTS validation rejects invalid values before propagation; error includes validation details). Each error class carries structured metadata for debugging. Unhandled errors in MFE extensions are caught by per-MFE error boundaries at the React layer.
+
+### 4.7 API Evolution
+
+All `@cyberfabric/*` packages follow semver within the 0.x major version. Breaking changes require a minor version bump with migration guidance. Deprecated APIs are annotated with `@deprecated` JSDoc and retained for at least one minor version before removal.
+
+### 4.7b Documentation Strategy
+
+API documentation is generated from TypeScript source via the `docs/` VitePress package. CLI help text is inline. Architecture documentation lives in `architecture/`.
+
+### 4.8 Known Limitations
+
+- Blob URLs accumulate for the page lifetime (~30-40 per MFE load) and cannot be revoked due to top-level await module evaluation semantics. Memory grows proportionally with loaded MFEs.
+- The `mf-manifest.json` schema is stable but not formally versioned by the Module Federation project. Schema changes may require handler updates.
+
+### 4.9 Non-Applicable Domains
+
+The following architecture domains are not applicable to FrontX as a client-side npm library:
+
+- **Server-side scalability** (PERF): FrontX runs in the browser. Concurrent users, throughput, and capacity planning are application/server concerns.
+- **Operations** (OPS): FrontX is distributed via npm, not deployed as a service. Deployment, monitoring, alerting, SLOs, and infrastructure-as-code are consumer responsibilities.
+- **Compliance** (COMPL): FrontX does not process PII, financial data, or healthcare data. Regulatory and privacy compliance are application-level concerns.
+- **Authentication/Authorization ownership** (SEC): FrontX provides extension points for auth plugins but does not implement auth. Authentication and authorization are application-level concerns.
+- **Data recovery/DR** (REL): No server-side state. Client-side state is ephemeral (Redux store, blob URLs) and does not require backup or disaster recovery.
+- **Resource constraints and team capabilities**: Not explicitly scoped — FrontX is developed iteratively with priority-based phasing (p1/p2/p3). Technology choices (TypeScript, React, Redux Toolkit, Vite) reflect established team expertise.
+- **Progressive enhancement / offline support** (UX): FrontX is an online-only framework library. Progressive enhancement and offline support are application-level concerns.
+- **Contract testing** (TEST): TypeScript's strict type-checking across workspace packages serves as the contract testing mechanism — all packages are built and type-checked together in CI, catching interface drift at compile time.
 
 ## 5. Traceability
 

@@ -1,6 +1,7 @@
 ---
 status: accepted
 date: 2026-03-03
+decision-makers: FrontX core team
 ---
 
 # Blob URL Isolation for Microfrontends
@@ -20,6 +21,7 @@ date: 2026-03-03
   - [Service Worker URL interception](#service-worker-url-interception)
   - [`Function()` re-evaluation of module source](#function-re-evaluation-of-module-source)
   - [Import maps with per-MFE scope overrides](#import-maps-with-per-mfe-scope-overrides)
+- [Review Triggers](#review-triggers)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 
@@ -28,13 +30,13 @@ date: 2026-03-03
 **ID**: `cpt-frontx-adr-blob-url-mfe-isolation`
 ## Context and Problem Statement
 
-Browsers cache ES modules by URL identity — when multiple MFEs share dependencies via Module Federation's shareScope, they receive the same module instance. This breaks per-MFE isolation: module-level state such as each MFE's EventBus instance and Redux store is shared rather than scoped. The previous approach using Module Federation's singleton/shared mechanism could not achieve true per-runtime isolation because it was designed to prevent duplicate instances, not to guarantee separate ones.
+FrontX's multi-team MFE model requires that independently deployed MFE packages coexist in a single host without interference — independent team development and fault isolation are the core business drivers. Browsers cache ES modules by URL identity — when multiple MFEs share dependencies via Module Federation's shareScope, they receive the same module instance. This breaks per-MFE isolation: module-level state such as each MFE's EventBus instance and Redux store is shared rather than scoped. The previous approach using Module Federation's singleton/shared mechanism could not achieve true per-runtime isolation because it was designed to prevent duplicate instances, not to guarantee separate ones. This isolation requirement was identified during initial MFE framework design when prototype testing demonstrated shared module-level state across concurrent MFE loads. This decision affects MFE authors (whose bundles are evaluated through the blob URL chain), host application developers (who configure the registry and trust the isolation contract), and the FrontX core team (who maintain the isolation pipeline).
 
 ## Decision Drivers
 
-* Each MFE load must produce its own module-level state instances (EventBus, store, i18n) regardless of caching
-* The solution must not introduce `@cyberfabric/*` dependencies into L1 packages (zero-dependency constraint)
-* Blob URLs must never be revoked — `import()` resolves at parse time, not evaluation time, so early revocation causes load failures with top-level await
+* **(P0)** Each MFE load must produce its own module-level state instances (EventBus, store, i18n) regardless of caching — per-MFE isolation is non-negotiable
+* **(P1)** The solution must not introduce `@cyberfabric/*` dependencies into L1 packages (zero-dependency constraint)
+* **(P1)** The isolation mechanism must be compatible with top-level await and ES module parse-time resolution semantics — early resource revocation during async evaluation causes load failures
 
 ## Considered Options
 
@@ -51,11 +53,14 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 ### Consequences
 
 * Good, because each MFE load has true module-level isolation — EventBus instances, stores, and singletons are independent regardless of the number of MFEs loaded simultaneously
-* Bad, because blob URLs accumulate (~30–40 per load) and source text is cached in memory; the `hai3-mfe-externalize` Vite plugin adds build-time complexity for MFE authors
+* Bad, because blob URLs accumulate (~30–40 per load) and source text is cached in memory. Mitigation: blob URLs are cleaned up automatically by the browser on page unload; for typical SPA lifecycles this is bounded. Source text cache can be cleared on MFE handler disposal
+* Bad, because blob URL isolation with import specifier rewriting is a non-standard pattern requiring specialized debugging knowledge
+* Neutral, because the MfeHandler abstraction encapsulates the complexity, limiting the maintenance surface
+* Neutral, because if browsers add native module isolation scopes, the blob URL mechanism becomes unnecessary — the MfeHandler abstraction allows replacing the isolation strategy without affecting the registry, bridge, or mediator layers
 
 ### Confirmation
 
-`packages/screensets/src/mfe/blobLoader.ts` implements blob URL creation and import specifier rewriting. `packages/screensets/src/mfe/sourceCache.ts` caches fetched source text. The `hai3-mfe-externalize` Vite plugin is configured in MFE build configs to ensure all shared dependency imports use `importShared()` across the entire bundle. Host share-scope bootstrap code has been removed.
+`MfeHandlerMF` in `packages/screensets/src/mfe/handler/mf-handler.ts` implements blob URL creation and import specifier rewriting with per-load source text caching. The MFE build plugin handles shared dependency transforms across all chunks in the bundle. See ADR-0019 (`cpt-frontx-adr-mf2-manifest-discovery`) for the build tooling and metadata discovery mechanism.
 
 ## Pros and Cons of the Options
 
@@ -84,17 +89,31 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 * Good, because import maps are a web standard with clean URL remapping semantics
 * Bad, because import maps are static after the first `<script type="importmap">` is parsed — dynamically adding per-MFE scopes at runtime is not supported
 
+## Review Triggers
+
+This decision should be revisited when:
+* Browser platforms introduce native ES module isolation scopes (per-import evaluation contexts)
+* Module Federation runtime adds per-load isolation as a built-in feature
+* Memory profiling shows blob URL accumulation exceeds acceptable bounds for target deployment scenarios
+* Calendar review: no later than 2027-Q1 or when any trigger fires, whichever comes first.
+
+**Invalidation condition**: this decision becomes invalid if browsers implement native per-import module isolation scopes or if the FrontX architecture no longer requires per-MFE module-level state isolation.
+
 ## More Information
 
+- Operational impact (OPS): Not applicable — client-side build output and in-browser runtime behavior.
 - The never-revoke rule: `URL.createObjectURL` returns a URL that persists until explicitly revoked. Because `import()` with top-level await may parse (and cache the URL reference) before the module body executes, revoking the blob URL before all dependent modules finish loading causes `ERR_FAILED` on subsequent imports of the same specifier
-- The `hai3-mfe-externalize` Vite plugin rewrites all `import { X } from '@cyberfabric/...'` statements in MFE bundles to `const { X } = await importShared('@cyberfabric/...')`, which is then intercepted by the blob loader to inject per-load instances
+- Related: ADR 0019 (`cpt-frontx-adr-mf2-manifest-discovery`) — governs the build plugin and metadata discovery mechanism that feeds chunk URLs into the blob URL isolation pipeline
 - Related: ADR 0001 (Four-Layer SDK Architecture) — blob loader lives in `packages/screensets` (L1) and must not import other `@cyberfabric/*` packages
 - Related: ADR 0002 (Event-Driven Flux Data Flow) — EventBus isolation is the primary motivation for per-MFE module scope
+- Learning curve: blob URL isolation with import specifier rewriting is a non-standard pattern; developers debugging MFE loading issues should understand that blob URLs produce opaque identifiers in browser DevTools and that source text is fetched separately from module evaluation
+- Evolution path: if browsers add native module isolation scopes, the blob URL mechanism becomes unnecessary — the MfeHandler abstraction allows replacing the isolation strategy without affecting the registry, bridge, or mediator layers
 
 ## Traceability
 
 - **PRD**: [PRD.md](../PRD.md)
 - **DESIGN**: [DESIGN.md](../DESIGN.md)
+- **ADR-0019**: [0019-mf2-manifest-discovery.md](0019-mf2-manifest-discovery.md) — build tooling and manifest discovery mechanism that feeds chunk URLs into the blob URL isolation pipeline
 
 This decision directly addresses:
 * `cpt-frontx-fr-blob-fresh-eval` — fresh evaluation via unique blob URL per load
@@ -103,7 +122,6 @@ This decision directly addresses:
 * `cpt-frontx-fr-blob-import-rewriting` — string-based import specifier rewriting
 * `cpt-frontx-fr-blob-recursive-chain` — recursive resolution of transitive shared dependencies
 * `cpt-frontx-fr-blob-per-load-map` — per-load blob URL map preventing duplicate fetches within a single load
-* `cpt-frontx-fr-externalize-transform` — build-time Vite plugin transforming MFE shared imports
 * `cpt-frontx-nfr-perf-blob-overhead` — accepted performance cost of blob URL accumulation
 * `cpt-frontx-nfr-sec-csp-blob` — CSP configuration requirements for blob: URI scheme
 * `cpt-frontx-principle-mfe-isolation` — architectural principle mandating per-MFE module scope

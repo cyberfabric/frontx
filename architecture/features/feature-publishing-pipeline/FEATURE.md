@@ -34,6 +34,7 @@
   - [Prerelease Dist-Tag Strategy](#prerelease-dist-tag-strategy)
   - [Fail-Fast vs. Continue-on-Error](#fail-fast-vs-continue-on-error)
   - [Architecture Enforcement Connection](#architecture-enforcement-connection)
+  - [Non-Applicable Domains](#non-applicable-domains)
 
 <!-- /toc -->
 
@@ -77,7 +78,7 @@ exactly one publish of that version; subsequent re-runs of the same workflow ski
 
 ### 1.4 References
 
-- DECOMPOSITION: [feature #11 — Publishing Pipeline](../../DECOMPOSITION.md#211-publishing-pipeline)
+- DECOMPOSITION: [feature #10 — Publishing Pipeline](../../DECOMPOSITION.md#210-publishing-pipeline--medium)
 - DESIGN: [Layer Isolation principle](../../DESIGN.md#layer-isolation), [ESM-First constraint](../../DESIGN.md#esm-first-module-format)
 - PRD: [PRD.md](../../PRD.md) — section 5.16 (Publishing)
 - ADR: `cpt-frontx-adr-automated-layer-ordered-publishing`, `cpt-frontx-adr-esm-first-module-format`, `cpt-frontx-adr-channel-aware-version-locking`
@@ -424,15 +425,15 @@ publishes. Packages whose version already exists on NPM are silently skipped.
 
 ## 6. Acceptance Criteria
 
-- [ ] A PR that bumps the version of a single `@cyberfabric/*` package triggers exactly one successful `npm publish` for that package upon merge to `main`
-- [ ] A PR that bumps versions in multiple packages across layers publishes them in layer order: L1 SDK first, CLI last
-- [ ] If a version already exists on NPM, the workflow skips that package, logs the skip reason, and continues with remaining packages
-- [ ] If any `npm publish` command fails after three attempts, the workflow exits immediately and does not publish subsequent packages
-- [ ] A PR with no version changes in any `package.json` completes the workflow successfully with exit code 0 and no publish attempts
-- [ ] Prerelease versions (containing `-alpha`, `-beta`, `-rc`) are published with the correct dist-tag (`alpha`, `beta`, `next`); stable versions use `latest`
-- [ ] All published packages include `"type": "module"`, dual ESM/CJS `exports`, and complete metadata fields (`author`, `license`, `publishConfig`, `engines`)
-- [ ] TypeScript declarations (`index.d.ts`) are included in the published tarball
-- [ ] The `npm pack` output for any package contains only `dist/` files and documented extras — no raw `.ts` source files
+- [x] A PR that bumps the version of a single `@cyberfabric/*` package triggers exactly one successful `npm publish` for that package upon merge to `main`
+- [x] A PR that bumps versions in multiple packages across layers publishes them in layer order: L1 SDK first, CLI last
+- [x] If a version already exists on NPM, the workflow skips that package, logs the skip reason, and continues with remaining packages
+- [x] If any `npm publish` command fails after three attempts, the workflow exits immediately and does not publish subsequent packages
+- [x] A PR with no version changes in any `package.json` completes the workflow successfully with exit code 0 and no publish attempts
+- [x] Prerelease versions (containing `-alpha`, `-beta`, `-rc`) are published with the correct dist-tag (`alpha`, `beta`, `next`); stable versions use `latest`
+- [x] All published packages include `"type": "module"`, dual ESM/CJS `exports`, and complete metadata fields (`author`, `license`, `publishConfig`, `engines`)
+- [x] TypeScript declarations (`index.d.ts`) are included in the published tarball
+- [x] The `npm pack` output for any package contains only `dist/` files and documented extras — no raw `.ts` source files
 
 ---
 
@@ -469,3 +470,12 @@ principle. The same dependency direction (L1 → L2 → L3) that governs source 
 governs the sequence in which packages land on NPM. This is not incidental — it is the
 runtime expression of the architectural constraint, enforced mechanically by the CI workflow
 rather than by convention alone.
+
+### Non-Applicable Domains
+
+- **SEC**: CI workflow uses platform-managed secrets; no application-layer auth
+- **UX**: Build/publish infrastructure, no user interface
+- **DATA**: No database persistence
+- **INT**: No external service integrations beyond npm registry
+- **COMPL**: No regulatory data handling
+- **MAINT**: Build pipeline complexity managed through template-based generation

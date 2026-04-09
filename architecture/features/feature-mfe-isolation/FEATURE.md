@@ -1,5 +1,7 @@
 # Feature: MFE Blob URL Isolation
 
+<!-- version: 1.3 -->
+
 
 <!-- toc -->
 
@@ -10,42 +12,37 @@
   - [1.4 References](#14-references)
 - [2. Actor Flows (CDSL)](#2-actor-flows-cdsl)
   - [MFE Load via Blob URL Isolation](#mfe-load-via-blob-url-isolation)
-  - [MFE Build with Externalize Plugin](#mfe-build-with-externalize-plugin)
+  - [MFE Build with Module Federation Plugin](#mfe-build-with-module-federation-plugin)
   - [MFE-Internal Bootstrap](#mfe-internal-bootstrap)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
-  - [Build Share Scope](#build-share-scope)
+  - [Build Per-Load Runtime Shim](#build-per-load-runtime-shim)
   - [Blob URL Get Closure](#blob-url-get-closure)
   - [Fetch Source Text (with Cache)](#fetch-source-text-with-cache)
   - [Recursive Blob URL Chain](#recursive-blob-url-chain)
   - [Parse Static Import Filenames](#parse-static-import-filenames)
   - [Rewrite Module Imports](#rewrite-module-imports)
-  - [Find Expose Module Body](#find-expose-module-body)
-  - [Parse Expose Metadata](#parse-expose-metadata)
-  - [Parse Expose Chunk Filename (callback body)](#parse-expose-chunk-filename-callback-body)
-  - [Parse Expose Stylesheets](#parse-expose-stylesheets)
+  - [Read Entry Expose Assets](#read-entry-expose-assets)
   - [Wrap Lifecycle With Remote Stylesheets](#wrap-lifecycle-with-remote-stylesheets)
   - [Inject Remote Stylesheets](#inject-remote-stylesheets)
   - [Remove Injected Stylesheets](#remove-injected-stylesheets)
   - [Upsert Mount Style Element](#upsert-mount-style-element)
-  - [Write Share Scope to Global](#write-share-scope-to-global)
-  - [hai3-mfe-externalize: Rename Shared Chunks](#hai3-mfe-externalize-rename-shared-chunks)
-  - [hai3-mfe-externalize: Map Bundled Sub-Chunks to Packages](#hai3-mfe-externalize-map-bundled-sub-chunks-to-packages)
-  - [hai3-mfe-externalize: Rewrite Bundled Imports to importShared](#hai3-mfe-externalize-rewrite-bundled-imports-to-importshared)
+  - [Generation Script: Produce mfe.generated.json](#generation-script-produce-mfegeneratedjson)
+  - [Resolve MF Init Promise](#resolve-mf-init-promise)
 - [4. States (CDSL)](#4-states-cdsl)
   - [LoadBlobState (Per-Load Isolation Map)](#loadblobstate-per-load-isolation-map)
   - [SourceTextCache (Handler-Level)](#sourcetextcache-handler-level)
 - [5. Definitions of Done](#5-definitions-of-done)
   - [Blob URL Isolation Core](#blob-url-isolation-core)
-  - [hai3-mfe-externalize Vite Plugin](#hai3-mfe-externalize-vite-plugin)
+  - [Module Federation Vite Plugin](#module-federation-vite-plugin)
   - [MFE-Internal Dataflow](#mfe-internal-dataflow)
-  - [SharedDependencyConfig chunkPath Field](#shareddependencyconfig-chunkpath-field)
+  - [MfManifest Type and GTS Schema Update](#mfmanifest-type-and-gts-schema-update)
   - [ChildMfeBridge Abstract Class Contract](#childmfebridge-abstract-class-contract)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
 
 <!-- /toc -->
 
-- [x] `p1` - **ID**: `cpt-frontx-featstatus-mfe-isolation`
+- [ ] `p1` - **ID**: `cpt-frontx-featstatus-mfe-isolation`
 
 - [x] `p2` - `cpt-frontx-feature-mfe-isolation`
 ---
@@ -58,23 +55,23 @@ MFE Blob URL Isolation delivers per-microfrontend JavaScript module isolation by
 
 The isolation is achieved through five coordinated responsibilities:
 
-1. **Source text fetching and caching** — each MFE chunk is fetched once; subsequent loads reuse the cached text.
+1. **Manifest resolution and source text fetching** — the handler resolves the `MfManifest` GTS entity (registered before load) to extract expose chunk paths, shared dependency chunk paths, and CSS asset paths; each chunk source text is then fetched once and cached for the handler lifetime.
 2. **Import rewriting** — relative specifiers in fetched source text are resolved to either existing blob URLs (from the per-load map) or absolute HTTP URLs, so blob-evaluated modules can locate their dependencies.
 3. **Recursive blob URL chain** — the expose chunk and every static dependency it imports are processed depth-first; common transitive dependencies within one load are blob-URL'd once, then reused by the shared map.
-4. **Share scope construction** — per-load `get()` closures written to `globalThis.__federation_shared__` intercept the federation runtime's `importShared()` and redirect it through the blob URL chain.
-5. **Vite externalize plugin** — at build time, the `hai3-mfe-externalize` plugin transforms all bundled-package imports in code-split chunks to `importShared()` calls, and renames shared dependency chunks to deterministic filenames so manifest `chunkPath` values remain stable across rebuilds.
+4. **Runtime shim construction** — a per-load shim object with a `loadShare(pkgName)` method is built from the manifest's shared dependency declarations; the handler resolves `globalThis["__mf_init__<key>__"].initPromise` with the shim before evaluating any blob-URL'd chunk so that `__loadShare__` proxy chunks can obtain blob-URL'd module instances through it; no writes to `globalThis.__federation_shared__` are performed (MF 2.0 never reads that global).
+5. **Build-time manifest generation** — at build time, `@module-federation/vite` produces a `mf-manifest.json` alongside chunk files; all shared dependency chunk paths are declared in the manifest, and shared dependency transforms across all chunks are handled natively by the plugin.
 
 The MFE-internal dataflow completes the isolation: each MFE creates its own `HAI3App` with an isolated Redux store and EventBus via the blob-URL-evaluated `@cyberfabric/react`; no direct `react-redux` or `@reduxjs/toolkit` imports are permitted.
 
 **Primary value**: MFEs maintain fully independent module-level state — React fiber trees, hooks, stores — regardless of shared dependencies.
 
-**Key assumptions**: The host application runs in a browser with support for `Blob`, `URL.createObjectURL`, and dynamic `import()`. MFE builds use `@originjs/vite-plugin-federation` with the `hai3-mfe-externalize` plugin.
+**Key assumptions**: The host application runs in a browser with support for `Blob`, `URL.createObjectURL`, and dynamic `import()`. MFE builds use `@module-federation/vite`, which auto-generates `mf-manifest.json` as part of every build.
 
 ### 1.2 Purpose
 
 Enable multiple independently deployed MFE bundles to coexist in the same browser page without module state leakage, while minimizing redundant network requests through source text caching.
 
-**Success criteria**: `Object.is(mfeA_React, mfeB_React)` is `false` for any two concurrently loaded MFEs that both declare `react` in their `sharedDependencies`.
+**Success criteria**: `Object.is(mfeA_React, mfeB_React)` is `false` for any two concurrently loaded MFEs that both declare `react` in their shared dependency list.
 
 ### 1.3 Actors
 
@@ -87,9 +84,21 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition entry: [DECOMPOSITION.md §2.3](../../DECOMPOSITION.md)
-- PRD: [PRD.md](../../PRD.md) — sections 5.6 (MFE Blob URL Isolation), 5.7 (MFE Externalize Plugin), 5.8 (MFE Internal Dataflow), 5.9 (MFE Share Scope Management)
+- PRD: [PRD.md](../../PRD.md) — sections 5.6 (MFE Blob URL Isolation), 5.7 (MFE Build Plugin), 5.8 (MFE Internal Dataflow), 5.9 (MFE Share Scope Management)
 - ADR: `cpt-frontx-adr-blob-url-mfe-isolation`
+- ADR: `cpt-frontx-adr-mf2-manifest-discovery`
 - Depends on feature: `cpt-frontx-feature-screenset-registry`
+
+#### Non-Applicable Domains
+
+- **OPS**: Client-side library, no server deployment
+- **COMPL**: No regulatory data handling
+- **UX**: Infrastructure capability, no direct user interface
+- **DATA**: No database persistence (client-side state only)
+- **INT**: No external service integrations (browser APIs only)
+- **BIZ**: Infrastructure capability; business value derived transitively through consuming applications
+- **MAINT**: No formal SLA or support tier — maintained under FrontX iterative development model
+- **SEC**: No authentication or authorization implementation; CSP configuration (`blob:` in `script-src`) is the sole security-adjacent concern and is documented in `cpt-frontx-nfr-sec-csp-blob`
 
 ---
 
@@ -106,39 +115,40 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 1. [x] - `p1` - Host requests load of an `MfeEntryMF` through the screensets registry — `inst-host-request-load`
 2. [x] - `p1` - `MfeHandlerMF.load()` delegates to `loadInternal()` wrapped in retry logic — `inst-retry-wrapper`
-3. [x] - `p1` - `loadInternal()` resolves the `MfManifest` (inline object or cached by ID) — `inst-resolve-manifest`
+3. [x] - `p1` - `loadInternal()` resolves the `MfManifest` from the entry's `manifest` field (inline object validated and cached, or string GTS ID looked up in ManifestCache); the manifest is a pre-registered GTS entity populated from `mfe.generated.json` at bootstrap time — it is never fetched from the network at load time; **IF** not found **RETURN** `MfeLoadError` — `inst-resolve-manifest`
 4. [x] - `p1` - **IF** `entry.schemas` is present and non-empty: FOR EACH schema in `entry.schemas`, call `typeSystem.registerSchema(schema)` — this step runs before entry or extension registration so action schema validation is available when entries are processed — `inst-register-mfe-schemas`
-5. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.remoteEntry` (directory portion) — `inst-derive-base-url`
-6. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
-7. [x] - `p1` - Algorithm: build share scope via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
-8. [x] - `p1` - `writeShareScope()` writes the constructed entries to `globalThis.__federation_shared__['default']` — `inst-write-share-scope`
-9. [x] - `p1` - Algorithm: fetch `remoteEntry.js` source text via `cpt-frontx-algo-mfe-isolation-fetch-source` — `inst-fetch-remote-entry`
-10. [x] - `p1` - Algorithm: parse expose metadata (moduleMap callback body, chunk filename, stylesheet paths) via `cpt-frontx-algo-mfe-isolation-parse-expose-metadata` — `inst-parse-expose-metadata`
-11. [x] - `p1` - **IF** expose metadata is null **RETURN** `MfeLoadError` — `inst-check-expose-metadata`
-12. [x] - `p1` - Algorithm: build blob URL chain for expose chunk via `cpt-frontx-algo-mfe-isolation-blob-url-chain` — `inst-blob-url-chain`
-13. [x] - `p1` - **IF** expose blob URL is absent from `blobUrlMap` **RETURN** `MfeLoadError` — `inst-check-expose-blob`
-14. [x] - `p1` - Dynamic `import()` of the expose blob URL produces the expose module — `inst-import-expose-blob`
-15. [x] - `p1` - Module factory extracted from expose module; result validated as `MfeEntryLifecycle` (must have `mount` and `unmount`) — `inst-validate-lifecycle`
-16. [x] - `p1` - **IF** lifecycle interface not satisfied **RETURN** `MfeLoadError` — `inst-check-lifecycle`
-17. [x] - `p1` - Algorithm: when stylesheet paths are non-empty, wrap lifecycle so `mount` injects remote CSS (`cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`) and `unmount` removes injected `<link>` / `<style>` nodes — `inst-wrap-stylesheets`
-18. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
+5. [x] - `p1` - Read expose chunk path and CSS asset paths from `entry.exposeAssets` (per-module data, set at registration time from `mf-manifest.json`'s `exposes[]`); **IF** `exposeAssets` is absent or expose chunk path is empty **RETURN** `MfeLoadError` — `inst-read-expose-assets`
+6. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.metaData.publicPath` for chunk URL resolution — `inst-derive-base-url`
+7. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
+8. [x] - `p1` - Algorithm: build per-load runtime shim via `cpt-frontx-algo-mfe-isolation-build-share-scope` — `inst-build-share-scope`
+9. [x] - `p1` - Algorithm: resolve MF init promise via `cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise` — resolves `globalThis["__mf_init__<key>__"].initPromise` with the shim so `__loadShare__` proxy chunks can call `shim.loadShare(pkgName)` during evaluation — `inst-resolve-mf-init`
+10. [x] - `p1` - Algorithm: build blob URL chain for expose chunk via `cpt-frontx-algo-mfe-isolation-blob-url-chain` — `inst-blob-url-chain`
+11. [x] - `p1` - **IF** expose blob URL is absent from `blobUrlMap` **RETURN** `MfeLoadError` — `inst-check-expose-blob`
+12. [x] - `p1` - Dynamic `import()` of the expose blob URL produces the expose module — `inst-import-expose-blob`
+13. [x] - `p1` - Module factory extracted from expose module; result validated as `MfeEntryLifecycle` (must have `mount` and `unmount`) — `inst-validate-lifecycle`
+14. [x] - `p1` - **IF** lifecycle interface not satisfied **RETURN** `MfeLoadError` — `inst-check-lifecycle`
+15. [x] - `p1` - Algorithm: when stylesheet paths are non-empty, wrap lifecycle so `mount` injects remote CSS (`cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`) and `unmount` removes injected `<link>` / `<style>` nodes — `inst-wrap-stylesheets`
+16. [x] - `p1` - **RETURN** `MfeEntryLifecycle<ChildMfeBridge>` to caller — `inst-return-lifecycle`
 
-### MFE Build with Externalize Plugin
+### MFE Build with Module Federation Plugin
 
-- [x] `p2` - **ID**: `cpt-frontx-flow-mfe-isolation-build`
+- [x] `p2` - **ID**: `cpt-frontx-flow-mfe-isolation-build-v2`
 
 **Actors**:
 - `cpt-frontx-actor-build-system`
 
-1. [x] - `p1` - MFE `vite.config.ts` registers `federation()` plugin (expose entries, shared deps list) and `hai3MfeExternalize({ shared })` plugin — `inst-vite-config`
-2. [x] - `p1` - On `vite build`, the `federation` plugin processes expose entry files, injecting `importShared()` calls for declared shared packages — `inst-federation-plugin-runs`
-3. [x] - `p1` - `hai3-mfe-externalize` plugin (enforce: `'post'`) processes the generated bundle in `generateBundle` hook — `inst-externalize-hook`
-4. [x] - `p1` - Algorithm: identify and rename shared chunks via `cpt-frontx-algo-mfe-isolation-rename-shared-chunks` — `inst-rename-chunks`
-5. [x] - `p1` - Algorithm: map bundled sub-chunks to owning package via `cpt-frontx-algo-mfe-isolation-map-bundled-chunks` — `inst-map-bundled-chunks`
-6. [x] - `p1` - Algorithm: rewrite bundled imports in non-infrastructure chunks via `cpt-frontx-algo-mfe-isolation-rewrite-imports` — `inst-rewrite-imports`
-7. [x] - `p1` - Resulting bundle has deterministic shared chunk names and all bundled-package imports replaced with `importShared()` calls — `inst-build-output`
+1. [x] - `p1` - MFE `vite.config.ts` registers the `@module-federation/vite` plugin with expose entries and shared dependency declarations — `inst-vite-config`
+2. [x] - `p1` - On `vite build`, the plugin processes expose entry files and all code-split chunks, applying shared dependency transforms natively across all chunks without a separate post-processing step — `inst-federation-plugin-runs`
+3. [x] - `p1` - The plugin emits `mf-manifest.json` alongside the built chunk files; the manifest declares each expose entry with its primary JS chunk path in `exposes[].assets.js.sync`, CSS asset paths in `exposes[].assets.css.sync` and `exposes[].assets.css.async`, and each shared dependency with its chunk path in `shared[].assets.js.sync` — `inst-manifest-emitted`
+4. [x] - `p1` - Shared dependency chunk paths in `mf-manifest.json` are stable across rebuilds; the manifest is the authoritative source of chunk paths — `inst-stable-chunk-paths`
+5. [x] - `p1` - Resulting bundle contains `mf-manifest.json` with complete expose and shared dependency metadata required by the generation script to produce `mfe.generated.json` — `inst-build-output`
+6. [ ] - `p1` - The generation script reads `dist/mf-manifest.json` and `mfe.json`, receives `--base-url` as a CLI parameter, and produces `mfe.generated.json` with: the complete `MfManifest` GTS entity (including `metaData.publicPath` set to `--base-url`), all entries with `exposeAssets` populated from `mf-manifest.json`'s `exposes[]` array, all extensions, and all schemas from `mfe.json` — `inst-gen-script-runs`
+7. [ ] - `p1` - `mf-manifest.json` is NOT imported or fetched by the host at runtime; the generation script is the sole consumer of `mf-manifest.json` — `inst-manifest-not-runtime`
+8. [ ] - `p1` - The bootstrap loader imports `mfe.generated.json` to register the `MfManifest` GTS entity and MFE entries with the runtime; `mfe.json` is not read at runtime — `inst-bootstrap-imports-generated`
 
 ### MFE-Internal Bootstrap
+
+> **Cross-reference**: The formal algorithm for bootstrap pre-registration (registering the `MfManifest` GTS entity and MFE entries before load) is described in the screenset-registry FEATURE DoD (`cpt-frontx-dod-screenset-registry-mfe-schema-registration`). That feature owns the registration protocol; this flow covers only MFE-internal state bootstrapping after the expose chunk is evaluated.
 
 - [x] `p1` - **ID**: `cpt-frontx-flow-mfe-isolation-mfe-bootstrap`
 
@@ -157,23 +167,26 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 ## 3. Processes / Business Logic (CDSL)
 
-### Build Share Scope
+### Build Per-Load Runtime Shim
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-build-share-scope`
 
-Constructs the `shareScope` object from `manifest.sharedDependencies`. Only dependencies that declare a `chunkPath` receive blob-URL-based `get()` closures; others are omitted.
+Constructs a per-load runtime shim object with a `loadShare(pkgName)` method. MF 2.0 `__loadShare__` proxy chunks await the `__mf_init__` init promise, receive the shim, and call `shim.loadShare("react")` (or any other declared shared dependency name) to obtain a blob-URL'd module. The shim is built from the manifest's shared dependency declarations. The chunk path for each shared dependency is read from `shared[].assets.js.sync[0]`.
 
-1. [x] - `p1` - **IF** `manifest.sharedDependencies` is empty or absent **RETURN** empty `ShareScope` object — `inst-empty-deps`
-2. [x] - `p1` - **FOR EACH** dependency in `sharedDependencies`:
-   - **IF** `dep.chunkPath` is present: create a blob-URL `get()` closure via `createBlobUrlGet(dep.chunkPath, loadState)` and add `{ [dep.name]: { '*': { get: blobGet } } }` to the scope — `inst-create-blob-get`
-   - **IF** `dep.chunkPath` is absent: skip this dependency (no entry added; MFE falls back to its own bundled copy via `getSharedFromLocal()`) — `inst-skip-no-chunk-path`
-3. [x] - `p1` - **RETURN** the constructed `ShareScope` — `inst-return-share-scope`
+1. [x] - `p1` - **IF** the manifest shared dependency list is empty or absent **RETURN** a shim whose `loadShare()` always resolves to `MfeLoadError` — `inst-empty-deps`
+2. [x] - `p1` - Build an internal map of package name to chunk path from the shared dependency list:
+   - **FOR EACH** dependency in the shared dependency list:
+     - Resolve chunk path from `dep.assets.js.sync[0]` — `inst-resolve-chunk-path`
+     - **IF** chunk path is present: add `dep.name -> chunkPath` to the internal map — `inst-build-map`
+     - **IF** chunk path is absent: skip (MFE falls back to its own bundled copy via `getSharedFromLocal()`) — `inst-skip-no-chunk-path`
+3. [x] - `p1` - Construct and **RETURN** the shim object:
+   - `loadShare(pkgName)`: look up `pkgName` in the internal map; **IF** found, create or reuse the blob URL for that chunk via `createBlobUrlGet(chunkPath, loadState)` and **RETURN** `import(blobUrl)` as a module factory; **IF** not found **RETURN** `MfeLoadError` — `inst-load-share-impl`
 
 ### Blob URL Get Closure
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-blob-url-get`
 
-The closure returned by `createBlobUrlGet` is stored in the share scope and invoked by the federation runtime's `importShared()` during MFE module evaluation.
+The closure returned by `createBlobUrlGet` is used by the per-load runtime shim's `loadShare()` method and is invoked when a `__loadShare__` proxy chunk calls `shim.loadShare(pkgName)` during MFE evaluation.
 
 1. [x] - `p1` - When invoked: call `createBlobUrlChain(loadState, chunkPath)` to ensure the chunk and its dependencies are blob-URL'd — `inst-trigger-chain`
 2. [x] - `p1` - Retrieve the resulting blob URL from `loadState.blobUrlMap.get(chunkPath)` — `inst-get-blob-url`
@@ -227,55 +240,24 @@ Extracts normalized dependency filenames from a chunk's source text so the recur
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-rewrite-module-imports`
 
-Replaces relative specifiers in a chunk's source text with either a blob URL (if the dependency has already been processed in the current load) or an absolute HTTP URL.
+Replaces relative specifiers in a chunk's source text with either a blob URL (if the dependency has already been processed in the current load) or an absolute HTTP URL. Also rewrites `import.meta.url` occurrences to the real base URL.
 
 1. [x] - `p1` - For each relative specifier (both `./` and `../`) in static `from '...'` patterns: resolve the relative specifier against `chunkFilename`; look up the resolved key in `blobUrlMap`; if found, replace with the blob URL; otherwise replace with `baseUrl + resolvedKey` — `inst-static-imports`
 2. [x] - `p1` - Apply the same resolution and replacement to dynamic `import('./...')` and `import('../...')` patterns — `inst-dynamic-imports`
 3. [x] - `p1` - Non-relative specifiers (bare package names, absolute URLs) are not modified — `inst-skip-non-relative`
-4. [x] - `p1` - **RETURN** the fully rewritten source text — `inst-return-rewritten`
+4. [x] - `p1` - Replace all occurrences of `import.meta.url` with the string literal of `baseUrl` so that preload helper code inside the blob-evaluated chunk resolves absolute URLs against the real deployment origin rather than the blob URL — `inst-rewrite-import-meta-url`
+5. [x] - `p1` - **RETURN** the fully rewritten source text — `inst-return-rewritten`
 
-### Find Expose Module Body
+### Read Entry Expose Assets
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-find-expose-module-body`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-manifest-expose-metadata`
 
-Locates the `moduleMap` factory callback body for the requested `exposedModule` key in `remoteEntry.js` (supports `()=>{...}` and minified `()=>(...)`).
+Reads the expose chunk path and CSS asset paths from `entry.exposeAssets`. This data is set at registration time — the registration code splits `mf-manifest.json`'s `exposes[]` array so that per-module assets travel with the entry, not the manifest.
 
-1. [x] - `p1` - Match `"<exposedModule>":()=>` with opening `{` or `(` — `inst-match-module-key`
-2. [x] - `p1` - Scan forward with delimiter balancing (respecting strings) until the matching `}` or `)` — `inst-scan-balanced-body`
-3. [x] - `p1` - **RETURN** the inner source slice or null if not found — `inst-return-body-slice`
-
-### Parse Expose Metadata
-
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-metadata`
-
-Orchestrates expose load metadata from `remoteEntry.js`: finds the moduleMap callback body, resolves the expose JS chunk filename, and collects emitted CSS paths for mount-time injection.
-
-1. [x] - `p1` - Call `cpt-frontx-algo-mfe-isolation-find-expose-module-body` — `inst-find-body`
-2. [x] - `p1` - **IF** body is null **RETURN** null — `inst-no-body`
-3. [x] - `p1` - Resolve chunk filename via `cpt-frontx-algo-mfe-isolation-parse-expose-chunk` — `inst-resolve-chunk`
-4. [x] - `p1` - **IF** chunk filename is null **RETURN** null — `inst-no-chunk`
-5. [x] - `p1` - Resolve stylesheet paths via `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets` — `inst-resolve-css`
-6. [x] - `p1` - **RETURN** `{ chunkFilename, stylesheetPaths }` — `inst-return-metadata`
-
-### Parse Expose Chunk Filename (callback body)
-
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-chunk`
-
-Extracts the expose entry chunk filename from the **moduleMap callback body** (not the full remoteEntry).
-
-1. [x] - `p1` - Prefer match `['"]\.\/(__federation_expose_[^'"]+\.js)['"]` — `inst-expose-stable-name`
-2. [x] - `p1` - Else match `__federation_import(\s*['"]\.\/([^'"]+)['"]\s*)` — `inst-expose-import-fallback`
-3. [x] - `p1` - **RETURN** captured filename or null — `inst-return-chunk-or-null`
-
-### Parse Expose Stylesheets
-
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets`
-
-Extracts `.css` asset paths from the expose callback (pretty `dynamicLoadingCss([...],` or minified `([...], …, "<exposeKey>")`).
-
-1. [x] - `p1` - **IF** legacy `dynamicLoadingCss` shape matches, parse string literals inside the bracket list — `inst-parse-legacy-css`
-2. [x] - `p1` - **ELSE** match minified bracket list followed by expose key; parse string literals — `inst-parse-minified-css`
-3. [x] - `p1` - **RETURN** deduplicated path list (may be empty) — `inst-return-css-paths`
+1. [x] - `p1` - Read `entry.exposeAssets.js.sync[0]` as the primary expose chunk path — `inst-read-chunk-path`
+2. [x] - `p1` - Read `entry.exposeAssets.css.sync` and `entry.exposeAssets.css.async` as CSS asset paths for mount-time injection — `inst-read-css-paths`
+3. [x] - `p1` - **IF** chunk path is absent or empty **RETURN** null — `inst-no-chunk-path`
+4. [x] - `p1` - **RETURN** `{ chunkPath, stylesheetPaths }` — `inst-return-metadata`
 
 ### Wrap Lifecycle With Remote Stylesheets
 
@@ -313,59 +295,36 @@ Creates or updates a `<link rel="stylesheet">` (href) or `<style>` (inline css) 
 2. [x] - `p1` - **IF** href: ensure `LINK` element; set `href` — `inst-upsert-link`
 3. [x] - `p1` - **ELSE** ensure `STYLE` element; set `textContent` — `inst-upsert-inline`
 
-### Write Share Scope to Global
+### Generation Script: Produce mfe.generated.json
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-write-share-scope`
+- [ ] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-generate-mfe-config`
 
-Writes the constructed share scope entries to `globalThis.__federation_shared__` so the federation runtime's `importShared()` can resolve them during MFE evaluation.
+Reads `mfe.json` and `dist/mf-manifest.json`, applies the `--base-url` CLI parameter, and writes `mfe.generated.json` with the complete GTS registration payload.
 
-1. [x] - `p1` - Read or initialise `globalThis.__federation_shared__` as an object — `inst-init-global`
-2. [x] - `p1` - **FOR EACH** `[packageName, versions]` in the share scope:
-   - **FOR EACH** `[versionKey, versionValue]` in `versions`:
-     - Derive `scope` as `versionValue.scope ?? 'default'` — `inst-derive-scope`
-     - Ensure `globalThis.__federation_shared__[scope]` and `[scope][packageName]` exist — `inst-ensure-scope-keys`
-     - Write `versionValue` to `globalThis.__federation_shared__[scope][packageName][versionKey]` — `inst-write-entry`
-3. [x] - `p1` - Each `get()` closure already captures its own `LoadBlobState`; overwriting the global entry for a new load does not affect an earlier load's already-resolved `importShared()` calls — `inst-concurrent-safety`
+**Inputs**: `mfe.json` (human-authored MFE config), `dist/mf-manifest.json` (build artifact), `--base-url` (CLI parameter, sets `metaData.publicPath`)
 
-### hai3-mfe-externalize: Rename Shared Chunks
+1. [ ] - `p1` - Read `mfe.json`: extract entries array, extensions array, and schemas array — `inst-read-mfe-json`
+2. [ ] - `p1` - Read `dist/mf-manifest.json`: extract `shared` (shared dependency declarations) and `exposes` (per-module chunk/asset paths); **IF** `dist/mf-manifest.json` is absent or unreadable **FAIL** with descriptive error — `inst-read-mf-manifest`
+3. [ ] - `p1` - Build the `MfManifest` GTS entity: set `metaData.publicPath` to `--base-url`, copy `shared` entries as-is, copy `metaData.remoteEntry`, `name`, and other top-level metadata fields from `mf-manifest.json` — `inst-build-mf-manifest-entity`
+4. [ ] - `p1` - **FOR EACH** entry in `mfe.json`: resolve `entry.exposedModule` against `mf-manifest.json`'s `exposes[]` array by matching `exposedModule` against each `exposes[].path`; **IF** no match is found **FAIL** with the unmatched expose name; inject the matched expose's `assets` as `entry.exposeAssets` — `inst-inject-expose-assets`
+5. [ ] - `p1` - Assemble `mfe.generated.json`: `{ manifest: <MfManifest entity>, entries: <enriched entries>, extensions: <from mfe.json>, schemas: <from mfe.json> }` — `inst-assemble-output`
+6. [ ] - `p1` - Write the assembled object to `mfe.generated.json` — `inst-write-output`
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-rename-shared-chunks`
+### Resolve MF Init Promise
 
-Renames `__federation_shared_<pkg>-<hash>.js` chunks to `__federation_shared_<pkg>.js`, making `chunkPath` values in MFE manifests stable across rebuilds.
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise`
 
-1. [x] - `p1` - **FOR EACH** bundle entry whose key matches `__federation_shared_<pkg>-<8-char-hash>.js`: record `oldKey → newKey` in `renameMap`; record the chunk and its code length in `federationChunks` keyed by package name — `inst-identify-federation-chunks`
-2. [x] - `p1` - Apply `renameMap`: set `chunk.fileName` to `newKey`, insert under `newKey`, delete `oldKey` — `inst-apply-rename`
-3. [x] - `p1` - **FOR EACH** chunk in the bundle: update `imports`, `dynamicImports` arrays and inline code string references from old base filenames to new base filenames — `inst-update-refs`
+Resolves the MF 2.0 `__mf_init__` global promise with the per-load runtime shim so `__loadShare__` proxy chunks emitted by `@module-federation/vite` can call `shim.loadShare(pkgName)` during their evaluation. This MUST happen before any blob-URL'd chunk is dynamically imported.
 
-### hai3-mfe-externalize: Map Bundled Sub-Chunks to Packages
+The `__mf_init__` key is derived from the manifest name:
+```
+"__mf_init____mf__virtual/${manifest.name}__mf_v__runtimeInit__mf_v__.js__"
+```
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-map-bundled-chunks`
-
-Determines which bundled sub-chunk is the primary bundle of each shared package, using a thin-wrapper heuristic.
-
-1. [x] - `p1` - Collect the code length of every non-federation-infrastructure chunk keyed by base filename — `inst-collect-lengths`
-2. [x] - `p1` - **FOR EACH** federation shared chunk (from `federationChunks`):
-   - **FOR EACH** of its imports that is not federation infrastructure:
-     - **IF** the federation chunk's code length is LESS THAN the imported chunk's code length (thin wrapper): this is a candidate claim — `inst-thin-wrapper-check`
-     - **IF** `bundledChunkToPackage` already maps the imported filename: replace only if the current candidate's code length is smaller than the existing claimant (smallest thin wrapper wins) — `inst-conflict-resolution`
-     - Otherwise record `importedBase → pkgName` in `bundledChunkToPackage` — `inst-record-mapping`
-
-### hai3-mfe-externalize: Rewrite Bundled Imports to importShared
-
-- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-rewrite-imports`
-
-Replaces direct imports of bundled sub-chunks in non-infrastructure MFE chunks with `importShared()` calls so all execution paths route through the federation runtime's per-load module cache.
-
-1. [x] - `p1` - **IF** `bundledChunkToPackage` is empty **RETURN** (no rewrites needed) — `inst-early-exit`
-2. [x] - `p1` - Locate the `__federation_fn_import` chunk filename in the bundle (provides the `importShared` function) — `inst-find-fn-import`
-3. [x] - `p1` - **IF** federation fn import chunk not found **RETURN** — `inst-fn-import-missing`
-4. [x] - `p1` - **FOR EACH** non-infrastructure chunk in the bundle:
-   - **FOR EACH** imported key in the chunk's `imports` array that maps to a package in `bundledChunkToPackage`:
-     - Replace named imports `{ a as b }` with `const __importShared_<pkg> = await importShared('<pkg>'); const b = () => __importShared_<pkg>;` — `inst-named-import`
-     - Replace default imports `Foo` with `const Foo = await importShared('<pkg>');` — `inst-default-import`
-     - Replace namespace imports `* as Foo` with `const Foo = await importShared('<pkg>');` — `inst-namespace-import`
-   - **IF** any rewrites were made AND the chunk did not already import from the fn-import chunk: prepend `import { importShared } from './<fn-import-file>';` — `inst-add-import-shared`
-   - Update `outputChunk.code` with the rewritten source — `inst-update-code`
+1. [x] - `p1` - Derive `mfInitKey` from `manifest.name` using the formula above — `inst-derive-key`
+2. [x] - `p1` - Read `globalThis[mfInitKey]`; **IF** absent or `initPromise` is absent **RETURN** `MfeLoadError` (the MFE bundle expects this global to be present) — `inst-check-global`
+3. [x] - `p1` - Call the resolver function stored at `globalThis[mfInitKey].initResolve(shim)` (or equivalent promise resolution mechanism) to deliver the shim — `inst-resolve-shim`
+4. [x] - `p1` - Each load derives its key from its own manifest name; distinct manifest names guarantee that concurrent loads resolve independent `__mf_init__` entries without interfering with each other — `inst-concurrent-safety`
 
 ---
 
@@ -375,9 +334,9 @@ Replaces direct imports of bundled sub-chunks in non-infrastructure MFE chunks w
 
 - [x] `p1` - **ID**: `cpt-frontx-state-mfe-isolation-load-blob-state`
 
-Tracks the blob URL map and visitation set for a single MFE load call. Created fresh for each `loadExposedModuleIsolated()` invocation.
+Tracks the blob URL map and visitation set for a single MFE load call. Created fresh for each `loadExposedModuleIsolated()` invocation. The initial metadata is sourced from the resolved `MfManifest` GTS entity.
 
-1. [x] - `p1` - **FROM** INIT **TO** ACTIVE **WHEN** `loadExposedModuleIsolated()` creates a new `LoadBlobState` with empty `blobUrlMap` and `visited` set — `inst-state-init`
+1. [x] - `p1` - **FROM** INIT **TO** ACTIVE **WHEN** the `MfManifest` has been resolved and `loadExposedModuleIsolated()` creates a new `LoadBlobState` with empty `blobUrlMap` and `visited` set — `inst-state-init`
 2. [x] - `p1` - **FROM** ACTIVE **TO** ACTIVE (VISITED) **WHEN** `createBlobUrlChain` adds a filename to `visited` — `inst-state-visited`
 3. [x] - `p1` - **FROM** ACTIVE (VISITED) **TO** ACTIVE (MAPPED) **WHEN** a blob URL is inserted into `blobUrlMap` for the visited filename — `inst-state-mapped`
 4. [x] - `p1` - **FROM** ACTIVE **TO** COMPLETE **WHEN** the expose blob URL is successfully imported and the lifecycle module is returned — `inst-state-complete`
@@ -388,7 +347,7 @@ Tracks the blob URL map and visitation set for a single MFE load call. Created f
 
 - [x] `p1` - **ID**: `cpt-frontx-state-mfe-isolation-source-cache`
 
-Tracks the fetch state of each chunk URL across all loads for the lifetime of the `MfeHandlerMF` instance.
+Tracks the fetch state of each individual chunk URL across all loads for the lifetime of the `MfeHandlerMF` instance. The cache stores source text for chunk files (JS modules in the blob URL chain). Manifest content is resolved from GTS entities and cached in the handler's `ManifestCache`, not in this source text cache.
 
 1. [x] - `p1` - **FROM** ABSENT **TO** PENDING **WHEN** a fetch for `absoluteChunkUrl` is initiated and the `Promise<string>` is stored in `sourceTextCache` — `inst-cache-pending`
 2. [x] - `p1` - **FROM** PENDING **TO** RESOLVED **WHEN** `fetch()` succeeds and the promise resolves with source text — `inst-cache-resolved`
@@ -413,21 +372,18 @@ Tracks the fetch state of each chunk URL across all loads for the lifetime of th
 
 **Implements**:
 - `cpt-frontx-flow-mfe-isolation-load`
+- `cpt-frontx-algo-mfe-isolation-parse-manifest-expose-metadata`
 - `cpt-frontx-algo-mfe-isolation-build-share-scope`
+- `cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise`
 - `cpt-frontx-algo-mfe-isolation-blob-url-get`
 - `cpt-frontx-algo-mfe-isolation-fetch-source`
 - `cpt-frontx-algo-mfe-isolation-blob-url-chain`
 - `cpt-frontx-algo-mfe-isolation-parse-imports`
 - `cpt-frontx-algo-mfe-isolation-rewrite-module-imports`
-- `cpt-frontx-algo-mfe-isolation-find-expose-module-body`
-- `cpt-frontx-algo-mfe-isolation-parse-expose-metadata`
-- `cpt-frontx-algo-mfe-isolation-parse-expose-chunk`
-- `cpt-frontx-algo-mfe-isolation-parse-expose-stylesheets`
 - `cpt-frontx-algo-mfe-isolation-wrap-lifecycle-stylesheets`
 - `cpt-frontx-algo-mfe-isolation-inject-remote-stylesheets`
 - `cpt-frontx-algo-mfe-isolation-remove-injected-stylesheets`
 - `cpt-frontx-algo-mfe-isolation-upsert-mount-style-element`
-- `cpt-frontx-algo-mfe-isolation-write-share-scope`
 - `cpt-frontx-state-mfe-isolation-load-blob-state`
 - `cpt-frontx-state-mfe-isolation-source-cache`
 
@@ -449,31 +405,28 @@ Tracks the fetch state of each chunk URL across all loads for the lifetime of th
 - `cpt-frontx-component-screensets` (blob loader subsystem)
 - `cpt-frontx-seq-mfe-loading`
 
-### hai3-mfe-externalize Vite Plugin
+### Module Federation Vite Plugin
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-externalize-plugin`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-mf-vite-plugin`
 
-The `hai3MfeExternalize` Vite plugin produces MFE bundles where all shared dependency imports route through `importShared()`, and shared chunk filenames are deterministic.
+The `@module-federation/vite` build plugin produces MFE bundles where all shared dependency imports are transformed natively, and a declarative `mf-manifest.json` is emitted alongside chunk files with stable chunk paths.
 
 **Implementation details**:
-- File: `src/mfe_packages/shared/vite-plugin-hai3-externalize.ts`
-- Export: `hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin`
-- Consumed by each MFE's `vite.config.ts` alongside `@originjs/vite-plugin-federation`
+- Dependency: `@module-federation/vite`
+- Consumed by each MFE's `vite.config.ts`; no post-processing plugin is needed
+- The plugin emits `mf-manifest.json` automatically on every build; no additional configuration is required to produce the manifest
 
 **Implements**:
-- `cpt-frontx-flow-mfe-isolation-build`
-- `cpt-frontx-algo-mfe-isolation-rename-shared-chunks`
-- `cpt-frontx-algo-mfe-isolation-map-bundled-chunks`
-- `cpt-frontx-algo-mfe-isolation-rewrite-imports`
+- `cpt-frontx-flow-mfe-isolation-build-v2`
 
 **Covers (PRD)**:
-- `cpt-frontx-fr-externalize-transform`
 - `cpt-frontx-fr-externalize-filenames`
 - `cpt-frontx-fr-externalize-build-only`
 
 **Covers (DESIGN)**:
 - `cpt-frontx-principle-mfe-isolation` (build-side enforcement)
 - `cpt-frontx-component-screensets` (shared Vite tooling)
+- `cpt-frontx-contract-federation-runtime`
 
 ### MFE-Internal Dataflow
 
@@ -497,37 +450,34 @@ Each MFE package bootstraps its own isolated `HAI3App` and exposes it for use by
 - `cpt-frontx-principle-mfe-isolation` (runtime-side enforcement)
 - `cpt-frontx-constraint-zero-cross-deps-at-l1`
 
-### SharedDependencyConfig chunkPath Field
+### MfManifest Type and GTS Schema Update
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-chunk-path-type`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-mfmanifest-type`
 
-`SharedDependencyConfig` declares the optional `chunkPath` field used to derive the absolute chunk URL for blob URL isolation.
+The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (registered as `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`) are updated to match the `mf-manifest.json` structure emitted by `@module-federation/vite` directly. There is no envelope field, no version detection, and no backward compatibility path. The GTS schema `mf_manifest.v1.json` keeps its current identifier — "v1" is simply the schema's stable ID, not a version in a backward-compat sense.
+
+> **Cross-reference**: The authoritative field listing for `MfManifest` (including `shared`, `metaData`, `exposes`, and their sub-fields) is maintained in the screenset-registry FEATURE DoD `cpt-frontx-dod-screenset-registry-mfmanifest-schema-update`. This isolation FEATURE DoD covers only the runtime handler's perspective on the type.
 
 **Implementation details**:
 - File: `packages/screensets/src/mfe/types/mf-manifest.ts`
-- Interface: `SharedDependencyConfig { name: string; requiredVersion?: string; chunkPath?: string }`
-- Absolute URL derived as `new URL(chunkPath, remoteEntryBaseUrl).href`
+- The `GtsPlugin` registers `mf_manifest.v1.json` as a first-class schema alongside all other built-in schemas
+- All runtime code (`MfeHandlerMF`, `ManifestCache`, `resolveManifest()`) works exclusively with the `MfManifest` TypeScript interface; no runtime code imports or references GTS schemas directly
 
 **Covers (PRD)**:
-- `cpt-frontx-fr-blob-source-cache` (chunkPath enables cache keying)
-- `cpt-frontx-fr-sharescope-construction` (chunkPath determines whether blob get() is created)
+- `cpt-frontx-fr-blob-source-cache` (chunk paths from manifest enable cache keying)
+- `cpt-frontx-fr-sharescope-construction` (chunk path determines whether blob get() is created)
+- `cpt-frontx-fr-externalize-filenames` (manifest provides stable chunk paths)
+
+**Covers (DESIGN)**:
+- `cpt-frontx-contract-mfe-manifest`
+
+---
 
 ### ChildMfeBridge Abstract Class Contract
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-child-bridge-contract`
 
-`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. It is an abstract class (consistent with all other public abstractions: `MfeHandler`, `MfeBridgeFactory`, `ScreensetsRegistry`, `ActionsChainsMediator`, `RuntimeCoordinator`) — concrete implementations are `@internal`:
-
-```typescript
-abstract class ChildMfeBridge {
-  abstract readonly domainId: string;
-  abstract readonly instanceId: string;
-  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
-  abstract subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
-  abstract getProperty(propertyTypeId: string): SharedProperty | undefined;
-  abstract registerActionHandler(actionTypeId: string, handler: ActionHandler): void;
-}
-```
+`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. It is an abstract class (consistent with all other public abstractions: `MfeHandler`, `MfeBridgeFactory`, `ScreensetsRegistry`, `ActionsChainsMediator`, `RuntimeCoordinator`) — concrete implementations are `@internal`. The abstract class defines six members:
 
 - `domainId` — the ID of the domain this extension belongs to; provided by the registry at bridge creation
 - `instanceId` — the extension instance ID; used as the routing key for extension-level action delivery
@@ -554,26 +504,36 @@ Action target contract enforcement is handled by GTS schema validation: each act
 
 ## 6. Acceptance Criteria
 
-- [x] Two MFEs loaded sequentially with the same `react` `chunkPath` produce React instances where `Object.is(mfeA_React, mfeB_React)` is `false`
-- [x] Two MFEs loaded with the same `chunkPath` result in at most one network fetch for that chunk URL (source text cache deduplication)
+- [x] Two MFEs loaded sequentially with the same shared dependency chunk path produce module instances where `Object.is(mfeA_React, mfeB_React)` is `false`
+- [x] Two MFEs loaded with the same chunk path result in at most one network fetch for that chunk URL (source text cache deduplication)
 - [x] Two MFEs loaded concurrently each receive their own unique blob URL and fresh module evaluation; no `MfeLoadError` is thrown in the concurrent case
+- [x] `import.meta.url` occurrences in blob-URL'd chunk source text are replaced with the manifest base URL before the blob is created; post-rewrite source text does not contain `import.meta.url`
+- [x] Before any blob-URL'd chunk is dynamically imported, `globalThis["__mf_init__<key>__"].initPromise` is resolved with the per-load shim; `__loadShare__` proxy chunks that call `shim.loadShare(pkgName)` receive a blob-URL'd module
+- [x] `globalThis.__federation_shared__` is never written to during an MFE load
 - [x] After `import(blobUrl)` resolves, `URL.revokeObjectURL` is never called for any blob URL created during an MFE load
+- [x] A missing or unresolvable manifest GTS reference throws `MfeLoadError` before any chunk fetch is attempted
+- [x] A manifest missing required fields (shared, metaData) or an entry missing `exposeAssets` throws `MfeLoadError` before any chunk fetch is attempted
+- [x] The registration layer MUST split `mf-manifest.json` content so that the `MfManifest` GTS entity carries shared data and each `MfeEntryMF` carries per-module `exposeAssets`
 - [x] A 404 or network error fetching any chunk source text throws `MfeLoadError` with the chunk URL and failure reason; the failed fetch is removed from the source text cache
-- [x] The `hai3-mfe-externalize` plugin does not modify any imports during `vite dev` (build-only operation)
-- [x] After `vite build`, all `__federation_shared_<pkg>-<hash>.js` chunks are renamed to `__federation_shared_<pkg>.js` and all referencing chunks are updated accordingly
-- [x] After `vite build`, code-split chunks that previously imported from bundled CJS wrappers instead contain `importShared('<pkg>')` calls via the federation fn-import chunk
+- [x] After `vite build` with `@module-federation/vite`, a `mf-manifest.json` file is emitted alongside chunk files; it contains `exposes` entries with `assets.js.sync` chunk paths and `shared` entries with `assets.js.sync` chunk paths
+- [x] After `vite build` with `@module-federation/vite`, shared dependency transforms are applied natively across all chunks without a separate post-processing step
 - [x] MFE `init.ts` files contain no direct imports from `react-redux`, `redux`, or `@reduxjs/toolkit`; all store access goes through `@cyberfabric/react` APIs
+- [ ] Running the generation script with a valid `mfe.json`, `dist/mf-manifest.json`, and `--base-url` produces `mfe.generated.json` containing: a `MfManifest` GTS entity with `metaData.publicPath` equal to the supplied `--base-url`, entries with `exposeAssets.js.sync` populated from `mf-manifest.json`'s `exposes[]`, and the same `extensions` and `schemas` arrays as `mfe.json`
+- [ ] Running the generation script when `dist/mf-manifest.json` is absent exits with a non-zero status and a descriptive error message
+- [ ] Running the generation script when an entry's `exposedModule` has no matching path in `mf-manifest.json`'s `exposes[]` exits with a non-zero status naming the unmatched module
 
 ---
 
 ## Additional Context
 
-**Never-revoke policy rationale**: The `import()` function resolves when a module is parsed and its top-level synchronous code has run. Modules that include `const dep = await importShared('react')` continue evaluating asynchronously after the `import()` promise resolves. If the blob URL is revoked at this point, the async continuation cannot fetch the already-queued sub-module evaluation and fails with `ERR_FILE_NOT_FOUND`. Blob URLs are cleaned up automatically by the browser on page unload; no manual revocation is needed.
+**Never-revoke policy rationale**: The `import()` function resolves when a module is parsed and its top-level synchronous code has run. Modules with top-level `await` (such as `__loadShare__` proxy chunks that `await shim.loadShare('react')`) continue evaluating asynchronously after the `import()` promise resolves. If the blob URL is revoked at this point, the async continuation cannot fetch the already-queued sub-module evaluation and fails with `ERR_FILE_NOT_FOUND`. Blob URLs are cleaned up automatically by the browser on page unload; no manual revocation is needed.
 
 **Per-load map vs. handler-level source cache**: The `blobUrlMap` is intentionally scoped to a single load because each MFE must get a unique `URL.createObjectURL()` result (even from the same source text) to achieve a fresh module evaluation. The `sourceTextCache` is intentionally handler-level to avoid redundant network fetches across multiple loads that share a dependency version.
 
-**Thin-wrapper heuristic in the externalize plugin**: Federation shared chunks come in two shapes: (a) a thin re-export wrapper (e.g., `__federation_shared_react.js` at ~0.27 KB wrapping the ~100 KB React bundle), and (b) a large package chunk that happens to import a smaller sub-module (e.g., `__federation_shared_@cyberfabric/react.js` at 22 KB importing `jsx-runtime.js` at 5 KB). The heuristic — "thin wrapper wins ownership of bundled sub-chunks; when two thin wrappers compete, the smallest one wins" — correctly identifies the primary bundled copy of a shared package without AST parsing.
+**Shared dependency chunk resolution**: `mf-manifest.json` provides chunk paths directly via `shared[].assets.js.sync`. The blob URL isolation pipeline reads this field for each dependency; any dependency without a resolved chunk path is skipped and the MFE falls back to its own bundled copy via `getSharedFromLocal()`.
 
 **CSP compatibility**: The isolation mechanism uses `Blob` objects and `URL.createObjectURL`, not `eval()` or `new Function()`. The only required CSP directive addition is `blob:` in `script-src`. The `cpt-frontx-nfr-sec-csp-blob` requirement is satisfied by construction.
 
-**Concurrent write safety of `globalThis.__federation_shared__`**: `writeShareScope()` overwrites individual version entries per load. A later load's `writeShareScope` may overwrite the `get()` entry written by an earlier concurrent load before that earlier load's `importShared()` fires. This is safe because: (1) `importShared()` is called during `import(blobUrl)` evaluation, which happens after `writeShareScope` for that load; (2) each `get()` closure captures its own `LoadBlobState` so even if it is called from a later context it produces the correct isolation for its own load's blob map.
+**Per-load shim isolation for concurrent loads**: Each load creates an independent runtime shim object and resolves a distinct `globalThis["__mf_init__<key>__"]` entry where the key is derived from the manifest name. Because different MFEs have different manifest names, their `__mf_init__` keys do not overlap and concurrent loads never overwrite each other's shim. The shim itself captures its own `LoadBlobState`, so `loadShare()` calls from any `__loadShare__` proxy chunk always reference the correct per-load blob URL map regardless of concurrency. `globalThis.__federation_shared__` is never written to because MF 2.0 chunks do not read it.
+
+**`import.meta.url` rewriting**: The blob URL mechanism assigns blob URLs as the module's `import.meta.url`, not the original deployment origin. MFE chunks produced by `@module-federation/vite` may include preload helper code that constructs absolute URLs from `import.meta.url`. To fix this, the handler replaces every `import.meta.url` occurrence in the source text with the resolved absolute base URL (from `manifest.metaData.publicPath`) before creating the `Blob`. This is applied in the same rewriting pass as relative import specifier replacement.

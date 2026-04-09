@@ -1,6 +1,6 @@
 # PRD — FrontX Dev Kit
 
-<!-- artifact-version: 1.1 -->
+<!-- artifact-version: 1.4 -->
 
 <!-- toc -->
 
@@ -24,7 +24,7 @@
   - [5.4 MFE Type System](#54-mfe-type-system)
   - [5.5 MFE Core](#55-mfe-core)
   - [5.6 MFE Blob URL Isolation](#56-mfe-blob-url-isolation)
-  - [5.7 MFE Externalize Plugin](#57-mfe-externalize-plugin)
+  - [5.7 MFE Build Plugin](#57-mfe-build-plugin)
   - [5.8 MFE Internal Dataflow](#58-mfe-internal-dataflow)
   - [5.9 MFE Share Scope Management](#59-mfe-share-scope-management)
   - [5.10 Shared Property Broadcast](#510-shared-property-broadcast)
@@ -38,6 +38,7 @@
   - [5.18 Microfrontend Plugin](#518-microfrontend-plugin)
   - [5.19 Screensets Workflow](#519-screensets-workflow)
   - [5.20 Request Lifecycle & Data Management](#520-request-lifecycle--data-management)
+  - [5.21 Documentation](#521-documentation)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
   - [6.2 NFR Exclusions](#62-nfr-exclusions)
@@ -49,6 +50,7 @@
 - [10. Dependencies](#10-dependencies)
 - [11. Assumptions](#11-assumptions)
 - [12. Risks](#12-risks)
+- [13. Open Questions](#13-open-questions)
 
 <!-- /toc -->
 
@@ -77,11 +79,11 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 
 | Goal | Baseline | Target | Timeframe |
 |------|----------|--------|-----------|
-| Time to Production | 4-6 weeks (custom architecture + component library integration) | 1-2 weeks (scaffold + plugin composition) | 2026 Q3 |
-| Team Onboarding | 3-5 days (learn monolithic patterns + project-specific rules) | 6-8 hours (four-layer model + plugin API) | 2026 Q2 |
+| Time to Production (measured from `frontx create` to first successful production build) | 4-6 weeks (custom architecture + component library integration) | 1-2 weeks (scaffold + plugin composition) | 2026 Q3 |
+| Team Onboarding (measured as elapsed time to complete getting-started tutorial and produce a working screenset) | 3-5 days (learn monolithic patterns + project-specific rules) | 6-8 hours (four-layer model + plugin API) | 2026 Q2 |
 | Bundle Size | 680KB (all features bundled, even unused) | <250KB dev, <180KB prod (tree-shaken per-feature) | 2026 Q3 |
 | Per-Screen Load Time | 1.2s (all screens pre-bundled, lazy-load only images) | <400ms (screens + translations lazy-loaded on-demand) | 2026 Q2 |
-| Screenset Onboarding | 8-10 hours (study uicore, copy demo, adapt) | 45 min (scaffold + modify single file) | 2026 Q2 |
+| Screenset Onboarding (measured from `frontx scaffold screenset` to first successful dev server render of a modified screen) | 8-10 hours (study uicore, copy demo, adapt) | 45 min (scaffold + modify single file) | 2026 Q2 |
 
 ### 1.4 Glossary
 
@@ -245,6 +247,8 @@ src/                -- Demo host application + MFE packages
 **Development**: `npm run dev` generates MFE manifests and color tokens, then starts Vite dev server.
 
 **Architecture checks**: `npm run arch:check`, `arch:deps`, `arch:unused` validate layer boundaries and unused exports.
+
+> **Note**: Technology names and version constraints listed in this PRD are product-defining requirements for this SDK, not implementation decisions deferrable to architecture phase. They define the target runtime and build contract that consumers depend on.
 
 ## 4. Scope
 
@@ -480,11 +484,13 @@ SSE-related events MUST be type-safe via `EventPayloadMap` module augmentation.
 
 ### 5.4 MFE Type System
 
+> **Note**: MFE type contracts documented here define the inter-package communication API. For a library product, public type shapes are product requirements, not internal implementation types.
+
 #### MFE Entry Types
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-entry-types`
 
-The system MUST define `MfeEntry` (base with id, requiredProperties, actions, domainActions), `MfeEntryMF` (extends with manifest, exposedModule), `Extension` (id, domain, entry), `ScreenExtension` (extends with presentation: label, route, optional icon/order). All types MUST have an `id: string` field.
+The system MUST define `MfeEntry` (base with id, requiredProperties, actions, domainActions), `MfeEntryMF` (extends with manifest, exposedModule, exposeAssets), `Extension` (id, domain, entry), `ScreenExtension` (extends with presentation: label, route, optional icon/order). All types MUST have an `id: string` field. The `MfeEntryMF.manifest` field MUST reference an MfManifest GTS entity that provides package-level metadata: MFE identity, base URL, and shared dependency declarations with version metadata. The `MfeEntryMF.exposeAssets` field MUST carry the per-module chunk paths and CSS asset paths for the specific exposed module. The manifest and expose assets content MUST originate from the build-generated `mf-manifest.json`, split at registration time between the shared manifest entity and per-module entries.
 
 **Rationale**: Type contracts for MFE communication between host and extensions.
 **Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-developer`
@@ -578,16 +584,16 @@ The handler MUST NOT call `URL.revokeObjectURL()` after `import()` resolves; blo
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-blob-import-rewriting`
 
-`MfeHandlerMF` MUST rewrite ALL relative imports to absolute URLs using the remoteEntry base URL.
+`MfeHandlerMF` MUST rewrite ALL relative imports to absolute URLs using manifest-provided chunk paths. URL resolution MUST derive the base URL from the manifest metadata, not from parsing a JavaScript entry point. Any `import.meta.url` references in blob-URL'd chunk source text MUST be replaced with the resolved absolute base URL before blob creation so that preload helper code within the chunk can construct correct absolute URLs.
 
-**Rationale**: Blob-evaluated modules cannot resolve relative imports.
+**Rationale**: Blob-evaluated modules cannot resolve relative imports; manifest-based path resolution is independent of JavaScript syntax. `import.meta.url` inside a blob URL resolves to the blob URL itself rather than the original deployment origin, breaking any chunk-internal preload or dynamic URL construction that relies on it.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 #### Recursive Blob Chain
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-blob-recursive-chain`
 
-`MfeHandlerMF` MUST use `createBlobUrlChain` to recursively create blob URLs for a chunk and all its static dependencies, building a chain of isolated modules.
+The MFE handler MUST recursively create blob URLs for a chunk and all its static dependencies, building a chain of isolated modules.
 
 **Rationale**: Ensures the entire dependency tree gets fresh per-load evaluations.
 **Actors**: `cpt-frontx-actor-microfrontend`
@@ -596,39 +602,48 @@ The handler MUST NOT call `URL.revokeObjectURL()` after `import()` resolves; blo
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-blob-per-load-map`
 
-The `blobUrlMap` MUST be scoped to a single load; different MFE loads MUST have independent `blobUrlMap` instances.
+The blob URL mapping MUST be scoped to a single load; different MFE loads MUST have independent mapping instances.
 
 **Rationale**: Prevents cross-load blob URL reuse which would break isolation.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
-### 5.7 MFE Externalize Plugin
+### 5.7 MFE Build Plugin
 
-#### Transform All Imports
+#### Shared Dependency Transforms
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-externalize-transform`
 
-A custom Vite plugin (`hai3-mfe-externalize`) MUST transform ALL `import` statements for shared dependencies into `importShared()` calls across the entire MFE bundle, not just expose entry files.
+The MFE build plugin MUST transform ALL `import` statements for shared dependencies into federation-resolvable calls across the entire MFE bundle, including code-split chunks — not only expose entry files.
 
-**Rationale**: Federation plugin only transforms expose entries; code-split chunks need the same treatment.
+**Rationale**: All chunks in the MFE bundle must participate in shared dependency resolution for blob URL isolation to work correctly.
 **Actors**: `cpt-frontx-actor-build-system`
 
-#### Deterministic Filenames
+#### Declarative Manifest Generation
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-externalize-filenames`
 
-The plugin MUST configure shared dependency chunks to use deterministic filenames without content hashes.
+The MFE build plugin MUST produce a declarative manifest (`mf-manifest.json`) with deterministic chunk paths for exposed modules and shared dependencies. The manifest MUST be auto-generated alongside the federation entry point on every build.
 
-**Rationale**: Stable `chunkPath` values in MFE manifests across rebuilds.
+**Rationale**: Auto-generated manifest ensures chunk paths are always in sync with the build output, replacing manual chunkPath authoring.
 **Actors**: `cpt-frontx-actor-build-system`
 
 #### Build-Only Operation
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-externalize-build-only`
 
-The plugin MUST operate at build time only (`vite build`); it MUST NOT transform imports during `vite dev`.
+The MFE build plugin MUST operate at build time only (`vite build`); it MUST NOT transform imports during `vite dev`.
 
-**Rationale**: Dev server should not be affected by MFE externalization.
+**Rationale**: Dev server should not be affected by MFE build transforms.
 **Actors**: `cpt-frontx-actor-build-system`
+
+#### Registration Config Generation Script
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-manifest-generation-script`
+
+The build system MUST provide a manifest generation script that reads human-authored MFE configuration (`mfe.json`) and build output (`mf-manifest.json`), merges them into complete GTS entity registration data (`mfe.generated.json`) with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in the generated `MfManifest` GTS entity. The script MUST produce `exposeAssets` for each entry by reading the `exposes[]` array from `mf-manifest.json` and associating chunk paths with the corresponding `mfe.json` entries. The generated file is what the bootstrap loader imports to register GTS entities with the runtime — `mfe.json` is never read at runtime.
+
+**Rationale**: `mfe.json` is environment-independent (no URLs, no chunk paths) and therefore human-authorable and version-controllable. `mf-manifest.json` is a build artifact that carries environment-neutral chunk paths. The generation script is the single point where environment-specific `publicPath` is injected, producing a deploy-time artifact (`mfe.generated.json`) that the bootstrap registers. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
+**Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-ci-cd`
 
 ### 5.8 MFE Internal Dataflow
 
@@ -656,18 +671,18 @@ MFE packages MUST NOT import from `react-redux`, `redux`, or `@reduxjs/toolkit` 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sharescope-construction`
 
-`MfeHandlerMF` MUST construct a `shareScope` from `manifest.sharedDependencies` and write it to `globalThis.__federation_shared__` via `writeShareScope()`. For dependencies with `chunkPath`, the handler MUST create blob-URL-based `get()` closures.
+`MfeHandlerMF` MUST construct a per-load runtime shim object that provides a `loadShare(pkgName)` method for MF 2.0 chunks. The shim is built from the manifest's shared dependency declarations: each declared shared dependency with a chunk path MUST be resolvable through `loadShare()` by returning a blob-URL'd module instance. The handler MUST resolve `globalThis["__mf_init__<key>__"].initPromise` with the shim BEFORE evaluating any blob-URL'd chunk. The handler MUST NOT write to `globalThis.__federation_shared__`; MF 2.0 chunks never read that global. The `__mf_init__` key has the form `"__mf_init____mf__virtual/${manifest.name}__mf_v__runtimeInit__mf_v__.js__"`.
 
-**Rationale**: The shareScope bridges the federation runtime's `importShared()` and blob URL isolation.
+**Rationale**: MF 2.0 chunks use `loadShare()` via the `__mf_init__` global promise, not `importShared()` via `__federation_shared__`. Resolving the init promise with the per-load shim before chunk evaluation ensures `__loadShare__` proxy chunks within the MFE bundle can satisfy their shared dependency imports through the blob URL chain. Writing to `__federation_shared__` has no effect and is therefore removed.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 #### Concurrent Load Safety
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-sharescope-concurrent`
 
-When multiple MFEs are loaded concurrently, each load's `get()` closures MUST capture their own `LoadBlobState` instance. At most ONE network fetch MUST occur per chunk URL.
+When multiple MFEs are loaded concurrently, each load's shared dependency resolution MUST be isolated. The per-load runtime shim is created fresh for each load and captures its own `LoadBlobState`; resolving `globalThis["__mf_init__<key>__"].initPromise` with the shim does not affect other concurrent loads because each MFE uses a distinct `__mf_init__` key derived from its own manifest name. At most ONE network fetch MUST occur per chunk URL.
 
-**Rationale**: Concurrent loads must not interfere with each other.
+**Rationale**: Distinct per-load shim objects combined with manifest-name-scoped `__mf_init__` keys guarantee that concurrent loads cannot interfere with each other's shared dependency resolution.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 ### 5.10 Shared Property Broadcast
@@ -1087,6 +1102,16 @@ A single FrontX project MUST support multiple independent production screensets 
 
 **Rationale**: MFEs render in separate React roots, so they cannot share the cache through React-context inheritance alone. The `queryCache()` plugin owns the shared TanStack `QueryClient` and makes it available to `HAI3Provider` through internal app wiring. The restricted `QueryCache` interface prevents uncontrolled cross-MFE cache tampering. Cache key derivation from `baseURL` gives MFEs natural opt-in/opt-out control over shared caching.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
+### 5.21 Documentation
+
+#### Documentation Requirements
+
+- [ ] `p1` - **ID**: `cpt-frontx-fr-documentation`
+
+The system MUST provide: (1) a getting-started guide enabling a new developer to scaffold and run a working screenset within 6–8 hours; (2) an API reference for all public library interfaces (`@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/framework`, `@cyberfabric/react`, `@cyberfabric/api`, `@cyberfabric/i18n`); (3) an MFE integration guide covering the two-file model (`mfe.json` + `mfe.generated.json`), generation script usage, and blob URL isolation overview.
+
+**Rationale**: Developer onboarding depends on clear documentation. The 6–8 hour onboarding target from the Goals table is only achievable with a complete getting-started guide and API reference.
+**Actors**: `cpt-frontx-actor-developer`
 
 ## 6. Non-Functional Requirements
 
@@ -1280,6 +1305,12 @@ Non-production screensets MUST NOT be included in the production build's module 
 - **Internationalization** (UX-PRD-003): Addressed as functional requirement `cpt-frontx-fr-sdk-i18n-package` — FrontX provides the i18n infrastructure; application-level translation content is out of scope.
 - **Offline Capability** (UX-PRD-004): Not applicable — FrontX is designed for always-connected SPA environments.
 - **Availability/Recovery** (REL-PRD-001/002): Not applicable — FrontX is a client-side library, not a hosted service. Availability and recovery are deployment-level concerns.
+- **Security** (SEC-PRD-001 through SEC-PRD-005): Not applicable — FrontX is a client-side UI framework that does not implement authentication, authorization, data classification, audit logging, or privacy controls. These are application-level concerns.
+- **Performance/Throughput** (PERF-PRD-002/003): Not applicable — FrontX is a client-side library; concurrent users, transaction volumes, and capacity planning are server-side concerns.
+- **Usability/Inclusivity** (UX-PRD-005): Not applicable — FrontX targets a narrow technical audience (developers, screenset authors, PMs using AI tooling).
+- **Maintainability/Support** (MAINT-PRD-002): Not applicable — FrontX is an alpha-stage SDK; formal SLA and support tiers are not applicable.
+- **Data** (DATA-PRD-001/002/003): Not applicable — FrontX is a client-side library with no persistent data storage beyond localStorage for Studio settings.
+- **Operations** (OPS-PRD-001/002): Not applicable — FrontX is an npm package library, not a deployed service.
 
 ## 7. Public Library Interfaces
 
@@ -1364,18 +1395,18 @@ Non-production screensets MUST NOT be included in the production build's module 
 - [x] `p1` - **ID**: `cpt-frontx-contract-mfe-manifest`
 
 **Direction**: required from MFE packages
-**Protocol/Format**: JSON (mfe.json)
-**Compatibility**: Manifest schema must match `MfManifest` type from `@cyberfabric/screensets`.
-**Description**: Each MFE package provides a manifest declaring remoteEntry, exposedModules, sharedDependencies with optional chunkPath.
+**Protocol/Format**: Two JSON files per MFE package: `mfe.json` (human-authored, environment-independent) and `mfe.generated.json` (generated at deploy time, contains complete GTS registration data).
+**Compatibility**: `mfe.generated.json` content MUST conform to the `MfManifest` GTS schema; the generation script produces it from `mfe.json` and `mf-manifest.json`.
+**Description**: Each MFE package provides two files. `mfe.json` is human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, and schemas — no manifest section, no URLs, no chunk paths. `mfe.generated.json` is produced by the generation script (see `cpt-frontx-fr-manifest-generation-script`) by merging `mfe.json` with the build-generated `mf-manifest.json` and injecting the environment-specific `--base-url`. The generated file contains the complete `MfManifest` GTS entity and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` never reaches runtime and is consumed by the generation script only.
 
 #### Module Federation Runtime
 
 - [x] `p2` - **ID**: `cpt-frontx-contract-federation-runtime`
 
 **Direction**: required from build system
-**Protocol/Format**: `@originjs/vite-plugin-federation` runtime
-**Compatibility**: Compatible with vite-plugin-federation v1.4.x.
-**Description**: Federation runtime's `importShared()` resolves from `globalThis.__federation_shared__`.
+**Protocol/Format**: `@module-federation/vite` build plugin producing `mf-manifest.json`
+**Compatibility**: Compatible with Module Federation 2.0 manifest schema.
+**Description**: The MFE build plugin generates `mf-manifest.json` alongside `remoteEntry.js`. The manifest generation script reads this file and merges it with `mfe.json` to produce `mfe.generated.json`, which carries the complete GTS entity registration data. The handler consumes the GTS entities registered from `mfe.generated.json`, not the raw `mf-manifest.json` file.
 
 ## 8. Use Cases
 
@@ -1390,9 +1421,9 @@ Non-production screensets MUST NOT be included in the production build's module 
 - Extension domain registered with shared properties and actions
 
 **Main Flow**:
-1. Host dispatches `loadExtension` action with MFE manifest URL
-2. MfeHandlerMF fetches manifest and shared dependency source text
-3. Handler constructs blob URL share scope and evaluates exposed module
+1. Host dispatches `loadExtension` action with MFE entry reference
+2. Handler resolves `MfManifest` GTS entity and reads `entry.exposeAssets` for per-module chunk paths
+3. Handler constructs per-load runtime shim, resolves MF init promise, and evaluates exposed module via blob URLs
 4. Handler returns lifecycle module (mount/unmount)
 5. Host dispatches `mountExtension` to render in Shadow DOM slot
 
@@ -1548,7 +1579,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 | `react-redux` >=8.0.0 | React-Redux bindings for @cyberfabric/react | p1 |
 | `@globaltypesystem/gts-ts` ^0.3.0 | GTS type validation for @cyberfabric/screensets | p1 |
 | `vite` 6.4.1 | Build tooling and dev server | p1 |
-| `@originjs/vite-plugin-federation` ^1.4.1 | Module Federation for MFEs | p1 |
+| `@module-federation/vite` | Module Federation 2.0 build plugin for MFEs | p1 |
 | `tsup` ^8.0.0 | Package bundling (ESM/CJS dual output) | p2 |
 | `tailwindcss` ^3.4.1 | Utility CSS for local UI | p2 |
 | `commander` ^12.1.0 | CLI argument parsing for @cyberfabric/cli | p2 |
@@ -1562,9 +1593,9 @@ Non-production screensets MUST NOT be included in the production build's module 
 - Modern evergreen browsers (Chrome, Firefox, Safari, Edge) with ES2020 target; no IE11 or legacy polyfills
 - Development requires npm >= 10.0.0 with workspace support
 - Development environment requires Node.js 22+; published packages support Node.js 18+ at runtime
-- MFE remote entries are fetchable via `fetch()`, requiring same-origin hosting or proper CORS headers
+- MFE manifests and federation entry points are fetchable via `fetch()`, requiring same-origin hosting or proper CORS headers
 - Deployment environments allow `blob:` in CSP `script-src` for MFE isolation
-- Both host app and MFE packages use Vite with `@originjs/vite-plugin-federation`
+- Both host app and MFE packages use Vite with `@module-federation/vite` (Module Federation 2.0)
 - Host application uses React 19; MFEs may use any framework implementing the lifecycle interface
 - Package version 0.4.0-alpha.0 — backward-incompatible changes are expected
 - Lodash is required for non-trivial object and array operations (per project guidelines)
@@ -1578,16 +1609,21 @@ Non-production screensets MUST NOT be included in the production build's module 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
 | Blob URL memory accumulation in long sessions | Memory leak from non-revoked blob URLs | Browser cleans up on page unload; typical SPA lifecycle is bounded |
-| Module Federation plugin limitations | `@originjs/vite-plugin-federation` updates may break handler | Custom externalize plugin and source text rewriting bypass federation runtime limitations |
+| Module Federation manifest schema stability | `mf-manifest.json` schema may evolve across MF 2.0 releases | Handler reads a defined subset of manifest fields; the MfeHandler abstraction isolates internal schema changes from the blob URL isolation pipeline |
 | CSP policy conflicts with blob: URLs | Enterprise deployments may reject blob URLs | Document CSP requirement; provide MfeHandler extension point for alternatives |
 | Race conditions in concurrent MFE operations | State corruption from interleaved lifecycle operations | Domain-level operation serialization; per-load LoadBlobState isolation |
 | Memory leaks from unreleased event subscriptions | EventSource, EventBus, axios connections not cleaned up | cleanup() methods on protocols, destroy() on plugins, unsubscribe() on subscriptions |
 | Large change surface for breaking changes | Alpha status means API changes are expected | CLI migration runners automate codemod transformations |
 | Infinite retry loops | API/MFE retry could loop indefinitely | maxRetryDepth (default: 10) in RestProtocol; retries config (default: 2) in MfeHandlerMF |
-| Single Module Federation implementation lock-in | Only vite-plugin-federation supported | MfeHandler is abstract; custom handlers pluggable via microfrontends config |
+| Single Module Federation implementation lock-in | Only `@module-federation/vite` supported | MfeHandler is abstract; custom handlers pluggable via microfrontends config |
 | Shell code divergence across screensets | Screensets accumulate incompatible shell patterns, making framework upgrades and shared maintenance difficult | Provide tooling that shows how a screenset's shell differs from its source; document recommended shell update practices |
 | Orphaned resources after screenset deletion | Project accumulates unused MFE packages no longer referenced by any screenset | CLI detects and offers cleanup of orphaned resources during deletion |
 | AI agents make invalid screenset modifications | Malformed configuration or broken package references from AI edits | Validate screenset configuration on dev server startup; provide machine-readable context to guide AI agents |
 | Package isolation mechanism introduces subtle bugs | Modified packages may lose correct bindings to other screensets' domains | Comprehensive validation of isolated packages after modification |
 | Shared package updates break dependent screensets | Bug fix in a shared package changes behavior that a screenset relied on | Package modification isolation ensures screensets that customized a package are not affected; shared packages should have stable interfaces |
 | Framework upgrades require per-screenset shell updates | Since each screenset owns its shell code, a framework upgrade must be applied to every screenset independently | Provide shell diffing/update tooling; document recommended upgrade practices |
+
+## 13. Open Questions
+
+No open questions at this time. Previously open questions resolved during development:
+- MFE manifest format: resolved — `MfManifest` type and GTS schema updated to match `mf-manifest.json` structure directly; auto-generated by `@module-federation/vite`

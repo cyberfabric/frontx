@@ -76,6 +76,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-constraint-zero-cross-deps-at-l1`
   - [x] `p1` - `cpt-frontx-constraint-typescript-strict-mode`
   - [x] `p1` - `cpt-frontx-constraint-esm-first-module-format`
+  - [x] `p2` - `cpt-frontx-constraint-oss-licensing`
 
 - **Domain Model Entities**:
   - State (Store)
@@ -129,6 +130,11 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-fr-mfe-shared-property`
   - [x] `p1` - `cpt-frontx-fr-mfe-action-types`
   - [x] `p1` - `cpt-frontx-fr-mfe-dynamic-registration`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-write-api`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-matching`
+  - [x] `p1` - `cpt-frontx-fr-broadcast-validate`
+  - [x] `p1` - `cpt-frontx-fr-validation-gts`
+  - [x] `p1` - `cpt-frontx-fr-validation-reject`
 
 - **Design Principles Covered**:
 
@@ -175,11 +181,12 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Source text caching after first fetch
   - Recursive chain loading for transitive dependencies
   - Per-load import map management
-  - `hai3-mfe-externalize` Vite plugin for MFE builds
+  - `@module-federation/vite` build plugin for MFE builds
   - Deterministic filenames without content hashes
   - Never-revoke policy for blob URLs
   - MFE internal dataflow (useReducer/useState, no host Redux)
-  - Share scope construction from manifest
+  - Per-load runtime shim construction from manifest
+  - Generation script producing `mfe.generated.json` from `mf-manifest.json` and `mfe.json`
 
 - **Out of scope**:
   - CSS isolation via Shadow DOM (see `cpt-frontx-feature-react-bindings`)
@@ -222,7 +229,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - `blobLoader.load()`
   - `sourceCache.get()` / `.set()`
   - `importRewriter.rewrite()`
-  - `hai3-mfe-externalize` Vite plugin config
+  - `@module-federation/vite` plugin configuration
 
 - **Sequences**:
 
