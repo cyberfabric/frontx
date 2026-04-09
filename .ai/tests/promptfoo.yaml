@@ -13,10 +13,10 @@ prompts:
     raw: file://../commands/user/hai3-new-screen.md
   - id: hai3-validate
     label: hai3-validate
-    raw: file://../../packages/cli/templates/commands-bundle/hai3-validate.md
+    raw: file://../../packages/framework/commands/hai3-validate.md
   - id: hai3-fix-violation
     label: hai3-fix-violation
-    raw: file://../../packages/cli/templates/commands-bundle/hai3-fix-violation.md
+    raw: file://../../packages/framework/commands/hai3-fix-violation.md
 
 providers:
   - id: echo

@@ -171,13 +171,23 @@ function getSpanAttributes(span: Span): SpanWithAttributes['attributes'] {
 function applySpanActionContext(span: Span, currentRouteId: string): void {
   const attributes = getSpanAttributes(span);
   const existingActionName = attributes?.['action.name'];
+  const existingScopeSpanId = typeof attributes?.['action.scope_span_id'] === 'string'
+    ? attributes['action.scope_span_id']
+    : '';
+  const existingScopeTraceId = typeof attributes?.['action.scope_trace_id'] === 'string'
+    ? attributes['action.scope_trace_id']
+    : '';
   const lookupRouteId = typeof attributes?.['route.id'] === 'string' ? attributes['route.id'] : currentRouteId;
 
   if (typeof existingActionName === 'string' && existingActionName.length > 0) {
     // @cpt-begin:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
     const spanContext = span.spanContext();
-    span.setAttribute('action.scope_span_id', spanContext.spanId);
-    span.setAttribute('action.scope_trace_id', spanContext.traceId);
+    if (existingScopeSpanId.length === 0) {
+      span.setAttribute('action.scope_span_id', spanContext.spanId);
+    }
+    if (existingScopeTraceId.length === 0) {
+      span.setAttribute('action.scope_trace_id', spanContext.traceId);
+    }
     if (typeof attributes?.['route.id'] !== 'string') {
       span.setAttribute('route.id', lookupRouteId);
     }
