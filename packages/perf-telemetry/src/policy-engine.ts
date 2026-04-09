@@ -42,7 +42,7 @@ function cryptoRandom(): number {
     globalThis.crypto.getRandomValues(array);
     return array[0] / 4294967296; // 2^32
   }
-  return 1;
+  return Math.random();
 }
 
 // ─── Types (canonical definitions in ./types.ts) ───────────────────────────
@@ -155,9 +155,11 @@ export class PolicyEngine {
   private readonly eventCounter: Map<Lane, number> = new Map([['A', 0], ['B', 0], ['C', 0]]);
   private windowStartMs: number = Date.now();
   private readonly RATE_WINDOW_MS = 60000;
+  private readonly random: () => number;
 
-  constructor(initialPolicy: CollectionPolicy = BASELINE_POLICY) {
+  constructor(initialPolicy: CollectionPolicy = BASELINE_POLICY, random: () => number = cryptoRandom) {
     this.currentPolicy = structuredClone(initialPolicy);
+    this.random = random;
   }
 
   /** Replaces the active policy (deep-cloned) and resets the rate window. */
@@ -175,7 +177,7 @@ export class PolicyEngine {
   shouldSampleEvent(lane: Lane): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
     const rate = this.currentPolicy.samplingRates[`lane${lane}`];
-    return cryptoRandom() < rate;
+    return this.random() < rate;
   }
 
   /** Evaluates kill switch, per-lane rate limit, and sampling in order. Rate limits are intentionally per-lane (each lane has its own budget, e.g., lane A for critical errors gets a separate quota from lane C diagnostics). */

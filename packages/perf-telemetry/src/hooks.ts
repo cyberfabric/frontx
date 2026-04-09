@@ -500,12 +500,13 @@ export function useResourceTimingObserver(routeId: string, enabled = true) {
           if (entry.startTime < mountTime) continue;
           if (entry.entryType === 'resource') {
             const res = entry as PerformanceResourceTiming;
+            const resourceName = normalizeUrlForSpan(res.name);
             const parentCtx = getActionParentContext(res.startTime, routeId);
             const span = tracer.startSpan('runtime.resource', {
               attributes: {
                 'route.id': routeId,
                 'telemetry.breakdown.kind': 'frontend.runtime',
-                'resource.name': res.name,
+                'resource.name': resourceName,
                 'resource.type': res.initiatorType,
                 'resource.duration_ms': round2(res.duration),
                 'resource.transfer_size': res.transferSize || 0,
