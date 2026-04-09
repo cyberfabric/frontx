@@ -13,7 +13,7 @@
  */
 
 import { existsSync, readFileSync } from 'fs';
-import { isAbsolute, join, relative, resolve } from 'path';
+import { join, resolve } from 'path';
 
 interface TestResult {
   name: string;
@@ -43,10 +43,6 @@ function log(message: string, color: keyof typeof colors = 'reset'): void {
 
 function readPackageJson(packagePath: string): PackageJson | null {
   const pkgPath = resolve(packagePath, 'package.json');
-  const relativePath = relative(resolve(packagePath), pkgPath);
-  if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
-    return null;
-  }
   if (!existsSync(pkgPath)) {
     return null;
   }
