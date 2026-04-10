@@ -24,7 +24,7 @@ date: 2026-03-07
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-global-shared-property-broadcast`
+**ID**: `cpt-frontx-adr-global-shared-property-broadcast`
 ## Context and Problem Statement
 
 The previous per-domain `updateDomainProperty()` API implied that shared properties such as theme and language could hold different values per MFE domain. In reality, shared properties are global values — theme is "dark" everywhere, not "dark" in one domain and "light" in another. Additionally, the microfrontends plugin was propagating theme and i18n values, mixing concerns that belong to the themes and i18n plugins respectively.
@@ -90,10 +90,10 @@ Chosen option: "Replace per-domain API with single `updateSharedProperty(propert
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-broadcast-write-api` — `updateSharedProperty()` as the single write API for shared properties
-* `cpt-hai3-fr-broadcast-matching` — registry iterates all domains to find property declarations
-* `cpt-hai3-fr-broadcast-validate` — validation before broadcasting shared property values
-* `cpt-hai3-fr-validation-gts` — GTS validation reusing ephemeral chained instance IDs
-* `cpt-hai3-fr-validation-reject` — rejection flow when GTS validation fails
-* `cpt-hai3-interface-shared-property` — shared property interface definition
-* `cpt-hai3-seq-shared-property-broadcast` — sequence of broadcast from caller to all MFE domains
+* `cpt-frontx-fr-broadcast-write-api` — `updateSharedProperty()` as the single write API for shared properties
+* `cpt-frontx-fr-broadcast-matching` — registry iterates all domains to find property declarations
+* `cpt-frontx-fr-broadcast-validate` — validation before broadcasting shared property values
+* `cpt-frontx-fr-validation-gts` — GTS validation reusing ephemeral chained instance IDs
+* `cpt-frontx-fr-validation-reject` — rejection flow when GTS validation fails
+* `cpt-frontx-interface-shared-property` — shared property interface definition
+* `cpt-frontx-seq-shared-property-broadcast` — sequence of broadcast from caller to all MFE domains

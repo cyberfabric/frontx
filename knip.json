@@ -27,7 +27,7 @@
   ],
   "ignoreDependencies": [
     "@types/*",
-    "@hai3/depcruise-config/*"
+    "@cyberfabric/depcruise-config/*"
   ],
   "ignoreBinaries": [
     "dot"

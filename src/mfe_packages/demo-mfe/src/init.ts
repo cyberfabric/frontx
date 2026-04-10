@@ -1,19 +1,19 @@
 /**
  * MFE Bootstrap
  *
- * Creates the MFE-local HAI3 app instance, registers slices with effects,
+ * Creates the MFE-local FrontX app instance, registers slices with effects,
  * and registers API services. This module is imported once (as a side effect)
- * by ThemeAwareReactLifecycle, which provides the HAI3Provider to all screens.
+ * by ThemeAwareReactLifecycle, which provides the FrontXProvider to all screens.
  *
- * The MFE bundles its own copy of @hai3/react, giving it isolated singletons:
+ * The MFE bundles its own copy of @cyberfabric/react, giving it isolated singletons:
  * - eventBus (no cross-MFE event leakage)
  * - apiRegistry (isolated service instances)
  * - storeInstance (isolated Redux store)
  */
-// @cpt-dod:cpt-hai3-dod-mfe-isolation-internal-dataflow:p1
-// @cpt-flow:cpt-hai3-flow-mfe-isolation-mfe-bootstrap:p1
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-internal-dataflow:p1
+// @cpt-flow:cpt-frontx-flow-mfe-isolation-mfe-bootstrap:p1
 
-import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@hai3/react';
+import { createHAI3, registerSlice, apiRegistry, effects, mock } from '@cyberfabric/react';
 import { profileSlice } from './slices/profileSlice';
 import { initProfileEffects } from './effects/profileEffects';
 import { AccountsApiService } from './api/AccountsApiService';
@@ -23,7 +23,7 @@ import { AccountsApiService } from './api/AccountsApiService';
 apiRegistry.register(AccountsApiService);
 apiRegistry.initialize();
 
-// Create HAI3 app with effects + mock plugins (mock auto-enables on localhost)
+// Create FrontX app with effects + mock plugins (mock auto-enables on localhost)
 const mfeApp = createHAI3().use(effects()).use(mock()).build();
 
 // Register slices with effects (needs store from build())

@@ -1,9 +1,9 @@
 /**
- * HAI3 Dependency Cruiser SDK Configuration (L1)
- * Rules for SDK packages: @hai3/state, @hai3/layout, @hai3/api, @hai3/i18n
+ * FrontX Dependency Cruiser SDK Configuration (L1)
+ * Rules for SDK packages: @cyberfabric/state, @cyberfabric/layout, @cyberfabric/api, @cyberfabric/i18n
  *
  * SDK packages MUST have:
- * - ZERO @hai3/* dependencies (complete isolation)
+ * - ZERO @cyberfabric/* dependencies (complete isolation)
  * - NO React dependencies (framework-agnostic)
  */
 
@@ -15,11 +15,11 @@ module.exports = {
 
     // ============ SDK ISOLATION RULES ============
     {
-      name: 'sdk-no-hai3-imports',
+      name: 'sdk-no-cyberfabric-imports',
       severity: 'error',
       from: { path: '^packages/(state|screensets|api|i18n)/src' },
-      to: { path: 'node_modules/@hai3/' },
-      comment: 'SDK VIOLATION: SDK packages must have ZERO @hai3 dependencies. Each SDK package is completely isolated.',
+      to: { path: 'node_modules/@cyberfabric/' },
+      comment: 'SDK VIOLATION: SDK packages must have ZERO @cyberfabric dependencies. Each SDK package is completely isolated.',
     },
     {
       name: 'sdk-no-react',

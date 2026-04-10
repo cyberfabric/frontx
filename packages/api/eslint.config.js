@@ -1,9 +1,9 @@
 /**
- * @hai3/api ESLint Configuration
+ * @cyberfabric/api ESLint Configuration
  * Extends SDK layer config - enforces zero @hai3 dependencies and no React
  */
 
-import { sdkConfig } from '@hai3/eslint-config/sdk.js';
+import { sdkConfig } from '@cyberfabric/eslint-config/sdk.js';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [

@@ -4,10 +4,10 @@
  * Executes migrations in order, tracks applied migrations,
  * and handles dry-run mode.
  */
-// @cpt-algo:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2
-// @cpt-algo:cpt-hai3-algo-cli-tooling-apply-migration:p2
-// @cpt-state:cpt-hai3-state-cli-tooling-migration-tracker:p2
-// @cpt-dod:cpt-hai3-dod-cli-tooling-migrations:p2
+// @cpt-algo:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2
+// @cpt-algo:cpt-frontx-algo-cli-tooling-apply-migration:p2
+// @cpt-state:cpt-frontx-state-cli-tooling-migration-tracker:p2
+// @cpt-dod:cpt-frontx-dod-cli-tooling-migrations:p2
 
 import path from 'path';
 import fs from 'fs-extra';
@@ -29,7 +29,7 @@ import type {
 import { getMigrations } from './registry.js';
 
 /** Default tracker file path */
-const TRACKER_FILE = '.hai3/migrations.json';
+const TRACKER_FILE = '.frontx/migrations.json';
 
 /** Default include patterns */
 const DEFAULT_INCLUDE = ['**/*.ts', '**/*.tsx'];
@@ -46,13 +46,13 @@ async function loadTracker(targetPath: string): Promise<MigrationTracker> {
     const content = await fs.readFile(trackerPath, 'utf-8');
     return JSON.parse(content) as MigrationTracker;
   } catch {
-    // @cpt-begin:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-init
-    // .hai3/migrations.json absent — initialise in-memory tracker with empty applied list
+    // @cpt-begin:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-init
+    // .frontx/migrations.json absent — initialise in-memory tracker with empty applied list
     return {
       version: '1.0.0',
       applied: [],
     };
-    // @cpt-end:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-init
+    // @cpt-end:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-init
   }
 }
 
@@ -88,12 +88,12 @@ export async function getMigrationStatus(
   try {
     const pkgPath = path.join(targetPath, 'package.json');
     const pkg = await fs.readJson(pkgPath);
-    // Check for HAI3 packages
-    const hai3Deps = Object.keys(pkg.dependencies || {}).filter((d) =>
-      d.startsWith('@hai3/')
+    // Check for FrontX packages
+    const frontxDeps = Object.keys(pkg.dependencies || {}).filter((d) =>
+      d.startsWith('@cyberfabric/')
     );
-    if (hai3Deps.length > 0) {
-      const firstDep = pkg.dependencies[hai3Deps[0]];
+    if (frontxDeps.length > 0) {
+      const firstDep = pkg.dependencies[frontxDeps[0]];
       // Extract version from semver range
       currentVersion = firstDep.replace(/^[\^~]/, '');
     }
@@ -199,10 +199,10 @@ export async function applyMigration(
   logger.info(`Applying migration: ${migration.name}`);
   logger.info(`Target: ${targetPath}`);
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-check-already-applied
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-check-already-applied
   // Load tracker to check if already applied
   const tracker = await loadTracker(targetPath);
-  // @cpt-begin:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-idempotent
+  // @cpt-begin:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-idempotent
   if (tracker.applied.some((m) => m.id === migration.id)) {
     logger.warn(`Migration ${migration.id} has already been applied`);
     return {
@@ -216,10 +216,10 @@ export async function applyMigration(
       appliedAt: new Date().toISOString(),
     };
   }
-  // @cpt-end:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-idempotent
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-check-already-applied
+  // @cpt-end:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-idempotent
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-check-already-applied
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-init-ts-morph
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-init-ts-morph
   // Create ts-morph project
   const project = new Project({
     compilerOptions: {
@@ -246,9 +246,9 @@ export async function applyMigration(
   });
 
   logger.info(`Processing ${filteredFiles.length} source files`);
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-init-ts-morph
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-init-ts-morph
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
   const filesResults: FileResult[] = [];
   const allWarnings: string[] = [];
   const allErrors: string[] = [];
@@ -287,14 +287,14 @@ export async function applyMigration(
       });
     }
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-apply-transforms
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-save-project
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-save-project
   // Save modified files
   await project.save();
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-save-project
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-save-project
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-update-tracker
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-update-tracker
   // Update tracker
   const appliedAt = new Date().toISOString();
   const appliedRecord: AppliedMigration = {
@@ -308,19 +308,19 @@ export async function applyMigration(
       })
     ),
   };
-  // @cpt-begin:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-first-entry
-  // @cpt-begin:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-append-entry
+  // @cpt-begin:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-first-entry
+  // @cpt-begin:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-append-entry
   // Transitions EMPTY→HAS_APPLIED (first entry) or HAS_APPLIED→HAS_APPLIED (subsequent entries)
   tracker.applied.push(appliedRecord);
   await saveTracker(targetPath, tracker);
-  // @cpt-end:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-first-entry
-  // @cpt-end:cpt-hai3-state-cli-tooling-migration-tracker:p2:inst-tracker-append-entry
+  // @cpt-end:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-first-entry
+  // @cpt-end:cpt-frontx-state-cli-tooling-migration-tracker:p2:inst-tracker-append-entry
 
   logger.success(`Migration ${migration.id} applied successfully`);
   logger.info(`Files modified: ${filesResults.length}`);
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-update-tracker
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-update-tracker
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-return-migration-result
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-return-migration-result
   return {
     success: allErrors.length === 0,
     migrationId: migration.id,
@@ -331,7 +331,7 @@ export async function applyMigration(
     errors: allErrors,
     appliedAt,
   };
-  // @cpt-end:cpt-hai3-algo-cli-tooling-apply-migration:p2:inst-return-migration-result
+  // @cpt-end:cpt-frontx-algo-cli-tooling-apply-migration:p2:inst-return-migration-result
 }
 
 /**
@@ -343,34 +343,34 @@ export async function runMigrations(
 ): Promise<MigrationResult[]> {
   const targetPath = options.targetPath || process.cwd();
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-load-tracker
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-load-tracker
   const status = await getMigrationStatus(targetPath);
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-load-tracker
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-load-tracker
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-collect-applied-ids
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-collect-applied-ids
   // Filter migrations based on target version
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-pending
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-pending
   let migrationsToRun = status.pending;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-collect-applied-ids
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-pending
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-collect-applied-ids
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-pending
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-by-target-version
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-by-target-version
   if (options.targetVersion) {
     migrationsToRun = migrationsToRun.filter(
       (m) => m.version <= options.targetVersion!
     );
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-by-target-version
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-filter-by-target-version
 
   if (migrationsToRun.length === 0) {
     logger.info('No pending migrations to apply');
     return [];
   }
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-sort-by-version
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-sort-by-version
   // Sort by version
   migrationsToRun.sort((a, b) => a.version.localeCompare(b.version));
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-sort-by-version
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-sort-by-version
 
   const results: MigrationResult[] = [];
 
@@ -405,9 +405,9 @@ export async function runMigrations(
     }
   }
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-return-pending
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-return-pending
   return results;
-  // @cpt-end:cpt-hai3-algo-cli-tooling-resolve-pending-migrations:p2:inst-return-pending
+  // @cpt-end:cpt-frontx-algo-cli-tooling-resolve-pending-migrations:p2:inst-return-pending
 }
 
 /**

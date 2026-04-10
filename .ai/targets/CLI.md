@@ -52,8 +52,8 @@
 - FORBIDDEN: Exclusion lists to preserve files; use selective sync instead.
 
 ## SCREENSET COMMANDS
-- REQUIRED: hai3 screenset create uses screenset-template (from _blank).
-- REQUIRED: hai3 screenset copy transforms all IDs using AST.
+- REQUIRED: frontx screenset create uses screenset-template (from _blank).
+- REQUIRED: frontx screenset copy transforms all IDs using AST.
 - REQUIRED: All IDs use template literals with screenset ID.
 - REQUIRED: Event names follow ${SCREENSET_ID}/${DOMAIN_ID}/eventName.
 - REQUIRED: Icon IDs follow ${SCREENSET_ID}:iconName.

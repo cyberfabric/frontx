@@ -14,10 +14,10 @@
 ## CRITICAL RULES
 - REQUIRED: Use the configured UI kit components; manual styling only in components/ui/.
 - Data flow must follow EVENTS.md.
-- State management must follow @hai3/state Redux+Flux pattern.
+- State management must follow @cyberfabric/state Redux+Flux pattern.
 - Screensets are isolated; no hardcoded screenset names in shared code.
 - Registry imports only the screenset root file.
-- No direct slice imports; use @hai3/react hooks or local actions.
+- No direct slice imports; use @cyberfabric/react hooks or local actions.
 
 ## STATE MANAGEMENT RULES
 - REQUIRED: Export slice object (not just reducer) as default from slice files.
@@ -39,14 +39,14 @@
 - DETECT: grep -rn "Object\\.defineProperty.*reducer" src/screensets
 
 ## MFE STATE MANAGEMENT
-- REQUIRED: Create HAI3 app via createHAI3().use(effects()).use(mock()).build() from @hai3/react.
+- REQUIRED: Create FrontX app via createHAI3().use(effects()).use(mock()).build() from @cyberfabric/react.
 - REQUIRED: Register API services BEFORE .build() — mock plugin syncs during build, services must exist.
 - REQUIRED: Register slices AFTER .build() — registerSlice() needs the store created by build.
-- REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @hai3/react.
-- REQUIRED: registerSlice() and createSlice() from @hai3/react for slice management.
+- REQUIRED: Wrap React tree in <HAI3Provider app={mfeApp}> from @cyberfabric/react.
+- REQUIRED: registerSlice() and createSlice() from @cyberfabric/react for slice management.
 - REQUIRED: Shared init.ts module for idempotent MFE bootstrap (module-level side effect).
 - REQUIRED: init.ts ordering: apiRegistry.register() → apiRegistry.initialize() → createHAI3().build() → registerSlice().
-- REQUIRED: Module augmentation for RootState on @hai3/react (not @hai3/state).
+- REQUIRED: Module augmentation for RootState on @cyberfabric/react (not @cyberfabric/state).
 - FORBIDDEN: Direct react-redux, redux, or @reduxjs/toolkit imports in MFE code.
 - FORBIDDEN: createHAI3App() or full preset in MFE (heavyweight, not needed).
 
@@ -74,7 +74,7 @@
 - REQUIRED: Load translations from MFE-local files using import.meta.glob pattern.
 - REQUIRED: Place translations in local i18n folders (src/mfe_packages/*/src/screens/*/i18n/).
 - FORBIDDEN: I18nRegistry.createLoader (host-level API, not available in MFEs).
-- FORBIDDEN: useScreenTranslations hook from @hai3/react (host-level hook with registry dependency).
+- FORBIDDEN: useScreenTranslations hook from @cyberfabric/react (host-level hook with registry dependency).
 - NOTE: MFEs use the shared useScreenTranslations hook in their own shared/ directory (bridge-based).
 
 ## API SERVICE RULES
@@ -88,8 +88,8 @@
 
 ## MFE API SERVICE RULES
 - REQUIRED: MFE-local API services in src/mfe_packages/*/src/api/.
-- REQUIRED: Services extend BaseApiService from @hai3/react.
-- REQUIRED: Register with MFE's own apiRegistry instance (from @hai3/react).
+- REQUIRED: Services extend BaseApiService from @cyberfabric/react.
+- REQUIRED: Register with MFE's own apiRegistry instance (from @cyberfabric/react).
 - REQUIRED: Mock plugins via this.registerPlugin() in service constructor.
 - REQUIRED: Each MFE fetches its own data independently (Independent Data Fetching).
 - FORBIDDEN: Importing API services from host src/app/api/ (cross-boundary violation).
@@ -103,7 +103,7 @@
 - FORBIDDEN: Storing React components as icons (causes Redux serialization warnings).
 
 ## UI KIT DISCOVERY (REQUIRED)
-- REQUIRED: Read `hai3.config.json` at project root to find `uikit` value.
+- REQUIRED: Read `frontx.config.json` at project root to find `uikit` value.
 - If `uikit` is `"shadcn"`: use local `components/ui/` (shadcn components already scaffolded).
 - If `uikit` is `"none"`: no UI library; create all components locally in components/ui/.
 - If `uikit` is any other value (e.g., `"@mui/material"`, `"antd"`): it is a third-party UI library.
@@ -116,7 +116,7 @@
 - REQUIRED: Prioritize the configured UI kit components; create local only if missing.
 - REQUIRED: components/ui/ for base UI primitives (shadcn or custom).
 - REQUIRED: components/ for shared composites used across screens.
-- FORBIDDEN: @hai3/state or @hai3/framework imports in components/ui/ (UI only).
+- FORBIDDEN: @cyberfabric/state or @cyberfabric/framework imports in components/ui/ (UI only).
 - REQUIRED: Inline styles allowed ONLY in components/ui/; composites use theme tokens.
 
 ## COMPONENT PLACEMENT RULES
@@ -179,7 +179,9 @@
 ## MFE BUILD CONFIGURATION
 - REQUIRED: `build.modulePreload: false` in every MFE vite.config.ts. Vite's modulePreload injects a `__vitePreload` helper that resolves chunk URLs against the page origin (host), not the MFE server origin, causing 404s in cross-origin MFE loading.
 - REQUIRED: `build.target: 'esnext'` for top-level await support (federation runtime uses it).
-- REQUIRED: `build.cssCodeSplit: false` for single CSS output in MFE bundles.
+- NOTE: `build.cssCodeSplit` may remain enabled; `MfeHandlerMF` reads the remote's CSS metadata and injects emitted styles into the mount target before lifecycle mount.
+- REQUIRED: Register `@originjs/vite-plugin-federation` (`federation()`) and `hai3MfeExternalize({ shared })` from `src/mfe_packages/shared/vite-plugin-frontx-externalize.ts` with the **same** `shared` dependency list. Federation only rewrites expose entries; the externalize plugin rewrites imports in code-split chunks so shared packages load via `importShared()`.
+- NOTE: In `packages/screensets`, `npm run test:integration` builds `_blank-mfe` in production mode and asserts `MfeHandlerMF` can load the bundle (minify + `cssCodeSplit: true` compatible).
 - REFERENCE: See `src/mfe_packages/_blank-mfe/vite.config.ts` for canonical MFE vite configuration.
 
 ## MFE LIFECYCLE ARCHITECTURE
@@ -188,13 +190,13 @@
 - REQUIRED: Shared init.ts module imported by base class for bootstrap side effect.
 - REQUIRED: Flux directory structure: api/, actions/, events/, effects/, slices/, init.ts.
 - REQUIRED: Event naming: mfe/<domain>/<eventName> (past tense for all events).
-- REQUIRED: Module augmentation for EventPayloadMap on @hai3/react (not @hai3/state).
+- REQUIRED: Module augmentation for EventPayloadMap on @cyberfabric/react (not @cyberfabric/state).
 - FORBIDDEN: screensetRegistry (removed, replaced by MFE extension registration).
 - FORBIDDEN: useNavigation hook (removed, replaced by MFE actions).
 - FORBIDDEN: navigateToScreen (removed, replaced by mount_ext actions).
 
 ## PRE-DIFF CHECKLIST
-- [ ] UI kit discovered from hai3.config.json; third-party library components used where available.
+- [ ] UI kit discovered from frontx.config.json; third-party library components used where available.
 - [ ] Local components/ui/ only for what the configured UI kit does not provide (inline styles in components/ui/ only).
 - [ ] Slices use registerSlice with RootState augmentation.
 - [ ] No direct slice imports; no barrel exports in events/ or effects/.
@@ -209,3 +211,4 @@
 - [ ] MFE API services are local (not imported from host).
 - [ ] MFE events use mfe/ prefix convention.
 - [ ] MFE init.ts creates app, registers slices, registers API services.
+- [ ] MFE vite.config matches canonical setup: `modulePreload: false`, `target: 'esnext'`, `federation()` + `hai3MfeExternalize` with identical `shared` arrays.

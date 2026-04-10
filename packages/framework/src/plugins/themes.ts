@@ -4,18 +4,18 @@
  * Framework Layer: L2
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-theme-propagation:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-shared-property-broadcast:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-propagation:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-shared-property:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-theme-propagation:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-shared-property-broadcast:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-propagation:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-shared-property:p1
 
-import { eventBus } from '@hai3/state';
-import { HAI3_SHARED_PROPERTY_THEME } from '@hai3/screensets';
+import { eventBus } from '@cyberfabric/state';
+import { HAI3_SHARED_PROPERTY_THEME } from '@cyberfabric/screensets';
 import type { HAI3Plugin, ChangeThemePayload, ThemePropagationFailedPayload } from '../types';
 import { createThemeRegistry } from '../registries/themeRegistry';
 
 // Define theme events for module augmentation
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'theme/changed': ChangeThemePayload;
     'theme/propagation/failed': ThemePropagationFailedPayload;
@@ -26,11 +26,11 @@ declare module '@hai3/state' {
  * Change theme action.
  * Emits 'theme/changed' event to trigger theme application.
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-theme-propagation:p1:inst-1
 function changeTheme(payload: ChangeThemePayload): void {
   eventBus.emit('theme/changed', payload);
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-theme-propagation:p1:inst-1
 
 /**
  * Themes plugin factory.
@@ -39,7 +39,7 @@ function changeTheme(payload: ChangeThemePayload): void {
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .build();
@@ -63,8 +63,8 @@ export function themes(): HAI3Plugin {
       },
     },
 
-    // @cpt-begin:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-2
-    // @cpt-begin:cpt-hai3-dod-framework-composition-propagation:p1:inst-1
+    // @cpt-begin:cpt-frontx-flow-framework-composition-theme-propagation:p1:inst-2
+    // @cpt-begin:cpt-frontx-dod-framework-composition-propagation:p1:inst-1
     onInit(app) {
       // Subscribe to theme changes
       eventBus.on('theme/changed', (payload: ChangeThemePayload) => {
@@ -88,7 +88,7 @@ export function themes(): HAI3Plugin {
         app.screensetsRegistry?.setTheme(themes[0].variables);
       }
     },
-    // @cpt-end:cpt-hai3-flow-framework-composition-theme-propagation:p1:inst-2
-    // @cpt-end:cpt-hai3-dod-framework-composition-propagation:p1:inst-1
+    // @cpt-end:cpt-frontx-flow-framework-composition-theme-propagation:p1:inst-2
+    // @cpt-end:cpt-frontx-dod-framework-composition-propagation:p1:inst-1
   };
 }

@@ -1,3 +1,4 @@
+# @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-helpers
 import argparse
 import json
 import os
@@ -13,13 +14,23 @@ from ..utils import toml_utils
 from ..utils.ui import ui
 
 # Directories to copy from cache into project cypilot/.core/ dir
-COPY_DIRS = ["architecture", "requirements", "schemas", "workflows", "skills"]
+# Full directories (copied entirely)
+COPY_DIRS = ["requirements", "schemas", "workflows", "skills"]
+# Selective items from architecture/ (only specs needed by agents)
+COPY_ARCHITECTURE_ITEMS = [
+    "specs/traceability.md",   # ID formats, code traceability — used by kit rules
+    "specs/CDSL.md",           # Behavioral spec language — referenced by traceability.md
+    "specs/cli.md",            # CLI commands — referenced by traceability.md, kit/rules.md
+    "specs/CLISPEC.md",        # CLI spec (detailed command definitions)
+    "specs/artifacts-registry.md",  # Artifacts config — used by .gen/AGENTS.md
+    "specs/kit/constraints.md",     # Constraints spec — used by ADR, PRD, DESIGN rules
+    "specs/kit/kit.md",             # Kit structure — referenced by kit/rules.md
+]
 COPY_ROOT_DIRS: list[str] = []
 CACHE_DIR = Path.home() / ".cypilot" / "cache"
 CORE_SUBDIR = ".core"
 GEN_SUBDIR = ".gen"
 DEFAULT_INSTALL_DIR = "cypilot"
-
 
 def _copy_from_cache(cache_dir: Path, target_dir: Path, force: bool = False) -> Dict[str, str]:
     """Copy tool directories from cache into project cypilot/.core/ dir.
@@ -27,13 +38,23 @@ def _copy_from_cache(cache_dir: Path, target_dir: Path, force: bool = False) -> 
     Core directories go into .core/ (read-only reference content).
     User-editable content lives in config/.
 
+    When force=True, .core/ is fully cleared before copying to ensure no stale
+    files remain from previous versions. This is the mode used by `cpt update`.
+
     Returns dict of {dir_name: action} where action is 'created', 'updated', or 'skipped'.
     """
     core_dir = target_dir / CORE_SUBDIR
-    core_dir.mkdir(parents=True, exist_ok=True)
     results: Dict[str, str] = {}
 
-    def _copy_one(src: Path, dst: Path, name: str) -> None:
+    # Full cleanup of .core/ when force=True (ensures no stale files)
+    # This is the mode used by `cpt update` which always passes force=True
+    if force and core_dir.exists():
+        shutil.rmtree(core_dir)
+
+    core_dir.mkdir(parents=True, exist_ok=True)
+
+    def _copy_dir(src: Path, dst: Path, name: str) -> None:
+        """Copy a directory."""
         if not src.is_dir():
             results[name] = "missing_in_cache"
             return
@@ -47,14 +68,42 @@ def _copy_from_cache(cache_dir: Path, target_dir: Path, force: bool = False) -> 
             results[name] = "created"
         shutil.copytree(src, dst)
 
+    def _copy_file(src: Path, dst: Path, name: str) -> None:
+        """Copy a single file."""
+        if not src.is_file():
+            results[name] = "missing_in_cache"
+            return
+        if dst.exists():
+            if not force:
+                results[name] = "skipped"
+                return
+            results[name] = "updated"
+        else:
+            results[name] = "created"
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+
+    # Copy full directories
     for name in COPY_DIRS:
-        _copy_one(cache_dir / name, core_dir / name, name)
+        _copy_dir(cache_dir / name, core_dir / name, name)
+
+    # Copy selective items from architecture/
+    arch_src = cache_dir / "architecture"
+    arch_dst = core_dir / "architecture"
+    for item in COPY_ARCHITECTURE_ITEMS:
+        src = arch_src / item
+        dst = arch_dst / item
+        if src.is_dir():
+            _copy_dir(src, dst, f"architecture/{item}")
+        elif src.is_file():
+            _copy_file(src, dst, f"architecture/{item}")
+        else:
+            results[f"architecture/{item}"] = "missing_in_cache"
 
     for name in COPY_ROOT_DIRS:
-        _copy_one(cache_dir / name, target_dir / name, name)
+        _copy_dir(cache_dir / name, target_dir / name, name)
 
     return results
-
 
 def _core_readme() -> str:
     """README.md content for .core/ directory."""
@@ -67,15 +116,14 @@ def _core_readme() -> str:
         "`cpt init` or `cpt kit install`. They are the read-only reference copies of:\n"
         "\n"
         "- `skills/` — Cypilot skill scripts and CLI entry points\n"
-        "- `architecture/` — architecture specs and feature documents\n"
+        "- `workflows/` — workflow definitions\n"
         "- `requirements/` — validation requirements\n"
         "- `schemas/` — JSON schemas for configuration files\n"
-        "- `workflows/` — workflow definitions\n"
+        "- `architecture/specs/` — traceability, CDSL, CLI, and kit specifications\n"
         "\n"
         "To update these files, run `cpt init --force` or `cpt kit update`.\n"
         "Any manual changes **will be overwritten** on the next update.\n"
     )
-
 
 def _gen_readme() -> str:
     """README.md content for .gen/ directory."""
@@ -84,22 +132,19 @@ def _gen_readme() -> str:
         "\n"
         "**Do NOT edit files in this directory.**\n"
         "\n"
-        "These files are auto-generated by Cypilot from kit blueprints during\n"
-        "`cpt init`, `cpt kit install`, or `cpt generate-resources`.\n"
+        "These files are auto-generated by Cypilot during\n"
+        "`cpt init`, `cpt kit install`, or `cpt update`.\n"
         "\n"
         "Contents:\n"
         "\n"
         "- `SKILL.md` — aggregated skill navigation (routes to per-kit skills)\n"
         "- `AGENTS.md` — generated agent navigation rules\n"
-        "- `kits/{slug}/SKILL.md` — per-kit skill instructions from `@cpt:skill` blocks\n"
-        "- `kits/{slug}/artifacts/{KIND}/` — generated templates, rules, checklists, examples\n"
-        "- `kits/{slug}/constraints.toml` — structural constraints from `@cpt:heading`/`@cpt:id`\n"
+        "- `README.md` — this file\n"
         "\n"
-        "Source of truth: blueprints in `config/kits/{slug}/blueprints/`.\n"
-        "To regenerate: `cpt generate-resources`.\n"
-        "Any manual changes **will be overwritten** on the next generation.\n"
+        "Per-kit files are in `config/kits/{slug}/`.\n"
+        "To update: `cpt update` or `cpt kit update`.\n"
+        "Any manual changes to generated files **will be overwritten** on the next update.\n"
     )
-
 
 def _config_readme() -> str:
     """README.md content for config/ directory."""
@@ -117,35 +162,30 @@ def _config_readme() -> str:
         "\n"
         "## Directories\n"
         "\n"
-        "- `kits/{slug}/blueprints/` — editable copies of kit blueprints.\n"
-        "  Modify these to customize generated artifacts, then run `cpt generate-resources`.\n"
+        "- `kits/{slug}/` — kit files (SKILL.md, AGENTS.md, artifacts/, codebase/, workflows/, scripts/).\n"
+        "  These are updated via `cpt update` or `cpt kit update`.\n"
         "\n"
         "## Tips\n"
         "\n"
         "- `AGENTS.md` and `SKILL.md` start empty. Add any project-specific rules or\n"
-        "  skill instructions here — they will be picked up alongside the generated ones.\n"
-        "- Changes to blueprints take effect after running `cpt generate-resources`.\n"
+        "  skill instructions here — they will be picked up alongside the kit ones.\n"
+        "- Kit files can be edited directly; `cpt kit update` shows a diff for changes.\n"
     )
 
+def _default_core_toml() -> dict:
+    """Build default core.toml data for a new project.
 
-def _default_core_toml(system_name: str, system_slug: str) -> dict:
-    """Build default core.toml data for a new project."""
+    System identity (name, slug, kit) is defined in artifacts.toml only
+    (see ADR-0014: cpt-cypilot-adr-remove-system-from-core-toml).
+
+    Kits are registered dynamically via install_kit() when user accepts
+    installation — not hardcoded here.
+    """
     return {
         "version": "1.0",
         "project_root": "..",
-        "system": {
-            "name": system_name,
-            "slug": system_slug,
-            "kit": "cypilot-sdlc",
-        },
-        "kits": {
-            "cypilot-sdlc": {
-                "format": "Cypilot",
-                "path": ".gen/kits/sdlc",
-            },
-        },
+        "kits": {},
     }
-
 
 def _prompt_path(question: str, default: Optional[str]) -> str:
     prompt = f"{question}"
@@ -162,18 +202,16 @@ def _prompt_path(question: str, default: Optional[str]) -> str:
         return ans
     return default or ""
 
-
 def _resolve_user_path(raw: str, base: Path) -> Path:
     p = Path(raw)
     if not p.is_absolute():
         p = base / p
     return p.resolve()
 
-
 def _slug_to_pascal_case(slug: str) -> str:
     """Convert a slug like 'my-app' to PascalCase like 'MyApp'."""
     return "".join(word.capitalize() for word in slug.split("-")) if slug else "Unnamed"
-
+# @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-helpers
 
 def _define_root_system(project_root: Path) -> Dict[str, str]:
     """
@@ -197,12 +235,11 @@ def _define_root_system(project_root: Path) -> Dict[str, str]:
     return {"name": name, "slug": slug}
     # @cpt-end:cpt-cypilot-algo-core-infra-define-root-system:p1:inst-return-system-def
 
-
 _TOML_FENCE_RE = re.compile(r"```toml\s*\n(.*?)```", re.DOTALL)
 MARKER_START = "<!-- @cpt:root-agents -->"
 MARKER_END = "<!-- /@cpt:root-agents -->"
 
-
+# @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-detect-existing
 def _read_existing_install(project_root: Path) -> Optional[str]:
     """
     Check if project already has Cypilot installed by reading AGENTS.md TOML block.
@@ -230,32 +267,18 @@ def _read_existing_install(project_root: Path) -> Optional[str]:
         except Exception:
             continue
     return None
-
+# @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-detect-existing
 
 def _compute_managed_block(install_dir: str) -> str:
     # @cpt-begin:cpt-cypilot-algo-core-infra-inject-root-agents:p1:inst-compute-block
     return (
         f"{MARKER_START}\n"
-        f"## Cypilot AI Agent Navigation\n"
-        f"\n"
-        f"**Remember these variables while working in this project:**\n"
-        f"\n"
         f"```toml\n"
         f'cypilot_path = "{install_dir}"\n'
         f"```\n"
-        f"\n"
-        f"## Navigation Rules\n"
-        f"\n"
-        f"ALWAYS open and follow `{{cypilot_path}}/.gen/AGENTS.md` FIRST\n"
-        f"\n"
-        f"ALWAYS open and follow `{{cypilot_path}}/config/AGENTS.md` WHEN it exists\n"
-        f"\n"
-        f"ALWAYS invoke `{{cypilot_path}}/.core/skills/cypilot/SKILL.md` WHEN user asks to do something with Cypilot\n"
-        f"\n"
         f"{MARKER_END}"
     )
     # @cpt-end:cpt-cypilot-algo-core-infra-inject-root-agents:p1:inst-compute-block
-
 
 def _inject_managed_block(target_file: Path, install_dir: str, dry_run: bool = False) -> str:
     """Inject or update a managed block into *target_file*. Returns action taken."""
@@ -299,46 +322,15 @@ def _inject_managed_block(target_file: Path, install_dir: str, dry_run: bool = F
     return "updated"
     # @cpt-end:cpt-cypilot-algo-core-infra-inject-root-agents:p1:inst-return-agents-path
 
-
 def _inject_root_agents(project_root: Path, install_dir: str, dry_run: bool = False) -> str:
     """Inject or update root AGENTS.md managed block. Returns action taken."""
     return _inject_managed_block(project_root / "AGENTS.md", install_dir, dry_run)
 
-
-def _compute_claude_block() -> str:
-    return (
-        f"{MARKER_START}\n"
-        f"STOP and READ `AGENTS.md` in project root before ANY tool calls or skill invocation\n"
-        f"{MARKER_END}"
-    )
-
-
+# @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-inject-claude
 def _inject_root_claude(project_root: Path, install_dir: str, dry_run: bool = False) -> str:
     """Inject or update root CLAUDE.md managed block. Returns action taken."""
-    claude_file = project_root / "CLAUDE.md"
-    expected_block = _compute_claude_block()
-
-    if not claude_file.is_file():
-        if not dry_run:
-            claude_file.write_text(expected_block + "\n", encoding="utf-8")
-        return "created"
-
-    content = claude_file.read_text(encoding="utf-8")
-
-    if MARKER_START in content and MARKER_END in content:
-        start_idx = content.index(MARKER_START)
-        end_idx = content.index(MARKER_END) + len(MARKER_END)
-        current_block = content[start_idx:end_idx]
-        if current_block == expected_block.strip():
-            return "unchanged"
-        new_content = content[:start_idx] + expected_block + content[end_idx:]
-    else:
-        new_content = expected_block + "\n\n" + content
-
-    if not dry_run:
-        claude_file.write_text(new_content, encoding="utf-8")
-    return "updated"
-
+    return _inject_managed_block(project_root / "CLAUDE.md", install_dir, dry_run)
+# @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-inject-claude
 
 def cmd_init(argv: List[str]) -> int:
     # @cpt-dod:cpt-cypilot-dod-core-infra-init-config:p1
@@ -461,6 +453,8 @@ def cmd_init(argv: List[str]) -> int:
         copy_results = _copy_from_cache(CACHE_DIR, cypilot_dir, force=args.force)
     else:
         copy_results = {d: "dry_run" for d in COPY_DIRS}
+        for item in COPY_ARCHITECTURE_ITEMS:
+            copy_results[f"architecture/{item}"] = "dry_run"
     actions["copy"] = json.dumps(copy_results)
     # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-copy-skill
 
@@ -481,27 +475,8 @@ def cmd_init(argv: List[str]) -> int:
 
     # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-create-config
     # @cpt-begin:cpt-cypilot-algo-core-infra-create-config:p1:inst-mkdir-config
-    # @cpt-begin:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-gen-when-rules
-    kit_id = "cypilot-sdlc"
-    artifacts_when = f"ALWAYS open and follow `{{cypilot_path}}/config/artifacts.toml` WHEN Cypilot uses kit `{kit_id}` for artifact kinds: PRD, DESIGN, DECOMPOSITION, ADR, FEATURE OR codebase"
-    gen_agents_content = "\n".join([
-        f"# Cypilot: {project_name}",
-        "",
-        "## Navigation Rules",
-        "",
-        "ALWAYS open and follow `{cypilot_path}/.core/schemas/artifacts.schema.json` WHEN working with artifacts.toml",
-        "",
-        "ALWAYS open and follow `{cypilot_path}/.core/architecture/specs/artifacts-registry.md` WHEN working with artifacts.toml",
-        "",
-        artifacts_when,
-        "",
-    ])
-    # @cpt-end:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-gen-when-rules
-
-    desired_registry = generate_default_registry(project_name)
-
     # @cpt-begin:cpt-cypilot-algo-core-infra-create-config:p1:inst-write-core-toml
-    desired_core = _default_core_toml(project_name, root_system["slug"])
+    desired_core = _default_core_toml()
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config:p1:inst-write-core-toml
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config:p1:inst-mkdir-config
     # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-create-config
@@ -516,15 +491,9 @@ def cmd_init(argv: List[str]) -> int:
             toml_utils.dump(desired_core, core_toml_path, header_comment="Cypilot project configuration")
         actions["core_toml"] = "updated" if core_toml_existed else "created"
 
-    # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-create-config-agents
-    # @cpt-begin:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-write-config-agents
-    # Write generated AGENTS.md to .gen/ (always overwrite)
-    gen_agents_path = (gen_dir / "AGENTS.md").resolve()
-    if not args.dry_run:
-        gen_agents_path.write_text(gen_agents_content, encoding="utf-8")
-    actions["gen_agents"] = "created"
-
     # Write user-editable AGENTS.md to config/ (preserve existing)
+    # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-create-config-agents
+    # @cpt-begin:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-gen-when-rules
     config_agents_path = (config_dir / "AGENTS.md").resolve()
     config_agents_existed = config_agents_path.is_file()
     if config_agents_existed and not args.force:
@@ -540,10 +509,11 @@ def cmd_init(argv: List[str]) -> int:
                     encoding="utf-8",
                 )
             # If force + existed: leave user content untouched
+        # @cpt-end:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-gen-when-rules
+        # @cpt-begin:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-write-config-agents
         actions["config_agents"] = "unchanged" if config_agents_existed else "created"
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-write-config-agents
     # @cpt-begin:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-return-config-agents-path
-    actions["gen_agents_path"] = gen_agents_path.as_posix()
     actions["config_agents_path"] = config_agents_path.as_posix()
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config-agents:p1:inst-return-config-agents-path
     # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-create-config-agents
@@ -556,7 +526,77 @@ def cmd_init(argv: List[str]) -> int:
     # (paths reported in final JSON output)
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config:p1:inst-return-config-paths
 
+    # @cpt-begin:cpt-cypilot-algo-core-infra-create-config:p1:inst-mkdir-kits
+    # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-prompt-kit
+    # Kit installation via GitHub prompt (ADR-0013)
+    from .kit import (
+        install_kit, regenerate_gen_aggregates,
+        _parse_github_source, _download_kit_from_github,
+    )
+
+    _DEFAULT_KIT_SOURCE = "cyberfabric/cyber-pilot-kit-sdlc"
+    kit_results: Dict[str, Any] = {}
+
+    if not args.dry_run:
+        install_kit_flag = False
+
+        if interactive and sys.stdin.isatty():
+            sys.stderr.write(f"\n  Install SDLC kit ({_DEFAULT_KIT_SOURCE})?\n")
+            sys.stderr.write("  [a]ccept / [d]ecline: ")
+            sys.stderr.flush()
+            try:
+                answer = input().strip().lower()
+            except EOFError:
+                answer = "d"
+            install_kit_flag = answer in ("a", "accept")
+        elif not interactive:
+            # --yes mode: auto-accept kit installation
+            install_kit_flag = True
+    # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-prompt-kit
+
+        # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-install-kit-accepted
+        if install_kit_flag:
+            try:
+                owner, repo, version = _parse_github_source(_DEFAULT_KIT_SOURCE)
+                ui.step(f"Downloading {_DEFAULT_KIT_SOURCE}...")
+                kit_source_dir, resolved_version = _download_kit_from_github(owner, repo, version)
+                tmp_to_clean = kit_source_dir.parent
+
+                kit_slug = "sdlc"
+                github_source = f"github:{owner}/{repo}"
+                kit_result = install_kit(
+                    kit_source_dir, cypilot_dir, kit_slug,
+                    kit_version=resolved_version, source=github_source,
+                    interactive=interactive,
+                )
+
+                kit_results[kit_slug] = {
+                    "files_written": kit_result.get("files_copied", 0),
+                    "errors": kit_result.get("errors", []),
+                }
+                if kit_result.get("errors"):
+                    errors.extend(
+                        {"path": kit_slug, "error": e} for e in kit_result["errors"]
+                    )
+                for key, val in kit_result.get("actions", {}).items():
+                    actions[f"kit_{kit_slug}_{key}"] = val
+
+                ui.substep(f"Kit '{kit_slug}' installed (v{resolved_version or 'dev'})")
+
+                shutil.rmtree(tmp_to_clean, ignore_errors=True)
+            except Exception as exc:
+                ui.warn(f"Kit installation failed: {exc}")
+                errors.append({"path": "kit", "error": str(exc)})
+        # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-install-kit-accepted
+        # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-skip-kit-declined
+        else:
+            ui.info(f"Skipped kit installation. Install later: cpt kit install {_DEFAULT_KIT_SOURCE}")
+        # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-skip-kit-declined
+
     # @cpt-begin:cpt-cypilot-algo-core-infra-create-config:p1:inst-write-artifacts-toml
+    # Write artifacts.toml after kit install decision so kit slug is known
+    installed_kit_slug = next(iter(kit_results), "") if kit_results else ""
+    desired_registry = generate_default_registry(project_name, kit_slug=installed_kit_slug)
     registry_path = (config_dir / "artifacts.toml").resolve()
     registry_existed_before = registry_path.is_file()
     if registry_existed_before and not args.force:
@@ -567,56 +607,10 @@ def cmd_init(argv: List[str]) -> int:
         actions["artifacts_registry"] = "updated" if registry_existed_before else "created"
     # @cpt-end:cpt-cypilot-algo-core-infra-create-config:p1:inst-write-artifacts-toml
 
-    # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-delegate-kits
-    from .kit import install_kit
-
-    kit_results: Dict[str, Any] = {}
-    gen_skill_nav_parts: List[str] = []
-    kits_cache_dir = CACHE_DIR / "kits"
-
-    if not args.dry_run and kits_cache_dir.is_dir():
-        for kit_dir in sorted(kits_cache_dir.iterdir()):
-            if not kit_dir.is_dir():
-                continue
-            if not (kit_dir / "blueprints").is_dir():
-                continue
-
-            kit_slug = kit_dir.name
-            kit_result = install_kit(kit_dir, cypilot_dir, kit_slug)
-
-            kit_results[kit_slug] = {
-                "files_written": kit_result.get("files_written", 0),
-                "artifact_kinds": kit_result.get("artifact_kinds", []),
-                "errors": kit_result.get("errors", []),
-            }
-            if kit_result.get("errors"):
-                errors.extend(
-                    {"path": kit_slug, "error": e} for e in kit_result["errors"]
-                )
-            if kit_result.get("skill_nav"):
-                gen_skill_nav_parts.append(kit_result["skill_nav"])
-            for key, val in kit_result.get("actions", {}).items():
-                actions[f"kit_{kit_slug}_{key}"] = val
-
-            # Append sysprompt content to .gen/AGENTS.md
-            sysprompt_content = kit_result.get("sysprompt_content", "")
-            if sysprompt_content:
-                gen_agents_text = gen_agents_path.read_text(encoding="utf-8")
-                gen_agents_text = gen_agents_text.rstrip() + "\n\n" + sysprompt_content + "\n"
-                gen_agents_path.write_text(gen_agents_text, encoding="utf-8")
-                actions["gen_agents_sysprompt"] = "injected"
-
-    # Write .gen/SKILL.md — navigation hub routing to per-kit skills
+    # Regenerate .gen/ aggregates (AGENTS.md, SKILL.md, README.md)
     if not args.dry_run:
-        gen_skill_path = gen_dir / "SKILL.md"
-        nav_rules = "\n\n".join(gen_skill_nav_parts) if gen_skill_nav_parts else ""
-        gen_skill_path.write_text(
-            "# Cypilot Generated Skills\n\n"
-            "This file routes to per-kit skill instructions.\n\n"
-            + (nav_rules + "\n" if nav_rules else ""),
-            encoding="utf-8",
-        )
-        actions["gen_skill"] = "created"
+        gen_result = regenerate_gen_aggregates(cypilot_dir)
+        actions.update(gen_result)
 
     # Write config/SKILL.md — empty, for user extensions (preserve existing)
     if not args.dry_run:
@@ -634,7 +628,7 @@ def cmd_init(argv: List[str]) -> int:
             actions["config_skill"] = "unchanged"
 
     actions["kits"] = json.dumps(kit_results)
-    # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-delegate-kits
+    # @cpt-end:cpt-cypilot-algo-core-infra-create-config:p1:inst-mkdir-kits
 
     # @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-delegate-agents
     # Stub: Agent Generator (Feature 5 boundary) — agent entry points generated separately
@@ -679,11 +673,10 @@ def cmd_init(argv: List[str]) -> int:
     # @cpt-end:cpt-cypilot-state-core-infra-project-install:p1:inst-init-complete
     # @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-return-init-ok
 
-
 # ---------------------------------------------------------------------------
 # Human-friendly formatters
 # ---------------------------------------------------------------------------
-
+# @cpt-begin:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-format-output
 def _human_init_ok(
     data: Dict[str, object],
     project_root: Path,
@@ -728,7 +721,6 @@ def _human_init_ok(
         ui.hint("3. Start using:      type '/cypilot' in your IDE chat")
     ui.blank()
 
-
 def _human_init_error(data: Dict[str, object]) -> None:
     ui.error("Initialization failed")
     errors = data.get("errors", [])
@@ -738,3 +730,4 @@ def _human_init_error(data: Dict[str, object]) -> None:
         else:
             ui.substep(f"• {err}")
     ui.blank()
+# @cpt-end:cpt-cypilot-flow-core-infra-project-init:p1:inst-init-format-output

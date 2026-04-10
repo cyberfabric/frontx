@@ -54,8 +54,8 @@ export default defineConfig({
           }
 
           // Split framework and react packages into separate chunk
-          if (id.includes('@hai3/framework') || id.includes('@hai3/react')) {
-            return 'hai3-core';
+          if (id.includes('@cyberfabric/framework') || id.includes('@cyberfabric/react')) {
+            return 'frontx-core';
           }
         },
       },

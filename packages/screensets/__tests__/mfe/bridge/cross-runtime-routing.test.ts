@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ChildMfeBridgeImpl } from '../../../src/mfe/bridge/ChildMfeBridge';
 import { ParentMfeBridgeImpl } from '../../../src/mfe/bridge/ParentMfeBridge';
 import { ChildDomainForwardingHandler } from '../../../src/mfe/bridge/ChildDomainForwardingHandler';
-import type { ActionHandler } from '../../../src/mfe/mediator/types';
+import { ActionHandler } from '../../../src/mfe/mediator/types';
 
 describe('Cross-Runtime Action Chain Routing', () => {
   let childBridge: ChildMfeBridgeImpl;
@@ -29,7 +29,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
       // Setup: Mock the parent bridge sendActionsChain
       vi.spyOn(parentBridge, 'sendActionsChain').mockResolvedValue(undefined);
 
-      // Create handler
+      // Create forwarding handler class instance
       const handler = new ChildDomainForwardingHandler(
         parentBridge,
         'gts.hai3.mfes.ext.domain.v1~child.domain.v1'
@@ -56,7 +56,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
       const testError = new Error('Test error');
       vi.spyOn(parentBridge, 'sendActionsChain').mockRejectedValue(testError);
 
-      // Create handler
+      // Create forwarding handler class instance
       const handler = new ChildDomainForwardingHandler(
         parentBridge,
         'gts.hai3.mfes.ext.domain.v1~child.domain.v1'
@@ -211,7 +211,7 @@ describe('Cross-Runtime Action Chain Routing', () => {
       expect(handlers.has(childDomainId)).toBe(true);
 
       // Act: Simulate parent mediator invoking the forwarding handler
-      const handler = handlers.get(childDomainId);
+      const handler = handlers.get(childDomainId)!;
       await handler.handleAction(
         'gts.hai3.mfes.ext.action.v1~test.action.v1',
         { data: 'test' }

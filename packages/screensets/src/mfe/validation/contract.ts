@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-algo:cpt-hai3-algo-screenset-registry-contract-matching:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-contract-matching:p1
 
 import type { MfeEntry } from '../types/mfe-entry';
 import type { ExtensionDomain } from '../types/extension-domain';
@@ -44,11 +44,13 @@ export interface ContractValidationResult {
 }
 
 /**
- * Infrastructure lifecycle actions handled by ExtensionLifecycleActionHandler.
+ * Infrastructure lifecycle actions handled by the per-action-type lifecycle handlers
+ * (LoadExtHandler, MountExtSwapHandler, MountExtToggleHandler, UnmountExtHandler).
  * These actions are NOT handled by MFE application code and should be excluded
- * from rule 3 (domain.actions ⊆ entry.domainActions) validation.
+ * from rule 3 (domain.actions ⊆ entry.domainActions) validation, and also from
+ * mediator-level extension contract enforcement.
  */
-const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
+export const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
@@ -66,14 +68,14 @@ const INFRASTRUCTURE_LIFECYCLE_ACTIONS = new Set<string>([
  *    (MFE can handle all non-infrastructure action types that may target it)
  *
  * Note: Infrastructure lifecycle actions (load_ext, mount_ext, unmount_ext) are
- * handled by ExtensionLifecycleActionHandler, NOT by MFE application code, and
- * are therefore excluded from rule 3 validation.
+ * handled by the lifecycle handler classes (LoadExtHandler, MountExtSwapHandler, etc.),
+ * NOT by MFE application code, and are therefore excluded from rule 3 validation.
  *
  * @param entry - The MFE entry to validate
  * @param domain - The extension domain to validate against
  * @returns Validation result with errors if invalid
  */
-// @cpt-begin:cpt-hai3-algo-screenset-registry-contract-matching:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-screenset-registry-contract-matching:p1:inst-1
 export function validateContract(
   entry: MfeEntry,
   domain: ExtensionDomain
@@ -123,7 +125,7 @@ export function validateContract(
     errors,
   };
 }
-// @cpt-end:cpt-hai3-algo-screenset-registry-contract-matching:p1:inst-1
+// @cpt-end:cpt-frontx-algo-screenset-registry-contract-matching:p1:inst-1
 
 /**
  * Format contract validation errors into a human-readable message.

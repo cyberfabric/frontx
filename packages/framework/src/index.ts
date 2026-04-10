@@ -1,8 +1,8 @@
 /**
- * @hai3/framework - HAI3 Framework Package
+ * @cyberfabric/framework - FrontX Framework Package
  *
  * This package provides:
- * - Plugin architecture for composable HAI3 applications
+ * - Plugin architecture for composable FrontX applications
  * - Registries for screensets, themes, routes
  * - Presets for common configurations
  * - Re-exports from SDK packages for convenience
@@ -10,7 +10,7 @@
  * Framework Layer: L2 (Depends on all SDK packages)
  */
 
-// @cpt-dod:cpt-hai3-dod-framework-composition-reexports:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-reexports:p1
 
 // ============================================================================
 // Core Exports
@@ -55,29 +55,27 @@ export {
   overlayDomain,
 } from './plugins';
 
-// MFE Type Constants (re-exported from @hai3/screensets for convenience)
+// MFE Type Constants (re-exported from @cyberfabric/screensets for convenience)
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_MFE_ENTRY_MF,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
-// MFE Action Constants (re-exported from @hai3/screensets for convenience)
+// MFE Action Constants (re-exported from @cyberfabric/screensets for convenience)
 export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
-// MFE Shared Property Constants (re-exported from @hai3/screensets for convenience)
+// MFE Shared Property Constants (re-exported from @cyberfabric/screensets for convenience)
 export {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
-// MFE Types (re-exported from @hai3/screensets for convenience)
+// MFE Types (re-exported from @cyberfabric/screensets for convenience)
 export type {
-  ChildMfeBridge,
-  ParentMfeBridge,
   Extension,
   ScreenExtension,
   ExtensionPresentation,
@@ -98,28 +96,34 @@ export type {
   UnmountExtPayload,
   ScreensetsRegistryConfig,
   TypeSystemPlugin,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
-// MFE Abstract Classes (re-exported from @hai3/screensets for convenience)
+// MFE Abstract Classes (re-exported from @cyberfabric/screensets for convenience)
 export {
+  ChildMfeBridge,
+  ParentMfeBridge,
   MfeHandler,
   MfeBridgeFactory,
+  ActionHandler,
   ScreensetsRegistry,
   ScreensetsRegistryFactory,
   screensetsRegistryFactory,
   ContainerProvider,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
-// MFE Concrete Implementations (re-exported from @hai3/screensets subpath exports)
-export { MfeHandlerMF } from '@hai3/screensets/mfe/handler';
-export { gtsPlugin } from '@hai3/screensets/plugins/gts';
+// MFE Concrete Implementations (re-exported from @cyberfabric/screensets subpath exports)
+export { MfeHandlerMF } from '@cyberfabric/screensets/mfe/handler';
+export { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 
-// MFE Utilities (re-exported from @hai3/screensets for convenience)
+// GTS Derived Schemas (application-layer registration)
+export { themeSchema, languageSchema, extensionScreenSchema } from './gts';
+
+// MFE Utilities (re-exported from @cyberfabric/screensets for convenience)
 export {
   createShadowRoot,
   injectCssVariables,
   extractGtsPackage,
-} from '@hai3/screensets';
+} from '@cyberfabric/screensets';
 
 // MFE Plugin Types
 export type {
@@ -174,8 +178,8 @@ export type {
 // Re-exports from SDK packages for convenience
 // ============================================================================
 
-// From @hai3/state (unified Flux dataflow pattern)
-export { eventBus, createStore, getStore, registerSlice, hasSlice, createSlice } from '@hai3/state';
+// From @cyberfabric/state (unified Flux dataflow pattern)
+export { eventBus, createStore, getStore, registerSlice, hasSlice, createSlice } from '@cyberfabric/state';
 export type {
   EventBus,
   ReducerPayload,
@@ -186,15 +190,15 @@ export type {
   AppDispatch,
   SliceObject,
   EffectInitializer,
-} from '@hai3/state';
+} from '@cyberfabric/state';
 
-// Re-export HAI3Store from types (wrapped version)
+// Re-export FrontXStore from types (wrapped version)
 export type { HAI3Store } from './types';
 
-// From @hai3/screensets (contracts only - SDK Layer L1)
-export { LayoutDomain } from '@hai3/screensets';
+// From @cyberfabric/screensets (contracts only - SDK Layer L1)
+export { LayoutDomain } from '@cyberfabric/screensets';
 
-// Layout slices (owned by @hai3/framework)
+// Layout slices (owned by @cyberfabric/framework)
 export {
   layoutReducer,
   layoutDomainReducers,
@@ -312,7 +316,7 @@ export {
 } from './effects/mockEffects';
 export type { MockTogglePayload } from './effects/mockEffects';
 
-// From @hai3/api
+// From @cyberfabric/api
 export {
   apiRegistry,
   BaseApiService,
@@ -337,7 +341,7 @@ export {
   // Mock plugin identification
   MOCK_PLUGIN,
   isMockPlugin,
-} from '@hai3/api';
+} from '@cyberfabric/api';
 export type {
   MockMap,
   ApiServiceConfig,
@@ -368,16 +372,16 @@ export type {
   RestMockConfig,
   SseMockConfig,
   SseMockEvent,
-} from '@hai3/api';
+} from '@cyberfabric/api';
 
 
 // NOTE: AccountsApiService, ACCOUNTS_DOMAIN, and account types (ApiUser, UserRole, etc.)
 // have been moved to CLI templates. They are now generated by `hai3 scaffold layout`
 // and should be imported from user code (e.g., @/layout/api or @/api).
 
-// From @hai3/i18n
-export { i18nRegistry, I18nRegistryImpl, createI18nRegistry, Language, SUPPORTED_LANGUAGES, getLanguageMetadata, TextDirection, LanguageDisplayMode } from '@hai3/i18n';
-export type { I18nConfig, TranslationLoader, TranslationMap, TranslationDictionary, LanguageMetadata, I18nRegistry as I18nRegistryType } from '@hai3/i18n';
+// From @cyberfabric/i18n
+export { i18nRegistry, I18nRegistryImpl, createI18nRegistry, Language, SUPPORTED_LANGUAGES, getLanguageMetadata, TextDirection, LanguageDisplayMode } from '@cyberfabric/i18n';
+export type { I18nConfig, TranslationLoader, TranslationMap, TranslationDictionary, LanguageMetadata, I18nRegistry as I18nRegistryType } from '@cyberfabric/i18n';
 
 // Formatters (locale from i18nRegistry.getLanguage())
 export {
@@ -394,12 +398,12 @@ export {
   type DateFormatStyle,
   type TimeFormatStyle,
   type DateInput,
-} from '@hai3/i18n';
-export type { Formatters } from '@hai3/i18n';
+} from '@cyberfabric/i18n';
+export type { Formatters } from '@cyberfabric/i18n';
 
 // Backward compatibility aliases
-// I18nRegistry type (capital I) - alias for consistency with old @hai3/uicore API
-export { I18nRegistryImpl as I18nRegistry } from '@hai3/i18n';
+// I18nRegistry type (capital I) - alias for consistency with old @cyberfabric/uicore API
+export { I18nRegistryImpl as I18nRegistry } from '@cyberfabric/i18n';
 
 // Backward compatibility constants
 export {
@@ -407,7 +411,7 @@ export {
 } from './compat';
 
 // ============================================================================
-// Migration Helpers (for @hai3/uicore backward compatibility)
+// Migration Helpers (for @cyberfabric/uicore backward compatibility)
 // ============================================================================
 
 export {

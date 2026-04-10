@@ -7,51 +7,13 @@
 - [Scope](#scope)
 - [Findings](#findings)
   - [1. QA agent design patterns in AI systems](#1-qa-agent-design-patterns-in-ai-systems)
-    - [1.1 The generator-critic pattern](#11-the-generator-critic-pattern)
-    - [1.2 Multi-agent QA architectures in practice](#12-multi-agent-qa-architectures-in-practice)
-    - [1.3 Framework-specific patterns](#13-framework-specific-patterns)
-    - [1.4 Developer-to-QA feedback loops](#14-developer-to-qa-feedback-loops)
-    - [1.5 Quality gates as blocking state transitions](#15-quality-gates-as-blocking-state-transitions)
   - [2. Runtime validation approaches](#2-runtime-validation-approaches)
-    - [2.1 Browser automation tool comparison](#21-browser-automation-tool-comparison)
-    - [2.2 Playwright test agents](#22-playwright-test-agents)
-    - [2.3 Chrome DevTools MCP](#23-chrome-devtools-mcp)
-    - [2.4 CLI and shell validation](#24-cli-and-shell-validation)
-    - [2.5 Combining multiple validation channels](#25-combining-multiple-validation-channels)
   - [3. Static analysis integration](#3-static-analysis-integration)
-    - [3.1 Combining static and runtime validation](#31-combining-static-and-runtime-validation)
-    - [3.2 Where to draw the line](#32-where-to-draw-the-line)
-    - [3.3 The parallel review agent pattern](#33-the-parallel-review-agent-pattern)
   - [4. Test strategy for AI QA agents](#4-test-strategy-for-ai-qa-agents)
-    - [4.1 The agent testing pyramid](#41-the-agent-testing-pyramid)
-    - [4.2 Risk-based testing for agents](#42-risk-based-testing-for-agents)
-    - [4.3 Handling non-determinism and flakiness](#43-handling-non-determinism-and-flakiness)
-    - [4.4 Acceptance criteria interpretation](#44-acceptance-criteria-interpretation)
-    - [4.5 Evidence collection and reporting](#45-evidence-collection-and-reporting)
   - [5. Agent prompt engineering for QA roles](#5-agent-prompt-engineering-for-qa-roles)
-    - [5.1 Effective QA agent prompt patterns](#51-effective-qa-agent-prompt-patterns)
-    - [5.2 Thoroughness vs efficiency](#52-thoroughness-vs-efficiency)
-    - [5.3 Read-only vs can-execute permissions](#53-read-only-vs-can-execute-permissions)
-    - [5.4 Preventing the QA bottleneck](#54-preventing-the-qa-bottleneck)
-    - [5.5 Developer-to-QA handoff structure](#55-developer-to-qa-handoff-structure)
   - [6. Tool selection for QA agents](#6-tool-selection-for-qa-agents)
-    - [6.1 Minimum viable toolset](#61-minimum-viable-toolset)
-    - [6.2 Browser automation tool trade-offs](#62-browser-automation-tool-trade-offs)
-    - [6.3 Token efficiency considerations](#63-token-efficiency-considerations)
-    - [6.4 Screenshot and visual validation](#64-screenshot-and-visual-validation)
   - [7. Anti-patterns and failure modes](#7-anti-patterns-and-failure-modes)
-    - [7.1 Common QA agent design mistakes](#71-common-qa-agent-design-mistakes)
-    - [7.2 The rubber-stamp problem](#72-the-rubber-stamp-problem)
-    - [7.3 The bottleneck problem](#73-the-bottleneck-problem)
-    - [7.4 False positive and negative management](#74-false-positive-and-negative-management)
-    - [7.5 Agentic system failure patterns](#75-agentic-system-failure-patterns)
   - [8. Real-world examples and implementations](#8-real-world-examples-and-implementations)
-    - [8.1 OpenObserve -- Council of Sub Agents](#81-openobserve-council-of-sub-agents)
-    - [8.2 Agentic QE Fleet](#82-agentic-qe-fleet)
-    - [8.3 9 Parallel Review Agents](#83-9-parallel-review-agents)
-    - [8.4 metaswarm](#84-metaswarm)
-    - [8.5 ClaudeCodeAgents](#85-claudecodeagents)
-    - [8.6 AI QA Framework](#86-ai-qa-framework)
 - [Comparison: validation tool approaches](#comparison-validation-tool-approaches)
 - [Key takeaways](#key-takeaways)
 - [Open questions](#open-questions)
@@ -81,7 +43,7 @@ Sub-questions:
 
 **Out of scope**: Architecture review (covered by the `architecture-critic` agent). Designing the actual agent prompt (this exploration provides decision-support material). CI/CD pipeline integration. Test framework authoring (the QA agent validates, it does not write persistent test suites).
 
-**Constraints**: The agent operates within the HAI3 monorepo as a Claude Code subagent. It has access to Chrome DevTools MCP tools, Bash, file reading tools, and potentially Playwright MCP. It replaces the current `chrome-devtools-runtime-tester` and `implementation-reviewer` agents.
+**Constraints**: The agent operates within the FrontX monorepo as a Claude Code subagent. It has access to Chrome DevTools MCP tools, Bash, file reading tools, and potentially Playwright MCP. It replaces the current `chrome-devtools-runtime-tester` and `implementation-reviewer` agents.
 
 ---
 
@@ -195,7 +157,7 @@ GitHub Copilot's Coding Agent [leverages Playwright MCP to open a browser and va
 
 #### 2.3 Chrome DevTools MCP
 
-The HAI3 `chrome-devtools-runtime-tester` already uses Chrome DevTools MCP. Key capabilities relevant to QA validation:
+The FrontX `chrome-devtools-runtime-tester` already uses Chrome DevTools MCP. Key capabilities relevant to QA validation:
 
 - **DOM and CSS inspection**: Element presence, visibility, attribute changes, class additions/removals, ARIA attributes
 - **Network behavior**: Request/response patterns, status codes, headers, timing
@@ -206,7 +168,7 @@ The HAI3 `chrome-devtools-runtime-tester` already uses Chrome DevTools MCP. Key 
 
 The current `chrome-devtools-runtime-tester` uses 26 Chrome DevTools tools plus file reading tools (Glob, Grep, Read). It consumes significant context window space (18k tokens for tool definitions alone).
 
-**Confidence:** Corroborated -- based on the existing HAI3 agent definition and Chrome DevTools MCP documentation.
+**Confidence:** Corroborated -- based on the existing FrontX agent definition and Chrome DevTools MCP documentation.
 
 #### 2.4 CLI and shell validation
 
@@ -291,7 +253,7 @@ The automation-candidates should be Bash commands the QA agent runs and checks e
 
 Graphite's analysis notes that coding agents can [fix their own linting bugs and type errors if they have a way to check for them](https://graphite.com/guides/ai-code-review-vs-static-analysis), and static code analysis tools give coding agents "guardrails and constraints" that improve output quality.
 
-**Confidence:** Substantiated -- based on direct analysis of the HAI3 `implementation-reviewer` agent definition and industry patterns.
+**Confidence:** Substantiated -- based on direct analysis of the FrontX `implementation-reviewer` agent definition and industry patterns.
 
 #### 3.3 The parallel review agent pattern
 
@@ -391,7 +353,7 @@ Anthropic's [eval guidance](https://www.anthropic.com/engineering/demystifying-e
 2. **Outcomes**: Final environmental state verification (does the test pass? does the DOM look right?)
 3. **Metrics**: Quantitative measurements (latency, token usage, turn count)
 
-The existing HAI3 `chrome-devtools-runtime-tester` produces a structured validation report with:
+The existing FrontX `chrome-devtools-runtime-tester` produces a structured validation report with:
 - Feature under test and artifact reference
 - Test environment details
 - Per-criterion verdict with DevTools actions taken and evidence collected
@@ -405,7 +367,7 @@ The `implementation-reviewer` produces a BLOCK/APPROVE decision with:
 
 A unified QA report needs to combine both: structured per-criterion verdicts (from runtime testing) with pattern compliance findings (from static analysis), all with concrete evidence. The key principle from Anthropic: "when a task fails, the transcript tells you whether the agent made a genuine mistake or whether your graders rejected a valid solution."
 
-**Confidence:** Substantiated -- synthesized from existing HAI3 agent formats and Anthropic eval guidance.
+**Confidence:** Substantiated -- synthesized from existing FrontX agent formats and Anthropic eval guidance.
 
 ---
 
@@ -417,7 +379,7 @@ Synthesized from successful QA agent implementations:
 
 **Checklist-driven validation**: The most reliable QA agents follow explicit checklists rather than open-ended quality assessment. The implementation-reviewer's step-by-step review checklist (architecture -> forbidden patterns -> type safety -> stray files -> task sync -> legacy) produces consistent results because each step has concrete actions and pass/fail criteria.
 
-**Evidence-before-verdict**: OpenObserve's Sentinel and the HAI3 runtime tester both require the agent to state what it observed before stating whether it meets criteria. This prevents the agent from reasoning backward from a desired verdict.
+**Evidence-before-verdict**: OpenObserve's Sentinel and the FrontX runtime tester both require the agent to state what it observed before stating whether it meets criteria. This prevents the agent from reasoning backward from a desired verdict.
 
 **Concrete over vague**: Microsoft's [prompt engineering for testers guide](https://techcommunity.microsoft.com/blog/azuredevcommunityblog/writing-effective-prompts-for-testing-scenarios-ai-assisted-quality-engineering/4488001) identifies overloaded prompts and natural language overuse as common anti-patterns. Structured output requirements and environment details produce more reliable results.
 
@@ -531,17 +493,17 @@ Based on analysis of what the two existing agents use and what the unified agent
 
 #### 6.2 Browser automation tool trade-offs
 
-For the HAI3 context specifically:
+For the FrontX context specifically:
 
 **Chrome DevTools MCP (current approach)**:
 - Already integrated and configured in the repo
 - Provides the deepest debugging capabilities (console, network, performance)
-- Chrome-only, but HAI3 targets Chrome for development
+- Chrome-only, but FrontX targets Chrome for development
 - High token cost (26 tools, 18k tokens for definitions)
 - Ideal for: debugging, performance analysis, deep inspection
 
 **Playwright MCP (alternative)**:
-- Cross-browser support (less relevant for HAI3 dev workflow)
+- Cross-browser support (less relevant for FrontX dev workflow)
 - Accessibility tree approach is more deterministic for element selection
 - Better CI/CD integration story
 - Lower token cost (21 tools, 13.7k tokens)
@@ -549,7 +511,7 @@ For the HAI3 context specifically:
 
 **Combined approach** (suggested by [BSWEN](https://docs.bswen.com/blog/2026-02-25-mcp-browser-comparison/)): Use Chrome DevTools for deep analysis and debugging, Playwright for functional automation. However, this doubles the token budget for tool definitions.
 
-**Confidence:** Substantiated -- based on comparative benchmarks and HAI3 context analysis.
+**Confidence:** Substantiated -- based on comparative benchmarks and FrontX context analysis.
 
 #### 6.3 Token efficiency considerations
 
@@ -762,7 +724,7 @@ Concentrix identifies [12 failure patterns](https://www.concentrix.com/insights/
 
 3. **Model selection**: The `chrome-devtools-runtime-tester` uses Sonnet; the `implementation-reviewer` uses Opus. Should the unified agent use Opus (stronger reasoning for code analysis) or Sonnet (faster, cheaper for runtime checks)? The Agentic QE Fleet uses dynamic routing based on task complexity -- is this practical for a Claude Code subagent?
 
-4. **Feedback loop iteration cap**: How many QA-developer cycles should be allowed before escalating to human review? OpenObserve uses 5. metaswarm uses spec-driven criteria. The right number for HAI3 is undefined.
+4. **Feedback loop iteration cap**: How many QA-developer cycles should be allowed before escalating to human review? OpenObserve uses 5. metaswarm uses spec-driven criteria. The right number for FrontX is undefined.
 
 5. **Hook-based enforcement**: Should quality gates be enforced via Claude Code hooks (PreToolUse, SubagentStop) or via agent prompt instructions? Hook enforcement is structural and cannot be bypassed; prompt enforcement relies on the model following instructions.
 

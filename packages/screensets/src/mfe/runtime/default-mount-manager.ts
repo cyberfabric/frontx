@@ -7,8 +7,8 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-state:cpt-hai3-state-screenset-registry-extension-load:p1
-// @cpt-state:cpt-hai3-state-screenset-registry-extension-mount:p1
+// @cpt-state:cpt-frontx-state-screenset-registry-extension-load:p1
+// @cpt-state:cpt-frontx-state-screenset-registry-extension-mount:p1
 
 import type { MfeHandler, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
@@ -25,7 +25,7 @@ import { createShadowRoot } from '../shadow';
  * Callback type for resolving the appropriate handler for an entry type.
  * The registry provides this callback, encapsulating typeSystem.isTypeOf() logic.
  */
-// @cpt-algo:cpt-hai3-algo-screenset-registry-handler-resolution:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
 export type HandlerResolver = (entryTypeId: string) => MfeHandler | undefined;
 
 /**
@@ -67,14 +67,25 @@ export class DefaultMountManager extends MountManager {
   private readonly hostRuntime: ScreensetsRegistry;
 
   /**
-   * Callback for registering domain action handlers.
+   * Callback for registering catch-all action handlers (child domain forwarding).
    */
-  private readonly registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
+  private readonly registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
 
   /**
-   * Callback for unregistering domain action handlers.
+   * Callback for unregistering catch-all action handlers.
    */
-  private readonly unregisterDomainActionHandler: (domainId: string) => void;
+  private readonly unregisterCatchAllActionHandler: (domainId: string) => void;
+
+  /**
+   * Callback for registering per-(extensionId, actionTypeId) handlers in the parent mediator.
+   * domainId is forwarded so the mediator can populate targetDomainMap for timeout resolution.
+   */
+  private readonly registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
+
+  /**
+   * Callback for unregistering all extension handlers from the parent mediator.
+   */
+  private readonly unregisterExtensionActionHandler: (extensionId: string) => void;
 
   /**
    * Runtime bridge factory for creating bridge connections.
@@ -88,8 +99,10 @@ export class DefaultMountManager extends MountManager {
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
     hostRuntime: ScreensetsRegistry;
-    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
-    unregisterDomainActionHandler: (domainId: string) => void;
+    registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
+    unregisterCatchAllActionHandler: (domainId: string) => void;
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
+    unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
     super();
@@ -99,8 +112,10 @@ export class DefaultMountManager extends MountManager {
     this.triggerLifecycle = config.triggerLifecycle;
     this.executeActionsChain = config.executeActionsChain;
     this.hostRuntime = config.hostRuntime;
-    this.registerDomainActionHandler = config.registerDomainActionHandler;
-    this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
+    this.registerCatchAllActionHandler = config.registerCatchAllActionHandler;
+    this.unregisterCatchAllActionHandler = config.unregisterCatchAllActionHandler;
+    this.registerExtensionActionHandler = config.registerExtensionActionHandler;
+    this.unregisterExtensionActionHandler = config.unregisterExtensionActionHandler;
     this.bridgeFactory = config.bridgeFactory;
   }
 
@@ -110,7 +125,7 @@ export class DefaultMountManager extends MountManager {
    * @param extensionId - ID of the extension to load
    * @returns Promise resolving when bundle is loaded
    */
-  // @cpt-begin:cpt-hai3-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
   async loadExtension(extensionId: string): Promise<void> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
@@ -156,7 +171,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-hai3-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-end:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
 
   /**
    * Preload an extension bundle without mounting.
@@ -175,7 +190,7 @@ export class DefaultMountManager extends MountManager {
    * @param container - DOM element to mount into
    * @returns Promise resolving to the parent bridge
    */
-  // @cpt-begin:cpt-hai3-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
   async mountExtension(extensionId: string, container: Element): Promise<ParentMfeBridge> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
@@ -213,14 +228,20 @@ export class DefaultMountManager extends MountManager {
         );
       }
 
-      // Create bridge using bridge factory
+      // Create bridge using bridge factory.
+      // domainActions is passed for API compatibility but is no longer used
+      // for contract enforcement — GTS schema validation handles that.
+      const entryDomainActions = extensionState.entry.domainActions;
       const { parentBridge, childBridge } = this.bridgeFactory.createBridge(
         domainState,
         extensionId,
         extensionState.entry.id,
+        entryDomainActions,
         (chain: ActionsChain) => this.executeActionsChain(chain),
-        (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
-        (domainId) => this.unregisterDomainActionHandler(domainId)
+        (domainId, handler) => this.registerCatchAllActionHandler(domainId, handler),
+        (domainId) => this.unregisterCatchAllActionHandler(domainId),
+        (extId, actionTypeId, handler, domainId) => this.registerExtensionActionHandler(extId, actionTypeId, handler, domainId),
+        (extId) => this.unregisterExtensionActionHandler(extId)
       );
 
       // Register with RuntimeCoordinator
@@ -274,7 +295,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-hai3-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-end:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
 
   /**
    * Unmount an extension from its container.
@@ -309,6 +330,18 @@ export class DefaultMountManager extends MountManager {
       if (lifecycle && container) {
         const unmountTarget = extensionState.shadowRoot ?? container;
         await lifecycle.unmount(unmountTarget);
+      }
+
+      // Unregister extension action handler from mediator before disposing bridge.
+      // Wrapped in try/catch so a failure (e.g., pending actions) does not strand
+      // the rest of the unmount cleanup (bridge dispose, coordinator, state reset).
+      try {
+        this.unregisterExtensionActionHandler(extensionId);
+      } catch (unregisterError) {
+        console.error(
+          `[MountManager] Failed to unregister extension action handler for '${extensionId}':`,
+          unregisterError
+        );
       }
 
       // Dispose bridge

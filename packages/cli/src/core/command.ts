@@ -13,9 +13,9 @@ import type {
 export interface CommandContext {
   /** Current working directory */
   cwd: string;
-  /** HAI3 project root (null if outside project) */
+  /** FrontX project root (null if outside project) */
   projectRoot: string | null;
-  /** HAI3 config (null if outside project) */
+  /** FrontX config (null if outside project) */
   config: Hai3Config | null;
   /** Logger for output */
   logger: Logger;

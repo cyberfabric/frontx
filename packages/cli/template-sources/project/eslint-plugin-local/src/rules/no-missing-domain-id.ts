@@ -1,6 +1,6 @@
 /**
  * @fileoverview Enforce local DOMAIN_ID constant in domain event files
- * @author HAI3 Team
+ * @author FrontX Team
  */
 
 import type { Rule } from 'eslint';

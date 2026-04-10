@@ -1,5 +1,5 @@
 /**
- * HAI3 Application Component (no UIKit, no Studio)
+ * FrontX Application Component (no UIKit, no Studio)
  *
  * Layout + MfeScreenContainer only.
  * Used for projects created with --uikit none --no-studio.

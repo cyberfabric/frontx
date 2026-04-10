@@ -1,12 +1,12 @@
-# CLI Pattern Assertions for HAI3 Commands
+# CLI Pattern Assertions for FrontX Commands
 # These assertions verify commands follow CLI delegation pattern
 
 # Assertion: Commands must delegate to CLI
 cli_delegation:
-  description: Commands delegate to hai3 CLI
+  description: Commands delegate to frontx CLI
   assertions:
     - type: contains
-      value: "hai3"
+      value: "frontx"
     - type: not-contains
       value: "fs.writeFile"
     - type: not-contains

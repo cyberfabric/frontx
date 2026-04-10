@@ -1,10 +1,10 @@
 /**
- * @hai3/screensets - Type Definitions
+ * @cyberfabric/screensets - Type Definitions
  *
- * Pure TypeScript contracts for HAI3 MFE (Microfrontend) management.
+ * Pure TypeScript contracts for FrontX MFE (Microfrontend) management.
  * This package has ZERO dependencies - pure types and contracts only.
  *
- * NOTE: Layout state shapes (HeaderState, MenuState, etc.) are in @hai3/framework
+ * NOTE: Layout state shapes (HeaderState, MenuState, etc.) are in @cyberfabric/framework
  */
 
 // ============================================================================

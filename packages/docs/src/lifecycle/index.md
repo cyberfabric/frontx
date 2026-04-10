@@ -1,6 +1,6 @@
 # AI Product Lifecycle
 
-The HAI3 AI Product Lifecycle provides a comprehensive methodology for AI-driven product development.
+The FrontX AI Product Lifecycle provides a comprehensive methodology for AI-driven product development.
 
 ## Overview
 

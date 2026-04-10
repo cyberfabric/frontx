@@ -1,8 +1,8 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-scaffold-layout:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-scaffold-layout:p1
 /**
  * Layout Generator from Template
  *
- * Generates layout components in the user's project from HAI3 layout templates.
+ * Generates layout components in the user's project from FrontX layout templates.
  */
 
 import path from 'path';
@@ -53,9 +53,9 @@ async function readTemplateFiles(
 
 /**
  * Generate layout files from template
- * Copies the HAI3 layout templates
+ * Copies the FrontX layout templates
  */
-// @cpt-begin:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
+// @cpt-begin:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
 export async function copyLayoutTemplates(
   input: LayoutFromTemplateInput
 ): Promise<GeneratedFile[]> {
@@ -104,4 +104,4 @@ export async function copyLayoutTemplates(
 
   return outputFiles;
 }
-// @cpt-end:cpt-hai3-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates
+// @cpt-end:cpt-frontx-flow-cli-tooling-scaffold-layout:p1:inst-read-layout-templates

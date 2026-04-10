@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { ChildMfeBridge } from '@hai3/react';
-import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@hai3/react';
+import type { ChildMfeBridge } from '@cyberfabric/react';
+import { HAI3_SHARED_PROPERTY_THEME, HAI3_SHARED_PROPERTY_LANGUAGE } from '@cyberfabric/react';
 import { Card, CardContent } from '../../components/ui/card';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';

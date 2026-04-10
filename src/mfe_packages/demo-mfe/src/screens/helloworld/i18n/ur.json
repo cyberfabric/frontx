@@ -1,10 +1,11 @@
 {
   "title": "ہیلو ورلڈ",
-  "welcome": "HAI3 ڈیمو اسکرین سیٹ میں خوش آمدید",
-  "description": "یہ ایک سادہ ڈیمو اسکرین ہے جو HAI3 فریم ورک کو عمل میں دکھاتی ہے۔ مختلف خصوصیات دریافت کرنے کے لیے مینو میں گھومیں۔",
+  "welcome": "FrontX ڈیمو اسکرین سیٹ میں خوش آمدید",
+  "description": "یہ ایک سادہ ڈیمو اسکرین ہے جو FrontX فریم ورک کو عمل میں دکھاتی ہے۔ مختلف خصوصیات دریافت کرنے کے لیے مینو میں گھومیں۔",
   "navigation_title": "نیویگیشن مثال",
   "navigation_description": "تھیم اسکرین پر پروگرام کے ذریعے جانے کے لیے نیچے والے بٹن پر کلک کریں۔",
   "go_to_theme": "تھیم اسکرین پر جائیں",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

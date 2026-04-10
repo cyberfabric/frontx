@@ -8,7 +8,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-screenset-registry-registry-contract:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ParentMfeBridge } from '../handler/types';
@@ -18,7 +18,22 @@ import type {
   ActionsChain,
 } from '../types';
 import type { ContainerProvider } from './container-provider';
-import type { CustomActionHandler } from './extension-lifecycle-action-handler';
+import type { ActionHandler } from '../mediator/types';
+
+/**
+ * Options for registering a domain.
+ */
+export interface RegisterDomainOptions {
+  /**
+   * Optional callback for handling fire-and-forget init lifecycle errors.
+   */
+  onInitError?: (error: Error) => void;
+  /**
+   * Optional custom action handlers keyed by action type ID.
+   * These are registered in addition to the built-in lifecycle handlers.
+   */
+  actionHandlers?: Record<string, ActionHandler>;
+}
 
 /**
  * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
@@ -35,7 +50,7 @@ import type { CustomActionHandler } from './extension-lifecycle-action-handler';
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);
@@ -58,16 +73,14 @@ export abstract class ScreensetsRegistry {
    *
    * @param domain - Domain to register
    * @param containerProvider - Container provider for the domain
-   * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
-   * @param customActionHandler - Optional handler for non-lifecycle domain actions
+   * @param options - Optional registration options (onInitError, actionHandlers)
    * @throws {DomainValidationError} if GTS validation fails
    * @throws {UnsupportedLifecycleStageError} if lifecycle hooks reference unsupported stages
    */
   abstract registerDomain(
     domain: ExtensionDomain,
     containerProvider: ContainerProvider,
-    onInitError?: (error: Error) => void,
-    customActionHandler?: CustomActionHandler
+    options?: RegisterDomainOptions
   ): void;
 
   /**

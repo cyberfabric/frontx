@@ -18,8 +18,8 @@ from ..utils.files import (
     find_project_root,
     load_cypilot_config,
 )
+from ..utils.git_utils import _redact_url
 from ..utils.ui import ui
-
 
 def _load_json_file(path: Path) -> Optional[dict]:
     if not path.is_file():
@@ -30,7 +30,6 @@ def _load_json_file(path: Path) -> Optional[dict]:
         return data if isinstance(data, dict) else None
     except (json.JSONDecodeError, OSError, IOError):
         return None
-
 
 def _read_kit_conf(conf_path: Path) -> dict:
     """Read kit conf.toml and return key fields."""
@@ -45,7 +44,6 @@ def _read_kit_conf(conf_path: Path) -> dict:
         return out
     except Exception:
         return {}
-
 
 def cmd_adapter_info(argv: list[str]) -> int:
     """Discover and display Cypilot project configuration."""
@@ -117,14 +115,15 @@ def cmd_adapter_info(argv: list[str]) -> int:
             registry = None
     # Load core.toml for version/project_root/kits (authoritative source)
     core_data: Optional[dict] = None
+    core_load_error: Optional[str] = None
     for cp in [(adapter_dir / "config" / "core.toml"), (adapter_dir / "core.toml")]:
         if cp.is_file():
             try:
                 import tomllib as _tl
                 with open(cp, "rb") as f:
                     core_data = _tl.load(f)
-            except Exception:
-                pass
+            except (_tl.TOMLDecodeError, OSError) as exc:
+                core_load_error = f"{type(exc).__name__}: {exc}"
             break
 
     # @cpt-end:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-locate-registry
@@ -268,45 +267,50 @@ def cmd_adapter_info(argv: list[str]) -> int:
     if core_data and isinstance(core_data.get("version"), str):
         config["config_version"] = core_data["version"]
 
-    # Kit details: versions, blueprints, drift
+    # Kit details: versions, content, drift
     kit_details = {}
-    kits_ref_dir = adapter_dir / "kits"
     config_kits_dir = adapter_dir / "config" / "kits"
-    gen_kits_dir = adapter_dir / ".gen" / "kits"
-    if kits_ref_dir.is_dir():
-        for kit_dir in sorted(kits_ref_dir.iterdir()):
+    if config_kits_dir.is_dir():
+        for kit_dir in sorted(config_kits_dir.iterdir()):
             if not kit_dir.is_dir():
                 continue
             slug = kit_dir.name
             kd: dict = {"slug": slug}
-            # Reference version
-            ref_conf = kit_dir / "conf.toml"
-            if ref_conf.is_file():
-                kd.update(_read_kit_conf(ref_conf))
-                kd["ref_version"] = kd.get("version")
-            # Config (user) version
-            cfg_conf = config_kits_dir / slug / "conf.toml"
-            if cfg_conf.is_file():
-                cfg_data = _read_kit_conf(cfg_conf)
-                kd["config_version"] = cfg_data.get("version")
-                if kd.get("ref_version") and kd["config_version"]:
-                    try:
-                        kd["drift"] = int(kd["ref_version"]) != int(kd["config_version"])
-                    except (ValueError, TypeError):
-                        kd["drift"] = str(kd["ref_version"]) != str(kd["config_version"])
-            # Blueprints
-            bp_dir = config_kits_dir / slug / "blueprints"
-            if bp_dir.is_dir():
-                bps = sorted(f.stem for f in bp_dir.glob("*.md"))
-                kd["blueprints"] = bps
-            # Generated artifact kinds
-            gen_art_dir = gen_kits_dir / slug / "artifacts"
-            if gen_art_dir.is_dir():
-                kd["artifact_kinds"] = sorted(d.name for d in gen_art_dir.iterdir() if d.is_dir())
-            # Generated workflows
-            gen_wf_dir = gen_kits_dir / slug / "workflows"
-            if gen_wf_dir.is_dir():
-                kd["workflows"] = sorted(f.stem for f in gen_wf_dir.glob("*.md"))
+            # Resolve core.toml entry for this kit once
+            core_kit: dict = {}
+            if core_data and isinstance(core_data.get("kits"), dict):
+                _ck = core_data["kits"].get(slug, {})
+                if isinstance(_ck, dict):
+                    core_kit = _ck
+            # Version from core.toml (single source of truth)
+            if "version" in core_kit:
+                kd["version"] = core_kit["version"]
+            # Name/slug from kit's conf.toml in source (fallback)
+            kit_conf = kit_dir / "conf.toml"
+            if kit_conf.is_file():
+                conf_info = _read_kit_conf(kit_conf)
+                if "name" in conf_info:
+                    kd["name"] = conf_info["name"]
+                if "slug" in conf_info and "slug" not in kd:
+                    kd["slug"] = conf_info["slug"]
+            # Content directories present
+            content_dirs = sorted(
+                d.name for d in kit_dir.iterdir()
+                if d.is_dir() and d.name in ("artifacts", "codebase", "scripts", "workflows")
+            )
+            if content_dirs:
+                kd["content_dirs"] = content_dirs
+            # Artifact kinds (from config/kits/{slug}/artifacts/)
+            art_dir = kit_dir / "artifacts"
+            if art_dir.is_dir():
+                kd["artifact_kinds"] = sorted(d.name for d in art_dir.iterdir() if d.is_dir())
+            # Workflows (from config/kits/{slug}/workflows/)
+            wf_dir = kit_dir / "workflows"
+            if wf_dir.is_dir():
+                kd["workflows"] = sorted(f.stem for f in wf_dir.glob("*.md"))
+            # Resources (from core.toml [kits.{slug}.resources])
+            if isinstance(core_kit.get("resources"), dict):
+                kd["resources"] = core_kit["resources"]
             kit_details[slug] = kd
     config["kit_details"] = kit_details
 
@@ -326,18 +330,77 @@ def cmd_adapter_info(argv: list[str]) -> int:
 
     # Directory structure health
     dirs_status = {}
-    for subdir in [".core", ".gen", "config", "kits"]:
+    for subdir in [".core", ".gen", "config"]:
         d = adapter_dir / subdir
         dirs_status[subdir] = d.is_dir()
     config["directories"] = dirs_status
+
+    # Resolved template variables (flat dict for format_map substitution)
+    if core_load_error is not None:
+        config["variables"] = None
+        config["variables_error"] = f"core.toml load failed: {core_load_error}"
+        config["variables_degraded"] = True
+    else:
+        try:
+            from .resolve_vars import _collect_all_variables
+            vars_result = _collect_all_variables(project_root, adapter_dir, core_data)
+            config["variables"] = vars_result["variables"]
+            config["variables_by_kit"] = vars_result.get("kits", {})
+            if vars_result.get("collisions"):
+                config["variables_collisions"] = vars_result["collisions"]
+        except (ImportError, OSError, ValueError) as exc:
+            config["variables"] = None
+            config["variables_error"] = str(exc)
+            config["variables_degraded"] = True
     # @cpt-end:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-compute-metadata
+
+    # @cpt-begin:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-workspace-section
+    # Add workspace section when workspace detected
+    try:
+        from ..utils.workspace import find_workspace_config
+
+        ws_cfg, ws_err = find_workspace_config(project_root)
+        if ws_cfg is not None:
+            ws_info: dict = {
+                "active": True,
+                "version": ws_cfg.version,
+                "is_inline": ws_cfg.is_inline,
+                "location": "inline (core.toml)" if ws_cfg.is_inline else str(ws_cfg.workspace_file),
+                "sources_count": len(ws_cfg.sources),
+                "sources": {},
+            }
+            for name, src in ws_cfg.sources.items():
+                if src.url:
+                    # For URL sources, peek at expected cache path without cloning
+                    from ..utils.git_utils import peek_git_source_path
+                    from ..utils.workspace import ResolveConfig
+                    base = ws_cfg.resolution_base or (ws_cfg.workspace_file.parent if ws_cfg.workspace_file else None)
+                    resolved = peek_git_source_path(src, ws_cfg.resolve or ResolveConfig(), base) if base else None
+                    reachable = resolved is not None and resolved.is_dir()
+                else:
+                    resolved = ws_cfg.resolve_source_path(name)
+                    reachable = resolved is not None and resolved.is_dir()
+                ws_info["sources"][name] = {
+                    "path": src.path or (_redact_url(src.url) if src.url else None),
+                    "role": src.role,
+                    "reachable": reachable,
+                }
+            config["workspace"] = ws_info
+        else:
+            ws_data: dict = {"active": False}
+            if ws_err:
+                ws_data["error"] = ws_err
+            config["workspace"] = ws_data
+    except Exception as exc:
+        config["workspace"] = {"active": False, "error": str(exc)}
+    # @cpt-end:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-workspace-section
 
     # @cpt-begin:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-return-ok
     ui.result(config, human_fn=_human_info)
     return 0
     # @cpt-end:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-return-ok
 
-
+# @cpt-begin:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-human-fmt
 def _human_info(data: dict) -> None:
     """Human-friendly formatter for the info command."""
     ui.header("Cypilot Project Info")
@@ -364,17 +427,12 @@ def _human_info(data: dict) -> None:
         ui.step(f"Kits ({len(kit_details)})")
         for slug, kd in kit_details.items():
             name = kd.get("name", slug)
-            ref_v = kd.get("ref_version", "?")
-            cfg_v = kd.get("config_version")
-            drift = kd.get("drift", False)
-            ver_str = f"v{ref_v}"
-            if cfg_v is not None and drift:
-                ver_str = f"v{cfg_v} → v{ref_v} (migration needed)"
-            ui.substep(f"  {name}  {ver_str}")
+            ver = kd.get("version", "?")
+            ui.substep(f"  {name}  v{ver}")
 
-            bps = kd.get("blueprints", [])
-            if bps:
-                ui.substep(f"    Blueprints ({len(bps)}): {', '.join(bps)}")
+            cdirs = kd.get("content_dirs", [])
+            if cdirs:
+                ui.substep(f"    Content: {', '.join(cdirs)}")
 
             kinds = kd.get("artifact_kinds", [])
             if kinds:
@@ -383,6 +441,13 @@ def _human_info(data: dict) -> None:
             wfs = kd.get("workflows", [])
             if wfs:
                 ui.substep(f"    Workflows: {', '.join(wfs)}")
+
+            res = kd.get("resources", {})
+            if res:
+                ui.substep(f"    Resources ({len(res)}):")
+                for rid, rbind in res.items():
+                    rpath = rbind.get("path", "?") if isinstance(rbind, dict) else str(rbind)
+                    ui.substep(f"      {rid}: {rpath}")
 
     # Systems with artifacts
     auto_reg = data.get("autodetect_registry") or {}
@@ -461,6 +526,30 @@ def _human_info(data: dict) -> None:
         ui.step(f"Agent integrations ({len(agents)})")
         ui.substep(f"  {', '.join(agents)}")
 
+    # @cpt-begin:cpt-cypilot-flow-developer-experience-resolve-vars:p1:inst-info-render-variables
+    # Resolved variables
+    variables = data.get("variables") or {}
+    if variables:
+        ui.blank()
+        ui.step(f"Variables ({len(variables)})")
+        for name, path in sorted(variables.items()):
+            ui.substep(f"  {{{name}}}: {ui.relpath(path)}")
+    if data.get("variables_degraded"):
+        ui.blank()
+        ui.warn(f"Variables: {data.get('variables_error', 'unknown error')}")
+    # @cpt-end:cpt-cypilot-flow-developer-experience-resolve-vars:p1:inst-info-render-variables
+
+    # Workspace
+    ws = data.get("workspace", {})
+    if ws.get("active"):
+        ui.blank()
+        ui.step("Workspace")
+        ui.substep(f"  Location: {ws.get('location', '?')}")
+        ui.substep(f"  Sources: {ws.get('sources_count', 0)}")
+    elif ws.get("error"):
+        ui.blank()
+        ui.warn(f"Workspace: {ws['error']}")
+
     # Registry errors
     reg_err = data.get("artifacts_registry_error")
     if reg_err:
@@ -468,3 +557,4 @@ def _human_info(data: dict) -> None:
         ui.warn(f"Registry: {reg_err}")
 
     ui.blank()
+# @cpt-end:cpt-cypilot-algo-core-infra-display-info:p1:inst-info-human-fmt

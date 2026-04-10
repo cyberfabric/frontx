@@ -1,7 +1,7 @@
 /**
  * GTS Utilities Tests
  *
- * Tests for HAI3 constants.
+ * Tests for FrontX constants.
  */
 
 import { describe, it, expect } from 'vitest';
@@ -41,23 +41,23 @@ describe('HAI3 constants values', () => {
     });
   });
 
-  describe('action instance IDs', () => {
-    it('should have correct action instance IDs', () => {
+  describe('action schema type IDs', () => {
+    it('should have correct action schema type IDs', () => {
       expect(HAI3_ACTION_LOAD_EXT).toBe(
-        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~'
       );
       expect(HAI3_ACTION_MOUNT_EXT).toBe(
-        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1'
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~'
       );
       expect(HAI3_ACTION_UNMOUNT_EXT).toBe(
-        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1'
+        'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~'
       );
     });
 
-    it('should confirm action IDs do not end with ~', () => {
-      expect(HAI3_ACTION_LOAD_EXT.endsWith('~')).toBe(false);
-      expect(HAI3_ACTION_MOUNT_EXT.endsWith('~')).toBe(false);
-      expect(HAI3_ACTION_UNMOUNT_EXT.endsWith('~')).toBe(false);
+    it('should confirm action schema type IDs end with ~', () => {
+      expect(HAI3_ACTION_LOAD_EXT.endsWith('~')).toBe(true);
+      expect(HAI3_ACTION_MOUNT_EXT.endsWith('~')).toBe(true);
+      expect(HAI3_ACTION_UNMOUNT_EXT.endsWith('~')).toBe(true);
     });
   });
 });

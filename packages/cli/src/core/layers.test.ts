@@ -12,27 +12,27 @@ describe('selectCommandVariant', () => {
   describe('SDK layer', () => {
     it('should select .sdk.md variant when available', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'sdk',
-        ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'hai3-validate.sdk.md');
+      assert.equal(result, 'frontx-validate.sdk.md');
     });
 
     it('should fall back to .md when no .sdk.md', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'sdk',
-        ['hai3-validate.md', 'hai3-validate.framework.md']
+        ['frontx-validate.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'hai3-validate.md');
+      assert.equal(result, 'frontx-validate.md');
     });
 
     it('should return null when no matching variant found', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'sdk',
-        ['hai3-validate.react.md', 'hai3-validate.framework.md']
+        ['frontx-validate.react.md', 'frontx-validate.framework.md']
       );
       assert.equal(result, null);
     });
@@ -41,36 +41,36 @@ describe('selectCommandVariant', () => {
   describe('Framework layer', () => {
     it('should select .framework.md when available', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'framework',
-        ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'hai3-validate.framework.md');
+      assert.equal(result, 'frontx-validate.framework.md');
     });
 
     it('should fall back through chain: .framework.md → .sdk.md → .md', () => {
       // No .framework.md, should find .sdk.md
       let result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'framework',
-        ['hai3-validate.md', 'hai3-validate.sdk.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md']
       );
-      assert.equal(result, 'hai3-validate.sdk.md');
+      assert.equal(result, 'frontx-validate.sdk.md');
 
       // No .framework.md or .sdk.md, should find .md
       result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'framework',
-        ['hai3-validate.md']
+        ['frontx-validate.md']
       );
-      assert.equal(result, 'hai3-validate.md');
+      assert.equal(result, 'frontx-validate.md');
     });
 
     it('should return null when no matching variant in chain', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'framework',
-        ['hai3-validate.react.md']
+        ['frontx-validate.react.md']
       );
       assert.equal(result, null);
     });
@@ -79,44 +79,44 @@ describe('selectCommandVariant', () => {
   describe('React layer', () => {
     it('should select .react.md when available', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'react',
-        ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md', 'hai3-validate.react.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md', 'frontx-validate.react.md']
       );
-      assert.equal(result, 'hai3-validate.react.md');
+      assert.equal(result, 'frontx-validate.react.md');
     });
 
     it('should fall back through full chain: .react.md → .framework.md → .sdk.md → .md', () => {
       // No .react.md, should find .framework.md
       let result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'react',
-        ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md']
       );
-      assert.equal(result, 'hai3-validate.framework.md');
+      assert.equal(result, 'frontx-validate.framework.md');
 
       // No .react.md or .framework.md, should find .sdk.md
       result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'react',
-        ['hai3-validate.md', 'hai3-validate.sdk.md']
+        ['frontx-validate.md', 'frontx-validate.sdk.md']
       );
-      assert.equal(result, 'hai3-validate.sdk.md');
+      assert.equal(result, 'frontx-validate.sdk.md');
 
       // No .react.md, .framework.md or .sdk.md, should find .md
       result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'react',
-        ['hai3-validate.md']
+        ['frontx-validate.md']
       );
-      assert.equal(result, 'hai3-validate.md');
+      assert.equal(result, 'frontx-validate.md');
     });
 
     it('should return null when no matching variant in chain', () => {
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'react',
-        ['hai3-other.md']
+        ['frontx-other.md']
       );
       assert.equal(result, null);
     });
@@ -124,39 +124,39 @@ describe('selectCommandVariant', () => {
 
   describe('App layer', () => {
     it('should behave same as React layer', () => {
-      const availableFiles = ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md', 'hai3-validate.react.md'];
+      const availableFiles = ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md', 'frontx-validate.react.md'];
 
       // Both should select .react.md when available
-      const reactResult = selectCommandVariant('hai3-validate.md', 'react', availableFiles);
-      const appResult = selectCommandVariant('hai3-validate.md', 'app', availableFiles);
+      const reactResult = selectCommandVariant('frontx-validate.md', 'react', availableFiles);
+      const appResult = selectCommandVariant('frontx-validate.md', 'app', availableFiles);
       assert.equal(reactResult, appResult);
-      assert.equal(appResult, 'hai3-validate.react.md');
+      assert.equal(appResult, 'frontx-validate.react.md');
     });
 
     it('should fall back through same chain as React layer', () => {
       // Test fallback without .react.md
-      const filesWithoutReact = ['hai3-validate.md', 'hai3-validate.sdk.md', 'hai3-validate.framework.md'];
-      const reactResult = selectCommandVariant('hai3-validate.md', 'react', filesWithoutReact);
-      const appResult = selectCommandVariant('hai3-validate.md', 'app', filesWithoutReact);
+      const filesWithoutReact = ['frontx-validate.md', 'frontx-validate.sdk.md', 'frontx-validate.framework.md'];
+      const reactResult = selectCommandVariant('frontx-validate.md', 'react', filesWithoutReact);
+      const appResult = selectCommandVariant('frontx-validate.md', 'app', filesWithoutReact);
       assert.equal(reactResult, appResult);
-      assert.equal(appResult, 'hai3-validate.framework.md');
+      assert.equal(appResult, 'frontx-validate.framework.md');
     });
   });
 
   describe('Edge cases', () => {
     it('should handle empty available files array', () => {
-      const result = selectCommandVariant('hai3-validate.md', 'sdk', []);
+      const result = selectCommandVariant('frontx-validate.md', 'sdk', []);
       assert.equal(result, null);
     });
 
     it('should handle command name without .md extension in available files', () => {
       // selectCommandVariant expects baseName WITH .md, but available files might vary
       const result = selectCommandVariant(
-        'hai3-validate.md',
+        'frontx-validate.md',
         'sdk',
-        ['hai3-validate.sdk.md']
+        ['frontx-validate.sdk.md']
       );
-      assert.equal(result, 'hai3-validate.sdk.md');
+      assert.equal(result, 'frontx-validate.sdk.md');
     });
   });
 });

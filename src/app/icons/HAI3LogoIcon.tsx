@@ -1,7 +1,7 @@
 import React from 'react';
 
 /**
- * HAI3 Logo Icon
+ * FrontX Logo Icon
  * App-level branding icon used by Menu layout component
  */
 export const HAI3LogoIcon: React.FC<{ className?: string }> = ({ className = '' }) => {

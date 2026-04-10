@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-config:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-config:p1
 
 /**
  * Tenant Actions
@@ -7,7 +7,7 @@
  * These emit events that are consumed by tenantEffects.
  */
 
-import { eventBus, getStore } from '@hai3/state';
+import { eventBus, getStore } from '@cyberfabric/state';
 import { setTenantLoading } from '../slices/tenantSlice';
 import { TenantEvents } from './tenantEffects';
 import type { Tenant } from '../layoutTypes';
@@ -18,11 +18,11 @@ import type { Tenant } from '../layoutTypes';
  *
  * @example
  * ```typescript
- * import { changeTenant } from '@hai3/framework';
+ * import { changeTenant } from '@cyberfabric/framework';
  * changeTenant({ id: 'tenant-123' });
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-app-config:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-app-config:p1:inst-1
 export function changeTenant(tenant: Tenant): void {
   eventBus.emit(TenantEvents.Changed, { tenant });
 }
@@ -40,4 +40,4 @@ export function clearTenantAction(): void {
 export function setTenantLoadingState(loading: boolean): void {
   getStore().dispatch(setTenantLoading(loading));
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-app-config:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-app-config:p1:inst-1

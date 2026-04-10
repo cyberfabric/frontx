@@ -15,7 +15,7 @@ date: 2025-11-16
   - [Consequences](#consequences)
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
-  - [Fixed Action → Event → Effect → Reducer → Store sequence with typed EventBus](#fixed-action-event-effect-reducer-store-sequence-with-typed-eventbus)
+  - [Fixed Action → Event → Effect → Reducer → Store sequence with typed EventBus](#fixed-action--event--effect--reducer--store-sequence-with-typed-eventbus)
   - [Direct Redux dispatch from components](#direct-redux-dispatch-from-components)
   - [Effects calling APIs directly without event mediation](#effects-calling-apis-directly-without-event-mediation)
   - [Redux Toolkit thunks](#redux-toolkit-thunks)
@@ -24,10 +24,10 @@ date: 2025-11-16
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-event-driven-flux-dataflow`
+**ID**: `cpt-frontx-adr-event-driven-flux-dataflow`
 ## Context and Problem Statement
 
-HAI3 needed a consistent data flow pattern across all domains. Without enforcement, developers mix direct dispatch, imperative logic in components, and async middleware — creating untraceable state mutations that are difficult to debug and impossible to observe from outside a domain. SSE streaming integration highlighted this gap: actions need to orchestrate API streaming while effects remain responsible solely for state updates in response to events.
+FrontX needed a consistent data flow pattern across all domains. Without enforcement, developers mix direct dispatch, imperative logic in components, and async middleware — creating untraceable state mutations that are difficult to debug and impossible to observe from outside a domain. SSE streaming integration highlighted this gap: actions need to orchestrate API streaming while effects remain responsible solely for state updates in response to events.
 
 ## Decision Drivers
 
@@ -89,10 +89,10 @@ Chosen option: "Fixed Action → Event → Effect → Reducer → Store sequence
 - **DESIGN**: [DESIGN.md](../DESIGN.md)
 
 This decision directly addresses:
-* `cpt-hai3-fr-sdk-action-pattern` — Action factory and emission contract
-* `cpt-hai3-fr-sdk-state-interface` — Store interface exposed to effects and reducers
-* `cpt-hai3-fr-sdk-flux-terminology` — Canonical names for each node in the flux sequence
-* `cpt-hai3-nfr-maint-event-driven` — Non-functional requirement for event-driven state management
-* `cpt-hai3-principle-event-driven-architecture` — Architectural principle requiring EventBus mediation
-* `cpt-hai3-principle-action-event-effect-reducer-flux` — Named principle for the fixed flux sequence
-* `cpt-hai3-seq-screenset-data-flow` — Sequence diagram tracing screenset state changes through the flux cycle
+* `cpt-frontx-fr-sdk-action-pattern` — Action factory and emission contract
+* `cpt-frontx-fr-sdk-state-interface` — Store interface exposed to effects and reducers
+* `cpt-frontx-fr-sdk-flux-terminology` — Canonical names for each node in the flux sequence
+* `cpt-frontx-nfr-maint-event-driven` — Non-functional requirement for event-driven state management
+* `cpt-frontx-principle-event-driven-architecture` — Architectural principle requiring EventBus mediation
+* `cpt-frontx-principle-action-event-effect-reducer-flux` — Named principle for the fixed flux sequence
+* `cpt-frontx-seq-screenset-data-flow` — Sequence diagram tracing screenset state changes through the flux cycle

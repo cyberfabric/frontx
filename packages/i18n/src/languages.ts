@@ -1,19 +1,19 @@
 /**
- * Supported Languages - All 36 HAI3 supported languages
+ * Supported Languages - All 36 FrontX supported languages
  *
  * Based on major platforms (Google, Facebook, Microsoft, Apple).
  * Includes native names, English names, and text direction.
  */
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-language-support:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-language-support:p1
 
 import { Language, TextDirection } from './types';
 import type { LanguageMetadata } from './types';
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
 /**
  * All supported languages with metadata.
  * This list defines what languages the application can use.
  */
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-western
 export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
   // Western European
   {
@@ -58,8 +58,10 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     englishName: 'Dutch',
     direction: TextDirection.LeftToRight,
   },
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-western
 
   // Eastern European
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-eastern
   {
     code: Language.Russian,
     name: 'Русский',
@@ -84,8 +86,10 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     englishName: 'Czech',
     direction: TextDirection.LeftToRight,
   },
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-eastern
 
   // Middle East & North Africa (RTL)
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-mena
   {
     code: Language.Arabic,
     name: 'العربية',
@@ -116,8 +120,10 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     englishName: 'Turkish',
     direction: TextDirection.LeftToRight,
   },
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-mena
 
   // Asian
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-asian
   {
     code: Language.ChineseSimplified,
     name: '简体中文',
@@ -173,8 +179,10 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     englishName: 'Bengali',
     direction: TextDirection.LeftToRight,
   },
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-asian
 
   // Nordic
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-nordic
   {
     code: Language.Swedish,
     name: 'Svenska',
@@ -199,8 +207,10 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     englishName: 'Finnish',
     direction: TextDirection.LeftToRight,
   },
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-nordic
 
   // Other
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-remaining
   {
     code: Language.Greek,
     name: 'Ελληνικά',
@@ -246,7 +256,7 @@ export const SUPPORTED_LANGUAGES: LanguageMetadata[] = [
     direction: TextDirection.LeftToRight,
   },
 ];
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-array-remaining
 
 /**
  * Get language metadata by code.
@@ -258,7 +268,7 @@ export function getLanguageMetadata(code: Language): LanguageMetadata | undefine
   return SUPPORTED_LANGUAGES.find((lang) => lang.code === code);
 }
 
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-2
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-2
 /**
  * Get RTL language codes.
  *
@@ -269,7 +279,7 @@ export function getRTLLanguages(): Language[] {
     .filter((lang) => lang.direction === TextDirection.RightToLeft)
     .map((lang) => lang.code);
 }
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-2
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-2
 
 /**
  * Check if a language code is valid.

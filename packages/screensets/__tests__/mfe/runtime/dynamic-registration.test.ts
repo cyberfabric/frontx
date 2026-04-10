@@ -164,7 +164,7 @@ describe('Dynamic Registration', () => {
           action: {
             type: HAI3_ACTION_LOAD_EXT,
             target: testDomain.id,
-            payload: { extensionId: 'nonexistent' },
+            payload: { subject: 'nonexistent' },
           },
         })
       ).rejects.toThrow();
@@ -201,7 +201,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -209,7 +209,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_UNMOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -217,7 +217,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -256,7 +256,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -312,7 +312,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -340,7 +340,7 @@ describe('Dynamic Registration', () => {
           action: {
             type: HAI3_ACTION_MOUNT_EXT,
             target: testDomain.id,
-            payload: { extensionId: 'nonexistent' },
+            payload: { subject: 'nonexistent' },
           },
         })
       ).rejects.toThrow();
@@ -367,7 +367,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -375,7 +375,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_UNMOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -389,7 +389,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 
@@ -444,7 +444,7 @@ describe('Dynamic Registration', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: testExtension.id },
+          payload: { subject: testExtension.id },
         },
       });
 

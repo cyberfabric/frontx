@@ -5,7 +5,7 @@ export default defineConfig({
   title: 'HAI3 Documentation',
   description: 'AI-Driven Product Development & Framework Documentation',
   // Use environment variable for base path, default to '/' for local dev
-  // For GitHub Pages project site, set to '/HAI3/' or '/repo-name/'
+  // For GitHub Pages project site, set to '/FrontX/' or '/repo-name/'
   base: process.env.VITE_BASE || '/',
 
   themeConfig: {
@@ -16,7 +16,7 @@ export default defineConfig({
       { text: 'Home', link: '/' },
       { text: 'Getting Started', link: '/getting-started' },
       { text: 'AI Product Lifecycle', link: '/lifecycle/' },
-      { text: 'HAI3 Framework', link: '/hai3/' },
+      { text: 'HAI3 Framework', link: '/frontx/' },
       { text: 'Case Studies', link: '/case-studies/' }
     ],
 
@@ -29,11 +29,11 @@ export default defineConfig({
           ]
         }
       ],
-      '/hai3/': [
+      '/frontx/': [
         {
           text: 'HAI3 Framework',
           items: [
-            { text: 'Overview', link: '/hai3/' }
+            { text: 'Overview', link: '/frontx/' }
           ]
         }
       ],

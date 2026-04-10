@@ -19,6 +19,7 @@ import { DefaultScreensetsRegistryFactory } from './DefaultScreensetsRegistryFac
 import type { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 
 export { ScreensetsRegistry } from './ScreensetsRegistry';
+export type { RegisterDomainOptions } from './ScreensetsRegistry';
 export { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 export { ContainerProvider } from './container-provider';
 export type { ScreensetsRegistryConfig } from './config';
@@ -36,7 +37,7 @@ export type { ScreensetsRegistryConfig } from './config';
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });

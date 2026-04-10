@@ -10,7 +10,7 @@
  *   });
  */
 
-import { type AppDispatch } from '@hai3/react';
+import { type AppDispatch } from '@cyberfabric/react';
 
 /**
  * Initialize home domain effects

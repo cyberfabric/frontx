@@ -9,8 +9,8 @@
  * intentionally duplicated for resilience — the studio must render correctly
  * regardless of the host app's styling setup.
  */
-// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
-// @cpt-algo:cpt-hai3-algo-studio-devtools-portal-management:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-panel-overlay:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-portal-management:p1
 
 const STUDIO_STYLE_ID = 'hai3-studio-styles';
 

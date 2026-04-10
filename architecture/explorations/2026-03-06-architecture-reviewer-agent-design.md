@@ -7,24 +7,9 @@
 - [Scope](#scope)
 - [Findings](#findings)
   - [1. Real-world roles that review architecture](#1-real-world-roles-that-review-architecture)
-    - [1.1 Architecture Review Boards (ARBs)](#11-architecture-review-boards-arbs)
-    - [1.2 Staff+ engineer review perspective](#12-staff-engineer-review-perspective)
-    - [1.3 Distinct review perspectives (de Bono's Six Hats applied to architecture)](#13-distinct-review-perspectives-de-bonos-six-hats-applied-to-architecture)
-    - [1.4 Formal architecture evaluation methods](#14-formal-architecture-evaluation-methods)
   - [2. Context and knowledge needed for high-quality review](#2-context-and-knowledge-needed-for-high-quality-review)
-    - [2.1 Artifacts the reviewer must access](#21-artifacts-the-reviewer-must-access)
-    - [2.2 Reference knowledge for evaluation](#22-reference-knowledge-for-evaluation)
-    - [2.3 How reviewer context differs from architect context](#23-how-reviewer-context-differs-from-architect-context)
   - [3. Persona and lens options](#3-persona-and-lens-options)
-    - [Option A: Staff Engineer lens](#option-a-staff-engineer-lens)
-    - [Option B: Quality Architect lens (ATAM-style)](#option-b-quality-architect-lens-atam-style)
-    - [Option C: Devil's Advocate lens](#option-c-devils-advocate-lens)
-    - [Option D: Hybrid Staff Engineer + ATAM lens](#option-d-hybrid-staff-engineer-atam-lens)
-    - [Option E: Platform/DX Engineer lens](#option-e-platformdx-engineer-lens)
-  - [4. Analysis of the current legacy reviewer](#4-analysis-of-the-current-legacy-reviewer)
-    - [4.1 What works well](#41-what-works-well)
-    - [4.2 What is missing or could be improved](#42-what-is-missing-or-could-be-improved)
-    - [4.3 How the new agent should differ](#43-how-the-new-agent-should-differ)
+  - [4. Analysis of the current openspec-reviewer](#4-analysis-of-the-current-openspec-reviewer)
 - [Comparison](#comparison)
 - [Key takeaways](#key-takeaways)
 - [Open questions](#open-questions)
@@ -136,7 +121,7 @@ Based on the Cypilot pipeline (PRD -> ADR + DESIGN -> DECOMPOSITION -> FEATURE -
 | Anti-pattern catalog | Smell detection | God class, feature envy, shotgun surgery |
 | [ISO 25010 quality attributes](https://en.wikipedia.org/wiki/Non-functional_requirement) | Systematic NFR coverage | Performance, security, maintainability, portability |
 | ATAM sensitivity/trade-off framework | Structured risk identification | "Changing X affects both Y and Z -- this is a sensitivity point" |
-| HAI3-specific patterns | Repo-specific consistency | Event-driven architecture, registry patterns, layer boundaries |
+| FrontX-specific patterns | Repo-specific consistency | Event-driven architecture, registry patterns, layer boundaries |
 
 #### 2.3 How reviewer context differs from architect context
 
@@ -252,7 +237,7 @@ The architect's context is **generative** -- they synthesize requirements into d
 - Unique perspective not covered by any existing agent
 - Directly tied to adoption and productivity outcomes
 - Catches designs that are correct but hostile to use
-- Evaluates extension points and plugin ergonomics (relevant for HAI3's plugin-first composition)
+- Evaluates extension points and plugin ergonomics (relevant for FrontX's plugin-first composition)
 
 **Weaknesses**:
 - Narrow focus -- misses structural and correctness concerns
@@ -269,7 +254,7 @@ The architect's context is **generative** -- they synthesize requirements into d
 - **Intent alignment check**: Section 1.5 is genuinely valuable -- catching contradictions between stated goals and actual proposals. This is a unique contribution not covered elsewhere.
 - **SOLID compliance report**: Systematic per-principle evaluation with PASS/RISK/FAIL verdicts. However, this duplicates what the architect agent already does (the architect has an identical SOLID section).
 - **Linting policy check**: Prevents scope creep in proposals.
-- **Layer propagation check**: HAI3-specific, catches missing cross-layer updates.
+- **Layer propagation check**: FrontX-specific, catches missing cross-layer updates.
 - **Read-only restriction**: Appropriate for a reviewer role.
 - **Binary decision model**: "Everything is either a BLOCK or clean" (borrowed from implementation-reviewer) prevents ambiguous feedback.
 
@@ -312,7 +297,7 @@ The current reviewer is essentially a **specification completeness checker with 
 | Risk of duplicating architect | Low | High | Low | Low | Low |
 | Risk of false positives | Low | Low | High | Low | Low |
 | Calibration complexity | Low | Medium | High | Medium | Low |
-| Fits HAI3 artifact pipeline | Yes | Yes | Partially | Yes | Partially |
+| Fits FrontX artifact pipeline | Yes | Yes | Partially | Yes | Partially |
 
 ## Key takeaways
 

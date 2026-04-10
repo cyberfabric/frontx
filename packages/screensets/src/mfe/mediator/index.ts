@@ -7,9 +7,8 @@
  * @packageDocumentation
  */
 
-export { ActionsChainsMediator } from './types';
+export { ActionsChainsMediator, ActionHandler } from './types';
 export type {
   ChainResult,
   ChainExecutionOptions,
-  ActionHandler,
 } from './types';

@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@cyberfabric/react';
 import { Toaster } from '@/app/components/ui/sonner';
 import { AccountsApiService } from '@/app/api';
 import './globals.css'; // Global styles with CSS variables
@@ -16,13 +16,21 @@ import { lightTheme } from '@/app/themes/light';
 import { draculaTheme } from '@/app/themes/dracula';
 import { draculaLargeTheme } from '@/app/themes/dracula-large';
 
+// Register application-specific GTS schemas before constructing the FrontX app.
+// These derived schemas encode application-level constraints (valid theme names,
+// supported languages, screen extension shape) and are not part of the core
+// type system in @cyberfabric/screensets.
+gtsPlugin.registerSchema(themeSchema);
+gtsPlugin.registerSchema(languageSchema);
+gtsPlugin.registerSchema(extensionScreenSchema);
+
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);
 
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance
+// Create FrontX app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
   microfrontends: {
@@ -55,7 +63,7 @@ app.themeRegistry.apply(DEFAULT_THEME_ID);
  * 4. Components re-render with actual text (translationsReady = true)
  * 5. MFE system loads and mounts extensions via MfeScreenContainer
  *
- * Note: Mock API is controlled via the HAI3 Studio panel.
+ * Note: Mock API is controlled via the FrontX Studio panel.
  * The mock plugin (included in full preset) handles mock plugin lifecycle automatically.
  */
 createRoot(document.getElementById('root')!).render(

@@ -1,7 +1,7 @@
-// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-button:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-drag-button:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-panel-overlay:p1
 import React, { useRef } from 'react';
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 import { useDraggable } from './hooks/useDraggable';
 import { BUTTON_SIZE, STORAGE_KEYS } from './types';
 import { GlassmorphicButton } from './uikit/composite/GlassmorphicButton';
@@ -11,7 +11,7 @@ interface CollapsedButtonProps {
   toggleCollapsed: () => void;
 }
 
-// @cpt-begin:cpt-hai3-flow-studio-devtools-drag-button:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-drag-button:p1:inst-1
 export const CollapsedButton: React.FC<CollapsedButtonProps> = ({ toggleCollapsed }) => {
   const { t } = useTranslation();
   const { position, isDragging, handleMouseDown } = useDraggable({
@@ -57,4 +57,4 @@ export const CollapsedButton: React.FC<CollapsedButtonProps> = ({ toggleCollapse
 };
 
 CollapsedButton.displayName = 'CollapsedButton';
-// @cpt-end:cpt-hai3-flow-studio-devtools-drag-button:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-drag-button:p1:inst-1

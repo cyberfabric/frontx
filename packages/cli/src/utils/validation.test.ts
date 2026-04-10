@@ -26,8 +26,8 @@ describe('isCustomUikit', () => {
     assert.equal(isCustomUikit('none'), false);
   });
 
-  it('should return false for legacy "hai3" alias', () => {
-    assert.equal(isCustomUikit('hai3'), false);
+  it('should return false for legacy "frontx" alias', () => {
+    assert.equal(isCustomUikit('frontx'), false);
   });
 
   it('should return true for scoped npm packages', () => {
@@ -42,8 +42,8 @@ describe('isCustomUikit', () => {
 });
 
 describe('normalizeUikit', () => {
-  it('should map legacy "hai3" to "shadcn"', () => {
-    assert.equal(normalizeUikit('hai3'), 'shadcn');
+  it('should map legacy "frontx" to "shadcn"', () => {
+    assert.equal(normalizeUikit('frontx'), 'shadcn');
   });
 
   it('should keep non-legacy values unchanged', () => {
@@ -83,12 +83,12 @@ describe('isValidPackageName', () => {
 
   it('should accept valid unscoped names', () => {
     assert.equal(isValidPackageName('my-project'), true);
-    assert.equal(isValidPackageName('hai3'), true);
+    assert.equal(isValidPackageName('frontx'), true);
     assert.equal(isValidPackageName('some-package-123'), true);
   });
 
   it('should accept valid scoped names', () => {
-    assert.equal(isValidPackageName('@hai3/cli'), true);
+    assert.equal(isValidPackageName('@cyberfabric/cli'), true);
     assert.equal(isValidPackageName('@my-org/my-package'), true);
   });
 

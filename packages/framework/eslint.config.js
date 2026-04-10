@@ -1,9 +1,9 @@
 /**
- * @hai3/framework ESLint Configuration
+ * @cyberfabric/framework ESLint Configuration
  * Extends Framework layer config - can import SDK packages, no React
  */
 
-import { frameworkConfig } from '@hai3/eslint-config/framework.js';
+import { frameworkConfig } from '@cyberfabric/eslint-config/framework.js';
 
 /** @type {import('eslint').Linter.Config[]} */
 export default [

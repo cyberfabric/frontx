@@ -2,7 +2,7 @@ name: AI Guidelines Validation
 
 on:
   push:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - '.ai/**'
       - '.claude/**'
@@ -10,7 +10,7 @@ on:
       - 'packages/**/llms.txt'
       - 'packages/**/commands/**'
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
     paths:
       - '.ai/**'
       - '.claude/**'
@@ -24,10 +24,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: '25.x'
         cache: 'npm'
@@ -62,14 +62,14 @@ jobs:
 
     - name: Validate command naming conventions
       run: |
-        # Check hai3-* commands follow naming convention
+        # Check frontx-* commands follow naming convention
         INVALID=""
 
         for cmd in packages/*/commands/*.md; do
           if [ -f "$cmd" ]; then
             filename=$(basename "$cmd")
             if [[ "$filename" == "README.md" ]]; then continue; fi
-            if [[ ! "$filename" =~ ^hai3-.+\.md$ ]] && [[ ! "$filename" =~ ^hai3dev-.+\.md$ ]]; then
+            if [[ ! "$filename" =~ ^frontx-.+\.md$ ]] && [[ ! "$filename" =~ ^frontxdev-.+\.md$ ]]; then
               INVALID="$INVALID $cmd"
             fi
           fi
@@ -79,7 +79,7 @@ jobs:
           if [ -f "$cmd" ]; then
             filename=$(basename "$cmd")
             if [[ "$filename" == "README.md" ]]; then continue; fi
-            if [[ ! "$filename" =~ ^hai3-.+\.md$ ]] && [[ ! "$filename" =~ ^hai3dev-.+\.md$ ]]; then
+            if [[ ! "$filename" =~ ^frontx-.+\.md$ ]] && [[ ! "$filename" =~ ^frontxdev-.+\.md$ ]]; then
               INVALID="$INVALID $cmd"
             fi
           fi
@@ -87,7 +87,7 @@ jobs:
 
         if [ -n "$INVALID" ]; then
           echo "ERROR: Commands with invalid naming:$INVALID"
-          echo "Commands must start with 'hai3-' or 'hai3dev-'"
+          echo "Commands must start with 'frontx-' or 'frontxdev-'"
           exit 1
         fi
         echo "All commands follow naming conventions"
@@ -155,10 +155,10 @@ jobs:
 
     steps:
     - name: Checkout code
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
 
     - name: Setup Node.js
-      uses: actions/setup-node@v4
+      uses: actions/setup-node@v5
       with:
         node-version: '25.x'
         cache: 'npm'

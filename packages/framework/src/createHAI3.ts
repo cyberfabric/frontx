@@ -1,22 +1,22 @@
 /**
- * createHAI3 - App Builder Factory
+ * createFrontX - App Builder Factory
  *
- * Creates a HAI3 app builder for custom plugin composition.
+ * Creates a FrontX app builder for custom plugin composition.
  * This is the core of the plugin architecture.
  *
  * Framework Layer: L2 (Depends on SDK packages)
  */
 
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-plugin-dependency:p1
-// @cpt-algo:cpt-hai3-algo-framework-composition-dep-resolution:p1
-// @cpt-algo:cpt-hai3-algo-framework-composition-provides-aggregation:p1
-// @cpt-state:cpt-hai3-state-framework-composition-builder:p1
-// @cpt-flow:cpt-hai3-flow-framework-composition-teardown:p2
-// @cpt-dod:cpt-hai3-dod-framework-composition-builder:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-bootstrap:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-plugin-dependency:p1
+// @cpt-algo:cpt-frontx-algo-framework-composition-dep-resolution:p1
+// @cpt-algo:cpt-frontx-algo-framework-composition-provides-aggregation:p1
+// @cpt-state:cpt-frontx-state-framework-composition-builder:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-teardown:p2
+// @cpt-dod:cpt-frontx-dod-framework-composition-builder:p1
 
-import { getStore, registerSlice } from '@hai3/state';
-import type { EffectInitializer } from '@hai3/state';
+import { getStore, registerSlice } from '@cyberfabric/state';
+import type { EffectInitializer } from '@cyberfabric/state';
 import type {
   HAI3Config,
   HAI3Plugin,
@@ -28,13 +28,13 @@ import type {
   RegisterableSlice,
   ThemeRegistry,
 } from './types';
-import { apiRegistry } from '@hai3/api';
+import { apiRegistry } from '@cyberfabric/api';
 
 // ============================================================================
 // Plugin Resolution
 // ============================================================================
 
-// @cpt-begin:cpt-hai3-flow-framework-composition-plugin-dependency:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-1
 /**
  * Check if value is a plugin factory function
  */
@@ -50,14 +50,14 @@ function isPluginFactory(
 function resolvePlugin(plugin: HAI3Plugin | PluginFactory): HAI3Plugin {
   return isPluginFactory(plugin) ? plugin() : plugin;
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-plugin-dependency:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-1
 
 // ============================================================================
 // App Builder Implementation
 // ============================================================================
 
 /**
- * HAI3 App Builder Implementation
+ * FrontX App Builder Implementation
  */
 class HAI3AppBuilderImpl implements HAI3AppBuilder {
   private plugins: HAI3Plugin[] = [];
@@ -76,8 +76,8 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
    * Add a plugin to the application.
    * Also accepts an array of plugins (for preset support).
    */
-  // @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
-  // @cpt-begin:cpt-hai3-state-framework-composition-builder:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-framework-composition-builder:p1:inst-1
   use(plugin: HAI3Plugin | PluginFactory | HAI3Plugin[]): HAI3AppBuilder {
     // Handle arrays (presets return arrays)
     if (Array.isArray(plugin)) {
@@ -100,8 +100,8 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     this.plugins.push(resolved);
     return this;
   }
-  // @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
-  // @cpt-end:cpt-hai3-state-framework-composition-builder:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1
+  // @cpt-end:cpt-frontx-state-framework-composition-builder:p1:inst-1
 
   /**
    * Add multiple plugins at once.
@@ -114,8 +114,8 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
   /**
    * Build the application.
    */
-  // @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-2
-  // @cpt-begin:cpt-hai3-state-framework-composition-builder:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-2
+  // @cpt-begin:cpt-frontx-state-framework-composition-builder:p1:inst-2
   build(): HAI3App {
     // 1. Resolve dependencies and order plugins
     const orderedPlugins = this.resolveDependencies();
@@ -139,7 +139,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     });
 
     // 6. Build the app object
-    // Cast actions to HAI3Actions - all plugins have contributed their actions
+    // Cast actions to FrontXActions - all plugins have contributed their actions
     // via module augmentation, so the runtime object matches the declared type
     const app: HAI3App = {
       config: this.config,
@@ -161,14 +161,14 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
 
     return app;
   }
-  // @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-2
-  // @cpt-end:cpt-hai3-state-framework-composition-builder:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-2
+  // @cpt-end:cpt-frontx-state-framework-composition-builder:p1:inst-2
 
   /**
    * Resolve plugin dependencies using topological sort.
    */
-  // @cpt-begin:cpt-hai3-algo-framework-composition-dep-resolution:p1:inst-1
-  // @cpt-begin:cpt-hai3-flow-framework-composition-plugin-dependency:p1:inst-2
+  // @cpt-begin:cpt-frontx-algo-framework-composition-dep-resolution:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-2
   private resolveDependencies(): HAI3Plugin[] {
     const resolved: HAI3Plugin[] = [];
     const visited = new Set<string>();
@@ -217,19 +217,19 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
     this.plugins.forEach(visit);
     return resolved;
   }
-  // @cpt-end:cpt-hai3-algo-framework-composition-dep-resolution:p1:inst-1
-  // @cpt-end:cpt-hai3-flow-framework-composition-plugin-dependency:p1:inst-2
+  // @cpt-end:cpt-frontx-algo-framework-composition-dep-resolution:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-framework-composition-plugin-dependency:p1:inst-2
 
   /**
    * Aggregate all provides from plugins.
    */
-  // @cpt-begin:cpt-hai3-algo-framework-composition-provides-aggregation:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-framework-composition-provides-aggregation:p1:inst-1
   private aggregateProvides(plugins: HAI3Plugin[]) {
     const registries: Record<string, unknown> = {};
     const slices: RegisterableSlice[] = [];
     const effects: EffectInitializer[] = [];
     // Actions are typed via module augmentation - each plugin declares its actions
-    // in HAI3Actions interface. At runtime we merge them all together.
+    // in FrontXActions interface. At runtime we merge them all together.
     const actions: Partial<HAI3Actions> = {};
 
     plugins.forEach((plugin) => {
@@ -250,7 +250,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
         effects.push(...plugin.provides.effects);
       }
 
-      // Merge actions (type-safe via HAI3Actions module augmentation)
+      // Merge actions (type-safe via FrontXActions module augmentation)
       if (plugin.provides.actions) {
         Object.assign(actions, plugin.provides.actions);
       }
@@ -258,19 +258,19 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
 
     return { registries, slices, effects, actions };
   }
-  // @cpt-end:cpt-hai3-algo-framework-composition-provides-aggregation:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-framework-composition-provides-aggregation:p1:inst-1
 
   /**
    * Create store with all aggregated slices.
    *
    * IMPORTANT: This method supports the screenset self-registration pattern.
    * Screensets call registerSlice() as module side effects when imported,
-   * which may auto-create a store before createHAI3App() is called.
+   * which may auto-create a store before createFrontXApp() is called.
    *
    * This method:
    * 1. Uses the existing store if one was auto-created by screensets
    * 2. Registers framework slices to the existing store
-   * 3. Returns the unified store for HAI3App
+   * 3. Returns the unified store for FrontXApp
    */
   private createStoreWithSlices(slices: RegisterableSlice[]): HAI3Store {
     // Get existing store (may have been created by screenset registerSlice calls)
@@ -288,7 +288,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
   /**
    * Destroy the app and cleanup resources.
    */
-  // @cpt-begin:cpt-hai3-flow-framework-composition-teardown:p2:inst-1
+  // @cpt-begin:cpt-frontx-flow-framework-composition-teardown:p2:inst-1
   private destroyApp(plugins: HAI3Plugin[], app: HAI3App): void {
     // Call onDestroy in reverse order
     [...plugins].reverse().forEach((plugin) => {
@@ -297,7 +297,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       }
     });
   }
-  // @cpt-end:cpt-hai3-flow-framework-composition-teardown:p2:inst-1
+  // @cpt-end:cpt-frontx-flow-framework-composition-teardown:p2:inst-1
 }
 
 // ============================================================================
@@ -305,21 +305,21 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
 // ============================================================================
 
 /**
- * Create a HAI3 app builder for custom plugin composition.
+ * Create a FrontX app builder for custom plugin composition.
  *
  * @param config - Optional application configuration
  * @returns App builder for plugin composition
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .build();
  * ```
  */
-// @cpt-begin:cpt-hai3-dod-framework-composition-builder:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-builder:p1:inst-1
 export function createHAI3(config?: HAI3Config): HAI3AppBuilder {
   return new HAI3AppBuilderImpl(config);
 }
-// @cpt-end:cpt-hai3-dod-framework-composition-builder:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-builder:p1:inst-1

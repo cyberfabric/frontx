@@ -1,18 +1,18 @@
-# HAI3 Prompt Testing Configuration
+# FrontX Prompt Testing Configuration
 # Validates AI commands follow architecture patterns
 
-description: HAI3 AI Command Quality Tests
+description: FrontX AI Command Quality Tests
 
 # Define prompts with raw option to avoid template parsing
 prompts:
-  - id: hai3-new-screenset
-    raw: file://../commands/user/hai3-new-screenset.md
-  - id: hai3-new-screen
-    raw: file://../commands/user/hai3-new-screen.md
-  - id: hai3-validate
-    raw: file://../commands/user/hai3-validate.md
-  - id: hai3-fix-violation
-    raw: file://../commands/user/hai3-fix-violation.md
+  - id: frontx-new-screenset
+    raw: file://../commands/user/frontx-new-screenset.md
+  - id: frontx-new-screen
+    raw: file://../commands/user/frontx-new-screen.md
+  - id: frontx-validate
+    raw: file://../commands/user/frontx-validate.md
+  - id: frontx-fix-violation
+    raw: file://../commands/user/frontx-fix-violation.md
 
 providers:
   - id: echo
@@ -20,13 +20,13 @@ providers:
       passthrough: true
 
 tests:
-  # Test: hai3-new-screenset structure
-  - description: hai3-new-screenset delegates to CLI
+  # Test: frontx-new-screenset structure
+  - description: frontx-new-screenset delegates to CLI
     vars:
-      prompt: hai3-new-screenset
+      prompt: frontx-new-screenset
     assert:
       - type: contains
-        value: "hai3 screenset create"
+        value: "frontx screenset create"
       - type: contains
         value: "AI WORKFLOW"
       - type: contains
@@ -37,30 +37,30 @@ tests:
           output.includes('FORBIDDEN') ||
           output.includes('STOP')
 
-  # Test: hai3-new-screen structure
-  - description: hai3-new-screen has workflow
+  # Test: frontx-new-screen structure
+  - description: frontx-new-screen has workflow
     vars:
-      prompt: hai3-new-screen
+      prompt: frontx-new-screen
     assert:
       - type: contains
         value: "AI WORKFLOW"
       - type: contains
         value: "SCREENSETS.md"
 
-  # Test: hai3-validate structure
-  - description: hai3-validate references guidelines
+  # Test: frontx-validate structure
+  - description: frontx-validate references guidelines
     vars:
-      prompt: hai3-validate
+      prompt: frontx-validate
     assert:
       - type: contains
         value: "GUIDELINES.md"
       - type: contains
         value: "AI WORKFLOW"
 
-  # Test: hai3-fix-violation structure
-  - description: hai3-fix-violation has workflow
+  # Test: frontx-fix-violation structure
+  - description: frontx-fix-violation has workflow
     vars:
-      prompt: hai3-fix-violation
+      prompt: frontx-fix-violation
     assert:
       - type: contains
         value: "AI WORKFLOW"

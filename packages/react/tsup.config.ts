@@ -12,7 +12,7 @@ export default defineConfig({
   splitting: false,
   external: [
     // All @hai3 packages - peer dependencies
-    '@hai3/framework',
+    '@cyberfabric/framework',
     // React ecosystem
     'react',
     'react-dom',

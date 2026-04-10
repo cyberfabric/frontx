@@ -24,7 +24,7 @@ date: 2025-12-21
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-plugin-based-framework-composition`
+**ID**: `cpt-frontx-adr-plugin-based-framework-composition`
 ## Context and Problem Statement
 
 The framework layer must compose L1 SDK packages into a cohesive application without requiring source code modifications for each new capability. Features like MFE lifecycle management, mock mode control, theme propagation, and i18n management all need a consistent, open extension mechanism that does not bloat the framework core. A hardcoded feature registry would require framework changes every time a capability is added or removed.
@@ -89,9 +89,9 @@ Chosen option: "Builder pattern with plugin chain and Symbol-based identificatio
 - **DESIGN**: [DESIGN.md](../DESIGN.md)
 
 This decision directly addresses:
-* `cpt-hai3-fr-sdk-plugin-arch` — Plugin interface and builder contract
-* `cpt-hai3-fr-mfe-plugin` — MFE lifecycle plugin registration
-* `cpt-hai3-fr-mock-toggle` — Mock mode controlled via MockPlugin through builder chain
-* `cpt-hai3-principle-plugin-first-composition` — Architectural principle requiring all framework features to be delivered as plugins
-* `cpt-hai3-component-framework` — Framework component boundary in the layer diagram
-* `cpt-hai3-interface-plugin` — Formal HAI3Plugin interface definition
+* `cpt-frontx-fr-sdk-plugin-arch` — Plugin interface and builder contract
+* `cpt-frontx-fr-mfe-plugin` — MFE lifecycle plugin registration
+* `cpt-frontx-fr-mock-toggle` — Mock mode controlled via MockPlugin through builder chain
+* `cpt-frontx-principle-plugin-first-composition` — Architectural principle requiring all framework features to be delivered as plugins
+* `cpt-frontx-component-framework` — Framework component boundary in the layer diagram
+* `cpt-frontx-interface-plugin` — Formal HAI3Plugin interface definition

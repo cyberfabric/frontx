@@ -5,7 +5,7 @@ import path from 'path';
 import process from 'node:process';
 import { fileURLToPath } from 'url';
 
-// @cpt-algo:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1
+// @cpt-algo:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1
 const SCRIPT_DIR = path.dirname(fileURLToPath(import.meta.url));
 export const PACKAGE_ROOT = path.resolve(SCRIPT_DIR, '..');
 export const REPO_ROOT = path.resolve(PACKAGE_ROOT, '..', '..');
@@ -20,20 +20,20 @@ function formatCommand(command, args) {
 }
 
 export function createHarness(suiteName) {
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-resolve-artifact-dir
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-resolve-artifact-dir
   const suiteDir = process.env.CLI_E2E_ARTIFACT_DIR
     ? path.resolve(REPO_ROOT, process.env.CLI_E2E_ARTIFACT_DIR)
     : path.join(REPO_ROOT, '.artifacts', 'cli-e2e', suiteName);
-  // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-resolve-artifact-dir
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-create-tmpdir
+  // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-resolve-artifact-dir
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-create-tmpdir
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), `${suiteName}-`));
-  // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-create-tmpdir
+  // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-create-tmpdir
   let stepIndex = 0;
   const summary = [];
 
   fs.mkdirSync(suiteDir, { recursive: true });
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-write-summary
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-write-summary
   function writeSummary(status) {
     const summaryPath = path.join(suiteDir, 'summary.json');
     fs.writeFileSync(
@@ -51,13 +51,13 @@ export function createHarness(suiteName) {
       ) + '\n'
     );
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-write-summary
+  // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-write-summary
 
   function log(message) {
     globalThis.console.log(`[${suiteName}] ${message}`);
   }
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-assertions
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-assertions
   function assert(condition, message) {
     if (!condition) {
       throw new Error(message);
@@ -76,7 +76,7 @@ export function createHarness(suiteName) {
     fs.mkdirSync(path.dirname(targetPath), { recursive: true });
     fs.writeFileSync(targetPath, content);
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-assertions
+  // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-assertions
 
   function makeTempDir(name) {
     const targetPath = path.join(tmpRoot, name);
@@ -84,7 +84,7 @@ export function createHarness(suiteName) {
     return targetPath;
   }
 
-  // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-run-step
+  // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-run-step
   function runStep({
     name,
     cwd,
@@ -144,7 +144,7 @@ export function createHarness(suiteName) {
       throw result.error;
     }
 
-    // @cpt-begin:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-check-exit
+    // @cpt-begin:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-check-exit
     const expectedCodes = Array.isArray(expectExit) ? expectExit : [expectExit];
     if (!expectedCodes.includes(exitCode)) {
       writeSummary('failed');
@@ -152,11 +152,11 @@ export function createHarness(suiteName) {
         `${name} exited with ${exitCode}, expected ${expectedCodes.join(', ')}. See ${logPath}`
       );
     }
-    // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-check-exit
+    // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-check-exit
 
     return result;
   }
-  // @cpt-end:cpt-hai3-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-run-step
+  // @cpt-end:cpt-frontx-algo-cli-tooling-e2e-harness-step:p1:inst-e2e-harness-run-step
 
   function complete(status = 'passed') {
     writeSummary(status);
@@ -177,5 +177,5 @@ export function createHarness(suiteName) {
 }
 
 export function shouldSkipInstall() {
-  return process.argv.includes('--skip-install') || process.env.HAI3_CLI_E2E_SKIP_INSTALL === '1';
+  return process.argv.includes('--skip-install') || process.env.FRONTX_CLI_E2E_SKIP_INSTALL === '1';
 }

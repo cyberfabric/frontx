@@ -8,13 +8,12 @@
  */
 
 import type { JSONSchema } from '../plugins/types';
-import type { LifecycleStage, Action } from '../types';
+import type { LifecycleStage } from '../types';
 
 // Import all schema JSON files
 import entrySchema from './hai3.mfes/schemas/mfe/entry.v1.json';
 import domainSchema from './hai3.mfes/schemas/ext/domain.v1.json';
 import extensionSchema from './hai3.mfes/schemas/ext/extension.v1.json';
-import extensionScreenSchema from './hai3.mfes/schemas/ext/extension_screen.v1.json';
 import actionSchema from './hai3.mfes/schemas/comm/action.v1.json';
 import actionsChainSchema from './hai3.mfes/schemas/comm/actions_chain.v1.json';
 import sharedPropertySchema from './hai3.mfes/schemas/comm/shared_property.v1.json';
@@ -23,9 +22,10 @@ import lifecycleHookSchema from './hai3.mfes/schemas/lifecycle/hook.v1.json';
 import manifestSchema from './hai3.mfes/schemas/mfe/mf_manifest.v1.json';
 import entryMfSchema from './hai3.mfes/schemas/mfe/entry_mf.v1.json';
 
-// Import derived shared property schemas
-import themeSharedPropertySchema from './hai3.mfes/schemas/comm/theme.v1.json';
-import languageSharedPropertySchema from './hai3.mfes/schemas/comm/language.v1.json';
+// Import action schema JSON files (derived from action.v1, each requires payload.subject)
+import loadExtActionSchema from './hai3.mfes/schemas/ext/load_ext.v1.json';
+import mountExtActionSchema from './hai3.mfes/schemas/ext/mount_ext.v1.json';
+import unmountExtActionSchema from './hai3.mfes/schemas/ext/unmount_ext.v1.json';
 
 // Import lifecycle stage instances
 import lifecycleInitInstance from './hai3.mfes/instances/lifecycle/init.v1.json';
@@ -33,14 +33,12 @@ import lifecycleActivatedInstance from './hai3.mfes/instances/lifecycle/activate
 import lifecycleDeactivatedInstance from './hai3.mfes/instances/lifecycle/deactivated.v1.json';
 import lifecycleDestroyedInstance from './hai3.mfes/instances/lifecycle/destroyed.v1.json';
 
-// Import action instances
-import loadExtActionInstance from './hai3.mfes/instances/ext/load_ext.v1.json';
-import mountExtActionInstance from './hai3.mfes/instances/ext/mount_ext.v1.json';
-import unmountExtActionInstance from './hai3.mfes/instances/ext/unmount_ext.v1.json';
-
 /**
  * Load all core MFE schema JSON files.
- * These are the 13 first-class citizen schemas (8 core + 2 MF-specific + 3 built-in derived).
+ * Returns 13 schemas: 8 core + 2 MF-specific + 3 extension action schemas.
+ *
+ * Application-specific derived schemas (theme, language, extension_screen) are
+ * registered at the application layer via @cyberfabric/framework.
  *
  * @returns Array of JSON schemas for core MFE types
  */
@@ -58,10 +56,10 @@ export function loadSchemas(): JSONSchema[] {
     // MF-specific types (2)
     manifestSchema as JSONSchema,
     entryMfSchema as JSONSchema,
-    // Built-in derived types (3)
-    extensionScreenSchema as JSONSchema,
-    themeSharedPropertySchema as JSONSchema,
-    languageSharedPropertySchema as JSONSchema,
+    // Extension action schemas (3) — derived from action.v1, require payload.subject
+    loadExtActionSchema as JSONSchema,
+    mountExtActionSchema as JSONSchema,
+    unmountExtActionSchema as JSONSchema,
   ];
 }
 
@@ -78,18 +76,4 @@ export function loadLifecycleStages(): LifecycleStage[] {
     lifecycleDeactivatedInstance,
     lifecycleDestroyedInstance,
   ] as LifecycleStage[];
-}
-
-/**
- * Load base action instances.
- * These are the generic extension lifecycle actions used by all domains.
- *
- * @returns Array of action instances
- */
-export function loadBaseActions(): Action[] {
-  return [
-    loadExtActionInstance,
-    mountExtActionInstance,
-    unmountExtActionInstance,
-  ] as Action[];
 }

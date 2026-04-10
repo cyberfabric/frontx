@@ -1,10 +1,10 @@
-# @hai3/react
+# @cyberfabric/react
 
-React bindings and hooks for HAI3 applications. Provides the React integration layer with MFE (Microfrontend) support.
+React bindings and hooks for FrontX applications. Provides the React integration layer with MFE (Microfrontend) support.
 
 ## React Layer
 
-This package is part of the **React Layer (L3)** - it depends only on @hai3/framework (not directly on SDK packages) and provides React-specific components and hooks.
+This package is part of the **React Layer (L3)** - it depends only on @cyberfabric/framework (not directly on SDK packages) and provides React-specific components and hooks.
 
 ## Core Concepts
 
@@ -13,7 +13,7 @@ This package is part of the **React Layer (L3)** - it depends only on @hai3/fram
 Wrap your app with HAI3Provider to enable all hooks:
 
 ```tsx
-import { HAI3Provider } from '@hai3/react';
+import { HAI3Provider } from '@cyberfabric/react';
 
 function App() {
   return (
@@ -37,15 +37,15 @@ const app = createHAI3().use(screensets()).build();
 
 ### Available Hooks
 
-#### useHAI3
+#### useFrontX
 
-Access the HAI3 app instance:
+Access the FrontX app instance:
 
 ```tsx
-import { useHAI3 } from '@hai3/react';
+import { useFrontX } from '@cyberfabric/react';
 
 function MyComponent() {
-  const app = useHAI3();
+  const app = useFrontX();
 
   // Access MFE-enabled registry
   const extensions = app.screensetsRegistry.getRegisteredExtensions();
@@ -61,7 +61,7 @@ function MyComponent() {
 Type-safe Redux hooks:
 
 ```tsx
-import { useAppDispatch, useAppSelector } from '@hai3/react';
+import { useAppDispatch, useAppSelector } from '@cyberfabric/react';
 
 function MyComponent() {
   const dispatch = useAppDispatch();
@@ -74,7 +74,7 @@ function MyComponent() {
 Access translation utilities:
 
 ```tsx
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 
 function MyComponent() {
   const { t, language, setLanguage, isRTL } = useTranslation();
@@ -93,7 +93,7 @@ function MyComponent() {
 Load screen-level translations:
 
 ```tsx
-import { useScreenTranslations } from '@hai3/react';
+import { useScreenTranslations } from '@cyberfabric/react';
 
 const translations = {
   en: () => import('./i18n/en.json'),
@@ -115,7 +115,7 @@ function HomeScreen() {
 Access theme utilities:
 
 ```tsx
-import { useTheme } from '@hai3/react';
+import { useTheme } from '@cyberfabric/react';
 
 function ThemeToggle() {
   const { currentTheme, themes, setTheme } = useTheme();
@@ -137,8 +137,8 @@ function ThemeToggle() {
 Access the MFE bridge for child MFEs:
 
 ```tsx
-import { useMfeBridge } from '@hai3/react';
-import { HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+import { useMfeBridge } from '@cyberfabric/react';
+import { HAI3_ACTION_LOAD_EXT, HAI3_SHARED_PROPERTY_THEME } from '@cyberfabric/react';
 
 function MyExtension() {
   const bridge = useMfeBridge();
@@ -158,7 +158,7 @@ function MyExtension() {
 Subscribe to shared property changes:
 
 ```tsx
-import { useSharedProperty, HAI3_SHARED_PROPERTY_THEME } from '@hai3/react';
+import { useSharedProperty, HAI3_SHARED_PROPERTY_THEME } from '@cyberfabric/react';
 
 function ThemedComponent() {
   const theme = useSharedProperty(HAI3_SHARED_PROPERTY_THEME);
@@ -172,7 +172,7 @@ function ThemedComponent() {
 Invoke actions on the host application:
 
 ```tsx
-import { useHostAction, HAI3_ACTION_LOAD_EXT } from '@hai3/react';
+import { useHostAction, HAI3_ACTION_LOAD_EXT } from '@cyberfabric/react';
 
 function MyExtension() {
   const loadExtension = useHostAction(HAI3_ACTION_LOAD_EXT);
@@ -190,7 +190,7 @@ function MyExtension() {
 Subscribe to extensions in a domain:
 
 ```tsx
-import { useDomainExtensions } from '@hai3/react';
+import { useDomainExtensions } from '@cyberfabric/react';
 
 function ScreenList() {
   const screenExtensions = useDomainExtensions('screen');
@@ -210,7 +210,7 @@ function ScreenList() {
 Subscribe to registered GTS packages:
 
 ```tsx
-import { useRegisteredPackages } from '@hai3/react';
+import { useRegisteredPackages } from '@cyberfabric/react';
 
 function PackageList() {
   const packages = useRegisteredPackages();
@@ -230,7 +230,7 @@ function PackageList() {
 Subscribe to the active GTS package (the package of the currently mounted screen extension):
 
 ```tsx
-import { useActivePackage } from '@hai3/react';
+import { useActivePackage } from '@cyberfabric/react';
 
 function ActivePackageIndicator() {
   const activePackage = useActivePackage();
@@ -250,7 +250,7 @@ function ActivePackageIndicator() {
 Provide MFE context for child extensions:
 
 ```tsx
-import { MfeProvider } from '@hai3/react';
+import { MfeProvider } from '@cyberfabric/react';
 
 function MfeHost() {
   return (
@@ -266,7 +266,7 @@ function MfeHost() {
 Render extensions into a domain slot:
 
 ```tsx
-import { ExtensionDomainSlot } from '@hai3/react';
+import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function LayoutScreen() {
   return (
@@ -286,7 +286,7 @@ function LayoutScreen() {
 Provide container references for MFE mounting:
 
 ```tsx
-import { RefContainerProvider } from '@hai3/react';
+import { RefContainerProvider } from '@cyberfabric/react';
 
 function Layout() {
   return (
@@ -303,14 +303,14 @@ function Layout() {
 ## Key Rules
 
 1. **Wrap with HAI3Provider** - Required for all hooks to work
-2. **Use hooks for state access** - Don't import selectors directly from @hai3/framework
+2. **Use hooks for state access** - Don't import selectors directly from @cyberfabric/framework
 3. **Lazy load translations** - Use `useScreenTranslations` for screen-level i18n
 4. **Use MFE hooks for extensions** - `useMfeBridge`, `useSharedProperty`, `useHostAction`, `useDomainExtensions`
 5. **NO Layout components here** - Layout and UI components belong in L4 (user's project via CLI scaffolding)
 
 ## Re-exports
 
-For convenience, this package re-exports everything from @hai3/framework:
+For convenience, this package re-exports everything from @cyberfabric/framework:
 
 - All SDK primitives (eventBus, createStore, etc.)
 - All plugins (screensets, themes, layout, microfrontends, etc.)
@@ -318,7 +318,7 @@ For convenience, this package re-exports everything from @hai3/framework:
 - All types (including MFE types)
 - All MFE actions, selectors, and domain constants
 
-This allows users to import everything from `@hai3/react` without needing `@hai3/framework` directly.
+This allows users to import everything from `@cyberfabric/react` without needing `@cyberfabric/framework` directly.
 
 ## Exports
 
@@ -329,7 +329,7 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `RefContainerProvider` - Container reference provider
 
 ### Hooks
-- `useHAI3` - Access app instance
+- `useFrontX` - Access app instance
 - `useAppDispatch` - Typed dispatch
 - `useAppSelector` - Typed selector
 - `useTranslation` - Translation utilities
@@ -350,7 +350,7 @@ This allows users to import everything from `@hai3/react` without needing `@hai3
 - `HAI3ProviderProps`
 - `MfeProviderProps`, `ExtensionDomainSlotProps`
 - `UseTranslationReturn`, `UseThemeReturn`
-- All types from @hai3/framework
+- All types from @cyberfabric/framework
 
 ## Migration from Legacy API
 
@@ -363,7 +363,7 @@ The `useNavigation` hook has been removed. Use MFE hooks and actions instead:
 
 **OLD**: Navigate using hook
 ```tsx
-import { useNavigation } from '@hai3/react';
+import { useNavigation } from '@cyberfabric/react';
 
 function MyComponent() {
   const { navigateToScreen } = useNavigation();
@@ -378,10 +378,10 @@ function MyComponent() {
 
 **NEW**: Mount extension using app actions
 ```tsx
-import { useHAI3 } from '@hai3/react';
+import { useFrontX } from '@cyberfabric/react';
 
 function MyComponent() {
-  const app = useHAI3();
+  const app = useFrontX();
   const containerRef = useRef<HTMLDivElement>(null);
 
   const handleNavigate = async () => {
@@ -405,7 +405,7 @@ function MyComponent() {
 
 **NEW (Alternative)**: Use ExtensionDomainSlot
 ```tsx
-import { ExtensionDomainSlot } from '@hai3/react';
+import { ExtensionDomainSlot } from '@cyberfabric/react';
 
 function MyComponent() {
   return (

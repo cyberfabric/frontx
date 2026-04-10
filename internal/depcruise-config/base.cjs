@@ -1,6 +1,6 @@
 /**
- * HAI3 Dependency Cruiser Base Configuration (L0)
- * Universal rules that apply to ALL HAI3 code
+ * FrontX Dependency Cruiser Base Configuration (L0)
+ * Universal rules that apply to ALL FrontX code
  *
  * This is the foundation layer - all other configs extend this.
  */

@@ -1,11 +1,11 @@
 /**
- * Dracula Large theme for HAI3
+ * Dracula Large theme for FrontX
  * Based on Dracula theme with larger spacing and typography
  * CSS custom properties map following shadcn/ui variable naming convention.
  */
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
 
-import type { ThemeConfig } from '@hai3/react';
+import type { ThemeConfig } from '@cyberfabric/react';
 import { hslToVar } from './utils';
 
 /**

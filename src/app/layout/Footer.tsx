@@ -6,7 +6,7 @@
  */
 
 import React from 'react';
-import { useAppSelector, type FooterState } from '@hai3/react';
+import { useAppSelector, type FooterState } from '@cyberfabric/react';
 
 export interface FooterProps {
   children?: React.ReactNode;

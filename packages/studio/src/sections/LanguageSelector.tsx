@@ -1,6 +1,6 @@
-// @cpt-flow:cpt-hai3-flow-studio-devtools-language-change:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
-import { useTranslation, LanguageDisplayMode, TextDirection, SUPPORTED_LANGUAGES, getLanguageMetadata, type Language } from '@hai3/react';
+// @cpt-flow:cpt-frontx-flow-studio-devtools-language-change:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
+import { useTranslation, LanguageDisplayMode, TextDirection, SUPPORTED_LANGUAGES, getLanguageMetadata, type Language } from '@cyberfabric/react';
 import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
@@ -32,7 +32,7 @@ export interface LanguageSelectorProps {
  * Changes apply immediately without page reload
  * Automatically updates HTML dir attribute for RTL support
  */
-// @cpt-begin:cpt-hai3-flow-studio-devtools-language-change:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-language-change:p1:inst-1
 export function LanguageSelector({
   displayMode = LanguageDisplayMode.Native
 }: LanguageSelectorProps = {}) {
@@ -70,4 +70,4 @@ export function LanguageSelector({
     </div>
   );
 }
-// @cpt-end:cpt-hai3-flow-studio-devtools-language-change:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-language-change:p1:inst-1

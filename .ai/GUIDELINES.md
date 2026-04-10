@@ -1,5 +1,5 @@
 <!-- @standalone:override -->
-# HAI3 AI Guidelines (Canonical)
+# FrontX AI Guidelines (Canonical)
 
 ## AI WORKFLOW (REQUIRED)
 - Route: select target file from Routing section.
@@ -14,7 +14,7 @@
 
 ## ROUTING
 
-### SDK Layer (L1) - Zero @hai3 dependencies
+### SDK Layer (L1) - Zero @cyberfabric dependencies
 - packages/state -> .ai/targets/STORE.md
 - packages/screensets -> .ai/targets/LAYOUT.md
 - packages/api -> .ai/targets/API.md
@@ -42,7 +42,7 @@
 ## REPO INVARIANTS
 - Event-driven architecture only (see EVENTS.md).
 - Registries follow Open/Closed; adding items must not modify registry root files.
-- App-level deps limited to: @hai3/react, react, react-dom. Standalone projects must also declare peer deps explicitly: @hai3/framework, @hai3/api, @hai3/i18n, @hai3/screensets, @hai3/state.
+- App-level deps limited to: @cyberfabric/react, react, react-dom. Standalone projects must also declare peer deps explicitly: @cyberfabric/framework, @cyberfabric/api, @cyberfabric/i18n, @cyberfabric/screensets, @cyberfabric/state.
 - MFE UI autonomy: MFEs own their UI components locally (e.g., components/ui/). No shared UI kit required.
 - Cross-domain communication only via events.
 - No string literal identifiers; use constants or enums.
@@ -52,7 +52,7 @@
 ## IMPORT RULES
 - Inside same package: relative paths.
 - Cross-branch in app: @/ alias.
-- Cross-package: @hai3/framework, @hai3/react. Use local components/ui/ for UI.
+- Cross-package: @cyberfabric/framework, @cyberfabric/react. Use local components/ui/ for UI.
 - Index files: only when aggregating 3 or more exports.
 - Redux slices: import directly (no barrels).
 

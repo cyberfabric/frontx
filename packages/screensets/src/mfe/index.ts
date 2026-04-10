@@ -13,22 +13,22 @@ export type {
 } from './plugins';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
-// for consumers who don't need it. Import directly from '@hai3/screensets/plugins/gts'
+// for consumers who don't need it. Import directly from '@cyberfabric/screensets/plugins/gts'
 
-// HAI3 Type Constants
+// FrontX Type Constants
 export {
   HAI3_SCREEN_EXTENSION_TYPE,
   HAI3_MFE_ENTRY_MF,
 } from './constants';
 
-// HAI3 Action Constants
+// FrontX Action Constants
 export {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from './constants';
 
-// HAI3 Shared Property Constants
+// FrontX Shared Property Constants
 export {
   HAI3_SHARED_PROPERTY_THEME,
   HAI3_SHARED_PROPERTY_LANGUAGE,
@@ -54,15 +54,14 @@ export type {
 
 // Runtime (includes factory)
 export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory, ContainerProvider } from './runtime';
-export type { ScreensetsRegistryConfig } from './runtime';
+export type { ScreensetsRegistryConfig, RegisterDomainOptions } from './runtime';
 
 // Handler Types and Abstract Classes (concrete implementations are internal)
-export type {
-  ParentMfeBridge,
-  ChildMfeBridge,
-  MfeEntryLifecycle,
-} from './handler/types';
-export { MfeHandler, MfeBridgeFactory } from './handler/types';
+export type { MfeEntryLifecycle } from './handler/types';
+export { ParentMfeBridge, ChildMfeBridge, MfeHandler, MfeBridgeFactory } from './handler/types';
+
+// Mediator types needed by MFE consumers to implement action handlers
+export { ActionHandler } from './mediator/types';
 
 // Shadow DOM Utilities
 export {
