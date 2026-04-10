@@ -804,6 +804,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     'postcss-load-config': '6.0.1',
     tailwindcss: '3.4.1',
     '@originjs/vite-plugin-federation': '^1.3.6',
+    concurrently: '9.2.1',
     'dependency-cruiser': '17.3.2',
     tsx: '4.20.6',
     typescript: '5.4.2',

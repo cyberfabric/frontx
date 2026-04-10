@@ -3,13 +3,12 @@
 // Do not edit manually!
 // Regenerate: npm run generate:mfe-manifests
 
+import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';
 
-export const MFE_MANIFESTS = [
-
-];
-
-// Get all MFE manifests
-// Allows Vite to statically analyze imports without warnings
-export function getMfeManifests() {
-  return MFE_MANIFESTS;
+export interface MfeManifestConfig {
+  manifest: JSONSchema;
+  entries: MfeEntry[];
+  extensions: Extension[];
 }
+
+export const MFE_MANIFESTS: MfeManifestConfig[] = [];

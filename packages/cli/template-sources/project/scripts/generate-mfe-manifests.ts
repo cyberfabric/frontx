@@ -36,13 +36,13 @@ function generateManifestRegistry(): void {
       return;
     }
 
-    // Packages to exclude (templates, blanks, shared libraries)
-    const EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared', '.git', '.DS_Store']);
+    // Packages to exclude (shared libraries, hidden dirs, etc.)
+    const EXCLUDED_PACKAGES = new Set(['shared', '.git', '.DS_Store']);
 
     // Find all MFE packages
     const mfePackages = readdirSync(MFE_PACKAGES_DIR).filter((dir) => {
-      // Skip excluded packages and hidden directories
-      if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.')) {
+      // Skip excluded packages, hidden directories, and internal template dirs (prefixed with _)
+      if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.') || dir.startsWith('_')) {
         return false;
       }
 
@@ -92,12 +92,6 @@ ${imports}
 ${typePreamble()}
 
 ${registry}
-
-// Get all MFE manifests
-// Allows Vite to statically analyze imports without warnings
-export function getMfeManifests() {
-  return MFE_MANIFESTS;
-}
 `;
 
     writeFileSync(OUTPUT_FILE, content);
@@ -116,15 +110,7 @@ function emptyRegistry(): string {
 
 ${typePreamble()}
 
-export const MFE_MANIFESTS: MfeManifestConfig[] = [
-
-];
-
-// Get all MFE manifests
-// Allows Vite to statically analyze imports without warnings
-export function getMfeManifests() {
-  return MFE_MANIFESTS;
-}
+export const MFE_MANIFESTS: MfeManifestConfig[] = [];
 `;
 }
 

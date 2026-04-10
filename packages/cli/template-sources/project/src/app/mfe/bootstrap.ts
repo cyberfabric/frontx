@@ -9,7 +9,7 @@
  * MFE packages from src/mfe_packages/.
  */
 
-import type { Extension, HAI3App, JSONSchema, MfeEntry, ScreenExtension } from '@cyberfabric/react';
+import type { Extension, HAI3App, ScreenExtension } from '@cyberfabric/react';
 import {
   screenDomain,
   sidebarDomain,
@@ -22,11 +22,8 @@ import {
 } from '@cyberfabric/react';
 import { MFE_MANIFESTS } from './generated-mfe-manifests';
 
-interface MfeManifestConfig {
-  manifest: JSONSchema;
-  entries: MfeEntry[];
-  extensions: Extension[];
-}
+// Module-level reference to allow cleanup on re-runs (e.g. HMR)
+let popstateHandler: (() => void) | null = null;
 
 function isScreenExtension(extension: Extension): extension is ScreenExtension {
   const candidate = extension as { presentation?: { route?: string } };
@@ -91,10 +88,9 @@ export async function bootstrapMFE(
   }
 
   // Step 4: Register all MFE manifests, entries, and extensions dynamically
-  const manifests = MFE_MANIFESTS as MfeManifestConfig[];
   const screenExtensions: ScreenExtension[] = [];
 
-  for (const config of manifests) {
+  for (const config of MFE_MANIFESTS) {
     // Register manifest type
     screensetsRegistry.typeSystem.register(config.manifest);
 
@@ -143,10 +139,7 @@ export async function bootstrapMFE(
 
   // Step 6: Centralized URL routing for all screen mounts
   // Wraps executeActionsChain so ANY screen mount automatically syncs the browser URL.
-  const screenRouteMap = new Map(
-    screenExtensions.map((ext) => [ext.id, ext.presentation.route])
-  );
-
+  // Uses getExtensionsForDomain at call time to avoid stale closure over bootstrap-time extensions.
   const origExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
   screensetsRegistry.executeActionsChain = (async (chain: Parameters<typeof origExecuteActionsChain>[0]) => {
     await origExecuteActionsChain(chain);
@@ -154,8 +147,10 @@ export async function bootstrapMFE(
       chain.action.type === HAI3_ACTION_MOUNT_EXT &&
       chain.action.target === screenDomain.id
     ) {
-      const extensionId = chain.action.payload?.subject as string | undefined;
-      const route = screenRouteMap.get(extensionId ?? '');
+      const extensionId = typeof chain.action.payload?.subject === 'string' ? chain.action.payload.subject : undefined;
+      const currentExtensions = screensetsRegistry.getExtensionsForDomain(screenDomain.id);
+      const ext = currentExtensions.filter(isScreenExtension).find((e) => e.id === extensionId);
+      const route = ext?.presentation.route;
       if (route && window.location.pathname !== route) {
         window.history.pushState(null, '', route);
       }
@@ -163,9 +158,14 @@ export async function bootstrapMFE(
   }) as typeof screensetsRegistry.executeActionsChain;
 
   // Handle browser back/forward navigation
-  window.addEventListener('popstate', () => {
+  // Remove any previous listener before registering a new one (prevents duplicates on HMR)
+  if (popstateHandler) {
+    window.removeEventListener('popstate', popstateHandler);
+  }
+  popstateHandler = () => {
     const path = window.location.pathname;
-    const ext = screenExtensions.find((e) => e.presentation.route === path);
+    const currentExtensions = screensetsRegistry.getExtensionsForDomain(screenDomain.id);
+    const ext = currentExtensions.filter(isScreenExtension).find((e) => e.presentation.route === path);
     if (ext) {
       screensetsRegistry.executeActionsChain({
         action: {
@@ -175,5 +175,6 @@ export async function bootstrapMFE(
         },
       });
     }
-  });
+  };
+  window.addEventListener('popstate', popstateHandler);
 }
