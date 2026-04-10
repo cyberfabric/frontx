@@ -91,6 +91,16 @@ export async function bootstrapMFE(
   const screenExtensions: ScreenExtension[] = [];
 
   for (const config of MFE_MANIFESTS) {
+    // @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+    // Register MFE-carried schemas (custom actions, properties) before entries so GTS
+    // can validate entry references to these schemas at registration time.
+    if (config.schemas) {
+      for (const schema of config.schemas) {
+        screensetsRegistry.typeSystem.registerSchema(schema);
+      }
+    }
+    // @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+
     // Register manifest type
     screensetsRegistry.typeSystem.register(config.manifest);
 
