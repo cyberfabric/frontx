@@ -1,21 +1,21 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-e2e-nightly:p2
-// @cpt-dod:cpt-hai3-dod-cli-tooling-e2e-nightly:p1
+// @cpt-flow:cpt-frontx-flow-cli-tooling-e2e-nightly:p2
+// @cpt-dod:cpt-frontx-dod-cli-tooling-e2e-nightly:p1
 import fs from 'fs';
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
 
-// @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-trigger
+// @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-trigger
 // CI triggers .github/workflows/cli-nightly.yml on schedule (daily 03:00 UTC) or manual dispatch
-// @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-trigger
+// @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-trigger
 
-// @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-build-cli
-// @hai3/cli is built via npm run build --workspace=@hai3/cli before this script runs
-// @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-build-cli
+// @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-build-cli
+// @cyberfabric/cli is built via npm run build --workspace=@cyberfabric/cli before this script runs
+// @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-build-cli
 
-// @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
+// @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
 const harness = createHarness('nightly');
-// @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
+// @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-harness
 const skipInstall = shouldSkipInstall();
 const expectedManagerEngines = {
   npm: '>=10.0.0',
@@ -81,9 +81,9 @@ try {
   const workspace = harness.makeTempDir('workspace');
 
   const appRoot = path.join(workspace, 'nightly-app');
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
   harness.runStep({
-    name: 'create-hai3-app',
+    name: 'create-frontx-app',
     cwd: workspace,
     command: 'node',
     args: [CLI_ENTRY, 'create', 'nightly-app', '--no-studio', '--uikit', 'shadcn', '--package-manager', 'npm'],
@@ -93,17 +93,17 @@ try {
     appPackageJson.engines?.npm === expectedManagerEngines.npm,
     `npm app should require npm ${expectedManagerEngines.npm}`
   );
-  const appConfig = harness.readJson(path.join(appRoot, 'hai3.config.json'));
+  const appConfig = harness.readJson(path.join(appRoot, 'frontx.config.json'));
   harness.assert(
     appConfig.packageManager === 'npm',
-    'npm app hai3.config.json must set packageManager to npm'
+    'npm app frontx.config.json must set packageManager to npm'
   );
   harness.assert(
     !('packageManagerVersion' in appConfig),
-    'npm app hai3.config.json must not include packageManagerVersion'
+    'npm app frontx.config.json must not include packageManagerVersion'
   );
   maybeInstallAndCheck(appRoot, 'npm', true);
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-create-default
 
   const pnpmRoot = path.join(workspace, 'nightly-pnpm');
   harness.runStep({
@@ -122,14 +122,14 @@ try {
     `pnpm app should require pnpm ${expectedManagerEngines.pnpm}`
   );
   harness.assertPathExists(path.join(pnpmRoot, 'pnpm-workspace.yaml'));
-  const pnpmConfig = harness.readJson(path.join(pnpmRoot, 'hai3.config.json'));
+  const pnpmConfig = harness.readJson(path.join(pnpmRoot, 'frontx.config.json'));
   harness.assert(
     pnpmConfig.packageManager === 'pnpm',
-    'pnpm app hai3.config.json must set packageManager to pnpm'
+    'pnpm app frontx.config.json must set packageManager to pnpm'
   );
   harness.assert(
     !('packageManagerVersion' in pnpmConfig),
-    'pnpm app hai3.config.json must not include packageManagerVersion'
+    'pnpm app frontx.config.json must not include packageManagerVersion'
   );
   maybeInstallAndCheck(pnpmRoot, 'pnpm', true);
 
@@ -150,18 +150,18 @@ try {
     `yarn app should require yarn ${expectedManagerEngines.yarn}`
   );
   harness.assertPathExists(path.join(yarnRoot, '.yarnrc.yml'));
-  const yarnConfig = harness.readJson(path.join(yarnRoot, 'hai3.config.json'));
+  const yarnConfig = harness.readJson(path.join(yarnRoot, 'frontx.config.json'));
   harness.assert(
     yarnConfig.packageManager === 'yarn',
-    'yarn app hai3.config.json must set packageManager to yarn'
+    'yarn app frontx.config.json must set packageManager to yarn'
   );
   harness.assert(
     !('packageManagerVersion' in yarnConfig),
-    'yarn app hai3.config.json must not include packageManagerVersion'
+    'yarn app frontx.config.json must not include packageManagerVersion'
   );
   maybeInstallAndCheck(yarnRoot, 'yarn', true);
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
   harness.runStep({
     name: 'migrate-list',
     cwd: appRoot,
@@ -175,9 +175,9 @@ try {
     command: 'node',
     args: [CLI_ENTRY, 'migrate', '--status'],
   });
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-migrate-commands
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-ai-sync-idempotent
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-ai-sync-idempotent
   harness.runStep({
     name: 'ai-sync-diff-first',
     cwd: appRoot,
@@ -191,9 +191,9 @@ try {
     command: 'node',
     args: [CLI_ENTRY, 'ai', 'sync', '--tool', 'all', '--diff'],
   });
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-ai-sync-idempotent
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-ai-sync-idempotent
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
   const customRoot = path.join(workspace, 'nightly-custom');
   harness.runStep({
     name: 'create-custom-app',
@@ -202,9 +202,9 @@ try {
     args: [CLI_ENTRY, 'create', 'nightly-custom', '--no-studio', '--uikit', 'none', '--package-manager', 'npm'],
   });
   maybeInstallAndCheck(customRoot, 'npm', true);
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-custom-uikit
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
   for (const layer of ['sdk', 'framework', 'react']) {
     const projectName = `nightly-${layer}`;
     const projectRoot = path.join(workspace, projectName);
@@ -221,9 +221,9 @@ try {
     );
     maybeInstallAndCheck(projectRoot, 'npm', true);
   }
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-layer-scaffolds
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-invalid-name
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-invalid-name
   harness.runStep({
     name: 'reject-invalid-name',
     cwd: workspace,
@@ -231,16 +231,16 @@ try {
     args: [CLI_ENTRY, 'create', 'Invalid Name'],
     expectExit: 1,
   });
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-invalid-name
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-invalid-name
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-upload-artifacts
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-upload-artifacts
   // CI uploads step logs and JSON summary as artifacts (handled in cli-nightly.yml workflow)
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-upload-artifacts
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-upload-artifacts
 
-  // @cpt-begin:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-return
+  // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-return
   harness.complete('passed');
   harness.log(`Completed successfully. Logs: ${harness.artifactDir}`);
-  // @cpt-end:cpt-hai3-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-return
+  // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-nightly:p2:inst-e2e-nightly-return
 } catch (error) {
   harness.complete('failed');
   globalThis.console.error(error instanceof Error ? error.message : String(error));

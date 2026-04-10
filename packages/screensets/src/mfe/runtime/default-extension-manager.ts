@@ -7,11 +7,11 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-algo:cpt-hai3-algo-screenset-registry-domain-validation:p1
-// @cpt-algo:cpt-hai3-algo-screenset-registry-extension-validation:p1
-// @cpt-algo:cpt-hai3-algo-screenset-registry-shared-property-broadcast:p1
-// @cpt-dod:cpt-hai3-dod-screenset-registry-gts-validation:p1
-// @cpt-dod:cpt-hai3-dod-screenset-registry-shared-property-broadcast:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-domain-validation:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-extension-validation:p1
+// @cpt-algo:cpt-frontx-algo-screenset-registry-shared-property-broadcast:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-gts-validation:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-shared-property-broadcast:p1
 
 import type {
   ExtensionDomain,
@@ -106,7 +106,7 @@ export class DefaultExtensionManager extends ExtensionManager {
    * @param domain - Domain to register
    * @param onInitError - Optional callback for handling fire-and-forget init lifecycle errors
    */
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-domain-validation:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-validation:p1:inst-1
   registerDomain(domain: ExtensionDomain, onInitError?: (error: Error) => void): void {
     // Step 1: GTS-native validation - register then validate by ID
     this.typeSystem.register(domain);
@@ -155,7 +155,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       }
     });
   }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-domain-validation:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-domain-validation:p1:inst-1
 
   /**
    * Unregister a domain.
@@ -194,7 +194,7 @@ export class DefaultExtensionManager extends ExtensionManager {
    * @param extension - Extension to register
    * @returns Promise resolving when registration is complete
    */
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-extension-validation:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-extension-validation:p1:inst-1
   async registerExtension(extension: Extension): Promise<void> {
     // 1. Validate extension against GTS schema
     this.typeSystem.register(extension);
@@ -283,7 +283,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       'gts.hai3.mfes.lifecycle.stage.v1~hai3.mfes.lifecycle.init.v1'
     );
   }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-extension-validation:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-extension-validation:p1:inst-1
 
   /**
    * Unregister an extension.
@@ -372,7 +372,7 @@ export class DefaultExtensionManager extends ExtensionManager {
    * @param value - New property value
    * @throws if GTS validation fails — no domain receives the value in that case
    */
-  // @cpt-begin:cpt-hai3-algo-screenset-registry-shared-property-broadcast:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-screenset-registry-shared-property-broadcast:p1:inst-1
   updateSharedProperty(propertyId: string, value: unknown): void {
     // Collect all domains that declare this property
     const matchingDomainStates: ExtensionDomainState[] = [];
@@ -417,7 +417,7 @@ export class DefaultExtensionManager extends ExtensionManager {
       }
     }
   }
-  // @cpt-end:cpt-hai3-algo-screenset-registry-shared-property-broadcast:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-screenset-registry-shared-property-broadcast:p1:inst-1
 
   /**
    * Get a domain property value.

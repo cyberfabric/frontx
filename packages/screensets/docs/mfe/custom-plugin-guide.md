@@ -1,10 +1,10 @@
 # Custom TypeSystemPlugin Implementation Guide
 
-This guide explains how to implement a custom `TypeSystemPlugin` for HAI3's MFE system.
+This guide explains how to implement a custom `TypeSystemPlugin` for FrontX's MFE system.
 
 ## Overview
 
-While HAI3 ships with the GTS plugin as the default Type System implementation, you can create custom plugins for alternative type systems or to wrap GTS with additional functionality.
+While FrontX ships with the GTS plugin as the default Type System implementation, you can create custom plugins for alternative type systems or to wrap GTS with additional functionality.
 
 ## When to Create a Custom Plugin
 
@@ -13,7 +13,7 @@ Consider creating a custom plugin if you need to:
 - Use a different type system (not GTS)
 - Add logging, metrics, or monitoring to type operations
 - Implement custom validation rules
-- Bridge existing type systems to HAI3
+- Bridge existing type systems to FrontX
 - Add caching layers or optimization
 
 ## Interface Requirements
@@ -59,8 +59,8 @@ import type {
   ValidationResult,
   CompatibilityResult,
   AttributeResult,
-} from '@hai3/screensets';
-import type { JSONSchema } from '@hai3/screensets/types';
+} from '@cyberfabric/screensets';
+import type { JSONSchema } from '@cyberfabric/screensets/types';
 
 export class CustomPlugin implements TypeSystemPlugin {
   readonly name = 'custom';
@@ -75,7 +75,7 @@ export class CustomPlugin implements TypeSystemPlugin {
   }
 
   private registerBuiltInSchemas(): void {
-    // Register HAI3's first-class schemas here
+    // Register FrontX's first-class schemas here
     // (MfeEntry, ExtensionDomain, Extension, etc.)
   }
 
@@ -377,8 +377,8 @@ export const customPlugin = createCustomPlugin();
 Here's an example of wrapping the GTS plugin with logging:
 
 ```typescript
-import { gtsPlugin } from '@hai3/screensets/plugins/gts';
-import type { TypeSystemPlugin } from '@hai3/screensets';
+import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
+import type { TypeSystemPlugin } from '@cyberfabric/screensets';
 
 export class LoggingPluginWrapper implements TypeSystemPlugin {
   constructor(
@@ -417,7 +417,7 @@ export class LoggingPluginWrapper implements TypeSystemPlugin {
 }
 
 // Usage
-import { DefaultScreensetsRegistry, gtsPlugin } from '@hai3/screensets';
+import { DefaultScreensetsRegistry, gtsPlugin } from '@cyberfabric/screensets';
 
 const loggedPlugin = new LoggingPluginWrapper(gtsPlugin, myLogger);
 
@@ -567,7 +567,7 @@ describe('CustomPlugin', () => {
 
 ```typescript
 import { describe, it, expect } from 'vitest';
-import { DefaultScreensetsRegistry } from '@hai3/screensets';
+import { DefaultScreensetsRegistry } from '@cyberfabric/screensets';
 import { createCustomPlugin } from './custom-plugin';
 
 describe('CustomPlugin Integration', () => {

@@ -25,10 +25,10 @@ date: 2026-01-04
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-symbol-based-mock-plugin-identification`
+**ID**: `cpt-frontx-adr-symbol-based-mock-plugin-identification`
 ## Context and Problem Statement
 
-HAI3 needs centralized mock mode control across all API services while maintaining layer separation — L1 (SDK) is mock-agnostic and L2 (Framework) owns mock logic. The framework must be able to identify which plugins are mock plugins in order to activate or deactivate them, without L1 gaining any knowledge of mock-specific concerns.
+FrontX needs centralized mock mode control across all API services while maintaining layer separation — L1 (SDK) is mock-agnostic and L2 (Framework) owns mock logic. The framework must be able to identify which plugins are mock plugins in order to activate or deactivate them, without L1 gaining any knowledge of mock-specific concerns.
 
 ## Decision Drivers
 
@@ -97,7 +97,7 @@ Chosen option: "Symbol-based plugin identification", because symbols are type-sa
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-mock-toggle` — `toggleMockMode` action activates/deactivates mock plugins
-* `cpt-hai3-fr-sse-mock-mode` — SSE service mock plugin registered and controlled via this pattern
-* `cpt-hai3-component-api` — `MOCK_PLUGIN` symbol and type guard owned by the API package (L1)
-* `cpt-hai3-component-framework` — `mockSlice` and `mockEffects` owned by the Framework package (L2)
+* `cpt-frontx-fr-mock-toggle` — `toggleMockMode` action activates/deactivates mock plugins
+* `cpt-frontx-fr-sse-mock-mode` — SSE service mock plugin registered and controlled via this pattern
+* `cpt-frontx-component-api` — `MOCK_PLUGIN` symbol and type guard owned by the API package (L1)
+* `cpt-frontx-component-framework` — `mockSlice` and `mockEffects` owned by the Framework package (L2)

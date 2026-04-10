@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/i18n",
-  "version": "0.4.0-alpha.0",
-  "description": "Internationalization and translation management for HAI3 SDK",
+  "name": "@cyberfabric/i18n",
+  "version": "0.2.0-alpha.0",
+  "description": "Internationalization and translation management for FrontX SDK",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -37,12 +37,12 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "i18n",
     "internationalization",
     "localization",
     "typescript"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

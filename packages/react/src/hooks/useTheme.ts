@@ -3,8 +3,8 @@
  *
  * React Layer: L3
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-use-theme:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-theme-hook:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-use-theme:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-theme-hook:p1
 
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useHAI3 } from '../HAI3Context';
@@ -33,16 +33,16 @@ import type { UseThemeReturn } from '../types';
  * );
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-call-theme
-// @cpt-begin:cpt-hai3-dod-react-bindings-theme-hook:p1:inst-call-theme
+// @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-call-theme
+// @cpt-begin:cpt-frontx-dod-react-bindings-theme-hook:p1:inst-call-theme
 export function useTheme(): UseThemeReturn {
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-read-theme-registry
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-read-theme-registry
   const app = useHAI3();
   const { themeRegistry } = app;
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-read-theme-registry
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-read-theme-registry
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-subscribe-theme
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-rerender-on-theme-change
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-subscribe-theme
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-rerender-on-theme-change
   // Subscribe to theme changes using useSyncExternalStore
   // Uses version counter to trigger re-renders when theme changes
   const version = useSyncExternalStore(
@@ -55,8 +55,8 @@ export function useTheme(): UseThemeReturn {
     () => themeRegistry.getVersion(),
     () => themeRegistry.getVersion()
   );
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-subscribe-theme
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-rerender-on-theme-change
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-subscribe-theme
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-rerender-on-theme-change
 
   // Get current theme (memoized, recalculates on version change)
   const currentTheme = useMemo(() => {
@@ -74,7 +74,7 @@ export function useTheme(): UseThemeReturn {
     }));
   }, [themeRegistry]);
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-dispatch-change-theme
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-dispatch-change-theme
   // Set theme
   const setTheme = useCallback(
     (themeId: string) => {
@@ -84,15 +84,15 @@ export function useTheme(): UseThemeReturn {
     },
     [app.actions]
   );
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-dispatch-change-theme
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-dispatch-change-theme
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-theme:p1:inst-return-theme-api
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-theme:p1:inst-return-theme-api
   return {
     currentTheme,
     themes,
     setTheme,
   };
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-return-theme-api
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-return-theme-api
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-theme:p1:inst-call-theme
-// @cpt-end:cpt-hai3-dod-react-bindings-theme-hook:p1:inst-call-theme
+// @cpt-end:cpt-frontx-flow-react-bindings-use-theme:p1:inst-call-theme
+// @cpt-end:cpt-frontx-dod-react-bindings-theme-hook:p1:inst-call-theme

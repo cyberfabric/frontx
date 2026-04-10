@@ -394,7 +394,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
       await expect(blobGet()).rejects.toBeInstanceOf(MfeLoadError);
     });
 
-    it('throws MfeLoadError when expose chunk cannot be found in remoteEntry', async () => {
+    it('throws MfeLoadError when expose metadata cannot be resolved from remoteEntry', async () => {
       const remoteName = 'missingExposeRemote';
       const remoteEntryUrl = `${TEST_BASE_URL}/${remoteName}/remoteEntry.js`;
 
@@ -418,7 +418,7 @@ describe('MfeHandlerMF - share scope construction and blob URL isolation', () =>
 
       await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
       await expect(handler.load(entry)).rejects.toThrow(
-        'Cannot find expose chunk'
+        'Cannot resolve expose metadata'
       );
     });
   });

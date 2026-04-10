@@ -4,14 +4,14 @@
  * Provides MFE bridge and metadata to child components.
  * Used by MFE components to access their runtime context.
  *
- * React Layer: L3 (Depends on @hai3/framework)
+ * React Layer: L3 (Depends on @cyberfabric/framework)
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-mfe-provider:p1
-// @cpt-algo:cpt-hai3-algo-react-bindings-mfe-context-guard:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-mfe-hooks:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-mfe-provider:p1
+// @cpt-algo:cpt-frontx-algo-react-bindings-mfe-context-guard:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-mfe-hooks:p1
 
 import { createContext, useContext } from 'react';
-import type { ChildMfeBridge } from '@hai3/framework';
+import type { ChildMfeBridge } from '@cyberfabric/framework';
 
 // ============================================================================
 // Context Value Types
@@ -46,9 +46,9 @@ export const MfeContext = createContext<MfeContextValue | null>(null);
  *
  * @returns The MFE context value
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-use-mfe-context
-// @cpt-begin:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
-// @cpt-begin:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-use-mfe-context
+// @cpt-begin:cpt-frontx-flow-react-bindings-mfe-provider:p1:inst-use-mfe-context
+// @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
+// @cpt-begin:cpt-frontx-dod-react-bindings-mfe-hooks:p1:inst-use-mfe-context
 export function useMfeContext(): MfeContextValue {
   const context = useContext(MfeContext);
 
@@ -61,6 +61,6 @@ export function useMfeContext(): MfeContextValue {
 
   return context;
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-mfe-provider:p1:inst-use-mfe-context
-// @cpt-end:cpt-hai3-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
-// @cpt-end:cpt-hai3-dod-react-bindings-mfe-hooks:p1:inst-use-mfe-context
+// @cpt-end:cpt-frontx-flow-react-bindings-mfe-provider:p1:inst-use-mfe-context
+// @cpt-end:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-mfe-context
+// @cpt-end:cpt-frontx-dod-react-bindings-mfe-hooks:p1:inst-use-mfe-context

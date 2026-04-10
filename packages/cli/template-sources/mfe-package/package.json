@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/{{mfeName}}-mfe",
+  "name": "@cyberfabric/{{mfeName}}-mfe",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0-alpha.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port {{port}}",
@@ -11,8 +11,8 @@
   "dependencies": {
     "react": "19.2.4",
     "react-dom": "19.2.4",
-    "@hai3/react": "file:../../../packages/react",
-    "@hai3/state": "file:../../../packages/state",
+    "@cyberfabric/react": "file:../../../packages/react",
+    "@cyberfabric/state": "file:../../../packages/state",
     "tailwindcss": "^3.4.17"
   },
   "devDependencies": {

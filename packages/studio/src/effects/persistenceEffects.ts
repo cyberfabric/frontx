@@ -1,5 +1,5 @@
-// @cpt-algo:cpt-hai3-algo-studio-devtools-persistence-init:p1
-import { eventBus } from '@hai3/react';
+// @cpt-algo:cpt-frontx-algo-studio-devtools-persistence-init:p1
+import { eventBus } from '@cyberfabric/react';
 import { StudioEvents } from '../events/studioEvents';
 import { saveStudioState } from '../utils/persistence';
 import { STORAGE_KEYS } from '../types';
@@ -14,7 +14,7 @@ import { STORAGE_KEYS } from '../types';
  * Initialize all persistence effects
  * Call this once when Studio mounts
  */
-// @cpt-begin:cpt-hai3-algo-studio-devtools-persistence-init:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-studio-devtools-persistence-init:p1:inst-1
 export const initPersistenceEffects = (): (() => void) => {
   // Position changed listener
   const positionSubscription = eventBus.on(
@@ -74,4 +74,4 @@ export const initPersistenceEffects = (): (() => void) => {
     activePackageSubscription.unsubscribe();
   };
 };
-// @cpt-end:cpt-hai3-algo-studio-devtools-persistence-init:p1:inst-1
+// @cpt-end:cpt-frontx-algo-studio-devtools-persistence-init:p1:inst-1

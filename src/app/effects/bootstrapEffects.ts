@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-hai3-flow-framework-composition-app-bootstrap:p1
+// @cpt-flow:cpt-frontx-flow-framework-composition-app-bootstrap:p1
 
 /**
  * Bootstrap Effects
@@ -7,14 +7,14 @@
  * Following flux architecture: Listen to events from actions, dispatch to slices.
  */
 
-import { trim } from 'lodash';
-import { eventBus, setUser, setHeaderLoading, apiRegistry, type AppDispatch, type HeaderUser } from '@hai3/react';
+import trim from 'lodash/trim';
+import { eventBus, setUser, setHeaderLoading, apiRegistry, type AppDispatch, type HeaderUser } from '@cyberfabric/react';
 import { AccountsApiService, type ApiUser } from '@/app/api';
 
 /**
  * Convert API user to header user info
  */
-// @cpt-begin:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1
 function toHeaderUser(user: ApiUser): HeaderUser {
   const displayName = trim(`${user.firstName || ''} ${user.lastName || ''}`);
   return {
@@ -59,4 +59,4 @@ export function registerBootstrapEffects(appDispatch: AppDispatch): void {
     dispatch(setUser(toHeaderUser(user)));
   });
 }
-// @cpt-end:cpt-hai3-flow-framework-composition-app-bootstrap:p1:inst-1
+// @cpt-end:cpt-frontx-flow-framework-composition-app-bootstrap:p1:inst-1

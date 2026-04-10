@@ -127,9 +127,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.sidebar.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -153,8 +153,8 @@ describe('Domain Registration', () => {
 
       const domainState = registry.getDomainState(sidebarDomain.id);
       expect(domainState).toBeDefined();
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
 
     it('should successfully register screen domain (load_ext only)', () => {
@@ -162,8 +162,8 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.screen.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           // Note: NO unmount_ext for screen domain (swap semantics)
         ],
         extensionsActions: [],
@@ -188,8 +188,8 @@ describe('Domain Registration', () => {
 
       const domainState = registry.getDomainState(screenDomain.id);
       expect(domainState).toBeDefined();
-      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(domainState?.domain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(domainState?.domain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(domainState?.domain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
 
     it('should successfully register popup domain', () => {
@@ -197,9 +197,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.popup.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,
@@ -227,9 +227,9 @@ describe('Domain Registration', () => {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.screensets.layout.overlay.v1',
         sharedProperties: [],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 5000,

@@ -24,7 +24,7 @@ date: 2026-02-03
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-react-19-ref-as-prop`
+**ID**: `cpt-frontx-adr-react-19-ref-as-prop`
 ## Context and Problem Statement
 
 React 19 introduces ref as a regular prop, deprecating `forwardRef`. App-owned UI components may have `forwardRef` declarations that need updating. A big-bang migration risks a high failure rate and difficult rollback. The upgrade also brings other breaking changes: string refs removed and implicit children type changes.
@@ -91,5 +91,5 @@ All app-owned UI components accept ref as a prop without a `forwardRef` wrapper.
 
 This decision directly addresses:
 
-* `cpt-hai3-nfr-compat-react` — React 19 compatibility requirement
-* `cpt-hai3-component-react` — React package peer dependency declarations
+* `cpt-frontx-nfr-compat-react` — React 19 compatibility requirement
+* `cpt-frontx-component-react` — React package peer dependency declarations

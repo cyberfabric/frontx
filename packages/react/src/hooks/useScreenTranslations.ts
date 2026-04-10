@@ -3,13 +3,13 @@
  *
  * React Layer: L3
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-use-screen-translations:p1
-// @cpt-algo:cpt-hai3-algo-react-bindings-load-screen-translations:p1
-// @cpt-state:cpt-hai3-state-react-bindings-screen-translation:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-screen-translation-hook:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-use-screen-translations:p1
+// @cpt-algo:cpt-frontx-algo-react-bindings-load-screen-translations:p1
+// @cpt-state:cpt-frontx-state-react-bindings-screen-translation:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-screen-translation-hook:p1
 
 import { useState, useEffect, useMemo, useCallback, useSyncExternalStore } from 'react';
-import type { TranslationMap, TranslationLoader } from '@hai3/framework';
+import type { TranslationMap, TranslationLoader } from '@cyberfabric/framework';
 import { useHAI3 } from '../HAI3Context';
 import type { UseScreenTranslationsReturn } from '../types';
 
@@ -65,8 +65,8 @@ function isTranslationLoader(
  * };
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-call-screen-translations
-// @cpt-begin:cpt-hai3-dod-react-bindings-screen-translation-hook:p1:inst-call-screen-translations
+// @cpt-begin:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-call-screen-translations
+// @cpt-begin:cpt-frontx-dod-react-bindings-screen-translation-hook:p1:inst-call-screen-translations
 export function useScreenTranslations(
   screensetId: string,
   screenId: string,
@@ -76,21 +76,21 @@ export function useScreenTranslations(
   const { i18nRegistry } = app;
 
   // Track loading state per language to handle language changes
-  // @cpt-begin:cpt-hai3-state-react-bindings-screen-translation:p1:inst-begin-load
-  // @cpt-begin:cpt-hai3-state-react-bindings-screen-translation:p1:inst-load-success
-  // @cpt-begin:cpt-hai3-state-react-bindings-screen-translation:p1:inst-load-error
-  // @cpt-begin:cpt-hai3-state-react-bindings-screen-translation:p1:inst-reload-on-lang-change
-  // @cpt-begin:cpt-hai3-state-react-bindings-screen-translation:p2:inst-retry-on-lang-change
+  // @cpt-begin:cpt-frontx-state-react-bindings-screen-translation:p1:inst-begin-load
+  // @cpt-begin:cpt-frontx-state-react-bindings-screen-translation:p1:inst-load-success
+  // @cpt-begin:cpt-frontx-state-react-bindings-screen-translation:p1:inst-load-error
+  // @cpt-begin:cpt-frontx-state-react-bindings-screen-translation:p1:inst-reload-on-lang-change
+  // @cpt-begin:cpt-frontx-state-react-bindings-screen-translation:p2:inst-retry-on-lang-change
   const [loadedLanguage, setLoadedLanguage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
-  // @cpt-end:cpt-hai3-state-react-bindings-screen-translation:p1:inst-begin-load
-  // @cpt-end:cpt-hai3-state-react-bindings-screen-translation:p1:inst-load-success
-  // @cpt-end:cpt-hai3-state-react-bindings-screen-translation:p1:inst-load-error
-  // @cpt-end:cpt-hai3-state-react-bindings-screen-translation:p1:inst-reload-on-lang-change
-  // @cpt-end:cpt-hai3-state-react-bindings-screen-translation:p2:inst-retry-on-lang-change
+  // @cpt-end:cpt-frontx-state-react-bindings-screen-translation:p1:inst-begin-load
+  // @cpt-end:cpt-frontx-state-react-bindings-screen-translation:p1:inst-load-success
+  // @cpt-end:cpt-frontx-state-react-bindings-screen-translation:p1:inst-load-error
+  // @cpt-end:cpt-frontx-state-react-bindings-screen-translation:p1:inst-reload-on-lang-change
+  // @cpt-end:cpt-frontx-state-react-bindings-screen-translation:p2:inst-retry-on-lang-change
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-subscribe-lang-change
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-subscribe-lang-change
   // Subscribe to translation changes using useSyncExternalStore
   // This ensures we reload when language changes
   const version = useSyncExternalStore(
@@ -101,18 +101,18 @@ export function useScreenTranslations(
     () => i18nRegistry.getVersion(),
     () => i18nRegistry.getVersion()
   );
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-subscribe-lang-change
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-subscribe-lang-change
 
-  // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-get-current-lang
+  // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-get-current-lang
   // Get current language (changes when version changes)
   // version is used to trigger recalculation when translations change
   const currentLanguage = useMemo(() => {
     void version; // Trigger recalculation when version changes
     return i18nRegistry.getLanguage();
   }, [i18nRegistry, version]);
-  // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-get-current-lang
+  // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-get-current-lang
 
-  // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-resolve-loader
+  // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-resolve-loader
   // Create a TranslationLoader function from the translation map or use directly if already a loader
   const loader: TranslationLoader = useMemo(() => {
     if (isTranslationLoader(translations)) {
@@ -131,16 +131,16 @@ export function useScreenTranslations(
       return module.default;
     };
   }, [translations]);
-  // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-resolve-loader
+  // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-resolve-loader
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-run-load-screen-translations
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-run-load-screen-translations
   useEffect(() => {
-    // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-skip-if-loaded
+    // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-skip-if-loaded
     // Skip if no language or already loaded for this language
     if (!currentLanguage || currentLanguage === loadedLanguage) {
       return;
     }
-    // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-skip-if-loaded
+    // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-skip-if-loaded
 
     let cancelled = false;
     setIsLoading(true);
@@ -149,56 +149,56 @@ export function useScreenTranslations(
       try {
         const namespace = `screen.${screensetId}.${screenId}`;
 
-        // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-register-loader
+        // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-register-loader
         // Register the loader for future language changes
         i18nRegistry.registerLoader(namespace, loader);
-        // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-register-loader
+        // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-register-loader
 
-        // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-call-loader
+        // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-call-loader
         // Actually load the translations for current language
         const loadedTranslations = await loader(currentLanguage);
-        // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-call-loader
+        // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-call-loader
 
-        // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-register-translations
+        // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-register-translations
         i18nRegistry.register(namespace, currentLanguage, loadedTranslations);
-        // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-register-translations
+        // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-register-translations
 
-        // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-cancel-on-unmount
+        // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-cancel-on-unmount
         if (!cancelled) {
           setLoadedLanguage(currentLanguage);
           setIsLoading(false);
           setError(null);
         }
-        // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-cancel-on-unmount
+        // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-cancel-on-unmount
       } catch (err) {
-        // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-handle-load-error
+        // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-handle-load-error
         if (!cancelled) {
           setError(err instanceof Error ? err : new Error(String(err)));
           setIsLoading(false);
         }
-        // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-handle-load-error
+        // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-handle-load-error
       }
     };
 
     loadTranslations();
 
-    // @cpt-begin:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-cancel-stale-load
+    // @cpt-begin:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-cancel-stale-load
     return () => {
       cancelled = true;
     };
-    // @cpt-end:cpt-hai3-algo-react-bindings-load-screen-translations:p1:inst-cancel-stale-load
+    // @cpt-end:cpt-frontx-algo-react-bindings-load-screen-translations:p1:inst-cancel-stale-load
   }, [screensetId, screenId, loader, i18nRegistry, currentLanguage, loadedLanguage]);
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-run-load-screen-translations
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-run-load-screen-translations
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-return-loading-state
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-return-loading-state
   // Derive isLoaded from whether we've loaded translations for the current language
   const isLoaded = currentLanguage !== null && currentLanguage === loadedLanguage && !isLoading;
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-gate-render
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-gate-render
   // isLoaded is the gate value: consumers must check this before rendering translation-dependent UI
   return { isLoaded, error };
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-gate-render
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-return-loading-state
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-gate-render
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-return-loading-state
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-screen-translations:p1:inst-call-screen-translations
-// @cpt-end:cpt-hai3-dod-react-bindings-screen-translation-hook:p1:inst-call-screen-translations
+// @cpt-end:cpt-frontx-flow-react-bindings-use-screen-translations:p1:inst-call-screen-translations
+// @cpt-end:cpt-frontx-dod-react-bindings-screen-translation-hook:p1:inst-call-screen-translations

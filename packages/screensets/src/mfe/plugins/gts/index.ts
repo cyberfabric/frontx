@@ -27,7 +27,7 @@ import type {
   ValidationResult,
   JSONSchema,
 } from '../types';
-import { loadSchemas, loadLifecycleStages, loadBaseActions } from '../../gts/loader';
+import { loadSchemas, loadLifecycleStages } from '../../gts/loader';
 
 /**
  * Concrete GTS plugin class implementing TypeSystemPlugin.
@@ -50,8 +50,9 @@ export class GtsPlugin implements TypeSystemPlugin {
   constructor() {
     this.gtsStore = new GtsStore();
 
-    // Load and register all first-class citizen schemas from JSON files (13 schemas)
-    // These schemas are stored in packages/screensets/src/mfe/gts/hai3.mfe/schemas/
+    // Load and register all first-class citizen schemas from JSON files
+    // 13 schemas total: 8 core + 2 MF-specific + 3 extension action schemas
+    // These schemas are stored in packages/screensets/src/mfe/gts/hai3.mfes/schemas/
     const schemas = loadSchemas();
     for (const schema of schemas) {
       const entity: JsonEntity = createJsonEntity(schema);
@@ -66,12 +67,14 @@ export class GtsPlugin implements TypeSystemPlugin {
       this.gtsStore.register(entity);
     }
 
-    // Load and register base action instances from JSON files (3 instances)
-    // These instances are stored in packages/screensets/src/mfe/gts/hai3.mfe/instances/ext/
-    const baseActions = loadBaseActions();
-    for (const action of baseActions) {
-      const entity: JsonEntity = createJsonEntity(action);
-      this.gtsStore.register(entity);
+    // Validate all registered lifecycle stage instances against their schemas
+    for (const instance of lifecycleStages) {
+      const result = this.gtsStore.validateInstance(instance.id);
+      if (!result.ok || !result.valid) {
+        throw new Error(
+          `GTS validation failed for lifecycle stage '${instance.id}': ${result.error ?? 'invalid'}`
+        );
+      }
     }
 
   }
@@ -146,7 +149,7 @@ export class GtsPlugin implements TypeSystemPlugin {
  *
  * @example
  * ```typescript
- * import { gtsPlugin, screensetsRegistryFactory } from '@hai3/screensets';
+ * import { gtsPlugin, screensetsRegistryFactory } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });

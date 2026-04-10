@@ -1,5 +1,5 @@
 import React from 'react';
-import type { ChildMfeBridge } from '@hai3/react';
+import type { ChildMfeBridge } from '@cyberfabric/react';
 import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
 import { HelloWorldScreen } from './screens/helloworld/HelloWorldScreen';
 

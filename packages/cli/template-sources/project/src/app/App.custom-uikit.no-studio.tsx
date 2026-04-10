@@ -1,13 +1,13 @@
 /**
- * HAI3 Application Component (custom UI kit, no Studio)
+ * FrontX Application Component (custom UI kit, no Studio)
  *
- * Syncs HAI3 theme changes to the library's imperative theme API.
+ * Syncs FrontX theme changes to the library's imperative theme API.
  * Placeholders in this template are replaced by the project generator
  * with bridge-specific code for the configured UI library.
  */
 
 import { useEffect } from 'react';
-import { useTheme } from '@hai3/react';
+import { useTheme } from '@cyberfabric/react';
 import { Layout } from '@/app/layout';
 import { MfeScreenContainer } from '@/app/mfe/MfeScreenContainer';
 __LIBRARY_SYNC_IMPORT__

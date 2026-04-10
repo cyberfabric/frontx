@@ -9,86 +9,86 @@
   - [1.3 Actors](#13-actors)
   - [1.4 References](#14-references)
 - [2. Actor Flows (CDSL)](#2-actor-flows-cdsl)
-  - [Flow 1 — Developer Defines and Registers a Domain Service](#flow-1-developer-defines-and-registers-a-domain-service)
-  - [Flow 2 — REST Request with Plugin Chain Execution](#flow-2-rest-request-with-plugin-chain-execution)
-  - [Flow 3 — SSE Connection Lifecycle](#flow-3-sse-connection-lifecycle)
-  - [Flow 4 — SSE Disconnection](#flow-4-sse-disconnection)
-  - [Flow 5 — Mock Plugin Registration and Activation by Framework](#flow-5-mock-plugin-registration-and-activation-by-framework)
-  - [Flow 6 — Global Plugin Registration via apiRegistry.plugins](#flow-6-global-plugin-registration-via-apiregistryplugins)
-  - [Flow 7 — Service-Level Plugin Exclusion](#flow-7-service-level-plugin-exclusion)
-  - [Flow 8 — Service Cleanup](#flow-8-service-cleanup)
-- [3. Processes / Business Logic (CDSL)](#3-processes-business-logic-cdsl)
-  - [Algorithm 1 — REST Plugin Chain Execution (onRequest)](#algorithm-1-rest-plugin-chain-execution-onrequest)
-  - [Algorithm 2 — REST Plugin Chain Execution (onResponse / onError)](#algorithm-2-rest-plugin-chain-execution-onresponse-onerror)
-  - [Algorithm 3 — SSE Plugin Chain Execution (onConnect)](#algorithm-3-sse-plugin-chain-execution-onconnect)
-  - [Algorithm 4 — Mock Factory Matching (RestMockPlugin)](#algorithm-4-mock-factory-matching-restmockplugin)
-  - [Algorithm 5 — Mock Stream Matching (SseMockPlugin)](#algorithm-5-mock-stream-matching-ssemockplugin)
-  - [Algorithm 6 — MockEventSource Event Emission](#algorithm-6-mockeventsource-event-emission)
-  - [Algorithm 7 — isMockPlugin Type Guard](#algorithm-7-ismockplugin-type-guard)
-  - [Algorithm 8 — Protocol Plugin Ordering](#algorithm-8-protocol-plugin-ordering)
+  - [Flow 1 — Developer Defines and Registers a Domain Service](#flow-1--developer-defines-and-registers-a-domain-service)
+  - [Flow 2 — REST Request with Plugin Chain Execution](#flow-2--rest-request-with-plugin-chain-execution)
+  - [Flow 3 — SSE Connection Lifecycle](#flow-3--sse-connection-lifecycle)
+  - [Flow 4 — SSE Disconnection](#flow-4--sse-disconnection)
+  - [Flow 5 — Mock Plugin Registration and Activation by Framework](#flow-5--mock-plugin-registration-and-activation-by-framework)
+  - [Flow 6 — Global Plugin Registration via apiRegistry.plugins](#flow-6--global-plugin-registration-via-apiregistryplugins)
+  - [Flow 7 — Service-Level Plugin Exclusion](#flow-7--service-level-plugin-exclusion)
+  - [Flow 8 — Service Cleanup](#flow-8--service-cleanup)
+- [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
+  - [Algorithm 1 — REST Plugin Chain Execution (onRequest)](#algorithm-1--rest-plugin-chain-execution-onrequest)
+  - [Algorithm 2 — REST Plugin Chain Execution (onResponse / onError)](#algorithm-2--rest-plugin-chain-execution-onresponse--onerror)
+  - [Algorithm 3 — SSE Plugin Chain Execution (onConnect)](#algorithm-3--sse-plugin-chain-execution-onconnect)
+  - [Algorithm 4 — Mock Factory Matching (RestMockPlugin)](#algorithm-4--mock-factory-matching-restmockplugin)
+  - [Algorithm 5 — Mock Stream Matching (SseMockPlugin)](#algorithm-5--mock-stream-matching-ssemockplugin)
+  - [Algorithm 6 — MockEventSource Event Emission](#algorithm-6--mockeventsource-event-emission)
+  - [Algorithm 7 — isMockPlugin Type Guard](#algorithm-7--ismockplugin-type-guard)
+  - [Algorithm 8 — Protocol Plugin Ordering](#algorithm-8--protocol-plugin-ordering)
 - [4. States (CDSL)](#4-states-cdsl)
-  - [State 1 — REST Connection State](#state-1-rest-connection-state)
-  - [State 2 — SSE Connection State](#state-2-sse-connection-state)
-  - [State 3 — MockEventSource Lifecycle](#state-3-mockeventsource-lifecycle)
-  - [State 4 — Mock Mode Toggle State](#state-4-mock-mode-toggle-state)
+  - [State 1 — REST Connection State](#state-1--rest-connection-state)
+  - [State 2 — SSE Connection State](#state-2--sse-connection-state)
+  - [State 3 — MockEventSource Lifecycle](#state-3--mockeventsource-lifecycle)
+  - [State 4 — Mock Mode Toggle State](#state-4--mock-mode-toggle-state)
 - [5. Definitions of Done](#5-definitions-of-done)
-  - [DoD 1 — BaseApiService and Protocol Registry](#dod-1-baseapiservice-and-protocol-registry)
-  - [DoD 2 — RestProtocol](#dod-2-restprotocol)
-  - [DoD 3 — SseProtocol](#dod-3-sseprotocol)
-  - [DoD 4 — RestMockPlugin](#dod-4-restmockplugin)
-  - [DoD 5 — SseMockPlugin and MockEventSource](#dod-5-ssemockplugin-and-mockeventsource)
-  - [DoD 6 — ApiRegistry](#dod-6-apiregistry)
-  - [DoD 7 — Plugin Type System and Type Guards](#dod-7-plugin-type-system-and-type-guards)
-  - [DoD 8 — Package Public API Surface](#dod-8-package-public-api-surface)
+  - [DoD 1 — BaseApiService and Protocol Registry](#dod-1--baseapiservice-and-protocol-registry)
+  - [DoD 2 — RestProtocol](#dod-2--restprotocol)
+  - [DoD 3 — SseProtocol](#dod-3--sseprotocol)
+  - [DoD 4 — RestMockPlugin](#dod-4--restmockplugin)
+  - [DoD 5 — SseMockPlugin and MockEventSource](#dod-5--ssemockplugin-and-mockeventsource)
+  - [DoD 6 — ApiRegistry](#dod-6--apiregistry)
+  - [DoD 7 — Plugin Type System and Type Guards](#dod-7--plugin-type-system-and-type-guards)
+  - [DoD 8 — Package Public API Surface](#dod-8--package-public-api-surface)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
   - [Plugin Execution Order Convention](#plugin-execution-order-convention)
   - [Full URL vs Relative URL Split](#full-url-vs-relative-url-split)
   - [MOCK_PLUGIN Symbol Identity](#mockplugin-symbol-identity)
-  - [No Mock State in @hai3/api](#no-mock-state-in-hai3api)
+  - [No Mock State in @cyberfabric/api](#no-mock-state-in-cyberfabricapi)
   - [MockEventSource Abort Safety](#mockeventsource-abort-safety)
 
 <!-- /toc -->
 
-- [x] `p1` - **ID**: `cpt-hai3-featstatus-api-communication`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-api-communication`
 
-- [x] `p2` - `cpt-hai3-feature-api-communication`
+- [x] `p2` - `cpt-frontx-feature-api-communication`
 ---
 
 ## 1. Feature Context
 
 ### 1.1 Overview
 
-Provides the unified API service layer for the HAI3 system. Abstracts REST and SSE transport protocols behind a consistent interface that isolates domain code from wire-level concerns. Consumers extend `BaseApiService`, register protocol instances, and add plugins without touching protocol internals.
+Provides the unified API service layer for the FrontX system. Abstracts REST and SSE transport protocols behind a consistent interface that isolates domain code from wire-level concerns. Consumers extend `BaseApiService`, register protocol instances, and add plugins without touching protocol internals.
 
 Problem: API services scattered across screen-sets couple domain code to specific transports; mock logic bleeds into business logic; no centralized mechanism to switch between real and mock responses at runtime.
 
-Primary value: A single, extensible SDK package that any domain plugin can use to define typed API services with pluggable mock, retry, and cross-cutting concerns — without any `@hai3/*` inter-dependencies.
+Primary value: A single, extensible SDK package that any domain plugin can use to define typed API services with pluggable mock, retry, and cross-cutting concerns — without any `@cyberfabric/*` inter-dependencies.
 
 Key assumptions: Consumers run in a browser environment that provides `EventSource`. Axios is the sole external peer dependency. Mock mode is controlled by the framework layer, not by service code.
 
 ### 1.2 Purpose
 
-Enable developers to define domain API services in a protocol-agnostic way, wire cross-cutting plugins (auth, logging, mocking, retry) at both global and service-instance levels, and switch between real and mock transports at runtime through a centralized toggle — all with zero coupling to other `@hai3/*` packages.
+Enable developers to define domain API services in a protocol-agnostic way, wire cross-cutting plugins (auth, logging, mocking, retry) at both global and service-instance levels, and switch between real and mock transports at runtime through a centralized toggle — all with zero coupling to other `@cyberfabric/*` packages.
 
 Success criteria: A developer can scaffold a new domain service, register it, add a mock plugin, and toggle mock mode without modifying any protocol or registry internals.
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-developer`
-- `cpt-hai3-actor-screenset-author`
-- `cpt-hai3-actor-api-protocol`
-- `cpt-hai3-actor-studio-user`
-- `cpt-hai3-actor-host-app`
-- `cpt-hai3-actor-runtime`
-- `cpt-hai3-actor-framework-plugin`
+- `cpt-frontx-actor-developer`
+- `cpt-frontx-actor-screenset-author`
+- `cpt-frontx-actor-api-protocol`
+- `cpt-frontx-actor-studio-user`
+- `cpt-frontx-actor-host-app`
+- `cpt-frontx-actor-runtime`
+- `cpt-frontx-actor-framework-plugin`
 
 ### 1.4 References
 
 - Overall Design: [DESIGN.md](../../DESIGN.md)
 - Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — section 2.4
 - PRD: [PRD.md](../../PRD.md) — sections 5.1 (API Package), 5.3 (SSE Streaming), 5.17 (Mock Mode), NFR section (API Retry)
-- ADRs: `cpt-hai3-adr-protocol-separated-api-architecture`, `cpt-hai3-adr-symbol-based-mock-plugin-identification`
+- ADRs: `cpt-frontx-adr-protocol-separated-api-architecture`, `cpt-frontx-adr-symbol-based-mock-plugin-identification`
 
 ---
 
@@ -96,9 +96,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 1 — Developer Defines and Registers a Domain Service
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-service-registration`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-service-registration`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-host-app`
 
 1. [x] `p1` - Developer declares a class extending `BaseApiService` — `inst-extend-base`
 2. [x] `p1` - Constructor calls `super({ baseURL }, ...protocols)` with at least one protocol instance — `inst-super-call`
@@ -112,9 +112,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 2 — REST Request with Plugin Chain Execution
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-rest-request`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-rest-request`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-api-protocol`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-api-protocol`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Domain code calls a service method (e.g., `get`, `post`, `put`, `patch`, `delete`) — `inst-domain-call`
 2. [x] `p1` - `RestProtocol` constructs `RestRequestContext` with method, full URL (baseURL + relative), headers, and body — `inst-build-context`
@@ -133,9 +133,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 3 — SSE Connection Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-sse-connection`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-sse-connection`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-api-protocol`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-api-protocol`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Domain code calls `this.protocol(SseProtocol).connect(url, onMessage, onComplete)` — `inst-sse-connect-call`
 2. [x] `p1` - `SseProtocol` generates a unique connection ID — `inst-gen-connection-id`
@@ -153,9 +153,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 4 — SSE Disconnection
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-sse-disconnect`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-sse-disconnect`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Domain code calls `this.protocol(SseProtocol).disconnect(connectionId)` — `inst-disconnect-call`
 2. [x] `p1` - IF connection exists in the map, call `close()` on the `EventSource` — `inst-close-connection`
@@ -166,9 +166,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 5 — Mock Plugin Registration and Activation by Framework
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-api-communication-mock-activation`
+- [x] `p2` - **ID**: `cpt-frontx-flow-api-communication-mock-activation`
 
-**Actors**: `cpt-hai3-actor-framework-plugin`, `cpt-hai3-actor-studio-user`, `cpt-hai3-actor-developer`
+**Actors**: `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-studio-user`, `cpt-frontx-actor-developer`
 
 1. [x] `p2` - Service constructor registers a `RestMockPlugin` or `SseMockPlugin` via `this.registerPlugin(protocol, mockPlugin)` — `inst-service-register-mock`
 2. [x] `p2` - Framework (or Studio user) triggers `toggleMockMode(true)` action — `inst-toggle-mock-on`
@@ -182,9 +182,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 6 — Global Plugin Registration via apiRegistry.plugins
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-global-plugin`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-global-plugin`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-host-app`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-host-app`
 
 1. [x] `p1` - Developer calls `apiRegistry.plugins.add(ProtocolClass, pluginInstance)` — `inst-global-add`
 2. [x] `p1` - The plugin is stored in the registry's protocol plugin map keyed by `ProtocolClass` — `inst-global-store`
@@ -197,9 +197,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 7 — Service-Level Plugin Exclusion
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-plugin-exclusion`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-plugin-exclusion`
 
-**Actors**: `cpt-hai3-actor-developer`
+**Actors**: `cpt-frontx-actor-developer`
 
 1. [x] `p1` - Developer calls `service.plugins.exclude(PluginClass)` in the service constructor — `inst-exclude-call`
 2. [x] `p1` - The protocol's `getGlobalPlugins()` queries `getExcludedClasses()` from the service — `inst-query-excluded`
@@ -210,9 +210,9 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Flow 8 — Service Cleanup
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-api-communication-service-cleanup`
+- [x] `p1` - **ID**: `cpt-frontx-flow-api-communication-service-cleanup`
 
-**Actors**: `cpt-hai3-actor-framework-plugin`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Framework or registry calls `service.cleanup()` — `inst-cleanup-call`
 2. [x] `p1` - FOR EACH registered protocol, call `protocol.cleanup()` — `inst-protocol-cleanup`
@@ -226,7 +226,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 1 — REST Plugin Chain Execution (onRequest)
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-api-communication-rest-plugin-chain-request`
+- [x] `p1` - **ID**: `cpt-frontx-algo-api-communication-rest-plugin-chain-request`
 
 1. [x] `p1` - Start with `currentContext = requestContext` — `inst-init-context`
 2. [x] `p1` - FOR EACH plugin in `getPluginsInOrder()` (global → instance, FIFO): — `inst-iterate-plugins`
@@ -239,7 +239,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 2 — REST Plugin Chain Execution (onResponse / onError)
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-api-communication-rest-plugin-chain-response`
+- [x] `p1` - **ID**: `cpt-frontx-algo-api-communication-rest-plugin-chain-response`
 
 **onResponse (LIFO)**:
 
@@ -260,7 +260,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 3 — SSE Plugin Chain Execution (onConnect)
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-api-communication-sse-plugin-chain`
+- [x] `p1` - **ID**: `cpt-frontx-algo-api-communication-sse-plugin-chain`
 
 1. [x] `p1` - Start with `currentContext = { url: fullUrl, headers: {} }` — `inst-init-sse-context`
 2. [x] `p1` - FOR EACH plugin in `getPluginsInOrder()` (global → instance, FIFO): — `inst-sse-iterate-plugins`
@@ -273,7 +273,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 4 — Mock Factory Matching (RestMockPlugin)
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-api-communication-mock-factory-match`
+- [x] `p2` - **ID**: `cpt-frontx-algo-api-communication-mock-factory-match`
 
 1. [x] `p2` - Build key string as `"METHOD /full/url"` from `RestRequestContext` — `inst-build-key`
 2. [x] `p2` - Try exact key match in `currentMockMap` — `inst-exact-match`
@@ -287,7 +287,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 5 — Mock Stream Matching (SseMockPlugin)
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-api-communication-sse-mock-match`
+- [x] `p2` - **ID**: `cpt-frontx-algo-api-communication-sse-mock-match`
 
 1. [x] `p2` - Try exact URL match in `currentMockStreams` — `inst-sse-exact-match`
 2. [x] `p2` - IF exact match found, RETURN the corresponding events array — `inst-sse-return-exact`
@@ -300,7 +300,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 6 — MockEventSource Event Emission
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-api-communication-mock-event-source`
+- [x] `p2` - **ID**: `cpt-frontx-algo-api-communication-mock-event-source`
 
 1. [x] `p2` - On construction, start `startEmitting()` asynchronously — `inst-start-emitting`
 2. [x] `p2` - Set `readyState = 1` (OPEN) and emit `open` event — `inst-open-state`
@@ -317,7 +317,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 7 — isMockPlugin Type Guard
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-api-communication-is-mock-plugin`
+- [x] `p2` - **ID**: `cpt-frontx-algo-api-communication-is-mock-plugin`
 
 1. [x] `p2` - IF `plugin` is `null`, `undefined`, or not an object, RETURN `false` — `inst-null-check`
 2. [x] `p2` - Read the plugin's `constructor` reference — `inst-get-constructor`
@@ -328,7 +328,7 @@ Success criteria: A developer can scaffold a new domain service, register it, ad
 
 ### Algorithm 8 — Protocol Plugin Ordering
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-api-communication-plugin-ordering`
+- [x] `p1` - **ID**: `cpt-frontx-algo-api-communication-plugin-ordering`
 
 This algorithm governs how both `RestProtocol` and `SseProtocol` build their execution order at call time (not at registration time, so that global plugin mutations are reflected immediately).
 
@@ -345,7 +345,7 @@ This algorithm governs how both `RestProtocol` and `SseProtocol` build their exe
 
 ### State 1 — REST Connection State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-api-communication-rest-connection`
+- [x] `p1` - **ID**: `cpt-frontx-state-api-communication-rest-connection`
 
 The Axios client on a `RestProtocol` instance transitions through three states during its lifecycle.
 
@@ -358,7 +358,7 @@ The Axios client on a `RestProtocol` instance transitions through three states d
 
 ### State 2 — SSE Connection State
 
-- [x] `p1` - **ID**: `cpt-hai3-state-api-communication-sse-connection`
+- [x] `p1` - **ID**: `cpt-frontx-state-api-communication-sse-connection`
 
 Each individual SSE connection tracks its own lifecycle, independent of other connections on the same `SseProtocol` instance.
 
@@ -372,7 +372,7 @@ Each individual SSE connection tracks its own lifecycle, independent of other co
 
 ### State 3 — MockEventSource Lifecycle
 
-- [x] `p2` - **ID**: `cpt-hai3-state-api-communication-mock-event-source`
+- [x] `p2` - **ID**: `cpt-frontx-state-api-communication-mock-event-source`
 
 Mirrors the `EventSource` `readyState` spec values for compatibility.
 
@@ -386,9 +386,9 @@ Mirrors the `EventSource` `readyState` spec values for compatibility.
 
 ### State 4 — Mock Mode Toggle State
 
-- [x] `p2` - **ID**: `cpt-hai3-state-api-communication-mock-mode`
+- [x] `p2` - **ID**: `cpt-frontx-state-api-communication-mock-mode`
 
-Global mock mode state managed by the framework layer, not within `@hai3/api` itself. `@hai3/api` exposes the identification mechanism (`MOCK_PLUGIN` symbol, `isMockPlugin` guard) that the framework uses to act on this state.
+Global mock mode state managed by the framework layer, not within `@cyberfabric/api` itself. `@cyberfabric/api` exposes the identification mechanism (`MOCK_PLUGIN` symbol, `isMockPlugin` guard) that the framework uses to act on this state.
 
 1. [x] `p2` - **FROM** `REAL` **TO** `MOCK` **WHEN** `toggleMockMode(true)` action fires; framework activates all plugins where `isMockPlugin(plugin)` is `true` — `inst-mock-on`
 2. [x] `p2` - **FROM** `MOCK` **TO** `REAL` **WHEN** `toggleMockMode(false)` action fires; framework deactivates all mock plugins — `inst-mock-off`
@@ -400,7 +400,7 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 
 ### DoD 1 — BaseApiService and Protocol Registry
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-base-service`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-base-service`
 
 `BaseApiService` provides the protocol registry, service-level plugin namespace, framework plugin registration, and cleanup contract that all domain services inherit.
 
@@ -416,27 +416,27 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `cleanup()` calls `protocol.cleanup()` on each, clears map
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-service-registration`
-- `cpt-hai3-flow-api-communication-service-cleanup`
-- `cpt-hai3-algo-api-communication-plugin-ordering`
+- `cpt-frontx-flow-api-communication-service-registration`
+- `cpt-frontx-flow-api-communication-service-cleanup`
+- `cpt-frontx-algo-api-communication-plugin-ordering`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-protocol-registry`
-- `cpt-hai3-nfr-rel-api-retry`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-protocol-registry`
+- `cpt-frontx-nfr-rel-api-retry`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-principle-event-driven-architecture`
-- `cpt-hai3-constraint-no-react-below-l3`
-- `cpt-hai3-constraint-zero-cross-deps-at-l1`
-- `cpt-hai3-constraint-no-package-internals-imports`
-- `cpt-hai3-component-api`
+- `cpt-frontx-principle-event-driven-architecture`
+- `cpt-frontx-constraint-no-react-below-l3`
+- `cpt-frontx-constraint-zero-cross-deps-at-l1`
+- `cpt-frontx-constraint-no-package-internals-imports`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 2 — RestProtocol
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-rest-protocol`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-rest-protocol`
 
 `RestProtocol` wraps Axios with a full plugin chain, supporting request interception, response transformation, error recovery with retry, and short-circuit for mocking.
 
@@ -449,29 +449,29 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - HTTP methods: `get`, `post`, `put`, `patch`, `delete` — all delegate to `requestInternal(method, relativeUrl, data, params, retryCount)`
 - `requestInternal`: builds `ApiRequestContext` with full URL for plugins; sends Axios request with relative URL only; executes `onRequest` → Axios → `onResponse` or `onError` chain
 - `plugins.add/remove/getAll` for instance plugins
-- State: `cpt-hai3-state-api-communication-rest-connection`
+- State: `cpt-frontx-state-api-communication-rest-connection`
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-rest-request`
-- `cpt-hai3-algo-api-communication-rest-plugin-chain-request`
-- `cpt-hai3-algo-api-communication-rest-plugin-chain-response`
-- `cpt-hai3-algo-api-communication-plugin-ordering`
+- `cpt-frontx-flow-api-communication-rest-request`
+- `cpt-frontx-algo-api-communication-rest-plugin-chain-request`
+- `cpt-frontx-algo-api-communication-rest-plugin-chain-response`
+- `cpt-frontx-algo-api-communication-plugin-ordering`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-protocol-registry`
-- `cpt-hai3-nfr-rel-api-retry`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-protocol-registry`
+- `cpt-frontx-nfr-rel-api-retry`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-no-react-below-l3`
-- `cpt-hai3-constraint-zero-cross-deps-at-l1`
-- `cpt-hai3-component-api`
+- `cpt-frontx-constraint-no-react-below-l3`
+- `cpt-frontx-constraint-zero-cross-deps-at-l1`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 3 — SseProtocol
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-sse-protocol`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-sse-protocol`
 
 `SseProtocol` wraps the browser `EventSource` API with async `connect()` and `disconnect()`, a plugin chain for connection interception, and uniform handler attachment for both mock and real connections.
 
@@ -486,29 +486,29 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `cleanup()`: closes all connections, destroys instance plugins
 - `getPluginsInOrder()`: global (filtered) + instance
 - Connection storage: `Map<string, EventSource>` (stores `EventSourceLike` cast)
-- State: `cpt-hai3-state-api-communication-sse-connection`
+- State: `cpt-frontx-state-api-communication-sse-connection`
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-sse-connection`
-- `cpt-hai3-flow-api-communication-sse-disconnect`
-- `cpt-hai3-algo-api-communication-sse-plugin-chain`
-- `cpt-hai3-algo-api-communication-plugin-ordering`
+- `cpt-frontx-flow-api-communication-sse-connection`
+- `cpt-frontx-flow-api-communication-sse-disconnect`
+- `cpt-frontx-algo-api-communication-sse-plugin-chain`
+- `cpt-frontx-algo-api-communication-plugin-ordering`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-protocol`
-- `cpt-hai3-fr-sse-protocol-registry`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-protocol`
+- `cpt-frontx-fr-sse-protocol-registry`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-no-react-below-l3`
-- `cpt-hai3-constraint-zero-cross-deps-at-l1`
-- `cpt-hai3-component-api`
+- `cpt-frontx-constraint-no-react-below-l3`
+- `cpt-frontx-constraint-zero-cross-deps-at-l1`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 4 — RestMockPlugin
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-api-communication-rest-mock-plugin`
+- [x] `p2` - **ID**: `cpt-frontx-dod-api-communication-rest-mock-plugin`
 
 `RestMockPlugin` intercepts REST requests and returns configured mock data via the short-circuit mechanism, without making a real HTTP call.
 
@@ -523,24 +523,24 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `destroy()`: no-op (no resources to release)
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-mock-activation`
-- `cpt-hai3-algo-api-communication-mock-factory-match`
-- `cpt-hai3-algo-api-communication-is-mock-plugin`
+- `cpt-frontx-flow-api-communication-mock-activation`
+- `cpt-frontx-algo-api-communication-mock-factory-match`
+- `cpt-frontx-algo-api-communication-is-mock-plugin`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-mock-mode`
-- `cpt-hai3-fr-mock-toggle`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-mock-mode`
+- `cpt-frontx-fr-mock-toggle`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-adr-symbol-based-mock-plugin-identification`
-- `cpt-hai3-component-api`
+- `cpt-frontx-adr-symbol-based-mock-plugin-identification`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 5 — SseMockPlugin and MockEventSource
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-api-communication-sse-mock-plugin`
+- [x] `p2` - **ID**: `cpt-frontx-dod-api-communication-sse-mock-plugin`
 
 `SseMockPlugin` intercepts SSE connections and returns a `MockEventSource` instance that emits configured events asynchronously, simulating a real SSE stream without a network connection.
 
@@ -554,27 +554,27 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `setMockStreams(map)`: allows dynamic replacement
 - Class: `MockEventSource implements EventSourceLike` in `packages/api/src/mocks/MockEventSource.ts`
 - `MockEventSource`: emits events asynchronously with configurable delay, supports `AbortController` for `close()`, tracks `readyState` (0/1/2), dispatches to `onmessage` and `addEventListener` listeners
-- State: `cpt-hai3-state-api-communication-mock-event-source`
+- State: `cpt-frontx-state-api-communication-mock-event-source`
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-mock-activation`
-- `cpt-hai3-algo-api-communication-sse-mock-match`
-- `cpt-hai3-algo-api-communication-mock-event-source`
+- `cpt-frontx-flow-api-communication-mock-activation`
+- `cpt-frontx-algo-api-communication-sse-mock-match`
+- `cpt-frontx-algo-api-communication-mock-event-source`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-mock-mode`
-- `cpt-hai3-fr-mock-toggle`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-mock-mode`
+- `cpt-frontx-fr-mock-toggle`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-adr-symbol-based-mock-plugin-identification`
-- `cpt-hai3-component-api`
+- `cpt-frontx-adr-symbol-based-mock-plugin-identification`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 6 — ApiRegistry
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-registry`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-registry`
 
 `apiRegistry` is the singleton central registry for all domain API service instances, providing type-safe access, global protocol plugin management, and a clean reset mechanism for testing.
 
@@ -590,24 +590,24 @@ Global mock mode state managed by the framework layer, not within `@hai3/api` it
 - `reset()`: calls `service.cleanup()` on all services, calls `plugin.destroy()` on all protocol plugins, clears all maps (for testing only)
 
 **Implements**:
-- `cpt-hai3-flow-api-communication-service-registration`
-- `cpt-hai3-flow-api-communication-global-plugin`
-- `cpt-hai3-flow-api-communication-mock-activation`
+- `cpt-frontx-flow-api-communication-service-registration`
+- `cpt-frontx-flow-api-communication-global-plugin`
+- `cpt-frontx-flow-api-communication-mock-activation`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-protocol-registry`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-protocol-registry`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-zero-cross-deps-at-l1`
-- `cpt-hai3-constraint-no-package-internals-imports`
-- `cpt-hai3-component-api`
+- `cpt-frontx-constraint-zero-cross-deps-at-l1`
+- `cpt-frontx-constraint-no-package-internals-imports`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 7 — Plugin Type System and Type Guards
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-plugin-types`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-plugin-types`
 
 The type system provides protocol-specific plugin base classes and type guards that enforce correct plugin composition without coupling plugins to each other or to service internals.
 
@@ -624,24 +624,24 @@ The type system provides protocol-specific plugin base classes and type guards t
 - `ApiPluginErrorContext`: includes `error`, `request`, `retryCount`, and `retry(modifiedRequest?)` function
 
 **Implements**:
-- `cpt-hai3-algo-api-communication-is-mock-plugin`
+- `cpt-frontx-algo-api-communication-is-mock-plugin`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sse-type-safe-events`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sse-type-safe-events`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-typescript-strict-mode`
-- `cpt-hai3-adr-symbol-based-mock-plugin-identification`
-- `cpt-hai3-component-api`
+- `cpt-frontx-constraint-typescript-strict-mode`
+- `cpt-frontx-adr-symbol-based-mock-plugin-identification`
+- `cpt-frontx-component-api`
 
 ---
 
 ### DoD 8 — Package Public API Surface
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-api-communication-public-api`
+- [x] `p1` - **ID**: `cpt-frontx-dod-api-communication-public-api`
 
-The `@hai3/api` package exposes a complete, tree-shakeable public surface through `packages/api/src/index.ts` with zero `@hai3/*` dependencies.
+The `@cyberfabric/api` package exposes a complete, tree-shakeable public surface through `packages/api/src/index.ts` with zero `@cyberfabric/*` dependencies.
 
 **Implementation details**:
 
@@ -651,18 +651,18 @@ The `@hai3/api` package exposes a complete, tree-shakeable public surface throug
 - Exports: `MOCK_PLUGIN`, `isMockPlugin`, `isShortCircuit`, `isRestShortCircuit`, `isSseShortCircuit`
 - Type exports: all types from `types.ts` and config interfaces from plugin files
 - Peer dependency: `axios` only
-- No `@hai3/*` entries in `dependencies` or `devDependencies`
+- No `@cyberfabric/*` entries in `dependencies` or `devDependencies`
 
 **Covers (PRD)**:
-- `cpt-hai3-fr-sdk-api-package`
-- `cpt-hai3-fr-sdk-flat-packages`
+- `cpt-frontx-fr-sdk-api-package`
+- `cpt-frontx-fr-sdk-flat-packages`
 
 **Covers (DESIGN)**:
-- `cpt-hai3-constraint-zero-cross-deps-at-l1`
-- `cpt-hai3-constraint-no-package-internals-imports`
-- `cpt-hai3-constraint-esm-first-module-format`
-- `cpt-hai3-constraint-typescript-strict-mode`
-- `cpt-hai3-component-api`
+- `cpt-frontx-constraint-zero-cross-deps-at-l1`
+- `cpt-frontx-constraint-no-package-internals-imports`
+- `cpt-frontx-constraint-esm-first-module-format`
+- `cpt-frontx-constraint-typescript-strict-mode`
+- `cpt-frontx-component-api`
 
 ---
 
@@ -682,7 +682,7 @@ The `@hai3/api` package exposes a complete, tree-shakeable public surface throug
 - [x] `apiRegistry.register` instantiates the service; `getService` returns the typed instance; calling `getService` for an unregistered class throws
 - [x] `apiRegistry.plugins.add` / `remove` / `has` / `getAll` / `clear` operate correctly on the protocol plugin map; `remove` and `clear` call `destroy()` on affected plugins
 - [x] Service-level `plugins.exclude(PluginClass)` prevents excluded global plugin classes from appearing in `getPluginsInOrder()` for that protocol
-- [x] `@hai3/api` `package.json` contains zero `@hai3/*` entries in `dependencies` and `devDependencies`
+- [x] `@cyberfabric/api` `package.json` contains zero `@cyberfabric/*` entries in `dependencies` and `devDependencies`
 - [x] TypeScript strict-mode compilation passes with no `any`, `as unknown as`, or `@ts-ignore` usage in any source file under `packages/api/src/`
 
 ---
@@ -701,9 +701,9 @@ Plugins in `RestProtocol` receive the full URL (`baseURL + relativeUrl`) in `Res
 
 `Symbol.for('hai3:plugin:mock')` is used (not `Symbol()`) so that the symbol is stable across module boundaries and iframe contexts. Any plugin class can be marked as a mock plugin by declaring `static readonly [MOCK_PLUGIN] = true` on its constructor, without inheriting from a specific base class. The `isMockPlugin` guard checks the constructor, not the instance, so subclasses inherit the mark automatically.
 
-### No Mock State in @hai3/api
+### No Mock State in @cyberfabric/api
 
-`@hai3/api` does not track or toggle mock mode state. Mock plugins are plain plugins that intercept requests. Whether they are active is determined purely by whether they are registered in the protocol's plugin chain. The framework layer (`@hai3/framework`) is responsible for activating and deactivating mock plugins in response to `toggleMockMode` events. `@hai3/api` exposes only the identification primitives (`MOCK_PLUGIN`, `isMockPlugin`) that the framework uses to implement this logic.
+`@cyberfabric/api` does not track or toggle mock mode state. Mock plugins are plain plugins that intercept requests. Whether they are active is determined purely by whether they are registered in the protocol's plugin chain. The framework layer (`@cyberfabric/framework`) is responsible for activating and deactivating mock plugins in response to `toggleMockMode` events. `@cyberfabric/api` exposes only the identification primitives (`MOCK_PLUGIN`, `isMockPlugin`) that the framework uses to implement this logic.
 
 ### MockEventSource Abort Safety
 

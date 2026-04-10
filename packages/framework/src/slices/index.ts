@@ -1,12 +1,12 @@
-// @cpt-dod:cpt-hai3-dod-framework-composition-layout:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-layout:p1
 
 /**
  * Layout Slices
  *
- * @hai3/framework owns all layout domain slices.
+ * @cyberfabric/framework owns all layout domain slices.
  * These slices manage header, footer, menu, sidebar, screen, popup, and overlay state.
  *
- * State access: Components use `useAppSelector` hook from @hai3/react.
+ * State access: Components use `useAppSelector` hook from @cyberfabric/react.
  */
 
 import { combineReducers, type Reducer } from '@reduxjs/toolkit';
@@ -102,7 +102,7 @@ export interface LayoutDomainReducersType {
   overlay: Reducer<OverlayState>;
 }
 
-// @cpt-begin:cpt-hai3-dod-framework-composition-layout:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-framework-composition-layout:p1:inst-1
 export const layoutDomainReducers: LayoutDomainReducersType = {
   header: headerReducer,
   footer: footerReducer,
@@ -114,7 +114,7 @@ export const layoutDomainReducers: LayoutDomainReducersType = {
 };
 
 export const layoutReducer = combineReducers(layoutDomainReducers);
-// @cpt-end:cpt-hai3-dod-framework-composition-layout:p1:inst-1
+// @cpt-end:cpt-frontx-dod-framework-composition-layout:p1:inst-1
 
 // ============================================================================
 // Slice Exports

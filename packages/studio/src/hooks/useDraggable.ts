@@ -1,14 +1,14 @@
-// @cpt-algo:cpt-hai3-algo-studio-devtools-clamp-to-viewport:p1
-// @cpt-algo:cpt-hai3-algo-studio-devtools-default-position:p1
-// @cpt-algo:cpt-hai3-algo-studio-devtools-event-routing:p1
-// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-panel:p1
-// @cpt-flow:cpt-hai3-flow-studio-devtools-drag-button:p1
-// @cpt-flow:cpt-hai3-flow-studio-devtools-viewport-clamp:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-viewport-clamping:p1
-// @cpt-state:cpt-hai3-state-studio-devtools-drag:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-clamp-to-viewport:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-default-position:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-event-routing:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-drag-panel:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-drag-button:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-viewport-clamp:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-viewport-clamping:p1
+// @cpt-state:cpt-frontx-state-studio-devtools-drag:p1
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { clamp } from 'lodash';
-import { eventBus } from '@hai3/react';
+import { eventBus } from '@cyberfabric/react';
 import type { Position, Size } from '../types';
 import { loadStudioState } from '../utils/persistence';
 import { STORAGE_KEYS } from '../types';
@@ -16,7 +16,7 @@ import { StudioEvents } from '../events/studioEvents';
 
 const VIEWPORT_MARGIN = 20;
 
-// @cpt-begin:cpt-hai3-algo-studio-devtools-clamp-to-viewport:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-studio-devtools-clamp-to-viewport:p1:inst-1
 function clampToViewport(pos: Position, size: Size): Position {
   const maxX = Math.max(VIEWPORT_MARGIN, window.innerWidth - size.width - VIEWPORT_MARGIN);
   const maxY = Math.max(VIEWPORT_MARGIN, window.innerHeight - size.height - VIEWPORT_MARGIN);
@@ -25,19 +25,19 @@ function clampToViewport(pos: Position, size: Size): Position {
     y: clamp(pos.y, VIEWPORT_MARGIN, maxY),
   };
 }
-// @cpt-end:cpt-hai3-algo-studio-devtools-clamp-to-viewport:p1:inst-1
+// @cpt-end:cpt-frontx-algo-studio-devtools-clamp-to-viewport:p1:inst-1
 
 interface UseDraggableProps {
   panelSize: Size;
   storageKey?: string;
 }
 
-// @cpt-begin:cpt-hai3-algo-studio-devtools-default-position:p1:inst-1
-// @cpt-begin:cpt-hai3-algo-studio-devtools-event-routing:p1:inst-1
-// @cpt-begin:cpt-hai3-flow-studio-devtools-drag-panel:p1:inst-1
-// @cpt-begin:cpt-hai3-flow-studio-devtools-drag-button:p1:inst-1
-// @cpt-begin:cpt-hai3-flow-studio-devtools-viewport-clamp:p1:inst-1
-// @cpt-begin:cpt-hai3-state-studio-devtools-drag:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-studio-devtools-default-position:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-studio-devtools-event-routing:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-drag-panel:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-drag-button:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-viewport-clamp:p1:inst-1
+// @cpt-begin:cpt-frontx-state-studio-devtools-drag:p1:inst-1
 export const useDraggable = ({ panelSize, storageKey = STORAGE_KEYS.POSITION }: UseDraggableProps) => {
   // Calculate default position (bottom-right with margin)
   const getDefaultPosition = (): Position => ({
@@ -114,9 +114,9 @@ export const useDraggable = ({ panelSize, storageKey = STORAGE_KEYS.POSITION }: 
     handleMouseDown,
   };
 };
-// @cpt-end:cpt-hai3-algo-studio-devtools-default-position:p1:inst-1
-// @cpt-end:cpt-hai3-algo-studio-devtools-event-routing:p1:inst-1
-// @cpt-end:cpt-hai3-flow-studio-devtools-drag-panel:p1:inst-1
-// @cpt-end:cpt-hai3-flow-studio-devtools-drag-button:p1:inst-1
-// @cpt-end:cpt-hai3-flow-studio-devtools-viewport-clamp:p1:inst-1
-// @cpt-end:cpt-hai3-state-studio-devtools-drag:p1:inst-1
+// @cpt-end:cpt-frontx-algo-studio-devtools-default-position:p1:inst-1
+// @cpt-end:cpt-frontx-algo-studio-devtools-event-routing:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-drag-panel:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-drag-button:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-viewport-clamp:p1:inst-1
+// @cpt-end:cpt-frontx-state-studio-devtools-drag:p1:inst-1

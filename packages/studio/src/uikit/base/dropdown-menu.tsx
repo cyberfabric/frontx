@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 import * as React from 'react';
 import * as DropdownMenuPrimitive from '@radix-ui/react-dropdown-menu';
 

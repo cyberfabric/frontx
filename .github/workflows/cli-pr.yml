@@ -2,7 +2,7 @@ name: CLI PR E2E
 
 on:
   pull_request:
-    branches: [ main ]
+    branches: [ main, develop ]
 
 permissions:
   contents: read
@@ -21,10 +21,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Setup Node.js 24.14.x
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 24.14.x
           cache: npm
@@ -42,16 +42,16 @@ jobs:
         run: npm run build:packages
 
       - name: Run CLI PR E2E
-        run: npm run test:e2e:pr --workspace=@hai3/cli
+        run: npm run test:e2e:pr --workspace=@cyberfabric/cli
         env:
           CLI_E2E_ARTIFACT_DIR: .artifacts/cli-e2e/pr
-          HAI3_USE_LOCAL: '1'
-          HAI3_MONOREPO_ROOT: ${{ github.workspace }}
+          FRONTX_USE_LOCAL: '1'
+          FRONTX_MONOREPO_ROOT: ${{ github.workspace }}
           CLI_E2E_PM: ${{ matrix.package-manager }}
 
       - name: Upload CLI E2E artifacts
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: cli-pr-e2e-logs-${{ matrix.package-manager }}
           path: .artifacts/cli-e2e/pr

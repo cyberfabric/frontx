@@ -1,36 +1,36 @@
 /**
- * @hai3/framework - Type Definitions
+ * @cyberfabric/framework - Type Definitions
  *
- * Core types for HAI3 framework with plugin architecture.
+ * Core types for FrontX framework with plugin architecture.
  * Integrates all SDK packages into a cohesive framework.
  */
-// @cpt-dod:cpt-hai3-dod-framework-composition-builder:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-app-config:p1
-// @cpt-dod:cpt-hai3-dod-framework-composition-mfe-plugin:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-builder:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-app-config:p1
+// @cpt-dod:cpt-frontx-dod-framework-composition-mfe-plugin:p1
 
 // ============================================================================
 // Type Imports from SDK Packages
 // ============================================================================
 
-// From @hai3/state
+// From @cyberfabric/state
 import type {
   HAI3Store as StoreType,
   EffectInitializer,
-} from '@hai3/state';
+} from '@cyberfabric/state';
 
 import type { Reducer } from '@reduxjs/toolkit';
 
-// From @hai3/api
-import type { ApiRegistry } from '@hai3/api';
+// From @cyberfabric/api
+import type { ApiRegistry } from '@cyberfabric/api';
 
-// From @hai3/i18n
-import type { I18nRegistry } from '@hai3/i18n';
+// From @cyberfabric/i18n
+import type { I18nRegistry } from '@cyberfabric/i18n';
 
-// Re-export HAI3Store from @hai3/store for framework consumers
+// Re-export FrontXStore from @cyberfabric/store for framework consumers
 export type HAI3Store = StoreType;
 
 // ============================================================================
-// HAI3 Configuration
+// FrontX Configuration
 // ============================================================================
 
 /**
@@ -39,8 +39,8 @@ export type HAI3Store = StoreType;
 export type RouterMode = 'browser' | 'hash' | 'memory';
 
 /**
- * HAI3 Application Configuration
- * Configuration options for creating a HAI3 application.
+ * FrontX Application Configuration
+ * Configuration options for creating a FrontX application.
  */
 export interface HAI3Config {
   /** Application name */
@@ -81,7 +81,7 @@ export interface HAI3Config {
  * Used for heterogeneous slice collections where different state types are mixed.
  *
  * This is an internal framework type - plugins provide slices matching this structure.
- * The Reducer type uses RTK's default, avoiding explicit `any` in HAI3 code.
+ * The Reducer type uses RTK's default, avoiding explicit `any` in FrontX code.
  */
 export interface RegisterableSlice {
   /** Slice name - becomes the state key */
@@ -97,7 +97,7 @@ export interface RegisterableSlice {
 // ============================================================================
 
 /**
- * HAI3 Actions Interface
+ * FrontX Actions Interface
  * Central registry of all actions available in the application.
  *
  * Built-in actions are defined here. Consumers can extend this interface
@@ -105,8 +105,8 @@ export interface RegisterableSlice {
  *
  * @example
  * ```typescript
- * declare module '@hai3/framework' {
- *   interface HAI3Actions {
+ * declare module '@cyberfabric/framework' {
+ *   interface FrontXActions {
  *     myCustomAction: (payload: MyPayload) => void;
  *   }
  * }
@@ -156,7 +156,7 @@ export interface HAI3Actions {
   loadExtension: (extensionId: string) => void;
   mountExtension: (extensionId: string) => void;
   unmountExtension: (extensionId: string) => void;
-  registerExtension: (extension: import('@hai3/screensets').Extension) => void;
+  registerExtension: (extension: import('@cyberfabric/screensets').Extension) => void;
   unregisterExtension: (extensionId: string) => void;
 }
 
@@ -171,7 +171,7 @@ export interface PluginProvides {
   slices?: RegisterableSlice[];
   /** Effect initializers to register */
   effects?: EffectInitializer[];
-  /** Actions provided by the plugin (subset of HAI3Actions) */
+  /** Actions provided by the plugin (subset of FrontXActions) */
   actions?: Partial<HAI3Actions>;
 }
 
@@ -204,7 +204,7 @@ export interface PluginLifecycle {
 }
 
 /**
- * HAI3 Plugin Interface
+ * FrontX Plugin Interface
  * All plugins implement this contract.
  * Follows Liskov Substitution Principle - any plugin can be used interchangeably.
  *
@@ -212,7 +212,7 @@ export interface PluginLifecycle {
  *
  * @example
  * ```typescript
- * const microfrontendsPlugin: HAI3Plugin = {
+ * const microfrontendsPlugin: FrontXPlugin = {
  *   name: 'microfrontends',
  *   dependencies: [],
  *   provides: {
@@ -255,12 +255,12 @@ export type PluginFactory<TConfig = unknown> = (config?: TConfig) => HAI3Plugin<
 // ============================================================================
 
 /**
- * HAI3 App Builder Interface
- * Fluent builder for composing HAI3 applications with plugins.
+ * FrontX App Builder Interface
+ * Fluent builder for composing FrontX applications with plugins.
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .use(layout())
@@ -288,7 +288,7 @@ export interface HAI3AppBuilder {
    * Build the application.
    * Resolves dependencies, initializes plugins, and returns the app.
    *
-   * @returns The built HAI3 application
+   * @returns The built FrontX application
    */
   build(): HAI3App;
 }
@@ -352,15 +352,15 @@ export interface ThemeRegistry {
  * When the microfrontends plugin is used, this registry is available.
  * It provides MFE capabilities: registerDomain(), registerExtension(), etc.
  */
-export type MfeScreensetsRegistry = import('@hai3/screensets').ScreensetsRegistry;
+export type MfeScreensetsRegistry = import('@cyberfabric/screensets').ScreensetsRegistry;
 
 /**
- * HAI3 App Interface
+ * FrontX App Interface
  * The built application with all features available.
  *
  * @example
  * ```typescript
- * const app = createHAI3App();
+ * const app = createFrontXApp();
  *
  * // Access store
  * const state = app.store.getState();
@@ -393,7 +393,7 @@ export interface HAI3App {
   /** MFE-enabled ScreensetsRegistry (optional, provided by microfrontends plugin) */
   screensetsRegistry?: MfeScreensetsRegistry;
 
-  /** All registered actions (type-safe via HAI3Actions interface) */
+  /** All registered actions (type-safe via FrontXActions interface) */
   actions: HAI3Actions;
 
   /** Destroy the application and cleanup resources */
@@ -401,36 +401,36 @@ export interface HAI3App {
 }
 
 // ============================================================================
-// Create HAI3 App Function Signature
+// Create FrontX App Function Signature
 // ============================================================================
 
 /**
- * Create HAI3 App Function Signature
- * Creates a fully configured HAI3 application using the full preset.
+ * Create FrontX App Function Signature
+ * Creates a fully configured FrontX application using the full preset.
  *
  * @param config - Optional configuration
- * @returns The built HAI3 application
+ * @returns The built FrontX application
  *
  * @example
  * ```typescript
  * // Default - uses full() preset
- * const app = createHAI3App();
+ * const app = createFrontXApp();
  *
  * // With configuration
- * const app = createHAI3App({ devMode: true });
+ * const app = createFrontXApp({ devMode: true });
  * ```
  */
 export type CreateHAI3App = (config?: HAI3Config) => HAI3App;
 
 /**
- * Create HAI3 Function Signature
- * Creates a HAI3 app builder for custom plugin composition.
+ * Create FrontX Function Signature
+ * Creates a FrontX app builder for custom plugin composition.
  *
  * @returns App builder for plugin composition
  *
  * @example
  * ```typescript
- * const app = createHAI3()
+ * const app = createFrontX()
  *   .use(screensets())
  *   .use(themes())
  *   .build();
@@ -461,7 +461,7 @@ export type Preset = () => HAI3Plugin[];
  * Available presets for different use cases.
  */
 export interface Presets {
-  /** All plugins - default for hai3 create */
+  /** All plugins - default for frontx create */
   full: Preset;
   /** Screensets + themes only */
   minimal: Preset;

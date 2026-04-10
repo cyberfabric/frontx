@@ -1,12 +1,12 @@
 /**
  * Type System Plugin for MFE contracts
  *
- * The @hai3/screensets package treats type IDs as OPAQUE STRINGS.
+ * The @cyberfabric/screensets package treats type IDs as OPAQUE STRINGS.
  * All type ID understanding (parsing, format validation, building) is delegated to the plugin.
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-hai3-dod-screenset-registry-type-system-plugin:p1
+// @cpt-dod:cpt-frontx-dod-screenset-registry-type-system-plugin:p1
 
 /**
  * JSON Schema type (simplified for type system plugin interface)
@@ -57,7 +57,7 @@ export interface ValidationResult {
  * @example
  * ```typescript
  * // Using the GTS plugin (default)
- * import { screensetsRegistryFactory, gtsPlugin } from '@hai3/screensets';
+ * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);

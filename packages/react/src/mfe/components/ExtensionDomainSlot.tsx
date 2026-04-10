@@ -6,16 +6,16 @@
  *
  * @packageDocumentation
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-extension-domain-slot:p1
-// @cpt-state:cpt-hai3-state-react-bindings-extension-slot:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-extension-slot:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-extension-domain-slot:p1
+// @cpt-state:cpt-frontx-state-react-bindings-extension-slot:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-extension-slot:p1
 
 import React, { useEffect, useRef, useState } from 'react';
-import type { ScreensetsRegistry, ParentMfeBridge } from '@hai3/framework';
+import type { ScreensetsRegistry, ParentMfeBridge } from '@cyberfabric/framework';
 import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 
 /**
  * Props for ExtensionDomainSlot component
@@ -85,8 +85,8 @@ export interface ExtensionDomainSlotProps {
  * />
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-render-slot
-// @cpt-begin:cpt-hai3-dod-react-bindings-extension-slot:p1:inst-render-slot
+// @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-render-slot
+// @cpt-begin:cpt-frontx-dod-react-bindings-extension-slot:p1:inst-render-slot
 export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.ReactElement {
   const {
     registry,
@@ -101,9 +101,9 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
   } = props;
 
   const containerRef = useRef<HTMLDivElement>(null);
-  // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
+  // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-mount
   const [isLoading, setIsLoading] = useState(true);
-  // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-mount
+  // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-mount
   const [error, setError] = useState<Error | null>(null);
   const [bridge, setBridge] = useState<ParentMfeBridge | null>(null);
 
@@ -117,14 +117,14 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
       }
 
       try {
-        // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p2:inst-retry-mount
+        // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p2:inst-retry-mount
         // Resetting error/loading here also handles the ERROR→MOUNTING transition when
         // extensionId or domainId props change (effect re-runs due to dependency array)
         setIsLoading(true);
         setError(null);
-        // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p2:inst-retry-mount
+        // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p2:inst-retry-mount
 
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
+        // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
         // Mount the extension via actions chain (auto-loads if not already loaded)
         // Container is provided by the domain's ContainerProvider (registered at domain registration time)
         await registry.executeActionsChain({
@@ -136,10 +136,10 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
             },
           },
         });
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
+        // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-dispatch-mount
 
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
-        // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-race-unmount
+        // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
+        // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-race-unmount
         if (!mounted) {
           // Component was unmounted while mounting - clean up
           await registry.executeActionsChain({
@@ -153,11 +153,11 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
           });
           return;
         }
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
-        // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-race-unmount
+        // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p2:inst-race-cleanup
+        // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-race-unmount
 
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-get-bridge
-        // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-mount-success
+        // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-get-bridge
+        // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-mount-success
         // Query the bridge after mount completes
         const newBridge = registry.getParentBridge(extensionId);
         if (!newBridge) {
@@ -167,18 +167,18 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         currentBridge = newBridge;
         setBridge(newBridge);
         setIsLoading(false);
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-get-bridge
-        // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-mount-success
+        // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-get-bridge
+        // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-mount-success
 
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
+        // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
         // Notify parent
         if (onMounted) {
           onMounted(newBridge);
         }
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
+        // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-notify-mounted
       } catch (err) {
-        // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
-        // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-mount-error
+        // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
+        // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-mount-error
         if (!mounted) {
           return;
         }
@@ -190,16 +190,16 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         if (onError) {
           onError(errorObj);
         }
-        // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
-        // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-mount-error
+        // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-handle-mount-error
+        // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-mount-error
       }
     }
 
     // Start mounting
     void mountExtension();
 
-    // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
-    // @cpt-begin:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-unmount
+    // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
+    // @cpt-begin:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-unmount
     // Cleanup on unmount
     return () => {
       mounted = false;
@@ -221,11 +221,11 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
         });
       }
     };
-    // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
-    // @cpt-end:cpt-hai3-state-react-bindings-extension-slot:p1:inst-start-unmount
+    // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-cleanup-unmount
+    // @cpt-end:cpt-frontx-state-react-bindings-extension-slot:p1:inst-start-unmount
   }, [registry, domainId, extensionId, onMounted, onUnmounted, onError]);
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
+  // @cpt-begin:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
   // Render loading state
   if (isLoading) {
     return (
@@ -234,7 +234,7 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
       </div>
     );
   }
-  // @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
+  // @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-show-loading
 
   // Render error state
   if (error) {
@@ -261,5 +261,5 @@ export function ExtensionDomainSlot(props: ExtensionDomainSlotProps): React.Reac
     />
   );
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-extension-domain-slot:p1:inst-render-slot
-// @cpt-end:cpt-hai3-dod-react-bindings-extension-slot:p1:inst-render-slot
+// @cpt-end:cpt-frontx-flow-react-bindings-extension-domain-slot:p1:inst-render-slot
+// @cpt-end:cpt-frontx-dod-react-bindings-extension-slot:p1:inst-render-slot

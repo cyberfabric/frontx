@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF } from '@hai3/react';
+import { HAI3Provider, apiRegistry, createHAI3App, MfeHandlerMF, gtsPlugin, HAI3_MFE_ENTRY_MF, themeSchema, languageSchema, extensionScreenSchema } from '@cyberfabric/react';
 import { Toaster } from '@/app/components/ui/sonner';
 import { AccountsApiService } from '@/app/api';
 import './globals.css'; // Global styles with CSS variables
@@ -14,13 +14,21 @@ import { DEFAULT_THEME_ID, defaultTheme } from '@/app/themes/default';
 import { darkTheme } from '@/app/themes/dark';
 import { lightTheme } from '@/app/themes/light';
 
+// Register application-specific GTS schemas before constructing the app.
+// These derived schemas encode application-level constraints (valid theme names,
+// supported languages, screen extension shape) and are not part of the core
+// type system in @cyberfabric/screensets.
+gtsPlugin.registerSchema(themeSchema);
+gtsPlugin.registerSchema(languageSchema);
+gtsPlugin.registerSchema(extensionScreenSchema);
+
 // Register accounts service (application-level service for user info)
 apiRegistry.register(AccountsApiService);
 
 // Initialize API services
 apiRegistry.initialize({});
 
-// Create HAI3 app instance
+// Create FrontX app instance
 // Register MfeHandlerMF to enable Module Federation MFE loading
 const app = createHAI3App({
   microfrontends: {

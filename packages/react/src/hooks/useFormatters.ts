@@ -6,8 +6,8 @@
  *
  * React Layer: L3
  */
-// @cpt-flow:cpt-hai3-flow-react-bindings-use-formatters:p1
-// @cpt-dod:cpt-hai3-dod-react-bindings-formatters-hook:p1
+// @cpt-flow:cpt-frontx-flow-react-bindings-use-formatters:p1
+// @cpt-dod:cpt-frontx-dod-react-bindings-formatters-hook:p1
 
 import { useMemo } from 'react';
 import {
@@ -21,7 +21,7 @@ import {
   formatCurrency as formatCurrencyFn,
   compareStrings as compareStringsFn,
   createCollator as createCollatorFn,
-} from '@hai3/framework';
+} from '@cyberfabric/framework';
 import type { UseFormattersReturn } from '../types';
 import { useTranslation } from './useTranslation';
 
@@ -43,18 +43,18 @@ import { useTranslation } from './useTranslation';
  * );
  * ```
  */
-// @cpt-begin:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-call-formatters
-// @cpt-begin:cpt-hai3-dod-react-bindings-formatters-hook:p1:inst-call-formatters
+// @cpt-begin:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-call-formatters
+// @cpt-begin:cpt-frontx-dod-react-bindings-formatters-hook:p1:inst-call-formatters
 export function useFormatters(): UseFormattersReturn {
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-subscribe-via-translation
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-subscribe-via-translation
   // useTranslation() subscribes to language changes so this component re-renders
   // when language changes; formatters read i18nRegistry.getLanguage() at call time
   const { language } = useTranslation();
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-subscribe-via-translation
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-subscribe-via-translation
 
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-return-formatters
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-formatters-read-locale
-  // @cpt-begin:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-recompute-on-lang
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-return-formatters
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-formatters-read-locale
+  // @cpt-begin:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-recompute-on-lang
   return useMemo<UseFormattersReturn>(
     () => {
       void language; // re-run when language changes so formatters see new locale
@@ -73,9 +73,9 @@ export function useFormatters(): UseFormattersReturn {
     },
     [language]
   );
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-return-formatters
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-formatters-read-locale
-  // @cpt-end:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-recompute-on-lang
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-return-formatters
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-formatters-read-locale
+  // @cpt-end:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-recompute-on-lang
 }
-// @cpt-end:cpt-hai3-flow-react-bindings-use-formatters:p1:inst-call-formatters
-// @cpt-end:cpt-hai3-dod-react-bindings-formatters-hook:p1:inst-call-formatters
+// @cpt-end:cpt-frontx-flow-react-bindings-use-formatters:p1:inst-call-formatters
+// @cpt-end:cpt-frontx-dod-react-bindings-formatters-hook:p1:inst-call-formatters

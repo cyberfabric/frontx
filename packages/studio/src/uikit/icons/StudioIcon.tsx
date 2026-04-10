@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-studio-devtools-panel-overlay:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-panel-overlay:p1
 import React from 'react';
 
 /**

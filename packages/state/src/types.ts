@@ -1,7 +1,7 @@
 /**
- * @hai3/state - Type Definitions
+ * @cyberfabric/state - Type Definitions
  *
- * Core types for the HAI3 Flux dataflow pattern.
+ * Core types for the FrontX Flux dataflow pattern.
  * Combines event system and store types into a unified package.
  *
  * SDK Layer: L1 (Only peer dependency on @reduxjs/toolkit)
@@ -14,21 +14,21 @@ import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
 // ============================================================================
 
 /**
- * HAI3 Reducer Payload Type
+ * FrontX Reducer Payload Type
  * Type alias for Redux Toolkit's PayloadAction.
  *
  * TERMINOLOGY: Named "ReducerPayload" (not "PayloadAction") to avoid confusion
- * with HAI3 Actions. In HAI3:
- * - **HAI3 Action**: Function that emits events via eventBus.emit()
+ * with FrontX Actions. In FrontX:
+ * - **FrontX Action**: Function that emits events via eventBus.emit()
  * - **ReducerPayload**: The payload shape received by reducers in createSlice
  *
- * Redux is an internal implementation detail of @hai3/state.
+ * Redux is an internal implementation detail of @cyberfabric/state.
  *
  * @template T - The payload type
  *
  * @example
  * ```typescript
- * import { createSlice, type ReducerPayload } from '@hai3/state';
+ * import { createSlice, type ReducerPayload } from '@cyberfabric/state';
  *
  * const menuSlice = createSlice({
  *   name: 'uicore/menu',
@@ -41,8 +41,8 @@ import type { PayloadAction, Reducer, UnknownAction } from '@reduxjs/toolkit';
  * });
  * ```
  */
-// @cpt-dod:cpt-hai3-dod-state-management-flux-terminology:p2
-// @cpt-flow:cpt-hai3-flow-state-management-flux-dataflow:p1
+// @cpt-dod:cpt-frontx-dod-state-management-flux-terminology:p2
+// @cpt-flow:cpt-frontx-flow-state-management-flux-dataflow:p1
 export type ReducerPayload<T> = PayloadAction<T>;
 
 // ============================================================================
@@ -58,7 +58,7 @@ export type ReducerPayload<T> = PayloadAction<T>;
  *
  * @example
  * ```typescript
- * declare module '@hai3/state' {
+ * declare module '@cyberfabric/state' {
  *   interface EventPayloadMap {
  *     'chat/threads/selected': { threadId: string };
  *     'chat/messages/received': { message: Message };
@@ -68,7 +68,7 @@ export type ReducerPayload<T> = PayloadAction<T>;
  *
  * Design: Interface (not type) enables TypeScript declaration merging.
  */
-// @cpt-dod:cpt-hai3-dod-state-management-module-augmentation:p2
+// @cpt-dod:cpt-frontx-dod-state-management-module-augmentation:p2
 export interface EventPayloadMap {
   // Base interface - extended via module augmentation
   // Intentionally empty - filled by consumers
@@ -189,7 +189,7 @@ export interface EventBus<TEvents extends EventPayloadMap = EventPayloadMap> {
 
 /**
  * Template Literal Types for Event Naming Convention
- * Enforces the HAI3 event naming pattern: `${screenset}/${domain}/${action}`
+ * Enforces the FrontX event naming pattern: `${screenset}/${domain}/${action}`
  *
  * @example
  * ```typescript
@@ -216,7 +216,7 @@ export type PayloadOf<K extends EventKey> = EventPayloadMap[K];
  *
  * @example
  * ```typescript
- * declare module '@hai3/state' {
+ * declare module '@cyberfabric/state' {
  *   interface EventPayloadMap {
  *     'app/initialized': void;
  *   }
@@ -240,7 +240,7 @@ export type VoidPayload = void;
  * @example
  * ```typescript
  * // In your screenset code
- * declare module '@hai3/state' {
+ * declare module '@cyberfabric/state' {
  *   interface RootState {
  *     'chat/threads': ThreadsState;
  *     'chat/messages': MessagesState;
@@ -262,8 +262,8 @@ export interface RootState {
 
 /**
  * App Dispatch Type
- * The dispatch function type for the HAI3 store.
- * Supports plain actions (not thunks - HAI3 uses event-driven pattern instead).
+ * The dispatch function type for the FrontX store.
+ * Supports plain actions (not thunks - FrontX uses event-driven pattern instead).
  */
 export type AppDispatch = (action: UnknownAction) => UnknownAction;
 
@@ -358,7 +358,7 @@ export type EffectInitializerWithCleanup = (dispatch: AppDispatch) => EffectClea
 // ============================================================================
 
 /**
- * HAI3 Store Interface
+ * FrontX Store Interface
  * The enhanced Redux store with dynamic slice registration.
  *
  * @template TState - The state type (defaults to RootState)

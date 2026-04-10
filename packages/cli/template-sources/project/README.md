@@ -6,7 +6,7 @@
 2. Install dependencies: `npm install`
 3. Start the development server: `npm run dev`
 4. Open http://localhost:5173 in your browser
-5. Install HAI3 CLI globally (recommended with npm): `npm install -g @hai3/cli@alpha`
+5. Install FrontX CLI globally (recommended with npm): `npm install -g @cyberfabric/cli@alpha`
 6. Ask the AI: "Set up Chrome DevTools MCP server so you can see my browser"
 
 ## Creating Your First Screenset
@@ -23,7 +23,7 @@ Open this project in one of these AI-powered editors:
 Type this command in your AI chat:
 
 ```
-/hai3-new-screenset
+/frontx-new-screenset
 ```
 
 The AI will ask you:
@@ -33,14 +33,14 @@ The AI will ask you:
 
 ### Step 3: See Your Work
 
-Your new screenset appears in the HAI3 Studio screensets selector. Click to open it.
+Your new screenset appears in the FrontX Studio screensets selector. Click to open it.
 
 ## Adding More Screens
 
 To add a screen to your screenset:
 
 ```
-/hai3-new-screen
+/frontx-new-screen
 ```
 
 ## Making Changes
@@ -61,15 +61,15 @@ After applying, if the result isn't what you wanted:
 Before sharing your work, ask the AI to validate it:
 
 ```
-/hai3-validate
+/frontx-validate
 ```
 
 The AI will check your code and report any issues.
 
 ## Getting Help
 
-- Type `/hai3-quick-ref` for common patterns
-- Type `/hai3-rules` to see guidelines for a topic
+- Type `/frontx-quick-ref` for common patterns
+- Type `/frontx-rules` to see guidelines for a topic
 - Ask your AI assistant any question about the project
 
 ## Workflow Summary

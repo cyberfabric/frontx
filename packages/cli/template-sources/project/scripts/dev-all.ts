@@ -68,7 +68,7 @@ function getMFEPackages(): MfeInfo[] {
   return mfes;
 }
 
-// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+// @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 function getPackageManager(): PackageManager {
   const rootPkgPath = join(process.cwd(), 'package.json');
   try {
@@ -85,16 +85,16 @@ function getPackageManager(): PackageManager {
   }
   return 'npm';
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
+// @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-detect-package-manager
 
-// @cpt-begin:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+// @cpt-begin:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 function runScriptCommand(packageManager: PackageManager, scriptName: string): string {
   if (packageManager === 'yarn') {
     return `yarn ${scriptName}`;
   }
   return `${packageManager} run ${scriptName}`;
 }
-// @cpt-end:cpt-hai3-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
+// @cpt-end:cpt-frontx-algo-cli-tooling-package-manager-policy:p1:inst-build-package-manager-commands
 
 // Determine main app command based on available scripts
 function getMainAppCommand(packageManager: PackageManager): string {

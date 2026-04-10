@@ -1,5 +1,5 @@
-// @cpt-algo:cpt-hai3-algo-studio-devtools-event-routing:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-persistence:p1
+// @cpt-algo:cpt-frontx-algo-studio-devtools-event-routing:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-persistence:p1
 import type { Position, Size } from '../types';
 
 /**
@@ -40,9 +40,9 @@ export const StudioEvents = {
 
 /**
  * Module Augmentation
- * Extend EventPayloadMap from @hai3/state for type safety
+ * Extend EventPayloadMap from @cyberfabric/state for type safety
  */
-declare module '@hai3/state' {
+declare module '@cyberfabric/state' {
   interface EventPayloadMap {
     'studio/positionChanged': PositionChangedPayload;
     'studio/sizeChanged': SizeChangedPayload;

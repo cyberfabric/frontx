@@ -1,5 +1,5 @@
 /**
- * HAI3 ESLint Screenset Configuration (L4)
+ * FrontX ESLint Screenset Configuration (L4)
  * Rules for user code (screensets, components, etc.)
  *
  * This includes ALL existing flux architecture rules, screenset isolation,
@@ -102,7 +102,7 @@ export function createScreensetConfig(options: ScreensetConfigOptions = {}): Con
       },
     }] : []),
 
-    // UI components: Presentational components only (no @hai3/react business logic)
+    // UI components: Presentational components only (no @cyberfabric/react business logic)
     ...(localPlugin ? [{
       files: ['src/components/ui/**/*.{ts,tsx}', 'src/mfe_packages/*/src/components/ui/**/*.{ts,tsx}'],
       rules: {

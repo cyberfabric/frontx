@@ -51,8 +51,8 @@ describe('applyMfeReplacements', () => {
   });
 
   it('should replace package scoped names', () => {
-    const result = applyMfeReplacements('@hai3/blank-mfe', 'contacts', 'Contacts', 3001);
-    assert.equal(result, '@hai3/contacts-mfe');
+    const result = applyMfeReplacements('@cyberfabric/blank-mfe', 'contacts', 'Contacts', 3001);
+    assert.equal(result, '@cyberfabric/contacts-mfe');
   });
 
   it('should replace port numbers', () => {
@@ -139,7 +139,7 @@ describe('buildMfeManifestsContent', () => {
 
   it('should include type imports', () => {
     const result = buildMfeManifestsContent([]);
-    assert.ok(result.includes("import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';"));
+    assert.ok(result.includes("import type { Extension, JSONSchema, MfeEntry } from '@cyberfabric/react';"));
   });
 
   it('should export the MfeManifestConfig interface', () => {
@@ -309,7 +309,7 @@ describe('adaptMfeForCustomUikit', () => {
 /* ---------- Integration tests for generateScreenset() ---------- */
 
 const TEMPLATE_PKG_JSON = JSON.stringify({
-  name: '@hai3/blank-mfe',
+  name: '@cyberfabric/blank-mfe',
   scripts: { dev: 'vite --port 3099' },
   dependencies: {
     'react': '^19.0.0',
@@ -375,11 +375,11 @@ describe('generateScreenset() integration', () => {
   });
 
   async function makeTempProject(uikit?: string): Promise<string> {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'hai3-ss-'));
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'frontx-ss-'));
     tempRoots.push(root);
-    const config: Record<string, unknown> = { hai3: true };
+    const config: Record<string, unknown> = { frontx: true };
     if (uikit !== undefined) config.uikit = uikit;
-    await fs.writeJSON(path.join(root, 'hai3.config.json'), config);
+    await fs.writeJSON(path.join(root, 'frontx.config.json'), config);
     return root;
   }
 
@@ -394,7 +394,7 @@ describe('generateScreenset() integration', () => {
     assert.ok(result.files.length > 0);
 
     const pkgJson = await fs.readJSON(path.join(result.mfePath, 'package.json'));
-    assert.equal(pkgJson.name, '@hai3/test-widget-mfe');
+    assert.equal(pkgJson.name, '@cyberfabric/test-widget-mfe');
     assert.match(pkgJson.scripts.dev, /--port 4001/);
     assert.ok(pkgJson.dependencies.tailwindcss, 'shadcn keeps tailwindcss');
     assert.ok(pkgJson.dependencies['tailwind-merge'], 'shadcn keeps tailwind-merge');
@@ -431,14 +431,14 @@ describe('generateScreenset() integration', () => {
     const buttonContent = await fs.readFile(
       path.join(result.mfePath, 'src', 'components', 'ui', 'button.tsx'), 'utf-8',
     );
-    assert.ok(buttonContent.includes('hai3-btn'), 'plain-CSS button classes');
+    assert.ok(buttonContent.includes('frontx-btn'), 'plain-CSS button classes');
     assert.ok(buttonContent.includes("import './components.css'"), 'CSS import present');
 
     const cssPath = path.join(result.mfePath, 'src', 'components', 'ui', 'components.css');
     assert.ok(await fs.pathExists(cssPath), 'components.css created');
     const cssContent = await fs.readFile(cssPath, 'utf-8');
-    assert.ok(cssContent.includes('.hai3-btn'));
-    assert.ok(cssContent.includes('.hai3-card'));
+    assert.ok(cssContent.includes('.frontx-btn'));
+    assert.ok(cssContent.includes('.frontx-card'));
 
     const utilsContent = await fs.readFile(
       path.join(result.mfePath, 'src', 'lib', 'utils.ts'), 'utf-8',

@@ -1,8 +1,8 @@
-// @cpt-flow:cpt-hai3-flow-studio-devtools-theme-change:p1
-// @cpt-dod:cpt-hai3-dod-studio-devtools-control-panel:p1
+// @cpt-flow:cpt-frontx-flow-studio-devtools-theme-change:p1
+// @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 import React from 'react';
 import { upperFirst } from 'lodash';
-import { useTheme, useTranslation } from '@hai3/react';
+import { useTheme, useTranslation } from '@cyberfabric/react';
 import { ButtonVariant } from '../uikit/types';
 import {
   DropdownMenu,
@@ -22,7 +22,7 @@ export interface ThemeSelectorProps {
   className?: string;
 }
 
-// @cpt-begin:cpt-hai3-flow-studio-devtools-theme-change:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-studio-devtools-theme-change:p1:inst-1
 export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
   className = '',
 }) => {
@@ -64,4 +64,4 @@ export const ThemeSelector: React.FC<ThemeSelectorProps> = ({
 };
 
 ThemeSelector.displayName = 'ThemeSelector';
-// @cpt-end:cpt-hai3-flow-studio-devtools-theme-change:p1:inst-1
+// @cpt-end:cpt-frontx-flow-studio-devtools-theme-change:p1:inst-1

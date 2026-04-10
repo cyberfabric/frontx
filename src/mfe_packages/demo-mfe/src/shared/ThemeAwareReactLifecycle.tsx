@@ -1,7 +1,7 @@
 import React from 'react';
 import { createRoot, type Root } from 'react-dom/client';
-import type { MfeEntryLifecycle, ChildMfeBridge } from '@hai3/react';
-import { HAI3Provider } from '@hai3/react';
+import type { MfeEntryLifecycle, ChildMfeBridge } from '@cyberfabric/react';
+import { HAI3Provider } from '@cyberfabric/react';
 import { mfeApp } from '../init';
 
 /**

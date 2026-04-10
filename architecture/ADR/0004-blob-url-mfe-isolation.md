@@ -25,7 +25,7 @@ date: 2026-03-03
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-blob-url-mfe-isolation`
+**ID**: `cpt-frontx-adr-blob-url-mfe-isolation`
 ## Context and Problem Statement
 
 Browsers cache ES modules by URL identity — when multiple MFEs share dependencies via Module Federation's shareScope, they receive the same module instance. This breaks per-MFE isolation: module-level state such as each MFE's EventBus instance and Redux store is shared rather than scoped. The previous approach using Module Federation's singleton/shared mechanism could not achieve true per-runtime isolation because it was designed to prevent duplicate instances, not to guarantee separate ones.
@@ -33,7 +33,7 @@ Browsers cache ES modules by URL identity — when multiple MFEs share dependenc
 ## Decision Drivers
 
 * Each MFE load must produce its own module-level state instances (EventBus, store, i18n) regardless of caching
-* The solution must not introduce `@hai3/*` dependencies into L1 packages (zero-dependency constraint)
+* The solution must not introduce `@cyberfabric/*` dependencies into L1 packages (zero-dependency constraint)
 * Blob URLs must never be revoked — `import()` resolves at parse time, not evaluation time, so early revocation causes load failures with top-level await
 
 ## Considered Options
@@ -87,8 +87,8 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 ## More Information
 
 - The never-revoke rule: `URL.createObjectURL` returns a URL that persists until explicitly revoked. Because `import()` with top-level await may parse (and cache the URL reference) before the module body executes, revoking the blob URL before all dependent modules finish loading causes `ERR_FAILED` on subsequent imports of the same specifier
-- The `hai3-mfe-externalize` Vite plugin rewrites all `import { X } from '@hai3/...'` statements in MFE bundles to `const { X } = await importShared('@hai3/...')`, which is then intercepted by the blob loader to inject per-load instances
-- Related: ADR 0001 (Four-Layer SDK Architecture) — blob loader lives in `packages/screensets` (L1) and must not import other `@hai3/*` packages
+- The `hai3-mfe-externalize` Vite plugin rewrites all `import { X } from '@cyberfabric/...'` statements in MFE bundles to `const { X } = await importShared('@cyberfabric/...')`, which is then intercepted by the blob loader to inject per-load instances
+- Related: ADR 0001 (Four-Layer SDK Architecture) — blob loader lives in `packages/screensets` (L1) and must not import other `@cyberfabric/*` packages
 - Related: ADR 0002 (Event-Driven Flux Data Flow) — EventBus isolation is the primary motivation for per-MFE module scope
 
 ## Traceability
@@ -97,14 +97,14 @@ Chosen option: "Fetch source text and create a unique Blob URL per MFE load via 
 - **DESIGN**: [DESIGN.md](../DESIGN.md)
 
 This decision directly addresses:
-* `cpt-hai3-fr-blob-fresh-eval` — fresh evaluation via unique blob URL per load
-* `cpt-hai3-fr-blob-no-revoke` — prohibition on revoking blob URLs after import
-* `cpt-hai3-fr-blob-source-cache` — source text caching strategy
-* `cpt-hai3-fr-blob-import-rewriting` — string-based import specifier rewriting
-* `cpt-hai3-fr-blob-recursive-chain` — recursive resolution of transitive shared dependencies
-* `cpt-hai3-fr-blob-per-load-map` — per-load blob URL map preventing duplicate fetches within a single load
-* `cpt-hai3-fr-externalize-transform` — build-time Vite plugin transforming MFE shared imports
-* `cpt-hai3-nfr-perf-blob-overhead` — accepted performance cost of blob URL accumulation
-* `cpt-hai3-nfr-sec-csp-blob` — CSP configuration requirements for blob: URI scheme
-* `cpt-hai3-principle-mfe-isolation` — architectural principle mandating per-MFE module scope
-* `cpt-hai3-seq-mfe-loading` — sequence diagram for MFE load with blob URL resolution
+* `cpt-frontx-fr-blob-fresh-eval` — fresh evaluation via unique blob URL per load
+* `cpt-frontx-fr-blob-no-revoke` — prohibition on revoking blob URLs after import
+* `cpt-frontx-fr-blob-source-cache` — source text caching strategy
+* `cpt-frontx-fr-blob-import-rewriting` — string-based import specifier rewriting
+* `cpt-frontx-fr-blob-recursive-chain` — recursive resolution of transitive shared dependencies
+* `cpt-frontx-fr-blob-per-load-map` — per-load blob URL map preventing duplicate fetches within a single load
+* `cpt-frontx-fr-externalize-transform` — build-time Vite plugin transforming MFE shared imports
+* `cpt-frontx-nfr-perf-blob-overhead` — accepted performance cost of blob URL accumulation
+* `cpt-frontx-nfr-sec-csp-blob` — CSP configuration requirements for blob: URI scheme
+* `cpt-frontx-principle-mfe-isolation` — architectural principle mandating per-MFE module scope
+* `cpt-frontx-seq-mfe-loading` — sequence diagram for MFE load with blob URL resolution

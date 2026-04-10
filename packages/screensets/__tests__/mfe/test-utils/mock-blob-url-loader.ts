@@ -132,12 +132,16 @@ export function setupBlobUrlLoaderMocks() {
  *   e.g. { './Widget1': 'expose-Widget1.js' }
  */
 export function createRemoteEntrySource(
-  exposedModules: Record<string, string>
+  exposedModules: Record<string, string>,
+  cssByExpose: Record<string, string[]> = {}
 ): string {
   const entries = Object.entries(exposedModules)
     .map(
-      ([key, chunk]) =>
-        `"${key}":()=>{return __federation_import('./${chunk}')}`
+      ([key, chunk]) => {
+        const cssPaths = cssByExpose[key] ?? [];
+        const cssArg = `[${cssPaths.map((path) => "'" + path + "'").join(',')}]`;
+        return `"${key}":()=>{dynamicLoadingCss(${cssArg},false,'${key}');return __federation_import('./${chunk}')}`;
+      }
     )
     .join(',');
   return `const moduleMap = {${entries}};`;

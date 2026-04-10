@@ -7,8 +7,8 @@
  * NOTE: This file is separated from index.ts to avoid circular dependencies
  * with runner.ts
  */
-// @cpt-dod:cpt-hai3-dod-cli-tooling-migrations:p2
-// @cpt-state:cpt-hai3-state-cli-tooling-migration-tracker:p2
+// @cpt-dod:cpt-frontx-dod-cli-tooling-migrations:p2
+// @cpt-state:cpt-frontx-state-cli-tooling-migration-tracker:p2
 
 import type { Migration } from './types.js';
 import { migration020 } from './0.2.0/index.js';

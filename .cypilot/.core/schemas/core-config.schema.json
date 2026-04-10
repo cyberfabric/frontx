@@ -2,23 +2,35 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://example.com/cypilot/core-config.schema.json",
   "title": "Cypilot Project Configuration (core.toml)",
-  "description": "Schema for the project-level configuration file that defines the root system, kit registrations, and optional path overrides. Located at {cypilot_path}/config/core.toml.",
+  "description": "Schema for the project-level configuration file that defines kit registrations, resource bindings, and optional path overrides. Located at {cypilot_path}/config/core.toml. System identity is defined in artifacts.toml (see ADR-0014).",
   "type": "object",
   "additionalProperties": false,
-  "required": ["version", "project_root", "system", "kits"],
+  "required": ["version", "project_root", "kits"],
   "examples": [
     {
       "version": "1.0",
       "project_root": "..",
-      "system": {
-        "name": "MyApp",
-        "slug": "myapp",
-        "kit": "cypilot-sdlc"
-      },
       "kits": {
-        "cypilot-sdlc": {
+        "sdlc": {
           "format": "Cypilot",
-          "path": ".core/kits/sdlc"
+          "path": "config/kits/sdlc",
+          "version": "1.0.0",
+          "source": "github:cyberfabric/cyber-pilot-kit-sdlc"
+        }
+      }
+    },
+    {
+      "version": "1.0",
+      "project_root": "..",
+      "kits": {
+        "sdlc": {
+          "format": "Cypilot",
+          "path": "config/kits/sdlc",
+          "version": "1.0.0",
+          "resources": {
+            "adr_artifacts": { "path": "config/kits/sdlc/artifacts/ADR" },
+            "constraints": { "path": "config/kits/sdlc/constraints.toml" }
+          }
         }
       }
     }
@@ -35,10 +47,6 @@
       "default": "..",
       "description": "Relative path from the cypilot config directory to the project root. All artifact and codebase paths are resolved relative to this. Default: '..' (one level up from {cypilot_path}/config/)."
     },
-    "system": {
-      "$ref": "#/$defs/system",
-      "description": "Root system definition for the project."
-    },
     "kits": {
       "$ref": "#/$defs/kits",
       "description": "Map of kit ID to kit configuration. Kits registered here are merged into artifacts.toml at load time."
@@ -49,29 +57,6 @@
     }
   },
   "$defs": {
-    "system": {
-      "type": "object",
-      "additionalProperties": false,
-      "required": ["name", "slug", "kit"],
-      "properties": {
-        "name": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Human-readable project/system name."
-        },
-        "slug": {
-          "type": "string",
-          "minLength": 1,
-          "pattern": "^[a-z0-9]+(-[a-z0-9]+)*$",
-          "description": "Machine-readable identifier. Lowercase letters, numbers, and hyphens only (no leading/trailing hyphens)."
-        },
-        "kit": {
-          "type": "string",
-          "minLength": 1,
-          "description": "Reference to the kit ID used by this system (must match a key in the kits map)."
-        }
-      }
-    },
     "kits": {
       "type": "object",
       "description": "Map of kit ID → kit configuration.",
@@ -102,6 +87,10 @@
           "type": "string",
           "description": "Kit version string, set during kit installation or update."
         },
+        "source": {
+          "type": "string",
+          "description": "Source identifier for the kit (e.g. 'github:owner/repo'). Set during installation."
+        },
         "artifacts": {
           "type": "object",
           "description": "Optional per-kind artifact path overrides.",
@@ -112,6 +101,30 @@
           "additionalProperties": {
             "$ref": "#/$defs/kit_artifact_override"
           }
+        },
+        "resources": {
+          "type": "object",
+          "description": "Resource bindings for manifest-driven kits. Maps resource identifiers (from manifest.toml) to resolved filesystem paths. Written during kit installation; used by the resource resolution API to resolve {identifier} template variables.",
+          "propertyNames": {
+            "type": "string",
+            "minLength": 1,
+            "pattern": "^[a-z][a-z0-9_]*$"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/resource_binding"
+          }
+        }
+      }
+    },
+    "resource_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Resolved filesystem path for this resource, relative to the cypilot directory. Written during manifest-driven installation."
         }
       }
     },

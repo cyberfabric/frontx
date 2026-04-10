@@ -14,7 +14,7 @@ Which documentation page or section needs improvement?
 - [ ] QUICK_START.md
 - [ ] API Documentation
 - [ ] Package-specific docs
-- [ ] Other: 
+- [ ] Other:
 
 ## Issue
 Describe the documentation issue:

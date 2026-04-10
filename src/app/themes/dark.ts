@@ -1,10 +1,10 @@
 /**
- * Dark theme for HAI3
+ * Dark theme for FrontX
  * CSS custom properties map following shadcn/ui variable naming convention.
  */
-// @cpt-algo:cpt-hai3-algo-ui-libraries-choice-theme-propagation:p1
+// @cpt-algo:cpt-frontx-algo-ui-libraries-choice-theme-propagation:p1
 
-import type { ThemeConfig } from '@hai3/react';
+import type { ThemeConfig } from '@cyberfabric/react';
 import colors from './tailwindColors';
 import { hslToVar } from './utils';
 

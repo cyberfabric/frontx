@@ -11,12 +11,15 @@ const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
 const OUTPUT_FILE = join(process.cwd(), 'src/app/mfe/generated-mfe-manifests.ts');
 
 function typePreamble(): string {
-  return `import type { Extension, JSONSchema, MfeEntry } from '@hai3/react';
+  return `import type { Extension, JSONSchema, MfeEntry } from '@cyberfabric/react';
 
 export interface MfeManifestConfig {
   manifest: JSONSchema;
   entries: MfeEntry[];
   extensions: Extension[];
+  // @cpt-FEATURE:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1
+  /** MFE-carried schemas (custom actions, properties). Registered before entries and extensions. */
+  schemas?: JSONSchema[];
 }`;
 }
 

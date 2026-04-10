@@ -7,12 +7,12 @@
  * SDK Layer: L1 (Only peer dependency on axios)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-rest-protocol:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-rest-request:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1
-// @cpt-algo:cpt-hai3-algo-api-communication-plugin-ordering:p1
-// @cpt-state:cpt-hai3-state-api-communication-rest-connection:p1
+// @cpt-dod:cpt-frontx-dod-api-communication-rest-protocol:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-rest-request:p1
+// @cpt-algo:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1
+// @cpt-algo:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1
+// @cpt-algo:cpt-frontx-algo-api-communication-plugin-ordering:p1
+// @cpt-state:cpt-frontx-state-api-communication-rest-connection:p1
 
 import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import {
@@ -115,7 +115,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
   /**
    * Initialize the protocol with service configuration.
    */
-  // @cpt-begin:cpt-hai3-state-api-communication-rest-connection:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-api-communication-rest-connection:p1:inst-1
   initialize(
     config: Readonly<ApiServiceConfig>,
     getExcludedClasses?: () => ReadonlySet<PluginClass>
@@ -136,12 +136,12 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       withCredentials: this.restConfig.withCredentials,
     });
   }
-  // @cpt-end:cpt-hai3-state-api-communication-rest-connection:p1:inst-1
+  // @cpt-end:cpt-frontx-state-api-communication-rest-connection:p1:inst-1
 
   /**
    * Cleanup protocol resources.
    */
-  // @cpt-begin:cpt-hai3-state-api-communication-rest-connection:p1:inst-2
+  // @cpt-begin:cpt-frontx-state-api-communication-rest-connection:p1:inst-2
   cleanup(): void {
     // Cleanup instance plugins
     this._instancePlugins.forEach((plugin) => plugin.destroy());
@@ -150,13 +150,13 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     this.client = null;
     this.config = null;
   }
-  // @cpt-end:cpt-hai3-state-api-communication-rest-connection:p1:inst-2
+  // @cpt-end:cpt-frontx-state-api-communication-rest-connection:p1:inst-2
 
   /**
    * Get global plugins from apiRegistry, filtering out excluded classes.
    * @internal
    */
-  // @cpt-begin:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-api-communication-plugin-ordering:p1:inst-1
   private getGlobalPlugins(): readonly RestPluginHooks[] {
     const allGlobalPlugins = apiRegistry.plugins.getAll(RestProtocol);
     const excludedClasses = this.getExcludedClasses();
@@ -187,7 +187,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       ...Array.from(this._instancePlugins),
     ];
   }
-  // @cpt-end:cpt-hai3-algo-api-communication-plugin-ordering:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-plugin-ordering:p1:inst-1
 
   // ============================================================================
   // HTTP Methods
@@ -257,9 +257,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
    * Internal request execution with retry support.
    * Can be called for initial request or retry.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-rest-request:p1:inst-1
-  // @cpt-begin:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1:inst-1
-  // @cpt-begin:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-rest-request:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-1
   private async requestInternal<T>(
     method: HttpMethod,
     url: string,
@@ -358,9 +358,9 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       throw finalResult;
     }
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-rest-request:p1:inst-1
-  // @cpt-end:cpt-hai3-algo-api-communication-rest-plugin-chain-request:p1:inst-1
-  // @cpt-end:cpt-hai3-algo-api-communication-rest-plugin-chain-response:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-rest-request:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-request:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-api-communication-rest-plugin-chain-response:p1:inst-1
 
   // ============================================================================
   // Plugin Chain Execution

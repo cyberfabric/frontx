@@ -8,19 +8,19 @@
  *
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
-// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-language-activation:p1
-// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1
-// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1
-// @cpt-flow:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1
-// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-language-file-map:p1
-// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-create-loader:p1
-// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-lazy-exclusion:p1
-// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-html-attrs:p1
-// @cpt-algo:cpt-hai3-algo-i18n-infrastructure-path-traversal:p1
-// @cpt-state:cpt-hai3-state-i18n-infrastructure-registry:p1
-// @cpt-state:cpt-hai3-state-i18n-infrastructure-namespace-cache:p1
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-hybrid-namespace:p1
-// @cpt-dod:cpt-hai3-dod-i18n-infrastructure-lazy-chunks:p1
+// @cpt-flow:cpt-frontx-flow-i18n-infrastructure-language-activation:p1
+// @cpt-flow:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1
+// @cpt-flow:cpt-frontx-flow-i18n-infrastructure-screen-lazy-load:p1
+// @cpt-flow:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1
+// @cpt-algo:cpt-frontx-algo-i18n-infrastructure-language-file-map:p1
+// @cpt-algo:cpt-frontx-algo-i18n-infrastructure-create-loader:p1
+// @cpt-algo:cpt-frontx-algo-i18n-infrastructure-lazy-exclusion:p1
+// @cpt-algo:cpt-frontx-algo-i18n-infrastructure-html-attrs:p1
+// @cpt-algo:cpt-frontx-algo-i18n-infrastructure-path-traversal:p1
+// @cpt-state:cpt-frontx-state-i18n-infrastructure-registry:p1
+// @cpt-state:cpt-frontx-state-i18n-infrastructure-namespace-cache:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-hybrid-namespace:p1
+// @cpt-dod:cpt-frontx-dod-i18n-infrastructure-lazy-chunks:p1
 
 import type {
   I18nRegistry as II18nRegistry,
@@ -73,7 +73,7 @@ export class I18nRegistryImpl implements II18nRegistry {
   /** Version counter for React re-rendering */
   private version: number = 0;
 
-  // @cpt-begin:cpt-hai3-algo-i18n-infrastructure-language-file-map:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-i18n-infrastructure-language-file-map:p1:inst-1
   /** Language file mapping */
   static readonly LANGUAGE_FILE_MAP: Record<Language, string> = {
     [Language.English]: 'en.json',
@@ -113,7 +113,7 @@ export class I18nRegistryImpl implements II18nRegistry {
     [Language.Tamil]: 'ta.json',
     [Language.Swahili]: 'sw.json',
   };
-  // @cpt-end:cpt-hai3-algo-i18n-infrastructure-language-file-map:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-i18n-infrastructure-language-file-map:p1:inst-1
 
   constructor(config: I18nConfig) {
     this.config = config;
@@ -123,7 +123,7 @@ export class I18nRegistryImpl implements II18nRegistry {
   // Registration
   // ============================================================================
 
-  // @cpt-begin:cpt-hai3-state-i18n-infrastructure-namespace-cache:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-i18n-infrastructure-namespace-cache:p1:inst-1
   /**
    * Register translations for a namespace.
    */
@@ -134,7 +134,7 @@ export class I18nRegistryImpl implements II18nRegistry {
     this.dictionaries.get(namespace)!.set(language, translations);
     this.notifySubscribers();
   }
-  // @cpt-end:cpt-hai3-state-i18n-infrastructure-namespace-cache:p1:inst-1
+  // @cpt-end:cpt-frontx-state-i18n-infrastructure-namespace-cache:p1:inst-1
 
   /**
    * Subscribe to translation changes.
@@ -163,16 +163,16 @@ export class I18nRegistryImpl implements II18nRegistry {
     return this.version;
   }
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1:inst-1
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-screen-lazy-load:p1:inst-1
   /**
    * Register a translation loader for a namespace.
    */
   registerLoader(namespace: string, loader: TranslationLoader): void {
     this.loaders.set(namespace, loader);
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1:inst-1
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-screen-lazy-load:p1:inst-1
 
   /**
    * Check if namespace is registered.
@@ -195,7 +195,7 @@ export class I18nRegistryImpl implements II18nRegistry {
   // Translation
   // ============================================================================
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-1
   /**
    * Translate a key.
    * Format: 'namespace:key.subkey' or just 'key' for default namespace
@@ -215,9 +215,9 @@ export class I18nRegistryImpl implements II18nRegistry {
     // Interpolate parameters
     return this.interpolate(translation, params);
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-1
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-2
   /**
    * Parse a translation key into namespace and path.
    */
@@ -236,9 +236,9 @@ export class I18nRegistryImpl implements II18nRegistry {
       path: key.slice(separatorIndex + 1),
     };
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-2
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-3
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-3
   /**
    * Get a translation from the dictionary.
    */
@@ -262,10 +262,10 @@ export class I18nRegistryImpl implements II18nRegistry {
 
     return undefined;
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-3
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-3
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-4
-  // @cpt-begin:cpt-hai3-algo-i18n-infrastructure-path-traversal:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-4
+  // @cpt-begin:cpt-frontx-algo-i18n-infrastructure-path-traversal:p1:inst-1
   /**
    * Find a translation in the dictionary.
    */
@@ -300,10 +300,10 @@ export class I18nRegistryImpl implements II18nRegistry {
 
     return typeof current === 'string' ? current : undefined;
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-4
-  // @cpt-end:cpt-hai3-algo-i18n-infrastructure-path-traversal:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-4
+  // @cpt-end:cpt-frontx-algo-i18n-infrastructure-path-traversal:p1:inst-1
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-5
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-5
   /**
    * Interpolate parameters into a translation string.
    */
@@ -317,14 +317,14 @@ export class I18nRegistryImpl implements II18nRegistry {
       return value !== undefined ? String(value) : match;
     });
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-key-resolution:p1:inst-5
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-key-resolution:p1:inst-5
 
   // ============================================================================
   // Language Management
   // ============================================================================
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-language-activation:p1:inst-1
-  // @cpt-begin:cpt-hai3-state-i18n-infrastructure-registry:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-language-activation:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-i18n-infrastructure-registry:p1:inst-1
   /**
    * Set current language and load translations.
    */
@@ -337,8 +337,8 @@ export class I18nRegistryImpl implements II18nRegistry {
     // Load translations for the language
     await this.loadLanguage(language);
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-language-activation:p1:inst-1
-  // @cpt-end:cpt-hai3-state-i18n-infrastructure-registry:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-language-activation:p1:inst-1
+  // @cpt-end:cpt-frontx-state-i18n-infrastructure-registry:p1:inst-1
 
   /**
    * Get current language.
@@ -347,7 +347,7 @@ export class I18nRegistryImpl implements II18nRegistry {
     return this.currentLanguage;
   }
 
-  // @cpt-begin:cpt-hai3-algo-i18n-infrastructure-html-attrs:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-i18n-infrastructure-html-attrs:p1:inst-1
   /**
    * Update HTML lang and dir attributes.
    */
@@ -363,7 +363,7 @@ export class I18nRegistryImpl implements II18nRegistry {
       this.isRTL(language) ? TextDirection.RightToLeft : TextDirection.LeftToRight
     );
   }
-  // @cpt-end:cpt-hai3-algo-i18n-infrastructure-html-attrs:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-i18n-infrastructure-html-attrs:p1:inst-1
 
   // ============================================================================
   // Language Metadata
@@ -403,8 +403,8 @@ export class I18nRegistryImpl implements II18nRegistry {
   // Translation Loading
   // ============================================================================
 
-  // @cpt-begin:cpt-hai3-algo-i18n-infrastructure-lazy-exclusion:p1:inst-1
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-language-activation:p1:inst-2
+  // @cpt-begin:cpt-frontx-algo-i18n-infrastructure-lazy-exclusion:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-language-activation:p1:inst-2
   /**
    * Load translations for a language.
    * Excludes screen.* and screenset.* namespaces which are lazy-loaded:
@@ -424,10 +424,10 @@ export class I18nRegistryImpl implements II18nRegistry {
 
     await Promise.all(loadPromises);
   }
-  // @cpt-end:cpt-hai3-algo-i18n-infrastructure-lazy-exclusion:p1:inst-1
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-language-activation:p1:inst-2
+  // @cpt-end:cpt-frontx-algo-i18n-infrastructure-lazy-exclusion:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-language-activation:p1:inst-2
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-screen-lazy-load:p1:inst-2
   /**
    * Load translations for a specific namespace.
    */
@@ -444,9 +444,9 @@ export class I18nRegistryImpl implements II18nRegistry {
       console.warn(`Failed to load translations for ${namespace}/${language}:`, error);
     }
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-screen-lazy-load:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-screen-lazy-load:p1:inst-2
 
-  // @cpt-begin:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1:inst-2
   /**
    * Load translations for a specific screenset.
    */
@@ -456,7 +456,7 @@ export class I18nRegistryImpl implements II18nRegistry {
 
     await this.loadNamespace(namespace, targetLanguage);
   }
-  // @cpt-end:cpt-hai3-flow-i18n-infrastructure-screenset-registration:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-i18n-infrastructure-screenset-registration:p1:inst-2
 
   /**
    * Preload translations for multiple languages.
@@ -481,8 +481,8 @@ export class I18nRegistryImpl implements II18nRegistry {
    * });
    * ```
    */
-  // @cpt-begin:cpt-hai3-algo-i18n-infrastructure-create-loader:p1:inst-1
-  // @cpt-begin:cpt-hai3-dod-i18n-infrastructure-lazy-chunks:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-i18n-infrastructure-create-loader:p1:inst-1
+  // @cpt-begin:cpt-frontx-dod-i18n-infrastructure-lazy-chunks:p1:inst-1
   static createLoader(translationMap: TranslationMap): TranslationLoader {
     return async (language: Language | string): Promise<TranslationDictionary> => {
       const importFn = translationMap[language as Language];
@@ -493,8 +493,8 @@ export class I18nRegistryImpl implements II18nRegistry {
       return module.default;
     };
   }
-  // @cpt-end:cpt-hai3-algo-i18n-infrastructure-create-loader:p1:inst-1
-  // @cpt-end:cpt-hai3-dod-i18n-infrastructure-lazy-chunks:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-i18n-infrastructure-create-loader:p1:inst-1
+  // @cpt-end:cpt-frontx-dod-i18n-infrastructure-lazy-chunks:p1:inst-1
 
   /**
    * Create a translation loader from a directory.
@@ -518,8 +518,8 @@ export class I18nRegistryImpl implements II18nRegistry {
 // Singleton Instance
 // ============================================================================
 
-// @cpt-begin:cpt-hai3-state-i18n-infrastructure-registry:p1:inst-2
-// @cpt-begin:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
+// @cpt-begin:cpt-frontx-state-i18n-infrastructure-registry:p1:inst-2
+// @cpt-begin:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-1
 /**
  * Default i18n registry instance.
  * Use this instance throughout the application.
@@ -528,8 +528,8 @@ export const i18nRegistry = new I18nRegistryImpl({
   defaultLanguage: Language.English,
   fallbackLanguage: Language.English,
 });
-// @cpt-end:cpt-hai3-state-i18n-infrastructure-registry:p1:inst-2
-// @cpt-end:cpt-hai3-dod-i18n-infrastructure-language-support:p1:inst-1
+// @cpt-end:cpt-frontx-state-i18n-infrastructure-registry:p1:inst-2
+// @cpt-end:cpt-frontx-dod-i18n-infrastructure-language-support:p1:inst-1
 
 /**
  * Create a new i18n registry with custom configuration.

@@ -7,30 +7,10 @@
 - [Scope](#scope)
 - [Findings](#findings)
   - [1. Evaluation dimensions the critic should check](#1-evaluation-dimensions-the-critic-should-check)
-    - [1.1 ATAM-derived dimensions the architect does NOT cover](#11-atam-derived-dimensions-the-architect-does-not-cover)
-    - [1.2 Staff+ engineer dimensions the architect does NOT cover](#12-staff-engineer-dimensions-the-architect-does-not-cover)
-    - [1.3 Intent alignment verification](#13-intent-alignment-verification)
-    - [1.4 Completeness gap analysis](#14-completeness-gap-analysis)
-    - [1.5 Consistency with codebase patterns](#15-consistency-with-codebase-patterns)
   - [2. What makes criticism constructive vs. noise](#2-what-makes-criticism-constructive-vs-noise)
-    - [2.1 The feedback-centric model](#21-the-feedback-centric-model)
-    - [2.2 Characteristics of actionable vs. vague feedback](#22-characteristics-of-actionable-vs-vague-feedback)
-    - [2.3 Severity calibration](#23-severity-calibration)
-    - [2.4 Anti-patterns in criticism itself](#24-anti-patterns-in-criticism-itself)
   - [3. Structured output format](#3-structured-output-format)
-    - [3.1 Analysis of existing formats](#31-analysis-of-existing-formats)
-    - [3.2 Proposed format](#32-proposed-format)
-    - [3.3 Finding categories](#33-finding-categories)
   - [4. Challenge questions to bake into the agent](#4-challenge-questions-to-bake-into-the-agent)
-    - [4.1 Questions that expose hidden coupling](#41-questions-that-expose-hidden-coupling)
-    - [4.2 Questions that expose premature decisions](#42-questions-that-expose-premature-decisions)
-    - [4.3 Questions that expose missing failure modes](#43-questions-that-expose-missing-failure-modes)
-    - [4.4 Questions that expose implicit assumptions about scale, team, and timeline](#44-questions-that-expose-implicit-assumptions-about-scale-team-and-timeline)
-    - [4.5 Questions that expose gaps between design and need](#45-questions-that-expose-gaps-between-design-and-need)
-    - [4.6 Questions specific to HAI3 context](#46-questions-specific-to-hai3-context)
   - [5. Handling confidence levels and deferred decisions](#5-handling-confidence-levels-and-deferred-decisions)
-    - [5.1 Engaging with confidence levels](#51-engaging-with-confidence-levels)
-    - [5.2 Evaluating deferred decisions](#52-evaluating-deferred-decisions)
 - [Comparison](#comparison)
   - [Format comparison: Option A (flat list) vs. Option B (dimension-grouped)](#format-comparison-option-a-flat-list-vs-option-b-dimension-grouped)
 - [Key takeaways](#key-takeaways)
@@ -383,11 +363,11 @@ Source: ATAM utility tree approach (mapping business goals to quality attribute 
 
 **Confidence:** Substantiated.
 
-#### 4.6 Questions specific to HAI3 context
+#### 4.6 Questions specific to FrontX context
 
-Given the HAI3 architecture (4-layer SDK, event-driven, plugin-first composition, microfrontend isolation):
+Given the FrontX architecture (4-layer SDK, event-driven, plugin-first composition, microfrontend isolation):
 
-1. Does this design respect the layer boundary constraints? (No React below L3, SDK packages have zero @hai3 dependencies)
+1. Does this design respect the layer boundary constraints? (No React below L3, SDK packages have zero @cyberfabric dependencies)
 2. Does cross-component communication go through the event bus, or does the design introduce direct coupling?
 3. If this involves a registry, does it follow the Open/Closed principle -- can items be added without modifying registry root files?
 4. How does this interact with the plugin system? Can it be composed via `.use()` and `.build()`?
@@ -415,7 +395,7 @@ The architect tags recommendations as Conjecture, Substantiated, or Corroborated
 **Substantiated (supported by docs/patterns):**
 - The critic should verify the chain of reasoning. "Supported by documentation" does not mean "correct for this context."
 - Key question: "The cited pattern applies in [context A]. Does our context match? What's different?"
-- The critic should check whether the supporting evidence is from the HAI3 codebase/explorations or from generic best practices. Context-specific evidence is stronger.
+- The critic should check whether the supporting evidence is from the FrontX codebase/explorations or from generic best practices. Context-specific evidence is stronger.
 
 **Corroborated (validated by testing/production):**
 - The critic should generally accept these but check scope: "This was validated in [scope X]. Does the current design extend beyond that scope?"
@@ -497,7 +477,7 @@ For each deferred decision, the critic should check:
 
 4. **Codebase reading depth**: The critic is scoped to `architecture/` artifacts. Some findings (consistency with codebase patterns) require reading actual code in `packages/` and `src/`. The extent of codebase access affects the quality of consistency checks.
 
-5. **HAI3-specific question calibration**: The HAI3-specific questions (section 4.6) are derived from current codebase patterns. These will drift as the codebase evolves. Should they live in the agent prompt or in a separate reference file the agent reads?
+5. **FrontX-specific question calibration**: The FrontX-specific questions (section 4.6) are derived from current codebase patterns. These will drift as the codebase evolves. Should they live in the agent prompt or in a separate reference file the agent reads?
 
 ## Sources
 

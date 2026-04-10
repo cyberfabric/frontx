@@ -7,10 +7,10 @@
  * SDK Layer: L1 (Zero @hai3 dependencies)
  */
 
-// @cpt-dod:cpt-hai3-dod-api-communication-registry:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-service-registration:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-global-plugin:p1
-// @cpt-flow:cpt-hai3-flow-api-communication-mock-activation:p2
+// @cpt-dod:cpt-frontx-dod-api-communication-registry:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-service-registration:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-global-plugin:p1
+// @cpt-flow:cpt-frontx-flow-api-communication-mock-activation:p2
 
 import type {
   ApiRegistry as IApiRegistry,
@@ -65,7 +65,7 @@ class ApiRegistryImpl implements IApiRegistry {
    * Register an API service by class reference.
    * Service is instantiated immediately.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-service-registration:p1:inst-1
   register<T extends BaseApiService>(serviceClass: new () => T): void {
     // Instantiate service
     const service = new serviceClass();
@@ -73,7 +73,7 @@ class ApiRegistryImpl implements IApiRegistry {
     // Store with class as key
     this.services.set(serviceClass, service);
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-service-registration:p1:inst-1
 
   // ============================================================================
   // Initialization
@@ -98,7 +98,7 @@ class ApiRegistryImpl implements IApiRegistry {
    * Returns typed service instance.
    * Throws if service is not registered.
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
+  // @cpt-begin:cpt-frontx-flow-api-communication-service-registration:p1:inst-2
   getService<T extends BaseApiService>(serviceClass: new () => T): T {
     const service = this.services.get(serviceClass);
 
@@ -110,7 +110,7 @@ class ApiRegistryImpl implements IApiRegistry {
 
     return service as T;
   }
-  // @cpt-end:cpt-hai3-flow-api-communication-service-registration:p1:inst-2
+  // @cpt-end:cpt-frontx-flow-api-communication-service-registration:p1:inst-2
 
   /**
    * Check if service is registered.
@@ -178,7 +178,7 @@ class ApiRegistryImpl implements IApiRegistry {
    * apiRegistry.plugins.clear(RestProtocol);
    * ```
    */
-  // @cpt-begin:cpt-hai3-flow-api-communication-global-plugin:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-api-communication-global-plugin:p1:inst-1
   public readonly plugins = {
     /**
      * Add a plugin for a specific protocol.
@@ -295,7 +295,7 @@ class ApiRegistryImpl implements IApiRegistry {
       plugins.clear();
     },
   };
-  // @cpt-end:cpt-hai3-flow-api-communication-global-plugin:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-api-communication-global-plugin:p1:inst-1
 
   // ============================================================================
   // Reset (for testing)
@@ -340,6 +340,6 @@ class ApiRegistryImpl implements IApiRegistry {
  * Use this instance throughout the application.
  *
  * For micro-frontend isolation, each micro-frontend should bundle its own
- * instance of @hai3/api package, which provides natural isolation.
+ * instance of @cyberfabric/api package, which provides natural isolation.
  */
 export const apiRegistry = new ApiRegistryImpl();

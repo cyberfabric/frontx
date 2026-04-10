@@ -1,10 +1,10 @@
 # Case Studies
 
-Real-world examples and implementations using HAI3.
+Real-world examples and implementations using FrontX.
 
 ## Overview
 
-Case studies demonstrating HAI3 in practice are being prepared. This section will feature:
+Case studies demonstrating FrontX in practice are being prepared. This section will feature:
 
 - Implementation examples
 - Architecture patterns in use

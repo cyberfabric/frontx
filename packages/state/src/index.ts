@@ -1,5 +1,5 @@
 /**
- * @hai3/state - HAI3 State Management
+ * @cyberfabric/state - FrontX State Management
  *
  * Provides:
  * - Type-safe event bus for pub/sub communication
@@ -9,11 +9,11 @@
  * SDK Layer: L1 (Only peer dependency on @reduxjs/toolkit)
  *
  * TERMINOLOGY:
- * - "Action" = HAI3 Action (function that emits events)
+ * - "Action" = FrontX Action (function that emits events)
  * - "Reducer" = pure function in slice that updates state
  * - Redux internals are completely hidden
  */
-// @cpt-featstatus:cpt-hai3-featstatus-state-management:p1
+// @cpt-featstatus:cpt-frontx-featstatus-state-management:p1
 
 // ============================================================================
 // Type Exports (minimal public API)

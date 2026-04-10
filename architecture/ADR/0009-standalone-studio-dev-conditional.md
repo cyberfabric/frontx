@@ -17,13 +17,13 @@ date: 2025-11-18
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Keep dev tools inside the uicore package behind a flag](#keep-dev-tools-inside-the-uicore-package-behind-a-flag)
   - [Implement dev tools as a browser extension](#implement-dev-tools-as-a-browser-extension)
-  - [Standalone `@hai3/studio` workspace package with conditional import guarded by `import.meta.env.DEV`](#standalone-hai3studio-workspace-package-with-conditional-import-guarded-by-importmetaenvdev)
+  - [Standalone `@cyberfabric/studio` workspace package with conditional import guarded by `import.meta.env.DEV`](#standalone-cyberfabricstudio-workspace-package-with-conditional-import-guarded-by-importmetaenvdev)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-standalone-studio-dev-conditional`
+**ID**: `cpt-frontx-adr-standalone-studio-dev-conditional`
 ## Context and Problem Statement
 
 Footer-based dev tools lacked space and could not be excluded from production builds. Dev tools mixed with production UI components created unnecessary bundle weight and potential security exposure. A solution is needed that provides rich developer tooling in development while contributing zero bytes to production bundles.
@@ -37,11 +37,11 @@ Footer-based dev tools lacked space and could not be excluded from production bu
 
 * Keep dev tools inside the uicore package behind a flag
 * Implement dev tools as a browser extension
-* Standalone `@hai3/studio` workspace package with conditional import guarded by `import.meta.env.DEV`
+* Standalone `@cyberfabric/studio` workspace package with conditional import guarded by `import.meta.env.DEV`
 
 ## Decision Outcome
 
-Chosen option: "Standalone `@hai3/studio` workspace package with conditional import guarded by `import.meta.env.DEV`", because Vite eliminates the entire conditional branch at build time, guaranteeing zero production overhead, while the floating glassmorphic overlay provides a modern developer UX without consuming viewport space.
+Chosen option: "Standalone `@cyberfabric/studio` workspace package with conditional import guarded by `import.meta.env.DEV`", because Vite eliminates the entire conditional branch at build time, guaranteeing zero production overhead, while the floating glassmorphic overlay provides a modern developer UX without consuming viewport space.
 
 ### Consequences
 
@@ -50,7 +50,7 @@ Chosen option: "Standalone `@hai3/studio` workspace package with conditional imp
 
 ### Confirmation
 
-`packages/studio/` exists as a standalone workspace package. Its `package.json` carries no `@hai3/*` dependencies — Studio reads from store selectors and dispatches through the standard event flow. Studio is imported in host apps exclusively inside an `if (import.meta.env.DEV)` block. Settings are persisted to `localStorage`.
+`packages/studio/` exists as a standalone workspace package. Its `package.json` carries no `@cyberfabric/*` dependencies — Studio reads from store selectors and dispatches through the standard event flow. Studio is imported in host apps exclusively inside an `if (import.meta.env.DEV)` block. Settings are persisted to `localStorage`.
 
 ## Pros and Cons of the Options
 
@@ -64,14 +64,14 @@ Chosen option: "Standalone `@hai3/studio` workspace package with conditional imp
 * Good, because completely separate from the application bundle regardless of environment
 * Bad, because installation friction for every developer; extension must be kept in sync with framework internals
 
-### Standalone `@hai3/studio` workspace package with conditional import guarded by `import.meta.env.DEV`
+### Standalone `@cyberfabric/studio` workspace package with conditional import guarded by `import.meta.env.DEV`
 
 * Good, because Vite tree-shakes the entire branch in production builds with no configuration required
 * Bad, because the floating overlay can obscure application UI during development sessions
 
 ## More Information
 
-The `@hai3/studio` package deliberately has no `@hai3/*` framework dependencies to enable independent evolution. It accesses framework state through store selectors rather than importing framework internals directly.
+The `@cyberfabric/studio` package deliberately has no `@cyberfabric/*` framework dependencies to enable independent evolution. It accesses framework state through store selectors rather than importing framework internals directly.
 
 ## Traceability
 
@@ -80,8 +80,8 @@ The `@hai3/studio` package deliberately has no `@hai3/*` framework dependencies 
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-studio-panel` — floating panel UI and glassmorphic overlay design
-* `cpt-hai3-fr-studio-controls` — dev tool controls exposed through the panel
-* `cpt-hai3-fr-studio-persistence` — localStorage persistence of studio settings
-* `cpt-hai3-fr-studio-independence` — zero framework dependency constraint
-* `cpt-hai3-component-studio` — studio package as standalone workspace member
+* `cpt-frontx-fr-studio-panel` — floating panel UI and glassmorphic overlay design
+* `cpt-frontx-fr-studio-controls` — dev tool controls exposed through the panel
+* `cpt-frontx-fr-studio-persistence` — localStorage persistence of studio settings
+* `cpt-frontx-fr-studio-independence` — zero framework dependency constraint
+* `cpt-frontx-component-studio` — studio package as standalone workspace member

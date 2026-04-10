@@ -16,14 +16,14 @@ date: 2025-11-15
   - [Confirmation](#confirmation)
 - [Pros and Cons of the Options](#pros-and-cons-of-the-options)
   - [Single screenset-level translation file containing all content](#single-screenset-level-translation-file-containing-all-content)
-  - [Pure per-screen model — each screen owns all its translations including shared titles](#pure-per-screen-model-each-screen-owns-all-its-translations-including-shared-titles)
-  - [Two-tier hybrid model — screenset-level for menu titles only, screen-level for all content](#two-tier-hybrid-model-screenset-level-for-menu-titles-only-screen-level-for-all-content)
+  - [Pure per-screen model — each screen owns all its translations including shared titles](#pure-per-screen-model--each-screen-owns-all-its-translations-including-shared-titles)
+  - [Two-tier hybrid model — screenset-level for menu titles only, screen-level for all content](#two-tier-hybrid-model--screenset-level-for-menu-titles-only-screen-level-for-all-content)
 - [More Information](#more-information)
 - [Traceability](#traceability)
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-hybrid-namespace-localization`
+**ID**: `cpt-frontx-adr-hybrid-namespace-localization`
 ## Context and Problem Statement
 
 Screen lazy-loading requires translation data to be separated so translations do not all load on language switch. A monolithic translation file defeats lazy loading; a pure per-screen model duplicates shared content such as menu titles. A model that satisfies both constraints is required.
@@ -80,6 +80,6 @@ Translation directories at `src/screensets/*/translations/` contain separate scr
 
 This decision directly addresses:
 
-* `cpt-hai3-fr-i18n-hybrid-namespace` — two-tier namespace model definition
-* `cpt-hai3-fr-i18n-lazy-chunks` — translation chunk loading aligned with screen lazy loading
-* `cpt-hai3-component-i18n` — i18n registry and loader implementation
+* `cpt-frontx-fr-i18n-hybrid-namespace` — two-tier namespace model definition
+* `cpt-frontx-fr-i18n-lazy-chunks` — translation chunk loading aligned with screen lazy loading
+* `cpt-frontx-component-i18n` — i18n registry and loader implementation
