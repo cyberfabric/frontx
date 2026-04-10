@@ -174,6 +174,20 @@ export abstract class ApiProtocol<TPlugin extends BasePluginHooks = BasePluginHo
 }
 
 /**
+ * REST Request Options
+ * Per-request options for REST calls.
+ * Non-breaking addition: existing callers using positional params continue to work.
+ */
+export type RestRequestOptions = {
+  /** URL query parameters */
+  params?: Record<string, string>;
+  /** Cancellation signal */
+  signal?: AbortSignal;
+  /** Whether to include credentials for this specific request (overrides protocol default) */
+  withCredentials?: boolean;
+};
+
+/**
  * REST Protocol Configuration
  * Configuration options for REST protocol.
  */
@@ -224,6 +238,10 @@ export interface ApiRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** Whether to include credentials (cookies) for this request */
+  readonly withCredentials?: boolean;
+  /** Optional cancellation signal (axios supports AbortSignal) */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -380,7 +398,7 @@ export abstract class ApiPlugin<TConfig = void> extends ApiPluginBase {
  * apiRegistry.plugins.has(RestProtocol, pluginClass);
  * ```
  */
-export type PluginClass<T extends ApiPluginBase = ApiPluginBase> = abstract new (...args: never[]) => T;
+export type PluginClass<T extends BasePluginHooks = BasePluginHooks> = abstract new (...args: never[]) => T;
 
 /**
  * Short Circuit Type Guard
@@ -420,6 +438,10 @@ export interface RestRequestContext {
   readonly headers: Record<string, string>;
   /** Request body */
   readonly body?: unknown;
+  /** Whether to include credentials (cookies) for this request */
+  readonly withCredentials?: boolean;
+  /** Optional cancellation signal (axios supports AbortSignal) */
+  readonly signal?: AbortSignal;
 }
 
 /**
@@ -563,6 +585,8 @@ export interface ApiPluginErrorContext {
   readonly error: Error;
   /** Request context at time of error */
   readonly request: RestRequestContext;
+  /** Optional response context (when the transport produced a response) */
+  readonly response?: RestResponseContext;
   /** Current retry depth (0 for original request) */
   readonly retryCount: number;
   /**
@@ -865,4 +889,38 @@ export interface ApiRegistry {
    * @returns Current API configuration
    */
   getConfig(): Readonly<ApiServicesConfig>;
+
+  /**
+   * Protocol plugin management namespace.
+   * Exposed on the public registry instance for global cross-cutting concerns
+   * (auth, logging, tracing, etc).
+   */
+  readonly plugins: {
+    add: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      plugin: ProtocolPluginType<T>
+    ) => void;
+    remove: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: PluginClass
+    ) => void;
+    has: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T,
+      pluginClass: PluginClass
+    ) => boolean;
+    getAll: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ) => readonly ProtocolPluginType<T>[];
+    clear: <T extends ApiProtocol>(
+      protocolClass: new (...args: never[]) => T
+    ) => void;
+  };
+
+  /**
+   * Reset registry state.
+   * Primarily used for testing.
+   *
+   * @internal
+   */
+  reset(): void;
 }

@@ -1,7 +1,7 @@
 {
-  "name": "@cyberfabric/api",
-  "version": "0.2.0-alpha.0",
-  "description": "API communication protocols and service registry for FrontX SDK",
+  "name": "@cyberfabric/auth",
+  "version": "0.4.0-alpha.0",
+  "description": "Headless authentication contract and types for HAI3 SDK",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -21,35 +21,28 @@
   "files": [
     "dist",
     "CLAUDE.md",
-    "llms.txt",
-    "commands"
+    "llms.txt"
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "type-check": "tsc --noEmit"
   },
   "dependencies": {},
   "devDependencies": {
-    "axios": "^1.6.0",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2",
-    "vitest": "^4.0.18"
+    "typescript": "^5.4.2"
   },
-  "peerDependencies": {
-    "axios": ">=1.0.0"
-  },
+  "peerDependencies": {},
   "publishConfig": {
     "access": "public"
   },
   "keywords": [
-    "frontx",
-    "api",
-    "rest",
-    "sse",
+    "hai3",
+    "auth",
+    "authentication",
+    "authorization",
     "typescript"
   ],
-  "author": "Cyber Fabric",
+  "author": "HAI3",
   "license": "Apache-2.0"
 }

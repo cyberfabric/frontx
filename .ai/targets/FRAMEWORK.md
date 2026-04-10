@@ -8,7 +8,7 @@
 ## SCOPE
 - Package: `packages/framework/`
 - Layer: L2 Framework (depends on all L1 SDK packages)
-- Peer dependencies: `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`
+- Peer dependencies: `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`, `@cyberfabric/auth`
 
 ## CRITICAL RULES
 - Applications built by composing plugins via `createHAI3().use()`.
@@ -46,6 +46,40 @@ const store = configureStore({ ... }); // FORBIDDEN
 | `routing()` | routeRegistry, URL sync | screensets |
 | `i18n()` | i18nRegistry, setLanguage | - |
 | `effects()` | Core effect coordination | - |
+| `auth()` | app.auth (AuthRuntime) | @cyberfabric/auth |
+
+## RUNTIME EXTENSIONS
+- Plugins expose runtime APIs on `app` via `provides.app`.
+- Use module augmentation on `HAI3AppRuntimeExtensions` for type safety.
+- `auth()` plugin uses this mechanism: `app.auth.getSession()`, `app.auth.login()`, etc.
+
+```typescript
+// GOOD: Plugin with runtime app extension
+export function auth(config: AuthPluginConfig): HAI3Plugin {
+  return {
+    name: 'auth',
+    provides: {
+      app: { auth: { /* AuthRuntime */ } },
+    },
+    onInit(app) { /* bind transport to apiRegistry */ },
+    onDestroy(app) { /* cleanup transport + provider.destroy() */ },
+  };
+}
+
+// Module augmentation for type safety
+declare module '../types' {
+  interface HAI3AppRuntimeExtensions {
+    auth?: AuthRuntime;
+  }
+}
+```
+
+## AUTH PLUGIN
+- Transport binding: `auth()` registers `AuthRestPlugin` as global REST plugin via `apiRegistry.plugins.add()`.
+- Bearer: attaches `Authorization: Bearer <token>` header on every request.
+- Cookie-session: sets `withCredentials: true` + optional CSRF header for relative URLs and allowlisted origins.
+- 401 refresh+retry: calls `provider.refresh()` on first 401, deduplicates concurrent refreshes, retries with new token.
+- Custom transport: pass `transport` option to override default `hai3ApiTransport()` binding.
 
 ## CUSTOM PLUGINS
 ```typescript

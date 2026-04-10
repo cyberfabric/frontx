@@ -5,6 +5,7 @@
  * Validates API Communication feature acceptance criteria for REST plugins.
  */
 
+import axios from 'axios';
 import { RestProtocol } from '../protocols/RestProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
 import { apiRegistry } from '../apiRegistry';
@@ -287,6 +288,292 @@ describe('RestProtocol plugins', () => {
       if ('shortCircuit' in result) {
         expect(result.shortCircuit.data).toEqual({ version: 2 });
       }
+    });
+  });
+
+  describe('cancellation support', () => {
+    it('should pass AbortSignal to request context via get()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: { ok: true } } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test', { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should pass AbortSignal to request context via post()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 201, headers: {}, data: { id: 1 } } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.post('/items', { name: 'test' }, { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should pass AbortSignal to request context via delete()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 204, headers: {}, data: null } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.delete('/items/1', { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should have undefined signal when none is provided', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      let capturedSignal: AbortSignal | undefined = {} as AbortSignal;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test');
+
+      expect(capturedSignal).toBeUndefined();
+    });
+
+    it('should reject when AbortSignal is already aborted', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      controller.abort();
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          if (ctx.signal?.aborted) {
+            throw new DOMException('The operation was aborted', 'AbortError');
+          }
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+
+      // Assert on the error name (AbortError) rather than its message, because the
+      // DOMException message varies across runtimes ('The operation was aborted', etc.)
+      await expect(restProtocol.get('/test', { signal: controller.signal })).rejects.toMatchObject({
+        name: 'AbortError',
+      });
+    });
+
+    it('should bypass onError chain when axios.isCancel(error) is true', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      let onErrorCalled = false;
+
+      const errorPlugin: RestPluginHooks = {
+        onError: async (ctx) => {
+          onErrorCalled = true;
+          return ctx.error;
+        },
+        destroy: () => {},
+      };
+
+      const cancelPlugin: RestPluginHooks = {
+        onRequest: async (_ctx) => {
+          throw new axios.CanceledError('Request canceled by user');
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(errorPlugin);
+      restProtocol.plugins.add(cancelPlugin);
+
+      let caughtError: unknown;
+      try {
+        await restProtocol.get('/test');
+      } catch (e) {
+        caughtError = e;
+      }
+
+      expect(axios.isCancel(caughtError)).toBe(true);
+      expect(onErrorCalled).toBe(false);
+    });
+
+    it('should pass original signal to retry requests', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let retrySignal: AbortSignal | undefined;
+      let attemptCount = 0;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          attemptCount++;
+          if (attemptCount === 1) {
+            throw new Error('First attempt fails');
+          }
+          retrySignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        onError: async (context) => {
+          if (context.retryCount === 0) {
+            return context.retry();
+          }
+          return context.error;
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test', { signal: controller.signal });
+
+      expect(attemptCount).toBe(2);
+      expect(retrySignal).toBe(controller.signal);
+    });
+  });
+
+  describe('RestRequestOptions (options bag)', () => {
+    it('should accept options bag with signal for get()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test', { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should accept options bag with params for get()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test', { params: { page: '1' }, signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should accept options bag with signal for post()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 201, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.post('/items', { name: 'test' }, { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should accept options bag with params and signal for get()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 200, headers: {}, data: {} } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.get('/test', { params: { key: 'value' }, signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
+    });
+
+    it('should accept options bag with signal for delete()', async () => {
+      const restProtocol = new RestProtocol();
+      restProtocol.initialize({ baseURL: '/api' });
+
+      const controller = new AbortController();
+      let capturedSignal: AbortSignal | undefined;
+
+      const plugin: RestPluginHooks = {
+        onRequest: async (ctx) => {
+          capturedSignal = ctx.signal;
+          return { shortCircuit: { status: 204, headers: {}, data: null } };
+        },
+        destroy: () => {},
+      };
+
+      restProtocol.plugins.add(plugin);
+      await restProtocol.delete('/items/1', { signal: controller.signal });
+
+      expect(capturedSignal).toBe(controller.signal);
     });
   });
 

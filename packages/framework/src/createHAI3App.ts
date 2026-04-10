@@ -41,6 +41,7 @@ export interface HAI3AppConfig extends HAI3Config, FullPresetConfig {}
 export function createHAI3App(config?: HAI3AppConfig): HAI3App {
   return createHAI3(config)
     .useAll(full({
+      auth: config?.auth,
       microfrontends: config?.microfrontends,
     }))
     .build();

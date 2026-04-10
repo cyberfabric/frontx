@@ -64,6 +64,20 @@
 - FORBIDDEN: Calling `retry()` multiple times without checking `retryCount` (causes infinite loops).
 - FORBIDDEN: Retrying without modification when the same error will occur again.
 
+## REQUEST OPTIONS
+- REQUIRED: Use `RestRequestOptions` for new code (params, signal, withCredentials).
+- REQUIRED: Pass AbortSignal via options bag, not positional arg.
+- Cancellation: axios.CanceledError bypasses plugin onError chain and propagates directly.
+- Retry: `context.retry(overrides?)` preserves plugin-modified context. Override only what changed.
+
+```typescript
+// GOOD: Options bag with signal and params
+const data = await svc.protocol(RestProtocol).get('/users', { signal, params: { page: '1' } });
+
+// GOOD: Options bag with signal only
+const data = await svc.protocol(RestProtocol).post('/users', body, { signal });
+```
+
 ## PROTOCOL-SPECIFIC PLUGINS
 - REQUIRED: RestProtocol plugins implement RestPluginHooks (onRequest, onResponse, destroy).
 - REQUIRED: SseProtocol plugins implement SsePluginHooks (onConnect, onEvent, onDisconnect, destroy).

@@ -19,6 +19,7 @@
 - packages/screensets -> .ai/targets/LAYOUT.md
 - packages/api -> .ai/targets/API.md
 - packages/i18n -> .ai/targets/I18N.md
+- packages/auth -> .ai/targets/AUTH.md
 
 ### Framework Layer (L2) - Depends on SDK packages
 - packages/framework -> .ai/targets/FRAMEWORK.md

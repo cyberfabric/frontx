@@ -50,6 +50,9 @@ packages/cli/src/generated/
 .claude/settings.local.json
 .claude/worktrees/
 
+# Agent infrastructure (session-local, not part of feature code)
+.agents/
+
 # FrontX migration tracker (project-local state)
 .frontx/
 

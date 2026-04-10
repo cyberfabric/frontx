@@ -39,6 +39,7 @@ export type {
   SsePluginHooks,
   RestRequestContext,
   RestResponseContext,
+  RestRequestOptions,
   ApiPluginErrorContext,
   SseConnectContext,
   EventSourceLike,
