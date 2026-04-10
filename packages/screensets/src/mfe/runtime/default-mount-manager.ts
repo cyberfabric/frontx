@@ -67,14 +67,25 @@ export class DefaultMountManager extends MountManager {
   private readonly hostRuntime: ScreensetsRegistry;
 
   /**
-   * Callback for registering domain action handlers.
+   * Callback for registering catch-all action handlers (child domain forwarding).
    */
-  private readonly registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
+  private readonly registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
 
   /**
-   * Callback for unregistering domain action handlers.
+   * Callback for unregistering catch-all action handlers.
    */
-  private readonly unregisterDomainActionHandler: (domainId: string) => void;
+  private readonly unregisterCatchAllActionHandler: (domainId: string) => void;
+
+  /**
+   * Callback for registering per-(extensionId, actionTypeId) handlers in the parent mediator.
+   * domainId is forwarded so the mediator can populate targetDomainMap for timeout resolution.
+   */
+  private readonly registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
+
+  /**
+   * Callback for unregistering all extension handlers from the parent mediator.
+   */
+  private readonly unregisterExtensionActionHandler: (extensionId: string) => void;
 
   /**
    * Runtime bridge factory for creating bridge connections.
@@ -88,8 +99,10 @@ export class DefaultMountManager extends MountManager {
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
     hostRuntime: ScreensetsRegistry;
-    registerDomainActionHandler: (domainId: string, handler: ActionHandler) => void;
-    unregisterDomainActionHandler: (domainId: string) => void;
+    registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
+    unregisterCatchAllActionHandler: (domainId: string) => void;
+    registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
+    unregisterExtensionActionHandler: (extensionId: string) => void;
     bridgeFactory: RuntimeBridgeFactory;
   }) {
     super();
@@ -99,8 +112,10 @@ export class DefaultMountManager extends MountManager {
     this.triggerLifecycle = config.triggerLifecycle;
     this.executeActionsChain = config.executeActionsChain;
     this.hostRuntime = config.hostRuntime;
-    this.registerDomainActionHandler = config.registerDomainActionHandler;
-    this.unregisterDomainActionHandler = config.unregisterDomainActionHandler;
+    this.registerCatchAllActionHandler = config.registerCatchAllActionHandler;
+    this.unregisterCatchAllActionHandler = config.unregisterCatchAllActionHandler;
+    this.registerExtensionActionHandler = config.registerExtensionActionHandler;
+    this.unregisterExtensionActionHandler = config.unregisterExtensionActionHandler;
     this.bridgeFactory = config.bridgeFactory;
   }
 
@@ -213,14 +228,20 @@ export class DefaultMountManager extends MountManager {
         );
       }
 
-      // Create bridge using bridge factory
+      // Create bridge using bridge factory.
+      // domainActions is passed for API compatibility but is no longer used
+      // for contract enforcement — GTS schema validation handles that.
+      const entryDomainActions = extensionState.entry.domainActions;
       const { parentBridge, childBridge } = this.bridgeFactory.createBridge(
         domainState,
         extensionId,
         extensionState.entry.id,
+        entryDomainActions,
         (chain: ActionsChain) => this.executeActionsChain(chain),
-        (domainId, handler) => this.registerDomainActionHandler(domainId, handler),
-        (domainId) => this.unregisterDomainActionHandler(domainId)
+        (domainId, handler) => this.registerCatchAllActionHandler(domainId, handler),
+        (domainId) => this.unregisterCatchAllActionHandler(domainId),
+        (extId, actionTypeId, handler, domainId) => this.registerExtensionActionHandler(extId, actionTypeId, handler, domainId),
+        (extId) => this.unregisterExtensionActionHandler(extId)
       );
 
       // Register with RuntimeCoordinator
@@ -309,6 +330,18 @@ export class DefaultMountManager extends MountManager {
       if (lifecycle && container) {
         const unmountTarget = extensionState.shadowRoot ?? container;
         await lifecycle.unmount(unmountTarget);
+      }
+
+      // Unregister extension action handler from mediator before disposing bridge.
+      // Wrapped in try/catch so a failure (e.g., pending actions) does not strand
+      // the rest of the unmount cleanup (bridge dispose, coordinator, state reset).
+      try {
+        this.unregisterExtensionActionHandler(extensionId);
+      } catch (unregisterError) {
+        console.error(
+          `[MountManager] Failed to unregister extension action handler for '${extensionId}':`,
+          unregisterError
+        );
       }
 
       // Dispose bridge

@@ -98,7 +98,7 @@ export function loadExtension(extensionId: string): void {
     action: {
       type: HAI3_ACTION_LOAD_EXT,
       target: domainId,
-      payload: { extensionId },
+      payload: { subject: extensionId },
     },
   }).catch((error) => {
     console.error(`[MFE] Load failed for ${extensionId}:`, error);
@@ -129,7 +129,7 @@ export function mountExtension(extensionId: string): void {
     action: {
       type: HAI3_ACTION_MOUNT_EXT,
       target: domainId,
-      payload: { extensionId },
+      payload: { subject: extensionId },
     },
   }).catch((error) => {
     console.error(`[MFE] Mount failed for ${extensionId}:`, error);
@@ -158,7 +158,7 @@ export function unmountExtension(extensionId: string): void {
     action: {
       type: HAI3_ACTION_UNMOUNT_EXT,
       target: domainId,
-      payload: { extensionId },
+      payload: { subject: extensionId },
     },
   }).catch((error) => {
     console.error(`[MFE] Unmount failed for ${extensionId}:`, error);

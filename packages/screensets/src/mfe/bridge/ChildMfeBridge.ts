@@ -9,15 +9,18 @@
  * @packageDocumentation
  */
 
-import type { ChildMfeBridge } from '../handler/types';
+import { ChildMfeBridge } from '../handler/types';
+import type { ActionHandler } from '../mediator/types';
 import type { SharedProperty, ActionsChain } from '../types';
 import { NoActionsChainHandlerError } from '../errors';
 
 /**
  * Internal implementation of ChildMfeBridge.
  * This class is given to child MFEs for host communication.
+ *
+ * @internal
  */
-export class ChildMfeBridgeImpl implements ChildMfeBridge {
+export class ChildMfeBridgeImpl extends ChildMfeBridge {
   readonly domainId: string;
   readonly instanceId: string;
 
@@ -59,6 +62,12 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
   private unregisterChildDomainCallback: ((domainId: string) => void) | null = null;
 
   /**
+   * Internal: callback for registering this MFE's action handler in the parent mediator.
+   * The callback receives the actionTypeId and handler class instance.
+   */
+  private registerActionHandlerCallback: ((actionTypeId: string, handler: ActionHandler) => void) | null = null;
+
+  /**
    * Internal: set of child domain IDs registered via registerChildDomain().
    * Tracked for cleanup on bridge disposal.
    */
@@ -68,6 +77,7 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
     domainId: string,
     instanceId: string
   ) {
+    super();
     this.domainId = domainId;
     this.instanceId = instanceId;
   }
@@ -218,6 +228,34 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
   }
 
   /**
+   * INTERNAL: Set callback for action handler registration.
+   * Called by bridge factory during wiring.
+   *
+   * @param callback - Callback that registers the handler in the parent mediator
+   */
+  setRegisterActionHandlerCallback(callback: (actionTypeId: string, handler: ActionHandler) => void): void {
+    this.registerActionHandlerCallback = callback;
+  }
+
+  /**
+   * Register a handler for a specific action type on this MFE.
+   * Delegates to the wired callback which calls mediator.registerHandler().
+   * May be called multiple times — once per action type.
+   *
+   * @param actionTypeId - The action type this handler handles
+   * @param handler - The ActionHandler instance to invoke
+   * @throws Error if the callback was not wired by the bridge factory (programming error)
+   */
+  // @cpt-begin:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
+  registerActionHandler(actionTypeId: string, handler: ActionHandler): void {
+    if (!this.registerActionHandlerCallback) {
+      throw new Error('registerActionHandler callback not wired');
+    }
+    this.registerActionHandlerCallback(actionTypeId, handler);
+  }
+  // @cpt-end:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
+
+  /**
    * INTERNAL: Register a child domain for cross-runtime action forwarding.
    * This is a concrete-only method used by child MFEs that define their own domains.
    *
@@ -284,6 +322,7 @@ export class ChildMfeBridgeImpl implements ChildMfeBridge {
     // Step 3: Now null the callbacks (after all unregistrations are complete)
     this.registerChildDomainCallback = null;
     this.unregisterChildDomainCallback = null;
+    this.registerActionHandlerCallback = null;
 
     // Clean up the rest
     this.propertySubscribers.clear();

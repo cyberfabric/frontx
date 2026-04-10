@@ -98,9 +98,9 @@ describe('microfrontends plugin - Phase 13', () => {
 
       expect(spy).toHaveBeenCalledWith({
         action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
           target: testDomainId,
-          payload: { extensionId: testExtensionId },
+          payload: { subject: testExtensionId },
         },
       });
     });

@@ -19,6 +19,7 @@ import { DefaultScreensetsRegistryFactory } from './DefaultScreensetsRegistryFac
 import type { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 
 export { ScreensetsRegistry } from './ScreensetsRegistry';
+export type { RegisterDomainOptions } from './ScreensetsRegistry';
 export { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
 export { ContainerProvider } from './container-provider';
 export type { ScreensetsRegistryConfig } from './config';

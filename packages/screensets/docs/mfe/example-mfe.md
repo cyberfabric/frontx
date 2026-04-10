@@ -124,7 +124,7 @@ export const analyticsManifestSchema: JSONSchema = {
 ```typescript
 // Type IDs (reference only - no runtime generation)
 export const TYPE_IDS = {
-  // Actions
+  // Actions (instance IDs - no trailing ~)
   DATA_UPDATED: 'gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1',
   REFRESH_REQUEST: 'gts.hai3.mfes.comm.action.v1~acme.analytics.comm.refresh_request.v1',
 
@@ -457,9 +457,9 @@ export async function registerAnalyticsMfe(runtime: ScreensetsRegistry) {
   // Step 6: Mount via actions chain (auto-loads if needed)
   await runtime.executeActionsChain({
     action: {
-      type: 'gts.hai3.mfes.ext.action.v1~hai3.mfes.ext.mount_ext.v1',
+      type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
       target: extension.domain,
-      payload: { extensionId: extension.id },
+      payload: { subject: extension.id },
     },
   });
 
@@ -500,10 +500,10 @@ await registry.registerDomain({
     'gts.hai3.mfes.comm.shared_property.v1~acme.analytics.theme.v1',
   ],
   actions: [
-    'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
+    'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
   ],
   extensionsActions: [
-    'gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1',
+    'gts.hai3.mfes.comm.action.v1~acme.analytics.comm.data_updated.v1~',
   ],
   defaultActionTimeout: 5000,
   lifecycleStages: [

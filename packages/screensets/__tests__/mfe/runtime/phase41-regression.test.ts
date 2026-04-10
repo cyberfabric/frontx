@@ -152,7 +152,7 @@ describe('Phase 41 Regression Tests', () => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: testDomain.id,
-          payload: { extensionId: nonExistentExtensionId },
+          payload: { subject: nonExistentExtensionId },
         },
       });
 
@@ -175,7 +175,7 @@ describe('Phase 41 Regression Tests', () => {
           action: {
             type: HAI3_ACTION_MOUNT_EXT,
             target: testDomain.id,
-            payload: { extensionId: nonExistentExtensionId },
+            payload: { subject: nonExistentExtensionId },
           },
         })
       ).resolves.toBeUndefined();
@@ -184,20 +184,21 @@ describe('Phase 41 Regression Tests', () => {
 
   describe('41.5.4 - executeActionsChain does not log on successful chain', () => {
     it('should not log console.error when actions chain succeeds', async () => {
-      // Create a custom action type and register it with GTS
-      const customActionId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.custom_action.v1';
-      gtsPlugin.register({
-        id: customActionId,
-        type: customActionId,
-        target: testDomain.id,
-        payload: {},
+      // Register a custom action as a SCHEMA (type ID ends with ~) so GTS accepts it.
+      // Actions must be schemas; registering as instances (no trailing ~) causes GTS to
+      // reject validation with "not a schema".
+      const customActionSchemaId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.custom_action.v1~';
+      gtsPlugin.registerSchema({
+        $id: `gts://${customActionSchemaId}`,
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
       });
 
       // Register domain with a custom action
       const customDomain: ExtensionDomain = {
         id: 'gts.hai3.mfes.ext.domain.v1~hai3.test.phase41.custom_domain.v1',
         sharedProperties: [],
-        actions: [customActionId],
+        actions: [customActionSchemaId],
         extensionsActions: [],
         defaultActionTimeout: 3000,
         lifecycleStages: [
@@ -210,12 +211,12 @@ describe('Phase 41 Regression Tests', () => {
       gtsPlugin.register(customDomain);
       registry.registerDomain(customDomain, mockContainerProvider);
 
-      // Execute successful actions chain with a mocked domain handler
-      // The domain handler will be automatically created by the registry for the domain
-      // We just need to execute an action that the domain can handle
+      // Execute successful actions chain with a mocked domain handler.
+      // The domain handler will be automatically created by the registry for the domain.
+      // We just need to execute an action that the domain can handle.
       await registry.executeActionsChain({
         action: {
-          type: customActionId,
+          type: customActionSchemaId,
           target: customDomain.id,
           payload: {},
         },

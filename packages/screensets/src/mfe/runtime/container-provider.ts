@@ -25,7 +25,7 @@
 export abstract class ContainerProvider {
   /**
    * Get the DOM container element for the given extension.
-   * Called by ExtensionLifecycleActionHandler during mount_ext handling.
+   * Called by MountExtSwapHandler/MountExtToggleHandler during mount_ext handling.
    *
    * @param extensionId - ID of the extension being mounted
    * @returns The DOM Element to mount into
@@ -35,7 +35,7 @@ export abstract class ContainerProvider {
 
   /**
    * Release the DOM container for the given extension.
-   * Called by ExtensionLifecycleActionHandler during unmount_ext handling
+   * Called by UnmountExtHandler/MountExtSwapHandler during unmount_ext handling
    * (after the MFE has been unmounted) and during swap operations.
    *
    * Implementations may clear the container, detach refs, or perform

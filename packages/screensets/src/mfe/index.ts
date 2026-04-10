@@ -54,15 +54,14 @@ export type {
 
 // Runtime (includes factory)
 export { ScreensetsRegistry, ScreensetsRegistryFactory, screensetsRegistryFactory, ContainerProvider } from './runtime';
-export type { ScreensetsRegistryConfig } from './runtime';
+export type { ScreensetsRegistryConfig, RegisterDomainOptions } from './runtime';
 
 // Handler Types and Abstract Classes (concrete implementations are internal)
-export type {
-  ParentMfeBridge,
-  ChildMfeBridge,
-  MfeEntryLifecycle,
-} from './handler/types';
-export { MfeHandler, MfeBridgeFactory } from './handler/types';
+export type { MfeEntryLifecycle } from './handler/types';
+export { ParentMfeBridge, ChildMfeBridge, MfeHandler, MfeBridgeFactory } from './handler/types';
+
+// Mediator types needed by MFE consumers to implement action handlers
+export { ActionHandler } from './mediator/types';
 
 // Shadow DOM Utilities
 export {

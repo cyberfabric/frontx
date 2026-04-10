@@ -7,7 +7,7 @@
  * Following flux architecture: Listen to events from actions, dispatch to slices.
  */
 
-import { trim } from 'lodash';
+import trim from 'lodash/trim';
 import { eventBus, setUser, setHeaderLoading, apiRegistry, type AppDispatch, type HeaderUser } from '@cyberfabric/react';
 import { AccountsApiService, type ApiUser } from '@/app/api';
 

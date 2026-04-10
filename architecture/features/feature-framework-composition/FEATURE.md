@@ -1,5 +1,7 @@
 # Feature: Framework Composition
 
+<!-- artifact-version: 1.1 -->
+
 
 <!-- toc -->
 
@@ -186,12 +188,12 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host calls `app.actions.loadExtension(extensionId)` - `inst-call-load-ext`
-2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `screensetsRegistry.executeActionsChain` with `HAI3_ACTION_LOAD_EXT` — fire-and-forget - `inst-execute-load-chain`
+2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `screensetsRegistry.executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~` — fire-and-forget - `inst-execute-load-chain`
 3. [ ] `p1` - Host calls `app.actions.mountExtension(extensionId)` - `inst-call-mount-ext`
-4. [ ] `p1` - Action resolves domain ID; calls `executeActionsChain` with `HAI3_ACTION_MOUNT_EXT` - `inst-execute-mount-chain`
-5. [ ] `p1` - On successful mount completion, dispatch `setExtensionMounted({ domainId, extensionId })` to the MFE slice - `inst-dispatch-mounted`
+4. [ ] `p1` - Action resolves domain ID; calls `executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` - `inst-execute-mount-chain`
+5. [ ] `p1` - On successful mount completion, dispatch `setExtensionMounted({ domainId, subject })` to the MFE slice - `inst-dispatch-mounted`
 6. [ ] `p2` - Host calls `app.actions.unmountExtension(extensionId)` - `inst-call-unmount-ext`
-7. [ ] `p2` - Action resolves domain ID; calls `executeActionsChain` with `HAI3_ACTION_UNMOUNT_EXT` - `inst-execute-unmount-chain`
+7. [ ] `p2` - Action resolves domain ID; calls `executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` - `inst-execute-unmount-chain`
 8. [ ] `p2` - On successful unmount completion, dispatch `setExtensionUnmounted({ domainId })` to the MFE slice - `inst-dispatch-unmounted`
 
 ### Shared Property Broadcast
@@ -313,8 +315,8 @@ Tracked in `state.mfe.registrationStates[extensionId]`.
 
 Tracked in `state.mfe.mountedExtensions[domainId]` as an extension ID string or `undefined`.
 
-1. [ ] `p1` - **FROM** `undefined` **TO** `extensionId` **WHEN** `HAI3_ACTION_MOUNT_EXT` chain completes successfully - `inst-domain-mounted`
-2. [ ] `p2` - **FROM** `extensionId` **TO** `undefined` **WHEN** `HAI3_ACTION_UNMOUNT_EXT` chain completes successfully - `inst-domain-unmounted`
+1. [ ] `p1` - **FROM** `undefined` **TO** `subject` **WHEN** `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` chain completes successfully - `inst-domain-mounted`
+2. [ ] `p2` - **FROM** `subject` **TO** `undefined` **WHEN** `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` chain completes successfully - `inst-domain-unmounted`
 
 ### Plugin Builder State
 
@@ -570,7 +572,7 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 - [x] `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` propagates to all domains declaring the property; domains not declaring it receive no update
 - [x] `app.actions.registerExtension(ext)` transitions `state.mfe.registrationStates[ext.id]` from `'unregistered'` → `'registering'` → `'registered'`
 - [x] A failing `screensetsRegistry.registerExtension()` call transitions state to `'error'` with the error message recorded
-- [x] `app.actions.mountExtension(extensionId)` after successful execution sets `state.mfe.mountedExtensions[domainId]` to `extensionId`
+- [x] `app.actions.mountExtension(extensionId)` after successful execution sets `state.mfe.mountedExtensions[domainId]` to the extension's `subject` reference
 - [x] `normalizeBase('/console/')` returns `'/console'`; `normalizeBase('')` returns `'/'`; `normalizeBase('console')` returns `'/console'`
 - [x] `stripBase('/console/dashboard', '/console')` returns `'/dashboard'`; `stripBase('/admin/x', '/console')` returns `null`; `stripBase('/console-admin', '/console')` returns `null`
 - [x] `createHAI3App()` uses the `full()` preset and returns a valid `HAI3App` without configuration

@@ -1,5 +1,6 @@
 # Technical Design — FrontX Dev Kit
 
+<!-- artifact-version: 1.1 -->
 
 <!-- toc -->
 
@@ -55,7 +56,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-frontx-adr-global-shared-property-broadcast`,
 `cpt-frontx-adr-cli-template-based-code-generation`,
 `cpt-frontx-adr-two-tier-cli-e2e-verification`,
-`cpt-frontx-adr-channel-aware-version-locking`
+`cpt-frontx-adr-channel-aware-version-locking`,
+`cpt-frontx-adr-per-action-type-handler-routing`
 
 #### Functional Drivers
 
@@ -93,7 +95,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
 | `cpt-frontx-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
 | `cpt-frontx-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
-| `cpt-frontx-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support |
+| `cpt-frontx-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support; action `type` values are GTS schema type IDs (trailing `~`); extension references in payloads use `subject` field |
 | `cpt-frontx-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
 | `cpt-frontx-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
 | `cpt-frontx-fr-blob-no-revoke` | Blob URLs kept alive for page lifetime; `URL.revokeObjectURL()` never called after `import()` resolves |
@@ -141,7 +143,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-nfr-rel-serialization` | State serializable for persistence/debugging | `cpt-frontx-component-state` | Redux Toolkit enforces serializable state by default; custom middleware logs violations | Redux DevTools inspection |
 | `cpt-frontx-nfr-sec-shadow-dom` | MFE CSS isolated from host | `cpt-frontx-component-react` | Shadow DOM wrapper for MFE render containers | Visual regression tests |
 | `cpt-frontx-nfr-sec-csp-blob` | Blob URLs compatible with CSP policies | `cpt-frontx-component-screensets` | `blob:` scheme added to `script-src`; no `eval()` or `new Function()` used | CSP violation reporting in staging |
-| `cpt-frontx-nfr-sec-type-validation` | Shared properties validated at boundary | `cpt-frontx-component-framework` | GTS plugin validates shared property values against declared schemas | Unit tests with invalid payloads |
+| `cpt-frontx-nfr-sec-type-validation` | Shared properties and actions validated at boundary | `cpt-frontx-component-framework` | GTS plugin validates shared property values against declared schemas; actions validated as anonymous instances (no `id`, schema resolved from `type` field) | Unit tests with invalid payloads and malformed actions |
 | `cpt-frontx-nfr-compat-node` | Packages installable on Node ≥ 18 | All packages | `engines` field in each `package.json`; CI matrix tests Node 18/20/22 | CI build matrix |
 | `cpt-frontx-nfr-compat-typescript` | TypeScript ≥ 5.5 | All packages | `tsconfig.json` targets ES2022; strict mode enabled | CI type-check step |
 | `cpt-frontx-nfr-compat-esm` | ESM-first output | All packages | tsup configured with `format: ['esm']`; `"type": "module"` in `package.json` | Import resolution tests |
@@ -401,7 +403,7 @@ Defines the contract between the host application and microfrontend extensions. 
 ##### Responsibility scope
 
 - **Screen-set registry**: `screensetsRegistryFactory` for registering/querying screen-sets with handler injection
-- **MFE type contracts**: Entry types (component, screen, extension), domain declarations, shared property schemas, action type definitions
+- **MFE type contracts**: Entry types (component, screen, extension), domain declarations, shared property schemas, action schema type definitions (GTS schema type IDs with trailing `~`; payloads use `subject` for extension references)
 - **Blob URL isolation**: Fetches MFE bundles, rewrites import specifiers to blob URLs, caches source text, manages per-load import maps
 - **Import rewriting**: Transforms bare `@cyberfabric/*` specifiers in MFE bundles to blob URL references for runtime resolution
 - **Recursive chain loading**: Resolves transitive dependencies by recursively blob-loading imported modules
@@ -665,6 +667,103 @@ interface SharedPropertyBridge {
 }
 ```
 
+- [ ] `p1` - **ID**: `cpt-frontx-interface-child-mfe-bridge`
+- **Contract**: `cpt-frontx-interface-child-mfe-bridge`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/handler/types.ts`
+
+```typescript
+abstract class ChildMfeBridge {
+  abstract readonly domainId: string;
+  abstract readonly instanceId: string;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
+  abstract subscribeToProperty(propertyTypeId: string, callback: (value: SharedProperty) => void): () => void;
+  abstract getProperty(propertyTypeId: string): SharedProperty | undefined;
+  abstract registerActionHandler(actionTypeId: string, handler: ActionHandler): void;
+}
+```
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-parent-mfe-bridge`
+- **Contract**: `cpt-frontx-interface-parent-mfe-bridge`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/handler/types.ts`
+
+```typescript
+abstract class ParentMfeBridge {
+  abstract readonly instanceId: string;
+  abstract dispose(): void;
+}
+```
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-action-handler`
+- **Contract**: `cpt-frontx-interface-action-handler`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/mediator/types.ts`
+
+```typescript
+abstract class ActionHandler {
+  abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
+}
+```
+
+`ActionHandler` is the single public handler contract for both domain-side and extension-side action routing. Consistent with every other public component in `@cyberfabric/screensets` (`MfeHandler`, `MfeBridgeFactory`, `RuntimeCoordinator`, `ChildMfeBridge`): it is an abstract class, not a function type. Consumers extend it to implement specific action type behavior. No `CustomActionHandler` callback type or `ActionHandlerFn` alias exists in the public API.
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-actions-chains-mediator`
+- **Contract**: `cpt-frontx-interface-actions-chains-mediator`
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/mediator/actions-chains-mediator.ts`
+
+```typescript
+abstract class ActionsChainsMediator {
+  abstract executeActionsChain(chain: ActionsChain): Promise<ActionChainResult>;
+  abstract registerHandler(targetId: string, actionTypeId: string, handler: ActionHandler): void;
+  abstract unregisterAllHandlers(targetId: string): void;
+}
+```
+
+Handler storage uses a unified two-level map: `Map<targetId, Map<actionTypeId, ActionHandler>>`. A single `registerHandler(targetId, actionTypeId, handler)` covers both domain-side and extension-side registration. `unregisterAllHandlers(targetId)` removes the entire inner map entry, covering both bridge dispose and domain unregister. There is no `registerDomainHandler`, `registerExtensionHandler`, or `unregisterDomainHandler` on the abstract class.
+
+**`registerDomain` signature**:
+```typescript
+registerDomain(
+  domain: DomainDescriptor,
+  containerProvider: ContainerProvider,
+  options?: {
+    onInitError?: (error: Error) => void;
+    actionHandlers?: Record<string, ActionHandler>;
+  }
+): void
+```
+
+During `registerDomain()`, the registry registers three small `ActionHandler` subclasses (one per lifecycle action type: `HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) via `mediator.registerHandler(domainId, actionTypeId, handler)`. Custom handlers from `options.actionHandlers` are registered the same way — one call per entry in the map. No monolithic `ExtensionLifecycleActionHandler` switch class is constructed.
+
+- [ ] `p1` - **ID**: `cpt-frontx-interface-mfe-json-schemas`
+- **Contract**: `cpt-frontx-interface-mfe-json-schemas`
+- **Technology**: JSON / TypeScript interface
+- **Location**: `mfe.json` (MFE package root), bootstrap loader (`src/app/mfe/bootstrap.ts`)
+
+`mfe.json` carries an optional top-level `schemas` array of inline GTS JSON Schema objects. Each element is a standard JSON Schema with a GTS `$id` (e.g., `gts://gts.hai3.mfes.comm.action.v1~vendor.action.refresh.v1~`). The parent registers all schemas with `typeSystem.registerSchema()` before registering any entries or extensions, ensuring GTS validation is available for all action types declared in `domainActions`.
+
+```json
+{
+  "manifest": { "..." : "..." },
+  "schemas": [
+    {
+      "$id": "gts://gts.hai3.mfes.comm.action.v1~vendor.action.refresh.v1~",
+      "type": "object",
+      "properties": { "..." : "..." }
+    }
+  ],
+  "entries": [ { "..." : "..." } ],
+  "extensions": [ { "..." : "..." } ]
+}
+```
+
+**Registration flow** (parent side):
+1. Parse `mfe.json`.
+2. FOR EACH schema in `mfe.json.schemas` (if present): call `typeSystem.registerSchema(schema)`. Deduplication is automatic — GTS overwrites any existing entry with the same `$id`.
+3. Register entries and extensions as normal.
+
 **Public Package Interfaces**
 
 | Interface | Package | Description |
@@ -867,6 +966,37 @@ sequenceDiagram
 ```
 
 **Description**: When a host plugin sets a shared property, the value passes through GTS validation against the declared schema. Valid values are stored and broadcast to all subscribed MFE components via change notifications. Invalid values are rejected with a logged warning. MFE components read shared properties through `useSharedProperty()` which re-renders on changes.
+
+#### Extension Action Delivery
+
+**ID**: `cpt-frontx-seq-extension-action-delivery`
+
+**Use cases**: `cpt-frontx-usecase-mfe-load`
+
+**Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-runtime`
+
+```mermaid
+sequenceDiagram
+    participant Host as Host / MFE
+    participant Bridge as ChildMfeBridge
+    participant Mediator as ActionsChainsMediator
+    participant Handler as ActionHandler (MFE)
+
+    Host->>Bridge: executeActionsChain(chain targeting extension ID)
+    Bridge->>Mediator: executeActionsChain(chain)
+    Mediator->>Mediator: resolveHandler(action.target, action.type)
+    alt handler registered for (extensionId, actionTypeId)
+        Mediator->>Handler: handler(actionTypeId, payload)
+        Handler-->>Mediator: resolve
+        Mediator-->>Bridge: chain complete
+    else no handler registered
+        Mediator->>Mediator: no-op (successful return)
+        Mediator-->>Bridge: chain complete
+    end
+    Bridge-->>Host: Promise resolves
+```
+
+**Description**: When a host or MFE calls `executeActionsChain` with an action whose `target` is an extension ID (rather than a domain ID), the mediator resolves the handler registered for the `(extensionId, actionTypeId)` pair. Handlers are `ActionHandler` abstract class instances — one small class per action type, consistent with the class-based architecture of the entire package. A handler is registered per action type via `ChildMfeBridge.registerActionHandler(actionTypeId, handler)`, which wires it to `mediator.registerHandler(extensionId, actionTypeId, handler)`. Domain-side lifecycle handlers are also small `ActionHandler` subclasses registered per action type during `registerDomain()` — the mediator stores all handlers in a unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. On bridge dispose, all handlers for the extension are unregistered. This allows child MFEs to receive typed actions from the host or peer MFEs without any direct coupling, and eliminates the need for a monolithic switch in any handler class.
 
 ### 3.7 Database schemas & tables
 

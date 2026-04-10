@@ -1,5 +1,7 @@
 # Feature: Studio DevTools
 
+<!-- artifact-version: 1.1 -->
+
 - [x] `p1` - **ID**: `cpt-frontx-featstatus-studio-devtools`
 
 <!-- toc -->
@@ -225,7 +227,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 6. [ ] `p1` - Filter extensions to those with `domain === HAI3_SCREEN_DOMAIN` and `isScreenExtension()` — `inst-filter-screen-ext`
 7. [ ] `p1` - **IF** no screen extensions exist **RETURN** warning logged, no further action — `inst-no-screen-ext`
 8. [ ] `p1` - Sort screen extensions by `presentation.order` ascending — `inst-sort-extensions`
-9. [ ] `p1` - Call `registry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
+9. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
 10. [ ] `p1` - Emit `studio/activePackageChanged` with `{ activePackageId }` — `inst-emit-pkg-changed`
 11. [ ] `p1` - Persistence effect subscribes to `studio/activePackageChanged`; writes `activePackageId` to `hai3:studio:activePackageId` — `inst-persist-pkg`
 
@@ -249,7 +251,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 10. [ ] `p1` - **IF** no `activePackageId` stored OR registry unavailable **RETURN** without action — `inst-no-restore-pkg`
 11. [ ] `p1` - Retrieve screen extensions for the persisted package and sort by `presentation.order` — `inst-restore-sort-ext`
 12. [ ] `p1` - **IF** no screen extensions found, skip restore silently — `inst-no-ext-skip`
-13. [ ] `p1` - Call `registry.executeActionsChain()` with `HAI3_ACTION_MOUNT_EXT` for the first extension — `inst-restore-mount`
+13. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` for the first extension — `inst-restore-mount`
 14. [ ] `p1` - **TRY** — on any error during GTS package restore, catch and skip; application remains in current state — `inst-restore-catch`
 
 ---

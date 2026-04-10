@@ -63,8 +63,8 @@ describe('dynamic registration - Phase 20', () => {
     id: 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1',
     sharedProperties: [],
     actions: [
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
     ],
     extensionsActions: [],
     defaultActionTimeout: 5000,

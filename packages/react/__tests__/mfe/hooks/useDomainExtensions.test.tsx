@@ -53,8 +53,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     id: sidebarDomainId,
     sharedProperties: [],
     actions: [
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
     ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
@@ -66,8 +66,8 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     id: popupDomainId,
     sharedProperties: [],
     actions: [
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
     ],
     extensionsActions: [],
     defaultActionTimeout: 5000,

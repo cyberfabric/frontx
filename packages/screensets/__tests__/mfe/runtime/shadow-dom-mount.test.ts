@@ -119,8 +119,10 @@ describe('Shadow DOM Mount Pipeline', () => {
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       executeActionsChain: vi.fn().mockResolvedValue(undefined),
       hostRuntime: mockHostRuntime,
-      registerDomainActionHandler: vi.fn(),
-      unregisterDomainActionHandler: vi.fn(),
+      registerCatchAllActionHandler: vi.fn(),
+      unregisterCatchAllActionHandler: vi.fn(),
+      registerExtensionActionHandler: vi.fn(),
+      unregisterExtensionActionHandler: vi.fn(),
       bridgeFactory,
     });
 

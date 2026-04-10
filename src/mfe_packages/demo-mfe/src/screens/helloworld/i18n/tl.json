@@ -5,6 +5,7 @@
   "navigation_title": "Halimbawa ng Navigasyon",
   "navigation_description": "I-click ang button sa ibaba para mag-navigate sa Theme screen programmatically.",
   "go_to_theme": "Pumunta sa Theme screen",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

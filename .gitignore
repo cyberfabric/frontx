@@ -58,3 +58,6 @@ packages/cli/src/generated/
 
 # Local CLI e2e artifacts
 .artifacts/
+
+# Cypilot execution plans
+.cypilot/.plans/

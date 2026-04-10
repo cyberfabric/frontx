@@ -1,5 +1,7 @@
 # PRD — FrontX Dev Kit
 
+<!-- artifact-version: 1.1 -->
+
 <!-- toc -->
 
 - [1. Overview](#1-overview)
@@ -499,9 +501,9 @@ The system MUST define `MfeEntry` (base with id, requiredProperties, actions, do
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-action-types`
 
-`Action` MUST have type (string), target (string), optional payload and timeout. `ActionsChain` MUST contain action, optional next and fallback (recursive). Neither MUST have an id field.
+`Action` MUST have type (string), target (string), optional payload and timeout. `ActionsChain` MUST contain action, optional next and fallback (recursive). Neither MUST have an id field. The `type` field value MUST be a GTS schema type ID (string ending with `~`). When an action payload references an extension, the field MUST be named `subject`; no `extensionId` field MUST appear in action payloads.
 
-**Rationale**: Chain-based action execution with fallback support for resilient MFE communication.
+**Rationale**: Chain-based action execution with fallback support for resilient MFE communication. GTS schema type IDs (trailing `~`) distinguish type definitions from instance IDs; `subject` is the GTS-standard field name for entity references in action payloads.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 ### 5.5 MFE Core
@@ -1037,7 +1039,7 @@ A single FrontX project MUST support multiple independent production screensets 
 
 - [x] `p1` - **ID**: `cpt-frontx-nfr-perf-lazy-loading`
 
-All screen extensions MUST be lazy-loaded via dynamic `import()`. MFE bundles MUST be fetched on-demand when `HAI3_ACTION_LOAD_EXT` is executed.
+All screen extensions MUST be lazy-loaded via dynamic `import()`. MFE bundles MUST be fetched on-demand when an action whose `type` matches the `HAI3_ACTION_LOAD_EXT` GTS schema type ID is executed.
 
 **Threshold**: Screen load time < 400ms on 4G connection.
 **Rationale**: Initial bundle must not include all screens; on-demand loading reduces time-to-interactive.
@@ -1118,10 +1120,10 @@ Content Security Policy MUST include `blob:` in `script-src` directive. MFE load
 
 - [x] `p1` - **ID**: `cpt-frontx-nfr-sec-type-validation`
 
-All MFE action chains MUST pass GTS type system validation before execution.
+All MFE action chains MUST pass GTS type system validation before execution. Actions MUST be validated as anonymous instances: the action is registered without an `id` field, the schema is resolved from the `type` field, and validation is performed against that schema.
 
 **Threshold**: Invalid actions rejected with validation error details.
-**Rationale**: Prevents malformed data from reaching MFE extensions.
+**Rationale**: Prevents malformed data from reaching MFE extensions. Anonymous instance validation aligns with GTS conventions where runtime action objects are transient and carry no persistent identity.
 
 #### Node.js Compatibility
 

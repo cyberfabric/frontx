@@ -1,5 +1,7 @@
 # Feature: React Bindings
 
+<!-- artifact-version: 1.1 -->
+
 
 <!-- toc -->
 
@@ -201,12 +203,12 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 1. [x] - `p1` - Host renders `<ExtensionDomainSlot registry={registry} domainId={...} extensionId={...}>` - `inst-render-slot`
 2. [x] - `p1` - Component renders a loading placeholder while mounting proceeds - `inst-show-loading`
-3. [x] - `p1` - Component dispatches `HAI3_ACTION_MOUNT_EXT` via `registry.executeActionsChain()` with `domainId` and `extensionId` - `inst-dispatch-mount`
+3. [x] - `p1` - Component dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` via `registry.executeActionsChain()` with `domainId` and `subject` - `inst-dispatch-mount`
 4. [x] - `p1` - IF mount succeeds THEN component queries `registry.getParentBridge(extensionId)` to obtain the parent bridge - `inst-get-bridge`
 5. [x] - `p1` - IF bridge is returned THEN component transitions to mounted state and invokes optional `onMounted(bridge)` callback - `inst-notify-mounted`
 6. [x] - `p1` - IF mount throws THEN component transitions to error state, renders error UI, invokes optional `onError(err)` callback - `inst-handle-mount-error`
-7. [x] - `p1` - On component unmount: IF bridge was obtained THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` asynchronously, then invoke optional `onUnmounted()` callback - `inst-cleanup-unmount`
-8. [x] - `p2` - IF component unmounts while mount is still in progress THEN dispatch `HAI3_ACTION_UNMOUNT_EXT` immediately after the in-flight mount resolves - `inst-race-cleanup`
+7. [x] - `p1` - On component unmount: IF bridge was obtained THEN dispatch `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` asynchronously, then invoke optional `onUnmounted()` callback - `inst-cleanup-unmount`
+8. [x] - `p2` - IF component unmounts while mount is still in progress THEN dispatch `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` immediately after the in-flight mount resolves - `inst-race-cleanup`
 
 ---
 
@@ -530,7 +532,7 @@ Tracks per-language load state for `useScreenTranslations`.
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-react-bindings-extension-slot`
 
-`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders a DOM container div when mounted. It dispatches `HAI3_ACTION_MOUNT_EXT` on mount and `HAI3_ACTION_UNMOUNT_EXT` on unmount. Unmounting during an in-flight mount dispatches unmount after the mount operation settles. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
+`ExtensionDomainSlot` mounts and unmounts MFE extensions within a domain. It renders a loading placeholder during mount, exposes an error UI on failure, and renders a DOM container div when mounted. It dispatches `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` on mount and `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` on unmount. Unmounting during an in-flight mount dispatches unmount after the mount operation settles. Optional callbacks (`onMounted`, `onUnmounted`, `onError`) are invoked at lifecycle transitions.
 
 **Implements**:
 - `cpt-frontx-flow-react-bindings-extension-domain-slot`

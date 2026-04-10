@@ -51,9 +51,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
     id: HAI3_SCREEN_DOMAIN,
     sharedProperties: [],
     actions: [
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
     ],
     extensionsActions: [],
     defaultActionTimeout: 5000,
@@ -102,13 +102,13 @@ describe('useActivePackage hook - Phase 39.6', () => {
     // Mock mount/unmount to track state and dispatch
     app.screensetsRegistry.executeActionsChain = vi.fn(async (chain) => {
       const action = chain.action;
-      if (action.type === 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1') {
-        const payload = action.payload as { extensionId: string };
+      if (action.type === 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~') {
+        const payload = action.payload as { subject: string };
         if (action.target === HAI3_SCREEN_DOMAIN) {
-          mountedExtensionId = payload.extensionId;
-          app.store.dispatch({ type: 'mfe/setExtensionMounted', payload: { extensionId: payload.extensionId, domainId: HAI3_SCREEN_DOMAIN } });
+          mountedExtensionId = payload.subject;
+          app.store.dispatch({ type: 'mfe/setExtensionMounted', payload: { subject: payload.subject, domainId: HAI3_SCREEN_DOMAIN } });
         }
-      } else if (action.type === 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1') {
+      } else if (action.type === 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~') {
         if (action.target === HAI3_SCREEN_DOMAIN) {
           mountedExtensionId = undefined;
           app.store.dispatch({ type: 'mfe/setExtensionUnmounted', payload: { domainId: HAI3_SCREEN_DOMAIN } });
@@ -142,9 +142,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
       // Mount demo extension
       await app.screensetsRegistry.executeActionsChain({
         action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
-          payload: { extensionId: demoExtension.id },
+          payload: { subject: demoExtension.id },
         },
       });
 
@@ -175,9 +175,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
       await act(async () => {
         await app.screensetsRegistry.executeActionsChain({
           action: {
-            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
-            payload: { extensionId: demoExtension.id },
+            payload: { subject: demoExtension.id },
           },
         });
       });
@@ -195,9 +195,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
       // Mount demo extension
       await app.screensetsRegistry.executeActionsChain({
         action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
-          payload: { extensionId: demoExtension.id },
+          payload: { subject: demoExtension.id },
         },
       });
 
@@ -208,9 +208,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
       await act(async () => {
         await app.screensetsRegistry.executeActionsChain({
           action: {
-            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
-            payload: { extensionId: demoExtension.id },
+            payload: { subject: demoExtension.id },
           },
         });
       });
@@ -228,9 +228,9 @@ describe('useActivePackage hook - Phase 39.6', () => {
       // Mount demo extension
       await app.screensetsRegistry.executeActionsChain({
         action: {
-          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
-          payload: { extensionId: demoExtension.id },
+          payload: { subject: demoExtension.id },
         },
       });
 
@@ -242,18 +242,18 @@ describe('useActivePackage hook - Phase 39.6', () => {
         // Unmount demo
         await app.screensetsRegistry.executeActionsChain({
           action: {
-            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
-            payload: { extensionId: demoExtension.id },
+            payload: { subject: demoExtension.id },
           },
         });
 
         // Mount other
         await app.screensetsRegistry.executeActionsChain({
           action: {
-            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+            type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
-            payload: { extensionId: otherExtension.id },
+            payload: { subject: otherExtension.id },
           },
         });
       });

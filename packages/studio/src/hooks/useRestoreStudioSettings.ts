@@ -79,7 +79,7 @@ export const useRestoreGtsPackage = (registry: ScreensetsRegistry | null | undef
           action: {
             type: HAI3_ACTION_MOUNT_EXT,
             target: HAI3_SCREEN_DOMAIN,
-            payload: { extensionId: firstExtension.id },
+            payload: { subject: firstExtension.id },
           },
         });
       } catch {

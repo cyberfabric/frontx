@@ -79,7 +79,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: HAI3_SCREEN_DOMAIN,
-          payload: { extensionId },
+          payload: { subject: extensionId },
         },
       });
       setMountedId(extensionId);

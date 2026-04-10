@@ -15,8 +15,13 @@ export interface Action {
   type: string;
   /** Target type ID (ExtensionDomain or Extension) */
   target: string;
-  /** Optional action payload */
-  payload?: Record<string, unknown>;
+  /**
+   * Optional action payload.
+   * Lifecycle actions (load_ext, mount_ext, unmount_ext) require a `subject` field
+   * identifying the extension ID to act upon. This is enforced at runtime via GTS schema
+   * validation (payload.subject with x-gts-ref to extension type).
+   */
+  payload?: { subject?: string } & Record<string, unknown>;
   /** Optional timeout override in milliseconds (overrides domain's defaultActionTimeout) */
   timeout?: number;
 }

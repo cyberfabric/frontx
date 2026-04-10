@@ -5,6 +5,7 @@
   "navigation_title": "Navigationsbeispiel",
   "navigation_description": "Klicken Sie auf die Schaltfläche unten, um programmgesteuert zum Themen-Bildschirm zu navigieren.",
   "go_to_theme": "Zum Themen-Bildschirm",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

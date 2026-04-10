@@ -5,6 +5,7 @@
   "navigation_title": "नेविगेशन उदाहरण",
   "navigation_description": "थीम स्क्रीन पर प्रोग्रामेटिक रूप से नेविगेट करने के लिए नीचे दिए गए बटन पर क्लिक करें।",
   "go_to_theme": "थीम स्क्रीन पर जाएं",
+  "open_profile_refresh": "Open Profile & Refresh",
   "bridge_info": "Bridge Info",
   "domain_id": "Domain ID:",
   "instance_id": "Instance ID:",

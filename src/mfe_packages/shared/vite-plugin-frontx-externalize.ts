@@ -1,7 +1,7 @@
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-externalize-plugin:p1
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-build:p2
 import type { Plugin, ResolvedConfig } from 'vite';
-import { trim } from 'lodash';
+import trim from 'lodash/trim';
 
 export interface Hai3MfeExternalizeOptions {
   shared: string[];
@@ -314,7 +314,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
           //   const requireReact = () => __importShared_react;
           code = code.replace(
             new RegExp(
-              `import\\s+\\{([^}]+)\\}\\s+from\\s+['"]\\./${escapedChunk}['"];?`,
+              String.raw`import\s*\{([^}]+)\}\s*from\s*['"]\./${escapedChunk}['"];?`,
               'g'
             ),
             (_match, namedClause: string) => {
@@ -338,7 +338,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
           // Default imports: import Foo from './chunk.js'
           code = code.replace(
             new RegExp(
-              `import\\s+(\\w+)\\s+from\\s+['"]\\./${escapedChunk}['"];?`,
+              String.raw`import\s*(\w+)\s*from\s*['"]\./${escapedChunk}['"];?`,
               'g'
             ),
             (_match, defaultName: string) => {
@@ -351,7 +351,7 @@ export function hai3MfeExternalize(options: Hai3MfeExternalizeOptions): Plugin {
           // Namespace imports: import * as Foo from './chunk.js'
           code = code.replace(
             new RegExp(
-              `import\\s+\\*\\s+as\\s+(\\w+)\\s+from\\s+['"]\\./${escapedChunk}['"];?`,
+              String.raw`import\s*\*\s*as\s*(\w+)\s*from\s*['"]\./${escapedChunk}['"];?`,
               'g'
             ),
             (_match, nsName: string) => {

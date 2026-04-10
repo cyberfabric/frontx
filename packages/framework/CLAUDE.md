@@ -97,7 +97,7 @@ const app = createHAI3App();
 app.screensetsRegistry.registerDomain(screenDomain, containerProvider);
 await app.screensetsRegistry.registerExtension(homeExtension);
 await app.screensetsRegistry.executeActionsChain({
-  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { extensionId: 'home' } }
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { subject: 'home' } }
 });
 
 // Access other registries
@@ -216,9 +216,9 @@ import {
 } from '@cyberfabric/framework';
 
 // Action IDs
-HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'
-HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1'
-HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1'
+HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~'
+HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~'
+HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~'
 
 // Shared property IDs
 HAI3_SHARED_PROPERTY_THEME    // 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'

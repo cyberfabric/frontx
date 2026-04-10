@@ -1,12 +1,36 @@
 import React from 'react';
 import type { ChildMfeBridge } from '@cyberfabric/react';
+import { ActionHandler } from '@cyberfabric/react';
 import { ThemeAwareReactLifecycle } from './shared/ThemeAwareReactLifecycle';
 import { ProfileScreen } from './screens/profile/ProfileScreen';
+import { fetchUser } from './actions/profileActions';
+import { DEMO_ACTION_REFRESH_PROFILE } from './shared/extension-ids';
+
+// @cpt-FEATURE:child-bridge-action-handler:p3
+
+// @cpt-begin:child-bridge-action-handler:p3:inst-1
+class ProfileRefreshHandler extends ActionHandler {
+  async handleAction(): Promise<void> {
+    await fetchUser();
+  }
+}
+// @cpt-end:child-bridge-action-handler:p3:inst-1
 
 class ProfileLifecycle extends ThemeAwareReactLifecycle {
   protected renderContent(bridge: ChildMfeBridge): React.ReactNode {
     return <ProfileScreen bridge={bridge} />;
   }
+
+  // @cpt-begin:child-bridge-action-handler:p3:inst-2
+  override mount(container: Element | ShadowRoot, bridge: ChildMfeBridge): void {
+    // Let the base class render the React tree first so the screen is visible
+    // before any action can arrive.
+    super.mount(container, bridge);
+    // Register after rendering so that any synchronous action dispatched in the
+    // chained next step finds the handler already in place.
+    bridge.registerActionHandler(DEMO_ACTION_REFRESH_PROFILE, new ProfileRefreshHandler());
+  }
+  // @cpt-end:child-bridge-action-handler:p3:inst-2
 }
 
 /**

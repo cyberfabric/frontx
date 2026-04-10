@@ -51,13 +51,13 @@ await registry.registerExtension(homeExtension);
 
 // Load, mount, unmount via executeActionsChain (the public API)
 await registry.executeActionsChain({
-  action: { type: HAI3_ACTION_LOAD_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
+  action: { type: HAI3_ACTION_LOAD_EXT, target: screenDomainId, payload: { subject: 'ext-id' } }
 });
 await registry.executeActionsChain({
-  action: { type: HAI3_ACTION_MOUNT_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: screenDomainId, payload: { subject: 'ext-id' } }
 });
 await registry.executeActionsChain({
-  action: { type: HAI3_ACTION_UNMOUNT_EXT, target: screenDomainId, payload: { extensionId: 'ext-id' } }
+  action: { type: HAI3_ACTION_UNMOUNT_EXT, target: screenDomainId, payload: { subject: 'ext-id' } }
 });
 ```
 
@@ -114,7 +114,7 @@ import { ParentMfeBridge, ChildMfeBridge } from '@cyberfabric/screensets';
 
 // Example: child MFE executes an actions chain
 await bridge.executeActionsChain({
-  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { extensionId: 'other' } }
+  action: { type: HAI3_ACTION_MOUNT_EXT, target: 'screen', payload: { subject: 'other' } }
 });
 
 // Example: child MFE subscribes to theme changes
@@ -138,9 +138,9 @@ import {
 } from '@cyberfabric/screensets';
 
 // Action IDs
-HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1'
-HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1'
-HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1'
+HAI3_ACTION_LOAD_EXT     // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~'
+HAI3_ACTION_MOUNT_EXT    // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~'
+HAI3_ACTION_UNMOUNT_EXT  // 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~'
 ```
 
 ## Shared Property Constants

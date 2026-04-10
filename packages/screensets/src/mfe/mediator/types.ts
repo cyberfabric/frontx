@@ -45,19 +45,26 @@ export interface ChainExecutionOptions {
 }
 
 /**
- * Action handler interface for receiving actions.
+ * Abstract base class for receiving a single action.
  *
- * Extensions and domains implement this to handle incoming actions.
+ * Both domain-side lifecycle handlers and extension-side custom handlers extend this class.
+ * Registered per (targetId, actionTypeId) pair via ActionsChainsMediator.registerHandler().
+ *
+ * Each handler is a small class that encapsulates one action type's behavior,
+ * consistent with the project's class-based OOP contract.
  */
-export interface ActionHandler {
+export abstract class ActionHandler {
   /**
-   * Handle an action.
+   * Handle an action invocation.
    *
    * @param actionTypeId - The type ID of the action
    * @param payload - The action payload
    * @returns Promise that resolves when action is handled
    */
-  handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>;
+  abstract handleAction(
+    actionTypeId: string,
+    payload: Record<string, unknown> | undefined
+  ): Promise<void>;
 }
 
 /**
@@ -67,10 +74,14 @@ export interface ActionHandler {
  * action chain mediation. Concrete implementations encapsulate the
  * actual execution logic, handler registration, and timeout handling.
  *
+ * Handlers are registered per (targetId, actionTypeId) pair using registerHandler().
+ * Both domain-side lifecycle handlers and extension-side custom handlers use the
+ * same registration path.
+ *
  * Key Responsibilities:
  * - Execute action chains with success/failure branching
  * - Validate actions against target contracts
- * - Manage extension and domain action handlers
+ * - Manage action handlers (unified per-action-type registration)
  * - Handle timeouts with fallback execution
  *
  * Key Benefits:
@@ -108,41 +119,57 @@ export abstract class ActionsChainsMediator {
   ): Promise<ChainResult>;
 
   /**
-   * Register an extension's action handler for receiving actions.
+   * Register a handler for a specific (targetId, actionTypeId) pair.
    *
-   * @param extensionId - ID of the extension
-   * @param domainId - ID of the domain the extension belongs to
-   * @param entryId - ID of the MFE entry
-   * @param handler - The action handler
+   * Both domain-side and extension-side handlers use this method.
+   * For extension targets, pass domainId so the mediator can resolve
+   * the domain's defaultActionTimeout when the action has no explicit timeout.
+   *
+   * @param targetId - ID of the target (domain or extension)
+   * @param actionTypeId - The action type this handler handles
+   * @param handler - ActionHandler instance to invoke
+   * @param domainId - Optional domain ID (required for extension targets)
    */
-  abstract registerExtensionHandler(
-    extensionId: string,
-    domainId: string,
-    entryId: string,
-    handler: ActionHandler
+  abstract registerHandler(
+    targetId: string,
+    actionTypeId: string,
+    handler: ActionHandler,
+    domainId?: string
   ): void;
 
   /**
-   * Unregister an extension's action handler.
+   * Unregister a handler for a specific (targetId, actionTypeId) pair.
    *
-   * Handles any pending actions before unregistration.
-   *
-   * @param extensionId - ID of the extension to unregister
+   * @param targetId - ID of the target
+   * @param actionTypeId - The action type to unregister
    */
-  abstract unregisterExtensionHandler(extensionId: string): void;
+  abstract unregisterHandler(targetId: string, actionTypeId: string): void;
 
   /**
-   * Register a domain's action handler for receiving actions from extensions.
+   * Unregister all handlers for a target.
+   * Used during dispose (e.g., when an extension is unmounted).
    *
-   * @param domainId - ID of the domain
-   * @param handler - The action handler
+   * @param targetId - ID of the target
    */
-  abstract registerDomainHandler(domainId: string, handler: ActionHandler): void;
+  abstract unregisterAllHandlers(targetId: string): void;
 
   /**
-   * Unregister a domain's action handler.
+   * Register a catch-all handler for a target.
+   * The catch-all handler is invoked for any action type when no specific handler
+   * is registered for the (targetId, actionTypeId) pair.
    *
-   * @param domainId - ID of the domain to unregister
+   * Used exclusively for child domain forwarding via bridge transport — the parent
+   * mediator cannot know the child's action types at registration time.
+   *
+   * @param targetId - ID of the target
+   * @param handler - Handler to invoke for any unmatched action type
    */
-  abstract unregisterDomainHandler(domainId: string): void;
+  abstract registerCatchAllHandler(targetId: string, handler: ActionHandler): void;
+
+  /**
+   * Unregister a catch-all handler for a target.
+   *
+   * @param targetId - ID of the target
+   */
+  abstract unregisterCatchAllHandler(targetId: string): void;
 }

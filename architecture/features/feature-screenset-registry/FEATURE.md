@@ -1,5 +1,7 @@
 # Feature: Screenset Registry & Contracts
 
+<!-- artifact-version: 1.1 -->
+
 
 <!-- toc -->
 
@@ -14,6 +16,7 @@
   - [Unregister Extension](#unregister-extension)
   - [Unregister Domain](#unregister-domain)
   - [Execute Actions Chain](#execute-actions-chain)
+  - [Register Extension Action Handler](#register-extension-action-handler)
   - [Update Shared Property](#update-shared-property)
   - [Query Registry State](#query-registry-state)
   - [Build Registry via Factory](#build-registry-via-factory)
@@ -35,8 +38,10 @@
   - [ScreensetsRegistry Public Contract](#screensetsregistry-public-contract)
   - [MFE Type Contracts](#mfe-type-contracts)
   - [GTS-Based Validation](#gts-based-validation)
+  - [MFE Schema Registration](#mfe-schema-registration)
   - [Shared Property Broadcast](#shared-property-broadcast)
   - [MFE Handler Injection](#mfe-handler-injection)
+  - [ActionsChainsMediator Contract](#actionschainsmediator-contract)
   - [TypeSystemPlugin Interface](#typesystemplugin-interface)
   - [Factory-with-Cache Pattern](#factory-with-cache-pattern)
   - [Layer and Build Constraints](#layer-and-build-constraints)
@@ -96,12 +101,12 @@ Success criteria: A host application can register a domain and extension, execut
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-gts-plugin`
 
 1. - [x] `p1` - Host app obtains a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build(config)` - `inst-obtain-registry`
-2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, onInitError?, customActionHandler?)` - `inst-call-register-domain`
+2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, options?)` where `options` is `{ onInitError?: (error: Error) => void; actionHandlers?: Record<string, ActionHandler> }` - `inst-call-register-domain`
 3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-domain-validation` — IF validation fails RETURN `DomainValidationError` or `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
 4. - [x] `p1` - Registry determines domain semantics via `cpt-frontx-algo-screenset-registry-domain-semantics` - `inst-determine-semantics`
-5. - [x] `p1` - Registry constructs `ExtensionLifecycleActionHandler` for the domain and registers it with the mediator - `inst-register-action-handler`
+5. - [x] `p1` - Registry registers individual `ActionHandler` class instances per lifecycle action type (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) with the mediator via `mediator.registerHandler(domainId, actionTypeId, handler)` — one call per action type; each handler is a small class extending `ActionHandler`, not a closure; no monolithic `ExtensionLifecycleActionHandler` switch class is constructed; IF `options.actionHandlers` is provided, each entry is also registered via `mediator.registerHandler(domainId, actionTypeId, handler)` - `inst-register-action-handlers`
 6. - [x] `p1` - Registry stores domain state (properties Map, extensions Set, propertySubscribers Map, mountedExtension undefined) - `inst-store-domain-state`
-7. - [x] `p1` - Registry fires-and-forgets the `init` lifecycle stage for the domain; errors routed to `onInitError` callback if provided, otherwise logged to console.error - `inst-trigger-domain-init`
+7. - [x] `p1` - Registry fires-and-forgets the `init` lifecycle stage for the domain; errors routed to `options.onInitError` callback if provided, otherwise logged to console.error - `inst-trigger-domain-init`
 8. - [x] `p1` - `registerDomain` returns synchronously - `inst-return-sync`
 
 ### Register Extension at Runtime
@@ -142,7 +147,7 @@ Success criteria: A host application can register a domain and extension, execut
 1. - [x] `p1` - Caller invokes `await registry.unregisterDomain(domainId)` - `inst-call-unregister-domain`
 2. - [x] `p1` - Operation is serialized per `domainId` via `OperationSerializer` - `inst-serialize-domain-unregister`
 3. - [x] `p1` - IF domain is not registered, operation is a no-op (idempotent) - `inst-domain-idempotent`
-4. - [x] `p1` - Domain action handler is unregistered from the mediator - `inst-unregister-action-handler`
+4. - [x] `p1` - All per-action-type handlers for the domain are unregistered from the mediator via `mediator.unregisterAllHandlers(domainId)` - `inst-unregister-action-handler`
 5. - [x] `p1` - FOR EACH extension in the domain's extensions Set: `unregisterExtension(extensionId)` is called sequentially - `inst-cascade-unregister`
 6. - [x] `p1` - `destroyed` lifecycle stage is triggered for the domain itself - `inst-trigger-domain-destroyed`
 7. - [x] `p1` - Domain is removed from the domains Map - `inst-remove-domain`
@@ -157,11 +162,25 @@ Success criteria: A host application can register a domain and extension, execut
 2. - [x] `p1` - Registry delegates to `ActionsChainsMediator.executeActionsChain(chain)` - `inst-delegate-to-mediator`
 3. - [x] `p1` - Mediator resolves the target domain from `chain.action.target` - `inst-resolve-target`
 4. - [x] `p1` - IF target domain is not registered, the chain fails with a recorded error - `inst-target-not-found`
-5. - [x] `p1` - Mediator invokes the domain's registered `ExtensionLifecycleActionHandler` - `inst-invoke-handler`
-6. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
-7. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
-8. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
-9. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
+5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; GTS resolves the schema from `action.type` via `schemaIdFields` config; `typeSystem.validateInstance('')` validates the anonymous instance — IF validation fails the chain fails with a recorded error - `inst-validate-action-anonymous`
+6. - [x] `p1` - Mediator resolves the handler by `(action.target, action.type)` pair: looks up `handlers.get(action.target)?.get(action.type)`. Domain handlers and extension handlers are stored in the same unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. Since GTS schemas enforce that domain-targeted actions use domain IDs and extension-targeted actions use extension IDs, there is no overlap — an action targets exactly one handler - `inst-resolve-handler`
+7. - [x] `p1` - IF a handler is found for the `(target, actionType)` pair, mediator calls `handler.handleAction(action.type, action.payload)`. IF no per-`(target, actionType)` handler is found, the mediator checks for a catch-all handler registered for the target (used for child domain forwarding). IF no handler exists at all, the action is a successful no-op - `inst-invoke-handler`
+8. - [x] `p1` - Action target contract enforcement is handled entirely by GTS schema validation in step 5: each action schema constrains its `target` field via `x-gts-ref` — lifecycle actions restrict target to domain IDs only, custom MFE actions restrict target to specific extension IDs. GTS validates the action instance against its schema and rejects invalid targets before any handler is invoked. No runtime `includes()` checks are needed — the type system IS the contract enforcement - `inst-validate-extension-contract`
+9. - [x] `p1` - IF action completes successfully AND `chain.next` is defined, mediator executes `chain.next` recursively - `inst-execute-next`
+10. - [x] `p1` - IF action fails AND `chain.fallback` is defined, mediator executes `chain.fallback` instead - `inst-execute-fallback`
+11. - [x] `p1` - IF `result.completed` is false, registry logs the error and path to `console.error` - `inst-log-chain-failure`
+12. - [x] `p1` - Promise resolves when the chain execution concludes (success or exhausted fallback) - `inst-resolve-chain`
+
+### Register Extension Action Handler
+
+- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-register-extension-handler`
+
+**Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
+
+1. - [x] `p1` - Child MFE calls `bridge.registerActionHandler(actionTypeId, handler)` during mount, once per action type it wishes to handle — `handler` is an `ActionHandler` abstract class instance - `inst-call-register-handler`
+2. - [x] `p1` - `ChildMfeBridge` delegates to `mediator.registerHandler(extensionId, actionTypeId, handler)` — the bridge holds `extensionId` from its construction context - `inst-bridge-delegates-to-mediator`
+3. - [x] `p1` - Mediator stores the handler in the unified `handlers` map: `handlers.get(extensionId).set(actionTypeId, handler)` - `inst-store-extension-handler`
+4. - [x] `p1` - When the bridge is disposed (extension unmount or unregister), mediator unregisters all handlers for `extensionId` — the entire inner map entry is removed - `inst-unregister-on-dispose`
 
 ### Update Shared Property
 
@@ -229,7 +248,7 @@ This algorithm enforces three subset rules. All errors are collected before retu
 
 1. - [x] `p1` - **Rule 1 — Required properties**: FOR EACH `prop` in `entry.requiredProperties`: IF `prop` is not in `domain.sharedProperties` APPEND `missing_property` error - `inst-check-required-props`
 2. - [x] `p1` - **Rule 2 — Entry actions**: FOR EACH `action` in `entry.actions`: IF `action` is not in `domain.extensionsActions` APPEND `unsupported_action` error - `inst-check-entry-actions`
-3. - [x] `p1` - **Rule 3 — Domain actions (non-infrastructure)**: FOR EACH `action` in `domain.actions`: IF `action` is in the infrastructure set (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) CONTINUE; IF `action` is not in `entry.domainActions` APPEND `unhandled_domain_action` error - `inst-check-domain-actions`
+3. - [x] `p1` - **Rule 3 — Domain actions (non-infrastructure)**: FOR EACH `action` in `domain.actions`: IF `action` is in the infrastructure set (`gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~`, `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~`, `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~`) CONTINUE; IF `action` is not in `entry.domainActions` APPEND `unhandled_domain_action` error - `inst-check-domain-actions`
 4. - [x] `p1` - IF errors array is empty RETURN valid; ELSE RETURN invalid with collected errors - `inst-return-contract-result`
 
 ### Extension Type Hierarchy Validation
@@ -290,9 +309,9 @@ All mutating operations on a given entity are queued per entity ID to prevent co
 
 Determines whether a domain uses `swap` or `toggle` mount semantics based on its declared actions.
 
-1. - [x] `p1` - IF `domain.actions` includes `HAI3_ACTION_UNMOUNT_EXT` → domain uses `toggle` semantics (sidebar, popup, overlay domains: one extension can be explicitly unmounted) - `inst-toggle-semantics`
-2. - [x] `p1` - IF `domain.actions` does NOT include `HAI3_ACTION_UNMOUNT_EXT` → domain uses `swap` semantics (screen domain: mounting a new extension automatically unmounts the current one) - `inst-swap-semantics`
-3. - [x] `p1` - The determined semantics value is passed to `ExtensionLifecycleActionHandler` at construction - `inst-pass-semantics`
+1. - [x] `p1` - IF `domain.actions` includes `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` → domain uses `toggle` semantics (sidebar, popup, overlay domains: one extension can be explicitly unmounted) - `inst-toggle-semantics`
+2. - [x] `p1` - IF `domain.actions` does NOT include `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` → domain uses `swap` semantics (screen domain: mounting a new extension automatically unmounts the current one) - `inst-swap-semantics`
+3. - [x] `p1` - The determined semantics value is captured in the closure of the per-action-type handlers registered with the mediator during `registerDomain()` - `inst-pass-semantics`
 
 ---
 
@@ -304,7 +323,7 @@ Determines whether a domain uses `swap` or `toggle` mount semantics based on its
 
 Tracks whether an extension's bundle has been fetched and initialized.
 
-1. - [x] `p1` - **FROM** `idle` **TO** `loading` **WHEN** `HAI3_ACTION_LOAD_EXT` is dispatched for the extension - `inst-idle-to-loading`
+1. - [x] `p1` - **FROM** `idle` **TO** `loading` **WHEN** an action whose `type` is `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~` is dispatched for the extension - `inst-idle-to-loading`
 2. - [x] `p1` - **FROM** `loading` **TO** `loaded` **WHEN** the `MfeHandler.load()` promise resolves successfully - `inst-loading-to-loaded`
 3. - [x] `p1` - **FROM** `loading` **TO** `error` **WHEN** the `MfeHandler.load()` promise rejects - `inst-loading-to-error`
 4. - [ ] `p2` - **FROM** `error` **TO** `idle` **WHEN** the extension is unregistered and re-registered - `inst-error-to-idle`
@@ -315,9 +334,9 @@ Tracks whether an extension's bundle has been fetched and initialized.
 
 Tracks whether an extension's React tree is rendered into a domain container.
 
-1. - [x] `p1` - **FROM** `unmounted` **TO** `mounting` **WHEN** `HAI3_ACTION_MOUNT_EXT` is dispatched and load state is `loaded` - `inst-unmounted-to-mounting`
+1. - [x] `p1` - **FROM** `unmounted` **TO** `mounting` **WHEN** an action whose `type` is `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` is dispatched and load state is `loaded` - `inst-unmounted-to-mounting`
 2. - [x] `p1` - **FROM** `mounting` **TO** `mounted` **WHEN** `MfeEntryLifecycle.mount()` resolves successfully - `inst-mounting-to-mounted`
-3. - [x] `p1` - **FROM** `mounted` **TO** `unmounting` **WHEN** `HAI3_ACTION_UNMOUNT_EXT` is dispatched (toggle domains) or another extension is mounted (swap domains) - `inst-mounted-to-unmounting`
+3. - [x] `p1` - **FROM** `mounted` **TO** `unmounting` **WHEN** an action whose `type` is `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~` is dispatched (toggle domains) or another extension is mounted (swap domains) - `inst-mounted-to-unmounting`
 4. - [x] `p1` - **FROM** `unmounting` **TO** `unmounted` **WHEN** `MfeEntryLifecycle.unmount()` resolves - `inst-unmounting-to-unmounted`
 5. - [x] `p1` - **FROM** `mounted` **TO** `unmounted` **WHEN** the extension is unregistered while mounted (auto-unmount) - `inst-mounted-to-unmounted-on-unregister`
 
@@ -373,7 +392,7 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
 - `ScreenExtension` extends `Extension`: adds required `presentation` (`ExtensionPresentation`)
 - `ExtensionPresentation`: `label`, `route`, optional `icon`, optional `order`
 - `SharedProperty`: `id`, `value: unknown`
-- `Action`: `type`, `target`, optional `payload`, optional `timeout`; no `id` field
+- `Action`: `type` (GTS schema type ID with trailing `~`), `target`, optional `payload`, optional `timeout`; no `id` field; when `payload` is present and the action targets an extension, `payload.subject` carries a GTS reference to the extension instance — no `payload.extensionId` field exists
 - `ActionsChain`: `action` (Action instance), optional `next` (ActionsChain), optional `fallback` (ActionsChain); no `id` field
 - `LifecycleStage`, `LifecycleHook` with appropriate shapes
 
@@ -390,10 +409,11 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-gts-validation`
 
-All registration paths perform GTS-native validation:
+All registration and dispatch paths perform GTS-native validation:
 
 - Domain registration: `typeSystem.register(domain)` then `typeSystem.validateInstance(domain.id)`; lifecycle hook stages validated against `domain.lifecycleStages`
 - Extension registration: `typeSystem.register(extension)` then `typeSystem.validateInstance(extension.id)`; contract matching; type hierarchy check via `typeSystem.isTypeOf`; lifecycle hooks validated against `domain.extensionsLifecycleStages`
+- Action dispatch: anonymous instance pattern — the action object (no `id` field) is registered via `typeSystem.register(action)`; GTS resolves the schema from the action's `type` field using the `schemaIdFields` configuration; `typeSystem.validateInstance('')` validates the anonymous instance against the resolved schema; the `payload.subject` field is validated as required by the schema, making a separate `requireExtensionId()` helper redundant
 - Shared property update: ephemeral instance `{ id: ephemeralId, value }` registered and validated before any domain receives the value; validation failure throws and blocks all propagation
 - All validation errors produce typed exceptions: `DomainValidationError`, `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, `EntryTypeNotHandledError`
 
@@ -410,6 +430,24 @@ All registration paths perform GTS-native validation:
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
 - `cpt-frontx-principle-self-registering-registries`
+
+### MFE Schema Registration
+
+- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
+
+`mfe.json` carries an optional top-level `schemas` array of inline GTS JSON Schema definitions. During MFE loading (before entries and extensions are registered), the bootstrap loader iterates `mfe.json.schemas` and calls `typeSystem.registerSchema(schema)` for each entry. Deduplication is automatic because GTS overwrites any schema with the same `$id`. This makes each MFE package self-describing — the host application never needs to hard-code MFE-specific action schemas.
+
+**Rules**:
+- Schema registration happens before `registerEntry` and before `registerExtension` calls for the loaded package
+- Missing or empty `schemas` array is silently skipped
+- Each schema element must carry a `$id` — the GTS `registerSchema` implementation enforces this at runtime
+- Registration is idempotent: loading the same MFE package twice does not produce errors
+
+**Implements**:
+- `cpt-frontx-interface-mfe-json-schemas`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-screensets`
 
 ### Shared Property Broadcast
 
@@ -448,6 +486,22 @@ All registration paths perform GTS-native validation:
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
 
+### ActionsChainsMediator Contract
+
+- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mediator-contract`
+
+`ActionsChainsMediator` is exported as an abstract class. Handler storage uses a unified two-level map: `Map<targetId, Map<actionTypeId, ActionHandler>>`. A single `registerHandler(targetId, actionTypeId, handler)` API covers both domain-side and extension-side registration. `ActionHandler` is an abstract class with a single `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>` method — consistent with all other public contracts in the package. The `CustomActionHandler` type and any `ActionHandlerFn` alias are removed. Mediator resolution uses `(target, actionType)` pair, not just `target`. Domain-side lifecycle handlers are small classes extending `ActionHandler` (one per lifecycle action type), not closures.
+
+Domain-side: `registerDomain()` registers three handlers (one per lifecycle action type) and `unregisterDomain()` removes all of them. Extension-side: `registerHandler()` is called once per action type; disposing the bridge calls `unregisterAllHandlers(extensionId)` which removes the entire inner map entry.
+
+**Implements**:
+- `cpt-frontx-flow-screenset-registry-execute-chain`
+- `cpt-frontx-flow-screenset-registry-register-extension-handler`
+
+**Covers (DESIGN)**:
+- `cpt-frontx-component-screensets`
+- `cpt-frontx-seq-extension-action-delivery`
+
 ### TypeSystemPlugin Interface
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-type-system-plugin`
@@ -456,8 +510,8 @@ All registration paths perform GTS-native validation:
 - `name: string` and `version: string` (readonly)
 - `registerSchema(schema: JSONSchema): void` — for vendor/dynamic schemas; first-class schemas are built into the plugin and need not be registered
 - `getSchema(typeId: string): JSONSchema | undefined`
-- `register(entity: unknown): void` — GTS-native registration; extracts schema from chained instance ID automatically
-- `validateInstance(instanceId: string): ValidationResult` — validates a registered instance; schema extracted from chained ID (named instance pattern)
+- `register(entity: unknown): void` — GTS-native registration; for named instances the schema is extracted from the chained instance ID; for anonymous instances (no `id` field) the schema is extracted from a `schemaIdFields`-designated field such as `type`
+- `validateInstance(instanceId: string): ValidationResult` — validates a registered instance; pass the instance `id` for named instances; pass `''` (empty string) for anonymous instances registered without an `id` field
 - `isTypeOf(typeId: string, baseTypeId: string): boolean` — type hierarchy check
 - `JSONSchema`, `ValidationError`, `ValidationResult` supporting types are exported alongside the interface
 - The package treats all type IDs as opaque strings; no parsing of type IDs occurs in `@cyberfabric/screensets`
@@ -474,7 +528,7 @@ All registration paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-factory-cache`
 
-`ScreensetsRegistryFactory` is an abstract class with a single abstract method `build(config: ScreensetsRegistryConfig): ScreensetsRegistry`. `DefaultScreensetsRegistryFactory` is the concrete implementation — it is marked `@internal` and not exported from the public barrel. The exported singleton `screensetsRegistryFactory` is an instance of `DefaultScreensetsRegistryFactory`. After the first `build()` call the instance is cached; subsequent calls with the same `typeSystem` reference return the cached instance; calls with a different `typeSystem` reference throw. Construction verifies all eight first-class GTS schemas are present in the plugin.
+`ScreensetsRegistryFactory` is an abstract class with a single abstract method `build(config: ScreensetsRegistryConfig): ScreensetsRegistry`. `DefaultScreensetsRegistryFactory` is the concrete implementation — it is marked `@internal` and not exported from the public barrel. The exported singleton `screensetsRegistryFactory` is an instance of `DefaultScreensetsRegistryFactory`. After the first `build()` call the instance is cached; subsequent calls with the same `typeSystem` reference return the cached instance; calls with a different `typeSystem` reference throw. Construction verifies all thirteen first-class GTS schemas are present in the plugin.
 
 **Implements**:
 - `cpt-frontx-flow-screenset-registry-factory-build`
@@ -512,7 +566,7 @@ All registration paths perform GTS-native validation:
 
 - [ ] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
 - [ ] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
-- [ ] `registerDomain` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`
+- [ ] `registerDomain(domain, containerProvider, options?)` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
 - [ ] `registerExtension` throws `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
 - [ ] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3
 - [ ] `updateSharedProperty` throws synchronously if GTS validation fails and no domain receives the update; silently no-ops if no domain declares the property

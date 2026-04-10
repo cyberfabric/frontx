@@ -52,8 +52,8 @@ describe('useRegisteredPackages hook - Phase 39.6', () => {
     id: testDomainId,
     sharedProperties: [],
     actions: [
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+      'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
     ],
     extensionsActions: [],
     defaultActionTimeout: 5000,

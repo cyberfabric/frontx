@@ -112,7 +112,7 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
     if (actionType === HAI3_ACTION_MOUNT_EXT) {
       const store = getStore();
       const domainId = chain.action!.target;
-      const extensionId = chain.action!.payload?.extensionId as string;
+      const extensionId = typeof chain.action?.payload?.subject === 'string' ? chain.action.payload.subject : undefined;
       if (domainId && extensionId) {
         store.dispatch(setExtensionMounted({ domainId, extensionId }));
       }

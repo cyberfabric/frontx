@@ -2,6 +2,8 @@
  * Action Payload Types
  *
  * Typed payload interfaces for extension lifecycle actions.
+ * The `subject` field carries an extension ID and is enforced at runtime
+ * via GTS schema validation (payload.subject with x-gts-ref to extension type).
  *
  * @packageDocumentation
  */
@@ -11,8 +13,8 @@
  * Preload an extension's bundle without mounting.
  */
 export interface LoadExtPayload {
-  /** The extension ID to load */
-  extensionId: string;
+  /** The extension ID to load (GTS subject reference) */
+  subject: string;
 }
 
 /**
@@ -24,8 +26,8 @@ export interface LoadExtPayload {
  * references), and shifts container management responsibility to the domain.
  */
 export interface MountExtPayload {
-  /** The extension ID to mount */
-  extensionId: string;
+  /** The extension ID to mount (GTS subject reference) */
+  subject: string;
 }
 
 /**
@@ -33,6 +35,6 @@ export interface MountExtPayload {
  * Unmount an extension from its container.
  */
 export interface UnmountExtPayload {
-  /** The extension ID to unmount */
-  extensionId: string;
+  /** The extension ID to unmount (GTS subject reference) */
+  subject: string;
 }

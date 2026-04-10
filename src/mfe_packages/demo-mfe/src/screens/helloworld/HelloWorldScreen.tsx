@@ -5,7 +5,8 @@ import { Card, CardContent } from '../../components/ui/card';
 import { Button } from '../../components/ui/button';
 import { Skeleton } from '../../components/ui/skeleton';
 import { useScreenTranslations } from '../../shared/useScreenTranslations';
-import { THEME_EXTENSION_ID } from '../../shared/extension-ids';
+import { THEME_EXTENSION_ID, PROFILE_EXTENSION_ID, DEMO_ACTION_REFRESH_PROFILE } from '../../shared/extension-ids';
+import { ButtonVariant } from '../../components/types';
 
 /**
  * Props for the HelloWorldScreen component.
@@ -85,10 +86,32 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
       action: {
         type: HAI3_ACTION_MOUNT_EXT,
         target: HAI3_SCREEN_DOMAIN,
-        payload: { extensionId: THEME_EXTENSION_ID },
+        payload: { subject: THEME_EXTENSION_ID },
       },
     });
   }, [bridge]);
+
+  // @cpt-begin:child-bridge-action-handler:p3:inst-3
+  // Mount Profile then — on success — send a refresh action to the now-mounted
+  // Profile extension. The chained `next` step targets the extension ID directly
+  // so the mediator routes it to Profile's registered ActionHandler rather than
+  // through the domain's lifecycle action pipeline.
+  const handleOpenProfileAndRefresh = useCallback(async () => {
+    await bridge.executeActionsChain({
+      action: {
+        type: HAI3_ACTION_MOUNT_EXT,
+        target: HAI3_SCREEN_DOMAIN,
+        payload: { subject: PROFILE_EXTENSION_ID },
+      },
+      next: {
+        action: {
+          type: DEMO_ACTION_REFRESH_PROFILE,
+          target: PROFILE_EXTENSION_ID,
+        },
+      },
+    });
+  }, [bridge]);
+  // @cpt-end:child-bridge-action-handler:p3:inst-3
 
   // Show skeleton while translations are loading
   if (loading) {
@@ -161,9 +184,14 @@ export const HelloWorldScreen: React.FC<HelloWorldScreenProps> = ({ bridge }) =>
           <p className="text-muted-foreground mb-4">
             {t('navigation_description')}
           </p>
-          <Button onClick={handleGoToTheme}>
-            {t('go_to_theme')}
-          </Button>
+          <div className="flex gap-3 flex-wrap">
+            <Button onClick={handleGoToTheme}>
+              {t('go_to_theme')}
+            </Button>
+            <Button onClick={handleOpenProfileAndRefresh} variant={ButtonVariant.Outline}>
+              {t('open_profile_refresh')}
+            </Button>
+          </div>
         </CardContent>
       </Card>
     </div>

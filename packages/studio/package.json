@@ -55,7 +55,7 @@
     "@radix-ui/react-switch": "^1.2.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
-    "lodash": "^4.17.21",
+    "lodash": "4.18.1",
     "tailwind-merge": "^2.6.0"
   },
   "peerDependencies": {

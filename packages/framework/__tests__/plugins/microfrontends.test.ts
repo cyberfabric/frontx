@@ -352,17 +352,17 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(sidebarDomain.actions.length).toBe(3);
 
       // Verify action IDs
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
-      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
+      expect(sidebarDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
 
     it('should handle screen domain with swap semantics (load_ext + mount_ext, no unmount_ext)', () => {
       // Screen domain should have load_ext and mount_ext, but not unmount_ext (swap semantics)
       expect(screenDomain.actions.length).toBe(2);
-      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1');
-      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1');
-      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1');
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~');
+      expect(screenDomain.actions).toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~');
+      expect(screenDomain.actions).not.toContain('gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~');
     });
   });
 
@@ -377,9 +377,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -398,9 +398,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -419,8 +419,8 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,
@@ -442,9 +442,9 @@ describe('microfrontends plugin - Phase 7.9', () => {
           'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~',
         ],
         actions: [
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1',
-          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
+          'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
         ],
         extensionsActions: [],
         defaultActionTimeout: 30000,

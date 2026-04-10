@@ -2,46 +2,48 @@
 /**
  * Child Domain Forwarding Handler
  *
- * Forwards actions targeting a child domain through the bridge transport.
+ * ActionHandler subclass for forwarding actions targeting child domains to the
+ * child runtime via the bridge transport.
  *
  * When a child MFE registers its own domains, the parent runtime needs a way
  * to route actions to those domains. This handler is registered in the parent's
- * mediator for each child domain ID. When the parent's mediator resolves a target
- * that matches a child domain, it invokes this handler, which wraps the action
- * in an ActionsChain and forwards it via the private bridge transport.
+ * mediator as a catch-all for the child domain ID. When the parent's mediator
+ * resolves a target that matches a child domain, it invokes this handler, which
+ * wraps the action in an ActionsChain and forwards it via the private bridge transport.
+ *
+ * A catch-all handler is used here because the parent cannot know the full set
+ * of action types the child domain supports at registration time — that information
+ * lives in the child's own registry.
  *
  * @packageDocumentation
  * @internal
  */
 
-import type { ActionHandler } from '../mediator/types';
+import { ActionHandler } from '../mediator/types';
 import type { ParentMfeBridgeImpl } from './ParentMfeBridge';
 
 /**
- * Forwards actions targeting a child domain through the bridge transport.
- *
- * This handler is registered in the parent's mediator for each child domain ID.
- * When the parent's mediator resolves a target that matches a child domain,
- * it invokes this handler, which wraps the action in an ActionsChain and
- * forwards it via the private bridge transport.
+ * Forwards any action targeting a child domain through the parent bridge transport.
  *
  * @internal
  */
-export class ChildDomainForwardingHandler implements ActionHandler {
+// @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+export class ChildDomainForwardingHandler extends ActionHandler {
   constructor(
     private readonly parentBridgeImpl: ParentMfeBridgeImpl,
     private readonly childDomainId: string
-  ) {}
+  ) {
+    super();
+  }
 
   /**
-   * Handle an action by forwarding it to the child runtime.
+   * Forward an action targeting the child domain through the parent bridge transport.
+   * Wraps the action in an ActionsChain so the child registry's mediator can unwrap
+   * and dispatch it to the correct handler on the child side.
    *
-   * @param actionTypeId - The type ID of the action
-   * @param payload - The action payload
-   * @returns Promise that resolves when action is handled
-   * @throws Error if chain execution fails in child domain
+   * @param actionTypeId - The action type ID to forward
+   * @param payload - The action payload to include in the forwarded chain
    */
-  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
   async handleAction(
     actionTypeId: string,
     payload: Record<string, unknown> | undefined
@@ -56,9 +58,9 @@ export class ChildDomainForwardingHandler implements ActionHandler {
       },
     };
 
-    // sendActionsChain() now returns Promise<void>.
+    // sendActionsChain() returns Promise<void>.
     // Errors are propagated via rejection.
     await this.parentBridgeImpl.sendActionsChain(chain);
   }
-  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
 }
+// @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1

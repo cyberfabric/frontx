@@ -1,4 +1,20 @@
 {
+  "schemas": [
+    {
+      "$id": "gts://gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~",
+      "$schema": "https://json-schema.org/draft/2020-12/schema",
+      "type": "object",
+      "properties": {
+        "type": { "x-gts-ref": "/$id" },
+        "target": {
+          "x-gts-ref": "gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~hai3.demo.screens.profile.v1"
+        },
+        "payload": { "type": "object" },
+        "timeout": { "type": "number", "minimum": 1 }
+      },
+      "required": ["type", "target"]
+    }
+  ],
   "manifest": {
     "id": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1",
     "remoteEntry": "http://localhost:3001/assets/remoteEntry.js",
@@ -36,7 +52,7 @@
         "gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~"
       ],
       "actions": [],
-      "domainActions": [],
+      "domainActions": ["gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~"],
       "manifest": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.demo.mfe.manifest.v1",
       "exposedModule": "./lifecycle-profile"
     },

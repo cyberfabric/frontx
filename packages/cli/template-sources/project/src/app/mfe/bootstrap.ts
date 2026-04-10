@@ -131,7 +131,7 @@ export async function bootstrapMFE(
     action: {
       type: HAI3_ACTION_MOUNT_EXT,
       target: screenDomain.id,
-      payload: { extensionId: targetExtId },
+      payload: { subject: targetExtId },
     },
   });
 
@@ -154,7 +154,7 @@ export async function bootstrapMFE(
       chain.action.type === HAI3_ACTION_MOUNT_EXT &&
       chain.action.target === screenDomain.id
     ) {
-      const extensionId = chain.action.payload?.extensionId as string | undefined;
+      const extensionId = chain.action.payload?.subject as string | undefined;
       const route = screenRouteMap.get(extensionId ?? '');
       if (route && window.location.pathname !== route) {
         window.history.pushState(null, '', route);
@@ -171,7 +171,7 @@ export async function bootstrapMFE(
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: screenDomain.id,
-          payload: { extensionId: ext.id },
+          payload: { subject: ext.id },
         },
       });
     }
