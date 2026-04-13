@@ -82,19 +82,76 @@ function getMainAppCommand(): string {
   return 'vite';
 }
 
-// Build commands for main app + all MFEs
-function buildCommands(mfes: MfeInfo[]): string[] {
+// Build preview-only commands (no build step — MFEs are pre-built)
+function buildPreviewCommands(mfes: MfeInfo[]): string[] {
   const commands: string[] = [];
 
   // Add main app
   commands.push(getMainAppCommand());
 
-  // Add each MFE
+  // MFE preview only (build already done in the sequential step)
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && npm run dev`);
+    commands.push(`cd src/mfe_packages/${mfe.name} && npm run preview`);
   }
 
   return commands;
+}
+
+// Build MFEs sequentially, then generate manifests, then start previews
+function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (mfes.length === 0) {
+      resolve();
+      return;
+    }
+
+    console.log('📦 Building MFE packages...\n');
+
+    // Build each MFE sequentially to avoid resource contention
+    // Use absolute paths to avoid cwd drift between chained commands
+    const root = process.cwd();
+    const buildCommands = mfes.map(
+      (mfe) => `cd "${root}/src/mfe_packages/${mfe.name}" && npx vite build`
+    );
+    const combined = buildCommands.join(' && ');
+
+    const proc = spawn('sh', ['-c', combined], {
+      stdio: 'inherit',
+      cwd: process.cwd(),
+    });
+
+    proc.on('error', reject);
+    proc.on('exit', (code) => {
+      if (code === 0) {
+        console.log('\n✅ All MFE packages built successfully.\n');
+        resolve();
+      } else {
+        reject(new Error(`MFE build failed with exit code ${code}`));
+      }
+    });
+  });
+}
+
+// Run manifest generation after MFE builds
+function generateManifests(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    console.log('📋 Generating MFE manifests...\n');
+
+    const proc = spawn('npm', ['run', 'generate:mfe-manifests'], {
+      stdio: 'inherit',
+      cwd: process.cwd(),
+      shell: true,
+    });
+
+    proc.on('error', reject);
+    proc.on('exit', (code) => {
+      if (code === 0) {
+        resolve();
+      } else {
+        reject(new Error(`Manifest generation failed with exit code ${code}`));
+      }
+    });
+  });
 }
 
 // Main execution
@@ -114,7 +171,14 @@ async function main() {
     console.log();
   }
 
-  const commands = buildCommands(mfes);
+  // Step 1: Build all MFEs (produces dist/ with mf-manifest.json)
+  await buildMfesSequentially(mfes);
+
+  // Step 2: Generate manifests (reads dist/mf-manifest.json, produces generated-mfe-manifests.ts)
+  await generateManifests();
+
+  // Step 3: Start host + MFE preview servers concurrently
+  const commands = buildPreviewCommands(mfes);
 
   // Quote each command properly for concurrently
   const quotedCommands = commands.map((cmd) => `"${cmd.replace(/"/g, '\\"')}"`);

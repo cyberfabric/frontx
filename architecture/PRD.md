@@ -1,6 +1,6 @@
 # PRD — FrontX Dev Kit
 
-<!-- artifact-version: 1.4 -->
+<!-- artifact-version: 1.5 -->
 
 <!-- toc -->
 
@@ -640,9 +640,9 @@ The MFE build plugin MUST operate at build time only (`vite build`); it MUST NOT
 
 - [ ] `p1` - **ID**: `cpt-frontx-fr-manifest-generation-script`
 
-The build system MUST provide a manifest generation script that reads human-authored MFE configuration (`mfe.json`) and build output (`mf-manifest.json`), merges them into complete GTS entity registration data (`mfe.generated.json`) with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in the generated `MfManifest` GTS entity. The script MUST produce `exposeAssets` for each entry by reading the `exposes[]` array from `mf-manifest.json` and associating chunk paths with the corresponding `mfe.json` entries. The generated file is what the bootstrap loader imports to register GTS entities with the runtime — `mfe.json` is never read at runtime.
+The build system MUST provide a manifest generation script that reads human-authored MFE configuration (`mfe.json`) and the plugin artifact (`mfe.gts-manifest.json` produced by `frontx-mf-gts`), merges them into complete GTS entity registration data (`mfe.generated.json`) with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in the generated `MfManifest` GTS entity. The script MUST produce `exposeAssets` for each entry by reading `exposes[]` from `mfe.gts-manifest.json`. The generated `MfManifest` entity MUST include `mfInitKey` and per-dep `unwrapKey`/`chunkPath` from the plugin artifact. The generated file is what the bootstrap loader imports to register GTS entities with the runtime — `mfe.json` is never read at runtime.
 
-**Rationale**: `mfe.json` is environment-independent (no URLs, no chunk paths) and therefore human-authorable and version-controllable. `mf-manifest.json` is a build artifact that carries environment-neutral chunk paths. The generation script is the single point where environment-specific `publicPath` is injected, producing a deploy-time artifact (`mfe.generated.json`) that the bootstrap registers. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
+**Rationale**: `mfe.json` is environment-independent (no URLs, no chunk paths) and therefore human-authorable and version-controllable. `mfe.gts-manifest.json` is produced by `frontx-mf-gts` at build time and carries `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets` — all extracted without heuristics. The generation script is the single point where environment-specific `publicPath` is injected, producing `mfe.generated.json` that the bootstrap registers. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
 **Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-ci-cd`
 
 ### 5.8 MFE Internal Dataflow
@@ -671,18 +671,18 @@ MFE packages MUST NOT import from `react-redux`, `redux`, or `@reduxjs/toolkit` 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sharescope-construction`
 
-`MfeHandlerMF` MUST construct a per-load runtime shim object that provides a `loadShare(pkgName)` method for MF 2.0 chunks. The shim is built from the manifest's shared dependency declarations: each declared shared dependency with a chunk path MUST be resolvable through `loadShare()` by returning a blob-URL'd module instance. The handler MUST resolve `globalThis["__mf_init__<key>__"].initPromise` with the shim BEFORE evaluating any blob-URL'd chunk. The handler MUST NOT write to `globalThis.__federation_shared__`; MF 2.0 chunks never read that global. The `__mf_init__` key has the form `"__mf_init____mf__virtual/${manifest.name}__mf_v__runtimeInit__mf_v__.js__"`.
+`MfeHandlerMF` MUST create a per-load `FederationHost` instance via `createInstance()` from `@module-federation/runtime`. Each shared dependency declared in the manifest MUST be configured with a `get()` factory that returns a blob-URL'd module using `manifest.shared[].unwrapKey` to extract the module from the imported chunk. The handler MUST resolve `globalThis[manifest.mfInitKey].initPromise` with the real `FederationHost` instance BEFORE evaluating any blob-URL'd chunk. The handler MUST NOT write to `globalThis.__federation_shared__`; MF 2.0 chunks never read that global. The `mfInitKey` value is stored in `manifest.mfInitKey` — extracted at build time by the `frontx-mf-gts` plugin.
 
-**Rationale**: MF 2.0 chunks use `loadShare()` via the `__mf_init__` global promise, not `importShared()` via `__federation_shared__`. Resolving the init promise with the per-load shim before chunk evaluation ensures `__loadShare__` proxy chunks within the MFE bundle can satisfy their shared dependency imports through the blob URL chain. Writing to `__federation_shared__` has no effect and is therefore removed.
+**Rationale**: MF 2.0 chunks use `loadShare()` via the `__mf_init__` global promise. Using a real `FederationHost` instance (via `createInstance()`) with build-time `unwrapKey` values eliminates all runtime heuristics: no single-export guessing, no module factory name detection, and no `__mf_init__` key derivation formula. Writing to `__federation_shared__` has no effect and is therefore omitted.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 #### Concurrent Load Safety
 
 - [x] `p2` - **ID**: `cpt-frontx-fr-sharescope-concurrent`
 
-When multiple MFEs are loaded concurrently, each load's shared dependency resolution MUST be isolated. The per-load runtime shim is created fresh for each load and captures its own `LoadBlobState`; resolving `globalThis["__mf_init__<key>__"].initPromise` with the shim does not affect other concurrent loads because each MFE uses a distinct `__mf_init__` key derived from its own manifest name. At most ONE network fetch MUST occur per chunk URL.
+When multiple MFEs are loaded concurrently, each load's shared dependency resolution MUST be isolated. A fresh `FederationHost` instance is created for each load via `createInstance()` and captures its own `LoadBlobState` through `get()` factory closures; resolving `globalThis[manifest.mfInitKey].initPromise` with the instance does not affect other concurrent loads because each MFE uses a distinct `mfInitKey` value from its own manifest. At most ONE network fetch MUST occur per chunk URL.
 
-**Rationale**: Distinct per-load shim objects combined with manifest-name-scoped `__mf_init__` keys guarantee that concurrent loads cannot interfere with each other's shared dependency resolution.
+**Rationale**: Distinct per-load `FederationHost` instances with manifest-scoped `mfInitKey` values guarantee that concurrent loads cannot interfere with each other's shared dependency resolution.
 **Actors**: `cpt-frontx-actor-microfrontend`
 
 ### 5.10 Shared Property Broadcast
@@ -1396,17 +1396,17 @@ Non-production screensets MUST NOT be included in the production build's module 
 
 **Direction**: required from MFE packages
 **Protocol/Format**: Two JSON files per MFE package: `mfe.json` (human-authored, environment-independent) and `mfe.generated.json` (generated at deploy time, contains complete GTS registration data).
-**Compatibility**: `mfe.generated.json` content MUST conform to the `MfManifest` GTS schema; the generation script produces it from `mfe.json` and `mf-manifest.json`.
-**Description**: Each MFE package provides two files. `mfe.json` is human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, and schemas — no manifest section, no URLs, no chunk paths. `mfe.generated.json` is produced by the generation script (see `cpt-frontx-fr-manifest-generation-script`) by merging `mfe.json` with the build-generated `mf-manifest.json` and injecting the environment-specific `--base-url`. The generated file contains the complete `MfManifest` GTS entity and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` never reaches runtime and is consumed by the generation script only.
+**Compatibility**: `mfe.generated.json` content MUST conform to the `MfManifest` GTS schema; the generation script produces it from `mfe.json` and `mfe.gts-manifest.json`.
+**Description**: Each MFE package provides two files. `mfe.json` is human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, schemas, and `sharedDependencies` names — no manifest section, no URLs, no chunk paths. `mfe.generated.json` is produced by the generation script (see `cpt-frontx-fr-manifest-generation-script`) by merging `mfe.json` with `mfe.gts-manifest.json` (produced by the `frontx-mf-gts` Vite plugin) and injecting the environment-specific `--base-url`. The generated file contains the complete `MfManifest` GTS entity (with `mfInitKey` and per-dep `unwrapKey`/`chunkPath`) and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` and `mfe.gts-manifest.json` never reach runtime.
 
 #### Module Federation Runtime
 
 - [x] `p2` - **ID**: `cpt-frontx-contract-federation-runtime`
 
 **Direction**: required from build system
-**Protocol/Format**: `@module-federation/vite` build plugin producing `mf-manifest.json`
+**Protocol/Format**: `@module-federation/vite` build plugin (produces `mf-manifest.json`) + `frontx-mf-gts` Vite plugin (produces `mfe.gts-manifest.json` with `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets`)
 **Compatibility**: Compatible with Module Federation 2.0 manifest schema.
-**Description**: The MFE build plugin generates `mf-manifest.json` alongside `remoteEntry.js`. The manifest generation script reads this file and merges it with `mfe.json` to produce `mfe.generated.json`, which carries the complete GTS entity registration data. The handler consumes the GTS entities registered from `mfe.generated.json`, not the raw `mf-manifest.json` file.
+**Description**: The MFE build pipeline runs `@module-federation/vite` to produce `mf-manifest.json`, then `frontx-mf-gts` extracts `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets` into `mfe.gts-manifest.json`. The generation script reads `mfe.gts-manifest.json` and merges with `mfe.json` to produce `mfe.generated.json`, which carries the complete GTS entity registration data including `mfInitKey` and `unwrapKey` values. The handler consumes the GTS entities registered from `mfe.generated.json`, not the raw build artifacts.
 
 ## 8. Use Cases
 
@@ -1423,7 +1423,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 **Main Flow**:
 1. Host dispatches `loadExtension` action with MFE entry reference
 2. Handler resolves `MfManifest` GTS entity and reads `entry.exposeAssets` for per-module chunk paths
-3. Handler constructs per-load runtime shim, resolves MF init promise, and evaluates exposed module via blob URLs
+3. Handler calls `createInstance()` to create a per-load `FederationHost`, resolves `globalThis[manifest.mfInitKey].initPromise`, and evaluates exposed module via blob URLs
 4. Handler returns lifecycle module (mount/unmount)
 5. Host dispatches `mountExtension` to render in Shadow DOM slot
 

@@ -5,12 +5,15 @@
  *  1. Fetches chunk source text via fetch()
  *  2. Creates blob URLs via URL.createObjectURL()
  *  3. Imports blob URLs via dynamic import()
+ *  4. Creates a per-load FederationHost via createInstance() from @module-federation/runtime
  *
  * In Node.js/Vitest (jsdom), we mock:
  *  - fetch() to return registered source texts by URL
  *  - Blob constructor to track string content
  *  - URL.createObjectURL() to return data: URLs (importable in Node.js)
  *  - URL.revokeObjectURL() as no-op
+ *  - @module-federation/runtime createInstance() via vi.mock (call setupMfRuntimeMock()
+ *    at the top of the test file before the import)
  *
  * @packageDocumentation
  */
@@ -84,12 +87,14 @@ export function setupBlobUrlLoaderMocks() {
     if (source !== undefined) {
       return {
         ok: true,
+        headers: { get: (_name: string) => 'text/javascript' },
         text: () => Promise.resolve(source),
       } as unknown as Response;
     }
     return {
       ok: false,
       status: 404,
+      headers: { get: (_name: string) => null },
       text: () => Promise.resolve('Not Found'),
     } as unknown as Response;
   });

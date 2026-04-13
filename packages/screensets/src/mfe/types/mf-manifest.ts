@@ -1,50 +1,134 @@
 /**
  * Module Federation Manifest Type Definitions
  *
- * MfManifest contains Module Federation 2.0 configuration for loading MFE bundles.
+ * MfManifest contains package-level Module Federation 2.0 metadata shared
+ * across all entries from the same MFE package. Per-module data (expose chunk
+ * paths) is carried by MfeEntryMF.exposeAssets, not here.
  *
  * @packageDocumentation
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-chunk-path-type:p1
 
 /**
- * Configuration for a shared dependency in Module Federation.
- *
- * Shared dependency chunks are downloaded once (HTTP cache) and their source
- * text is cached in memory. For `MfeHandlerMF`, every dependency that declares
- * a `chunkPath` receives blob URL isolation: a unique Blob URL is created per
- * MFE load, triggering a fresh module evaluation so each MFE gets independent
- * instance state (React fiber tree, hooks, etc.).
+ * Asset file lists for a module or shared dependency.
+ * Mirrors the `assets` shape emitted by @module-federation/vite in mf-manifest.json.
  */
-export interface SharedDependencyConfig {
-  /** Package name (e.g., 'react', 'lodash', '@cyberfabric/screensets') */
-  name: string;
-  /**
-   * Semver range (e.g., '^18.0.0', '^4.17.0').
-   * When omitted, any available version in the global scope is accepted.
-   */
-  requiredVersion?: string;
-  /**
-   * Relative path of the built shared dependency chunk within the MFE's assets
-   * directory (e.g., `__federation_shared_react.js`). When present, the handler
-   * derives the absolute chunk URL from the `remoteEntry` base URL and fetches
-   * the source text for blob URL isolation. When omitted, the dependency falls
-   * back to the default federation behavior (shared instance, no isolation).
-   */
-  chunkPath?: string;
+export interface MfManifestAssets {
+  js: {
+    /** Synchronous JS chunks loaded eagerly at module evaluation time. */
+    sync: string[];
+    /** Asynchronous (lazy) JS chunks. */
+    async: string[];
+  };
+  css: {
+    /** Synchronous CSS files injected at mount time. */
+    sync: string[];
+    /** Asynchronous CSS files. */
+    async: string[];
+  };
 }
 
 /**
- * Module Federation manifest containing shared configuration
+ * A single shared dependency entry from mfe.gts-manifest.json shared[].
+ * Enriched at build time by the frontx-mf-gts Vite plugin with chunk path
+ * and unwrap key data extracted from localSharedImportMap.
+ */
+export interface MfManifestShared {
+  /** Unique identifier, typically "{mfeName}:{packageName}". */
+  id: string;
+  /** npm package name (e.g. 'react', '@cyberfabric/screensets'). */
+  name: string;
+  /** Concrete version bundled in this MFE (e.g. '19.2.4'). */
+  version: string;
+  /** Semver range required (e.g. '^19.2.4'). */
+  requiredVersion: string;
+  /**
+   * Filename of the sync JS chunk for this dependency, relative to publicPath.
+   * Null when the package has no bundled chunk (peer-provided external).
+   * Populated by the frontx-mf-gts build plugin.
+   */
+  chunkPath: string | null;
+  /**
+   * Named export key to unwrap the module from the chunk.
+   * The localSharedImportMap uses .then(t => t.KEY) for some packages.
+   * Null when the chunk exports the module directly (no unwrap needed).
+   * Populated by the frontx-mf-gts build plugin.
+   */
+  unwrapKey: string | null;
+}
+
+/**
+ * RemoteEntry descriptor from mf-manifest.json metaData.remoteEntry.
+ */
+export interface MfManifestRemoteEntry {
+  /** Filename of the remote entry (e.g. 'remoteEntry.js'). */
+  name: string;
+  /** Path prefix relative to publicPath. Empty string means publicPath root. */
+  path: string;
+  /** Module type: 'module' (ESM) or 'global' (IIFE/UMD). */
+  type: string;
+}
+
+/**
+ * Build information from mf-manifest.json metaData.buildInfo.
+ */
+export interface MfManifestBuildInfo {
+  buildVersion: string;
+  buildName: string;
+}
+
+/**
+ * Package-level metadata from mf-manifest.json metaData.
+ * Contains everything needed to locate and load remote chunks.
+ */
+export interface MfManifestMetaData {
+  /** MFE application/library name. */
+  name: string;
+  /** Application type (e.g. 'app', 'lib'). */
+  type: string;
+  /** Build metadata. */
+  buildInfo: MfManifestBuildInfo;
+  /** Remote entry file descriptor. */
+  remoteEntry: MfManifestRemoteEntry;
+  /** Global variable name used by the MF 2.0 runtime. */
+  globalName: string;
+  /** Version of the @module-federation plugin that produced this manifest. */
+  pluginVersion: string;
+  /**
+   * Public URL base path for all chunk assets.
+   * All relative chunk paths in shared[].assets and expose assets are
+   * resolved against this value (e.g. 'http://localhost:3001/' or '/').
+   */
+  publicPath: string;
+}
+
+/**
+ * Module Federation 2.0 GTS manifest — package-level metadata only.
+ *
+ * Represents the content of mfe.gts-manifest.json emitted by the
+ * frontx-mf-gts Vite plugin. Enriches the raw mf-manifest.json with
+ * mfInitKey (extracted from remoteEntry.js) and per-shared chunkPath /
+ * unwrapKey data (extracted from localSharedImportMap).
+ *
+ * Per-module expose chunk paths are stored separately on MfeEntryMF.exposeAssets.
+ *
  * GTS Type: gts.hai3.mfes.mfe.mf_manifest.v1~
  */
 export interface MfManifest {
-  /** The GTS type ID for this manifest */
+  /** The GTS type ID for this manifest (also the MFE name / container ID). */
   id: string;
-  /** URL to the remoteEntry.js file */
-  remoteEntry: string;
-  /** Module Federation container name */
-  remoteName: string;
-  /** Optional override for shared dependency configuration */
-  sharedDependencies?: SharedDependencyConfig[];
+  /** Human-readable MFE name, matches metaData.name. */
+  name: string;
+  /** Package-level metadata: publicPath, remoteEntry descriptor, etc. */
+  metaData: MfManifestMetaData;
+  /** Shared dependency declarations with chunk paths and unwrap keys. */
+  shared: MfManifestShared[];
+  /**
+   * The globalThis key under which MF 2.0 proxy chunks register the
+   * __mf_init__ promise (e.g. '__mf_init____mf__virtual/demoMfe__...').
+   * Extracted from remoteEntry.js at build time by the frontx-mf-gts plugin.
+   * Used by the handler to resolve the initPromise with the real FederationHost
+   * instance before importing the expose blob URL.
+   */
+  mfInitKey: string;
 }

@@ -1,6 +1,6 @@
 # Technical Design — FrontX Dev Kit
 
-<!-- artifact-version: 1.3 -->
+<!-- artifact-version: 1.4 -->
 
 <!-- toc -->
 
@@ -83,7 +83,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-appconfig-event-api` | Application-level config changes propagated via `app/*` events, not direct store mutations |
 | `cpt-frontx-fr-sse-protocol` | `@cyberfabric/api` abstracts REST and SSE behind `createApiService()` with protocol-specific adapters |
 | `cpt-frontx-fr-i18n-lazy-chunks` | Namespace-based lazy loading: translation chunks loaded on demand per screen-set |
-| `cpt-frontx-fr-externalize-transform` | `@module-federation/vite` declares `@cyberfabric/*` as shared dependencies; build plugin transforms imports across all chunks; host provides per-load runtime shim at runtime via blob URL isolation pipeline |
+| `cpt-frontx-fr-externalize-transform` | `@module-federation/vite` declares `@cyberfabric/*` as shared dependencies; build plugin transforms imports across all chunks; `frontx-mf-gts` plugin extracts `mfInitKey` and per-dep `unwrapKey`/`chunkPath`; host creates a per-load `FederationHost` via `createInstance()` at runtime via blob URL isolation pipeline |
 | `cpt-frontx-fr-mfe-plugin` | `microfrontends()` plugin integrates MFE lifecycle, theme propagation, i18n, and shared property bridging into framework |
 | `cpt-frontx-fr-mock-toggle` | `mock()` plugin with `toggleMockMode` action enabling runtime switch between real and mock API responses |
 | `cpt-frontx-fr-sdk-state-interface` | `@cyberfabric/state` exports EventBus, `createStore`, slice management APIs, and all associated types |
@@ -114,8 +114,8 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-externalize-filenames` | Shared dependency chunks use deterministic filenames without content hashes for stable MFE manifests |
 | `cpt-frontx-fr-externalize-build-only` | `@module-federation/vite` shared dependency transforms apply at `vite build` only; during `vite dev`, imports resolve through standard Vite dev server resolution |
 | `cpt-frontx-fr-dataflow-internal-app` | Each MFE creates isolated `HAI3App` via `createHAI3().use(effects()).use(queryCacheShared()).use(mock()).build()` with `HAI3Provider` (shared QueryClient owned by host) |
-| `cpt-frontx-fr-sharescope-construction` | `MfeHandlerMF` builds a per-load runtime shim with `loadShare()` and resolves `globalThis["__mf_init__<key>__"].initPromise` with it before chunk evaluation; no writes to `globalThis.__federation_shared__` |
-| `cpt-frontx-fr-sharescope-concurrent` | Each load creates an independent shim captured by its own `LoadBlobState`; manifest-name-scoped `__mf_init__` keys prevent concurrent-load interference; at most one network fetch per chunk URL |
+| `cpt-frontx-fr-sharescope-construction` | `MfeHandlerMF` calls `createInstance()` to create a per-load `FederationHost` with `get()` factories using `manifest.shared[].unwrapKey`; resolves `globalThis[manifest.mfInitKey].initPromise` with the instance before chunk evaluation; no writes to `globalThis.__federation_shared__` |
+| `cpt-frontx-fr-sharescope-concurrent` | Each load creates an independent `FederationHost` instance captured by its own `LoadBlobState`; manifest-name-scoped `__mf_init__` keys prevent concurrent-load interference; at most one network fetch per chunk URL |
 | `cpt-frontx-fr-broadcast-matching` | `updateSharedProperty()` propagates only to domains declaring the property in their `sharedProperties` array |
 | `cpt-frontx-fr-broadcast-validate` | GTS validation occurs before propagation; invalid values never stored or broadcast to any domain |
 | `cpt-frontx-fr-validation-gts` | `typeSystem.register()` + `typeSystem.validateInstance()` pattern validates shared property values |
@@ -143,7 +143,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-framework-query-cache-plugin` | `queryCache(config?)` owns the host shared `QueryClient`; `queryCacheShared()` joins it for child apps; cache clears on mock toggle, handles `cache/invalidate`/`cache/set`/`cache/remove`, and keeps `sharedFetchCache` in sync |
 | `cpt-frontx-fr-react-query-hooks` | `useApiQuery`, `useApiMutation`, `useApiStream`, `useQueryCache` hooks consume descriptors; HAI3-owned result types; no `queryOptions` re-export |
 | `cpt-frontx-fr-react-query-client-isolation` | `HAI3Provider` resolves the shared `QueryClient` from the app instance; separately mounted MFEs receive the same host client through `queryCache()` / `queryCacheShared()` shared-client reuse rather than L1 token plumbing, and expose only the restricted `QueryCache` interface |
-| `cpt-frontx-fr-manifest-generation-script` | Generation script merges `mfe.json` + `mf-manifest.json` into `mfe.generated.json` with `--base-url` for environment-specific `publicPath` |
+| `cpt-frontx-fr-manifest-generation-script` | Generation script merges `mfe.json` + `mfe.gts-manifest.json` (from `frontx-mf-gts` plugin) into `mfe.generated.json` with `--base-url` for environment-specific `publicPath`; includes `mfInitKey` and per-dep `unwrapKey`/`chunkPath` |
 
 #### NFR Allocation
 
@@ -200,7 +200,7 @@ Requirements that significantly influence architecture decisions.
 
 **Build order**: SDK (L1) → Framework (L2) → React (L3) → Studio → CLI (`npm run build:packages`)
 
-**MFE package build pipeline**: `vite build` (produces chunks + `mf-manifest.json`) → generation script with `--base-url` (reads `mfe.json` + `mf-manifest.json`, writes `mfe.generated.json`) → host dev server / deployment. The generation script is the boundary between environment-neutral build artifacts and environment-specific registration config. `mf-manifest.json` does not leave the build stage; only `mfe.generated.json` is consumed at runtime.
+**MFE package build pipeline**: `vite build` with `@module-federation/vite` (produces chunks + `mf-manifest.json`) → `frontx-mf-gts` plugin `closeBundle` (reads `mf-manifest.json`, `remoteEntry.js`, `localSharedImportMap-*.js`, and `mfe.json`; emits `dist/mfe.gts-manifest.json` with `mfInitKey`, per-dep `unwrapKey`/`chunkPath`, and `exposeAssets`) → generation script with `--base-url` (reads `mfe.json` + `mfe.gts-manifest.json`, writes `mfe.generated.json`) → host dev server / deployment. The generation script is the boundary between environment-neutral build artifacts and environment-specific registration config. `mf-manifest.json` and `mfe.gts-manifest.json` do not leave the build stage; only `mfe.generated.json` is consumed at runtime.
 
 ## 2. Principles & Constraints
 
@@ -803,11 +803,12 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
     }
   ],
   "entries": [ { "..." : "..." } ],
-  "extensions": [ { "..." : "..." } ]
+  "extensions": [ { "..." : "..." } ],
+  "sharedDependencies": ["react", "react-dom", "@cyberfabric/react", "@cyberfabric/framework"]
 }
 ```
 
-`mfe.json` is human-authored and environment-independent: it contains entries (without `exposeAssets`), extensions, and schemas only. There is no `manifest` section, no URLs, and no chunk paths. The generation script (see `cpt-frontx-fr-manifest-generation-script`) reads `mfe.json` together with the build-generated `mf-manifest.json` and produces `mfe.generated.json` — the complete registration config with the `MfManifest` GTS entity and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mf-manifest.json` is an intermediate artifact consumed by the generation script only and never reaches runtime.
+`mfe.json` is human-authored and environment-independent: it contains entries (without `exposeAssets`), extensions, schemas, and a `sharedDependencies` array of package names (e.g., `["react", "react-dom"]`). There is no `manifest` section, no URLs, and no chunk paths. The `frontx-mf-gts` plugin reads `sharedDependencies` names to match against `mf-manifest.json` shared entries and errors if a declared name is not found. The generation script (see `cpt-frontx-fr-manifest-generation-script`) reads `mfe.json` together with the build-generated `mfe.gts-manifest.json` and produces `mfe.generated.json` — the complete registration config with the `MfManifest` GTS entity (including `mfInitKey` and per-dep `unwrapKey`/`chunkPath`) and entries with `exposeAssets`. The bootstrap loader imports `mfe.generated.json`; `mfe.gts-manifest.json` is an intermediate artifact consumed by the generation script only and never reaches runtime.
 
 **Registration flow** (parent side):
 1. Import `mfe.generated.json` (produced by the generation script with environment-specific `--base-url`).
@@ -832,8 +833,8 @@ During `registerDomain()`, the registry registers three small `ActionHandler` su
 
 | Contract | Description |
 |----------|-------------|
-| `cpt-frontx-contract-mfe-manifest` | MFE packages provide two files: `mfe.json` (human-authored, environment-independent — entries without `exposeAssets`, extensions, schemas; no manifest section, no URLs) and `mfe.generated.json` (generated by the manifest generation script — contains the complete `MfManifest` GTS entity and entries with `exposeAssets`). `mf-manifest.json` is a build-time intermediate consumed by the generation script only and never reaches runtime. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
-| `cpt-frontx-contract-federation-runtime` | The handler resolves the `MfManifest` GTS entity for package-level metadata (shared deps, base URL) and reads per-module chunk paths from `entry.exposeAssets`. The blob URL isolation pipeline (ADR-0004) consumes these paths for per-load module evaluation. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
+| `cpt-frontx-contract-mfe-manifest` | MFE packages provide two files: `mfe.json` (human-authored, environment-independent — entries without `exposeAssets`, extensions, schemas, `sharedDependencies` names; no manifest section, no URLs) and `mfe.generated.json` (generated by the manifest generation script — contains the complete `MfManifest` GTS entity with `mfInitKey` and per-dep `unwrapKey`/`chunkPath`, plus entries with `exposeAssets`). `mf-manifest.json` and `mfe.gts-manifest.json` are build-time intermediates consumed by `frontx-mf-gts` and the generation script only, and never reach runtime. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
+| `cpt-frontx-contract-federation-runtime` | The handler resolves the `MfManifest` GTS entity for package-level metadata (shared deps with `chunkPath`/`unwrapKey`, `mfInitKey`, base URL) and reads per-module chunk paths from `entry.exposeAssets`. The blob URL isolation pipeline calls `createInstance()` with `get()` factories and resolves `globalThis[manifest.mfInitKey].initPromise` with the real `FederationHost` instance. ADR: `cpt-frontx-adr-mf2-manifest-discovery` |
 
 ### 3.4 Internal Dependencies
 
@@ -1014,11 +1015,11 @@ sequenceDiagram
         MFE->>MFE: useSharedProperty(key) re-render
     else invalid
         GTS-->>SP: reject(reason)
-        SP->>SP: log warning, discard value
+        SP->>SP: throw error with validation details
     end
 ```
 
-**Description**: When a host plugin sets a shared property, the value passes through GTS validation against the declared schema. Valid values are stored and broadcast to all subscribed MFE components via change notifications. Invalid values are rejected with a logged warning. MFE components read shared properties through `useSharedProperty()` which re-renders on changes.
+**Description**: When a host plugin sets a shared property, the value passes through GTS validation against the declared schema. Valid values are stored and broadcast to all subscribed MFE components via change notifications. Invalid values cause a synchronous throw with validation failure details. MFE components read shared properties through `useSharedProperty()` which re-renders on changes.
 
 #### Extension Action Delivery
 

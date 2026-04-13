@@ -6,26 +6,70 @@
     "id": {
       "x-gts-ref": "/$id"
     },
-    "remoteEntry": {
-      "type": "string",
-      "format": "uri"
-    },
-    "remoteName": {
+    "name": {
       "type": "string",
       "minLength": 1
     },
-    "sharedDependencies": {
+    "metaData": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "type": { "type": "string", "minLength": 1 },
+        "buildInfo": {
+          "type": "object",
+          "properties": {
+            "buildVersion": { "type": "string" },
+            "buildName": { "type": "string" }
+          },
+          "required": ["buildVersion", "buildName"]
+        },
+        "remoteEntry": {
+          "type": "object",
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "path": { "type": "string" },
+            "type": { "type": "string", "enum": ["module", "global"] }
+          },
+          "required": ["name", "path", "type"]
+        },
+        "globalName": { "type": "string" },
+        "pluginVersion": { "type": "string" },
+        "publicPath": { "type": "string" }
+      },
+      "required": ["name", "type", "buildInfo", "remoteEntry", "publicPath"]
+    },
+    "shared": {
       "type": "array",
       "items": {
         "type": "object",
         "properties": {
-          "name": { "type": "string" },
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "version": { "type": "string" },
           "requiredVersion": { "type": "string" },
-          "chunkPath": { "type": "string" }
+          "chunkPath": {
+            "description": "Chunk filename relative to publicPath. Null when no bundled chunk (peer-provided external).",
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              { "type": "null" }
+            ]
+          },
+          "unwrapKey": {
+            "description": "Named export key to unwrap the module from the chunk. Null when no unwrapping is needed.",
+            "oneOf": [
+              { "type": "string", "minLength": 1 },
+              { "type": "null" }
+            ]
+          }
         },
-        "required": ["name"]
+        "required": ["id", "name", "version", "requiredVersion", "chunkPath", "unwrapKey"]
       }
+    },
+    "mfInitKey": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The globalThis key for the __mf_init__ promise. Extracted from remoteEntry.js at build time."
     }
   },
-  "required": ["id", "remoteEntry", "remoteName"]
+  "required": ["id", "name", "metaData", "shared", "mfInitKey"]
 }

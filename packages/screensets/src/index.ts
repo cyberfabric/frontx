@@ -62,6 +62,13 @@ export type {
   // Handler types
   MfeMountContext,
   MfeEntryLifecycle,
+  // MF2 manifest types
+  MfManifest,
+  MfManifestMetaData,
+  MfManifestRemoteEntry,
+  MfManifestBuildInfo,
+  MfManifestShared,
+  MfManifestAssets,
 } from './mfe';
 
 // MFE Handler Abstract Classes (concrete implementations are internal)

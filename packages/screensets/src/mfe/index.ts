@@ -50,6 +50,13 @@ export type {
   LoadExtPayload,
   MountExtPayload,
   UnmountExtPayload,
+  // MF2 manifest types
+  MfManifest,
+  MfManifestMetaData,
+  MfManifestRemoteEntry,
+  MfManifestBuildInfo,
+  MfManifestShared,
+  MfManifestAssets,
 } from './types';
 
 // Runtime (includes factory)

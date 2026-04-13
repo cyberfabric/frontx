@@ -1,7 +1,14 @@
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-mf-vite-plugin:p1
+// @cpt-flow:cpt-frontx-flow-mfe-isolation-build-v2:p2
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
-import federation from '@originjs/vite-plugin-federation';
-import { hai3MfeExternalize } from '../shared/vite-plugin-frontx-externalize';
+import { federation } from '@module-federation/vite';
+import { fileURLToPath } from 'node:url';
+import { dirname } from 'node:path';
+import { FrontxMfGtsPlugin } from '@cyberfabric/screensets/build/mf-gts';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const sharedDeps = [
   'react',
@@ -27,8 +34,11 @@ export default defineConfig({
         './lifecycle': './src/lifecycle.tsx',
       },
       shared: sharedDeps,
+      // mf-manifest.json must be generated alongside remoteEntry.js so that
+      // MfeHandlerMF can discover expose chunk paths without regex-parsing the bundle.
+      manifest: true,
     }),
-    hai3MfeExternalize({ shared: sharedDeps }),
+    new FrontxMfGtsPlugin(__dirname).createPlugin(),
   ],
   build: {
     target: 'esnext',

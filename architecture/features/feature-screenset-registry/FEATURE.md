@@ -1,6 +1,6 @@
 # Feature: Screenset Registry & Contracts
 
-<!-- artifact-version: 1.3 -->
+<!-- artifact-version: 1.4 -->
 
 
 <!-- toc -->
@@ -410,6 +410,7 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
 - `MfManifest` (GTS schema `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`): package-level metadata shared across all entries from the same MFE package. Contains ONLY what is common between entries — knows nothing about individual entries or exposed modules. Fields:
   - `id` — GTS instance ID (required)
   - `name` — federation container name (required)
+  - `mfInitKey` — the `globalThis` key under which the MFE bundle stores its `__mf_init__` global (required); extracted from `remoteEntry.js` at build time by the `frontx-mf-gts` plugin; used by `MfeHandlerMF` to resolve `globalThis[mfInitKey].initPromise`
   - `metaData` — build and entry metadata (required):
     - `publicPath` — base URL for resolving chunk paths (e.g., `http://localhost:3001/`)
     - `remoteEntry` — entry point location: `{ path, name, type }` (e.g., `{ path: "/js/", name: "remoteEntry.js", type: "module" }`)
@@ -420,6 +421,8 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
     - `name` — package name (e.g., `"react"`)
     - `version` — actual installed version (e.g., `"19.0.0"`)
     - `requiredVersion` — semver range (e.g., `"^19.0.0"`)
+    - `chunkPath` — relative chunk filename for this dependency (e.g., `"assets/react-BxyzAbcd.js"`); extracted by the `frontx-mf-gts` plugin
+    - `unwrapKey` — the export key to access the module inside the chunk (e.g., `"react"`); `null` means `'default'` is used; extracted by the `frontx-mf-gts` plugin from `localSharedImportMap`
     - `assets` — `{ js: { sync: string[], async: string[] }, css: { sync: string[], async: string[] } }` — chunk filenames
   - Fields present in `mf-manifest.json` but excluded from `MfManifest`: `exposes` (per-module data — split into `MfeEntryMF.exposeAssets` at registration time), `remotes` (not used by the handler), `singleton` (meaningless under blob URL isolation), `hash`, `fallback`/`fallbackName`/`fallbackType`
 - `ExtensionDomain`: `id`, `sharedProperties`, `actions`, `extensionsActions`, `defaultActionTimeout` (required number), `lifecycleStages` (required), `extensionsLifecycleStages` (required), optional `extensionsTypeId`, optional `lifecycle`
@@ -470,9 +473,11 @@ All registration and dispatch paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
 
-`mfe.json` is the human-authored, environment-independent MFE configuration file. It contains entries (without `exposeAssets`), extensions, and an optional `schemas` array of inline GTS JSON Schema definitions. It has no `manifest` section, no URLs, and no chunk paths — those belong to the generated output. The bootstrap loader does not import `mfe.json` directly at runtime; instead it imports `mfe.generated.json` (produced by the generation script, see `cpt-frontx-fr-manifest-generation-script`), which contains the complete `MfManifest` GTS entity and entries with `exposeAssets` populated from the build output.
+`mfe.json` is the human-authored, environment-independent MFE configuration file. It contains entries (without `exposeAssets`), extensions, an optional `schemas` array of inline GTS JSON Schema definitions, and a `sharedDependencies` array of shared dependency package names. It has no `manifest` section, no URLs, and no chunk paths — those belong to the generated output. The bootstrap loader does not import `mfe.json` directly at runtime; instead it imports `mfe.generated.json` (produced by the generation script, see `cpt-frontx-fr-manifest-generation-script`), which contains the complete `MfManifest` GTS entity and entries with `exposeAssets` populated from the build output.
 
-`mfe.generated.json` is the complete registration source: it carries all data from `mfe.json` plus the `MfManifest` GTS entity and `exposeAssets` on each entry. The bootstrap registers the `MfManifest` GTS entity, iterates `schemas` (if present) calling `typeSystem.registerSchema(schema)` for each, then registers entries and extensions. Deduplication is automatic because GTS overwrites any schema with the same `$id`.
+The `sharedDependencies` array declares which packages this MFE shares with the host (e.g., `["react", "react-dom", "react-dom/client"]`). The `frontx-mf-gts` Vite plugin reads these names, matches them against `mf-manifest.json` shared entries to extract `chunkPath` and `unwrapKey`, and errors if a declared name has no matching entry in the build output.
+
+`mfe.generated.json` is the complete registration source: it carries all data from `mfe.json` plus the `MfManifest` GTS entity (with `mfInitKey`, per-dep `chunkPath`/`unwrapKey`) and `exposeAssets` on each entry. The bootstrap registers the `MfManifest` GTS entity, iterates `schemas` (if present) calling `typeSystem.registerSchema(schema)` for each, then registers entries and extensions. Deduplication is automatic because GTS overwrites any schema with the same `$id`.
 
 **Rules**:
 - `mfe.json` MUST NOT contain a `manifest` section, URLs, or chunk paths
@@ -492,7 +497,7 @@ All registration and dispatch paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfmanifest-schema-update`
 
-The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (registered as `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`) are updated to match the `mf-manifest.json` structure emitted by `@module-federation/vite`. The `GtsPlugin` registers `mf_manifest.v1.json` as a first-class schema alongside all other built-in schemas. All runtime code (`MfeHandlerMF`, `ManifestCache`, `MfeBridgeFactory`) works with the `MfManifest` TypeScript interface and never imports or inspects GTS JSON schemas directly. The GTS layer is the validation boundary; the TypeScript interface is the runtime contract.
+The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (registered as `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`) are updated to include fields produced by the `frontx-mf-gts` Vite plugin: `mfInitKey: string` at the manifest level, and `chunkPath: string` / `unwrapKey: string | null` on each shared dependency entry. The `GtsPlugin` registers `mf_manifest.v1.json` as a first-class schema alongside all other built-in schemas. All runtime code (`MfeHandlerMF`, `ManifestCache`, `MfeBridgeFactory`) works with the `MfManifest` TypeScript interface and never imports or inspects GTS JSON schemas directly. The GTS layer is the validation boundary; the TypeScript interface is the runtime contract.
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-mfe-entry-types`

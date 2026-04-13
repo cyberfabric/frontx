@@ -7,7 +7,7 @@
  */
 
 import type { MfeEntry } from './mfe-entry';
-import type { MfManifest } from './mf-manifest';
+import type { MfManifest, MfManifestAssets } from './mf-manifest';
 
 /**
  * Module Federation 2.0 implementation of MfeEntry
@@ -21,6 +21,14 @@ export interface MfeEntryMF extends MfeEntry {
    * - An inline MfManifest object
    */
   manifest: string | MfManifest;
-  /** Module Federation exposed module name (e.g., './ChartWidget') */
+  /** Module Federation exposed module name (e.g., './lifecycle'). */
   exposedModule: string;
+  /**
+   * Per-module chunk assets for this specific exposed module.
+   *
+   * Populated at registration time from mf-manifest.json exposes[].assets.
+   * exposeAssets.js.sync[0] is the primary JS chunk filename to load.
+   * exposeAssets.css.sync/async contains CSS paths to inject at mount time.
+   */
+  exposeAssets: MfManifestAssets;
 }

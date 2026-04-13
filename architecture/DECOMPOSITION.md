@@ -185,7 +185,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Deterministic filenames without content hashes
   - Never-revoke policy for blob URLs
   - MFE internal dataflow (useReducer/useState, no host Redux)
-  - Per-load runtime shim construction from manifest
+  - Per-load federation instance construction from manifest
   - Generation script producing `mfe.generated.json` from `mf-manifest.json` and `mfe.json`
 
 - **Out of scope**:

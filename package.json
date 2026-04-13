@@ -19,7 +19,7 @@
     "dev": "npm run generate:mfe-manifests && npm run generate:colors && vite",
     "dev:mfe:demo": "cd src/mfe_packages/demo-mfe && npm run dev",
     "dev:mfe:blank": "cd src/mfe_packages/_blank-mfe && npm run dev",
-    "dev:all": "npm run generate:mfe-manifests && npx tsx scripts/dev-all.ts",
+    "dev:all": "npx tsx scripts/dev-all.ts",
     "check:mcp": "npx tsx packages/cli/template-sources/project/scripts/check-mcp.ts",
     "build": "npm run generate:mfe-manifests && npm run build:packages && npm run generate:colors && vite build",
     "docs:dev": "npm run docs:dev --workspace=@cyberfabric/docs",
@@ -127,7 +127,7 @@
   "devDependencies": {
     "@eslint/js": "9.27.0",
     "@cyberfabric/studio": "*",
-    "@originjs/vite-plugin-federation": "^1.4.1",
+    "@module-federation/vite": "^1.14.2",
     "@types/lodash": "4.17.20",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",

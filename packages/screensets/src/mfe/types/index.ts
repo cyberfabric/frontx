@@ -21,4 +21,4 @@ export type { LifecycleStage, LifecycleHook } from './lifecycle';
 export type { LoadExtPayload, MountExtPayload, UnmountExtPayload } from './action-payloads';
 
 // Module Federation types
-export type { MfManifest, SharedDependencyConfig } from './mf-manifest';
+export type { MfManifest, MfManifestAssets, MfManifestShared, MfManifestMetaData, MfManifestRemoteEntry, MfManifestBuildInfo } from './mf-manifest';

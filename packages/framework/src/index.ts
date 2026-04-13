@@ -101,6 +101,13 @@ export type {
   UnmountExtPayload,
   ScreensetsRegistryConfig,
   TypeSystemPlugin,
+  // MF2 manifest types
+  MfManifest,
+  MfManifestMetaData,
+  MfManifestRemoteEntry,
+  MfManifestBuildInfo,
+  MfManifestShared,
+  MfManifestAssets,
 } from '@cyberfabric/screensets';
 
 // MFE Abstract Classes (re-exported from @cyberfabric/screensets for convenience)
