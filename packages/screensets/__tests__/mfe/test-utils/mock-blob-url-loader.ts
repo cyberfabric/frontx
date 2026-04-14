@@ -1,19 +1,16 @@
 /**
  * Test utilities for mocking the blob URL loading mechanism in MfeHandlerMF.
  *
- * The new loading mechanism:
+ * The loading mechanism:
  *  1. Fetches chunk source text via fetch()
  *  2. Creates blob URLs via URL.createObjectURL()
  *  3. Imports blob URLs via dynamic import()
- *  4. Creates a per-load FederationHost via createInstance() from @module-federation/runtime
  *
  * In Node.js/Vitest (jsdom), we mock:
  *  - fetch() to return registered source texts by URL
  *  - Blob constructor to track string content
  *  - URL.createObjectURL() to return data: URLs (importable in Node.js)
  *  - URL.revokeObjectURL() as no-op
- *  - @module-federation/runtime createInstance() via vi.mock (call setupMfRuntimeMock()
- *    at the top of the test file before the import)
  *
  * @packageDocumentation
  */
@@ -168,6 +165,22 @@ export function createExposeChunkSource(): string {
  */
 export function createChunkWithRelativeImport(relImport: string): string {
   return `import { helper } from '${relImport}';\nexport default { mount: () => {}, unmount: () => {} };`;
+}
+
+/**
+ * Create a standalone ESM source text for a shared dependency.
+ *
+ * The generated source imports the given bare specifiers (simulating a shared
+ * dep that itself depends on other shared deps) and exports a default object.
+ * Bare specifier rewrites in the handler will replace these imports with blob URLs.
+ *
+ * @param bareImports - Package names to import as bare specifiers
+ */
+export function createSharedDepSource(bareImports?: string[]): string {
+  const imports = bareImports?.map(
+    (name) => `import __ext_${name.replace(/[^a-zA-Z0-9_]/g, '_')} from "${name}";`
+  ).join('\n') ?? '';
+  return imports ? `${imports}\nexport default {};` : 'export default {};';
 }
 
 /** Standard test base URL for mock MFEs. */

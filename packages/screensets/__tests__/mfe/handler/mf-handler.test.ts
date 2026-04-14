@@ -8,26 +8,6 @@
  */
 // @cpt-FEATURE:mfe-manifest-loading:p1
 
-// @module-federation/runtime must be mocked before any imports that use it.
-// The mock is hoisted by Vitest to run before module evaluation.
-vi.mock('@module-federation/runtime', () => {
-  const createInstance = vi.fn().mockImplementation(
-    (opts: { name: string; shared: Record<string, { get: () => Promise<() => unknown> }>; remotes: unknown[] }) => ({
-      // Actually invoke the get() factory so that blob URL chain creation and
-      // fetch() calls happen as in production. Tests that assert on fetch call
-      // counts depend on this behavior.
-      loadShare: async (pkgName: string) => {
-        const entry = opts.shared[pkgName];
-        if (!entry) {
-          return false;
-        }
-        return entry.get();
-      },
-    })
-  );
-  return { createInstance };
-});
-
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { MfeHandlerMF } from '../../../src/mfe/handler/mf-handler';
 import type { MfeEntryMF, MfManifest, MfManifestAssets } from '../../../src/mfe/types';
@@ -36,6 +16,7 @@ import {
   setupBlobUrlLoaderMocks,
   createExposeChunkSource,
   createChunkWithRelativeImport,
+  createSharedDepSource,
   TEST_BASE_URL,
 } from '../test-utils/mock-blob-url-loader';
 
@@ -44,16 +25,10 @@ import {
 // ---------------------------------------------------------------------------
 
 /**
- * Build the __mf_init__ key for a manifest name (matches MF 2.0 format used in production).
- */
-function buildMfInitKey(remoteName: string): string {
-  return `__mf_init____mf__virtual/${remoteName}__mf_v__runtimeInit__mf_v__.js__`;
-}
-
-/**
  * Build a minimal valid GTS MfManifest with the new structure.
  * publicPath is the base URL for all chunks.
- * mfInitKey is required (extracted at build time by frontx-mf-gts plugin).
+ * mfInitKey may be an empty string — the field is present for backwards
+ * compatibility but the handler no longer uses it.
  */
 function buildManifest(
   remoteName: string,
@@ -75,7 +50,7 @@ function buildManifest(
       publicPath: `${TEST_BASE_URL}/${remoteName}/`,
     },
     shared: options.shared ?? [],
-    mfInitKey: buildMfInitKey(remoteName),
+    mfInitKey: '',
   };
 }
 
@@ -409,8 +384,9 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       await expect(handler.load(entry)).rejects.toThrow('metaData.remoteEntry.name');
     });
 
-    it('17.2.4 - Clear error when inline manifest missing "mfInitKey" field', async () => {
-      // mfInitKey is required — extracted from remoteEntry.js by the frontx-mf-gts plugin.
+    it('17.2.4 - Clear error when inline manifest missing "mfInitKey" field entirely', async () => {
+      // mfInitKey must be present as a string field (may be empty string).
+      // The field is kept for backwards compatibility; missing entirely throws.
       const invalidManifest = {
         id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.nomfinitkey.manifest.v1',
         name: 'analyticsRemote',
@@ -436,6 +412,17 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
 
       await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
       await expect(handler.load(entry)).rejects.toThrow('mfInitKey');
+    });
+
+    it('17.2.4 - Accepts manifest with empty string mfInitKey (field present, value irrelevant)', async () => {
+      // Empty string is valid: mfInitKey is no longer consumed by the handler.
+      const { makeEntry } = createTestSetup('analyticsRemote', ['./ChartWidget']);
+      const entry = makeEntry('./ChartWidget', 'acme.emptymfinitkey', mocks.registerSource);
+
+      // buildManifest produces mfInitKey: '' — handler must accept it.
+      const result = await handler.load(entry);
+      expect(result).toBeDefined();
+      expect(typeof result.mount).toBe('function');
     });
   });
 
@@ -465,41 +452,32 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       expect(result2).toBeDefined();
     });
 
-    it('17.3.2 - Source text caching avoids redundant fetches for shared dep chunks', async () => {
-      // Two loads from the same manifest each trigger loadShare() for the react chunk
-      // via the MF 2.0 shim protocol. The source text cache on the handler ensures
-      // the react chunk URL is fetched only once across both load() calls.
-      const sharedReactChunk = '__federation_shared_react.js';
-      const baseUrl = `${TEST_BASE_URL}/analyticsRemote/`;
+    it('17.3.2 - Source text caching avoids redundant fetches for shared dep ESM files', async () => {
+      // Two loads from the same manifest both trigger buildSharedDepBlobUrls() for 'react'.
+      // The handler's sourceTextCache ensures the shared dep URL is fetched only once
+      // across both load() calls even though two separate LoadBlobState instances are created.
+      const remoteName = 'cacheRemote';
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+      const sharedDepUrl = `${baseUrl}shared/react.js`;
 
-      const manifest = buildManifest('analyticsRemote', {
+      const manifest = buildManifest(remoteName, {
         shared: [
           {
-            id: 'analyticsRemote:react',
+            id: `${remoteName}:react`,
             name: 'react',
             version: '19.2.4',
             requiredVersion: '^19.0.0',
-            chunkPath: sharedReactChunk,
+            chunkPath: null,
             unwrapKey: null,
           },
         ],
       });
 
-      const reactChunkUrl = `${baseUrl}${sharedReactChunk}`;
-      mocks.registerSource(reactChunkUrl, 'export default {};');
+      // Register the standalone shared dep ESM
+      mocks.registerSource(sharedDepUrl, createSharedDepSource());
 
-      // Each expose chunk immediately invokes loadShare('react') via the FederationHost
-      // instance, causing the react chunk source to be fetched (or retrieved from cache).
-      const mfInitKey = buildMfInitKey('analyticsRemote');
-      const exposeSource = `
-        const initGlobal = globalThis[${JSON.stringify(mfInitKey)}];
-        const instance = await initGlobal.initPromise;
-        await instance.loadShare('react');
-        export default { mount: () => {}, unmount: () => {} };
-      `;
-
-      mocks.registerSource(`${baseUrl}expose-Widget1.js`, exposeSource);
-      mocks.registerSource(`${baseUrl}expose-Widget2.js`, exposeSource);
+      mocks.registerSource(`${baseUrl}expose-Widget1.js`, createExposeChunkSource());
+      mocks.registerSource(`${baseUrl}expose-Widget2.js`, createExposeChunkSource());
 
       const entry1: MfeEntryMF = {
         id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.cache1.v1',
@@ -514,22 +492,27 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         exposeAssets: { js: { sync: ['expose-Widget2.js'], async: [] }, css: { sync: [], async: [] } },
       };
 
-      // Both loads call loadShare('react') — source text cache ensures react chunk
-      // is fetched only once despite being consumed by two separate load() calls.
+      // Both loads build shared dep blob URLs — sourceTextCache ensures the shared
+      // dep ESM file is fetched at most once.
       await handler.load(entry1);
       await handler.load(entry2);
 
-      const reactFetches = mocks.mockFetch.mock.calls.filter(
-        (call: unknown[]) => call[0] === reactChunkUrl
+      const sharedDepFetches = mocks.mockFetch.mock.calls.filter(
+        (call: unknown[]) => call[0] === sharedDepUrl
       );
-      expect(reactFetches).toHaveLength(1);
+      expect(sharedDepFetches).toHaveLength(1);
     });
 
     it('17.3.3 - Manifest resolution from inline MfeEntryMF.manifest with shared deps', async () => {
-      const manifest = buildManifest('analyticsRemote', {
+      // The handler fetches shared dep ESM files from publicPath + 'shared/' for every
+      // entry in manifest.shared[]. Register the shared dep URL alongside the expose chunk.
+      const remoteName = 'analyticsSharedMfRemote';
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+
+      const manifest = buildManifest(remoteName, {
         shared: [
           {
-            id: 'analyticsRemote:react',
+            id: `${remoteName}:react`,
             name: 'react',
             version: '18.2.0',
             requiredVersion: '^18.0.0',
@@ -539,7 +522,10 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
         ],
       });
 
-      const exposeAssets = buildExposeAssets('analyticsRemote', './ChartWidget', {
+      // Register standalone shared dep ESM file
+      mocks.registerSource(`${baseUrl}shared/react.js`, 'export default {};');
+
+      const exposeAssets = buildExposeAssets(remoteName, './ChartWidget', {
         registerSource: mocks.registerSource,
       });
       const entry: MfeEntryMF = {

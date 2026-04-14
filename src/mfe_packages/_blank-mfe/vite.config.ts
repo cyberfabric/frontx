@@ -33,7 +33,10 @@ export default defineConfig({
       exposes: {
         './lifecycle': './src/lifecycle.tsx',
       },
-      shared: sharedDeps,
+      // Empty shared config — MF 2.0's shared dep mechanism is bypassed.
+      // Shared deps are externalized via rollupOptions.external and provided
+      // at runtime by the handler's bare-specifier rewriting.
+      shared: {},
       // mf-manifest.json must be generated alongside remoteEntry.js so that
       // MfeHandlerMF can discover expose chunk paths without regex-parsing the bundle.
       manifest: true,
@@ -46,5 +49,10 @@ export default defineConfig({
     /** Default Vite prod behavior; MfeHandlerMF integration test asserts compatibility. */
     minify: true,
     cssCodeSplit: true,
+    rollupOptions: {
+      // Preserve bare specifiers for shared deps in the output chunks.
+      // The handler rewrites these to blob URLs at runtime.
+      external: sharedDeps,
+    },
   },
 });

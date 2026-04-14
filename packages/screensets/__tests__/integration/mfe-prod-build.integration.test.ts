@@ -276,10 +276,10 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     expect(gtsManifest.metaData.remoteEntry).toBeDefined();
     expect(typeof gtsManifest.metaData.remoteEntry.name).toBe('string');
     expect(Array.isArray(gtsManifest.shared)).toBe(true);
-    // mfInitKey extracted from remoteEntry.js by the plugin
+    // mfInitKey is now empty — MF 2.0's __mf_init__ mechanism is no longer used.
+    // Shared deps are loaded via bare specifier rewriting instead.
     expect(typeof gtsManifest.mfInitKey).toBe('string');
-    expect(gtsManifest.mfInitKey.length).toBeGreaterThan(0);
-    expect(gtsManifest.mfInitKey).toContain('__mf_init__');
+    expect(gtsManifest.mfInitKey).toBe('');
   });
 
   it('GTS manifest shared[] has chunkPath and unwrapKey (not assets)', () => {
@@ -294,30 +294,27 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     }
   });
 
-  it('GTS manifest shared[] chunkPath files exist on disk', () => {
-    const gtsManifest = JSON.parse(readFileSync(GTS_MANIFEST_PATH, 'utf8')) as MfManifest;
-
-    let checkedCount = 0;
-    for (const dep of gtsManifest.shared) {
-      if (dep.chunkPath !== null) {
-        // chunkPath is relative to dist/ (includes assets/ prefix)
-        const fullPath = join(DIST_DIR, dep.chunkPath);
-        expect(statSync(fullPath).isFile()).toBe(true);
-        checkedCount++;
-      }
-    }
-    // At least some deps should have a chunk (react, react-dom, etc.)
-    expect(checkedCount).toBeGreaterThan(0);
-  });
-
-  it('GTS manifest shared[].version contains exact version strings (not wildcards)', () => {
+  it('GTS manifest shared[] chunkPath is null (standalone ESM, not MF 2.0 proxy chunks)', () => {
     const gtsManifest = JSON.parse(readFileSync(GTS_MANIFEST_PATH, 'utf8')) as MfManifest;
 
     expect(gtsManifest.shared.length).toBeGreaterThan(0);
     for (const dep of gtsManifest.shared) {
-      // Exact version (e.g. '19.2.4') — NOT wildcard '*'
-      expect(dep.version).not.toBe('*');
-      expect(dep.version).toMatch(/^\d+\.\d+\.\d+/);
+      // With shared:{}, MF 2.0 produces no shared dep chunks.
+      // chunkPath is null — the handler resolves deps by name convention.
+      expect(dep.chunkPath).toBeNull();
+      expect(dep.unwrapKey).toBeNull();
+    }
+  });
+
+  it('GTS manifest shared[] entries are declared from mfe.json sharedDependencies', () => {
+    const gtsManifest = JSON.parse(readFileSync(GTS_MANIFEST_PATH, 'utf8')) as MfManifest;
+
+    expect(gtsManifest.shared.length).toBeGreaterThan(0);
+    for (const dep of gtsManifest.shared) {
+      // Deps are declared by name — version is wildcard '*' since they are
+      // not resolved from mf-manifest.json shared[] anymore.
+      expect(typeof dep.name).toBe('string');
+      expect(dep.name.length).toBeGreaterThan(0);
     }
   });
 });

@@ -3,33 +3,29 @@
  *
  * Achieves per-runtime isolation by blob-URL'ing the entire module dependency
  * chain for each load() call. Each screen/extension load gets fresh evaluations
- * of the federation runtime (fresh moduleCache), code-split chunks, and shared
- * dependencies — no module instances are shared between runtimes.
+ * of all code-split chunks and shared dependencies — no module instances are
+ * shared between runtimes.
  *
  * Manifest-based loading:
  * - baseUrl is derived from manifest.metaData.publicPath
  * - expose chunk filename comes from entry.exposeAssets.js.sync[0]
  * - CSS paths come from entry.exposeAssets.css.sync/async
- * - shared dep chunk paths come from manifest.shared[].chunkPath (GTS manifest)
- * No remoteEntry.js regex parsing is required.
+ * - shared dep standalone ESM files are served from publicPath + 'shared/' + normalizedName + '.js'
+ * No remoteEntry.js parsing is required.
  *
- * MF 2.0 FederationHost instance (Phase 7+):
- * - MF 2.0 `__loadShare__` proxy chunks await globalThis[mfInitKey].initPromise
- *   to obtain a FederationHost instance, then call instance.loadShare(pkgName).
- * - The handler creates a real per-load FederationHost via createInstance() from
- *   @module-federation/runtime, configured with blob-URL get() factories per dep.
- * - The instance is resolved on globalThis[manifest.mfInitKey] BEFORE importing
- *   the expose blob URL, ensuring shared dependencies resolve correctly.
- * - mfInitKey is extracted from remoteEntry.js at build time by frontx-mf-gts.
- * - globalThis.__federation_shared__ is never written to — MF 2.0 never reads it.
+ * Bare specifier rewriting for shared deps:
+ * - Shared deps are fetched as standalone ESM files from the 'shared/' subdirectory.
+ * - manifest.shared[] must be in dependency order (leaves first) so that each dep's
+ *   blob URL is ready before any dep that imports it is processed.
+ * - Within expose chunks and their dependency chains, bare specifiers (e.g. from "react")
+ *   are rewritten to the pre-built blob URLs for the corresponding shared dep.
+ * - This gives per-load isolation without any MF 2.0 runtime involvement.
  *
  * @packageDocumentation
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-blob-core:p1
 
-import { createInstance } from '@module-federation/runtime';
-import type { ModuleFederation } from '@module-federation/runtime';
-import type { MfeEntryMF, MfManifest, MfManifestShared } from '../types';
+import type { MfeEntryMF, MfManifest } from '../types';
 import {
   MfeHandler,
   ChildMfeBridge,
@@ -55,19 +51,8 @@ interface LoadBlobState {
   readonly baseUrl: string;
   /** MFE entry ID for this load; used in error messages. */
   readonly entryId: string;
-}
-
-/**
- * Shape of the `__mf_init__` global that MF 2.0 proxy chunks read.
- *
- * The handler writes `{ initPromise: Promise.resolve(instance) }` to this
- * global before importing the expose blob URL. The proxy chunks await this
- * promise and call `instance.loadShare(pkgName)` to obtain shared modules.
- */
-interface MfInitGlobal {
-  initPromise: Promise<ModuleFederation>;
-  /** Optional resolver for when remoteEntry.js pre-created this global. */
-  initResolve?: (instance: ModuleFederation) => void;
+  /** Shared dep blob URLs: package name → blob URL. Built before the expose chain. */
+  readonly sharedDepBlobUrls: Map<string, string>;
 }
 
 /**
@@ -100,10 +85,9 @@ interface MfeLoaderConfig {
  *  1. Resolves the MfManifest (validates metaData.publicPath and shared[])
  *  2. Derives baseUrl from manifest.metaData.publicPath
  *  3. Reads the expose chunk filename from entry.exposeAssets.js.sync[0]
- *  4. Builds a shareScope with per-load blob URL get() functions for each
- *     shared dep that has a bundled sync chunk
- *  5. Creates a blob URL chain for the expose chunk and all its static deps
- *     (fresh moduleCache per load — no shared evaluation state between loads)
+ *  4. Builds blob URLs for shared deps from standalone ESM files (leaves first)
+ *  5. Creates a blob URL chain for the expose chunk and all its static deps,
+ *     rewriting bare specifiers to the pre-built shared dep blob URLs
  *  6. All blob URLs share a per-load map so common transitive deps are
  *     evaluated once within the same load
  */
@@ -115,18 +99,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   // @cpt-state:cpt-frontx-state-mfe-isolation-source-cache:p1
   private readonly sourceTextCache = new Map<string, Promise<string>>();
 
-  /**
-   * Canonical provider URLs for shared dependencies.
-   *
-   * Keyed by `packageName@version`. The first MFE to provide a shared dep
-   * registers its base URL and chunk path as canonical. Subsequent MFEs
-   * loading the same dep@version reuse the canonical provider's URL,
-   * ensuring only one network fetch for each unique shared dep across all
-   * MFE packages. Each evaluation still creates a fresh blob URL from the
-   * cached source text — isolation is preserved.
-   */
-  // @cpt-state:cpt-frontx-state-mfe-isolation-shared-dep-providers:p1
-  private readonly sharedDepProviders = new Map<string, { baseUrl: string; chunkPath: string }>();
 
   constructor(
     handledBaseTypeId: string,
@@ -189,17 +161,17 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Load an exposed module with full per-runtime isolation.
    *
    * Creates a per-load blob URL chain:
-   *  - The expose chunk (from exposeAssets.js.sync[0]) and all its static deps
-   *    are blob-URL'd (fresh moduleCache per load)
-   *  - Shared dep chunks are blob-URL'd via get() closures that share the
-   *    same per-load blobUrlMap (so React and ReactDOM get the same React)
-   *  - Blob URLs are NOT revoked — modules with top-level await continue
-   *    evaluating after import() resolves, and revoking during async evaluation
-   *    causes ERR_FILE_NOT_FOUND. Blob URLs are cleaned up by the browser on
-   *    page unload.
+   *  1. Shared dep standalone ESM files are blob-URL'd first (leaves first, dependency order)
+   *  2. The expose chunk and all its static deps are blob-URL'd with bare specifiers
+   *     rewritten to shared dep blob URLs
    *
    * baseUrl is derived from manifest.metaData.publicPath rather than parsing
    * remoteEntry.js — the publicPath field gives the exact chunk base URL.
+   *
+   * Blob URLs are NOT revoked — modules with top-level await continue
+   * evaluating after import() resolves, and revoking during async evaluation
+   * causes ERR_FILE_NOT_FOUND. Blob URLs are cleaned up by the browser on
+   * page unload.
    */
   private async loadExposedModuleIsolated(
     manifest: MfManifest,
@@ -212,28 +184,20 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     baseUrl: string;
   }> {
     // publicPath is the authoritative base URL for all chunks in this MFE.
-    // It may be an absolute URL (e.g. 'http://localhost:3001/') or a root-
-    // relative path ('/') — both are valid for URL.resolve usage.
     const baseUrl = manifest.metaData.publicPath;
+
+    // Build shared dep blob URLs first (leaves first, dependency order).
+    // Each dep's standalone ESM may import other shared deps as bare specifiers;
+    // those are rewritten to already-resolved blob URLs before creating the blob.
+    const sharedDepBlobUrls = await this.buildSharedDepBlobUrls(manifest);
 
     const loadState: LoadBlobState = {
       blobUrlMap: new Map(),
       inFlight: new Map(),
       baseUrl,
       entryId,
+      sharedDepBlobUrls,
     };
-
-    // Create a real per-load FederationHost instance configured with blob-URL
-    // get() factories for each shared dep. Proxy chunks call instance.loadShare()
-    // to obtain isolated module instances.
-    // @cpt-begin:cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise:p1:inst-1
-    const instance = await this.createFederationInstance(manifest, loadState);
-
-    // Resolve the __mf_init__ promise BEFORE importing the expose chunk.
-    // __loadShare__ proxy chunks await this promise at module evaluation time;
-    // if it is not resolved when the expose blob is imported, they deadlock.
-    this.resolveMfInitPromise(manifest.mfInitKey, instance);
-    // @cpt-end:cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise:p1:inst-1
 
     // Derive expose chunk filename directly from entry metadata — no regex needed.
     const exposeChunkFilename = exposeAssets.js.sync[0];
@@ -250,7 +214,8 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       ...exposeAssets.css.async,
     ];
 
-    // Build blob URL chain for the expose chunk and all its static deps
+    // Build blob URL chain for the expose chunk and all its static deps.
+    // Bare specifiers within those chunks are rewritten to shared dep blob URLs.
     await this.createBlobUrlChain(loadState, exposeChunkFilename);
 
     const exposeBlobUrl = loadState.blobUrlMap.get(exposeChunkFilename);
@@ -263,13 +228,8 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
 
     const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
 
-    // Clean up the __mf_init__ global after evaluation completes.
-    // The instance is no longer needed once the expose module has been evaluated.
-    this.cleanupMfInitGlobal(manifest.mfInitKey);
-
-    // The expose chunk is a Module Federation container module that exports the
-    // lifecycle object as `default`. Fall back to the full module if default
-    // is absent (non-MF ESM expose pattern).
+    // The expose chunk exports the lifecycle object as `default`. Fall back to
+    // the full module if default is absent (non-MF ESM expose pattern).
     const moduleRecord = exposeModule as Record<string, unknown>;
     return {
       moduleFactory: () => moduleRecord['default'] ?? exposeModule,
@@ -381,8 +341,8 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    *
    * Validates the GTS manifest shape: requires id, name, metaData
    * (with publicPath and remoteEntry), shared[], and mfInitKey.
-   * mfInitKey is extracted at build time by the frontx-mf-gts plugin —
-   * it must be present in every valid GTS manifest.
+   * mfInitKey may be an empty string — the field must be present but its
+   * value is no longer used by the handler (MF 2.0 runtime removed).
    */
   private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
     if (typeof manifestRef === 'object' && manifestRef !== null) {
@@ -418,10 +378,9 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
           manifestRef.id
         );
       }
-      if (typeof manifestRef.mfInitKey !== 'string' || manifestRef.mfInitKey.length === 0) {
+      if (typeof manifestRef.mfInitKey !== 'string') {
         throw new MfeLoadError(
-          `Inline manifest '${manifestRef.id}' must have a non-empty "mfInitKey" field. ` +
-            'Ensure the MFE was built with the FrontxMfGtsPlugin which extracts this key from remoteEntry.js.',
+          `Inline manifest '${manifestRef.id}' must have a "mfInitKey" field (may be empty string)`,
           manifestRef.id
         );
       }
@@ -446,165 +405,129 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     );
   }
 
-  // ---- MF 2.0 FederationHost instance construction ----
+  // ---- Shared dep blob URL construction ----
 
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-build-shared-dep-blob-urls:p1
   /**
-   * Create a per-load FederationHost instance configured with blob-URL get()
-   * factories for each shared dependency.
+   * Build blob URLs for all shared dependencies from standalone ESM files.
    *
-   * Each load() call creates a fresh instance with a unique name so that
-   * concurrent loads of the same MFE do not corrupt each other's module cache.
-   * The get() factories use manifest.shared[].unwrapKey for explicit unwrapping —
-   * no heuristic on export shape.
-   *
-   * Deps with chunkPath === null (no bundled chunk, peer-provided externals) are
-   * excluded from the shared config; the __loadShare__ proxy's customShareInfo
-   * fallback handles them independently.
+   * Processes shared deps in manifest order (must be dependency-ordered: leaves first).
+   * Each dep's standalone ESM may import other shared deps as bare specifiers —
+   * those are rewritten to already-resolved blob URLs before creating the blob.
+   * Per-load fresh blob URLs ensure isolated module instances.
    */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-build-share-scope:p1
-  private async createFederationInstance(
-    manifest: MfManifest,
-    loadState: LoadBlobState
-  ): Promise<ModuleFederation> {
-    // Unique name per load prevents different loads' module caches from merging.
-    const instanceName = `${manifest.name}_load_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  private async buildSharedDepBlobUrls(
+    manifest: MfManifest
+  ): Promise<Map<string, string>> {
+    const blobUrls = new Map<string, string>();
+    const sharedBaseUrl = manifest.metaData.publicPath + 'shared/';
+    const sharedNames = new Set(manifest.shared.map((d) => d.name));
 
-    const shared: Record<string, {
-      version: string;
-      scope: string[];
-      shareConfig: { requiredVersion: string; singleton: boolean };
-      get: () => Promise<() => Record<string, unknown>>;
-    }> = {};
-
+    // Pass 1: Fetch all source texts (sourceTextCache deduplicates across MFEs).
+    const sources = new Map<string, string>();
     for (const dep of manifest.shared) {
-      if (dep.chunkPath === null) {
-        // No bundled chunk for this dep — skip; proxy's customShareInfo handles it.
-        continue;
-      }
-      shared[dep.name] = this.buildSharedEntry(dep, loadState);
+      const depUrl = dep.chunkPath !== null
+        ? dep.chunkPath
+        : sharedBaseUrl + MfeHandlerMF.normalizeDepName(dep.name) + '.js';
+      sources.set(dep.name, await this.fetchSourceText(depUrl));
     }
 
-    return createInstance({ name: instanceName, shared, remotes: [] });
-  }
-
-  /**
-   * Build the shared entry config for a single dependency.
-   *
-   * The get() factory blob-URLs the chunk, imports it, and applies the
-   * manifest-provided unwrapKey for deterministic module extraction —
-   * no heuristic on export count or shape.
-   */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-build-share-scope:p2
-  private buildSharedEntry(
-    dep: MfManifestShared,
-    loadState: LoadBlobState
-  ): {
-    version: string;
-    scope: string[];
-    shareConfig: { requiredVersion: string; singleton: boolean };
-    get: () => Promise<() => Record<string, unknown>>;
-  } {
-    // chunkPath is guaranteed non-null by the caller.
-    const chunkPath = dep.chunkPath as string;
-    const unwrapKey = dep.unwrapKey;
-
-    // @cpt-begin:cpt-frontx-algo-mfe-isolation-build-share-scope:p2:inst-resolve-canonical-provider
-    // Register canonical provider for this shared dep (first-provider wins).
-    // All MFEs loading the same dep@version will resolve to the same URL,
-    // hitting the handler-level sourceTextCache. One download, N evaluations.
-    const canonicalKey = `${dep.name}@${dep.version}`;
-    if (!this.sharedDepProviders.has(canonicalKey)) {
-      this.sharedDepProviders.set(canonicalKey, {
-        baseUrl: loadState.baseUrl,
-        chunkPath,
-      });
-    }
-    const canonical = this.sharedDepProviders.get(canonicalKey)!;
-    // @cpt-end:cpt-frontx-algo-mfe-isolation-build-share-scope:p2:inst-resolve-canonical-provider
-
-    return {
-      version: dep.version,
-      scope: ['default'],
-      shareConfig: {
-        requiredVersion: dep.requiredVersion,
-        singleton: false,
-      },
-      get: async (): Promise<() => Record<string, unknown>> => {
-        // @cpt-begin:cpt-frontx-algo-mfe-isolation-blob-url-get:p1:inst-trigger-chain
-        // Use the canonical provider's base URL for blob URL chain creation.
-        // This ensures sourceTextCache hits for the same dep across all MFEs:
-        // MFE A (first) fetches react from its server and caches the source text.
-        // MFE B (second) resolves to MFE A's URL → cache hit → no network fetch.
-        // Each get() call still creates a fresh blob URL → fresh evaluation → isolation.
-        const depLoadState: LoadBlobState = {
-          blobUrlMap: loadState.blobUrlMap,
-          inFlight: loadState.inFlight,
-          baseUrl: canonical.baseUrl,
-          entryId: loadState.entryId,
-        };
-
-        await this.createBlobUrlChain(depLoadState, canonical.chunkPath);
-        // @cpt-end:cpt-frontx-algo-mfe-isolation-blob-url-get:p1:inst-trigger-chain
-        const blobUrl = loadState.blobUrlMap.get(canonical.chunkPath);
-        if (!blobUrl) {
-          throw new MfeLoadError(
-            `Failed to create blob URL for shared dep '${dep.name}' (chunk: ${canonical.chunkPath})`,
-            loadState.entryId
-          );
+    // Pass 2: Create blob URLs in dependency order.
+    // Each iteration processes deps whose shared dep imports are all resolved.
+    // Leaf deps (no shared imports) are processed first; dependents follow.
+    const pending = new Map(sources);
+    while (pending.size > 0) {
+      const before = pending.size;
+      for (const [name, source] of pending) {
+        const allResolved = [...sharedNames].every(
+          (other) =>
+            other === name ||
+            blobUrls.has(other) ||
+            !MfeHandlerMF.sourceImports(source, other)
+        );
+        if (allResolved) {
+          const rewritten = this.rewriteBareSpecifiers(source, blobUrls);
+          const blob = new Blob([rewritten], { type: 'text/javascript' });
+          blobUrls.set(name, URL.createObjectURL(blob));
+          pending.delete(name);
         }
-        const mod = await import(/* @vite-ignore */ blobUrl) as Record<string, unknown>;
-        // unwrapKey is the named export that carries the actual module object.
-        // It is extracted at build time from localSharedImportMap by frontx-mf-gts.
-        const unwrapped: Record<string, unknown> =
-          unwrapKey !== null && typeof mod[unwrapKey] === 'object' && mod[unwrapKey] !== null
-            ? mod[unwrapKey] as Record<string, unknown>
-            : mod;
-        const wrapped = { ...unwrapped };
-        Object.defineProperty(wrapped, '__esModule', { value: true, enumerable: false });
-        return () => wrapped;
-      },
-    };
-  }
-
-  /**
-   * Resolve the __mf_init__ promise with the per-load FederationHost instance.
-   *
-   * The key comes from manifest.mfInitKey (extracted from remoteEntry.js at
-   * build time by the frontx-mf-gts plugin) — no runtime derivation needed.
-   *
-   * If the global was pre-created by remoteEntry.js with an initResolve callback,
-   * we call it. Otherwise we create it with an already-resolved promise.
-   * Either way, __loadShare__ proxy chunks that await initPromise will get the
-   * real FederationHost instance with blob-URL'd get() factories.
-   *
-   * Concurrent loads of different MFEs are safe because each manifest has a
-   * distinct mfInitKey. Concurrent loads of the same MFE write to the same key
-   * but both instances are equivalent (each carries its own isolated blob URLs).
-   */
-  // @cpt-algo:cpt-frontx-algo-mfe-isolation-resolve-mf-init-promise:p1
-  private resolveMfInitPromise(mfInitKey: string, instance: ModuleFederation): void {
-    const g = globalThis as Record<string, unknown>;
-    const existing = g[mfInitKey] as MfInitGlobal | undefined;
-
-    if (existing?.initResolve) {
-      // remoteEntry.js created this global with a pending promise — resolve it.
-      existing.initResolve(instance);
-    } else {
-      // Handler bypasses remoteEntry.js: create the global with a pre-resolved promise.
-      g[mfInitKey] = { initPromise: Promise.resolve(instance) } satisfies MfInitGlobal;
+      }
+      if (pending.size === before) {
+        // No progress — circular dependency; process remaining with partial rewrites.
+        for (const [name, source] of pending) {
+          const rewritten = this.rewriteBareSpecifiers(source, blobUrls);
+          const blob = new Blob([rewritten], { type: 'text/javascript' });
+          blobUrls.set(name, URL.createObjectURL(blob));
+        }
+        break;
+      }
     }
+
+    return blobUrls;
   }
 
   /**
-   * Remove the __mf_init__ global after the expose module has been evaluated.
-   *
-   * The shim is only needed during the synchronous evaluation of the expose
-   * chunk and its __loadShare__ proxy dependencies. Once evaluation completes,
-   * keeping the global alive would prevent GC of the shim and its closure state.
+   * Check whether a source text imports the given package as a bare specifier.
+   * Detects both `from "pkg"` (static) and `import "pkg"` (side-effect) forms.
    */
-  private cleanupMfInitGlobal(mfInitKey: string): void {
-    const g = globalThis as Record<string, unknown>;
-    delete g[mfInitKey];
+  private static sourceImports(source: string, packageName: string): boolean {
+    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?:from|import)\\s*["']${escaped}["']`).test(source);
+  }
+
+  /**
+   * Normalize a package name for use as a filename.
+   * Mirrors build-shared-deps.ts convention: @scope/pkg → scope-pkg
+   */
+  private static normalizeDepName(name: string): string {
+    return name.replace(/^@/, '').replace(/\//g, '-');
+  }
+
+  /**
+   * Rewrite a single bare specifier in source text.
+   *
+   * Handles two ESM import forms:
+   *   Static:      from "react"       → from "blob:xxx"
+   *   Side-effect: import "react-dom"  → import "blob:xxx"
+   *
+   * Matches exact package names only (not substrings):
+   *   from "react-dom" is NOT affected by a "react" rewrite
+   * Handles both single and double quotes. Handles scoped packages.
+   */
+  private rewriteBareSpecifier(
+    source: string,
+    packageName: string,
+    replacement: string
+  ): string {
+    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    // Rewrite `from "pkg"` (static imports and re-exports)
+    const fromPattern = new RegExp(
+      `(from\\s*["'])${escaped}(["'])`,
+      'g'
+    );
+    let result = source.replace(fromPattern, `$1${replacement}$2`);
+    // Rewrite `import "pkg"` (side-effect imports, no `from` keyword)
+    const sideEffectPattern = new RegExp(
+      `(import\\s*["'])${escaped}(["'])`,
+      'g'
+    );
+    result = result.replace(sideEffectPattern, `$1${replacement}$2`);
+    return result;
+  }
+
+  // @cpt-algo:cpt-frontx-algo-mfe-isolation-rewrite-bare-specifiers:p1
+  /**
+   * Apply all shared dep bare specifier rewrites to a source text.
+   */
+  private rewriteBareSpecifiers(
+    source: string,
+    sharedDepBlobUrls: Map<string, string>
+  ): string {
+    let rewritten = source;
+    for (const [name, blobUrl] of sharedDepBlobUrls) {
+      rewritten = this.rewriteBareSpecifier(rewritten, name, blobUrl);
+    }
+    return rewritten;
   }
 
   // ---- Blob URL chain creation ----
@@ -644,7 +567,11 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     loadState: LoadBlobState,
     filename: string
   ): Promise<void> {
-    const chunkUrl = loadState.baseUrl + filename;
+    // Portable shared dep chunks use absolute URLs (resolved at generation time
+    // to a canonical shared base). Use as-is to ensure sourceTextCache dedup.
+    const chunkUrl = filename.startsWith('http://') || filename.startsWith('https://')
+      ? filename
+      : loadState.baseUrl + filename;
     const source = await this.fetchSourceText(chunkUrl);
     const deps = this.parseStaticImportFilenames(source, filename);
 
@@ -666,6 +593,10 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     // restores correct relative URL resolution (e.g. in preload-helper.js).
     // We target 'import.meta.url' specifically to leave import.meta.env intact.
     rewritten = this.rewriteImportMetaUrl(rewritten, chunkUrl);
+
+    // Rewrite bare specifiers (from "react" → from "blob:xxx") using
+    // the pre-built shared dep blob URL map.
+    rewritten = this.rewriteBareSpecifiers(rewritten, loadState.sharedDepBlobUrls);
 
     const blob = new Blob([rewritten], { type: 'text/javascript' });
     const blobUrl = URL.createObjectURL(blob);
@@ -906,7 +837,13 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const resolve = (relPath: string): string => {
       const resolved = this.resolveRelativePath(chunkFilename, relPath);
       const blobUrl = blobUrlMap.get(resolved);
-      return blobUrl ?? `${baseUrl}${resolved}`;
+      if (blobUrl) return blobUrl;
+      // If resolved is already absolute (dep of a cross-origin portable chunk),
+      // use the URL as-is instead of prepending baseUrl.
+      if (resolved.startsWith('http://') || resolved.startsWith('https://')) {
+        return resolved;
+      }
+      return `${baseUrl}${resolved}`;
     };
 
     // Static imports: from './...' or from '../...'
@@ -955,6 +892,13 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     fromChunkFilename: string,
     relativeSpecifier: string
   ): string {
+    // When the importing chunk has an absolute URL (portable shared dep served
+    // from a canonical origin), resolve imports against that origin and return
+    // the full URL. This ensures deps of cross-origin portable chunks are
+    // fetched from the correct server, not the current MFE's baseUrl.
+    if (fromChunkFilename.startsWith('http://') || fromChunkFilename.startsWith('https://')) {
+      return new URL(relativeSpecifier, fromChunkFilename).href;
+    }
     const syntheticBase = 'http://r/';
     const fromUrl = new URL(fromChunkFilename, syntheticBase);
     const resolved = new URL(relativeSpecifier, fromUrl);

@@ -43,9 +43,12 @@ export interface MfManifestShared {
   /** Semver range required (e.g. '^19.2.4'). */
   requiredVersion: string;
   /**
-   * Filename of the sync JS chunk for this dependency, relative to publicPath.
+   * Path or URL of the sync JS chunk for this dependency.
+   * May be relative to publicPath (e.g. "assets/index-BGSiT06-.js") or an
+   * absolute URL for portable shared deps (e.g. "http://host/portable/react.js").
    * Null when the package has no bundled chunk (peer-provided external).
-   * Populated by the frontx-mf-gts build plugin.
+   * Populated by the frontx-mf-gts build plugin; portable chunks are resolved
+   * to absolute URLs by the generation script.
    */
   chunkPath: string | null;
   /**

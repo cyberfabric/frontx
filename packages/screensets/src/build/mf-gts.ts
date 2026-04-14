@@ -89,9 +89,8 @@ interface MfeJsonSchema {
 
 interface MfeJson {
   /** Human-authored list of shared dependency names visible on the GTS contract.
-   *  Must be a subset of the packages declared in vite.config.ts federation shared[].
-   *  The plugin validates that every listed name appears in mf-manifest.json shared[]
-   *  and rejects the build if any name is missing. */
+   *  With shared:{}, these are no longer validated against mf-manifest.json shared[]
+   *  (which is empty). Instead they declare the deps the handler must provide. */
   sharedDependencies?: string[];
   manifest: MfeJsonManifest;
   entries: MfeJsonEntry[];
@@ -116,11 +115,7 @@ interface GtsSharedEntry {
   version: string;
   singleton: boolean;
   requiredVersion: string;
-  // Path relative to dist/assets/ for the chunk that carries this shared lib.
-  // Null when the MF manifest has no sync chunk (peer-provided external).
   chunkPath: string | null;
-  // Named export key that unwraps the module from the chunk. Null when the
-  // chunk exports the module directly (no .then(t => t.KEY) in the import map).
   unwrapKey: string | null;
 }
 
@@ -143,95 +138,29 @@ interface GtsManifest {
   id: string;
   name: string;
   metaData: GtsManifestMetaData;
-  /** Only deps declared in mfe.json sharedDependencies — the contract surface. */
+  /** Shared deps declared in mfe.json — the handler uses this list to know
+   *  which bare specifiers to rewrite to blob URLs at runtime. */
   shared: GtsSharedEntry[];
+  /** No longer used — kept for backward compatibility with generate script.
+   *  With shared:{}, MF 2.0 does not produce __mf_init__ keys. */
   mfInitKey: string;
   entries: GtsEntry[];
   extensions: MfeJsonExtension[];
   schemas: MfeJsonSchema[];
 }
 
-// ── Extraction helpers (encapsulated in a class to avoid standalone fns) ────
-
-class MfInitKeyExtractor {
-  // The key is stored as a string literal: `"__mf_init__...__"`.
-  // We capture everything between the double-quotes.
-  private static readonly PATTERN = /"(__mf_init__[^"]+)"/;
-
-  extract(remoteEntrySource: string): string {
-    const match = MfInitKeyExtractor.PATTERN.exec(remoteEntrySource);
-    if (match === null) {
-      throw new Error(
-        'frontx-mf-gts: could not find __mf_init__ key in remoteEntry.js'
-      );
-    }
-    return match[1];
-  }
-}
-
-class SharedImportMapExtractor {
-  // Package keys in the localSharedImportMap object may be either quoted
-  // ("@cyberfabric/react") or unquoted bare identifiers (react). Both forms
-  // must be handled.
-  //
-  // Pattern anatomy:
-  //   (?:"([^"]+)"|(\w+))           — quoted key OR bare identifier key
-  //   :\s*async\s*\(\)...import     — async factory leading up to the import()
-  //   \("([^"]+)"\)                  — chunk path in the import() call
-  //   (?:\.then\(\w+=>\w+\.(\w+)\))?— optional .then(t => t.KEY) unwrap
-  private static readonly ENTRY_PATTERN =
-    /(?:"([^"]+)"|(\w+)):\s*async\s*\(\)\s*=>\s*await\s*\w+\s*\(\s*\(\s*\)\s*=>\s*import\("([^"]+)"\)(?:\.then\(\w+\s*=>\s*\w+\.(\w+)\))?/g;
-
-  // Maps package name → { chunkPath, unwrapKey }
-  extract(
-    importMapSource: string
-  ): Map<string, { chunkPath: string; unwrapKey: string | null }> {
-    const result = new Map<
-      string,
-      { chunkPath: string; unwrapKey: string | null }
-    >();
-
-    let m: RegExpExecArray | null;
-    while (
-      (m = SharedImportMapExtractor.ENTRY_PATTERN.exec(importMapSource)) !==
-      null
-    ) {
-      // Group 1 = quoted key, group 2 = bare identifier key, group 3 = chunk,
-      // group 4 = unwrap key (optional).
-      const packageName = m[1] ?? m[2];
-      const chunkFile = m[3];
-      const unwrapKey = m[4] ?? null;
-
-      if (packageName !== undefined && chunkFile !== undefined) {
-        result.set(packageName, { chunkPath: chunkFile, unwrapKey });
-      }
-    }
-
-    return result;
-  }
-}
-
-// ── Manifest assembler ─────────────────────────────────────────────────────── ───────────────────────────────────────────────────────
+// ── Manifest assembler ──────────────────────────────────────────────────────
 
 class GtsManifestAssembler {
-  private readonly mfInitKeyExtractor = new MfInitKeyExtractor();
-  private readonly importMapExtractor = new SharedImportMapExtractor();
-
   assemble(
     mfeJson: MfeJson,
     mfManifest: MfManifest,
-    remoteEntrySource: string,
-    importMapSource: string
+    federationName: string
   ): GtsManifest {
-    const mfInitKey = this.mfInitKeyExtractor.extract(remoteEntrySource);
-    const importMap = this.importMapExtractor.extract(importMapSource);
-
-    const declaredDeps = this.validateAndResolveDeclaredDeps(
-      mfeJson.sharedDependencies,
-      mfManifest.shared
+    const shared = this.buildShared(
+      mfeJson.sharedDependencies ?? [],
+      federationName
     );
-
-    const shared = this.buildShared(declaredDeps, importMap);
     const entries = this.buildEntries(mfeJson.entries, mfManifest.exposes);
 
     return {
@@ -246,7 +175,9 @@ class GtsManifestAssembler {
         publicPath: mfManifest.metaData.publicPath,
       },
       shared,
-      mfInitKey,
+      // No longer used — shared deps are loaded via bare specifier rewriting,
+      // not via MF 2.0's __mf_init__ mechanism.
+      mfInitKey: '',
       entries,
       extensions: mfeJson.extensions,
       schemas: mfeJson.schemas,
@@ -254,83 +185,24 @@ class GtsManifestAssembler {
   }
 
   /**
-   * Validates that every name in mfe.json sharedDependencies is present in the
-   * mf-manifest.json shared[] output, then returns the matching subset in
-   * declaration order.
-   *
-   * When sharedDependencies is omitted (legacy/template packages that haven't
-   * declared it yet) we fall back to the full build output so existing builds
-   * don't break while teams migrate.
+   * Build shared entries from the declared dependency names in mfe.json.
+   * With shared:{}, there are no MF 2.0 shared chunks — the handler builds
+   * and provides shared deps independently via standalone ESM blob URLs.
+   * chunkPath and unwrapKey are null; the handler resolves deps by name.
    */
-  private validateAndResolveDeclaredDeps(
-    declaredNames: string[] | undefined,
-    mfShared: MfManifestShared[]
-  ): MfManifestShared[] {
-    // Index the build output by package name for O(1) lookup.
-    const builtIndex = new Map<string, MfManifestShared>();
-    for (const s of mfShared) {
-      builtIndex.set(s.name, s);
-    }
-
-    if (declaredNames === undefined || declaredNames.length === 0) {
-      // No declaration — include everything the build produced (permissive fallback).
-      return mfShared;
-    }
-
-    const resolved: MfManifestShared[] = [];
-    for (const name of declaredNames) {
-      const entry = builtIndex.get(name);
-      if (entry === undefined) {
-        throw new Error(
-          `frontx-mf-gts: Shared dependency '${name}' declared in mfe.json ` +
-          `but not found in mf-manifest.json. ` +
-          `Add it to vite.config.ts federation shared config.`
-        );
-      }
-      resolved.push(entry);
-    }
-    return resolved;
-  }
-
   private buildShared(
-    mfShared: MfManifestShared[],
-    importMap: Map<string, { chunkPath: string; unwrapKey: string | null }>
+    declaredDeps: string[],
+    federationName: string
   ): GtsSharedEntry[] {
-    return mfShared.map((s) => {
-      // Prefer the chunk path declared in the MF manifest sync assets.
-      const manifestChunk = s.assets.js.sync[0] ?? null;
-      const importMapEntry = importMap.get(s.name);
-
-      // The chunkPath is relative to dist/ (includes the assets/ prefix).
-      // The handler prepends publicPath to form the full URL.
-      // When the manifest has a sync chunk, that's authoritative.
-      // Otherwise fall back to whatever the import map recorded (with assets/ prefix).
-      let chunkPath: string | null = null;
-      if (manifestChunk !== null) {
-        // mf-manifest stores "assets/foo.js" — keep the full relative path.
-        chunkPath = manifestChunk;
-      } else if (importMapEntry !== undefined) {
-        // Import map stores just the filename — prepend "assets/" since
-        // all chunks live in dist/assets/.
-        chunkPath = importMapEntry.chunkPath.startsWith('assets/')
-          ? importMapEntry.chunkPath
-          : 'assets/' + importMapEntry.chunkPath;
-      }
-
-      // The unwrap key always comes from the import map — the MF manifest
-      // doesn't record it.
-      const unwrapKey = importMapEntry?.unwrapKey ?? null;
-
-      return {
-        id: s.id,
-        name: s.name,
-        version: s.version,
-        singleton: s.singleton,
-        requiredVersion: s.requiredVersion,
-        chunkPath,
-        unwrapKey,
-      };
-    });
+    return declaredDeps.map((name) => ({
+      id: `${federationName}:${name}`,
+      name,
+      version: '*',
+      singleton: true,
+      requiredVersion: '*',
+      chunkPath: null,
+      unwrapKey: null,
+    }));
   }
 
   private buildEntries(
@@ -368,55 +240,19 @@ export class FrontxMfGtsPlugin {
   // mfe.json independently of Vite's cwd (which may differ in monorepo setups).
   constructor(private readonly packageRoot: string) {}
 
-  /**
-   * Search dist/ and dist/assets/ for a JS file containing the __mf_init__ key.
-   * The key may be in remoteEntry.js itself or in a chunk it imports
-   * (e.g., virtual_mf-REMOTE_ENTRY_ID_*.js when Vite code-splits the entry).
-   */
-  private findMfInitSource(distDir: string, assetsDir: string): string {
-    const candidates: string[] = [];
-
-    // Check dist/ root JS files first (remoteEntry.js)
-    for (const f of fs.readdirSync(distDir)) {
-      if (f.endsWith('.js')) candidates.push(path.join(distDir, f));
-    }
-
-    // Then check dist/assets/ for the runtime chunk
-    if (fs.existsSync(assetsDir)) {
-      for (const f of fs.readdirSync(assetsDir)) {
-        if (f.endsWith('.js') && (f.includes('REMOTE_ENTRY') || f.includes('remoteEntry') || f.includes('runtimeInit'))) {
-          candidates.push(path.join(assetsDir, f));
-        }
-      }
-    }
-
-    for (const filePath of candidates) {
-      const source = fs.readFileSync(filePath, 'utf-8');
-      if (source.includes('__mf_init__')) {
-        return source;
-      }
-    }
-
-    throw new Error(
-      'frontx-mf-gts: could not find __mf_init__ key in any JS file under dist/. ' +
-      'Ensure @module-federation/vite is configured and builds correctly.'
-    );
-  }
-
   createPlugin(): Plugin {
-    const self = this;
     const assembler = this.assembler;
     const packageRoot = this.packageRoot;
 
     return {
       name: 'frontx-mf-gts',
       // Run after all other plugins, including @module-federation/vite, so
-      // that dist/mf-manifest.json and remoteEntry.js are already on disk.
+      // that dist/mf-manifest.json is already on disk.
       enforce: 'post',
 
+      // @cpt-algo:cpt-frontx-algo-mfe-isolation-enrich-mfe-json:p1
       closeBundle() {
         const distDir = path.join(packageRoot, 'dist');
-        const assetsDir = path.join(distDir, 'assets');
 
         // ── Read inputs ─────────────────────────────────────────────────────
 
@@ -428,39 +264,28 @@ export class FrontxMfGtsPlugin {
           fs.readFileSync(path.join(distDir, 'mf-manifest.json'), 'utf-8')
         ) as MfManifest;
 
-        // The __mf_init__ key may be in remoteEntry.js or in a chunk that
-        // remoteEntry.js imports (e.g., virtual_mf-REMOTE_ENTRY_ID_*.js).
-        // Search all JS files in dist/ and dist/assets/ for the key.
-        const remoteEntrySource = self.findMfInitSource(distDir, assetsDir);
+        // With shared:{}, the MF 2.0 build no longer produces:
+        //   - localSharedImportMap (no shared dep chunks)
+        //   - __mf_init__ keys (no FederationHost initialization)
+        //   - shared dep proxy/library chunks
+        // The plugin only needs mf-manifest.json for expose asset paths.
 
-        // Locate the localSharedImportMap chunk — its name includes a content
-        // hash, so we glob for it rather than hardcoding.
-        const importMapFiles = fs
-          .readdirSync(assetsDir)
-          .filter((f) => f.startsWith('localSharedImportMap'));
-
-        if (importMapFiles.length === 0) {
-          throw new Error(
-            'frontx-mf-gts: no localSharedImportMap file found in dist/assets/'
-          );
-        }
-
-        const importMapSource = fs.readFileSync(
-          path.join(assetsDir, importMapFiles[0]!),
-          'utf-8'
-        );
-
-        // ── Assemble and emit ────────────────────────────────────────────────
+        // ── Assemble ─────────────────────────────────────────────────────────
 
         const gtsManifest = assembler.assemble(
           mfeJson,
           mfManifest,
-          remoteEntrySource,
-          importMapSource
+          mfManifest.name
         );
 
+        // ── Emit GTS manifest ───────────────────────────────────────────────
+
         const outPath = path.join(distDir, 'mfe.gts-manifest.json');
-        fs.writeFileSync(outPath, JSON.stringify(gtsManifest, null, 2), 'utf-8');
+        fs.writeFileSync(
+          outPath,
+          JSON.stringify(gtsManifest, null, 2),
+          'utf-8'
+        );
 
         // Use console.log because Vite's `this.info()` is unavailable in
         // closeBundle when called outside a normal rollup context.

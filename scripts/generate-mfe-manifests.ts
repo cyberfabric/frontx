@@ -20,7 +20,7 @@
  *   3. Map entries to MfeEntryMF shape with manifest reference and exposeAssets
  *
  * Usage:
- *   npx tsx scripts/generate-mfe-manifests.ts [--base-url <url>]
+ *   npx tsx scripts/generate-mfe-manifests.ts [--base-url <url>] [--shared-base-url <url>]
  *
  * When --base-url is omitted, publicPath is derived per-package from the
  * old manifest.remoteEntry field in mfe.json (e.g. "http://localhost:3001/").
@@ -161,14 +161,21 @@ class ManifestGenerator {
   private readonly mfePackagesDir: string;
   private readonly outputFile: string;
   private readonly globalBaseUrl: string | null;
+  private readonly sharedBaseUrl: string | null;
 
   // Packages to skip (hidden dirs, non-MFE directories)
   private static readonly EXCLUDED = new Set(['.git', '.DS_Store', 'shared']);
 
-  constructor(mfePackagesDir: string, outputFile: string, globalBaseUrl: string | null) {
+  constructor(
+    mfePackagesDir: string,
+    outputFile: string,
+    globalBaseUrl: string | null,
+    sharedBaseUrl: string | null
+  ) {
     this.mfePackagesDir = mfePackagesDir;
     this.outputFile = outputFile;
     this.globalBaseUrl = globalBaseUrl;
+    this.sharedBaseUrl = sharedBaseUrl;
   }
 
   run(): void {
@@ -177,6 +184,7 @@ class ManifestGenerator {
     packageDirs.forEach((p) => console.log(`  - ${p}`));
 
     const configs = packageDirs.map((dir) => this.processPackage(dir));
+    this.resolveSharedChunkPaths(configs);
     const output = this.renderOutputFile(configs);
     writeFileSync(this.outputFile, output, 'utf-8');
     console.log(`\nGenerated ${this.outputFile}`);
@@ -353,6 +361,58 @@ class ManifestGenerator {
     });
   }
 
+  /**
+   * Resolve portable shared dep chunkPaths to absolute URLs using a shared base.
+   *
+   * All MFEs that share the same dependency must resolve to the SAME absolute URL
+   * so the handler's sourceTextCache deduplicates fetches. Portable chunks
+   * (prefixed "portable/") are identical across MFE builds, so they can be
+   * served from a single canonical location.
+   *
+   * Strategy: use --shared-base-url if provided; otherwise use the first MFE's
+   * publicPath as the canonical source for portable chunks.
+   */
+  private resolveSharedChunkPaths(configs: OutMfeManifestConfig[]): void {
+    if (configs.length === 0) return;
+
+    const sharedBase = this.sharedBaseUrl
+      ? (this.sharedBaseUrl.endsWith('/') ? this.sharedBaseUrl : `${this.sharedBaseUrl}/`)
+      : configs[0].manifest.metaData.publicPath;
+
+    let portableCount = 0;
+    let externalCount = 0;
+    for (const config of configs) {
+      for (const shared of config.manifest.shared) {
+        if (shared.chunkPath !== null && shared.chunkPath.startsWith('portable/')) {
+          shared.chunkPath = sharedBase + shared.chunkPath;
+          portableCount++;
+        } else if (shared.chunkPath === null) {
+          // Hybrid externalized dep: host-relative path ensures all MFEs
+          // resolve to the same URL → sourceTextCache deduplicates fetches.
+          const filename = ManifestGenerator.normalizeDepName(shared.name) + '.js';
+          shared.chunkPath = '/shared/' + filename;
+          externalCount++;
+        }
+      }
+    }
+
+    if (portableCount > 0) {
+      console.log(`  Resolved ${portableCount} portable shared dep(s) to: ${sharedBase}`);
+    }
+    if (externalCount > 0) {
+      console.log(`  Resolved ${externalCount} externalized shared dep(s) to: /shared/`);
+    }
+  }
+
+  /**
+   * Normalizes a package name for use as a filename.
+   * @scope/pkg → scope-pkg, react-dom → react-dom
+   * Mirrors SharedDepsBuilder.normalizeDepName convention.
+   */
+  private static normalizeDepName(name: string): string {
+    return name.replace(/^@/, '').replace(/\//g, '-');
+  }
+
   private renderOutputFile(configs: OutMfeManifestConfig[]): string {
     const serialized = JSON.stringify(configs, null, 2);
 
@@ -396,21 +456,21 @@ export function getMfeManifests(): MfeManifestConfig[] {
 // CLI entry point
 // ---------------------------------------------------------------------------
 
-function parseArgs(argv: string[]): { baseUrl: string | null } {
+function parseArgs(argv: string[]): { baseUrl: string | null; sharedBaseUrl: string | null } {
   const idx = argv.indexOf('--base-url');
-  if (idx !== -1 && idx + 1 < argv.length) {
-    return { baseUrl: argv[idx + 1] };
-  }
-  return { baseUrl: null };
+  const baseUrl = (idx !== -1 && idx + 1 < argv.length) ? argv[idx + 1] : null;
+  const sidx = argv.indexOf('--shared-base-url');
+  const sharedBaseUrl = (sidx !== -1 && sidx + 1 < argv.length) ? argv[sidx + 1] : null;
+  return { baseUrl, sharedBaseUrl };
 }
 
-const { baseUrl } = parseArgs(process.argv.slice(2));
+const { baseUrl, sharedBaseUrl } = parseArgs(process.argv.slice(2));
 
 const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
 const OUTPUT_FILE = join(process.cwd(), 'src/app/mfe/generated-mfe-manifests.ts');
 
 try {
-  new ManifestGenerator(MFE_PACKAGES_DIR, OUTPUT_FILE, baseUrl).run();
+  new ManifestGenerator(MFE_PACKAGES_DIR, OUTPUT_FILE, baseUrl, sharedBaseUrl).run();
 } catch (err) {
   console.error('Error generating MFE manifests:', err instanceof Error ? err.message : String(err));
   process.exit(1);
