@@ -282,58 +282,9 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       }
     });
 
-    it('17.2.4 - Clear error when inline manifest missing "id" field', async () => {
-      const invalidManifest = {
-        metaData: {
-          name: 'analyticsRemote',
-          type: 'app',
-          buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsRemote' },
-          remoteEntry: { name: 'remoteEntry.js', path: '', type: 'module' },
-          globalName: 'analyticsRemote',
-              publicPath: `${TEST_BASE_URL}/analyticsRemote/`,
-        },
-        shared: [],
-        // id intentionally missing
-      } as MfManifest;
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.noid.v1',
-        manifest: invalidManifest,
-        exposedModule: './ChartWidget',
-        exposeAssets: { js: { sync: ['expose-ChartWidget.js'], async: [] }, css: { sync: [], async: [] } },
-      };
-
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('"id"');
-    });
-
-    it('17.2.4 - Clear error when inline manifest missing "metaData.publicPath"', async () => {
-      // Intentionally malformed: publicPath is absent to trigger the validation error.
-      // The Partial<MfManifest> cast is the minimal cast needed to inject invalid data
-      // into the handler's runtime validation path — this tests the guard, not production use.
-      const invalidManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.manifest.v1',
-        metaData: {
-          name: 'analyticsRemote',
-          type: 'app',
-          buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsRemote' },
-          remoteEntry: { name: 'remoteEntry.js', path: '', type: 'module' },
-          globalName: 'analyticsRemote',
-          // publicPath intentionally absent
-        },
-        shared: [],
-      } as Partial<MfManifest> as MfManifest;
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.nopublicpath.v1',
-        manifest: invalidManifest,
-        exposedModule: './ChartWidget',
-        exposeAssets: { js: { sync: ['expose-ChartWidget.js'], async: [] }, css: { sync: [], async: [] } },
-      };
-
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('metaData.publicPath');
-    });
+    // Manifest field validation (missing id, publicPath, remoteEntry, name)
+    // is the type system plugin's responsibility, not the handler's.
+    // Those tests were removed — the handler trusts registered manifests.
 
     it('17.2.4 - Clear error when manifest type ID is not found in cache', async () => {
       const exposeAssets = buildExposeAssets('analyticsRemote', './ChartWidget', {
@@ -350,70 +301,8 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
       await expect(handler.load(entry)).rejects.toThrow('not found');
     });
 
-    it('17.2.4 - Clear error when inline manifest missing "metaData.remoteEntry.name"', async () => {
-      // remoteEntry intentionally absent — tests the runtime validation guard path.
-      const invalidManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.noremoteentry.manifest.v1',
-        metaData: {
-          name: 'analyticsRemote',
-          type: 'app',
-          buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsRemote' },
-          // remoteEntry intentionally absent
-          globalName: 'analyticsRemote',
-          publicPath: `${TEST_BASE_URL}/analyticsRemote/`,
-        },
-        shared: [],
-      } as Partial<MfManifest> as MfManifest;
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.noremoteentry.v1',
-        manifest: invalidManifest,
-        exposedModule: './ChartWidget',
-        exposeAssets: { js: { sync: ['expose-ChartWidget.js'], async: [] }, css: { sync: [], async: [] } },
-      };
-
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('metaData.remoteEntry.name');
-    });
-
-    it('17.2.4 - Clear error when inline manifest missing "mfInitKey" field entirely', async () => {
-      // mfInitKey must be present as a string field (may be empty string).
-      // The field is kept for backwards compatibility; missing entirely throws.
-      const invalidManifest = {
-        id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.nomfinitkey.manifest.v1',
-        metaData: {
-          name: 'analyticsRemote',
-          type: 'app',
-          buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsRemote' },
-          remoteEntry: { name: 'remoteEntry.js', path: '', type: 'module' },
-          globalName: 'analyticsRemote',
-          publicPath: `${TEST_BASE_URL}/analyticsRemote/`,
-        },
-        shared: [],
-        // mfInitKey intentionally absent
-      } as Partial<MfManifest> as MfManifest;
-
-      const entry: MfeEntryMF = {
-        id: 'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~test.nomfinitkey.v1',
-        manifest: invalidManifest,
-        exposedModule: './ChartWidget',
-        exposeAssets: { js: { sync: ['expose-ChartWidget.js'], async: [] }, css: { sync: [], async: [] } },
-      };
-
-      await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-      await expect(handler.load(entry)).rejects.toThrow('mfInitKey');
-    });
-
-    it('17.2.4 - Accepts manifest with empty string mfInitKey (field present, value irrelevant)', async () => {
-      // Empty string is valid: mfInitKey is no longer consumed by the handler.
-      const { makeEntry } = createTestSetup('analyticsRemote', ['./ChartWidget']);
-      const entry = makeEntry('./ChartWidget', 'acme.emptymfinitkey', mocks.registerSource);
-
-      // buildManifest produces mfInitKey: '' — handler must accept it.
-      const result = await handler.load(entry);
-      expect(result).toBeDefined();
-      expect(typeof result.mount).toBe('function');
-    });
+    // Tests for missing remoteEntry.name, mfInitKey, id, publicPath removed —
+    // manifest field validation is the type system plugin's responsibility.
   });
 
   describe('17.3 - Handler Integration Tests', () => {

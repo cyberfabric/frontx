@@ -339,49 +339,12 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   /**
    * Resolve manifest from reference.
    *
-   * Validates the GTS manifest shape: requires id, name, metaData
-   * (with publicPath and remoteEntry), and shared[].
+   * Accepts an inline MfManifest object (caches it) or a string type ID
+   * (looks up from cache). Schema validation is the type system plugin's
+   * responsibility — the handler trusts registered manifests are valid.
    */
   private async resolveManifest(manifestRef: string | MfManifest): Promise<MfManifest> {
     if (typeof manifestRef === 'object' && manifestRef !== null) {
-      if (typeof manifestRef.id !== 'string') {
-        throw new MfeLoadError(
-          'Inline manifest must have a valid "id" field',
-          'inline-manifest'
-        );
-      }
-      if (typeof manifestRef.name !== 'string' || manifestRef.name.length === 0) {
-        throw new MfeLoadError(
-          `Inline manifest '${manifestRef.id}' must have a non-empty "name" field`,
-          manifestRef.id
-        );
-      }
-      if (
-        typeof manifestRef.metaData !== 'object' ||
-        manifestRef.metaData === null ||
-        typeof manifestRef.metaData.publicPath !== 'string'
-      ) {
-        throw new MfeLoadError(
-          `Inline manifest '${manifestRef.id}' must have a valid "metaData.publicPath" field`,
-          manifestRef.id
-        );
-      }
-      if (
-        typeof manifestRef.metaData.remoteEntry !== 'object' ||
-        manifestRef.metaData.remoteEntry === null ||
-        typeof manifestRef.metaData.remoteEntry.name !== 'string'
-      ) {
-        throw new MfeLoadError(
-          `Inline manifest '${manifestRef.id}' must have a valid "metaData.remoteEntry.name" field`,
-          manifestRef.id
-        );
-      }
-      if (!Array.isArray(manifestRef.shared)) {
-        throw new MfeLoadError(
-          `Inline manifest '${manifestRef.id}' must have a "shared" array`,
-          manifestRef.id
-        );
-      }
       this.manifestCache.cacheManifest(manifestRef);
       return manifestRef;
     }
