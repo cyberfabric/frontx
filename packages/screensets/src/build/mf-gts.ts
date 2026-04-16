@@ -177,7 +177,7 @@ class MfeJsonEnricher {
     return declaredDeps.map((name) => ({
       name,
       version: this.resolvePackageVersion(name),
-      chunkPath: `/shared/${StandaloneEsmBuilder.normalizeDepName(name)}.js`,
+      chunkPath: `shared/${StandaloneEsmBuilder.normalizeDepName(name)}.js`,
       unwrapKey: null,
     }));
   }

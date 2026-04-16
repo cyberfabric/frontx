@@ -21,6 +21,8 @@ export default [
     ignores: [
       'packages/**/dist/**',
       '**/dist/**', // All dist directories are build artifacts
+      '**/*.__mf__temp/**', // Module Federation generated temp files
+      '**/.__mf__temp/**', // Module Federation generated temp files (dot-prefixed)
       'packages/**/templates/**', // CLI templates are build artifacts
       'packages/cli/template-sources/**', // CLI template sources (linted separately in standalone)
       'scripts/**', // Monorepo scripts
@@ -280,6 +282,30 @@ export default [
         {
           selector: "CallExpression[callee.name='dispatch'] > MemberExpression[object.name='store']",
           message: 'FLUX VIOLATION: Components must not call store.dispatch directly. Use actions instead.',
+        },
+      ],
+    },
+  },
+
+  // MFE packages: Each MFE is fully self-contained — no imports from host or other MFEs
+  {
+    files: ['src/mfe_packages/**/*.{ts,tsx}'],
+    rules: {
+      '@typescript-eslint/no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['../../app/*', '../../app/**'],
+              message:
+                'MFE VIOLATION: MFE packages cannot import from the host app. MFEs must be self-contained.',
+            },
+            {
+              group: ['../*-mfe/*', '../*-mfe/**', '../_*/*', '../_*/**'],
+              message:
+                'MFE VIOLATION: MFE packages cannot import from other MFE packages. Each MFE must be self-contained.',
+            },
+          ],
         },
       ],
     },

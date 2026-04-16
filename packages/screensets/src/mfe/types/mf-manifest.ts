@@ -40,10 +40,10 @@ export interface MfManifestShared {
   /** Concrete version resolved from node_modules (e.g. '19.2.4'). */
   version: string;
   /**
-   * Host-relative path to the standalone ESM file for this dependency
-   * (e.g. "/shared/react.js"). Built by StandaloneEsmBuilder in the
-   * frontx-mf-gts plugin. May be overridden by the generation script
-   * when --shared-base-url is provided.
+   * Path to the standalone ESM file for this dependency, relative to
+   * the MFE's publicPath (e.g. "shared/react.js"). Built by
+   * StandaloneEsmBuilder in the frontx-mf-gts plugin. The handler
+   * resolves this against publicPath to form the fetch URL.
    */
   chunkPath: string;
   /**

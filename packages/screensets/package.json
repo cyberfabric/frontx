@@ -67,11 +67,11 @@
     "@globaltypesystem/gts-ts": "^0.3.0"
   },
   "peerDependencies": {
-    "@module-federation/runtime": ">=0.9.0",
+    "esbuild": ">=0.20.0",
     "vite": ">=5.0.0"
   },
   "peerDependenciesMeta": {
-    "@module-federation/runtime": {
+    "esbuild": {
       "optional": true
     },
     "vite": {

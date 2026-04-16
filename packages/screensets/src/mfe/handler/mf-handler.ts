@@ -10,11 +10,11 @@
  * - baseUrl is derived from manifest.metaData.publicPath
  * - expose chunk filename comes from entry.exposeAssets.js.sync[0]
  * - CSS paths come from entry.exposeAssets.css.sync/async
- * - shared dep standalone ESM files are served from publicPath + 'shared/' + normalizedName + '.js'
+ * - shared dep standalone ESM files are resolved from manifest.shared[].chunkPath (relative to publicPath)
  * No remoteEntry.js parsing is required.
  *
  * Bare specifier rewriting for shared deps:
- * - Shared deps are fetched as standalone ESM files from the 'shared/' subdirectory.
+ * - Shared deps are fetched as standalone ESM files from each MFE's server (chunkPath relative to publicPath).
  * - manifest.shared[] must be in dependency order (leaves first) so that each dep's
  *   blob URL is ready before any dep that imports it is processed.
  * - Within expose chunks and their dependency chains, bare specifiers (e.g. from "react")
@@ -98,6 +98,15 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly retryHandler: RetryHandler;
   // @cpt-state:cpt-frontx-state-mfe-isolation-source-cache:p1
   private readonly sourceTextCache = new Map<string, Promise<string>>();
+
+  /**
+   * Cross-runtime shared dep source text deduplication.
+   * Keyed by `name@version`. The first MFE to load a given shared dep
+   * caches its source text here. Subsequent MFEs declaring the same
+   * name@version get a cache hit — zero network fetch, regardless of
+   * which server hosts the MFE.
+   */
+  private readonly sharedDepTextCache = new Map<string, Promise<string>>();
 
 
   constructor(
@@ -383,10 +392,26 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     const blobUrls = new Map<string, string>();
     const sharedNames = new Set(manifest.shared.map((d) => d.name));
 
-    // Pass 1: Fetch all source texts (sourceTextCache deduplicates across MFEs).
+    // Pass 1: Fetch all source texts.
+    // sharedDepTextCache deduplicates by name@version across ALL MFEs —
+    // the first MFE to load react@19.2.4 fetches it from its server,
+    // all subsequent MFEs get a cache hit regardless of their server URL.
     const sources = new Map<string, string>();
     for (const dep of manifest.shared) {
-      sources.set(dep.name, await this.fetchSourceText(dep.chunkPath));
+      const cacheKey = `${dep.name}@${dep.version}`;
+      let textPromise = this.sharedDepTextCache.get(cacheKey);
+      if (textPromise === undefined) {
+        // Resolve chunkPath against the MFE's publicPath to get an absolute URL.
+        // Each MFE serves its own standalone ESMs — the first fetch for a given
+        // name@version comes from whichever MFE loads first. Subsequent MFEs
+        // with the same name@version get a cache hit regardless of their server.
+        const absoluteUrl = dep.chunkPath.startsWith('http')
+          ? dep.chunkPath
+          : manifest.metaData.publicPath + dep.chunkPath;
+        textPromise = this.fetchSourceText(absoluteUrl);
+        this.sharedDepTextCache.set(cacheKey, textPromise);
+      }
+      sources.set(dep.name, await textPromise);
     }
 
     // Pass 2: Create blob URLs in dependency order.

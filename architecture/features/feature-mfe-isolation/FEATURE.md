@@ -555,7 +555,7 @@ Action target contract enforcement is handled by GTS schema validation: each act
 - [x] Blob URLs are never revoked (`URL.revokeObjectURL` is never called)
 - [x] A missing manifest, missing fields, or network error throws `MfeLoadError` with descriptive message
 - [x] Shared deps are built as standalone ESMs by the `frontx-mf-gts` plugin (via esbuild) into `dist/shared/`; CJS packages (react, react-dom) are patched with named re-exports; sub-path imports (react/jsx-runtime) are bundled inline with parent-package externals preserved
-- [x] The `frontx-mf-gts` plugin enriches `mfe.json` in-place: `manifest.shared[].chunkPath` set to host-relative URLs (`/shared/{name}.js`) ensuring all MFEs resolve to the same URL for `sourceTextCache` deduplication; no intermediate `mfe.gts-manifest.json` artifact
+- [x] The `frontx-mf-gts` plugin enriches `mfe.json` in-place: `manifest.shared[].chunkPath` set to MFE-relative paths (`shared/{name}.js`); the handler resolves against `publicPath` and deduplicates via `sharedDepTextCache` keyed by `name@version`; no intermediate `mfe.gts-manifest.json` artifact
 - [x] MFE `vite.config.ts` uses `shared: {}` (empty) and `build.rollupOptions.external` for shared deps; expose chunks contain bare specifiers for shared deps
 - [x] MFE `init.ts` files contain no direct imports from `react-redux`, `redux`, or `@reduxjs/toolkit`
 

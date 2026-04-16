@@ -160,7 +160,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
     });
 
     it('17.1.2 - Implements in-memory manifest caching for reuse across entries', async () => {
-      const { manifest, makeEntry } = createTestSetup('analyticsRemote', [
+      const { makeEntry } = createTestSetup('analyticsRemote', [
         './ChartWidget1',
         './ChartWidget2',
       ]);
@@ -178,7 +178,7 @@ describe('MfeHandlerMF - Caching and Manifest Resolution', () => {
     });
 
     it('17.1.3 - Manifest caching works across multiple entries', async () => {
-      const { manifest, makeEntry } = createTestSetup('analyticsRemote', [
+      const { makeEntry } = createTestSetup('analyticsRemote', [
         './ChartWidget1',
         './ChartWidget2',
       ]);
