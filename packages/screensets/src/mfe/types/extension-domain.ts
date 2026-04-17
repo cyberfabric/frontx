@@ -18,9 +18,9 @@ export interface ExtensionDomain {
   id: string;
   /** SharedProperty type IDs provided to MFEs in this domain */
   sharedProperties: string[];
-  /** Action type IDs that can target extensions in this domain */
+  /** Action type IDs this extension domain is capable of receiving and executing */
   actions: string[];
-  /** Action type IDs extensions can send when targeting this domain */
+  /** Action type IDs an extension's entry must support to be injectable into this domain */
   extensionsActions: string[];
   /**
    * Optional reference to a derived Extension type ID.

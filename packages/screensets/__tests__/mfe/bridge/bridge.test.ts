@@ -642,6 +642,7 @@ describe('Bridge Implementation', () => {
         mediator = new DefaultActionsChainsMediator({
           typeSystem: plugin,
           getDomainState: (domainId) => registry.getDomainState(domainId),
+          getExtensionEntry: () => undefined,
         });
 
         domain = {
@@ -732,6 +733,7 @@ describe('Bridge Implementation', () => {
         gtsMediator = new DefaultActionsChainsMediator({
           typeSystem: gtsPlugin,
           getDomainState: (domainId) => gtsRegistry.getDomainState(domainId),
+          getExtensionEntry: () => undefined,
         });
 
         // Register the refresh_profile action schema (constrains target to profile extension only)

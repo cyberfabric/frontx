@@ -168,11 +168,14 @@ export class DefaultScreensetsRegistry extends ScreensetsRegistry {
     this.bridgeFactory = new DefaultRuntimeBridgeFactory();
 
     // Initialize mediator (always construct internally)
-    // Note: mediator needs getDomainState callback, which delegates to extensionManager
-    // that is initialized later, but this callback is only invoked after construction
+    // Note: mediator needs getDomainState and getExtensionEntry callbacks, which
+    // delegate to extensionManager that is initialized later, but these callbacks
+    // are only invoked after construction (on action chain execution).
     this.mediator = new DefaultActionsChainsMediator({
       typeSystem: this.typeSystem,
       getDomainState: (domainId) => this.extensionManager.getDomainState(domainId),
+      getExtensionEntry: (extensionId) =>
+        this.extensionManager.getExtensionState(extensionId)?.entry,
     });
 
     // Initialize extension manager (needs dependencies for business logic)

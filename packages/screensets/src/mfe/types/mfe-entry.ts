@@ -19,8 +19,8 @@ export interface MfeEntry {
   requiredProperties: string[];
   /** SharedProperty type IDs that MAY be provided by domain (optional field) */
   optionalProperties?: string[];
-  /** Action type IDs this MFE can send (when targeting its domain) */
+  /** Action type IDs this entry is capable of receiving and executing */
   actions: string[];
-  /** Action type IDs this MFE can receive (when targeted by actions chains) */
+  /** Action type IDs the parent extension domain must support for this entry to be injectable */
   domainActions: string[];
 }
