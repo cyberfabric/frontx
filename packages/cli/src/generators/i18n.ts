@@ -9,7 +9,9 @@ const DEFAULT_LOCALES = ['en'];
  * Throws if any locale is not supported.
  */
 function normalizeLocales(locales: string[], callerName: string): string[] {
-  const unknown = locales.filter((l) => !(l in LANGUAGE_ENUM_MAP));
+  const unknown = locales.filter(
+    (l) => !Object.prototype.hasOwnProperty.call(LANGUAGE_ENUM_MAP, l)
+  );
   if (unknown.length > 0) {
     throw new Error(
       `${callerName}: unknown locale(s): ${unknown.join(', ')}. ` +

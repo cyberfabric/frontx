@@ -160,15 +160,13 @@ try {
     'home',
     'i18n'
   );
+  harness.assertPathExists(mfeI18nDir);
   // eslint-disable-next-line security/detect-non-literal-fs-filename
-  if (fs.existsSync(mfeI18nDir)) {
-    // eslint-disable-next-line security/detect-non-literal-fs-filename
-    const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
-    harness.assert(
-      localeFiles.length === 1 && localeFiles[0] === 'en.json',
-      `MFE template must generate only en.json by default, found: ${localeFiles.join(', ')}`
-    );
-  }
+  const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
+  harness.assert(
+    localeFiles.length === 1 && localeFiles[0] === 'en.json',
+    `MFE template must generate only en.json by default, found: ${localeFiles.join(', ')}`
+  );
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
   const packageJson = harness.readJson(path.join(projectRoot, 'package.json'), {
