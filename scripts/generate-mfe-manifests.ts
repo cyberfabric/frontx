@@ -28,8 +28,8 @@
  * in the enriched mfe.json (set by the build plugin from mf-manifest.json).
  */
 
-import { existsSync, readdirSync, readFileSync, writeFileSync } from 'fs';
-import { join } from 'path';
+import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join } from 'node:path';
 
 // ---------------------------------------------------------------------------
 // Raw JSON shape types (what we read from the enriched mfe.json on disk)

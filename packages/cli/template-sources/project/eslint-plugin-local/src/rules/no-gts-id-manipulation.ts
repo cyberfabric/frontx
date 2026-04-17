@@ -46,14 +46,12 @@ function textContainsGtsMarker(text: string): boolean {
   return GTS_MARKER_SUBSTRINGS.some((m) => text.includes(m));
 }
 
-function literalContainsGtsMarker(node: Literal | null | undefined): boolean {
-  if (!node) return false;
-  if (node.type !== 'Literal') return false;
+function literalContainsGtsMarker(node: Literal): boolean {
   if (typeof node.value === 'string') {
     return textContainsGtsMarker(node.value);
   }
   // RegExp literal (detected via node.regex in estree)
-  const regexNode = node as Literal & { regex?: { pattern: string } };
+  const regexNode: Literal & { regex?: { pattern: string } } = node;
   if (regexNode.regex) {
     return textContainsGtsMarker(regexNode.regex.pattern);
   }
@@ -61,7 +59,6 @@ function literalContainsGtsMarker(node: Literal | null | undefined): boolean {
 }
 
 function argContainsGtsMarker(arg: CallExpression['arguments'][number]): boolean {
-  if (!arg) return false;
   if (arg.type === 'Literal') return literalContainsGtsMarker(arg as Literal);
   if (arg.type === 'TemplateLiteral') {
     return arg.quasis.some((q) => textContainsGtsMarker(q.value.raw));

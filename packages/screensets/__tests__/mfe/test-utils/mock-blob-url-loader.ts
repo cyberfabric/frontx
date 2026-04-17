@@ -178,7 +178,7 @@ export function createChunkWithRelativeImport(relImport: string): string {
  */
 export function createSharedDepSource(bareImports?: string[]): string {
   const imports = bareImports?.map(
-    (name) => `import __ext_${name.replace(/[^a-zA-Z0-9_]/g, '_')} from "${name}";`
+    (name) => `import __ext_${name.replace(/\W/g, '_')} from "${name}";`
   ).join('\n') ?? '';
   return imports ? `${imports}\nexport default {};` : 'export default {};';
 }

@@ -193,9 +193,11 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     const lifecycleExpose = manifest.exposes.find(
       (e) => e.name === './lifecycle' || e.name === 'lifecycle' || e.path === './lifecycle'
     );
-    expect(lifecycleExpose).toBeDefined();
+    if (!lifecycleExpose) {
+      throw new Error('lifecycle expose entry not found in manifest');
+    }
 
-    const syncChunk = lifecycleExpose!.assets.js.sync[0];
+    const syncChunk = lifecycleExpose.assets.js.sync[0];
     expect(typeof syncChunk).toBe('string');
     expect(syncChunk.length).toBeGreaterThan(0);
 
@@ -216,7 +218,9 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     const lifecycleExpose = manifest.exposes.find(
       (e) => e.name === './lifecycle' || e.name === 'lifecycle' || e.path === './lifecycle'
     );
-    expect(lifecycleExpose).toBeDefined();
+    if (!lifecycleExpose) {
+      throw new Error('lifecycle expose entry not found in manifest');
+    }
 
     const handler = new MfeHandlerMF(
       'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
@@ -232,7 +236,7 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     const parseStaticImportFilenames = proto.parseStaticImportFilenames;
 
     // Chunk paths in manifest are relative to DIST_DIR
-    const chunkFilename = lifecycleExpose!.assets.js.sync[0];
+    const chunkFilename = lifecycleExpose.assets.js.sync[0];
     const exposeSrc = readFileSync(join(DIST_DIR, chunkFilename), 'utf8');
     // Pass just the filename portion (no 'assets/' prefix) as the chunk identity
     // for path resolution purposes — imports within the chunk are relative to it.

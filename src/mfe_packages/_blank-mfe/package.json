@@ -24,7 +24,7 @@
     "@originjs/vite-plugin-federation": "^1.3.6",
     "@types/react": "19.0.8",
     "@types/react-dom": "19.0.3",
-    "vite": "6.4.1",
+    "vite": "6.4.2",
     "typescript": "5.4.2",
     "@cyberfabric/framework": "file:../../../packages/framework",
     "@cyberfabric/state": "file:../../../packages/state",

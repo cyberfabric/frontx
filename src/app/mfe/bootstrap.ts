@@ -10,7 +10,14 @@
  */
 
 import type { RefObject } from 'react';
-import type { HAI3App, Extension, MfManifest, MfeEntryMF, JSONSchema } from '@cyberfabric/react';
+import type {
+  HAI3App,
+  Extension,
+  MfManifest,
+  MfeEntryMF,
+  JSONSchema,
+  ScreensetsRegistry,
+} from '@cyberfabric/react';
 import { bootstrapMfeDomains } from '@cyberfabric/react';
 import MFE_MANIFESTS from './generated-mfe-manifests.json';
 
@@ -23,6 +30,70 @@ interface MfeManifestConfig {
   entries: MfeEntryMF[];
   extensions: Extension[];
   schemas?: JSONSchema[];
+}
+
+// @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+/**
+ * Scoped schema registration: only register schemas whose $id matches an action ID
+ * declared by at least one entry in this package. Orphan schemas (not referenced by
+ * any entry's `actions` or `domainActions`) are skipped — they cannot be dispatched
+ * safely because no entry opts in to send or receive them at runtime.
+ */
+function collectDeclaredActionIds(entries: MfeEntryMF[]): Set<string> {
+  const declaredActionIds = new Set<string>();
+  for (const entry of entries) {
+    for (const actionId of entry.actions) declaredActionIds.add(actionId);
+    for (const actionId of entry.domainActions) declaredActionIds.add(actionId);
+  }
+  return declaredActionIds;
+}
+
+function registerScopedSchemas(
+  registry: ScreensetsRegistry,
+  schemas: JSONSchema[],
+  declaredActionIds: Set<string>,
+): void {
+  for (const schema of schemas) {
+    const schemaId = schema.$id;
+    if (!schemaId) continue;
+    const matches = Array.from(declaredActionIds).some((actionId) =>
+      schemaId.includes(actionId),
+    );
+    if (matches) {
+      registry.typeSystem.registerSchema(schema);
+    }
+  }
+}
+// @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+
+function registerAndValidateManifest(
+  registry: ScreensetsRegistry,
+  manifest: MfManifest,
+): void {
+  registry.typeSystem.register(manifest);
+  const validation = registry.typeSystem.validateInstance(manifest.id);
+  if (!validation.valid) {
+    console.error('[MFE Bootstrap] Manifest failed GTS validation', {
+      manifestId: manifest.id,
+      errors: validation.errors,
+    });
+  }
+}
+
+async function registerMfePackage(
+  registry: ScreensetsRegistry,
+  config: MfeManifestConfig,
+): Promise<void> {
+  if (config.schemas) {
+    registerScopedSchemas(registry, config.schemas, collectDeclaredActionIds(config.entries));
+  }
+  registerAndValidateManifest(registry, config.manifest);
+  for (const entry of config.entries) {
+    registry.typeSystem.register({ ...entry, manifest: config.manifest });
+  }
+  for (const extension of config.extensions) {
+    await registry.registerExtension(extension);
+  }
 }
 
 /**
@@ -45,54 +116,15 @@ export async function bootstrapMFE(
   const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef);
 
   if (MFE_MANIFESTS.length === 0) {
-    console.warn('[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.');
+    console.warn(
+      '[MFE Bootstrap] No MFE manifests found. Run `npm run generate:mfe-manifests` to generate them.',
+    );
     return;
   }
 
   const manifests = MFE_MANIFESTS as MfeManifestConfig[];
-
   for (const config of manifests) {
-    // @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
-    // Scoped schema registration: only register schemas whose $id matches an action ID
-    // declared by at least one entry in this package. Orphan schemas (not referenced by
-    // any entry's `actions` or `domainActions`) are skipped — they cannot be dispatched
-    // safely because no entry opts in to send or receive them at runtime.
-    if (config.schemas) {
-      const declaredActionIds = new Set<string>();
-      for (const entry of config.entries) {
-        for (const actionId of entry.actions) declaredActionIds.add(actionId);
-        for (const actionId of entry.domainActions) declaredActionIds.add(actionId);
-      }
-
-      for (const schema of config.schemas) {
-        if (!schema.$id) continue;
-        const matches = Array.from(declaredActionIds).some((actionId) =>
-          schema.$id!.includes(actionId)
-        );
-        if (matches) {
-          screensetsRegistry.typeSystem.registerSchema(schema);
-        }
-      }
-    }
-    // @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
-
-    // Register and validate manifest instance against GTS schema
-    screensetsRegistry.typeSystem.register(config.manifest);
-    const manifestValidation = screensetsRegistry.typeSystem.validateInstance(config.manifest.id);
-    if (!manifestValidation.valid) {
-      console.error(
-        `[MFE Bootstrap] Manifest '${config.manifest.id}' failed GTS validation:`,
-        JSON.stringify(manifestValidation.errors, null, 2)
-      );
-    }
-
-    for (const entry of config.entries) {
-      screensetsRegistry.typeSystem.register({ ...entry, manifest: config.manifest });
-    }
-
-    for (const extension of config.extensions) {
-      await screensetsRegistry.registerExtension(extension);
-    }
+    await registerMfePackage(screensetsRegistry, config);
   }
 }
 // @cpt-end:cpt-frontx-flow-request-lifecycle-query-client-lifecycle:p2:inst-bootstrap-mfe
