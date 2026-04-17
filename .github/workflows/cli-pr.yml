@@ -50,7 +50,7 @@ jobs:
         run: npm run build:packages
 
       - name: Run CLI unit tests
-        run: npm run test:unit --workspace=@hai3/cli
+        run: npm run test:unit --workspace=@cyberfabric/cli
 
       - name: Run CLI PR E2E
         run: npm run test:e2e:pr --workspace=@cyberfabric/cli
