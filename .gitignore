@@ -54,6 +54,7 @@ packages/cli/src/generated/
 # Claude Code local settings
 .claude/settings.local.json
 .claude/worktrees/
+.claude/scheduled_tasks.lock
 
 # FrontX migration tracker (project-local state)
 .frontx/

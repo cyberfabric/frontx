@@ -102,7 +102,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sse-type-safe-events` | SSE events typed via `EventPayloadMap` module augmentation for compile-time safety |
 | `cpt-frontx-fr-sse-stream-descriptors` | `SseStreamProtocol.stream<TEvent>()` returns `StreamDescriptor` with `connect`/`disconnect`; `useApiStream` hook manages lifecycle |
 | `cpt-frontx-fr-mfe-entry-types` | `MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension` types define MFE communication contracts |
-| `cpt-frontx-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, lifecycleStages, and timeout contract |
+| `cpt-frontx-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, extensionsActions, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, and optional extensionsTypeId |
 | `cpt-frontx-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
 | `cpt-frontx-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support; action `type` values are GTS schema type IDs (trailing `~`); extension references in payloads use `subject` field |
 | `cpt-frontx-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
@@ -142,7 +142,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-api-endpoint-descriptors` | `BaseApiService` exposes registered protocols via `protocol()`. `RestEndpointProtocol` provides `query()`, `queryWith()`, `mutation()`, and `SseStreamProtocol` provides `stream()` returning descriptor objects; cache keys derive from `[baseURL, 'GET', path]` for static reads, `[baseURL, 'GET', resolvedPath, params]` for parameterized reads, `[baseURL, method, path]` for writes, and `[baseURL, 'SSE', path]` for streams |
 | `cpt-frontx-fr-framework-query-cache-plugin` | `queryCache(config?)` owns the host shared `QueryClient`; `queryCacheShared()` joins it for child apps; cache clears on mock toggle, handles `cache/invalidate`/`cache/set`/`cache/remove`, and keeps `sharedFetchCache` in sync |
 | `cpt-frontx-fr-react-query-hooks` | `useApiQuery`, `useApiMutation`, `useApiStream`, `useQueryCache` hooks consume descriptors; HAI3-owned result types; no `queryOptions` re-export |
-| `cpt-frontx-fr-react-query-client-isolation` | `HAI3Provider` resolves the shared `QueryClient` from the app instance; separately mounted MFEs receive the same host client through `queryCache()` / `queryCacheShared()` shared-client reuse rather than L1 token plumbing, and expose only the restricted `QueryCache` interface |
+| `cpt-frontx-fr-react-query-client-sharing` | `HAI3Provider` resolves the shared `QueryClient` from the app instance; separately mounted MFEs receive the same host client through `queryCache()` / `queryCacheShared()` shared-client reuse rather than L1 token plumbing, and expose only the restricted `QueryCache` interface |
 | `cpt-frontx-fr-manifest-generation-script` | Generation script is a temporary static aggregator that produces pointers to `mfe.json` files with `--base-url` for environment-specific `publicPath`; `mfe.json` is already enriched in-place by the `frontx-mf-gts` plugin (manifest metadata, shared dep info, expose assets); when a backend API is ready, the static import is replaced with a fetch call — same `mfe.json` shape, different transport |
 
 #### NFR Allocation
