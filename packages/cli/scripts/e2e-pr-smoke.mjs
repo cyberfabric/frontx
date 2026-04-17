@@ -160,7 +160,9 @@ try {
     'home',
     'i18n'
   );
+  // eslint-disable-next-line security/detect-non-literal-fs-filename
   if (fs.existsSync(mfeI18nDir)) {
+    // eslint-disable-next-line security/detect-non-literal-fs-filename
     const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
     harness.assert(
       localeFiles.length === 1 && localeFiles[0] === 'en.json',
