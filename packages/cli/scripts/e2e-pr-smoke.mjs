@@ -149,19 +149,19 @@ try {
   harness.assertPathExists(path.join(demoMfeRoot, 'src', 'screens', 'home', 'HomeScreen.test.tsx'));
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-files
 
-  // Assert MFE template generates en-only locale by default
+  // Assert MFE template generates en-only locale by default.
+  // frontx create copies _blank-mfe template into demo-mfe/ in the generated app.
   const mfeI18nDir = path.join(
     projectRoot,
     'src',
     'mfe_packages',
-    '_blank-mfe',
+    'demo-mfe',
     'src',
     'screens',
     'home',
     'i18n'
   );
   harness.assertPathExists(mfeI18nDir);
-  // eslint-disable-next-line security/detect-non-literal-fs-filename
   const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
   harness.assert(
     localeFiles.length === 1 && localeFiles[0] === 'en.json',
