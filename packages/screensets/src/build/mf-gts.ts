@@ -90,10 +90,6 @@ interface MfeJsonSchema {
 }
 
 interface MfeJson {
-  /** Human-authored list of shared dependency names visible on the GTS contract.
-   *  With shared:{}, these are no longer validated against mf-manifest.json shared[]
-   *  (which is empty). Instead they declare the deps the handler must provide. */
-  sharedDependencies?: string[];
   manifest: MfeJsonManifest;
   entries: MfeJsonEntry[];
   extensions: MfeJsonExtension[];
@@ -143,9 +139,13 @@ class MfeJsonEnricher {
     this.packageRoot = packageRoot;
   }
 
-  enrich(mfeJson: MfeJson, mfManifest: MfManifest): EnrichedMfeJson {
+  enrich(
+    mfeJson: MfeJson,
+    mfManifest: MfManifest,
+    sharedDeps: string[]
+  ): EnrichedMfeJson {
     const metaData = this.buildMetaData(mfManifest);
-    const shared = this.buildSharedEntries(mfeJson.sharedDependencies ?? []);
+    const shared = this.buildSharedEntries(sharedDeps);
     const entries = this.buildEntries(mfeJson.entries, mfManifest.exposes);
 
     return {
@@ -512,6 +512,7 @@ class StandaloneEsmBuilder {
  */
 export function frontxMfGts(): Plugin {
   let packageRoot = '';
+  let resolvedExternals: string[] = [];
 
   return {
     name: 'frontx-mf-gts',
@@ -521,6 +522,24 @@ export function frontxMfGts(): Plugin {
 
     configResolved(config) {
       packageRoot = config.root;
+      // Derive shared deps from rollupOptions.external so they stay in sync
+      // with what the build actually externalizes. Sub-path imports and
+      // function-form externals are not supported here — the handler
+      // runtime only rewrites exact bare specifiers anyway.
+      const ext = config.build?.rollupOptions?.external;
+      if (Array.isArray(ext)) {
+        resolvedExternals = ext.filter(
+          (e): e is string => typeof e === 'string'
+        );
+      } else {
+        if (ext !== undefined) {
+          console.warn(
+            '[frontx-mf-gts] rollupOptions.external is not a string[]; ' +
+              'no shared deps will be derived for auto-sharing.'
+          );
+        }
+        resolvedExternals = [];
+      }
     },
 
     // @cpt-algo:cpt-frontx-algo-mfe-isolation-enrich-mfe-json:p1
@@ -546,7 +565,7 @@ export function frontxMfGts(): Plugin {
 
         // ── Build standalone ESMs for shared deps ───────────────────────────
 
-        const sharedDeps = mfeJson.sharedDependencies ?? [];
+        const sharedDeps = resolvedExternals;
         if (sharedDeps.length > 0) {
           const sharedOutputDir = path.join(distDir, 'shared');
           const esmBuilder = new StandaloneEsmBuilder(
@@ -564,7 +583,7 @@ export function frontxMfGts(): Plugin {
         // ── Enrich mfe.json in-place ────────────────────────────────────────
 
         const enricher = new MfeJsonEnricher(packageRoot);
-        const enrichedMfeJson = enricher.enrich(mfeJson, mfManifest);
+        const enrichedMfeJson = enricher.enrich(mfeJson, mfManifest, sharedDeps);
 
         fs.writeFileSync(
           mfeJsonPath,

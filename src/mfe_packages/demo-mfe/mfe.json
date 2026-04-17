@@ -1,16 +1,4 @@
 {
-  "sharedDependencies": [
-    "react",
-    "react-dom",
-    "@cyberfabric/react",
-    "@cyberfabric/framework",
-    "@cyberfabric/state",
-    "@cyberfabric/screensets",
-    "@cyberfabric/api",
-    "@cyberfabric/i18n",
-    "@reduxjs/toolkit",
-    "react-redux"
-  ],
   "schemas": [
     {
       "$id": "gts://gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~",
@@ -82,7 +70,7 @@
       },
       {
         "name": "@cyberfabric/state",
-        "version": "0.2.0-alpha.0",
+        "version": "0.2.0-alpha.1",
         "chunkPath": "shared/cyberfabric-state.js",
         "unwrapKey": null
       },
@@ -94,7 +82,7 @@
       },
       {
         "name": "@cyberfabric/api",
-        "version": "0.2.0-alpha.0",
+        "version": "0.2.0-alpha.1",
         "chunkPath": "shared/cyberfabric-api.js",
         "unwrapKey": null
       },
@@ -102,6 +90,12 @@
         "name": "@cyberfabric/i18n",
         "version": "0.2.0-alpha.0",
         "chunkPath": "shared/cyberfabric-i18n.js",
+        "unwrapKey": null
+      },
+      {
+        "name": "@tanstack/react-query",
+        "version": "5.99.0",
+        "chunkPath": "shared/tanstack-react-query.js",
         "unwrapKey": null
       },
       {
@@ -172,7 +166,7 @@
             "assets/zh-DpJ9fTal.js"
           ],
           "sync": [
-            "assets/lifecycle-helloworld-C3a8rlOu.js"
+            "assets/lifecycle-helloworld-DUCHUcR6.js"
           ]
         },
         "css": {
@@ -202,7 +196,7 @@
             "assets/da-BTM4eQYU.js",
             "assets/de-MOR1_biZ.js",
             "assets/el-DGzDaRnL.js",
-            "assets/en-B1oawHUz.js",
+            "assets/en-Lwd3vUCL.js",
             "assets/es-up1hHaUg.js",
             "assets/fa-8dnQmAN_.js",
             "assets/fi-ryfh6MB5.js",
@@ -234,7 +228,7 @@
             "assets/zh-BRJDH7tI.js"
           ],
           "sync": [
-            "assets/lifecycle-profile-CGp_ecE3.js"
+            "assets/lifecycle-profile-B7HDY_9c.js"
           ]
         },
         "css": {
@@ -294,7 +288,7 @@
             "assets/zh-BLvEAXaM.js"
           ],
           "sync": [
-            "assets/lifecycle-theme-DBRf2K_c.js"
+            "assets/lifecycle-theme-rSG2OyHF.js"
           ]
         },
         "css": {
@@ -316,15 +310,15 @@
       "exposeAssets": {
         "js": {
           "async": [
-            "assets/LayoutElements-n0gl2Cuq.js",
-            "assets/NavigationElements-DIUUg2yN.js",
-            "assets/FormElements-BvEjnIv8.js",
-            "assets/ActionElements-BnQJip3m.js",
-            "assets/FeedbackElements-CFjzTC4e.js",
-            "assets/DataDisplayElements-BKSqsr-H.js",
-            "assets/OverlayElements-CdpT9Ur0.js",
-            "assets/MediaElements-ezGpYzFs.js",
-            "assets/DisclosureElements-CVrC0YLq.js",
+            "assets/LayoutElements-xKE3jr6S.js",
+            "assets/NavigationElements-CMzhHrB-.js",
+            "assets/FormElements-eptmkCKB.js",
+            "assets/ActionElements-BX5rV_k2.js",
+            "assets/FeedbackElements-ClNebK4t.js",
+            "assets/DataDisplayElements-OvyBt_7c.js",
+            "assets/OverlayElements-BcgPcob_.js",
+            "assets/MediaElements-BkSJbjBl.js",
+            "assets/DisclosureElements-nIcYoQi4.js",
             "assets/ar-DHEDwF2j.js",
             "assets/bn-BIfP88eS.js",
             "assets/cs-CWPaus97.js",
@@ -363,7 +357,7 @@
             "assets/zh-DEzQBzHR.js"
           ],
           "sync": [
-            "assets/lifecycle-uikit-DimMVySi.js"
+            "assets/lifecycle-uikit-BpIU2pQT.js"
           ]
         },
         "css": {

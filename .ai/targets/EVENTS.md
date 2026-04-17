@@ -73,8 +73,8 @@
   grep -R "getState.*app\\.|getState\\(\\).*\\." src "*Actions.ts"
 
 ## MFE RUNTIME ISOLATION
-- Each MFE gets its own isolated instances of @cyberfabric/react even when listed in sharedDependencies.
-- `singleton: false` (the default for MfeHandlerMF) causes the federation runtime to evaluate the shared code independently per MFE. Shared code is downloaded once but evaluated per MFE, so module-level singletons (eventBus, apiRegistry, store) are independent per MFE.
+- Each MFE gets its own isolated instances of shared dependencies (react, @cyberfabric/react, etc.) via blob URL evaluation.
+- Shared dep source text is fetched once per `name@version` and converted to fresh blob URLs per load, so module-level singletons (eventBus, apiRegistry, store) are independent per MFE.
 - This gives each MFE its own isolated eventBus, apiRegistry, and store singletons.
 - MFE-internal events never cross runtime boundaries.
 - Host eventBus and MFE eventBus are completely separate instances.

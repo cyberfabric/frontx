@@ -90,7 +90,6 @@ interface RawManifest {
 
 /** Enriched mfe.json shape produced by the frontx-mf-gts Vite plugin. */
 interface RawEnrichedMfeJson {
-  sharedDependencies?: string[];
   manifest: RawManifest;
   entries: RawEntry[];
   extensions: RawExtension[];

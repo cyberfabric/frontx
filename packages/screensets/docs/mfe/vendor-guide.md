@@ -129,23 +129,22 @@ For Module Federation deployments, use `MfeEntryMF` which extends `MfeEntry` wit
 import type { MfeEntryMF, MfManifest } from '@cyberfabric/screensets';
 
 // Define the manifest (can be inline or referenced)
+// MfManifest is enriched at build time by the frontx-mf-gts plugin.
+// Shared deps are derived automatically from rollupOptions.external.
 const manifest: MfManifest = {
   id: 'gts.hai3.mfes.mfe.mf_manifest.v1~acme.analytics.manifest.v1',
-  remoteEntry: 'https://cdn.acme.com/analytics-mfe/remoteEntry.js',
-  remoteName: 'analyticsWidget',
-  sharedDependencies: [
-    {
-      packageName: 'react',
-      version: '^18.2.0',
-      singleton: false, // Instance isolation (default)
-      requiredVersion: '18.2.0',
-    },
-    {
-      packageName: 'react-dom',
-      version: '^18.2.0',
-      singleton: false, // Instance isolation (default)
-      requiredVersion: '18.2.0',
-    },
+  name: 'analyticsWidget',
+  metaData: {
+    name: 'analyticsWidget',
+    type: 'app',
+    buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsWidget' },
+    remoteEntry: { name: 'remoteEntry.js', path: '', type: 'module' },
+    globalName: 'analyticsWidget',
+    publicPath: 'https://cdn.acme.com/analytics-mfe/',
+  },
+  shared: [
+    { name: 'react', version: '19.2.4', chunkPath: 'shared/react.js', unwrapKey: null },
+    { name: 'react-dom', version: '19.2.4', chunkPath: 'shared/react-dom.js', unwrapKey: null },
   ],
 };
 

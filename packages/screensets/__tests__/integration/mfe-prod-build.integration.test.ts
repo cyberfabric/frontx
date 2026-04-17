@@ -302,9 +302,10 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
 
     expect(mfeJson.manifest.shared.length).toBeGreaterThan(0);
     for (const dep of mfeJson.manifest.shared) {
-      // chunkPath points to the standalone ESM (e.g., /shared/react.js)
+      // chunkPath points to the standalone ESM, MFE-relative (e.g., shared/react.js).
+      // Handler resolves it against manifest.metaData.publicPath at runtime.
       expect(typeof dep.chunkPath).toBe('string');
-      expect(dep.chunkPath).toMatch(/^\/shared\/.+\.js$/);
+      expect(dep.chunkPath).toMatch(/^shared\/.+\.js$/);
       // unwrapKey is null for default export
       expect(dep.unwrapKey).toBeNull();
     }

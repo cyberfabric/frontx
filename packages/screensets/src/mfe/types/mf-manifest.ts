@@ -30,9 +30,9 @@ export interface MfManifestAssets {
 
 /**
  * A single shared dependency entry from enriched mfe.json shared[].
- * Built at build time by the frontx-mf-gts Vite plugin from the
- * sharedDependencies list in mfe.json with resolved versions from
- * node_modules and host-relative chunkPath values.
+ * Built at build time by the frontx-mf-gts Vite plugin from
+ * rollupOptions.external with resolved versions from node_modules
+ * and MFE-relative chunkPath values.
  */
 export interface MfManifestShared {
   /** npm package name (e.g. 'react', '@cyberfabric/screensets'). */

@@ -371,24 +371,22 @@ export async function registerAnalyticsMfe(runtime: ScreensetsRegistry) {
   gtsPlugin.registerSchema(themePropertySchema);
   gtsPlugin.registerSchema(analyticsManifestSchema);
 
-  // Step 2: Define the manifest
+  // Step 2: Define the manifest (enriched at build time by frontx-mf-gts plugin;
+  // shared deps derived automatically from rollupOptions.external)
   const manifest: MfManifest = {
     id: TYPE_IDS.ANALYTICS_MANIFEST,
-    remoteEntry: 'https://cdn.acme.com/analytics-mfe/remoteEntry.js',
-    remoteName: 'analyticsWidget',
-    sharedDependencies: [
-      {
-        packageName: 'react',
-        version: '^18.2.0',
-        singleton: false, // Instance isolation (default)
-        requiredVersion: '18.2.0',
-      },
-      {
-        packageName: 'react-dom',
-        version: '^18.2.0',
-        singleton: false, // Instance isolation (default)
-        requiredVersion: '18.2.0',
-      },
+    name: 'analyticsWidget',
+    metaData: {
+      name: 'analyticsWidget',
+      type: 'app',
+      buildInfo: { buildVersion: '1.0.0', buildName: 'analyticsWidget' },
+      remoteEntry: { name: 'remoteEntry.js', path: '', type: 'module' },
+      globalName: 'analyticsWidget',
+      publicPath: 'https://cdn.acme.com/analytics-mfe/',
+    },
+    shared: [
+      { name: 'react', version: '19.2.4', chunkPath: 'shared/react.js', unwrapKey: null },
+      { name: 'react-dom', version: '19.2.4', chunkPath: 'shared/react-dom.js', unwrapKey: null },
     ],
   };
 

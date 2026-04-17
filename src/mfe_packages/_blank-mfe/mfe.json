@@ -1,16 +1,4 @@
 {
-  "sharedDependencies": [
-    "react",
-    "react-dom",
-    "@cyberfabric/react",
-    "@cyberfabric/framework",
-    "@cyberfabric/state",
-    "@cyberfabric/screensets",
-    "@cyberfabric/api",
-    "@cyberfabric/i18n",
-    "@reduxjs/toolkit",
-    "react-redux"
-  ],
   "manifest": {
     "id": "gts.hai3.mfes.mfe.mf_manifest.v1~hai3.blank.mfe.manifest.v1",
     "remoteEntry": "http://localhost:3099/assets/remoteEntry.js",
@@ -56,7 +44,7 @@
       },
       {
         "name": "@cyberfabric/state",
-        "version": "0.2.0-alpha.0",
+        "version": "0.2.0-alpha.1",
         "chunkPath": "shared/cyberfabric-state.js",
         "unwrapKey": null
       },
@@ -68,7 +56,7 @@
       },
       {
         "name": "@cyberfabric/api",
-        "version": "0.2.0-alpha.0",
+        "version": "0.2.0-alpha.1",
         "chunkPath": "shared/cyberfabric-api.js",
         "unwrapKey": null
       },
@@ -76,6 +64,12 @@
         "name": "@cyberfabric/i18n",
         "version": "0.2.0-alpha.0",
         "chunkPath": "shared/cyberfabric-i18n.js",
+        "unwrapKey": null
+      },
+      {
+        "name": "@tanstack/react-query",
+        "version": "5.99.0",
+        "chunkPath": "shared/tanstack-react-query.js",
         "unwrapKey": null
       },
       {
@@ -146,7 +140,7 @@
             "assets/zh-D5EVqBpG.js"
           ],
           "sync": [
-            "assets/lifecycle-C3jclvV4.js"
+            "assets/lifecycle-BY_Pfml1.js"
           ]
         },
         "css": {

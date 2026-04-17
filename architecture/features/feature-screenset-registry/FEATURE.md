@@ -420,7 +420,7 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
     - `name` — package name (e.g., `"react"`)
     - `version` — actual installed version (e.g., `"19.0.0"`)
     - `requiredVersion` — semver range (e.g., `"^19.0.0"`)
-    - `chunkPath` — host-relative URL to the standalone ESM for this dependency (e.g., `"/shared/react.js"`); set by the `frontx-mf-gts` plugin so all MFEs resolve to the same URL for `sourceTextCache` deduplication
+    - `chunkPath` — MFE-relative path to the standalone ESM for this dependency (e.g., `"shared/react.js"`); set by the `frontx-mf-gts` plugin; the handler resolves against `publicPath` and deduplicates via `sharedDepTextCache` keyed by `name@version`
     - `unwrapKey` — the export key to access the module inside the standalone ESM (e.g., `"react"`); `null` means `'default'` is used; determined by the `frontx-mf-gts` plugin from the package's export structure
     - `assets` — `{ js: { sync: string[], async: string[] }, css: { sync: string[], async: string[] } }` — chunk filenames
   - Fields present in `mf-manifest.json` but excluded from `MfManifest`: `exposes` (per-module data — split into `MfeEntryMF.exposeAssets` at registration time), `remotes` (not used by the handler), `singleton` (meaningless under blob URL isolation), `hash`, `fallback`/`fallbackName`/`fallbackType`
@@ -472,9 +472,9 @@ All registration and dispatch paths perform GTS-native validation:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
 
-`mfe.json` is the human-authored, environment-independent MFE configuration file. It contains entries (without `exposeAssets`), extensions, an optional `schemas` array of inline GTS JSON Schema definitions, and a `sharedDependencies` array of shared dependency package names. Before build-time enrichment, it has no `manifest` section, no URLs, and no chunk paths.
+`mfe.json` is the human-authored, environment-independent MFE configuration file. It contains entries (without `exposeAssets`), extensions, and an optional `schemas` array of inline GTS JSON Schema definitions. Before build-time enrichment, it has no `manifest` section, no URLs, and no chunk paths.
 
-The `sharedDependencies` array declares which packages this MFE shares with the host (e.g., `["react", "react-dom", "react-dom/client"]`). The `frontx-mf-gts` Vite plugin reads these names, builds standalone ESM modules for each from `node_modules` via esbuild, and enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` entries (with `chunkPath`, `version`, `unwrapKey` per dep), and `entries[].exposeAssets`. It errors if a declared name cannot be resolved from `node_modules`.
+The `frontx-mf-gts` Vite plugin derives the shared dep list from `rollupOptions.external` in the resolved Vite config, builds standalone ESM modules for each from `node_modules` via esbuild, and enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` entries (with `chunkPath`, `version`, `unwrapKey` per dep), and `entries[].exposeAssets`.
 
 After enrichment, `mfe.json` is the complete self-contained contract per MFE. The temporary generation script aggregates pointers to enriched `mfe.json` files and produces `mfe.generated.json` with environment-specific `--base-url`. The bootstrap loader imports `mfe.generated.json`, registers the `MfManifest` GTS entity, iterates `schemas` (if present) calling `typeSystem.registerSchema(schema)` for each, then registers entries and extensions. Deduplication is automatic because GTS overwrites any schema with the same `$id`. When a backend API is ready, the static import of `mfe.generated.json` is replaced with a fetch call — same `mfe.json` shape, different transport.
 
