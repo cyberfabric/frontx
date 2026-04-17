@@ -94,7 +94,7 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 | Reducer | Pure function that updates Redux state based on a ReducerPayload. Exported as standalone functions, NOT via `.actions` property. |
 | Screenset | Vertical slice: group of related screens + translations + API services + state, self-contained and deployable independently. |
 | Extension / MFE Entry | Loaded microfrontend (via Module Federation) bound to an extension domain; exposes actions and properties for host app communication. |
-| Extension Domain | Contract definition for a category of extensions: shared properties, actions host can send, actions extensions can send, lifecycle. |
+| Extension Domain | Contract definition for a category of extensions: shared properties, action types the domain can receive and execute, action types an extension's entry must support to be injectable, lifecycle. |
 | Plugin | Framework-level feature (screensets, themes, i18n, routing, effects, microfrontends, layout) composed via `.use()` on `createHAI3` builder. |
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
 | Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel). Only loaded in `import.meta.env.DEV`. |

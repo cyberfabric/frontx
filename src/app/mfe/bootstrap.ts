@@ -62,11 +62,23 @@ export async function bootstrapMFE(
 
   for (const config of manifests) {
     // @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
-    // Register MFE-carried schemas (custom actions, properties) before entries so GTS
-    // can validate entry references to these schemas at registration time.
+    // Scoped schema registration: only register schemas whose $id matches an action ID
+    // declared by at least one entry in this package. Orphan schemas (not referenced by
+    // any entry's `actions` or `domainActions`) are skipped — they cannot be dispatched
+    // safely because no entry opts in to send or receive them at runtime.
     if (config.schemas) {
+      const declaredActionIds = new Set<string>();
+      for (const entry of config.entries) {
+        for (const actionId of entry.actions) declaredActionIds.add(actionId);
+        for (const actionId of entry.domainActions) declaredActionIds.add(actionId);
+      }
+
       for (const schema of config.schemas) {
-        screensetsRegistry.typeSystem.registerSchema(schema);
+        if (!schema.$id) continue;
+        const actionId = schema.$id.replace(/^gts:\/\//, '');
+        if (declaredActionIds.has(actionId)) {
+          screensetsRegistry.typeSystem.registerSchema(schema);
+        }
       }
     }
     // @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1

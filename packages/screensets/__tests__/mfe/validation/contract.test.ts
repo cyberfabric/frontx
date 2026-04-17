@@ -23,15 +23,17 @@ describe('Contract Matching Validation', () => {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: ['user', 'theme'],
         optionalProperties: ['locale'],
-        actions: ['update_data', 'request_navigation'],
-        domainActions: ['load_ext', 'unload_ext', 'refresh'],
+        // Entry can receive the actions the domain requires (plus any extras it opts into)
+        actions: ['update_data', 'request_navigation', 'log_event'],
+        // Entry requires only a subset of the actions the domain supports
+        domainActions: ['load_ext', 'unload_ext'],
       };
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1~',
         sharedProperties: ['user', 'theme', 'locale', 'timezone'],
         actions: ['load_ext', 'unload_ext', 'refresh'],
-        extensionsActions: ['update_data', 'request_navigation', 'log_event'],
+        extensionsActions: ['update_data', 'request_navigation'],
         extensionsTypeId: 'gts.hai3.mfes.ext.extension.v1~acme.test.ext.custom_extension.v1~',
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -71,11 +73,11 @@ describe('Contract Matching Validation', () => {
       expect(result.errors[0].details).toContain('not provided by domain');
     });
 
-    it('should fail when entry emits an action not accepted by domain', () => {
+    it('should fail when domain requires an action the entry does not support', () => {
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: ['user'],
-        actions: ['update_data', 'delete_data'],
+        actions: ['update_data'],
         domainActions: ['load_ext'],
       };
 
@@ -83,7 +85,8 @@ describe('Contract Matching Validation', () => {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1~',
         sharedProperties: ['user'],
         actions: ['load_ext'],
-        extensionsActions: ['update_data'],
+        // Domain requires two action types from entries, but entry only supports one
+        extensionsActions: ['update_data', 'delete_data'],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
         extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -95,21 +98,22 @@ describe('Contract Matching Validation', () => {
       expect(result.errors).toHaveLength(1);
       expect(result.errors[0].type).toBe('unsupported_action');
       expect(result.errors[0].details).toContain('delete_data');
-      expect(result.errors[0].details).toContain('not accepted by domain');
+      expect(result.errors[0].details).toContain('entry does not support');
     });
 
-    it('should fail when domain emits an action not handled by entry', () => {
+    it('should fail when entry requires a domain action the domain does not support', () => {
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: ['user'],
         actions: ['update_data'],
-        domainActions: ['load_ext'],
+        // Entry requires three domain actions; domain only supports one
+        domainActions: ['load_ext', 'refresh', 'configure'],
       };
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1~',
         sharedProperties: ['user'],
-        actions: ['load_ext', 'refresh', 'configure'],
+        actions: ['load_ext'],
         extensionsActions: ['update_data'],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -154,16 +158,19 @@ describe('Contract Matching Validation', () => {
     it('should collect multiple errors when multiple rules are violated', () => {
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
+        // Entry requires 'permissions' which domain does not provide (rule 1 violation)
         requiredProperties: ['user', 'permissions'],
-        actions: ['update_data', 'delete_data'],
-        domainActions: ['load_ext'],
+        // Entry supports 'update_data' but not 'delete_data' required by domain (rule 2 violation)
+        actions: ['update_data'],
+        // Entry requires 'refresh' which domain does not support (rule 3 violation)
+        domainActions: ['load_ext', 'refresh'],
       };
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.sidebar.v1~',
         sharedProperties: ['user'],
-        actions: ['load_ext', 'refresh'],
-        extensionsActions: ['update_data'],
+        actions: ['load_ext'],
+        extensionsActions: ['update_data', 'delete_data'],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
         extensionsLifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -228,18 +235,19 @@ describe('Contract Matching Validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should fail validation when domain has infrastructure + custom actions but entry missing custom action', () => {
+    it('should fail validation when entry requires a custom domain action the domain does not support', () => {
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: [],
         actions: [],
-        domainActions: [],
+        // Entry requires 'custom_action_id' from domain, but domain does not support it
+        domainActions: ['custom_action_id'],
       };
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
         sharedProperties: [],
-        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, 'custom_action_id'],
+        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT],
         extensionsActions: [],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -254,7 +262,7 @@ describe('Contract Matching Validation', () => {
       expect(result.errors[0].details).toContain('custom_action_id');
     });
 
-    it('should pass validation when domain has infrastructure + custom actions and entry declares custom action', () => {
+    it('should pass validation when entry requires a custom domain action the domain supports', () => {
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: [],
@@ -278,18 +286,21 @@ describe('Contract Matching Validation', () => {
       expect(result.errors).toHaveLength(0);
     });
 
-    it('should exclude all three infrastructure actions (load_ext, mount_ext, unmount_ext) from rule 3', () => {
+    it('should defensively exempt infrastructure actions (load_ext, mount_ext, unmount_ext) from rule 3 even if entry.domainActions contains them', () => {
+      // entry.domainActions should never contain infrastructure actions (they are
+      // framework-wired onto domains, not entry-declared). The exemption in the
+      // rule 3 loop keeps validation stable even if they leak in.
       const entry: MfeEntry = {
         id: 'gts.acme.mfe.widget.v1~',
         requiredProperties: [],
         actions: [],
-        domainActions: [],
+        domainActions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
       };
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~hai3.layout.screen.v1~',
         sharedProperties: [],
-        actions: [HAI3_ACTION_LOAD_EXT, HAI3_ACTION_MOUNT_EXT, HAI3_ACTION_UNMOUNT_EXT],
+        actions: [],
         extensionsActions: [],
         defaultActionTimeout: 5000,
         lifecycleStages: ['init', 'activated', 'deactivated', 'destroyed'],
@@ -343,11 +354,11 @@ describe('Contract Matching Validation', () => {
           },
           {
             type: 'unsupported_action' as const,
-            details: "MFE may send action 'delete_data' not accepted by domain",
+            details: "Domain requires action 'delete_data' but entry does not support it",
           },
           {
             type: 'unhandled_domain_action' as const,
-            details: "Action 'refresh' may target MFE but MFE doesn't handle it",
+            details: "Entry requires domain action 'refresh' but domain does not support it",
           },
         ],
       };

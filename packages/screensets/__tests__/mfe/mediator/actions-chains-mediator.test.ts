@@ -14,10 +14,15 @@
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
-import type { ActionsChain, ExtensionDomain } from '../../../src/mfe/types';
+import type { ActionsChain, ExtensionDomain, MfeEntry } from '../../../src/mfe/types';
 import { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
 import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import {
+  HAI3_ACTION_LOAD_EXT,
+  HAI3_ACTION_MOUNT_EXT,
+  HAI3_ACTION_UNMOUNT_EXT,
+} from '../../../src/mfe/constants';
 import { MockContainerProvider } from '../test-utils';
 
 /**
@@ -135,14 +140,23 @@ describe('ActionsChainsMediator - Phase 9', () => {
   let mediator: DefaultActionsChainsMediator;
   let registry: DefaultScreensetsRegistry;
   let mockContainerProvider: MockContainerProvider;
+  /**
+   * Stub store for MfeEntry lookup used by runtime action declaration validation.
+   * Tests that need entry-declaration checks populate this map with their target
+   * extension's entry. Tests that don't need it leave it empty, so the callback
+   * returns undefined and the check is a no-op — preserving legacy test semantics.
+   */
+  let extensionEntries: Map<string, MfeEntry>;
 
   beforeEach(() => {
     plugin = createMockPlugin();
     registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
     mockContainerProvider = new MockContainerProvider();
+    extensionEntries = new Map();
     mediator = new DefaultActionsChainsMediator({
       typeSystem: plugin,
       getDomainState: (domainId) => registry.getDomainState(domainId),
+      getExtensionEntry: (extensionId) => extensionEntries.get(extensionId),
     });
   });
 
@@ -465,6 +479,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
       const failingMediator = new DefaultActionsChainsMediator({
         typeSystem: failingPlugin,
         getDomainState: (domainId) => (failingRegistry as DefaultScreensetsRegistry).getDomainState(domainId),
+        getExtensionEntry: () => undefined,
       });
 
       const chain: ActionsChain = {
@@ -944,5 +959,135 @@ describe('ActionsChainsMediator - Phase 9', () => {
       expect(options).toHaveProperty('chainTimeout');
       expect(options).not.toHaveProperty('actionTimeout');
     });
+  });
+
+  // @cpt-FEATURE:feature-screenset-registry:inst-validate-entry-declaration
+  describe('Runtime entry declaration validation', () => {
+    const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~test.entry-validation.domain.v1~';
+    const EXTENSION_ID = 'gts.hai3.mfes.ext.extension.v1~test.entry-validation.ext.v1~test.entry-validation.ext.inst.v1';
+    const ENTRY_ID = 'gts.hai3.mfes.mfe.entry.v1~test.entry-validation.entry.v1~';
+    const DECLARED_ACTION = 'gts.hai3.mfes.comm.action.v1~test.declared-action.v1~';
+    const UNDECLARED_ACTION = 'gts.hai3.mfes.comm.action.v1~test.undeclared-action.v1~';
+
+    function registerEntryValidationDomain(): void {
+      const domain: ExtensionDomain = {
+        id: DOMAIN_ID,
+        sharedProperties: [],
+        actions: [],
+        extensionsActions: [],
+        defaultActionTimeout: 5000,
+        lifecycleStages: [],
+        extensionsLifecycleStages: [],
+      };
+      registry.registerDomain(domain, mockContainerProvider);
+    }
+
+    it('throws when action type is not declared in target entry actions', async () => {
+      registerEntryValidationDomain();
+
+      const entry: MfeEntry = {
+        id: ENTRY_ID,
+        requiredProperties: [],
+        actions: [],
+        domainActions: [],
+      };
+      extensionEntries.set(EXTENSION_ID, entry);
+
+      const handler = mockHandler();
+      mediator.registerHandler(EXTENSION_ID, UNDECLARED_ACTION, handler, DOMAIN_ID);
+
+      const result = await mediator.executeActionsChain({
+        action: { type: UNDECLARED_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(false);
+      expect(result.error).toContain(UNDECLARED_ACTION);
+      expect(result.error).toContain(ENTRY_ID);
+      expect(result.error).toContain('not declared');
+      expect(handler.mock).not.toHaveBeenCalled();
+    });
+
+    it('throws when action type appears only in target entry domainActions (not in actions)', async () => {
+      // entry.domainActions describes actions the entry REQUIRES from the parent
+      // domain, not actions the entry can receive. The runtime check must not
+      // accept a dispatched action type just because it appears in domainActions.
+      registerEntryValidationDomain();
+
+      const entry: MfeEntry = {
+        id: ENTRY_ID,
+        requiredProperties: [],
+        actions: [],
+        domainActions: [UNDECLARED_ACTION],
+      };
+      extensionEntries.set(EXTENSION_ID, entry);
+
+      const handler = mockHandler();
+      mediator.registerHandler(EXTENSION_ID, UNDECLARED_ACTION, handler, DOMAIN_ID);
+
+      const result = await mediator.executeActionsChain({
+        action: { type: UNDECLARED_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(false);
+      expect(result.error).toContain(UNDECLARED_ACTION);
+      expect(result.error).toContain(ENTRY_ID);
+      expect(result.error).toContain('not declared');
+      expect(handler.mock).not.toHaveBeenCalled();
+    });
+
+    it('succeeds when action type is declared in target entry actions', async () => {
+      registerEntryValidationDomain();
+
+      const entry: MfeEntry = {
+        id: ENTRY_ID,
+        requiredProperties: [],
+        actions: [DECLARED_ACTION],
+        domainActions: [],
+      };
+      extensionEntries.set(EXTENSION_ID, entry);
+
+      const handler = mockHandler();
+      mediator.registerHandler(EXTENSION_ID, DECLARED_ACTION, handler, DOMAIN_ID);
+
+      const result = await mediator.executeActionsChain({
+        action: { type: DECLARED_ACTION, target: EXTENSION_ID },
+      });
+
+      expect(result.completed).toBe(true);
+      expect(result.path).toEqual([DECLARED_ACTION]);
+      expect(handler.mock).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([
+      ['HAI3_ACTION_LOAD_EXT', HAI3_ACTION_LOAD_EXT],
+      ['HAI3_ACTION_MOUNT_EXT', HAI3_ACTION_MOUNT_EXT],
+      ['HAI3_ACTION_UNMOUNT_EXT', HAI3_ACTION_UNMOUNT_EXT],
+    ])(
+      'exempts infrastructure lifecycle action %s from entry declaration validation',
+      async (_label, lifecycleActionType) => {
+        registerEntryValidationDomain();
+
+        // Even if an entry was wired to this extension ID without declaring the
+        // lifecycle action, the validation must still skip — lifecycle actions
+        // target domains and are never opted-in by entries.
+        extensionEntries.set(EXTENSION_ID, {
+          id: ENTRY_ID,
+          requiredProperties: [],
+          actions: [],
+          domainActions: [],
+        });
+
+        const handler = mockHandler();
+        mediator.registerHandler(DOMAIN_ID, lifecycleActionType, handler);
+
+        const result = await mediator.executeActionsChain({
+          action: { type: lifecycleActionType, target: DOMAIN_ID },
+        });
+
+        expect(result.completed).toBe(true);
+        expect(result.path).toEqual([lifecycleActionType]);
+        expect(handler.mock).toHaveBeenCalledTimes(1);
+      }
+    );
   });
 });

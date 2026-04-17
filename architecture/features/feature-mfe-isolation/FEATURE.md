@@ -1,6 +1,6 @@
 # Feature: MFE Blob URL Isolation
 
-<!-- version: 1.8 -->
+<!-- version: 1.9 -->
 
 
 <!-- toc -->
@@ -518,11 +518,9 @@ Key fields set by the `frontx-mf-gts` plugin (from the handler's perspective):
 
 `ActionHandler` is an abstract class: `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>`. It is the only handler contract — no `ActionHandlerFn` function alias, no `ActionHandler` interface. The MFE subclasses `ActionHandler` for each action type it wishes to handle; the system manages routing and lifecycle. Handlers are invoked by the mediator via `handler.handleAction(actionTypeId, payload)` when an actions chain targets this extension.
 
-**`domainActions` field semantics**: The `domainActions` array on `MfeEntry` declares **all action types this entry can receive**, regardless of delivery path. The field name is a legacy from the era when only domain-level delivery existed, but it now covers both paths:
-- **Domain-level delivery** — the domain's per-action-type `ActionHandler` instances route lifecycle actions to all mounted extensions in the domain
-- **Extension-targeted delivery** — the mediator calls `handler.handleAction(actionTypeId, payload)` directly on the registered `ActionHandler` instance when `action.target` equals the extension instance ID
+**Entry action field semantics**: The `actions` array on `MfeEntry` declares the action types this entry is capable of **receiving and executing** — the mediator dispatches an extension-targeted action to the entry only when `action.type` appears in this array. Lifecycle actions targeting the domain are routed by the domain's per-action-type `ActionHandler` instances to all mounted extensions independently of `entry.actions`. The `domainActions` array on `MfeEntry` declares the action types the **parent domain must support** for this entry to be injectable — it is consulted by contract validation at registration time (Rule 3: `entry.domainActions ⊆ domain.actions`, with infrastructure lifecycle actions exempt), not at dispatch time.
 
-Action target contract enforcement is handled by GTS schema validation: each action schema constrains its `target` field via `x-gts-ref`. Lifecycle action schemas restrict `target` to domain IDs only; custom MFE action schemas restrict `target` to specific extension IDs. The mediator validates each action instance against its schema before routing — invalid targets are rejected by the type system. No runtime `includes()` checks are needed.
+Action target contract enforcement is two-layered: (1) **GTS schema validation** — each action schema constrains its `target` field via `x-gts-ref`; lifecycle action schemas restrict `target` to domain IDs only; custom MFE action schemas restrict `target` to specific extension IDs; the mediator validates each action instance against its schema before routing, and invalid targets are rejected by the type system. (2) **Runtime entry declaration validation** — before dispatching an extension-targeted action, the mediator confirms that the target entry's `actions` array contains the action type; undeclared actions fail the chain with an error naming the action type and entry ID. This ensures an entry receives only the actions it explicitly opts into, even when the enclosing domain supports a broader action set. Infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) target domains, not extensions, and are exempt from this runtime check. GTS alone is NOT sufficient — schema validation enforces schema/target shape; runtime entry validation enforces per-entry opt-in.
 
 **Implements**:
 - `cpt-frontx-flow-screenset-registry-register-extension-handler`

@@ -11,8 +11,9 @@
  */
 
 import type { TypeSystemPlugin } from '../plugins/types';
-import type { ActionsChain, ExtensionDomain } from '../types';
+import type { ActionsChain, ExtensionDomain, MfeEntry } from '../types';
 import type { ExtensionDomainState } from '../runtime/extension-manager';
+import { INFRASTRUCTURE_LIFECYCLE_ACTIONS } from '../validation/contract';
 import {
   ActionsChainsMediator,
   ActionHandler,
@@ -50,6 +51,14 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   private readonly getDomainState: (domainId: string) => ExtensionDomainState | undefined;
 
   /**
+   * Callback to look up the MfeEntry of a registered extension by its ID.
+   * Injected during construction; used by runtime action declaration validation
+   * to verify that a dispatched action.type is declared in the target entry's
+   * `actions` (the action types the entry can receive and execute).
+   */
+  private readonly getExtensionEntry: (extensionId: string) => MfeEntry | undefined;
+
+  /**
    * Unified handler map: targetId → (actionTypeId → handler).
    * Used for both domain-side and extension-side handlers.
    */
@@ -80,10 +89,12 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
   constructor(config: {
     typeSystem: TypeSystemPlugin;
     getDomainState: (domainId: string) => ExtensionDomainState | undefined;
+    getExtensionEntry: (extensionId: string) => MfeEntry | undefined;
   }) {
     super();
     this.typeSystem = config.typeSystem;
     this.getDomainState = config.getDomainState;
+    this.getExtensionEntry = config.getExtensionEntry;
   }
 
   /**
@@ -165,14 +176,29 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       throw new Error(`Action validation failed: ${errorMsg}`);
     }
 
-    // @cpt-begin:feature-screenset-registry:inst-validate-extension-contract
-    // Action target contract validation is handled entirely by GTS schema validation above.
-    // Each action schema constrains its `target` field via x-gts-ref:
-    // - Lifecycle actions (load_ext, mount_ext, unmount_ext): target → domain IDs only
-    // - Custom MFE actions (e.g. refresh_profile): target → specific extension ID
-    // GTS validates the action instance against its schema, rejecting invalid targets.
-    // No manual includes() checks needed — the type system IS the contract enforcement.
-    // @cpt-end:feature-screenset-registry:inst-validate-extension-contract
+    // @cpt-begin:feature-screenset-registry:inst-validate-entry-declaration
+    // Runtime entry declaration validation (second layer, after GTS schema validation).
+    // GTS alone enforces schema/target shape; this layer enforces per-entry opt-in:
+    // the target entry must declare the action.type in its `actions` — the set of
+    // action types the entry is capable of receiving and executing. `entry.domainActions`
+    // is a different contract (it names domain actions the entry REQUIRES from its
+    // parent domain, not actions the entry can receive) and is NOT consulted here.
+    // Infrastructure lifecycle actions target domains (not extensions) and are exempt.
+    // If the target has no registered entry (domain target, or unregistered extension
+    // in bypassed-registration test setups) the check is a no-op — domain targets are
+    // validated by GTS `x-gts-ref`, and unregistered targets surface via handler
+    // resolution later in executeAction.
+    if (!INFRASTRUCTURE_LIFECYCLE_ACTIONS.has(action.type)) {
+      const entry = this.getExtensionEntry(action.target);
+      if (entry) {
+        if (!entry.actions.includes(action.type)) {
+          throw new Error(
+            `Action type '${action.type}' is not declared by target entry '${entry.id}'`
+          );
+        }
+      }
+    }
+    // @cpt-end:feature-screenset-registry:inst-validate-entry-declaration
 
     // Execute the action with timeout
     try {
