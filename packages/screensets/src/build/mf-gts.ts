@@ -1,4 +1,6 @@
 // @cpt-FEATURE:frontx-mf-gts-plugin:p1
+// @cpt-dod:cpt-frontx-dod-mfe-isolation-mf-vite-plugin:p1
+// @cpt-flow:cpt-frontx-flow-mfe-isolation-build-v2:p2
 import * as esbuild from 'esbuild';
 import * as fs from 'node:fs';
 import { createRequire } from 'node:module';
@@ -284,8 +286,8 @@ class StandaloneEsmBuilder {
         fs.readFileSync(pkgJsonPath, 'utf-8')
       ) as SharedDepPackageJson;
       const allDeps = {
-        ...(pkg.dependencies ?? {}),
-        ...(pkg.peerDependencies ?? {}),
+        ...pkg.dependencies,
+        ...pkg.peerDependencies,
       };
       const externals = Object.keys(allDeps).filter((d) => sharedSet.has(d));
       return { name, externals };
@@ -409,9 +411,9 @@ class StandaloneEsmBuilder {
     let patched = false;
 
     for (const ext of externals) {
-      const escaped = ext.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const escaped = ext.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
       const requirePattern = new RegExp(
-        `__require\\(["']${escaped}["']\\)`,
+        String.raw`__require\(["']${escaped}["']\)`,
         'g'
       );
 
@@ -420,7 +422,7 @@ class StandaloneEsmBuilder {
       // Reset lastIndex after test()
       requirePattern.lastIndex = 0;
 
-      const varName = '__ext_' + ext.replace(/[^a-zA-Z0-9_]/g, '_');
+      const varName = '__ext_' + ext.replace(/\W/g, '_');
       importLines.push(`import ${varName} from "${ext}";`);
       source = source.replace(requirePattern, varName);
       patched = true;
@@ -542,7 +544,6 @@ export function frontxMfGts(): Plugin {
       }
     },
 
-    // @cpt-algo:cpt-frontx-algo-mfe-isolation-enrich-mfe-json:p1
     async closeBundle() {
       const distDir = path.join(packageRoot, 'dist');
       const mfeJsonPath = path.join(packageRoot, 'mfe.json');

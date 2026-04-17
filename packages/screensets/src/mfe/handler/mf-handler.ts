@@ -208,6 +208,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       sharedDepBlobUrls,
     };
 
+    // @cpt-begin:cpt-frontx-algo-mfe-isolation-parse-manifest-expose-metadata:p1:inst-1
     // Derive expose chunk filename directly from entry metadata — no regex needed.
     const exposeChunkFilename = exposeAssets.js.sync[0];
     if (!exposeChunkFilename) {
@@ -222,6 +223,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       ...exposeAssets.css.sync,
       ...exposeAssets.css.async,
     ];
+    // @cpt-end:cpt-frontx-algo-mfe-isolation-parse-manifest-expose-metadata:p1:inst-1
 
     // Build blob URL chain for the expose chunk and all its static deps.
     // Bare specifiers within those chunks are rewritten to shared dep blob URLs.
@@ -235,6 +237,12 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       );
     }
 
+    // Dynamic import of a blob URL is the core of per-MFE module isolation:
+    // each load produces a unique blob URL whose content is fetched, rewritten,
+    // and evaluated as a fresh ES module. This is not a code-injection vector —
+    // the blob content is the MFE's own expose chunk, built by `@module-
+    // federation/vite` at build time and rewritten to blob URLs at load time.
+    // eslint-disable-next-line no-unsanitized/method
     const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
 
     // The expose chunk exports the lifecycle object as `default`. Fall back to
@@ -389,22 +397,25 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private async buildSharedDepBlobUrls(
     manifest: MfManifest
   ): Promise<Map<string, string>> {
-    const blobUrls = new Map<string, string>();
+    const sources = await this.fetchSharedDepSources(manifest);
     const sharedNames = new Set(manifest.shared.map((d) => d.name));
+    return this.createBlobUrlsInDependencyOrder(sources, sharedNames);
+  }
 
-    // Pass 1: Fetch all source texts.
-    // sharedDepTextCache deduplicates by name@version across ALL MFEs —
-    // the first MFE to load react@19.2.4 fetches it from its server,
-    // all subsequent MFEs get a cache hit regardless of their server URL.
+  /**
+   * Fetch standalone ESM source text for each shared dep.
+   * sharedDepTextCache deduplicates by name@version across ALL MFEs — the
+   * first MFE to load react@19.2.4 fetches it from its server; subsequent MFEs
+   * get a cache hit regardless of their server URL.
+   */
+  private async fetchSharedDepSources(
+    manifest: MfManifest
+  ): Promise<Map<string, string>> {
     const sources = new Map<string, string>();
     for (const dep of manifest.shared) {
       const cacheKey = `${dep.name}@${dep.version}`;
       let textPromise = this.sharedDepTextCache.get(cacheKey);
       if (textPromise === undefined) {
-        // Resolve chunkPath against the MFE's publicPath to get an absolute URL.
-        // Each MFE serves its own standalone ESMs — the first fetch for a given
-        // name@version comes from whichever MFE loads first. Subsequent MFEs
-        // with the same name@version get a cache hit regardless of their server.
         const absoluteUrl = dep.chunkPath.startsWith('http')
           ? dep.chunkPath
           : manifest.metaData.publicPath + dep.chunkPath;
@@ -413,39 +424,60 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       }
       sources.set(dep.name, await textPromise);
     }
+    return sources;
+  }
 
-    // Pass 2: Create blob URLs in dependency order.
-    // Each iteration processes deps whose shared dep imports are all resolved.
-    // Leaf deps (no shared imports) are processed first; dependents follow.
+  /**
+   * Create blob URLs in dependency order: leaves first, dependents follow.
+   * Circular dependencies fall back to partial rewrites for the remaining set.
+   */
+  private createBlobUrlsInDependencyOrder(
+    sources: Map<string, string>,
+    sharedNames: Set<string>
+  ): Map<string, string> {
+    const blobUrls = new Map<string, string>();
     const pending = new Map(sources);
+
     while (pending.size > 0) {
       const before = pending.size;
       for (const [name, source] of pending) {
-        const allResolved = [...sharedNames].every(
-          (other) =>
-            other === name ||
-            blobUrls.has(other) ||
-            !MfeHandlerMF.sourceImports(source, other)
-        );
-        if (allResolved) {
-          const rewritten = this.rewriteBareSpecifiers(source, blobUrls);
-          const blob = new Blob([rewritten], { type: 'text/javascript' });
-          blobUrls.set(name, URL.createObjectURL(blob));
+        if (this.isDepReadyToResolve(name, source, sharedNames, blobUrls)) {
+          blobUrls.set(name, this.createRewrittenBlobUrl(source, blobUrls));
           pending.delete(name);
         }
       }
       if (pending.size === before) {
-        // No progress — circular dependency; process remaining with partial rewrites.
+        // Circular dependency: process remaining with partial rewrites.
         for (const [name, source] of pending) {
-          const rewritten = this.rewriteBareSpecifiers(source, blobUrls);
-          const blob = new Blob([rewritten], { type: 'text/javascript' });
-          blobUrls.set(name, URL.createObjectURL(blob));
+          blobUrls.set(name, this.createRewrittenBlobUrl(source, blobUrls));
         }
         break;
       }
     }
-
     return blobUrls;
+  }
+
+  private isDepReadyToResolve(
+    name: string,
+    source: string,
+    sharedNames: Set<string>,
+    blobUrls: Map<string, string>
+  ): boolean {
+    return [...sharedNames].every(
+      (other) =>
+        other === name ||
+        blobUrls.has(other) ||
+        !MfeHandlerMF.sourceImports(source, other)
+    );
+  }
+
+  private createRewrittenBlobUrl(
+    source: string,
+    blobUrls: Map<string, string>
+  ): string {
+    const rewritten = this.rewriteBareSpecifiers(source, blobUrls);
+    const blob = new Blob([rewritten], { type: 'text/javascript' });
+    return URL.createObjectURL(blob);
   }
 
   /**
@@ -453,8 +485,9 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
    * Detects both `from "pkg"` (static) and `import "pkg"` (side-effect) forms.
    */
   private static sourceImports(source: string, packageName: string): boolean {
-    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    return new RegExp(`(?:from|import)\\s*["']${escaped}["']`).test(source);
+    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
+    // eslint-disable-next-line security/detect-non-literal-regexp
+    return new RegExp(String.raw`(?:from|import)\s*["']${escaped}["']`).test(source);
   }
 
   /**
@@ -473,16 +506,18 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     packageName: string,
     replacement: string
   ): string {
-    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
     // Rewrite `from "pkg"` (static imports and re-exports)
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const fromPattern = new RegExp(
-      `(from\\s*["'])${escaped}(["'])`,
+      String.raw`(from\s*["'])${escaped}(["'])`,
       'g'
     );
     let result = source.replace(fromPattern, `$1${replacement}$2`);
     // Rewrite `import "pkg"` (side-effect imports, no `from` keyword)
+    // eslint-disable-next-line security/detect-non-literal-regexp
     const sideEffectPattern = new RegExp(
-      `(import\\s*["'])${escaped}(["'])`,
+      String.raw`(import\s*["'])${escaped}(["'])`,
       'g'
     );
     result = result.replace(sideEffectPattern, `$1${replacement}$2`);

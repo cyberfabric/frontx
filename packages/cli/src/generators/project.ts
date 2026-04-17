@@ -822,7 +822,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     tsx: '4.20.6',
     typescript: '5.4.2',
     'typescript-eslint': '8.32.1',
-    vite: '6.4.1',
+    vite: '6.4.2',
   };
 
   if (studio) {

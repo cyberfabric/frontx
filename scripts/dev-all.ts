@@ -115,7 +115,7 @@ function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
     );
     const combined = buildCommands.join(' && ');
 
-    const proc = spawn('sh', ['-c', combined], {
+    const proc = spawn('/bin/sh', ['-c', combined], {
       stdio: 'inherit',
       cwd: process.cwd(),
     });
@@ -137,10 +137,9 @@ function generateManifests(): Promise<void> {
   return new Promise((resolve, reject) => {
     console.log('📋 Generating MFE manifests...\n');
 
-    const proc = spawn('npm', ['run', 'generate:mfe-manifests'], {
+    const proc = spawn('/bin/sh', ['-c', 'npm run generate:mfe-manifests'], {
       stdio: 'inherit',
       cwd: process.cwd(),
-      shell: true,
     });
 
     proc.on('error', reject);
