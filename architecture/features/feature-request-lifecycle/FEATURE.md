@@ -369,7 +369,7 @@ The system **MUST** provide a `queryCache()` framework plugin at L2 that owns th
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-react-layer`
-- `cpt-frontx-fr-react-query-client-isolation`
+- `cpt-frontx-fr-react-query-client-sharing`
 
 **Covers (DESIGN)**:
 - `cpt-frontx-constraint-no-react-below-l3`

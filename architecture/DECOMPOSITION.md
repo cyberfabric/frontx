@@ -177,16 +177,17 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 
 - **Scope**:
   - Blob URL creation from fetched source text
-  - Import specifier rewriting (bare `@cyberfabric/*` → blob URLs)
-  - Source text caching after first fetch
+  - Bare specifier rewriting for all declared shared deps (`@cyberfabric/*` and third-party like `react`, `react-dom`, `@reduxjs/toolkit`) → per-load blob URLs
+  - Cross-runtime source text deduplication via `sharedDepTextCache` keyed by `name@version`
   - Recursive chain loading for transitive dependencies
   - Per-load import map management
-  - `@module-federation/vite` build plugin for MFE builds
+  - `@module-federation/vite` build plugin for expose chunk compilation only (MF 2.0 runtime not used; `shared: {}`)
+  - `frontx-mf-gts` Vite plugin building standalone ESM shared deps from `rollupOptions.external` via esbuild
   - Deterministic filenames without content hashes
   - Never-revoke policy for blob URLs
   - MFE internal dataflow (useReducer/useState, no host Redux)
-  - Per-load federation instance construction from manifest
-  - Generation script producing `mfe.generated.json` from `mf-manifest.json` and `mfe.json`
+  - Per-load blob URL chain construction from enriched `mfe.json` manifest (no `FederationHost` instance)
+  - Generation script aggregating pointers to enriched `mfe.json` files into `mfe.generated.json`
 
 - **Out of scope**:
   - CSS isolation via Shadow DOM (see `cpt-frontx-feature-react-bindings`)
@@ -226,10 +227,11 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-component-screensets` (blob loader subsystem)
 
 - **API**:
-  - `blobLoader.load()`
-  - `sourceCache.get()` / `.set()`
-  - `importRewriter.rewrite()`
-  - `@module-federation/vite` plugin configuration
+  - `MfeHandlerMF.load()` / `.mount()` / `.unmount()`
+  - `sharedDepTextCache` (keyed by `name@version`) and `sourceTextCache` (keyed by absolute URL)
+  - Bare specifier rewriting within the handler
+  - `@module-federation/vite` plugin configuration (expose chunks only)
+  - `frontx-mf-gts` Vite plugin configuration (standalone ESM builder + `mfe.json` enricher)
 
 - **Sequences**:
 
