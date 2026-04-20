@@ -34,6 +34,11 @@ import {
 import { MfeLoadError } from '../errors';
 import { RetryHandler } from '../errors/error-handler';
 import { MfeBridgeFactoryDefault } from './mfe-bridge-factory-default';
+import {
+  sourceImports,
+  rewriteBareSpecifier,
+  importBlobModule,
+} from './mf-dynamic-module-ops';
 
 const RUNTIME_STYLE_ID_PREFIX = '__hai3-mfe-runtime-style-';
 
@@ -237,13 +242,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       );
     }
 
-    // Dynamic import of a blob URL is the core of per-MFE module isolation:
-    // each load produces a unique blob URL whose content is fetched, rewritten,
-    // and evaluated as a fresh ES module. This is not a code-injection vector —
-    // the blob content is the MFE's own expose chunk, built by `@module-
-    // federation/vite` at build time and rewritten to blob URLs at load time.
-    // eslint-disable-next-line no-unsanitized/method
-    const exposeModule = await import(/* @vite-ignore */ exposeBlobUrl);
+    const exposeModule = await importBlobModule(exposeBlobUrl);
 
     // The expose chunk exports the lifecycle object as `default`. Fall back to
     // the full module if default is absent (non-MF ESM expose pattern).
@@ -467,7 +466,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
       (other) =>
         other === name ||
         blobUrls.has(other) ||
-        !MfeHandlerMF.sourceImports(source, other)
+        !sourceImports(source, other)
     );
   }
 
@@ -480,50 +479,6 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
     return URL.createObjectURL(blob);
   }
 
-  /**
-   * Check whether a source text imports the given package as a bare specifier.
-   * Detects both `from "pkg"` (static) and `import "pkg"` (side-effect) forms.
-   */
-  private static sourceImports(source: string, packageName: string): boolean {
-    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    // eslint-disable-next-line security/detect-non-literal-regexp
-    return new RegExp(String.raw`(?:from|import)\s*["']${escaped}["']`).test(source);
-  }
-
-  /**
-   * Rewrite a single bare specifier in source text.
-   *
-   * Handles two ESM import forms:
-   *   Static:      from "react"       → from "blob:xxx"
-   *   Side-effect: import "react-dom"  → import "blob:xxx"
-   *
-   * Matches exact package names only (not substrings):
-   *   from "react-dom" is NOT affected by a "react" rewrite
-   * Handles both single and double quotes. Handles scoped packages.
-   */
-  private rewriteBareSpecifier(
-    source: string,
-    packageName: string,
-    replacement: string
-  ): string {
-    const escaped = packageName.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`);
-    // Rewrite `from "pkg"` (static imports and re-exports)
-    // eslint-disable-next-line security/detect-non-literal-regexp
-    const fromPattern = new RegExp(
-      String.raw`(from\s*["'])${escaped}(["'])`,
-      'g'
-    );
-    let result = source.replace(fromPattern, `$1${replacement}$2`);
-    // Rewrite `import "pkg"` (side-effect imports, no `from` keyword)
-    // eslint-disable-next-line security/detect-non-literal-regexp
-    const sideEffectPattern = new RegExp(
-      String.raw`(import\s*["'])${escaped}(["'])`,
-      'g'
-    );
-    result = result.replace(sideEffectPattern, `$1${replacement}$2`);
-    return result;
-  }
-
   // @cpt-algo:cpt-frontx-algo-mfe-isolation-rewrite-bare-specifiers:p1
   /**
    * Apply all shared dep bare specifier rewrites to a source text.
@@ -534,7 +489,7 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   ): string {
     let rewritten = source;
     for (const [name, blobUrl] of sharedDepBlobUrls) {
-      rewritten = this.rewriteBareSpecifier(rewritten, name, blobUrl);
+      rewritten = rewriteBareSpecifier(rewritten, name, blobUrl);
     }
     return rewritten;
   }

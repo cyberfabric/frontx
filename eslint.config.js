@@ -451,4 +451,15 @@ export default [
       'local/domain-event-format': 'error',
     },
   },
+
+  // Trust kernel: files excluded from Codacy security scanning must satisfy
+  // strict safety guardrails (required JSDoc `@safety-reviewed` / `@why`
+  // tags on every export, no module-level state, no unsafe imports).
+  // Adding a file here requires coordinated update to `.codacy.yaml`.
+  {
+    files: ['packages/screensets/src/mfe/handler/mf-dynamic-module-ops.ts'],
+    rules: {
+      'local/trusted-patterns-file': 'error',
+    },
+  },
 ];

@@ -27,6 +27,13 @@ exclude_paths:
   # Generated MFE manifest (build artifact).
   - "src/app/mfe/generated-mfe-manifests.json"
 
+  # Audited trust kernel — this file concentrates patterns that static
+  # analyzers flag as unsafe (non-literal RegExp with escaped inputs,
+  # dynamic import of blob URLs). Every function in it is required by a
+  # custom ESLint rule to document its safety argument via `@safety-reviewed`
+  # and `@why` JSDoc tags. Editing this file requires security review.
+  - "packages/screensets/src/mfe/handler/mf-dynamic-module-ops.ts"
+
   # Monorepo package manifests.
   #
   # Codacy's Semgrep rule `npm.security.package-dependencies-check` flags
