@@ -736,6 +736,20 @@ describe('Bridge Implementation', () => {
           getExtensionEntry: () => undefined,
         });
 
+        // Register the screen-extension derived schema (profile/helloworld instance
+        // IDs resolve to this schema via their chained parent segment).
+        gtsPlugin.registerSchema({
+          $id: 'gts://gts.hai3.mfes.ext.extension.v1~hai3.screensets.layout.screen.v1~',
+          $schema: 'https://json-schema.org/draft/2020-12/schema',
+          type: 'object',
+          properties: {
+            id: { 'x-gts-ref': '/$id' },
+            domain: { type: 'string' },
+            entry: { type: 'string' },
+          },
+          required: ['id', 'domain', 'entry'],
+        });
+
         // Register the refresh_profile action schema (constrains target to profile extension only)
         gtsPlugin.registerSchema({
           $id: 'gts://gts.hai3.mfes.comm.action.v1~hai3.demo.action.refresh_profile.v1~',

@@ -6,7 +6,6 @@
  * @packageDocumentation
  */
 
-import type { ValidationError } from '../plugins/types';
 import type { Action, ActionsChain } from '../types';
 
 /**
@@ -40,21 +39,6 @@ export class MfeLoadError extends MfeError {
   ) {
     super(`Failed to load MFE '${entryTypeId}': ${message}`, 'MFE_LOAD_ERROR');
     this.name = 'MfeLoadError';
-  }
-}
-
-/**
- * Error thrown when contract validation fails
- */
-export class ContractValidationError extends MfeError {
-  constructor(
-    public readonly errors: ContractError[],
-    public readonly entryTypeId?: string,
-    public readonly domainTypeId?: string
-  ) {
-    const details = errors.map((e) => `  - ${e.type}: ${e.details}`).join('\n');
-    super(`Contract validation failed:\n${details}`, 'CONTRACT_VALIDATION_ERROR');
-    this.name = 'ContractValidationError';
   }
 }
 
@@ -106,40 +90,6 @@ export class MfeTypeConformanceError extends MfeError {
       'MFE_TYPE_CONFORMANCE_ERROR'
     );
     this.name = 'MfeTypeConformanceError';
-  }
-}
-
-/**
- * Error thrown when domain validation fails
- */
-export class DomainValidationError extends MfeError {
-  constructor(
-    public readonly errors: ValidationError[],
-    public readonly domainTypeId: string
-  ) {
-    const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
-    super(
-      `Domain validation failed for '${domainTypeId}':\n${details}`,
-      'DOMAIN_VALIDATION_ERROR'
-    );
-    this.name = 'DomainValidationError';
-  }
-}
-
-/**
- * Error thrown when extension validation fails
- */
-export class ExtensionValidationError extends MfeError {
-  constructor(
-    public readonly errors: ValidationError[],
-    public readonly extensionTypeId: string
-  ) {
-    const details = errors.map((e) => `  - ${e.path}: ${e.message}`).join('\n');
-    super(
-      `Extension validation failed for '${extensionTypeId}':\n${details}`,
-      'EXTENSION_VALIDATION_ERROR'
-    );
-    this.name = 'ExtensionValidationError';
   }
 }
 

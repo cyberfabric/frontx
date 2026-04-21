@@ -720,9 +720,9 @@ GTS validation MUST occur before propagation. If validation fails, the property 
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-validation-gts`
 
-The system MUST validate shared property values using `typeSystem.register({ id: ephemeralId, value })` followed by `typeSystem.validateInstance(ephemeralId)`, where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`.
+The system MUST validate shared property values by calling `typeSystem.register({ id: ephemeralId, value })`, where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. `register()` registers the ephemeral instance AND validates it against the schema derived from the chained instance ID in a single call; IF the value does not conform, `register()` throws a plain `Error` with a rich diagnostic (instance JSON, resolved schema JSON, failure reason) and propagation is blocked.
 
-**Rationale**: Reuses existing GTS register+validate pattern.
+**Rationale**: Single-call GTS registration-with-validation; schema-validation failures surface as thrown errors, not structured result objects.
 **Actors**: `cpt-frontx-actor-gts-plugin`
 
 #### Reject Invalid Values

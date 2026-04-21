@@ -5,13 +5,17 @@
  * First-class citizen schemas are registered during plugin construction.
  *
  * GTS-Native Validation Model (named instance pattern):
- * - All runtime entities (schemas AND instances) must be registered with gtsStore
- * - Validation happens on registered instances by their instance ID
- * - Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`)
- * - Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`)
- * - gts-ts extracts the schema ID from the chained instance ID automatically
- * - No `type` field is needed or supported — the schema is always resolved from the chained ID
- * - gts-ts uses Ajv INTERNALLY - we do NOT need Ajv as a direct dependency
+ * - Schemas are registered via `registerSchema()` — they define types.
+ *   Schema IDs end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~`).
+ * - Instances are registered via `register()` — they are values of some type.
+ *   Instance IDs do NOT end with `~` (e.g., `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`).
+ * - `register()` validates the instance against its schema automatically and
+ *   throws on failure. Invalid instances are never visible to lookups — the
+ *   type system is the authority on correctness.
+ * - For the anonymous instance pattern (no `id` field, schema resolved via
+ *   `type` field — used by action payloads), gts-ts assigns `id = ''` and
+ *   validation happens against the schema referenced by `type`.
+ * - gts-ts uses Ajv INTERNALLY — we do NOT need Ajv as a direct dependency.
  *
  * @packageDocumentation
  */
@@ -19,14 +23,9 @@
 import {
   GtsStore,
   createJsonEntity,
-  type ValidationResult as GtsValidationResult,
   type JsonEntity,
 } from '@globaltypesystem/gts-ts';
-import type {
-  TypeSystemPlugin,
-  ValidationResult,
-  JSONSchema,
-} from '../types';
+import type { TypeSystemPlugin, JSONSchema } from '../types';
 import { loadSchemas, loadLifecycleStages } from '../../gts/loader';
 
 /**
@@ -101,36 +100,49 @@ export class GtsPlugin implements TypeSystemPlugin {
 
   // === Instance Registry (GTS-native approach) ===
 
+  /**
+   * Register a GTS instance and validate it against its schema.
+   *
+   * Throws if the entity is a schema (has `$id`) — schemas must be registered
+   * via `registerSchema()`. Throws if schema validation fails — the underlying
+   * gts-ts store writes the entity before the validation step runs, so an
+   * invalid instance may transiently occupy the store; the throw prevents any
+   * caller code from proceeding, and a subsequent successful `register()` with
+   * the same deterministic id overwrites the entry. Callers that catch and
+   * continue MUST NOT rely on the prior registration state.
+   *
+   * Named instance pattern: the schema is resolved from the chained instance
+   * ID automatically (`gts.hai3.mfes.ext.extension.v1~acme.widget.v1` →
+   * schema `gts.hai3.mfes.ext.extension.v1~`). For anonymous instances
+   * (e.g., action payloads with no `id`), gts-ts uses the `type` field to
+   * resolve the schema.
+   *
+   * @param entity - The GTS instance to register and validate
+   * @throws Error if the entity is a schema, or if schema validation fails
+   */
   register(entity: unknown): void {
-    // Wrap the entity in a JsonEntity for gts-ts
-    // gts-ts requires all entities to be wrapped as JsonEntity
-    // For instances, the entity must have an `id` field
+    const candidate = entity as { $id?: unknown };
+    if (candidate.$id !== undefined) {
+      throw new Error(
+        `GtsPlugin.register() is for INSTANCES only. The entity has a '$id' field ` +
+          `('${String(candidate.$id)}'), which indicates a schema — use registerSchema() instead.`
+      );
+    }
     const jsonEntity: JsonEntity = createJsonEntity(entity);
     this.gtsStore.register(jsonEntity);
-  }
-
-  // === Validation ===
-
-  validateInstance(instanceId: string): ValidationResult {
-    // GtsStore.validateInstance takes the instance ID (NOT schema ID).
-    // gts-ts extracts the schema ID from the chained instance ID automatically:
-    // - Instance ID: gts.hai3.mfes.ext.extension.v1~acme.widget.v1
-    // - Schema ID:   gts.hai3.mfes.ext.extension.v1~ (extracted automatically)
-    // All callers must use the named instance pattern (chained GTS IDs only).
-    const result: GtsValidationResult = this.gtsStore.validateInstance(instanceId);
-    if (result.ok) {
-      return {
-        valid: result.valid ?? false,
-        errors: [],
-      };
+    const result = this.gtsStore.validateInstance(jsonEntity.id);
+    if (!result.ok || !result.valid) {
+      const reason = result.ok
+        ? 'schema validation returned invalid'
+        : (result.error ?? 'unknown validation error');
+      const schema = jsonEntity.schemaId ? this.getSchema(jsonEntity.schemaId) : undefined;
+      throw new Error(
+        `GTS validation failed for instance '${jsonEntity.id || '(anonymous)'}'\n` +
+          `Reason: ${reason}\n` +
+          `Instance: ${JSON.stringify(entity, null, 2)}\n` +
+          `Schema: ${schema ? JSON.stringify(schema, null, 2) : '(schema not resolved)'}`
+      );
     }
-
-    return {
-      valid: false,
-      errors: result.error
-        ? [{ path: '', message: result.error, keyword: 'validation' }]
-        : [],
-    };
   }
 
   // === Type Hierarchy ===

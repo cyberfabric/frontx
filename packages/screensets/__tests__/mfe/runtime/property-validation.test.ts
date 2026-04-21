@@ -139,17 +139,22 @@ describe('updateSharedProperty - GTS runtime validation mechanics', () => {
       };
       registry.registerDomain(domain2, mockContainerProvider);
 
-      const validateSpy = vi.spyOn(gtsPlugin, 'validateInstance');
+      // register() auto-validates, so counting ephemeral runtime-instance
+      // register() calls counts validations.
+      const registerSpy = vi.spyOn(gtsPlugin, 'register');
 
       registry.updateSharedProperty(TEST_PROPERTY_TYPE_ID, 'allowed-value');
 
-      // validateInstance should be called exactly once — not once per matching domain
-      const validationCallsForProp = validateSpy.mock.calls.filter(
-        ([id]) => String(id).includes('hai3.mfes.comm.runtime.v1')
+      const ephemeralRegisterCalls = registerSpy.mock.calls.filter(
+        ([entity]) =>
+          typeof entity === 'object' &&
+          entity !== null &&
+          'id' in entity &&
+          String((entity as { id: unknown }).id).includes('hai3.mfes.comm.runtime.v1')
       );
-      expect(validationCallsForProp).toHaveLength(1);
+      expect(ephemeralRegisterCalls).toHaveLength(1);
 
-      validateSpy.mockRestore();
+      registerSpy.mockRestore();
     });
   });
 });

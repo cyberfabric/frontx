@@ -11,15 +11,11 @@ import { describe, it, expect } from 'vitest';
 import {
   MfeError,
   MfeLoadError,
-  ContractValidationError,
   ExtensionTypeError,
   ChainExecutionError,
   MfeTypeConformanceError,
-  DomainValidationError,
-  ExtensionValidationError,
   UnsupportedDomainActionError,
   UnsupportedLifecycleStageError,
-  type ContractError,
 } from '../../../src/mfe/errors';
 import type { Action, ActionsChain } from '../../../src/mfe/types';
 
@@ -60,40 +56,6 @@ describe('MFE Error Classes', () => {
         );
 
         expect(error.cause).toBe(cause);
-      });
-    });
-
-    describe('ContractValidationError', () => {
-      it('should instantiate with errors array', () => {
-        const errors: ContractError[] = [
-          { type: 'missing_property', details: 'Property "theme" missing' },
-          { type: 'unsupported_action', details: 'Action "navigate" not supported' },
-        ];
-
-        const error = new ContractValidationError(errors);
-
-        expect(error).toBeInstanceOf(MfeError);
-        expect(error.name).toBe('ContractValidationError');
-        expect(error.code).toBe('CONTRACT_VALIDATION_ERROR');
-        expect(error.errors).toHaveLength(2);
-        expect(error.errors[0].type).toBe('missing_property');
-        expect(error.entryTypeId).toBeUndefined();
-        expect(error.domainTypeId).toBeUndefined();
-      });
-
-      it('should instantiate with type IDs', () => {
-        const errors: ContractError[] = [
-          { type: 'missing_property', details: 'Property missing' },
-        ];
-
-        const error = new ContractValidationError(
-          errors,
-          'entry-type-id',
-          'domain-type-id'
-        );
-
-        expect(error.entryTypeId).toBe('entry-type-id');
-        expect(error.domainTypeId).toBe('domain-type-id');
       });
     });
 
@@ -159,49 +121,6 @@ describe('MFE Error Classes', () => {
       });
     });
 
-    describe('DomainValidationError', () => {
-      it('should instantiate with validation errors', () => {
-        const validationErrors = [
-          { path: '/id', message: 'Required field missing' },
-          { path: '/actions', message: 'Must be an array' },
-        ];
-
-        const error = new DomainValidationError(
-          validationErrors,
-          'gts.hai3.mfes.ext.domain.v1~test.domain.v1'
-        );
-
-        expect(error).toBeInstanceOf(MfeError);
-        expect(error.name).toBe('DomainValidationError');
-        expect(error.code).toBe('DOMAIN_VALIDATION_ERROR');
-        expect(error.errors).toHaveLength(2);
-        expect(error.domainTypeId).toBe('gts.hai3.mfes.ext.domain.v1~test.domain.v1');
-        expect(error.message).toContain('Domain validation failed');
-        expect(error.message).toContain('/id');
-        expect(error.message).toContain('/actions');
-      });
-    });
-
-    describe('ExtensionValidationError', () => {
-      it('should instantiate with validation errors', () => {
-        const validationErrors = [
-          { path: '/entry', message: 'Invalid entry reference' },
-        ];
-
-        const error = new ExtensionValidationError(
-          validationErrors,
-          'gts.hai3.mfes.ext.extension.v1~test.extension.v1'
-        );
-
-        expect(error).toBeInstanceOf(MfeError);
-        expect(error.name).toBe('ExtensionValidationError');
-        expect(error.code).toBe('EXTENSION_VALIDATION_ERROR');
-        expect(error.errors).toHaveLength(1);
-        expect(error.extensionTypeId).toBe('gts.hai3.mfes.ext.extension.v1~test.extension.v1');
-        expect(error.message).toContain('Extension validation failed');
-      });
-    });
-
     describe('UnsupportedDomainActionError', () => {
       it('should instantiate with action and domain type IDs', () => {
         const error = new UnsupportedDomainActionError(
@@ -255,22 +174,6 @@ describe('MFE Error Classes', () => {
       expect(error.message).toContain('Script load timeout');
     });
 
-    it('should format ContractValidationError with error details', () => {
-      const errors: ContractError[] = [
-        { type: 'missing_property', details: 'Required property "theme" not provided' },
-        { type: 'unsupported_action', details: 'Action "navigate" not supported by domain' },
-        { type: 'unhandled_domain_action', details: 'Domain action "refresh" not handled by entry' },
-      ];
-
-      const error = new ContractValidationError(errors);
-
-      expect(error.message).toContain('Contract validation failed');
-      expect(error.message).toContain('missing_property');
-      expect(error.message).toContain('unsupported_action');
-      expect(error.message).toContain('unhandled_domain_action');
-      expect(error.message).toContain('Required property "theme" not provided');
-    });
-
     it('should format ExtensionTypeError with type hierarchy context', () => {
       const error = new ExtensionTypeError(
         'gts.hai3.mfes.ext.extension.v1~acme.widget.v1',
@@ -299,38 +202,6 @@ describe('MFE Error Classes', () => {
       expect(error.message).toContain('Actions chain execution failed');
       expect(error.message).toContain('gts.hai3.mfes.comm.action.v1~test.action.v1');
       expect(error.message).toContain('Handler threw TypeError');
-    });
-
-    it('should format DomainValidationError with validation paths', () => {
-      const errors = [
-        { path: '/id', message: 'Required field missing' },
-        { path: '/sharedProperties', message: 'Must be an array' },
-      ];
-
-      const error = new DomainValidationError(
-        errors,
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1'
-      );
-
-      expect(error.message).toContain('Domain validation failed');
-      expect(error.message).toContain('gts.hai3.mfes.ext.domain.v1~test.domain.v1');
-      expect(error.message).toContain('/id: Required field missing');
-      expect(error.message).toContain('/sharedProperties: Must be an array');
-    });
-
-    it('should format ExtensionValidationError with validation paths', () => {
-      const errors = [
-        { path: '/domain', message: 'Domain reference not found' },
-      ];
-
-      const error = new ExtensionValidationError(
-        errors,
-        'gts.hai3.mfes.ext.extension.v1~test.extension.v1'
-      );
-
-      expect(error.message).toContain('Extension validation failed');
-      expect(error.message).toContain('gts.hai3.mfes.ext.extension.v1~test.extension.v1');
-      expect(error.message).toContain('/domain: Domain reference not found');
     });
 
     it('should inherit Error stack trace', () => {

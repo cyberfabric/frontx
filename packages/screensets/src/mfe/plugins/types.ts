@@ -26,28 +26,6 @@ export interface JSONSchema {
 }
 
 /**
- * Single validation error
- */
-export interface ValidationError {
-  /** Path to the property that failed validation */
-  path: string;
-  /** Human-readable error message */
-  message: string;
-  /** Schema keyword that caused the error */
-  keyword: string;
-}
-
-/**
- * Result of schema validation
- */
-export interface ValidationResult {
-  /** Whether validation passed */
-  valid: boolean;
-  /** Array of validation errors (empty if valid) */
-  errors: ValidationError[];
-}
-
-/**
  * Type System Plugin interface
  *
  * Abstracts type system operations for MFE contracts.
@@ -97,37 +75,34 @@ export interface TypeSystemPlugin {
   // === Instance Registry (GTS-Native Approach) ===
 
   /**
-   * Register any GTS entity (schema or instance) with the type system.
-   * For instances, the entity must have an `id` field containing the instance ID.
+   * Register a GTS instance with the type system. The instance is validated
+   * against its schema as part of registration; on validation failure
+   * `register()` throws before returning, and the caller cannot rely on the
+   * entity having been accepted. Implementations MAY persist the instance in
+   * the underlying store before validating (gts-ts does); the throw is the
+   * authoritative signal that the instance is unusable, and a subsequent
+   * successful `register()` with the same deterministic id supersedes it.
    *
-   * All instances use the **named instance pattern** — the schema is extracted from
-   * the chained instance ID automatically. No explicit `type` field is needed or supported.
-   *
+   * Named instance pattern: the schema is resolved from the chained instance
+   * ID automatically.
    * - Example: `{ id: "gts.hai3.mfes.ext.extension.v1~acme.widget.v1", ... }`
    * - Schema resolved: `gts.hai3.mfes.ext.extension.v1~`
    *
-   * For ephemeral runtime validation (e.g., shared property values), construct a
-   * chained instance ID that encodes the schema:
+   * For ephemeral runtime validation (e.g., shared property values), construct
+   * a chained instance ID that encodes the schema:
    * - Example: `{ id: "${propertyTypeId}hai3.mfes.comm.runtime.v1", value: "dark" }`
    * - Schema resolved: `${propertyTypeId}` (the derived shared property schema)
    *
-   * @param entity - The GTS entity to register (must have an `id` field)
+   * For anonymous instances (no `id` field — used by action payloads), the
+   * schema reference comes from the `type` field.
+   *
+   * @param entity - The GTS instance to register (instances only; use
+   *   `registerSchema()` for schemas with a `$id` field)
+   * @throws Error if the entity is a schema, or if schema validation fails.
+   *   The error message includes the instance ID, the instance JSON, the
+   *   resolved schema JSON, and the validation reason.
    */
   register(entity: unknown): void;
-
-  /**
-   * Validate a registered instance by its instance ID.
-   * The instance must be registered first via register().
-   *
-   * gts-ts extracts the schema from the chained instance ID automatically
-   * (named instance pattern — see register() for details):
-   * - Instance ID: `gts.hai3.mfes.ext.extension.v1~acme.widget.v1`
-   * - Schema ID:   `gts.hai3.mfes.ext.extension.v1~`
-   *
-   * @param instanceId - The instance ID (does NOT end with ~)
-   * @returns Validation result
-   */
-  validateInstance(instanceId: string): ValidationResult;
 
   // === Type Hierarchy ===
 

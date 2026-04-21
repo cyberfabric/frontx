@@ -436,8 +436,6 @@ export type {
   MfeEntry,
   MfeEntryMF,
   JSONSchema,
-  ValidationError,
-  ValidationResult,
   LoadExtPayload,
   MountExtPayload,
   UnmountExtPayload,

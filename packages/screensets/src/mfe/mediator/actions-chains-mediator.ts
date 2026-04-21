@@ -163,18 +163,11 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       throw new Error('Chain timeout exceeded');
     }
 
-    // Register and validate the action instance using the GTS anonymous instance pattern.
-    // Actions have a `type` field but no `id` field. GTS assigns id='' to entities
-    // without an explicit id (createJsonEntity default). For such instances GTS
-    // resolves the schema from the `type` field via schemaIdFields, so validation
-    // against the action's own schema happens without any synthetic ID injection.
+    // Register the action using the GTS anonymous instance pattern.
+    // Actions have a `type` field but no `id` field — gts-ts resolves the
+    // schema from the `type` field and validates against it inside register().
+    // Invalid actions throw directly from register().
     this.typeSystem.register(action);
-    const validation = this.typeSystem.validateInstance('');
-
-    if (!validation.valid) {
-      const errorMsg = validation.errors.map(e => e.message).join(', ');
-      throw new Error(`Action validation failed: ${errorMsg}`);
-    }
 
     // @cpt-begin:feature-screenset-registry:inst-validate-entry-declaration
     // Runtime entry declaration validation (second layer, after GTS schema validation).

@@ -115,7 +115,7 @@ Success criteria: A host application can register a domain and extension, execut
 
 1. - [x] `p1` - Host app obtains a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build(config)` - `inst-obtain-registry`
 2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, options?)` where `options` is `{ onInitError?: (error: Error) => void; actionHandlers?: Record<string, ActionHandler> }` - `inst-call-register-domain`
-3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-domain-validation` — IF validation fails RETURN `DomainValidationError` or `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
+3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-domain-validation` — IF GTS validation fails the underlying `typeSystem.register(domain)` call throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); IF a lifecycle hook references an unsupported stage RETURN `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
 4. - [x] `p1` - Registry determines domain semantics via `cpt-frontx-algo-screenset-registry-domain-semantics` - `inst-determine-semantics`
 5. - [x] `p1` - Registry registers individual `ActionHandler` class instances per lifecycle action type (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) with the mediator via `mediator.registerHandler(domainId, actionTypeId, handler)` — one call per action type; each handler is a small class extending `ActionHandler`, not a closure; no monolithic `ExtensionLifecycleActionHandler` switch class is constructed; IF `options.actionHandlers` is provided, each entry is also registered via `mediator.registerHandler(domainId, actionTypeId, handler)` - `inst-register-action-handlers`
 6. - [x] `p1` - Registry stores domain state (properties Map, extensions Set, propertySubscribers Map, mountedExtension undefined) - `inst-store-domain-state`
@@ -175,7 +175,7 @@ Success criteria: A host application can register a domain and extension, execut
 2. - [x] `p1` - Registry delegates to `ActionsChainsMediator.executeActionsChain(chain)` - `inst-delegate-to-mediator`
 3. - [x] `p1` - Mediator resolves the target domain from `chain.action.target` - `inst-resolve-target`
 4. - [x] `p1` - IF target domain is not registered, the chain fails with a recorded error - `inst-target-not-found`
-5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; GTS resolves the schema from `action.type` via `schemaIdFields` config; `typeSystem.validateInstance('')` validates the anonymous instance — IF validation fails the chain fails with a recorded error - `inst-validate-action-anonymous`
+5. - [x] `p1` - Mediator validates the action via anonymous instance pattern: the action object (no `id` field) is registered with `typeSystem.register(action)`; the type system resolves the schema from the action's `type` field and validates against it inside `register()`; IF validation fails `register()` throws and the chain fails with a recorded error - `inst-validate-action-anonymous`
 6. - [ ] `p1` - Mediator performs runtime entry declaration validation for extension-targeted actions: IF `chain.action.target` resolves to an extension (not a domain), look up the entry that owns the extension; IF `chain.action.type` is not present in the entry's `actions` array (the list of action types the entry is capable of receiving and executing), the chain fails with a recorded error `Action type '{type}' is not declared by target entry '{entryId}'`. Infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) target domains, not extensions, and are exempt from this runtime check - `inst-validate-entry-declaration`
 7. - [x] `p1` - Mediator resolves the handler by `(action.target, action.type)` pair: looks up `handlers.get(action.target)?.get(action.type)`. Domain handlers and extension handlers are stored in the same unified `Map<targetId, Map<actionTypeId, ActionHandler>>`. Since GTS schemas enforce that domain-targeted actions use domain IDs and extension-targeted actions use extension IDs, there is no overlap — an action targets exactly one handler - `inst-resolve-handler`
 8. - [x] `p1` - IF a handler is found for the `(target, actionType)` pair, mediator calls `handler.handleAction(action.type, action.payload)`. IF no per-`(target, actionType)` handler is found, the mediator checks for a catch-all handler registered for the target (used for child domain forwarding). IF no handler exists at all, the action is a successful no-op - `inst-invoke-handler`
@@ -237,22 +237,20 @@ Success criteria: A host application can register a domain and extension, execut
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-extension-validation`
 
-1. - [x] `p1` - `typeSystem.register(extension)` registers the extension instance with the type system - `inst-register-gts`
-2. - [x] `p1` - `typeSystem.validateInstance(extension.id)` validates the extension against its GTS schema — IF invalid RETURN throw `ExtensionValidationError` - `inst-validate-gts`
-3. - [x] `p1` - Resolve the `ExtensionDomainState` for `extension.domain` — IF domain not registered RETURN throw with descriptive message - `inst-check-domain-exists`
-4. - [x] `p1` - Resolve the `MfeEntry` for `extension.entry` from existing extension states or from `typeSystem.getSchema(entryId)` — IF not found RETURN throw with descriptive message - `inst-resolve-entry`
-5. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-contract-matching` — IF invalid RETURN throw `ContractValidationError` - `inst-run-contract-matching`
-6. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-extension-type-validation` — IF invalid RETURN throw `ExtensionTypeError` - `inst-run-type-validation`
-7. - [x] `p1` - Validate lifecycle hooks reference only stages listed in `domain.extensionsLifecycleStages` — IF invalid RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-lifecycle-hooks`
-8. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-handler-resolution` — IF handlers are registered and none match the entry type, RETURN throw `EntryTypeNotHandledError` - `inst-validate-entry-type`
+1. - [x] `p1` - `typeSystem.register(extension)` registers and schema-validates the extension in a single call; IF the instance does not conform to its GTS schema `register()` throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); the throw is the authoritative "invalid" signal — the caller cannot rely on the entity having been accepted, and a subsequent successful `register()` with the same deterministic id supersedes the failed attempt - `inst-register-gts`
+2. - [x] `p1` - Resolve the `ExtensionDomainState` for `extension.domain` — IF domain not registered RETURN throw with descriptive message - `inst-check-domain-exists`
+3. - [x] `p1` - Resolve the `MfeEntry` for `extension.entry` from existing extension states or from `typeSystem.getSchema(entryId)` — IF not found RETURN throw with descriptive message - `inst-resolve-entry`
+4. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-contract-matching` — IF invalid RETURN throw with the collected contract error list - `inst-run-contract-matching`
+5. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-extension-type-validation` — IF invalid RETURN throw `ExtensionTypeError` - `inst-run-type-validation`
+6. - [x] `p1` - Validate lifecycle hooks reference only stages listed in `domain.extensionsLifecycleStages` — IF invalid RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-lifecycle-hooks`
+7. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-handler-resolution` — IF handlers are registered and none match the entry type, RETURN throw `EntryTypeNotHandledError` - `inst-validate-entry-type`
 
 ### Domain Registration Validation
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-domain-validation`
 
-1. - [x] `p1` - `typeSystem.register(domain)` registers the domain instance with the type system - `inst-register-domain-gts`
-2. - [x] `p1` - `typeSystem.validateInstance(domain.id)` validates the domain against its GTS schema — IF invalid RETURN throw `DomainValidationError` - `inst-validate-domain-gts`
-3. - [x] `p1` - Validate that all `LifecycleHook` entries in `domain.lifecycle` (if present) reference only stages listed in `domain.lifecycleStages` — IF any hook references an unsupported stage RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-domain-lifecycle-hooks`
+1. - [x] `p1` - `typeSystem.register(domain)` registers and schema-validates the domain in a single call; IF the instance does not conform to its GTS schema `register()` throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); the throw is the authoritative "invalid" signal — the caller cannot rely on the entity having been accepted, and a subsequent successful `register()` with the same deterministic id supersedes the failed attempt - `inst-register-domain-gts`
+2. - [x] `p1` - Validate that all `LifecycleHook` entries in `domain.lifecycle` (if present) reference only stages listed in `domain.lifecycleStages` — IF any hook references an unsupported stage RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-domain-lifecycle-hooks`
 
 ### Contract Matching
 
@@ -269,11 +267,10 @@ This algorithm enforces three subset rules. All errors are collected before retu
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-extension-type-validation`
 
-1. - [x] `p1` - `typeSystem.register(extension)` ensures the instance is in the type system (may already be registered from the GTS validation step) - `inst-ensure-registered`
-2. - [x] `p1` - `typeSystem.validateInstance(extension.id)` validates the extension — IF invalid RETURN the validation errors - `inst-validate-instance`
-3. - [x] `p1` - IF `domain.extensionsTypeId` is not set RETURN valid (no type hierarchy requirement) - `inst-skip-if-no-type-id`
-4. - [x] `p1` - `typeSystem.isTypeOf(extension.id, domain.extensionsTypeId)` — IF false RETURN invalid with message indicating the required base type - `inst-check-type-hierarchy`
-5. - [x] `p1` - TRY all steps; CATCH any error: IF error message contains "not found" or "not registered" RETURN invalid with schema-not-registered message; ELSE RETURN invalid with generic error message - `inst-catch-type-errors`
+Schema-level extension validation is handled by `typeSystem.register(extension)` in the extension registration pipeline (step 1 of `cpt-frontx-algo-screenset-registry-extension-validation`). This algorithm only performs the remaining type-hierarchy check against the domain's `extensionsTypeId`; it assumes the extension is already registered and schema-valid.
+
+1. - [x] `p1` - IF `domain.extensionsTypeId` is not set RETURN (no type hierarchy requirement) - `inst-skip-if-no-type-id`
+2. - [x] `p1` - `typeSystem.isTypeOf(extension.id, domain.extensionsTypeId)` — IF false THROW `ExtensionTypeError(extension.id, domain.extensionsTypeId)` - `inst-check-type-hierarchy`
 
 ### Shared Property GTS Validation and Broadcast
 
@@ -281,10 +278,9 @@ This algorithm enforces three subset rules. All errors are collected before retu
 
 1. - [x] `p1` - Collect all domains whose `sharedProperties` array includes `propertyId` — IF no domains match RETURN (silent no-op) - `inst-collect-matching-domains`
 2. - [x] `p1` - Construct a deterministic ephemeral GTS instance ID: `${propertyId}hai3.mfes.comm.runtime.v1` — this ID is deterministic so repeated calls overwrite the previous ephemeral instance, preventing store growth - `inst-construct-ephemeral-id`
-3. - [x] `p1` - `typeSystem.register({ id: ephemeralId, value })` registers the ephemeral instance - `inst-register-ephemeral`
-4. - [x] `p1` - `typeSystem.validateInstance(ephemeralId)` validates the value against the derived shared property schema — IF invalid RETURN throw with validation error messages - `inst-validate-ephemeral`
-5. - [x] `p1` - FOR EACH matching domain: store the raw value in `domainState.properties` keyed by `propertyId` - `inst-store-domain-value`
-6. - [x] `p1` - FOR EACH matching domain: notify all subscribers in `domainState.propertySubscribers.get(propertyId)` with `(propertyId, value)` - `inst-notify-subscribers`
+3. - [x] `p1` - `typeSystem.register({ id: ephemeralId, value })` registers the ephemeral instance AND validates it against the derived shared property schema in a single call; IF invalid `register()` throws with the validation diagnostic (instance JSON, resolved schema JSON, failure reason) and propagation is blocked - `inst-register-ephemeral`
+4. - [x] `p1` - FOR EACH matching domain: store the raw value in `domainState.properties` keyed by `propertyId` - `inst-store-domain-value`
+5. - [x] `p1` - FOR EACH matching domain: notify all subscribers in `domainState.propertySubscribers.get(propertyId)` with `(propertyId, value)` - `inst-notify-subscribers`
 
 ### GTS Package Auto-Discovery
 
@@ -447,14 +443,14 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-gts-validation`
 
-All registration and dispatch paths perform GTS-native validation:
+All registration and dispatch paths perform GTS-native validation. Schema validation is the responsibility of `typeSystem.register(entity)` itself: `register()` registers the instance and validates it against its resolved schema in a single call. IF validation fails, `register()` throws a plain `Error` whose message carries rich diagnostics (instance JSON, resolved schema JSON, and the failure reason); the throw is the authoritative "invalid" signal, and a subsequent successful `register()` with the same deterministic id supersedes a failed attempt. Callers do not need to run a separate validation step.
 
-- Domain registration: `typeSystem.register(domain)` then `typeSystem.validateInstance(domain.id)`; lifecycle hook stages validated against `domain.lifecycleStages`
-- Extension registration: `typeSystem.register(extension)` then `typeSystem.validateInstance(extension.id)`; contract matching; type hierarchy check via `typeSystem.isTypeOf`; lifecycle hooks validated against `domain.extensionsLifecycleStages`
-- Action dispatch (schema validation): anonymous instance pattern — the action object (no `id` field) is registered via `typeSystem.register(action)`; GTS resolves the schema from the action's `type` field using the `schemaIdFields` configuration; `typeSystem.validateInstance('')` validates the anonymous instance against the resolved schema; the `payload.subject` field is validated as required by the schema, making a separate `requireExtensionId()` helper redundant
+- Domain registration: `typeSystem.register(domain)` registers and schema-validates the domain; lifecycle hook stages validated against `domain.lifecycleStages`
+- Extension registration: `typeSystem.register(extension)` registers and schema-validates the extension; contract matching; type hierarchy check via `typeSystem.isTypeOf`; lifecycle hooks validated against `domain.extensionsLifecycleStages`
+- Action dispatch (schema validation): anonymous instance pattern — the action object (no `id` field) is registered via `typeSystem.register(action)`; the type system resolves the schema from the action's `type` field and validates against it inside `register()`; the `payload.subject` field is validated as required by the schema, making a separate `requireExtensionId()` helper redundant
 - Action dispatch (runtime entry declaration validation): before handler invocation, the mediator validates that the action's `type` is in the target entry's `actions` array (the list of action types the entry is capable of receiving and executing); undeclared actions fail the chain with an error `Action type '{type}' is not declared by target entry '{entryId}'`; domain-targeted infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) are exempt because they target domains, not entries; this layer is required in addition to GTS schema validation — the type system alone cannot verify entry-specific opt-in
-- Shared property update: ephemeral instance `{ id: ephemeralId, value }` registered and validated before any domain receives the value; validation failure throws and blocks all propagation
-- All validation errors produce typed exceptions: `DomainValidationError`, `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, `EntryTypeNotHandledError`
+- Shared property update: ephemeral instance `{ id: ephemeralId, value }` registered (and validated) in a single `register()` call before any domain receives the value; validation failure throws and blocks all propagation
+- Schema-validation failures surface as plain `Error` instances (thrown from `register()`); registry-level invariants (type hierarchy, lifecycle stage subset, handler resolution) surface as typed exceptions: `ExtensionTypeError`, `UnsupportedLifecycleStageError`, `EntryTypeNotHandledError`
 
 **Implements**:
 - `cpt-frontx-algo-screenset-registry-extension-validation`
@@ -572,10 +568,9 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 - `name: string` and `version: string` (readonly)
 - `registerSchema(schema: JSONSchema): void` — for vendor/dynamic schemas; first-class schemas are built into the plugin and need not be registered
 - `getSchema(typeId: string): JSONSchema | undefined`
-- `register(entity: unknown): void` — GTS-native registration; for named instances the schema is extracted from the chained instance ID; for anonymous instances (no `id` field) the schema is extracted from a `schemaIdFields`-designated field such as `type`
-- `validateInstance(instanceId: string): ValidationResult` — validates a registered instance; pass the instance `id` for named instances; pass `''` (empty string) for anonymous instances registered without an `id` field
+- `register(entity: unknown): void` — GTS-native registration AND validation in one call; for named instances the schema is extracted from the chained instance ID; for anonymous instances (no `id` field) the schema is extracted from the entity's `type` field; the entity is validated against the resolved schema as part of registration — IF validation fails `register()` throws a plain `Error` whose message carries instance JSON, resolved schema JSON, and the failure reason; the throw is the authoritative "invalid" signal and a subsequent successful `register()` with the same deterministic id supersedes a failed attempt (callers that catch and continue MUST NOT rely on prior registration state); IF the entity has a `$id` field (indicating it is a schema) `register()` throws directing the caller to `registerSchema()` instead
 - `isTypeOf(typeId: string, baseTypeId: string): boolean` — type hierarchy check
-- `JSONSchema`, `ValidationError`, `ValidationResult` supporting types are exported alongside the interface
+- `JSONSchema` is the only supporting type exported alongside the interface; schema validation failures are reported via thrown `Error` rather than a structured result object — there is no `validateInstance()` method, and no `ValidationResult`/`ValidationError` types
 - The package treats all type IDs as opaque strings; no parsing of type IDs occurs in `@cyberfabric/screensets`
 - The GTS plugin implementation is exported via subpath `@cyberfabric/screensets/plugins/gts` to avoid pulling `@globaltypesystem/gts-ts` when consumers only need the contracts
 
@@ -628,8 +623,8 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 - [x] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
 - [x] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
-- [x] `registerDomain(domain, containerProvider, options?)` throws `DomainValidationError` when the domain fails GTS validation, and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
-- [x] `registerExtension` throws `ExtensionValidationError`, `ContractValidationError`, `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
+- [x] `registerDomain(domain, containerProvider, options?)` propagates the plain `Error` thrown by `typeSystem.register(domain)` when the domain fails GTS schema validation (message carries instance JSON, schema JSON, and the failure reason), and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
+- [x] `registerExtension` propagates the plain `Error` thrown by `typeSystem.register(extension)` on schema validation failure, throws an `Error` with the collected contract error list on contract-matching failure, and throws `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
 - [x] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3
 - [x] `updateSharedProperty` throws synchronously if GTS validation fails and no domain receives the update; silently no-ops if no domain declares the property
 - [x] `unregisterExtension` auto-unmounts a mounted extension before triggering the `destroyed` lifecycle stage

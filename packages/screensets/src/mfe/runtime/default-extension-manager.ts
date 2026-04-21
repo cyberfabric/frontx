@@ -29,13 +29,7 @@ import {
 import { validateDomainLifecycleHooks, validateExtensionLifecycleHooks } from '../validation/lifecycle';
 import { validateContract } from '../validation/contract';
 import { validateExtensionType } from '../validation/extension-type';
-import {
-  DomainValidationError,
-  UnsupportedLifecycleStageError,
-  ExtensionValidationError,
-  ContractValidationError,
-  ExtensionTypeError,
-} from '../errors';
+import { UnsupportedLifecycleStageError } from '../errors';
 
 /**
  * Default extension manager implementation.
@@ -108,13 +102,8 @@ export class DefaultExtensionManager extends ExtensionManager {
    */
   // @cpt-begin:cpt-frontx-algo-screenset-registry-domain-validation:p1:inst-1
   registerDomain(domain: ExtensionDomain, onInitError?: (error: Error) => void): void {
-    // Step 1: GTS-native validation - register then validate by ID
+    // Step 1: GTS-native validation — register() validates and throws on failure
     this.typeSystem.register(domain);
-    const validation = this.typeSystem.validateInstance(domain.id);
-
-    if (!validation.valid) {
-      throw new DomainValidationError(validation.errors, domain.id);
-    }
 
     // Step 2: Validate lifecycle hooks reference supported stages
     const lifecycleValidation = validateDomainLifecycleHooks(domain);
@@ -196,12 +185,8 @@ export class DefaultExtensionManager extends ExtensionManager {
    */
   // @cpt-begin:cpt-frontx-algo-screenset-registry-extension-validation:p1:inst-1
   async registerExtension(extension: Extension): Promise<void> {
-    // 1. Validate extension against GTS schema
+    // 1. Validate extension against GTS schema — register() throws on failure
     this.typeSystem.register(extension);
-    const validation = this.typeSystem.validateInstance(extension.id);
-    if (!validation.valid) {
-      throw new ExtensionValidationError(validation.errors, extension.id);
-    }
 
     // 2. Check domain exists
     const domainState = this.domains.get(extension.domain);
@@ -223,25 +208,18 @@ export class DefaultExtensionManager extends ExtensionManager {
     }
     const contractResult = validateContract(entry, domainState.domain);
     if (!contractResult.valid) {
-      throw new ContractValidationError(
-        contractResult.errors,
-        extension.entry,
-        extension.domain
+      const details = contractResult.errors
+        .map((e) => `  - ${e.type}: ${e.details}`)
+        .join('\n');
+      throw new Error(
+        `Contract validation failed for extension '${extension.entry}' in domain ` +
+          `'${extension.domain}':\n${details}`
       );
     }
 
     // 4. Validate extension type (if domain specifies extensionsTypeId)
-    const typeResult = validateExtensionType(
-      this.typeSystem,
-      domainState.domain,
-      extension
-    );
-    if (!typeResult.valid) {
-      throw new ExtensionTypeError(
-        extension.id,
-        domainState.domain.extensionsTypeId!
-      );
-    }
+    // Throws on hierarchy mismatch; schema validation already ran via register().
+    validateExtensionType(this.typeSystem, domainState.domain, extension);
 
     // 5. Validate extension lifecycle hooks
     const lifecycleValidation = validateExtensionLifecycleHooks(
@@ -394,14 +372,8 @@ export class DefaultExtensionManager extends ExtensionManager {
     // The deterministic ephemeralId ensures each call overwrites the previous instance (no store growth).
     // No `type` field needed: the schema is resolved from the chained ID structure.
     const ephemeralId = `${propertyId}hai3.mfes.comm.runtime.v1`;
+    // register() validates the ephemeral instance and throws on failure.
     this.typeSystem.register({ id: ephemeralId, value });
-    const validation = this.typeSystem.validateInstance(ephemeralId);
-    if (!validation.valid) {
-      throw new Error(
-        `Property value for '${propertyId}' failed validation: ` +
-        validation.errors.map(e => e.message).join(', ')
-      );
-    }
 
     // Propagate to all matching domains
     for (const domainState of matchingDomainStates) {

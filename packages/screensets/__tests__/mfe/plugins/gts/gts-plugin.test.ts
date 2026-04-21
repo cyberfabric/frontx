@@ -27,39 +27,42 @@ describe('GTS Plugin', () => {
       expect(schema?.$id).toBe('gts://gts.hai3.mfes.mfe.entry.v1~');
     });
 
-    it('validates instance with required fields', () => {
-      // GTS-native validation approach:
-      // 1. Register the instance
-      // 2. Validate by instance ID only
+    it('register() accepts a valid instance without throwing', () => {
+      // register() validates automatically: a valid instance returns normally.
       const instance = {
         id: 'gts.hai3.mfes.mfe.entry.v1~test.app.mfe.test_entry.v1',
         requiredProperties: [],
         actions: [],
         domainActions: [],
       };
-      // Step 1: Register the instance
-      plugin.register(instance);
-      // Step 2: Validate by instance ID (gts-ts extracts schema ID automatically)
-      const result = plugin.validateInstance(instance.id);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      expect(() => plugin.register(instance)).not.toThrow();
     });
 
-    it('fails validation for missing required field', () => {
-      // GTS-native validation approach:
-      // 1. Register the instance
-      // 2. Validate by instance ID only
+    it('register() throws for invalid instance (missing required field) with rich diagnostics', () => {
+      // register() validates automatically: an invalid instance throws an
+      // Error whose message carries the instance JSON, schema JSON, and reason.
       const instance = {
         id: 'gts.hai3.mfes.mfe.entry.v1~test.app.mfe.invalid_entry.v1',
         requiredProperties: [],
         // Missing: actions, domainActions
       };
-      // Step 1: Register the instance
-      plugin.register(instance);
-      // Step 2: Validate by instance ID (gts-ts extracts schema ID automatically)
-      const result = plugin.validateInstance(instance.id);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(() => plugin.register(instance)).toThrow(/GTS validation failed/);
+      expect(() => plugin.register(instance)).toThrow(/Reason:/);
+      expect(() => plugin.register(instance)).toThrow(/Instance:/);
+      expect(() => plugin.register(instance)).toThrow(/Schema:/);
+      expect(() => plugin.register(instance)).toThrow(
+        /gts\.hai3\.mfes\.mfe\.entry\.v1~test\.app\.mfe\.invalid_entry\.v1/
+      );
+    });
+
+    it('register() throws when passed a schema (has $id) — schemas must use registerSchema()', () => {
+      const schemaLike = {
+        $id: 'gts://gts.acme.anything.v1~',
+        type: 'object',
+      };
+      expect(() => plugin.register(schemaLike)).toThrow(
+        /register\(\) is for INSTANCES only/
+      );
     });
 
     it('registers vendor schema', () => {
