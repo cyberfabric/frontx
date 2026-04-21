@@ -92,24 +92,23 @@ describe('Phase 41 Regression Tests', () => {
       // Register domain with registry
       registry.registerDomain(testDomain, mockContainerProvider);
 
-      // Create action targeting the domain
-      const actionInstanceId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_domain.v1';
+      // Register a derived action type schema, then an instance of it.
+      const actionTypeId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_domain.v1~';
+      gtsPlugin.registerSchema({
+        $id: `gts://${actionTypeId}`,
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+      });
+
       const actionInstance = {
-        id: actionInstanceId,
-        type: actionInstanceId,
+        id: 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_domain.v1~instance.v1',
+        type: actionTypeId,
         target: testDomain.id,
         payload: {},
       };
 
-      // Register action instance with GTS
-      gtsPlugin.register(actionInstance);
-
-      // Validate the action instance
-      const result = gtsPlugin.validateInstance(actionInstanceId);
-
-      // Assert validation passes
-      expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      // register() auto-validates and throws on failure — no exception means valid.
+      expect(() => gtsPlugin.register(actionInstance)).not.toThrow();
     });
   });
 
@@ -119,24 +118,23 @@ describe('Phase 41 Regression Tests', () => {
       registry.registerDomain(testDomain, mockContainerProvider);
       await registry.registerExtension(testExtension);
 
-      // Create action targeting the extension
-      const actionInstanceId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_ext.v1';
+      // Register a derived action type schema, then an instance of it.
+      const actionTypeId = 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_ext.v1~';
+      gtsPlugin.registerSchema({
+        $id: `gts://${actionTypeId}`,
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+      });
+
       const actionInstance = {
-        id: actionInstanceId,
-        type: actionInstanceId,
+        id: 'gts.hai3.mfes.comm.action.v1~hai3.test.phase41.action_to_ext.v1~instance.v1',
+        type: actionTypeId,
         target: testExtension.id,
         payload: {},
       };
 
-      // Register action instance with GTS
-      gtsPlugin.register(actionInstance);
-
-      // Validate the action instance
-      const result = gtsPlugin.validateInstance(actionInstanceId);
-
-      // Assert validation passes
-      expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      // register() auto-validates and throws on failure — no exception means valid.
+      expect(() => gtsPlugin.register(actionInstance)).not.toThrow();
     });
   });
 

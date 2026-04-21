@@ -464,15 +464,12 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   describe('9.3.5 Payload validation', () => {
     it('should validate payload via type system', async () => {
-      // Use a plugin that fails validation
+      // Plugin whose register() throws on the action — simulates schema failure
       const failingPlugin: TypeSystemPlugin = {
         ...createMockPlugin(),
-        validateInstance: () => ({
-          valid: false,
-          errors: [
-            { path: 'payload.data', message: 'Invalid payload', keyword: 'type' },
-          ],
-        }),
+        register: () => {
+          throw new Error('GTS validation failed: payload.data invalid');
+        },
       };
 
       const failingRegistry = new DefaultScreensetsRegistry({ typeSystem: failingPlugin });

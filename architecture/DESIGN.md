@@ -118,7 +118,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sharescope-concurrent` | Each load creates independent shared dep blob URLs captured by its own `LoadBlobState`; `sharedDepTextCache` deduplicates source text (keyed by `name@version`); per-load blob URLs ensure concurrent loads get isolated module evaluations with no cross-load reuse |
 | `cpt-frontx-fr-broadcast-matching` | `updateSharedProperty()` propagates only to domains declaring the property in their `sharedProperties` array |
 | `cpt-frontx-fr-broadcast-validate` | GTS validation occurs before propagation; invalid values never stored or broadcast to any domain |
-| `cpt-frontx-fr-validation-gts` | `typeSystem.register()` + `typeSystem.validateInstance()` pattern validates shared property values |
+| `cpt-frontx-fr-validation-gts` | `typeSystem.register()` validates shared property values against their GTS schema in a single call and throws with a rich diagnostic (instance JSON, resolved schema JSON, failure reason) on non-conformance |
 | `cpt-frontx-fr-validation-reject` | `updateSharedProperty()` throws with validation details on failure; value not stored or propagated |
 | `cpt-frontx-fr-i18n-formatters` | Locale-aware formatters (`formatDate`, `formatNumber`, `formatCurrency`, etc.) using `Intl.*` APIs |
 | `cpt-frontx-fr-i18n-formatter-exports` | Formatters exported from `@cyberfabric/i18n`, re-exported from `@cyberfabric/framework`, accessible via `useFormatters()` |

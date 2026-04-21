@@ -264,12 +264,11 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 - [x] `p1` - **ID**: `cpt-frontx-algo-framework-composition-gts-validation`
 
 1. [ ] `p1` - Construct `ephemeralId` by appending the runtime suffix to the property type ID: `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"` - `inst-build-ephemeral-id`
-2. [ ] `p1` - Call `typeSystem.register({ id: ephemeralId, value })` to register the candidate instance in the GTS store (overwrites any prior registration for the same deterministic ID) - `inst-gts-register`
-3. [ ] `p1` - Call `typeSystem.validateInstance(ephemeralId)` to validate the value against the schema derived from the chained instance ID - `inst-gts-validate`
-4. [ ] `p1` - **IF** validation returns failure: **RETURN** throw error containing validation failure details - `inst-gts-reject`
-5. [ ] `p1` - **IF** validation passes: **RETURN** (propagation may proceed) - `inst-gts-accept`
-6. [ ] `p1` - This algorithm MAY be called once per `updateSharedProperty` invocation even when multiple domains declare the same property (single-validation optimization) - `inst-single-validation`
-7. [ ] `p1` - **IF** the schema for `propertyTypeId` has never been registered in GTS: validation will fail; treat as configuration error — all property type schemas must be loaded before use - `inst-unregistered-schema-error`
+2. [ ] `p1` - Call `typeSystem.register({ id: ephemeralId, value })`; `register()` both registers the candidate instance (overwriting any prior registration for the same deterministic ID) AND validates it against the schema derived from the chained instance ID in a single call - `inst-gts-register`
+3. [ ] `p1` - **IF** the value does not conform to the schema, `register()` throws a plain `Error` whose message carries instance JSON, resolved schema JSON, and the failure reason; the caller re-throws and propagation is blocked - `inst-gts-reject`
+4. [ ] `p1` - **IF** `register()` returns normally: propagation may proceed - `inst-gts-accept`
+5. [ ] `p1` - This algorithm MAY be called once per `updateSharedProperty` invocation even when multiple domains declare the same property (single-validation optimization) - `inst-single-validation`
+6. [ ] `p1` - **IF** the schema for `propertyTypeId` has never been registered in GTS: `register()` throws; treat as configuration error — all property type schemas must be loaded before use - `inst-unregistered-schema-error`
 
 ### Base Path Resolution
 
@@ -486,7 +485,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-shared-property`
 
-`ScreensetsRegistry.updateSharedProperty(propertyId, value)` is the sole write path for shared property values. The implementation validates the value against the GTS-derived schema before any propagation. Validation uses `typeSystem.register({ id: ephemeralId, value })` + `typeSystem.validateInstance(ephemeralId)` where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. If validation fails, the method throws and no domain receives the update. Only domains whose `sharedProperties` array includes `propertyId` receive the update. No matching domains is a silent no-op. The deprecated `updateDomainProperty()` and `updateDomainProperties()` methods do NOT exist on the abstract class or implementation.
+`ScreensetsRegistry.updateSharedProperty(propertyId, value)` is the sole write path for shared property values. The implementation validates the value against the GTS-derived schema before any propagation. Validation is performed by `typeSystem.register({ id: ephemeralId, value })` — a single call that registers the ephemeral instance AND validates it against the schema derived from the chained instance ID — where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. If the value does not conform to the schema, `register()` throws a plain `Error` with a rich diagnostic (instance JSON, resolved schema JSON, failure reason) and no domain receives the update. Only domains whose `sharedProperties` array includes `propertyId` receive the update. No matching domains is a silent no-op. The deprecated `updateDomainProperty()` and `updateDomainProperties()` methods do NOT exist on the abstract class or implementation.
 
 **Implements**:
 - `cpt-frontx-flow-framework-composition-shared-property-broadcast`

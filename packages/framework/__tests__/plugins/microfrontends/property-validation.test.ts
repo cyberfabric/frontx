@@ -56,25 +56,21 @@ describe('application-layer derived GTS schemas', () => {
 
     it('valid theme value "dark" passes validation via named instance pattern', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'dark' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      expect(() => plugin.register({ id: ephemeralId, value: 'dark' })).not.toThrow();
     });
 
     it('accepts any non-empty string as valid theme value', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'my-custom-theme' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(true);
+      expect(() =>
+        plugin.register({ id: ephemeralId, value: 'my-custom-theme' })
+      ).not.toThrow();
     });
 
     it('empty string theme value fails validation', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_THEME}hai3.mfes.comm.runtime.empty.v1`;
-      plugin.register({ id: ephemeralId, value: '' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(() => plugin.register({ id: ephemeralId, value: '' })).toThrow(
+        /GTS validation failed/
+      );
     });
   });
 
@@ -101,32 +97,26 @@ describe('application-layer derived GTS schemas', () => {
 
     it('valid language value "en" passes validation via named instance pattern', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'en' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(true);
-      expect(result.errors).toEqual([]);
+      expect(() => plugin.register({ id: ephemeralId, value: 'en' })).not.toThrow();
     });
 
     it('valid language value "fr" passes validation', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.v1`;
-      plugin.register({ id: ephemeralId, value: 'fr' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(true);
+      expect(() => plugin.register({ id: ephemeralId, value: 'fr' })).not.toThrow();
     });
 
     it('invalid language value "klingon" fails validation', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.klingon.v1`;
-      plugin.register({ id: ephemeralId, value: 'klingon' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(false);
-      expect(result.errors.length).toBeGreaterThan(0);
+      expect(() => plugin.register({ id: ephemeralId, value: 'klingon' })).toThrow(
+        /GTS validation failed/
+      );
     });
 
     it('invalid language value "invalid-lang" fails validation', () => {
       const ephemeralId = `${HAI3_SHARED_PROPERTY_LANGUAGE}hai3.mfes.comm.runtime.invalid.v1`;
-      plugin.register({ id: ephemeralId, value: 'invalid-lang' });
-      const result = plugin.validateInstance(ephemeralId);
-      expect(result.valid).toBe(false);
+      expect(() =>
+        plugin.register({ id: ephemeralId, value: 'invalid-lang' })
+      ).toThrow(/GTS validation failed/);
     });
   });
 

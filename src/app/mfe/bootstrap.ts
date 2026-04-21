@@ -66,20 +66,6 @@ function registerScopedSchemas(
 }
 // @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
 
-function registerAndValidateManifest(
-  registry: ScreensetsRegistry,
-  manifest: MfManifest,
-): void {
-  registry.typeSystem.register(manifest);
-  const validation = registry.typeSystem.validateInstance(manifest.id);
-  if (!validation.valid) {
-    console.error('[MFE Bootstrap] Manifest failed GTS validation', {
-      manifestId: manifest.id,
-      errors: validation.errors,
-    });
-  }
-}
-
 async function registerMfePackage(
   registry: ScreensetsRegistry,
   config: MfeManifestConfig,
@@ -87,7 +73,10 @@ async function registerMfePackage(
   if (config.schemas) {
     registerScopedSchemas(registry, config.schemas, collectDeclaredActionIds(config.entries));
   }
-  registerAndValidateManifest(registry, config.manifest);
+  // register() validates each instance against its schema and throws on
+  // failure — invalid manifests/entries fail startup loudly rather than
+  // persisting broken state into the registry.
+  registry.typeSystem.register(config.manifest);
   for (const entry of config.entries) {
     registry.typeSystem.register({ ...entry, manifest: config.manifest });
   }

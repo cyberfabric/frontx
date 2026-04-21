@@ -84,15 +84,21 @@ describe('Lifecycle Stage Triggering', () => {
       id: customStageId,
     });
     plugin.register(testDomain); // Register domain so it can be referenced in lifecycle hooks
-    plugin.register({
-      id: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1',
-    });
-    plugin.register({
-      id: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook1.v1',
-    });
-    plugin.register({
-      id: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook2.v1',
-    });
+
+    // Pre-register derived action type schemas used by lifecycle hooks.
+    // Action types are GTS schemas (IDs end with `~`); anonymous action
+    // instances reference them via the `type` field.
+    for (const actionTypeId of [
+      'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1~',
+      'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook1.v1~',
+      'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook2.v1~',
+    ]) {
+      plugin.registerSchema({
+        $id: `gts://${actionTypeId}`,
+        $schema: 'https://json-schema.org/draft/2020-12/schema',
+        type: 'object',
+      });
+    }
   });
 
   describe('triggerLifecycleStage', () => {
@@ -105,7 +111,7 @@ describe('Lifecycle Stage Triggering', () => {
             stage: customStageId,
             actions_chain: {
               action: {
-                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1',
+                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1~',
                 target: testDomain.id,
               },
             },
@@ -151,7 +157,7 @@ describe('Lifecycle Stage Triggering', () => {
             stage: customStageId,
             actions_chain: {
               action: {
-                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1',
+                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1~',
                 target: testDomain.id,
               },
             },
@@ -167,7 +173,7 @@ describe('Lifecycle Stage Triggering', () => {
             stage: customStageId,
             actions_chain: {
               action: {
-                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1',
+                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1~',
                 target: testDomain.id,
               },
             },
@@ -215,7 +221,7 @@ describe('Lifecycle Stage Triggering', () => {
             stage: customStageId,
             actions_chain: {
               action: {
-                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1',
+                type: 'gts.hai3.mfes.comm.action.v1~test.lifecycle.trigger.action.v1~',
                 target: testDomain.id,
               },
             },
@@ -400,8 +406,8 @@ describe('Lifecycle Stage Triggering', () => {
     });
 
     it('should execute hooks in declaration order', async () => {
-      const hook1ActionType = 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook1.v1';
-      const hook2ActionType = 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook2.v1';
+      const hook1ActionType = 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook1.v1~';
+      const hook2ActionType = 'gts.hai3.mfes.comm.action.v1~test.lifecycle.hook2.v1~';
 
       const extensionWithMultipleHooks: Extension = {
         ...testExtension,

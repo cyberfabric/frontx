@@ -8,7 +8,6 @@
 import { describe, it, expect, vi } from 'vitest';
 import {
   MfeLoadError,
-  ContractValidationError,
   ChainExecutionError,
 } from '../../../src/mfe/errors';
 import {
@@ -50,28 +49,6 @@ describe('Error Handling', () => {
 
       // This will fail because the manifest is not cached
       await expect(handler.load(entry)).rejects.toThrow(MfeLoadError);
-    });
-  });
-
-  describe('11.3.2 Contract validation failure at load time', () => {
-    it('should create ContractValidationError with proper context', () => {
-      const errors = [
-        { type: 'missing_property' as const, details: 'Required property "theme" not provided' },
-        { type: 'unsupported_action' as const, details: 'Action "navigate" not supported by domain' },
-      ];
-
-      const error = new ContractValidationError(
-        errors,
-        'gts.hai3.mfes.mfe.entry.v1~test.entry.v1',
-        'gts.hai3.mfes.ext.domain.v1~test.domain.v1'
-      );
-
-      expect(error.code).toBe('CONTRACT_VALIDATION_ERROR');
-      expect(error.entryTypeId).toBe('gts.hai3.mfes.mfe.entry.v1~test.entry.v1');
-      expect(error.domainTypeId).toBe('gts.hai3.mfes.ext.domain.v1~test.domain.v1');
-      expect(error.errors).toHaveLength(2);
-      expect(error.message).toContain('missing_property');
-      expect(error.message).toContain('unsupported_action');
     });
   });
 

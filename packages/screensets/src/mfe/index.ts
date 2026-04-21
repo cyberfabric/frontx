@@ -5,12 +5,7 @@
  */
 
 // Type System Plugin
-export type {
-  JSONSchema,
-  ValidationError,
-  ValidationResult,
-  TypeSystemPlugin,
-} from './plugins';
+export type { JSONSchema, TypeSystemPlugin } from './plugins';
 
 // NOTE: GTS Plugin is NOT re-exported here to avoid pulling in @globaltypesystem/gts-ts
 // for consumers who don't need it. Import directly from '@cyberfabric/screensets/plugins/gts'

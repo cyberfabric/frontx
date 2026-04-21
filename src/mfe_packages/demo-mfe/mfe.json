@@ -58,13 +58,13 @@
       },
       {
         "name": "@cyberfabric/react",
-        "version": "0.2.0-alpha.1",
+        "version": "0.2.0-alpha.2",
         "chunkPath": "shared/cyberfabric-react.js",
         "unwrapKey": null
       },
       {
         "name": "@cyberfabric/framework",
-        "version": "0.2.0-alpha.1",
+        "version": "0.2.0-alpha.2",
         "chunkPath": "shared/cyberfabric-framework.js",
         "unwrapKey": null
       },
@@ -76,13 +76,13 @@
       },
       {
         "name": "@cyberfabric/screensets",
-        "version": "0.2.0-alpha.2",
+        "version": "0.2.0-alpha.3",
         "chunkPath": "shared/cyberfabric-screensets.js",
         "unwrapKey": null
       },
       {
         "name": "@cyberfabric/api",
-        "version": "0.2.0-alpha.1",
+        "version": "0.2.0-alpha.2",
         "chunkPath": "shared/cyberfabric-api.js",
         "unwrapKey": null
       },

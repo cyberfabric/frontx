@@ -142,7 +142,6 @@ describe('microfrontends plugin - Phase 7.9', () => {
       expect(typeof registry.typeSystem.registerSchema).toBe('function');
       expect(typeof registry.typeSystem.getSchema).toBe('function');
       expect(typeof registry.typeSystem.register).toBe('function');
-      expect(typeof registry.typeSystem.validateInstance).toBe('function');
       expect(typeof registry.typeSystem.isTypeOf).toBe('function');
     });
 

@@ -35,12 +35,7 @@ export { LayoutDomain } from './types';
 // ============================================================================
 
 // Type System Plugin
-export type {
-  JSONSchema,
-  ValidationError,
-  ValidationResult,
-  TypeSystemPlugin,
-} from './mfe';
+export type { JSONSchema, TypeSystemPlugin } from './mfe';
 
 // MFE TypeScript Interfaces
 export type {
