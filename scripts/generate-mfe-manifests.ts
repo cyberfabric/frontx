@@ -82,6 +82,7 @@ interface RawSchema {
 
 interface RawManifest {
   id: string;
+  name: string;
   remoteEntry: string;
   metaData: RawMetaData;
   shared: RawShared[];
@@ -275,7 +276,7 @@ class ManifestGenerator {
   private buildManifest(rawManifest: RawManifest, publicPath: string): OutMfManifest {
     return {
       id: rawManifest.id,
-      name: rawManifest.name ?? rawManifest.metaData.name,
+      name: rawManifest.name,
       metaData: {
         name: rawManifest.metaData.name,
         type: rawManifest.metaData.type,
