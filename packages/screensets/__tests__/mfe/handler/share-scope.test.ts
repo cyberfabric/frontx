@@ -434,6 +434,40 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
       await expect(handler.load(entry)).rejects.toBeInstanceOf(MfeLoadError);
     });
 
+    it('evicts sharedDepTextCache on rejection so a later load can recover after transient failure', async () => {
+      // First load: shared dep URL registered with failing fetch. After the first
+      // load() rejects, subsequent loads of any MFE declaring the same
+      // name@version must NOT receive the cached rejection — the entry must be
+      // evicted so a retry can succeed.
+
+      const remoteA = 'retryRemoteA';
+      const baseA = `${TEST_BASE_URL}/${remoteA}/`;
+      const sharedDepUrl = `${baseA}shared/react.js`;
+      mocks.registerSource(`${baseA}expose-Widget1.js`, createExposeChunkSource());
+      // Intentionally DO NOT register sharedDepUrl yet → first load fails with 404.
+
+      const manifestA = buildManifest(remoteA, [sharedDep(remoteA, 'react', '19.2.4')]);
+      const entryA = buildEntry(remoteA, 'retry-a.entry', 'expose-Widget1.js', manifestA);
+
+      await expect(handler.load(entryA)).rejects.toBeInstanceOf(MfeLoadError);
+
+      // Now the URL becomes available (simulates a transient outage recovered).
+      mocks.registerSource(sharedDepUrl, createSharedDepSource());
+
+      // A fresh load of an MFE declaring the SAME name@version must succeed —
+      // the failed entry was evicted from sharedDepTextCache, so the retry
+      // re-fetches rather than awaiting the cached rejection.
+      const remoteB = 'retryRemoteB';
+      const baseB = `${TEST_BASE_URL}/${remoteB}/`;
+      mocks.registerSource(`${baseB}shared/react.js`, createSharedDepSource());
+      mocks.registerSource(`${baseB}expose-Widget1.js`, createExposeChunkSource());
+
+      const manifestB = buildManifest(remoteB, [sharedDep(remoteB, 'react', '19.2.4')]);
+      const entryB = buildEntry(remoteB, 'retry-b.entry', 'expose-Widget1.js', manifestB);
+
+      await expect(handler.load(entryB)).resolves.toBeDefined();
+    });
+
     it('throws MfeLoadError when exposeAssets.js.sync is empty (no chunk to load)', async () => {
       const manifest = buildManifest('missingExposeRemote');
       const entry: MfeEntryMF = {

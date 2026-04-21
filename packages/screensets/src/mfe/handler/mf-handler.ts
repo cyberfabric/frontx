@@ -419,6 +419,14 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
           ? dep.chunkPath
           : manifest.metaData.publicPath + dep.chunkPath;
         textPromise = this.fetchSourceText(absoluteUrl);
+        // Evict on rejection so a transient failure doesn't poison every
+        // future load that shares this name@version. Identity check prevents
+        // clobbering a later retry promise under the same key.
+        textPromise.catch(() => {
+          if (this.sharedDepTextCache.get(cacheKey) === textPromise) {
+            this.sharedDepTextCache.delete(cacheKey);
+          }
+        });
         this.sharedDepTextCache.set(cacheKey, textPromise);
       }
       sources.set(dep.name, await textPromise);
