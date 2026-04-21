@@ -332,6 +332,147 @@ describe('MfeHandlerMF — bare specifier rewriting for shared deps', () => {
   });
 
   // -------------------------------------------------------------------------
+  // Subpath shared deps (e.g. react-dom/client alongside react-dom)
+  // -------------------------------------------------------------------------
+  describe('subpath shared deps', () => {
+    // Decode the data URL the mock produces in place of a real blob URL.
+    // The mock returns `data:text/javascript;base64,<base64(blobContent)>`, so
+    // decoding round-trips back to the exact source text the handler stored in
+    // the Blob after rewriting.
+    const DATA_URL_PREFIX = 'data:text/javascript;base64,';
+    const decodeDataUrl = (url: string): string =>
+      Buffer.from(url.replace(DATA_URL_PREFIX, ''), 'base64').toString('utf-8');
+    const getCreatedDataUrls = (): string[] => {
+      const spy = URL.createObjectURL as unknown as {
+        mock: { results: { value: string }[] };
+      };
+      return spy.mock.results.map((r) => r.value);
+    };
+
+    it('loads a subpath shared dep alongside its parent package', async () => {
+      const remoteName = 'subpathLoadRemote';
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+      const parentUrl = `${baseUrl}shared/react-dom.js`;
+      const subpathUrl = `${baseUrl}shared/react-dom-client.js`;
+
+      // Parent standalone ESM
+      mocks.registerSource(parentUrl, 'export default { name: "react-dom" };');
+      // Subpath standalone ESM with a bare `import 'react-dom'` specifier —
+      // simulates esbuild + patchCjsExternals output where the parent root is externalized
+      mocks.registerSource(subpathUrl, createSharedDepSource(['react-dom']));
+      mocks.registerSource(`${baseUrl}expose-Widget1.js`, createExposeChunkSource());
+
+      // Manifest order: parent (leaf) first, subpath second
+      const manifest = buildManifest(remoteName, [
+        sharedDep(remoteName, 'react-dom', '19.2.4'),
+        sharedDep(remoteName, 'react-dom/client', '19.2.4'),
+      ]);
+      const entry = buildEntry(remoteName, 'subpath-load.entry', 'expose-Widget1.js', manifest);
+
+      await expect(handler.load(entry)).resolves.toBeDefined();
+
+      const fetchedUrls = mocks.mockFetch.mock.calls.map((c: unknown[]) => c[0]);
+      expect(fetchedUrls).toContain(parentUrl);
+      expect(fetchedUrls).toContain(subpathUrl);
+
+      // A blob URL must have been created for the subpath's rewritten content.
+      // (sharedDep.normalizeDepName collapses `react-dom/client` → `react-dom-client.js`
+      // on the publicPath side; on the rewriter side the blob content is what we inspect.)
+      const subpathBlobContent = getCreatedDataUrls()
+        .map(decodeDataUrl)
+        .find((src) => src.includes('__ext_react_dom from'));
+      expect(subpathBlobContent).toBeDefined();
+    });
+
+    it('subpath and parent share the same blob URL for the parent', async () => {
+      const remoteName = 'subpathSharedUrlRemote';
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+
+      // Distinguishable content for parent so we can identify its data URL
+      mocks.registerSource(`${baseUrl}shared/react-dom.js`, 'export default { name: "react-dom" };');
+      mocks.registerSource(
+        `${baseUrl}shared/react-dom-client.js`,
+        createSharedDepSource(['react-dom'])
+      );
+      mocks.registerSource(`${baseUrl}expose-Widget1.js`, createExposeChunkSource());
+
+      const manifest = buildManifest(remoteName, [
+        sharedDep(remoteName, 'react-dom', '19.2.4'),
+        sharedDep(remoteName, 'react-dom/client', '19.2.4'),
+      ]);
+      const entry = buildEntry(
+        remoteName,
+        'subpath-shared-url.entry',
+        'expose-Widget1.js',
+        manifest
+      );
+
+      await handler.load(entry);
+
+      const dataUrls = getCreatedDataUrls();
+
+      // The parent's blob URL is the data URL whose decoded content is the
+      // parent's original source (not rewritten — `react-dom` has no imports).
+      const parentDataUrl = dataUrls.find(
+        (u) => decodeDataUrl(u) === 'export default { name: "react-dom" };'
+      );
+      expect(parentDataUrl).toBeDefined();
+
+      // The subpath's rewritten content has its `"react-dom"` import replaced
+      // by the parent's blob URL. Locate it by the `__ext_react_dom` marker.
+      const subpathContent = dataUrls
+        .map(decodeDataUrl)
+        .find((src) => src.includes('__ext_react_dom from'));
+      expect(subpathContent).toBeDefined();
+
+      // Extract the URL the rewriter embedded and prove it is the parent's URL —
+      // i.e., only one shared runtime is used for both `react-dom` and
+      // `react-dom/client` within this load.
+      const match = subpathContent!.match(/from\s+["']([^"']+)["']/);
+      expect(match).not.toBeNull();
+      expect(match![1]).toBe(parentDataUrl);
+    });
+
+    it('per-load isolation holds for subpaths', async () => {
+      const remoteName = 'subpathIsoRemote';
+      const baseUrl = `${TEST_BASE_URL}/${remoteName}/`;
+      const parentUrl = `${baseUrl}shared/react-dom.js`;
+      const subpathUrl = `${baseUrl}shared/react-dom-client.js`;
+
+      mocks.registerSource(parentUrl, 'export default { name: "react-dom" };');
+      mocks.registerSource(subpathUrl, createSharedDepSource(['react-dom']));
+      mocks.registerSource(`${baseUrl}expose-Widget1.js`, createExposeChunkSource());
+
+      const manifest = buildManifest(remoteName, [
+        sharedDep(remoteName, 'react-dom', '19.2.4'),
+        sharedDep(remoteName, 'react-dom/client', '19.2.4'),
+      ]);
+      const entry = buildEntry(remoteName, 'subpath-iso.entry', 'expose-Widget1.js', manifest);
+
+      // Two independent handlers → two independent sharedDepTextCache instances,
+      // so each load performs its own fetch + blob-URL chain construction.
+      const handler1 = new MfeHandlerMF(
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+        { timeout: 5000, retries: 0 }
+      );
+      const handler2 = new MfeHandlerMF(
+        'gts.hai3.mfes.mfe.entry.v1~hai3.mfes.mfe.entry_mf.v1~',
+        { timeout: 5000, retries: 0 }
+      );
+
+      await expect(handler1.load(entry)).resolves.toBeDefined();
+      await expect(handler2.load(entry)).resolves.toBeDefined();
+
+      // Each load fetched both the parent and the subpath shared dep URLs
+      // independently (weaker assertion per phase spec; exact blob-URL identity
+      // per load is covered by browser verification in phase 5).
+      const fetchedUrls = mocks.mockFetch.mock.calls.map((c: unknown[]) => c[0]) as string[];
+      expect(fetchedUrls.filter((u) => u === parentUrl).length).toBeGreaterThanOrEqual(2);
+      expect(fetchedUrls.filter((u) => u === subpathUrl).length).toBeGreaterThanOrEqual(2);
+    });
+  });
+
+  // -------------------------------------------------------------------------
   // Dependency order
   // -------------------------------------------------------------------------
   describe('dependency order — leaves first', () => {

@@ -7,6 +7,22 @@ import { createRequire } from 'node:module';
 import * as path from 'node:path';
 import type { Plugin } from 'vite';
 
+/**
+ * Extract the root npm package name from a shared-dep entry that may include
+ * a subpath. Handles scoped packages:
+ *   'react-dom/client'        → 'react-dom'
+ *   '@cyberfabric/react/hooks' → '@cyberfabric/react'
+ *   'react'                   → 'react'
+ */
+function extractRootPackageName(name: string): string {
+  if (name.startsWith('@')) {
+    const parts = name.split('/');
+    return parts.length >= 2 ? `${parts[0]}/${parts[1]}` : name;
+  }
+  const firstSlash = name.indexOf('/');
+  return firstSlash === -1 ? name : name.slice(0, firstSlash);
+}
+
 // ── Types matching mf-manifest.json structure ───────────────────────────────
 
 interface MfManifestSharedAssets {
@@ -187,14 +203,18 @@ class MfeJsonEnricher {
   /**
    * Resolves the installed version of a package by walking up from
    * packageRoot through node_modules directories.
+   *
+   * Accepts subpath entries like `react-dom/client` and resolves the
+   * version from the parent package's package.json.
    */
   private resolvePackageVersion(packageName: string): string {
+    const rootName = extractRootPackageName(packageName);
     let current = this.packageRoot;
     for (;;) {
       const candidate = path.join(
         current,
         'node_modules',
-        packageName,
+        rootName,
         'package.json'
       );
       if (fs.existsSync(candidate)) {
@@ -208,7 +228,7 @@ class MfeJsonEnricher {
       current = parent;
     }
     throw new Error(
-      `Cannot resolve version for "${packageName}" from ${this.packageRoot}`
+      `Cannot resolve version for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
     );
   }
 
@@ -277,6 +297,11 @@ class StandaloneEsmBuilder {
    * For each shared dep, inspect its package.json dependencies and
    * peerDependencies. Any dep that is ALSO in the shared dep list
    * becomes an external for that dep's build.
+   *
+   * For subpath entries (e.g. `react-dom/client`) whose parent package
+   * is also a declared shared dep, the parent is added to externals so
+   * that internal `import 'react-dom'` references inside the subpath
+   * bundle resolve to the shared parent blob URL at runtime.
    */
   private resolveTransitiveDeps(): ResolvedSharedDep[] {
     const sharedSet = new Set(this.sharedDeps);
@@ -289,7 +314,17 @@ class StandaloneEsmBuilder {
         ...pkg.dependencies,
         ...pkg.peerDependencies,
       };
-      const externals = Object.keys(allDeps).filter((d) => sharedSet.has(d));
+      const transitiveExternals = Object.keys(allDeps).filter((d) =>
+        sharedSet.has(d)
+      );
+
+      const rootName = extractRootPackageName(name);
+      const isSubpath = rootName !== name;
+      const externals =
+        isSubpath && sharedSet.has(rootName)
+          ? Array.from(new Set([rootName, ...transitiveExternals]))
+          : transitiveExternals;
+
       return { name, externals };
     });
   }
@@ -298,14 +333,18 @@ class StandaloneEsmBuilder {
    * Locates package.json by walking up from packageRoot through
    * node_modules directories. This bypasses restrictive `exports`
    * fields that prevent `require.resolve("pkg/package.json")`.
+   *
+   * Accepts subpath entries like `react-dom/client` and resolves the
+   * parent package's package.json.
    */
   private findPackageJsonPath(packageName: string): string {
+    const rootName = extractRootPackageName(packageName);
     let current = this.packageRoot;
     for (;;) {
       const candidate = path.join(
         current,
         'node_modules',
-        packageName,
+        rootName,
         'package.json'
       );
       if (fs.existsSync(candidate)) return candidate;
@@ -314,7 +353,7 @@ class StandaloneEsmBuilder {
       current = parent;
     }
     throw new Error(
-      `Cannot find package.json for "${packageName}" from ${this.packageRoot}`
+      `Cannot find package.json for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
     );
   }
 

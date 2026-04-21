@@ -325,16 +325,16 @@ Creates or updates a `<link rel="stylesheet">` (href) or `<style>` (inline css) 
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-build-standalone-esm`
 
-The `frontx-mf-gts` Vite plugin builds a standalone ESM module for each shared dependency from `node_modules` using esbuild. The output is a self-contained ESM file per shared dep that can be fetched and blob-URL'd at runtime. CJS packages (react, react-dom) are converted to ESM with named re-exports; sub-path imports (react/jsx-runtime) are bundled inline with parent-package externals preserved.
+The `frontx-mf-gts` Vite plugin builds a standalone ESM module for each entry declared in `rollupOptions.external` using esbuild. Each string in the externals list is treated as a distinct shared dep — whether a package root (e.g., `react`) or a subpath entry (e.g., `react-dom/client`, `@scope/pkg/sub`). The output is a self-contained ESM file per declared entry that can be fetched and blob-URL'd at runtime. CJS packages (react, react-dom) are converted to ESM with named re-exports. For a subpath entry, esbuild resolves the entry point via the parent package's `exports` field (native esbuild behavior — the plugin implements no subpath resolution), and the parent package is included in that entry's externals so internal parent-package references are preserved as bare specifiers and rewritten to the parent's blob URL at runtime.
 
-**Inputs**: Build externals (`rollupOptions.external`) from the resolved Vite config, `node_modules/` (resolved packages)
+**Inputs**: Build externals (`rollupOptions.external`) from the resolved Vite config (may include package roots and subpath entries), `node_modules/` (resolved packages)
 
-1. [x] - `p1` - Derive the shared dep list from `rollupOptions.external` in the resolved Vite config — `inst-read-shared-deps-list`
-2. [x] - `p1` - Sort shared deps in dependency order (leaves first, then packages that import them) so that transitive shared deps can be externalized — `inst-sort-build-order`
-3. [x] - `p1` - **FOR EACH** shared dep in dependency order: invoke esbuild with the package entry point as input, `format: 'esm'`, `bundle: true`, and all OTHER shared deps marked as `external` (preserving bare specifiers in output); CJS packages are automatically converted to ESM by esbuild — `inst-esbuild-shared`
-4. [x] - `p1` - **FOR EACH** CJS-origin shared dep: patch the esbuild output to add explicit named re-exports (e.g., `export { useState, useEffect, ... }` for react) so consuming modules can use named imports — `inst-patch-cjs-exports`
-5. [x] - `p1` - **FOR EACH** sub-path import (e.g., `react/jsx-runtime`): bundle it inline with the parent package marked as external, producing a standalone ESM that imports from the parent's bare specifier — `inst-bundle-subpath`
-6. [x] - `p1` - Write each standalone ESM to `dist/shared/{packageName}.js` (or `dist/shared/{packageName}/{subpath}.js` for sub-path imports) — `inst-write-standalone-esm`
+1. [x] - `p1` - Derive the shared dep list from `rollupOptions.external` in the resolved Vite config; each entry (package root or subpath) becomes a distinct standalone ESM target — `inst-read-shared-deps-list`
+2. [x] - `p1` - **FOR EACH** declared entry, resolve the parent package name: if the entry contains a `/` after the package scope (e.g., `react-dom/client` → parent `react-dom`, `@scope/pkg/sub` → parent `@scope/pkg`), strip the subpath to obtain the parent name; otherwise the entry is its own parent. The parent name locates the package's `package.json` (for transitive dep reading and version resolution) and ensures the parent is in the externals set when bundling that subpath — `inst-resolve-parent-package`
+3. [x] - `p1` - Sort shared deps in dependency order (leaves first, then packages that import them) so that transitive shared deps can be externalized — `inst-sort-build-order`
+4. [x] - `p1` - **FOR EACH** shared dep in dependency order: invoke esbuild with the declared entry name as input (esbuild resolves subpath entries via the parent package's `exports` field — no plugin-side subpath resolution), `format: 'esm'`, `bundle: true`, and all OTHER declared shared deps marked as `external` so their bare specifiers are preserved in output; for a subpath entry, the parent package is part of that externals set so internal parent-package references remain as bare specifiers; CJS packages are automatically converted to ESM by esbuild — `inst-esbuild-shared`
+5. [x] - `p1` - **FOR EACH** CJS-origin shared dep: patch the esbuild output to add explicit named re-exports (e.g., `export { useState, useEffect, ... }` for react) so consuming modules can use named imports — `inst-patch-cjs-exports`
+6. [x] - `p1` - Write each standalone ESM to `dist/shared/{normalizedName}.js`, where `normalizedName` replaces `/` with `-` (e.g., `react` → `shared/react.js`, `react-dom/client` → `shared/react-dom-client.js`) via the `normalizeDepName` rule — `inst-write-standalone-esm`
 
 ### Enrich mfe.json with Manifest Metadata
 
@@ -346,7 +346,7 @@ The `frontx-mf-gts` Vite plugin enriches the human-authored `mfe.json` in-place 
 
 1. [x] - `p1` - Read `dist/mf-manifest.json`: extract `exposes[]` array with per-module JS chunk paths and CSS asset paths; **IF** absent or unreadable **FAIL** with descriptive error — `inst-read-mf-manifest`
 2. [x] - `p1` - Build `manifest.metaData`: set `publicPath`, `name`, and other top-level metadata from the build context — `inst-build-metadata`
-3. [x] - `p1` - Build `manifest.shared[]` array: **FOR EACH** shared dep derived from build externals, set `chunkPath` to the standalone ESM path (e.g., `shared/react.js`), `version` from `node_modules` package.json, and `unwrapKey` (the export key to access the module, or `null` for default export) — `inst-build-shared-entries`
+3. [x] - `p1` - Build `manifest.shared[]` array: **FOR EACH** shared dep derived from build externals (entries treated as distinct — both package roots and subpath entries), set `chunkPath` to the normalized standalone ESM path (slashes replaced with hyphens via `normalizeDepName`; e.g., `react` → `shared/react.js`, `react-dom/client` → `shared/react-dom-client.js`), `version` from the parent package's `package.json` in `node_modules` (for a subpath entry, resolve version from the parent package's `package.json` — the subpath shares the parent's version; there is no subpath-specific `package.json`), and `unwrapKey` (the export key to access the module, or `null` for default export) — `inst-build-shared-entries`
 4. [x] - `p1` - **FOR EACH** entry in `mfe.json`: resolve `entry.exposedModule` against `mf-manifest.json`'s `exposes[]` array by matching against each `exposes[].path`; **IF** no match is found **FAIL** with the unmatched expose name; inject the matched expose's `assets` as `entry.exposeAssets` — `inst-inject-expose-assets`
 5. [x] - `p1` - Write the enriched `mfe.json` back in-place with the added `manifest` object (containing `metaData` and `shared[]`) and per-entry `exposeAssets` — `inst-write-enriched`
 
@@ -439,7 +439,7 @@ Tracks the fetch state of each individual chunk URL across all loads for the lif
 
 **Implementation details**:
 - `@module-federation/vite`: expose compilation, `mf-manifest.json` generation
-- `frontx-mf-gts` Vite plugin: reads `mf-manifest.json` and `mfe.json`; builds standalone ESMs into `dist/shared/`; enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets`
+- `frontx-mf-gts` Vite plugin: reads `mf-manifest.json` and `mfe.json`; builds standalone ESMs into `dist/shared/` — each entry in `rollupOptions.external` (including subpath entries like `react-dom/client`) becomes a distinct standalone ESM, and when building a subpath entry the parent package is added to that entry's externals so internal parent-package references are rewritten to the parent's blob URL at runtime; subpath imports NOT declared in `rollupOptions.external` remain bundled inline into their consuming dep's standalone ESM, with the declared parent-package externals preserved; enriches `mfe.json` in-place with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets`
 - Both plugins registered in each MFE's `vite.config.ts`; enriched `mfe.json` is the sole output artifact
 
 **Implements**:
@@ -552,7 +552,7 @@ Action target contract enforcement is two-layered: (1) **GTS schema validation**
 - [x] Shared dep isolation is handled entirely by the handler's blob URL mechanism (standalone ESMs → per-load blob URLs → bare specifier rewriting)
 - [x] Blob URLs are never revoked (`URL.revokeObjectURL` is never called)
 - [x] A missing manifest, missing fields, or network error throws `MfeLoadError` with descriptive message
-- [x] Shared deps are built as standalone ESMs by the `frontx-mf-gts` plugin (via esbuild) into `dist/shared/`; CJS packages (react, react-dom) are patched with named re-exports; sub-path imports (react/jsx-runtime) are bundled inline with parent-package externals preserved
+- [x] Shared deps are built as standalone ESMs by the `frontx-mf-gts` plugin (via esbuild) into `dist/shared/`; CJS packages (react, react-dom) are patched with named re-exports; subpath entries declared in `rollupOptions.external` (e.g., `react-dom/client`) each get their own standalone ESM with the parent package added to that entry's externals so internal parent-package references are rewritten to the parent's blob URL at runtime; subpath imports NOT declared in `rollupOptions.external` remain bundled inline into their consuming dep's standalone ESM with declared parent-package externals preserved
 - [x] The `frontx-mf-gts` plugin enriches `mfe.json` in-place: `manifest.shared[].chunkPath` set to MFE-relative paths (`shared/{name}.js`); the handler resolves against `publicPath` and deduplicates via `sharedDepTextCache` keyed by `name@version`; no intermediate `mfe.gts-manifest.json` artifact
 - [x] MFE `vite.config.ts` uses `shared: {}` (empty) and `build.rollupOptions.external` for shared deps; expose chunks contain bare specifiers for shared deps
 - [x] MFE `init.ts` files contain no direct imports from `react-redux`, `redux`, or `@reduxjs/toolkit`
