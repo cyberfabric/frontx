@@ -43,8 +43,5 @@ if (!me || typeof me !== 'object') {
   throw new Error('Unexpected /auth/me response');
 }
 
-console.log('[bearer-attach] OK:', {
-  id: me.id,
-  username: me.username,
-});
+console.log(`[bearer-attach] OK: id=${me.id} username=${me.username}`);
 

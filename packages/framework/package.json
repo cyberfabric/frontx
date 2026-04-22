@@ -41,9 +41,9 @@
   "devDependencies": {
     "@tanstack/query-core": "^5.0.0",
     "@vitest/coverage-v8": "^4.0.18",
-    "tsup": "^8.0.0",
-    "typescript": "^5.4.2",
-    "vitest": "^4.0.18"
+    "tsup": "8.0.0",
+    "typescript": "5.4.2",
+    "vitest": "4.0.18"
   },
   "peerDependencies": {
     "@cyberfabric/auth": "*",

@@ -69,9 +69,5 @@ if (state.refreshCalls !== 1) {
   throw new Error(`Expected refreshCalls=1, got ${state.refreshCalls}`);
 }
 
-console.log('[refresh-retry] OK:', {
-  refreshCalls: state.refreshCalls,
-  id: me.id,
-  username: me.username,
-});
+console.log(`[refresh-retry] OK: refreshCalls=${state.refreshCalls} id=${me.id} username=${me.username}`);
 

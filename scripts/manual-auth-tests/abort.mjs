@@ -63,5 +63,5 @@ if (state.refreshCalls !== 0) {
   throw new Error(`Expected refreshCalls=0, got ${state.refreshCalls}`);
 }
 
-console.log('[abort] OK:', { refreshCalls: state.refreshCalls });
+console.log(`[abort] OK: refreshCalls=${state.refreshCalls}`);
 

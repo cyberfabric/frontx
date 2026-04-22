@@ -184,7 +184,7 @@ describe('auth plugin', () => {
   // 3. 401 refresh + retry
   // -------------------------------------------------------------------------
   describe('401 refresh and retry', () => {
-    it('calls provider.refresh then ctx.retry with new token on 401 (retryCount=0)', async () => {
+    it('calls provider.refresh then ctx.retry with refreshed credentials on 401 (retryCount=0)', async () => {
       const refreshFn = vi.fn().mockResolvedValue({ kind: 'bearer', token: 'new-tok' } satisfies AuthSession);
       const plugin = capturePlugin(makeBearerProvider('old-tok', refreshFn));
 
@@ -295,13 +295,15 @@ describe('auth plugin', () => {
       const refreshFn = vi.fn().mockReturnValue(pendingRefresh);
       const plugin = capturePlugin(makeBearerProvider('old-tok', refreshFn));
 
-      const makeErrCtx = () => ({
-        error: new Error('HTTP 401'),
-        request: makeReqCtx('/api'),
-        response: { status: 401, headers: {}, data: null },
-        retryCount: 0,
-        retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
-      });
+      const makeErrCtx = () => {
+        return {
+          error: new Error('HTTP 401'),
+          request: makeReqCtx('/api'),
+          response: { status: 401, headers: {}, data: null },
+          retryCount: 0,
+          retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
+        };
+      };
 
       const errCtx1 = makeErrCtx();
       const errCtx2 = makeErrCtx();
@@ -338,7 +340,9 @@ describe('auth plugin', () => {
 
     it('does not add default AuthRestPlugin when custom binder does not call addRestPlugin', () => {
       // Custom binder that intentionally does not call addRestPlugin
-      const customBinder: AuthTransportBinder = (_args) => ({ destroy: vi.fn() });
+      const customBinder: AuthTransportBinder = (_args) => {
+        return { destroy: vi.fn() };
+      };
       const provider = makeBearerProvider('tok');
 
       const app = createHAI3().use(auth({ provider, transport: customBinder })).build();

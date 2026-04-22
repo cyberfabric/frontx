@@ -365,7 +365,11 @@ export type MfeScreensetsRegistry = import('@cyberfabric/screensets').Screensets
 /**
  * FrontX App Runtime Extensions
  * Plugins may augment this interface to add typed runtime APIs onto `app`.
+ *
+ * Intentionally empty — serves as a declaration-merging target for plugins
+ * (e.g. `auth.ts` adds `auth?: AuthRuntime` via `declare module`).
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- intentional declaration-merging target
 export interface HAI3AppRuntimeExtensions {}
 
 /**
