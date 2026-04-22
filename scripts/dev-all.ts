@@ -98,38 +98,33 @@ function buildPreviewCommands(mfes: MfeInfo[]): string[] {
 }
 
 // Build MFEs sequentially, then generate manifests, then start previews
-function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
-  return new Promise((resolve, reject) => {
-    if (mfes.length === 0) {
-      resolve();
-      return;
-    }
+async function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
+  if (mfes.length === 0) return;
 
-    console.log('📦 Building MFE packages...\n');
+  console.log('📦 Building MFE packages...\n');
 
-    // Build each MFE sequentially to avoid resource contention
-    // Use absolute paths to avoid cwd drift between chained commands
-    const root = process.cwd();
-    const buildCommands = mfes.map(
-      (mfe) => `cd "${root}/src/mfe_packages/${mfe.name}" && npx vite build`
-    );
-    const combined = buildCommands.join(' && ');
-
-    const proc = spawn('/bin/sh', ['-c', combined], {
-      stdio: 'inherit',
-      cwd: process.cwd(),
+  // Spawn `vite build` per package with `cwd` set to that package — avoids
+  // `/bin/sh -c` concatenation (which is non-portable on Windows and fragile
+  // when a package path contains shell-special characters).
+  for (const mfe of mfes) {
+    await new Promise<void>((resolve, reject) => {
+      const proc = spawn('npx', ['vite', 'build'], {
+        stdio: 'inherit',
+        cwd: join(MFE_PACKAGES_DIR, mfe.name),
+        shell: process.platform === 'win32',
+      });
+      proc.on('error', reject);
+      proc.on('exit', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`MFE build failed for ${mfe.name} with exit code ${code}`));
+        }
+      });
     });
+  }
 
-    proc.on('error', reject);
-    proc.on('exit', (code) => {
-      if (code === 0) {
-        console.log('\n✅ All MFE packages built successfully.\n');
-        resolve();
-      } else {
-        reject(new Error(`MFE build failed with exit code ${code}`));
-      }
-    });
-  });
+  console.log('\n✅ All MFE packages built successfully.\n');
 }
 
 // Run manifest generation after MFE builds

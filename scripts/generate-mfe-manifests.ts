@@ -18,11 +18,11 @@
  * Pipeline per MFE package:
  *   1. Read mfe.json — enriched by the build plugin
  *   2. Inject resolved publicPath (overrides build-time placeholder)
- *   3. Resolve shared dep chunkPaths (override with --shared-base-url if given)
+ *   3. Copy shared dep `chunkPath` entries unchanged from the enriched manifest
  *   4. Map entries to MfeEntryMF shape with manifest reference and exposeAssets
  *
  * Usage:
- *   npx tsx scripts/generate-mfe-manifests.ts [--base-url <url>] [--shared-base-url <url>]
+ *   npx tsx scripts/generate-mfe-manifests.ts [--base-url <url>]
  *
  * When --base-url is omitted, publicPath comes from manifest.metaData.publicPath
  * in the enriched mfe.json (set by the build plugin from mf-manifest.json).

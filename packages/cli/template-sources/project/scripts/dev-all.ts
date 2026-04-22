@@ -121,8 +121,12 @@ function buildCommands(mfes: MfeInfo[], packageManager: PackageManager): string[
 
   // MFEs use "build && preview" because @module-federation/vite
   // generates remoteEntry.js and mf-manifest.json at build time, not in dev mode.
+  // Each command is produced by `runScriptCommand` so pnpm/yarn users don't
+  // end up with a hardcoded `npm run preview` tail mixed into the chain.
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && ${runScriptCommand(packageManager, 'build && npm run preview')}`);
+    const build = runScriptCommand(packageManager, 'build');
+    const preview = runScriptCommand(packageManager, 'preview');
+    commands.push(`cd src/mfe_packages/${mfe.name} && ${build} && ${preview}`);
   }
 
   return commands;
