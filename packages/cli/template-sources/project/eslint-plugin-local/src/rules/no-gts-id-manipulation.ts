@@ -40,6 +40,7 @@ const TRANSFORM_METHODS = new Set([
 const GTS_MARKER_SUBSTRINGS = [
   'gts:', // URI scheme prefix (matches `gts://` in both plain strings and regex `gts:\\/\\/`)
   'gts.', // Entity ID prefix (matches `gts.hai3.mfes...`)
+  'gts\\.', // Regex-escaped entity ID prefix (matches `/gts\./` literal in regex source)
 ];
 
 function textContainsGtsMarker(text: string): boolean {
@@ -58,10 +59,12 @@ function literalContainsGtsMarker(node: Literal): boolean {
   return false;
 }
 
-function argContainsGtsMarker(arg: CallExpression['arguments'][number]): boolean {
-  if (arg.type === 'Literal') return literalContainsGtsMarker(arg as Literal);
-  if (arg.type === 'TemplateLiteral') {
-    return arg.quasis.some((q) => textContainsGtsMarker(q.value.raw));
+function nodeContainsGtsMarker(
+  node: CallExpression['arguments'][number] | MemberExpression['object'],
+): boolean {
+  if (node.type === 'Literal') return literalContainsGtsMarker(node as Literal);
+  if (node.type === 'TemplateLiteral') {
+    return node.quasis.some((q) => textContainsGtsMarker(q.value.raw));
   }
   return false;
 }
@@ -94,9 +97,12 @@ const rule: Rule.RuleModule = {
         const method = (callee.property as Identifier).name;
         if (!TRANSFORM_METHODS.has(method)) return;
 
-        // Flag when ANY argument embeds a GTS marker (regex or string)
-        const hasGtsArg = node.arguments.some((arg) => argContainsGtsMarker(arg));
-        if (!hasGtsArg) return;
+        // Flag when the receiver OR any argument embeds a GTS marker.
+        // `'gts.foo...'.split('~')` has the marker on callee.object, not in args.
+        const hasGtsMarker =
+          nodeContainsGtsMarker(callee.object) ||
+          node.arguments.some((arg) => nodeContainsGtsMarker(arg));
+        if (!hasGtsMarker) return;
 
         context.report({
           node,

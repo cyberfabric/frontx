@@ -40,6 +40,9 @@ import type {
   Identifier,
   MemberExpression,
   ImportDeclaration,
+  ImportExpression,
+  CallExpression,
+  Literal,
 } from 'estree';
 
 const BANNED_IDENTIFIERS = new Set(['eval']);
@@ -111,6 +114,23 @@ const rule: Rule.RuleModule = {
               messageId: 'disallowedTopLevel',
               data: { kind: stmt.type },
             });
+            continue;
+          }
+          // ExpressionStatement is allowlisted ONLY for directive prologues
+          // (e.g. `'use strict'`). A bare side-effect call like `doSomething()`
+          // is also an ExpressionStatement but has no `directive` field.
+          if (
+            stmt.type === 'ExpressionStatement' &&
+            !(
+              'directive' in stmt &&
+              typeof (stmt as { directive?: unknown }).directive === 'string'
+            )
+          ) {
+            context.report({
+              node: stmt,
+              messageId: 'disallowedTopLevel',
+              data: { kind: stmt.type },
+            });
           }
         }
       },
@@ -125,16 +145,19 @@ const rule: Rule.RuleModule = {
           });
           return;
         }
-        // Require type-only imports. Allow when ALL specifiers are type-only
-        // or when the declaration itself is type-only.
+        // Require type-only imports. Allow when the declaration itself is
+        // type-only OR when every specifier is type-only. A side-effect
+        // import (`import './setup'`) has zero specifiers — `.every()`
+        // returns true on the empty array, so we must reject it explicitly.
         const isTypeOnlyDecl =
           (node as ImportDeclaration & { importKind?: string }).importKind ===
           'type';
+        const hasSpecifiers = node.specifiers.length > 0;
         const allSpecifiersTypeOnly = node.specifiers.every((spec) => {
           const s = spec as typeof spec & { importKind?: string };
           return s.importKind === 'type';
         });
-        if (!isTypeOnlyDecl && !allSpecifiersTypeOnly) {
+        if (!isTypeOnlyDecl && (!hasSpecifiers || !allSpecifiersTypeOnly)) {
           context.report({
             node,
             messageId: 'nonTypeImport',
@@ -159,6 +182,63 @@ const rule: Rule.RuleModule = {
           messageId: 'bannedIdentifier',
           data: { name: node.name },
         });
+      },
+
+      MemberExpression(node: MemberExpression) {
+        // Enforce the documented `process.env` ban. The `Identifier` visitor
+        // alone cannot distinguish `process.env` from unrelated `process`
+        // identifiers, so we match the full shape here.
+        if (node.computed) return;
+        const object = node.object;
+        const property = node.property;
+        if (
+          object.type === 'Identifier' &&
+          (object as Identifier).name === 'process' &&
+          property.type === 'Identifier' &&
+          (property as Identifier).name === 'env'
+        ) {
+          context.report({
+            node: node as unknown as Rule.Node,
+            messageId: 'bannedIdentifier',
+            data: { name: 'process.env' },
+          });
+        }
+      },
+
+      // Dynamic imports: `await import('node:fs')` must be blocked too.
+      ImportExpression(node: ImportExpression) {
+        const source = node.source;
+        if (source.type !== 'Literal') return;
+        const value = (source as Literal).value;
+        if (typeof value === 'string' && BANNED_MODULE_NAMES.has(value)) {
+          context.report({
+            node: node as unknown as Rule.Node,
+            messageId: 'bannedImport',
+            data: { module: value },
+          });
+        }
+      },
+
+      // `require('child_process')` must be blocked too.
+      CallExpression(node: CallExpression) {
+        if (
+          node.callee.type !== 'Identifier' ||
+          (node.callee as Identifier).name !== 'require'
+        ) {
+          return;
+        }
+        const [firstArg] = node.arguments;
+        if (
+          firstArg?.type === 'Literal' &&
+          typeof (firstArg as Literal).value === 'string' &&
+          BANNED_MODULE_NAMES.has((firstArg as Literal).value as string)
+        ) {
+          context.report({
+            node: firstArg as unknown as Rule.Node,
+            messageId: 'bannedImport',
+            data: { module: (firstArg as Literal).value as string },
+          });
+        }
       },
 
       ExportNamedDeclaration(node: ExportNamedDeclaration) {
