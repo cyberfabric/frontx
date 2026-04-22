@@ -31,6 +31,7 @@
 - [4. States (CDSL)](#4-states-cdsl)
   - [LoadBlobState (Per-Load Isolation Map)](#loadblobstate-per-load-isolation-map)
   - [SourceTextCache (Handler-Level)](#sourcetextcache-handler-level)
+  - [SharedDepTextCache (Handler-Level)](#shareddeptextcache-handler-level)
 - [5. Definitions of Done](#5-definitions-of-done)
   - [Blob URL Isolation Core](#blob-url-isolation-core)
   - [Module Federation Vite Plugin and frontx-mf-gts](#module-federation-vite-plugin-and-frontx-mf-gts)
@@ -208,9 +209,9 @@ Replaces bare specifiers (non-relative, non-absolute import paths like `"react"`
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-mfe-isolation-fetch-source`
 
-All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (keyed by absolute URL), ensuring at most one network request per chunk across all loads.
+All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (keyed by absolute URL), ensuring at most one in-flight network request per chunk while the entry remains cached. The cache is bounded via a least-recently-used eviction policy (`SOURCE_TEXT_CACHE_CAPACITY`); when the cap is reached, the least-recently-accessed URL is dropped and a subsequent access re-fetches. Eviction is correctness-safe — each cache miss triggers a fresh fetch.
 
-**Inputs**: `absoluteChunkUrl` (string), `sourceTextCache` (handler-level `Map<string, Promise<string>>`)
+**Inputs**: `absoluteChunkUrl` (string), `sourceTextCache` (handler-level `LruCache<string, Promise<string>>`)
 **Outputs**: `Promise<string>` (source text) or `MfeLoadError`
 
 1. [x] - `p1` - **IF** `sourceTextCache` contains an entry for `absoluteChunkUrl` **RETURN** the cached `Promise<string>` — `inst-cache-hit`
@@ -227,7 +228,7 @@ All source text fetches go through the `MfeHandlerMF`-level `sourceTextCache` (k
 
 Processes a chunk and all its static relative imports depth-first. Within a single load, each filename is processed at most once. Bare specifiers in each chunk are rewritten to blob URLs from the per-load `sharedDepBlobUrls` map (built by `cpt-frontx-algo-mfe-isolation-build-shared-dep-blob-urls` before this chain runs).
 
-**Inputs**: `loadState` (LoadBlobState), `filename` (string), `sourceTextCache` (handler-level)
+**Inputs**: `loadState` (LoadBlobState), `filename` (string), `sourceTextCache` (handler-level `LruCache<string, Promise<string>>`)
 **Outputs**: populates `loadState.blobUrlMap` with blob URLs for all processed chunks
 
 1. [x] - `p1` - **IF** `loadState.blobUrlMap` already has `filename` OR `loadState.visited` contains `filename` **RETURN** (already processed) — `inst-already-processed`
@@ -373,12 +374,29 @@ Tracks the blob URL map, visitation set, and shared dep blob URLs for a single M
 
 - [x] `p1` - **ID**: `cpt-frontx-state-mfe-isolation-source-cache`
 
-Tracks the fetch state of each individual chunk URL across all loads for the lifetime of the `MfeHandlerMF` instance. The cache stores source text for chunk files (JS modules in the blob URL chain). Manifest content is resolved from GTS entities and cached in the handler's `ManifestCache`, not in this source text cache.
+Tracks the fetch state of each individual chunk URL for the lifetime of the `MfeHandlerMF` instance. The cache stores source text for chunk files (JS modules in the blob URL chain). Manifest content is resolved from GTS entities and cached in the handler's `ManifestCache`, not in this source text cache.
+
+The cache is bounded via an `LruCache<string, Promise<string>>` wrapper with a fixed capacity (`SOURCE_TEXT_CACHE_CAPACITY`). When the capacity is reached, the least-recently-accessed URL is evicted. A subsequent access to an evicted URL re-fetches and re-caches; eviction is correctness-safe because the blob URL chain builds from fresh source text on each access path.
 
 1. [x] - `p1` - **FROM** ABSENT **TO** PENDING **WHEN** a fetch for `absoluteChunkUrl` is initiated and the `Promise<string>` is stored in `sourceTextCache` — `inst-cache-pending`
 2. [x] - `p1` - **FROM** PENDING **TO** RESOLVED **WHEN** `fetch()` succeeds and the promise resolves with source text — `inst-cache-resolved`
 3. [x] - `p1` - **FROM** PENDING **TO** ABSENT **WHEN** `fetch()` fails; the entry is removed from `sourceTextCache` to avoid a stuck negative cache — `inst-cache-evicted`
-4. [x] - `p1` - **FROM** RESOLVED **TO** RESOLVED **WHEN** subsequent loads request the same URL (cache hit; no new fetch) — `inst-cache-hit-state`
+4. [x] - `p1` - **FROM** RESOLVED **TO** RESOLVED **WHEN** subsequent loads request the same URL and the entry is still cached (cache hit; no new fetch; entry moves to most-recently-used position) — `inst-cache-hit-state`
+5. [x] - `p1` - **FROM** RESOLVED **TO** ABSENT **WHEN** the cache reaches `SOURCE_TEXT_CACHE_CAPACITY` and this URL is the least-recently-accessed entry; the entry is dropped to admit a new URL; a later access re-fetches — `inst-cache-lru-evicted`
+
+### SharedDepTextCache (Handler-Level)
+
+- [x] `p1` - **ID**: `cpt-frontx-state-mfe-isolation-shared-dep-cache`
+
+Tracks the fetch state of each shared dependency's standalone ESM source text for the lifetime of the `MfeHandlerMF` instance. Keyed by `name@version` (e.g. `react@19.2.4`), so the first MFE to load a given shared dep caches its source text and subsequent MFEs declaring the same `name@version` get a cache hit regardless of which origin server serves the chunk.
+
+The cache is bounded via an `LruCache<string, Promise<string>>` wrapper with a fixed capacity (`SHARED_DEP_TEXT_CACHE_CAPACITY`). When the capacity is reached, the least-recently-accessed `name@version` entry is evicted. A subsequent access to an evicted key re-fetches and re-caches; eviction is correctness-safe because per-load blob URLs are built from whatever source text is returned (cached or freshly fetched), and isolation is provided by the per-load blob URL creation, not by cache residency.
+
+1. [x] - `p1` - **FROM** ABSENT **TO** PENDING **WHEN** a fetch for a `name@version` not currently cached is initiated and the `Promise<string>` is stored in `sharedDepTextCache` — `inst-shared-cache-pending`
+2. [x] - `p1` - **FROM** PENDING **TO** RESOLVED **WHEN** `fetch()` succeeds and the promise resolves with source text — `inst-shared-cache-resolved`
+3. [x] - `p1` - **FROM** PENDING **TO** ABSENT **WHEN** `fetch()` fails; the identity-guarded `.catch` removes the failed entry from `sharedDepTextCache` so a later load can retry without receiving the cached rejection — `inst-shared-cache-evicted`
+4. [x] - `p1` - **FROM** RESOLVED **TO** RESOLVED **WHEN** subsequent loads request the same `name@version` and the entry is still cached (cache hit; no new fetch; entry moves to most-recently-used position) — `inst-shared-cache-hit-state`
+5. [x] - `p1` - **FROM** RESOLVED **TO** ABSENT **WHEN** the cache reaches `SHARED_DEP_TEXT_CACHE_CAPACITY` and this `name@version` is the least-recently-accessed entry; the entry is dropped to admit a new one; a later access re-fetches — `inst-shared-cache-lru-evicted`
 
 ---
 

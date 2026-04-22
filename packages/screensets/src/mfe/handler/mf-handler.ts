@@ -76,6 +76,61 @@ class ManifestCache {
 }
 
 /**
+ * Minimal LRU cache with fixed capacity. Leverages insertion-order semantics
+ * of `Map`: each `get` re-inserts the key (moving it to the end, i.e. "most
+ * recent"), and `set` evicts the oldest key when capacity would be exceeded.
+ *
+ * We use this for source-text caches to prevent unbounded growth on
+ * long-running hosts that accumulate many distinct chunk URLs over time
+ * (a partial miss on issue #253).
+ *
+ * @internal Exported for unit testing; not part of the public API.
+ */
+export class LruCache<K, V> {
+  private readonly map = new Map<K, V>();
+
+  constructor(private readonly capacity: number) {
+    if (!Number.isFinite(capacity) || capacity <= 0) {
+      throw new RangeError(`LruCache capacity must be a positive integer, got ${capacity}`);
+    }
+  }
+
+  get(key: K): V | undefined {
+    if (!this.map.has(key)) return undefined;
+    const value = this.map.get(key) as V;
+    // Re-insert to mark as most-recently-used.
+    this.map.delete(key);
+    this.map.set(key, value);
+    return value;
+  }
+
+  set(key: K, value: V): void {
+    // If already present, delete first so the re-insert moves it to the end.
+    if (this.map.has(key)) {
+      this.map.delete(key);
+    } else if (this.map.size >= this.capacity) {
+      // Evict the oldest (first) key.
+      const oldestKey = this.map.keys().next().value as K | undefined;
+      if (oldestKey !== undefined) this.map.delete(oldestKey);
+    }
+    this.map.set(key, value);
+  }
+
+  delete(key: K): boolean {
+    return this.map.delete(key);
+  }
+
+  has(key: K): boolean {
+    return this.map.has(key);
+  }
+}
+
+/** Max source-text entries retained. Expose-chunk entries evict oldest-first. */
+const SOURCE_TEXT_CACHE_CAPACITY = 256;
+/** Max shared-dep text entries retained (keyed by name@version, cross-MFE). */
+const SHARED_DEP_TEXT_CACHE_CAPACITY = 128;
+
+/**
  * Configuration for MFE loading behavior.
  */
 interface MfeLoaderConfig {
@@ -102,16 +157,29 @@ class MfeHandlerMF extends MfeHandler<MfeEntryMF, ChildMfeBridge> {
   private readonly config: MfeLoaderConfig;
   private readonly retryHandler: RetryHandler;
   // @cpt-state:cpt-frontx-state-mfe-isolation-source-cache:p1
-  private readonly sourceTextCache = new Map<string, Promise<string>>();
+  // LRU-bounded so a long-running host that loads many distinct MFEs cannot
+  // grow the cache without limit. Expose-chunk source text has no reuse
+  // value after its load settles, so oldest-first eviction is acceptable.
+  private readonly sourceTextCache = new LruCache<string, Promise<string>>(
+    SOURCE_TEXT_CACHE_CAPACITY,
+  );
 
+  // @cpt-state:cpt-frontx-state-mfe-isolation-shared-dep-cache:p1
   /**
    * Cross-runtime shared dep source text deduplication.
    * Keyed by `name@version`. The first MFE to load a given shared dep
    * caches its source text here. Subsequent MFEs declaring the same
    * name@version get a cache hit — zero network fetch, regardless of
    * which server hosts the MFE.
+   *
+   * LRU-bounded for the same reason as `sourceTextCache`. Shared deps are
+   * naturally fewer (only npm-published packages declared in `rollupOptions.external`),
+   * but the cap defends against a pathological host that keeps adding new
+   * versions over time.
    */
-  private readonly sharedDepTextCache = new Map<string, Promise<string>>();
+  private readonly sharedDepTextCache = new LruCache<string, Promise<string>>(
+    SHARED_DEP_TEXT_CACHE_CAPACITY,
+  );
 
 
   constructor(

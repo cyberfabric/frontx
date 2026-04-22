@@ -84,17 +84,25 @@ export function rewriteBareSpecifier(
  * produces a fresh blob URL whose content is evaluated as an isolated ES
  * module instance.
  *
- * @safety-reviewed 2026-04-20
- * @why The URL is ALWAYS a `blob:` URL constructed by `URL.createObjectURL`
- *      from content the handler itself built (an expose chunk compiled by
- *      `@module-federation/vite` at build time, with bare specifiers
- *      rewritten to other trusted blob URLs). No path, network URL, or user
- *      input can reach this function; the caller guarantees the argument
- *      starts with `blob:`. This is not a code-injection vector — it is the
- *      feature.
- * @inputs `blobUrl` — a `blob:` URL the handler itself produced via
- *         `URL.createObjectURL(new Blob([rewrittenSource], ...))`.
+ * @safety-reviewed 2026-04-22
+ * @why The URL is ALWAYS a scheme-prefixed inline-content URL constructed
+ *      by the handler itself — `blob:` in production (from
+ *      `URL.createObjectURL(new Blob([rewrittenSource]))`), or `data:` in
+ *      tests that stub `createObjectURL` because jsdom cannot `import()` a
+ *      `blob:` URL directly. Both schemes carry inline content with no
+ *      network access, so the safety property is identical: no path,
+ *      network URL, or user input can reach this function. The runtime
+ *      guard below makes that invariant executable so accidental call
+ *      sites that pass a path or `http:`/`file:` URL fail fast rather than
+ *      silently loading untrusted code.
+ * @inputs `blobUrl` — a `blob:` URL from `URL.createObjectURL(...)` or a
+ *         `data:` URL from the same code path under test mocks.
  */
 export async function importBlobModule(blobUrl: string): Promise<unknown> {
+  if (!(blobUrl.startsWith('blob:') || blobUrl.startsWith('data:'))) {
+    throw new TypeError(
+      `importBlobModule accepts only blob: or data: URLs, received: ${blobUrl}`,
+    );
+  }
   return await import(/* @vite-ignore */ blobUrl);
 }
