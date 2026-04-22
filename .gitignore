@@ -56,6 +56,9 @@ packages/cli/src/generated/
 .claude/worktrees/
 .claude/scheduled_tasks.lock
 
+# Agent infrastructure (session-local, not part of feature code)
+.agents/
+
 # FrontX migration tracker (project-local state)
 .frontx/
 

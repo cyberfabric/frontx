@@ -16,6 +16,7 @@ import { effects } from '../plugins/effects';
 import { queryCache } from '../plugins/queryCache';
 import { mock } from '../plugins/mock';
 import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfrontends';
+import { auth, type AuthPluginConfig } from '../plugins/auth';
 
 /**
  * Full preset configuration.
@@ -23,6 +24,8 @@ import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfront
 export interface FullPresetConfig {
   /** Configuration for microfrontends plugin */
   microfrontends?: MicrofrontendsConfig;
+  /** Optional auth plugin config. When provided, `auth()` is added to the preset. */
+  auth?: AuthPluginConfig;
 }
 
 /**
@@ -66,6 +69,9 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
   ];
   if (config?.microfrontends) {
     plugins.push(microfrontends(config.microfrontends));
+  }
+  if (config?.auth) {
+    plugins.push(auth(config.auth));
   }
   return plugins;
 }

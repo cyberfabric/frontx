@@ -29,6 +29,9 @@ export default [
       '**/.vitepress/**',
       // Legacy config files (still used by dependency-cruiser)
       '.dependency-cruiser.cjs',
+      '.husky/**',
+      '.artifacts/**', // Sandbox artifacts (gitignored)
+      '.agents/**', // Agent infrastructure (gitignored)
     ],
   },
 

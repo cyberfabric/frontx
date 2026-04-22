@@ -167,6 +167,14 @@ export interface HAI3Actions {
 export interface PluginProvides {
   /** Registry contributions */
   registries?: Record<string, unknown>;
+  /**
+   * Runtime app surface extensions.
+   * Use module augmentation to extend `HAI3AppRuntimeExtensions`.
+   *
+   * This is the non-special-case way for plugins to expose runtime APIs
+   * on the built `app` instance (e.g. `app.auth`, `app.queryClient`).
+   */
+  app?: Partial<HAI3AppRuntimeExtensions>;
   /** Redux slices to register */
   slices?: RegisterableSlice[];
   /** Effect initializers to register */
@@ -355,6 +363,12 @@ export interface ThemeRegistry {
 export type MfeScreensetsRegistry = import('@cyberfabric/screensets').ScreensetsRegistry;
 
 /**
+ * FrontX App Runtime Extensions
+ * Plugins may augment this interface to add typed runtime APIs onto `app`.
+ */
+export interface HAI3AppRuntimeExtensions {}
+
+/**
  * FrontX App Interface
  * The built application with all features available.
  *
@@ -374,7 +388,7 @@ export type MfeScreensetsRegistry = import('@cyberfabric/screensets').Screensets
  * }
  * ```
  */
-export interface HAI3App {
+export interface HAI3App extends HAI3AppRuntimeExtensions {
   /** Application configuration */
   config: HAI3Config;
 

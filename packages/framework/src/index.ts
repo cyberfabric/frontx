@@ -29,6 +29,13 @@ export {
   layout,
   i18n,
   effects,
+  auth,
+  hai3ApiTransport,
+  type AuthPluginConfig,
+  type AuthRuntime,
+  type AuthTransportBinding,
+  type AuthTransportBinder,
+  type Hai3ApiAuthTransportConfig,
   queryCache,
   queryCacheShared,
   subscribeQueryCacheRuntimeChanged,
@@ -37,6 +44,25 @@ export {
   type MockPluginConfig,
   type QueryCacheConfig,
 } from './plugins';
+
+// Auth contract types (re-exported from @cyberfabric/auth)
+export type {
+  AuthProvider,
+  AuthSession,
+  AuthContext,
+  AuthCheckResult,
+  AuthLoginInput,
+  AuthCallbackInput,
+  AuthTransition,
+  AuthPermissions,
+  AccessQuery,
+  AccessDecision,
+  AuthCapabilities,
+  AuthState,
+  AuthStateEvent,
+  AuthStateListener,
+  AuthUnsubscribe,
+} from '@cyberfabric/auth';
 
 // MFE Plugin Exports
 export {

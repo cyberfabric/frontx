@@ -26,6 +26,7 @@ export default defineConfig({
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
+    dedupe: ['@cyberfabric/api', '@cyberfabric/framework', '@cyberfabric/react'],
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react/jsx-runtime', '@globaltypesystem/gts-ts'],

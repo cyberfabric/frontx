@@ -31,17 +31,22 @@
   ],
   "scripts": {
     "build": "tsup",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "path-to-regexp": "^8.2.0"
   },
   "devDependencies": {
     "@tanstack/query-core": "^5.0.0",
+    "@vitest/coverage-v8": "^4.0.18",
     "tsup": "^8.0.0",
-    "typescript": "^5.4.2"
+    "typescript": "^5.4.2",
+    "vitest": "^4.0.18"
   },
   "peerDependencies": {
+    "@cyberfabric/auth": "*",
     "@cyberfabric/state": "*",
     "@cyberfabric/screensets": "*",
     "@cyberfabric/api": "*",
@@ -49,6 +54,9 @@
     "@tanstack/query-core": "^5.0.0"
   },
   "peerDependenciesMeta": {
+    "@cyberfabric/auth": {
+      "optional": true
+    },
     "@cyberfabric/state": {
       "optional": false
     },

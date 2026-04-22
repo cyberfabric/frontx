@@ -10,7 +10,7 @@ import { RestProtocol } from '../protocols/RestProtocol';
 import { SseProtocol } from '../protocols/SseProtocol';
 import { RestMockPlugin } from '../plugins/RestMockPlugin';
 import { SseMockPlugin } from '../plugins/SseMockPlugin';
-import { ApiPluginBase, type ApiProtocol } from '../types';
+import { ApiPluginBase, ApiProtocol } from '../types';
 
 // Test service implementation
 class TestApiService extends BaseApiService {
@@ -80,13 +80,21 @@ describe('BaseApiService.registerPlugin', () => {
       expect(plugins.get(service.sseProtocol)?.has(sseMock)).toBe(true);
     });
 
-    it('should throw error for unregistered protocol', () => {
-      const unregisteredProtocol = new RestProtocol();
+    it('should throw error for unregistered protocol class', () => {
+      class UnregisteredProtocol extends ApiProtocol {
+        initialize(): void {}
+        getPluginsInOrder(): readonly [] {
+          return [];
+        }
+        cleanup(): void {}
+      }
+
+      const unregisteredProtocol = new UnregisteredProtocol();
       const mockPlugin = new RestMockPlugin({ mockMap: {} });
 
       expect(() => {
         service.testRegisterPlugin(unregisteredProtocol, mockPlugin);
-      }).toThrow('Protocol "RestProtocol" not registered on this service');
+      }).toThrow('Protocol "UnregisteredProtocol" not registered on this service');
     });
 
     it('should not add duplicate plugins', () => {

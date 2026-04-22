@@ -247,10 +247,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       return this.get<TResponse>(url, options);
     }
 
-    const preparationKey = this.resolveSharedGetPreparationKey(url, options?.params);
+    const preparationKey = this.resolveSharedGetPreparationKey(
+      url,
+      options?.params,
+      options?.withCredentials
+    );
     const preparedRequest = await cache.getOrFetch(
       preparationKey,
-      ({ signal }) => this.prepareRequest('GET', url, undefined, signal),
+      ({ signal }) => this.prepareRequest('GET', url, undefined, signal, undefined, options?.withCredentials),
       {
         signal: options?.signal,
         aliases: options?.descriptorKey ? [options.descriptorKey] : undefined,
@@ -345,7 +349,15 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     data?: unknown,
     options?: RestRequestOptions
   ): Promise<T> {
-    return this.requestInternal<T>(method, url, data, options?.params, options?.signal, 0);
+    return this.requestInternal<T>(
+      method,
+      url,
+      data,
+      options?.params,
+      options?.signal,
+      options?.withCredentials,
+      0
+    );
   }
   // @cpt-end:cpt-frontx-algo-request-lifecycle-request-options:p1:inst-forward-to-internal
 
@@ -363,6 +375,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     data?: unknown,
     params?: Record<string, string>,
     signal?: AbortSignal,
+    withCredentials?: boolean,
     retryCount: number = 0,
     /** Merged request headers from plugin retry() — must be applied before onRequest, not rebuilt from config only */
     retryHeaders?: Record<string, string>
@@ -381,7 +394,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       url,
       data,
       signal,
-      retryHeaders
+      retryHeaders,
+      withCredentials
     );
 
     let preparedRequest: PreparedRestRequest;
@@ -394,13 +408,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       }
 
       const err = error instanceof Error ? error : new Error(String(error));
+      const responseContext = this.extractResponseContext(error);
       const finalResult = await this.executePluginOnError(
         err,
         requestContext,
         url,
         params,
-        signal,
-        retryCount
+        retryCount,
+        responseContext
       );
 
       if (this.isApiResponseContext(finalResult)) {
@@ -468,6 +483,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         headers: processedContext.headers,
         data: processedContext.body,
         params,
+        withCredentials: processedContext.withCredentials,
         signal,
       };
       // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-axios-signal
@@ -502,6 +518,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       // @cpt-end:cpt-frontx-algo-request-lifecycle-cancel-detection:p1:inst-check-is-cancel
 
       const err = error instanceof Error ? error : new Error(String(error));
+      const responseContext = this.extractResponseContext(error);
 
       // Execute onError plugin chain with retry support
       const finalResult = await this.executePluginOnError(
@@ -509,8 +526,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         requestContext,
         url,
         params,
-        signal,
-        retryCount
+        retryCount,
+        responseContext
       );
 
       // Check if error was recovered (plugin returned ApiResponseContext)
@@ -552,6 +569,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         headers: processedContext.headers,
         data: processedContext.body,
         params,
+        withCredentials: processedContext.withCredentials,
         signal,
       };
 
@@ -570,13 +588,14 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       }
 
       const err = error instanceof Error ? error : new Error(String(error));
+      const responseContext = this.extractResponseContext(error);
       const finalResult = await this.executePluginOnError(
         err,
         requestContext,
         url,
         params,
-        signal,
-        retryCount
+        retryCount,
+        responseContext
       );
 
       if (finalResult && typeof finalResult === 'object' && 'status' in finalResult && 'data' in finalResult) {
@@ -681,8 +700,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     context: ApiRequestContext,
     originalUrl: string,
     params: Record<string, string> | undefined,
-    signal: AbortSignal | undefined,
-    retryCount: number
+    retryCount: number,
+    responseContext?: RestResponseContext
   ): Promise<Error | ApiResponseContext> {
     // Create retry function that calls requestInternal with incremented retryCount
     const retry = async (modifiedRequest?: Partial<RestRequestContext>): Promise<RestResponseContext> => {
@@ -699,7 +718,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         originalUrl,
         retryContext.body,
         params,
-        signal,
+        retryContext.signal,
+        retryContext.withCredentials,
         retryCount + 1,
         retryContext.headers
       );
@@ -715,6 +735,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     const errorContext: ApiPluginErrorContext = {
       error,
       request: context as RestRequestContext,
+      response: responseContext,
       retryCount,
       retry,
     };
@@ -748,10 +769,18 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     url: string,
     data?: unknown,
     signal?: AbortSignal,
-    retryHeaders?: Record<string, string>
+    retryHeaders?: Record<string, string>,
+    withCredentials?: boolean
   ): Promise<PreparedRestRequest> {
     // @cpt-begin:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-build-context-signal
-    const requestContext = this.buildRequestContext(method, url, data, signal, retryHeaders);
+    const requestContext = this.buildRequestContext(
+      method,
+      url,
+      data,
+      signal,
+      retryHeaders,
+      withCredentials
+    );
     // @cpt-end:cpt-frontx-flow-request-lifecycle-rest-abort:p1:inst-build-context-signal
 
     return this.prepareRequestContext(requestContext);
@@ -771,7 +800,8 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
     url: string,
     data?: unknown,
     signal?: AbortSignal,
-    retryHeaders?: Record<string, string>
+    retryHeaders?: Record<string, string>,
+    withCredentials?: boolean
   ): ApiRequestContext {
     const fullUrl = this.config?.baseURL
       ? `${this.config.baseURL}${url}`.replace(/\/+/g, '/').replace(':/', '://')
@@ -784,6 +814,7 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
         ? { ...this.config?.headers, ...retryHeaders }
         : { ...this.config?.headers },
       body: data,
+      withCredentials: withCredentials ?? this.restConfig.withCredentials,
       signal,
     };
   }
@@ -798,15 +829,16 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       { ...context.headers },
       params ? { ...params } : undefined,
       context.body,
-      Boolean(this.restConfig.withCredentials),
+      Boolean(context.withCredentials ?? this.restConfig.withCredentials),
     ] as const;
   }
 
   private resolveSharedGetPreparationKey(
     url: string,
-    params?: Record<string, string>
+    params?: Record<string, string>,
+    withCredentials?: boolean
   ): readonly unknown[] {
-    const requestContext = this.buildRequestContext('GET', url);
+    const requestContext = this.buildRequestContext('GET', url, undefined, undefined, undefined, withCredentials);
 
     return [
       this.sharedRequestScopeId,
@@ -816,6 +848,18 @@ export class RestProtocol extends ApiProtocol<RestPluginHooks> {
       params ? { ...params } : undefined,
       requestContext.body,
     ] as const;
+  }
+
+  private extractResponseContext(error: unknown): RestResponseContext | undefined {
+    if (!axios.isAxiosError(error) || !error.response) {
+      return undefined;
+    }
+
+    return {
+      status: error.response.status,
+      headers: error.response.headers as Record<string, string>,
+      data: error.response.data,
+    };
   }
 
 }

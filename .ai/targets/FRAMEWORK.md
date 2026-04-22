@@ -8,7 +8,7 @@
 ## SCOPE
 - Package: `packages/framework/`
 - Layer: L2 Framework (depends on all L1 SDK packages)
-- Peer dependencies: `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`
+- Peer dependencies: `@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/api`, `@cyberfabric/i18n`, `@cyberfabric/auth`, `@tanstack/query-core`
 
 ## CRITICAL RULES
 - Applications built by composing plugins via `createHAI3().use()`.
@@ -45,9 +45,19 @@ const store = configureStore({ ... }); // FORBIDDEN
 | `microfrontends()` | `screensetsRegistry` (MFE-enabled), MFE actions, selectors, domain constants | screensets |
 | `i18n()` | i18nRegistry, setLanguage | - |
 | `effects()` | Core effect coordination | - |
+| `auth()` | app.auth (AuthRuntime), transport binding into REST plugin chain | @cyberfabric/auth |
 | `queryCache()` | Host-owned shared TanStack `QueryClient` (headless `@tanstack/query-core`), Flux `cache/*` bridge, mock teardown, L1 `sharedFetchCache` retain/release and invalidation sync | - |
 | `queryCacheShared()` | Joins the host `QueryClient` from `queryCache()` for MFE or other child roots (no second client) | host `queryCache()` (child may `.build()` first; attaches when host runtime appears) |
 | `mock()` | mockSlice, `toggleMockMode` | effects |
+
+## AUTH PLUGIN
+
+- `auth()` exposes `app.auth` runtime methods from the `AuthProvider`.
+- Default transport binder: `hai3ApiTransport()` registers `AuthRestPlugin` via `apiRegistry.plugins.add(RestProtocol, plugin)`.
+- Bearer sessions: inject `Authorization: Bearer <token>`.
+- Cookie sessions: set `withCredentials: true` (+ optional CSRF header) for relative URLs and allowlisted origins.
+- 401 retry: calls `provider.refresh()` once (`retryCount === 0`), deduplicates concurrent refreshes, retries with refreshed credentials.
+- Custom transport: provide `transport` in `AuthPluginConfig` to override default REST binding.
 
 Public helpers related to query cache: `subscribeQueryCacheRuntimeChanged` (observe when the shared runtime is attached or cleared).
 
