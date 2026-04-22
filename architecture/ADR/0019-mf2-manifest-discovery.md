@@ -28,7 +28,7 @@ decision-makers: FrontX core team
 **ID**: `cpt-frontx-adr-mf2-manifest-discovery`
 ## Context and Problem Statement
 
-MFE bundles are built with Module Federation and loaded at runtime through a blob URL isolation pipeline (ADR-0004, `cpt-frontx-adr-blob-url-mfe-isolation`). The handler needs to discover which chunks an MFE exposes, what shared dependencies it declares, and which CSS assets accompany its modules. Two approaches exist for this metadata discovery: parsing the federation runtime's generated `remoteEntry.js` as source text, or reading a declarative `mf-manifest.json` file that the build plugin produces alongside `remoteEntry.js`. The choice of build plugin determines which discovery mechanism is available and how shared dependency transforms are applied across the MFE bundle. The `@originjs/vite-plugin-federation` plugin's stalled development (last release April 2025) and the minification constraint create urgency for this decision. This decision affects MFE authors (who configure `vite.config.ts` and run the generation script), host application developers (who consume `mfe.generated.json` at bootstrap), and the FrontX core team (who maintain `MfeHandlerMF` and the blob URL isolation pipeline).
+MFE bundles are built with Module Federation and loaded at runtime through a blob URL isolation pipeline (ADR-0004, `cpt-frontx-adr-blob-url-mfe-isolation`). The handler needs to discover which chunks an MFE exposes, what shared dependencies it declares, and which CSS assets accompany its modules. Two approaches exist for this metadata discovery: parsing the federation runtime's generated `remoteEntry.js` as source text, or reading a declarative `mf-manifest.json` file that the build plugin produces alongside `remoteEntry.js`. The choice of build plugin determines which discovery mechanism is available and how shared dependency transforms are applied across the MFE bundle. The `@originjs/vite-plugin-federation` plugin's stalled development (last release April 2025) and the minification constraint create urgency for this decision. This decision affects MFE authors (who configure `vite.config.ts` and run the generation script), host application developers (who consume `generated-mfe-manifests.json` at bootstrap), and the FrontX core team (who maintain `MfeHandlerMF` and the blob URL isolation pipeline).
 
 ## Decision Drivers
 
@@ -134,7 +134,7 @@ This decision should be revisited when:
 
 This decision directly addresses the following design elements:
 
-* `cpt-frontx-seq-mfe-loading` — MFE loading sequence uses pre-registered GTS entities (sourced from `mfe.generated.json`) for metadata discovery
+* `cpt-frontx-seq-mfe-loading` — MFE loading sequence uses pre-registered GTS entities (sourced from `generated-mfe-manifests.json`) for metadata discovery
 * `cpt-frontx-contract-federation-runtime` — federation build contract: `@module-federation/vite` producing `mf-manifest.json` for expose chunk paths; `frontx-mf-gts` plugin building standalone ESMs and enriching `mfe.json`; handler building shared dep blob URLs with bare specifier rewriting
 * `cpt-frontx-contract-mfe-manifest` — MFE manifest contract: `mfe.json` enriched in-place by plugin as the complete self-contained contract per MFE; `mf-manifest.json` as build-time intermediate consumed by plugin only
 * `cpt-frontx-principle-mfe-isolation` — isolation principle preserved; blob URL mechanism from ADR-0004 consumes manifest metadata

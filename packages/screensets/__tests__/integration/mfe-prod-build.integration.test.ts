@@ -283,7 +283,6 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
         globalName: string;
       };
       shared: { name: string; version: string; chunkPath: string; unwrapKey: string | null }[];
-      mfInitKey: string;
     };
     type EnrichedMfeJson = { manifest: EnrichedManifest };
     const mfeJson = JSON.parse(readFileSync(MFE_JSON_PATH, 'utf8')) as EnrichedMfeJson;
@@ -294,9 +293,10 @@ describe('MfeHandlerMF + production _blank-mfe build', () => {
     expect(mfeJson.manifest.metaData.remoteEntry).toBeDefined();
     expect(typeof mfeJson.manifest.metaData.remoteEntry.name).toBe('string');
     expect(Array.isArray(mfeJson.manifest.shared)).toBe(true);
-    // mfInitKey is empty — MF 2.0's __mf_init__ mechanism is no longer used.
-    expect(typeof mfeJson.manifest.mfInitKey).toBe('string');
-    expect(mfeJson.manifest.mfInitKey).toBe('');
+    // Note: `mfInitKey` (an MF 1.0 vestige) is not asserted here — the
+    // `frontx-mf-gts` enricher does not set it; it survives only via
+    // spread-preservation of authored-source fields. Asserting it would
+    // couple this plugin-contract test to fixture state.
   });
 
   it('enriched mfe.json shared[] has chunkPath pointing to standalone ESMs', () => {

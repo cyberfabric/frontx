@@ -23,6 +23,36 @@ function extractRootPackageName(name: string): string {
   return firstSlash === -1 ? name : name.slice(0, firstSlash);
 }
 
+/**
+ * Locates a shared dep's `package.json` across npm / pnpm / yarn-pnp
+ * layouts. Tries `nodeRequire.resolve('${rootName}/package.json')` first
+ * (honors each package manager's resolver) and falls back to a manual
+ * walk up `node_modules` directories when the package's `exports` field
+ * blocks subpath access to `package.json`.
+ *
+ * Returns `undefined` when the package cannot be located either way —
+ * callers decide whether to throw with a specific error message.
+ */
+function resolvePackageJsonPath(
+  nodeRequire: NodeRequire,
+  startDir: string,
+  rootName: string
+): string | undefined {
+  try {
+    return nodeRequire.resolve(`${rootName}/package.json`);
+  } catch {
+    // Fall through — some packages' `exports` block subpath access.
+  }
+  let current = startDir;
+  for (;;) {
+    const candidate = path.join(current, 'node_modules', rootName, 'package.json');
+    if (fs.existsSync(candidate)) return candidate;
+    const parent = path.dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
 // ── Types matching mf-manifest.json structure ───────────────────────────────
 
 interface MfManifestSharedAssets {
@@ -152,9 +182,11 @@ type EnrichedMfeJson = Omit<MfeJson, 'manifest' | 'entries'> & {
 
 class MfeJsonEnricher {
   private readonly packageRoot: string;
+  private readonly nodeRequire: NodeRequire;
 
   constructor(packageRoot: string) {
     this.packageRoot = packageRoot;
+    this.nodeRequire = createRequire(path.join(packageRoot, 'package.json'));
   }
 
   enrich(
@@ -201,35 +233,31 @@ class MfeJsonEnricher {
   }
 
   /**
-   * Resolves the installed version of a package by walking up from
-   * packageRoot through node_modules directories.
+   * Resolves the installed version of a package by locating its
+   * `package.json`. Accepts subpath entries like `react-dom/client` and
+   * resolves the version from the parent package's `package.json`.
    *
-   * Accepts subpath entries like `react-dom/client` and resolves the
-   * version from the parent package's package.json.
+   * Tries `nodeRequire.resolve(\`${rootName}/package.json\`)` first so the
+   * lookup works across npm, pnpm, and yarn-pnp layouts; falls back to a
+   * manual `node_modules` walk when the package's `exports` field blocks
+   * the subpath.
    */
   private resolvePackageVersion(packageName: string): string {
     const rootName = extractRootPackageName(packageName);
-    let current = this.packageRoot;
-    for (;;) {
-      const candidate = path.join(
-        current,
-        'node_modules',
-        rootName,
-        'package.json'
-      );
-      if (fs.existsSync(candidate)) {
-        const pkg = JSON.parse(
-          fs.readFileSync(candidate, 'utf-8')
-        ) as { version?: string };
-        return pkg.version ?? '*';
-      }
-      const parent = path.dirname(current);
-      if (parent === current) break;
-      current = parent;
-    }
-    throw new Error(
-      `Cannot resolve version for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
+    const pkgJsonPath = resolvePackageJsonPath(
+      this.nodeRequire,
+      this.packageRoot,
+      rootName
     );
+    if (!pkgJsonPath) {
+      throw new Error(
+        `Cannot resolve version for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
+      );
+    }
+    const pkg = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf-8')) as {
+      version?: string;
+    };
+    return pkg.version ?? '*';
   }
 
   private buildEntries(
@@ -330,31 +358,28 @@ class StandaloneEsmBuilder {
   }
 
   /**
-   * Locates package.json by walking up from packageRoot through
-   * node_modules directories. This bypasses restrictive `exports`
-   * fields that prevent `require.resolve("pkg/package.json")`.
+   * Locates the `package.json` of a shared dep. Accepts subpath entries
+   * like `react-dom/client` and resolves the parent package's
+   * `package.json`.
    *
-   * Accepts subpath entries like `react-dom/client` and resolves the
-   * parent package's package.json.
+   * Tries `nodeRequire.resolve(\`${rootName}/package.json\`)` first so the
+   * lookup works across npm, pnpm, and yarn-pnp layouts; falls back to a
+   * manual `node_modules` walk when the package's `exports` field blocks
+   * the subpath.
    */
   private findPackageJsonPath(packageName: string): string {
     const rootName = extractRootPackageName(packageName);
-    let current = this.packageRoot;
-    for (;;) {
-      const candidate = path.join(
-        current,
-        'node_modules',
-        rootName,
-        'package.json'
-      );
-      if (fs.existsSync(candidate)) return candidate;
-      const parent = path.dirname(current);
-      if (parent === current) break;
-      current = parent;
-    }
-    throw new Error(
-      `Cannot find package.json for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
+    const pkgJsonPath = resolvePackageJsonPath(
+      this.nodeRequire,
+      this.packageRoot,
+      rootName
     );
+    if (!pkgJsonPath) {
+      throw new Error(
+        `Cannot find package.json for "${packageName}" (root package "${rootName}") from ${this.packageRoot}`
+      );
+    }
+    return pkgJsonPath;
   }
 
   private async buildEntry(dep: ResolvedSharedDep): Promise<void> {
@@ -493,18 +518,37 @@ class StandaloneEsmBuilder {
     // Skip if named exports already exist
     if (/^export \{/m.test(source)) return;
 
-    // Load the package at build time to discover its named exports
+    // Load the package at build time to discover its named exports.
+    // Node's `require()` throws `ERR_REQUIRE_ESM` on ESM-only packages and
+    // may throw for packages with environment-gated (Node-vs-browser)
+    // export conditions — warn so silent patch-skipping is visible.
     let mod: Record<string, unknown>;
     try {
       mod = this.nodeRequire(packageName) as Record<string, unknown>;
-    } catch {
-      return; // Package can't be loaded — skip
+    } catch (err) {
+      const reason = err instanceof Error ? err.message : String(err);
+      console.warn(
+        `[frontx-mf-gts] named-export patching skipped for "${packageName}": ` +
+          `${reason}. Default-only export will be used in the standalone ESM; ` +
+          `consumers that import named symbols may fail at runtime.`
+      );
+      return;
     }
 
     const keys = Object.keys(mod).filter(
-      (k) => k !== 'default' && k !== '__esModule' && /^[a-zA-Z_$]/.test(k)
+      (k) =>
+        k !== 'default' &&
+        k !== '__esModule' &&
+        /^[A-Za-z_$][\w$]*$/u.test(k)
     );
-    if (keys.length === 0) return;
+    if (keys.length === 0) {
+      console.warn(
+        `[frontx-mf-gts] named-export patching produced no keys for "${packageName}" — ` +
+          `the package's require() result exposes no valid named bindings. ` +
+          `If consumers import named symbols, this will fail at runtime.`
+      );
+      return;
+    }
 
     // Replace `export default <expr>;` with variable + named re-exports
     const expr = defaultMatch[1];

@@ -187,7 +187,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - Never-revoke policy for blob URLs
   - MFE internal dataflow (useReducer/useState, no host Redux)
   - Per-load blob URL chain construction from enriched `mfe.json` manifest (no `FederationHost` instance)
-  - Generation script aggregating pointers to enriched `mfe.json` files into `mfe.generated.json`
+  - Generation script aggregating pointers to enriched `mfe.json` files into `generated-mfe-manifests.json`
 
 - **Out of scope**:
   - CSS isolation via Shadow DOM (see `cpt-frontx-feature-react-bindings`)

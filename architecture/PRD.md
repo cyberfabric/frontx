@@ -640,7 +640,7 @@ The MFE build plugin MUST operate at build time only (`vite build`); it MUST NOT
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-manifest-generation-script`
 
-The build system MUST provide a temporary generation script that aggregates pointers to enriched `mfe.json` files into `mfe.generated.json` with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in each `MfManifest` GTS entity. The enriched `mfe.json` already contains `manifest.metaData`, `manifest.shared[]` (with per-dep `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets` — all set in-place by the `frontx-mf-gts` plugin at build time. The generated file is what the bootstrap loader imports to register GTS entities with the runtime; when a backend API is ready, the static import is replaced with a fetch call — same `mfe.json` shape, different transport.
+The build system MUST provide a temporary generation script that aggregates pointers to enriched `mfe.json` files into `generated-mfe-manifests.json` with environment-specific base URL. The script MUST accept a `--base-url` parameter that sets the `publicPath` in each `MfManifest` GTS entity. The enriched `mfe.json` already contains `manifest.metaData`, `manifest.shared[]` (with per-dep `chunkPath`/`version`/`unwrapKey`), and `entries[].exposeAssets` — all set in-place by the `frontx-mf-gts` plugin at build time. The generated file is what the bootstrap loader imports to register GTS entities with the runtime; when a backend API is ready, the static import is replaced with a fetch call — same `mfe.json` shape, different transport.
 
 **Rationale**: `mfe.json` is environment-independent before enrichment (no URLs, no chunk paths) and therefore human-authorable and version-controllable. The `frontx-mf-gts` plugin enriches it in-place at build time with manifest metadata, shared dep info, and expose assets — all determined without heuristics. The generation script is a temporary aggregator that injects environment-specific `publicPath` via `--base-url`. This separation keeps `mfe.json` reviewable and keeps runtime bootstrapping simple.
 **Actors**: `cpt-frontx-actor-build-system`, `cpt-frontx-actor-ci-cd`
@@ -1108,7 +1108,7 @@ A single FrontX project MUST support multiple independent production screensets 
 
 - [ ] `p1` - **ID**: `cpt-frontx-fr-documentation`
 
-The system MUST provide: (1) a getting-started guide enabling a new developer to scaffold and run a working screenset within 6–8 hours; (2) an API reference for all public library interfaces (`@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/framework`, `@cyberfabric/react`, `@cyberfabric/api`, `@cyberfabric/i18n`); (3) an MFE integration guide covering the two-file model (`mfe.json` + `mfe.generated.json`), generation script usage, and blob URL isolation overview.
+The system MUST provide: (1) a getting-started guide enabling a new developer to scaffold and run a working screenset within 6–8 hours; (2) an API reference for all public library interfaces (`@cyberfabric/state`, `@cyberfabric/screensets`, `@cyberfabric/framework`, `@cyberfabric/react`, `@cyberfabric/api`, `@cyberfabric/i18n`); (3) an MFE integration guide covering the two-file model (`mfe.json` + `generated-mfe-manifests.json`), generation script usage, and blob URL isolation overview.
 
 **Rationale**: Developer onboarding depends on clear documentation. The 6–8 hour onboarding target from the Goals table is only achievable with a complete getting-started guide and API reference.
 **Actors**: `cpt-frontx-actor-developer`
@@ -1395,7 +1395,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 - [x] `p1` - **ID**: `cpt-frontx-contract-mfe-manifest`
 
 **Direction**: required from MFE packages
-**Protocol/Format**: `mfe.json` per MFE package — human-authored base enriched in-place by the `frontx-mf-gts` Vite plugin at build time. A temporary generation script aggregates pointers to enriched `mfe.json` files into `mfe.generated.json` for host bootstrap.
+**Protocol/Format**: `mfe.json` per MFE package — human-authored base enriched in-place by the `frontx-mf-gts` Vite plugin at build time. A temporary generation script aggregates pointers to enriched `mfe.json` files into `generated-mfe-manifests.json` for host bootstrap.
 **Compatibility**: Enriched `mfe.json` content MUST conform to the `MfManifest` GTS schema.
 **Description**: Each MFE package provides `mfe.json` — human-authored and version-controlled: it contains entries (without `exposeAssets`), extensions, and schemas. The `frontx-mf-gts` Vite plugin derives shared dependencies from `rollupOptions.external` in the resolved Vite config and enriches `mfe.json` in-place at build time with `manifest.metaData`, `manifest.shared[]` (with `chunkPath`/`version`/`unwrapKey` per dep), and `entries[].exposeAssets`. Enriched `mfe.json` is the complete self-contained contract per MFE — no intermediate artifacts (`mfe.gts-manifest.json`) are produced. The generation script (see `cpt-frontx-fr-manifest-generation-script`) is a temporary aggregator that produces pointers to enriched `mfe.json` files with environment-specific `--base-url`; when a backend API is ready, the static import is replaced with a fetch call. `mf-manifest.json` is consumed by the plugin only and never reaches runtime.
 

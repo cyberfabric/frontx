@@ -87,8 +87,12 @@ export interface MfManifestMetaData {
   buildInfo: MfManifestBuildInfo;
   /** Remote entry file descriptor. */
   remoteEntry: MfManifestRemoteEntry;
-  /** Global variable name used by the MF 2.0 runtime. */
-  globalName: string;
+  /**
+   * Global variable name used by the MF 2.0 runtime, when emitted.
+   * Optional to match the `mf_manifest.v1` GTS schema, which does not
+   * require this field.
+   */
+  globalName?: string;
   /**
    * Public URL base path for all chunk assets.
    * All relative chunk paths in shared[].assets and expose assets are
