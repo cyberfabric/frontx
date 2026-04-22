@@ -774,6 +774,7 @@ function buildPackageJson(input: PackageJsonInput): string {
     '@cyberfabric/react': 'alpha',
     '@cyberfabric/framework': 'alpha',
     '@cyberfabric/api': 'alpha',
+    '@cyberfabric/auth': 'alpha',
     '@cyberfabric/i18n': 'alpha',
     '@cyberfabric/screensets': 'alpha',
     '@cyberfabric/state': 'alpha',
