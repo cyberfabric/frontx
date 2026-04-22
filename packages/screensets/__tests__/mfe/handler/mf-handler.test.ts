@@ -27,8 +27,6 @@ import {
 /**
  * Build a minimal valid GTS MfManifest with the new structure.
  * publicPath is the base URL for all chunks.
- * mfInitKey may be an empty string — the field is present for backwards
- * compatibility but the handler no longer uses it.
  */
 function buildManifest(
   remoteName: string,
@@ -39,6 +37,7 @@ function buildManifest(
 ): MfManifest {
   return {
     id: options.id ?? `gts.hai3.mfes.mfe.mf_manifest.v1~test.${remoteName}.manifest.v1`,
+    name: remoteName,
     metaData: {
       name: remoteName,
       type: 'app',
@@ -48,7 +47,6 @@ function buildManifest(
       publicPath: `${TEST_BASE_URL}/${remoteName}/`,
     },
     shared: options.shared ?? [],
-    mfInitKey: '',
   };
 }
 

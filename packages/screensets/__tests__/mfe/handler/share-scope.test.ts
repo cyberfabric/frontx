@@ -42,6 +42,7 @@ function buildManifest(
 ): MfManifest {
   return {
     id: `gts.hai3.mfes.mfe.mf_manifest.v1~test.${remoteName}.manifest.v1`,
+    name: remoteName,
     metaData: {
       name: remoteName,
       type: 'app',
@@ -51,7 +52,6 @@ function buildManifest(
       publicPath: `${TEST_BASE_URL}/${remoteName}/`,
     },
     shared,
-    mfInitKey: '',
   };
 }
 
