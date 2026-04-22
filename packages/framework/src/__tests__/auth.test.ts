@@ -102,7 +102,7 @@ describe('auth plugin', () => {
     it('attaches Authorization: Bearer header when provider returns bearer token', async () => {
       const plugin = capturePlugin(makeBearerProvider('tok-abc'));
 
-      const result = (await plugin.onRequest!(makeReqCtx('/api'))) as RestRequestContext;
+      const result = (await plugin.onRequest?.(makeReqCtx('/api'))) as RestRequestContext;
 
       expect(result.headers['Authorization']).toBe('Bearer tok-abc');
     });
@@ -111,7 +111,7 @@ describe('auth plugin', () => {
       const plugin = capturePlugin(makeNullSessionProvider());
       const ctx = makeReqCtx('/api');
 
-      const result = (await plugin.onRequest!(ctx)) as RestRequestContext;
+      const result = (await plugin.onRequest?.(ctx)) as RestRequestContext;
 
       expect(result.headers['Authorization']).toBeUndefined();
     });
@@ -124,7 +124,7 @@ describe('auth plugin', () => {
     it('sets withCredentials=true for relative URLs', async () => {
       const plugin = capturePlugin(makeCookieProvider());
 
-      const result = (await plugin.onRequest!(makeReqCtx('/relative/path'))) as RestRequestContext;
+      const result = (await plugin.onRequest?.(makeReqCtx('/relative/path'))) as RestRequestContext;
 
       expect(result.withCredentials).toBe(true);
     });
@@ -134,7 +134,7 @@ describe('auth plugin', () => {
         allowedCookieOrigins: ['https://trusted.example.com'],
       });
 
-      const result = (await plugin.onRequest!(
+      const result = (await plugin.onRequest?.(
         makeReqCtx('https://other.example.com/api'),
       )) as RestRequestContext;
 
@@ -146,7 +146,7 @@ describe('auth plugin', () => {
         allowedCookieOrigins: ['https://trusted.example.com'],
       });
 
-      const result = (await plugin.onRequest!(
+      const result = (await plugin.onRequest?.(
         makeReqCtx('https://trusted.example.com/api'),
       )) as RestRequestContext;
 
@@ -164,7 +164,7 @@ describe('auth plugin', () => {
       };
       const plugin = capturePlugin(provider, { csrfHeaderName: 'X-CSRF-Token' });
 
-      const result = (await plugin.onRequest!(makeReqCtx('/api'))) as RestRequestContext;
+      const result = (await plugin.onRequest?.(makeReqCtx('/api'))) as RestRequestContext;
 
       expect(result.withCredentials).toBe(true);
       expect(result.headers['X-CSRF-Token']).toBe('csrf-abc');
@@ -173,7 +173,7 @@ describe('auth plugin', () => {
     it('does not attach csrf header when csrfToken is absent', async () => {
       const plugin = capturePlugin(makeCookieProvider(), { csrfHeaderName: 'X-CSRF-Token' });
 
-      const result = (await plugin.onRequest!(makeReqCtx('/api'))) as RestRequestContext;
+      const result = (await plugin.onRequest?.(makeReqCtx('/api'))) as RestRequestContext;
 
       expect(result.withCredentials).toBe(true);
       expect(result.headers['X-CSRF-Token']).toBeUndefined();
@@ -196,7 +196,7 @@ describe('auth plugin', () => {
         retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
       };
 
-      await plugin.onError!(errCtx);
+      await plugin.onError?.(errCtx);
 
       expect(refreshFn).toHaveBeenCalledTimes(1);
       expect(errCtx.retry).toHaveBeenCalledWith({ headers: { Authorization: 'Bearer new-tok' } });
@@ -214,7 +214,7 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      const result = await plugin.onError!(errCtx);
+      const result = await plugin.onError?.(errCtx);
 
       expect(errCtx.retry).not.toHaveBeenCalled();
       expect(result).toBe(errCtx.error);
@@ -232,7 +232,7 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      const result = await plugin.onError!(errCtx);
+      const result = await plugin.onError?.(errCtx);
 
       expect(errCtx.retry).not.toHaveBeenCalled();
       expect(result).toBe(errCtx.error);
@@ -249,7 +249,7 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      const result = await plugin.onError!(errCtx);
+      const result = await plugin.onError?.(errCtx);
 
       expect(errCtx.retry).not.toHaveBeenCalled();
       expect(result).toBe(errCtx.error);
@@ -276,7 +276,7 @@ describe('auth plugin', () => {
         retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
       };
 
-      await plugin.onError!(errCtx);
+      await plugin.onError?.(errCtx);
 
       expect(refreshFn).toHaveBeenCalledTimes(1);
       expect(errCtx.retry).toHaveBeenCalledTimes(1);
@@ -307,8 +307,8 @@ describe('auth plugin', () => {
       const errCtx2 = makeErrCtx();
 
       // Start both concurrently before resolving refresh
-      const p1 = plugin.onError!(errCtx1);
-      const p2 = plugin.onError!(errCtx2);
+      const p1 = plugin.onError?.(errCtx1);
+      const p2 = plugin.onError?.(errCtx2);
 
       resolveRefresh({ kind: 'bearer', token: 'new-tok' });
 
@@ -452,7 +452,9 @@ describe('auth plugin', () => {
       const provider = makeBearerProvider('tok'); // no destroy
       const app = createHAI3().use(auth({ provider })).build();
 
-      expect(() => app.destroy()).not.toThrow();
+      expect(() => {
+        app.destroy();
+      }).not.toThrow();
     });
   });
 
@@ -474,7 +476,7 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      await plugin.onError!(errCtx);
+      await plugin.onError?.(errCtx);
 
       expect(onTransportError).toHaveBeenCalledTimes(1);
       expect(onTransportError).toHaveBeenCalledWith(
@@ -499,7 +501,7 @@ describe('auth plugin', () => {
         retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
       };
 
-      await plugin.onError!(errCtx);
+      await plugin.onError?.(errCtx);
 
       expect(onTransportError).toHaveBeenCalledTimes(1);
       expect(errCtx.retry).toHaveBeenCalledTimes(1);
@@ -516,7 +518,7 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      const result = await plugin.onError!(errCtx);
+      const result = await plugin.onError?.(errCtx);
       expect(result).toBe(errCtx.error);
     });
   });
@@ -528,7 +530,7 @@ describe('auth plugin', () => {
     it('does NOT set withCredentials for protocol-relative URLs', async () => {
       const plugin = capturePlugin(makeCookieProvider());
 
-      const result = (await plugin.onRequest!(makeReqCtx('//cdn.example.com/asset'))) as RestRequestContext;
+      const result = (await plugin.onRequest?.(makeReqCtx('//cdn.example.com/asset'))) as RestRequestContext;
 
       expect(result.withCredentials).toBeUndefined();
     });
@@ -546,7 +548,7 @@ describe('auth plugin', () => {
         const plugin = capturePlugin(makeCookieProvider());
 
         // An absolute URL whose origin happens to be 'https://null' should NOT get credentials
-        const result = (await plugin.onRequest!(makeReqCtx('https://null/api'))) as RestRequestContext;
+        const result = (await plugin.onRequest?.(makeReqCtx('https://null/api'))) as RestRequestContext;
 
         expect(result.withCredentials).toBeUndefined();
       } finally {
@@ -568,7 +570,7 @@ describe('auth plugin', () => {
       const plugin = capturePlugin(provider);
 
       const original = makeReqCtx('/api');
-      const result = (await plugin.onRequest!(original)) as RestRequestContext;
+      const result = (await plugin.onRequest?.(original)) as RestRequestContext;
 
       expect(result.headers['Authorization']).toBeUndefined();
       expect(result.withCredentials).toBeUndefined();
@@ -592,11 +594,39 @@ describe('auth plugin', () => {
         retry: vi.fn(),
       };
 
-      const result = await plugin.onError!(errCtx);
+      const result = await plugin.onError?.(errCtx);
 
       expect(refreshFn).toHaveBeenCalledTimes(1);
       expect(errCtx.retry).not.toHaveBeenCalled();
       expect(result).toBe(errCtx.error);
+    });
+  });
+
+  // -------------------------------------------------------------------------
+  // 14a. Shared refresh must not bind to any single request's AbortSignal
+  // -------------------------------------------------------------------------
+  describe('shared refresh signal isolation', () => {
+    it('does not pass first caller AbortSignal to provider.refresh (shared promise safety)', async () => {
+      const refreshFn = vi
+        .fn()
+        .mockResolvedValue({ kind: 'bearer', token: 'new-tok' } satisfies AuthSession);
+      const plugin = capturePlugin(makeBearerProvider('old-tok', refreshFn));
+
+      const firstController = new AbortController();
+      const errCtx = {
+        error: new Error('HTTP 401'),
+        request: { ...makeReqCtx('/api'), signal: firstController.signal },
+        response: { status: 401, headers: {}, data: null },
+        retryCount: 0,
+        retry: vi.fn().mockResolvedValue({ status: 200, headers: {}, data: {} }),
+      };
+
+      await plugin.onError?.(errCtx);
+
+      // Regression: shared refresh must not inherit the first caller's signal,
+      // otherwise aborting one waiter cancels refresh for all.
+      expect(refreshFn).toHaveBeenCalledWith();
+      expect(refreshFn.mock.calls[0]?.[0]).toBeUndefined();
     });
   });
 
@@ -620,8 +650,8 @@ describe('auth plugin', () => {
       const ctx2 = makeErrCtx();
 
       const [result1, result2] = await Promise.all([
-        plugin.onError!(ctx1),
-        plugin.onError!(ctx2),
+        plugin.onError?.(ctx1),
+        plugin.onError?.(ctx2),
       ]);
 
       expect(result1).toBe(ctx1.error);

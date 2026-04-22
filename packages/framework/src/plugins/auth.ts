@@ -191,9 +191,13 @@ class AuthRestPlugin extends RestPlugin {
     if (!this.config.provider.refresh) return ctx.error;
 
     // Dedup concurrent 401 refresh calls into a single in-flight promise.
+    // NOTE: shared refresh must NOT be bound to any single request's AbortSignal —
+    // otherwise aborting the first caller would cancel refresh for all concurrent
+    // waiters on the same promise. Cancellation of the refresh call itself is the
+    // provider's responsibility (timeout / internal lifecycle).
     if (!this.refreshPromise) {
       this.refreshPromise = this.config.provider
-        .refresh({ signal: ctx.request.signal })
+        .refresh()
         .finally(() => {
           this.refreshPromise = null;
         });
@@ -236,7 +240,9 @@ export function hai3ApiTransport(): AuthTransportBinder {
     });
     args.addRestPlugin(restPlugin);
     return {
-      destroy: () => args.removeRestPlugin(AuthRestPlugin),
+      destroy: () => {
+        args.removeRestPlugin(AuthRestPlugin);
+      },
     };
   };
 }

@@ -55,7 +55,7 @@
   },
   "peerDependenciesMeta": {
     "@cyberfabric/auth": {
-      "optional": true
+      "optional": false
     },
     "@cyberfabric/state": {
       "optional": false
