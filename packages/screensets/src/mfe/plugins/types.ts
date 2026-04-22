@@ -96,11 +96,16 @@ export interface TypeSystemPlugin {
    * For anonymous instances (no `id` field — used by action payloads), the
    * schema reference comes from the `type` field.
    *
-   * @param entity - The GTS instance to register (instances only; use
-   *   `registerSchema()` for schemas with a `$id` field)
-   * @throws Error if the entity is a schema, or if schema validation fails.
-   *   The error message includes the instance ID, the instance JSON, the
-   *   resolved schema JSON, and the validation reason.
+   * Schema-vs-instance determination is the type system's responsibility
+   * (per gts-spec, the authoritative marker is the trailing `~` on the
+   * identifier). This interface does not impose a plugin-layer check;
+   * implementations delegate the decision to `gts-ts` unchanged.
+   *
+   * @param entity - The GTS instance to register; use `registerSchema()`
+   *   for schemas
+   * @throws Error if schema validation fails. The error message includes
+   *   the instance ID, the instance JSON, the resolved schema JSON, and
+   *   the validation reason.
    */
   register(entity: unknown): void;
 

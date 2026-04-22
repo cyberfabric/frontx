@@ -12,7 +12,13 @@
 
 import { spawn } from 'child_process';
 import { existsSync, readdirSync, readFileSync } from 'fs';
-import { join } from 'path';
+import { dirname, join } from 'path';
+
+// Resolve sibling CLIs (npm, vite via node_modules/.bin) from Node's own
+// bin directory rather than relying on PATH lookup. This avoids the
+// CWE-427 concern (`typescript:S4036`) of an attacker-controllable PATH
+// shadowing a trusted executable, even though this script is dev-only.
+const NODE_BIN_DIR = dirname(process.execPath);
 
 const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
 
@@ -108,10 +114,13 @@ async function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
   // when a package path contains shell-special characters).
   for (const mfe of mfes) {
     await new Promise<void>((resolve, reject) => {
-      const proc = spawn('npx', ['vite', 'build'], {
+      const npxPath = join(
+        NODE_BIN_DIR,
+        process.platform === 'win32' ? 'npx.cmd' : 'npx',
+      );
+      const proc = spawn(npxPath, ['vite', 'build'], {
         stdio: 'inherit',
         cwd: join(MFE_PACKAGES_DIR, mfe.name),
-        shell: process.platform === 'win32',
       });
       proc.on('error', reject);
       proc.on('exit', (code) => {

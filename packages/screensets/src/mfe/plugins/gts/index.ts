@@ -103,13 +103,10 @@ export class GtsPlugin implements TypeSystemPlugin {
   /**
    * Register a GTS instance and validate it against its schema.
    *
-   * Throws if the entity is a schema (has `$id`) — schemas must be registered
-   * via `registerSchema()`. Throws if schema validation fails — the underlying
-   * gts-ts store writes the entity before the validation step runs, so an
-   * invalid instance may transiently occupy the store; the throw prevents any
-   * caller code from proceeding, and a subsequent successful `register()` with
-   * the same deterministic id overwrites the entry. Callers that catch and
-   * continue MUST NOT rely on the prior registration state.
+   * Schema-vs-instance determination is gts-ts's responsibility (per
+   * gts-spec, the authoritative marker is the trailing `~` on the ID, not
+   * a `$id` field heuristic). This method delegates to `gts-ts` unchanged:
+   * whatever `gts-ts` accepts is accepted, whatever it rejects is rejected.
    *
    * Named instance pattern: the schema is resolved from the chained instance
    * ID automatically (`gts.hai3.mfes.ext.extension.v1~acme.widget.v1` →
@@ -117,17 +114,17 @@ export class GtsPlugin implements TypeSystemPlugin {
    * (e.g., action payloads with no `id`), gts-ts uses the `type` field to
    * resolve the schema.
    *
+   * On schema validation failure `register()` throws. The underlying gts-ts
+   * store writes the entity before the validation step runs, so an invalid
+   * instance may transiently occupy the store; the throw prevents any caller
+   * code from proceeding, and a subsequent successful `register()` with the
+   * same deterministic id supersedes it. Callers that catch and continue
+   * MUST NOT rely on prior registration state.
+   *
    * @param entity - The GTS instance to register and validate
-   * @throws Error if the entity is a schema, or if schema validation fails
+   * @throws Error if schema validation fails
    */
   register(entity: unknown): void {
-    const candidate = entity as { $id?: unknown };
-    if (candidate.$id !== undefined) {
-      throw new Error(
-        `GtsPlugin.register() is for INSTANCES only. The entity has a '$id' field ` +
-          `('${String(candidate.$id)}'), which indicates a schema — use registerSchema() instead.`
-      );
-    }
     const jsonEntity: JsonEntity = createJsonEntity(entity);
     this.gtsStore.register(jsonEntity);
     const result = this.gtsStore.validateInstance(jsonEntity.id);

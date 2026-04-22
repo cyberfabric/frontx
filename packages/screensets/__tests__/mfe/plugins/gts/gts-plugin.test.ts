@@ -55,16 +55,6 @@ describe('GTS Plugin', () => {
       );
     });
 
-    it('register() throws when passed a schema (has $id) — schemas must use registerSchema()', () => {
-      const schemaLike = {
-        $id: 'gts://gts.acme.anything.v1~',
-        type: 'object',
-      };
-      expect(() => plugin.register(schemaLike)).toThrow(
-        /register\(\) is for INSTANCES only/
-      );
-    });
-
     it('registers vendor schema', () => {
       const vendorSchema = {
         $id: 'gts://gts.acme.analytics.ext.action.v1~',

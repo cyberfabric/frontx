@@ -153,10 +153,9 @@ const rule: Rule.RuleModule = {
           (node as ImportDeclaration & { importKind?: string }).importKind ===
           'type';
         const hasSpecifiers = node.specifiers.length > 0;
-        const allSpecifiersTypeOnly = node.specifiers.every((spec) => {
-          const s = spec as typeof spec & { importKind?: string };
-          return s.importKind === 'type';
-        });
+        const allSpecifiersTypeOnly = node.specifiers.every(
+          (spec) => (spec as { importKind?: string }).importKind === 'type',
+        );
         if (!isTypeOnlyDecl && (!hasSpecifiers || !allSpecifiersTypeOnly)) {
           context.report({
             node,
@@ -170,8 +169,7 @@ const rule: Rule.RuleModule = {
         // Skip property names in member expressions (e.g., `foo.eval`)
         const parent = (node as Rule.Node).parent;
         if (
-          parent &&
-          parent.type === 'MemberExpression' &&
+          parent?.type === 'MemberExpression' &&
           (parent as MemberExpression).property === node &&
           !(parent as MemberExpression).computed
         ) {

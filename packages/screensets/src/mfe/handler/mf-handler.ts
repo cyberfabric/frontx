@@ -110,7 +110,7 @@ export class LruCache<K, V> {
       this.map.delete(key);
     } else if (this.map.size >= this.capacity) {
       // Evict the oldest (first) key.
-      const oldestKey = this.map.keys().next().value as K | undefined;
+      const oldestKey = this.map.keys().next().value;
       if (oldestKey !== undefined) this.map.delete(oldestKey);
     }
     this.map.set(key, value);
