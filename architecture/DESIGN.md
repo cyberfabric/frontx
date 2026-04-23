@@ -53,7 +53,8 @@ Requirements that significantly influence architecture decisions.
 `cpt-hai3-adr-symbol-based-mock-plugin-identification`,
 `cpt-hai3-adr-global-shared-property-broadcast`,
 `cpt-hai3-adr-cli-template-based-code-generation`,
-`cpt-hai3-adr-two-tier-cli-e2e-verification`
+`cpt-hai3-adr-two-tier-cli-e2e-verification`,
+`cpt-hai3-adr-peer-dep-version-pinning`
 
 #### Functional Drivers
 
