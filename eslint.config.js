@@ -426,4 +426,12 @@ export default [
       'local/domain-event-format': 'error',
     },
   },
+
+  // Demo app layout: developer-facing UI, i18n not required
+  {
+    files: ['src/app/layout/**/*.tsx'],
+    rules: {
+      'local/no-hardcoded-strings': 'off',
+    },
+  },
 ];
