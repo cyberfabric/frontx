@@ -462,8 +462,8 @@ ${getRunScriptCommand(packageManager, 'type-check')}  # TypeScript check
 
 ## Layer: ${layer}
 
-This package follows HAI3's ${layer}-layer architecture conventions:
-${layer === 'sdk' ? '- No HAI3 package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@cyberfabric/framework)\n- React peer dependency' : ''}
+This package follows FrontX's ${layer}-layer architecture conventions:
+${layer === 'sdk' ? '- No FrontX package dependencies\n- No React dependencies' : ''}${layer === 'framework' ? '- Can depend on SDK packages (@cyberfabric/state, @cyberfabric/screensets, @cyberfabric/api, @cyberfabric/i18n)\n- No React dependencies' : ''}${layer === 'react' ? '- Can depend on Framework packages (@cyberfabric/framework)\n- React peer dependency' : ''}
 
 ## License
 

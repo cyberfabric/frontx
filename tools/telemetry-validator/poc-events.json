@@ -1,0 +1,72 @@
+[
+  {
+    "v": "1.0.0",
+    "t": "ui.done_rendering",
+    "ts": 1730000000000,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "durationMs": 482.1,
+      "method": "dom-stable-double-raf"
+    }
+  },
+  {
+    "v": "1.0.0",
+    "t": "ui.route_transition",
+    "ts": 1730000000100,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "toRouteId": "billing.overview",
+      "navigationMs": 42.3,
+      "transitionType": "soft"
+    }
+  },
+  {
+    "v": "1.0.0",
+    "t": "ui.action_span",
+    "ts": 1730000000500,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "actionName": "billing.save",
+      "durationMs": 312.7,
+      "status": "ok"
+    }
+  },
+  {
+    "v": "1.0.0",
+    "t": "net.http.client",
+    "ts": 1730000001200,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "endpointTemplate": "/api/billing/overview",
+      "status": 200,
+      "durationMs": 91.4
+    }
+  },
+  {
+    "v": "1.0.0",
+    "t": "runtime.queue.flush",
+    "ts": 1730000002000,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "batchSize": 12,
+      "uploadMs": 31.2
+    }
+  },
+  {
+    "v": "1.0.0",
+    "t": "runtime.error",
+    "ts": 1730000003000,
+    "sid": "s_demo_1",
+    "rid": "billing.overview",
+    "p": {
+      "source": "api",
+      "message": "Network timeout after 30000ms",
+      "fatal": false
+    }
+  }
+]

@@ -1,0 +1,32 @@
+{
+  "eventNamespaces": ["ui.", "net.", "runtime."],
+  "routeSentinel": "@telemetry-route",
+  "criticalActionSentinel": "@telemetry-critical-action",
+  "requiredRoutePatterns": [
+    "useRoutePerf(",
+    "useDoneRendering("
+  ],
+  "requiredActionPatterns": [
+    "useTelemetryAction("
+  ],
+  "forbiddenFirstPartyFetchPatterns": [
+    "fetch('/api/",
+    "fetch(\"/api/",
+    "fetch(`/api/",
+    "fetch( '/api/",
+    "fetch( \"/api/",
+    "fetch( `/api/",
+    "window.fetch('/api/",
+    "window.fetch(\"/api/",
+    "window.fetch(`/api/",
+    "globalThis.fetch('/api/",
+    "globalThis.fetch(\"/api/",
+    "globalThis.fetch(`/api/"
+  ],
+  "allowedApiWrapperPatterns": [
+    "instrumentedFetch(",
+    "apiClient.request(",
+    "apiRegistry.getService(",
+    "this.protocol("
+  ]
+}

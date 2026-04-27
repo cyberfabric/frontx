@@ -17,6 +17,7 @@ import { queryCache } from '../plugins/queryCache';
 import { mock } from '../plugins/mock';
 import { microfrontends, type MicrofrontendsConfig } from '../plugins/microfrontends';
 import { auth, type AuthPluginConfig } from '../plugins/auth';
+import { telemetry, type TelemetryPluginConfig } from '../plugins/telemetry';
 
 /**
  * Full preset configuration.
@@ -26,6 +27,8 @@ export interface FullPresetConfig {
   microfrontends?: MicrofrontendsConfig;
   /** Optional auth plugin config. When provided, `auth()` is added to the preset. */
   auth?: AuthPluginConfig;
+  /** Configuration for performance telemetry plugin */
+  telemetry?: TelemetryPluginConfig;
 }
 
 /**
@@ -72,6 +75,9 @@ export function full(config?: FullPresetConfig): HAI3Plugin[] {
   }
   if (config?.auth) {
     plugins.push(auth(config.auth));
+  }
+  if (config?.telemetry) {
+    plugins.push(telemetry(config.telemetry));
   }
   return plugins;
 }

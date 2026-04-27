@@ -42,7 +42,7 @@ jobs:
 
     - name: Validate SDK package documentation
       run: |
-        SDK_PACKAGES="events store layout api i18n framework react"
+        SDK_PACKAGES="state screensets api i18n perf-telemetry framework react"
         MISSING=""
 
         for pkg in $SDK_PACKAGES; do
@@ -94,7 +94,7 @@ jobs:
 
     - name: Validate target files exist
       run: |
-        REQUIRED_TARGETS="EVENTS STORE LAYOUT API I18N FRAMEWORK REACT"
+        REQUIRED_TARGETS="EVENTS STORE LAYOUT API I18N FRAMEWORK REACT PERF_TELEMETRY"
         MISSING=""
 
         for target in $REQUIRED_TARGETS; do
@@ -113,7 +113,7 @@ jobs:
       run: |
         # Check that GUIDELINES.md contains routing entries for all SDK packages
         GUIDELINES=".ai/GUIDELINES.md"
-        PACKAGES="packages/events packages/store packages/layout packages/api packages/i18n packages/framework packages/react"
+        PACKAGES="packages/state packages/screensets packages/api packages/i18n packages/perf-telemetry packages/framework packages/react"
         MISSING=""
 
         for pkg in $PACKAGES; do
@@ -130,7 +130,7 @@ jobs:
 
     - name: Check package.json files array
       run: |
-        SDK_PACKAGES="events store layout api i18n framework react"
+        SDK_PACKAGES="state screensets api i18n perf-telemetry framework react"
         ISSUES=""
 
         for pkg in $SDK_PACKAGES; do
@@ -151,7 +151,6 @@ jobs:
   # Optional: Run promptfoo tests if configured
   promptfoo-tests:
     runs-on: ubuntu-latest
-    if: ${{ hashFiles('promptfoo.yaml') != '' }}
 
     steps:
     - name: Checkout code
@@ -173,6 +172,11 @@ jobs:
       run: npm install -g promptfoo
 
     - name: Run promptfoo tests
-      run: promptfoo eval
+      run: |
+        if [ -f ".ai/tests/promptfoo.yaml" ]; then
+          promptfoo eval -c .ai/tests/promptfoo.yaml
+        else
+          echo "No promptfoo config found, skipping"
+        fi
       env:
         ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}

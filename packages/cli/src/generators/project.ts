@@ -50,7 +50,7 @@ export interface ProjectGeneratorInput {
   monorepoRoot?: string;
   /** Absolute path where the project will be written (for file: relative paths) */
   projectPath?: string;
-}
+};
 
 const NO_UIKIT_UTILS_TEMPLATE = 'src/app/lib/utils.no-uikit.ts';
 const NO_UIKIT_UTILS_CONTENT = `type ClassInput = string | false | null | undefined;

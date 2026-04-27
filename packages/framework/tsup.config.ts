@@ -18,6 +18,7 @@ export default defineConfig({
     '@cyberfabric/screensets',
     '@cyberfabric/api',
     '@cyberfabric/i18n',
+    '@cyberfabric/perf-telemetry',
     '@reduxjs/toolkit',
     'react',
   ],

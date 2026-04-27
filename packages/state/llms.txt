@@ -1,0 +1,19 @@
+# @cyberfabric/state
+
+> State management for FrontX SDK - event bus, store, and effects using Redux+Flux pattern.
+
+Part of the FrontX SDK Layer (L1) - can be used independently without other @cyberfabric packages. Peer dependency on @reduxjs/toolkit.
+
+## Core API
+
+- [eventBus](https://frontx.dev/docs/state/eventbus): Type-safe event emission and subscription
+- [createSlice](https://frontx.dev/docs/state/slices): Create state slices with typed reducers
+- [registerSlice](https://frontx.dev/docs/state/slices#register): Register dynamic slices with effects
+- [createStore](https://frontx.dev/docs/state/store): Create FrontX store
+
+## Key Patterns
+
+- Actions emit events via eventBus (never dispatch directly)
+- Effects subscribe to events and dispatch to their own slice
+- Module augmentation for EventPayloadMap and RootState type safety
+- One-way flow: Actions -> Events -> Effects -> State updates

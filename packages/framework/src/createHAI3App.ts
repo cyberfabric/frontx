@@ -43,6 +43,7 @@ export function createHAI3App(config?: HAI3AppConfig): HAI3App {
     .useAll(full({
       auth: config?.auth,
       microfrontends: config?.microfrontends,
+      telemetry: config?.telemetry,
     }))
     .build();
 }

@@ -17,6 +17,7 @@ export {
   type Hai3ApiAuthTransportConfig,
 } from './auth';
 export { mock, type MockPluginConfig } from './mock';
+export { telemetry, type TelemetryPluginConfig } from './telemetry';
 export {
   queryCache,
   queryCacheShared,

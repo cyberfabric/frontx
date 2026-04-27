@@ -24,7 +24,8 @@
   ],
   "scripts": {
     "build": "tsup",
-    "dev": "tsup --watch"
+    "dev": "tsup --watch",
+    "type-check": "tsc --noEmit -p tsconfig.typecheck.json"
   },
   "keywords": [
     "frontx",
@@ -59,9 +60,15 @@
     "tailwind-merge": "^2.6.0"
   },
   "peerDependencies": {
+    "@cyberfabric/perf-telemetry": "*",
     "@cyberfabric/react": "*",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
+  },
+  "peerDependenciesMeta": {
+    "@cyberfabric/perf-telemetry": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@types/lodash": "^4.17.20",
