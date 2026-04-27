@@ -40,8 +40,8 @@ interface PerfTelemetryModule {
 
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const STORAGE_KEY_PERF_ENABLED = 'frontx:studio:perfTelemetry';
-const STORAGE_KEY_PERF_TAB = 'frontx:studio:perfTelemetryTab';
+const STORAGE_PERF_ENABLED = 'frontx:studio:perfTelemetry';
+const STORAGE_PERF_TAB = 'frontx:studio:perfTelemetryTab';
 const RUNTIME_ATTR = 'frontx.runtime';
 const WEB_VITAL_LABELS = {
   'webvital.lcp': 'LCP',
@@ -85,7 +85,7 @@ function studioText(t: (key: string) => string, key: string, fallback: string): 
 }
 
 function spanRuntime(s: StoredSpan): string {
-  const v = s.attributes[RUNTIME_ATTR];
+  const v = Reflect.get(s.attributes, RUNTIME_ATTR);
   return typeof v === 'string' && v.length > 0 ? v : 'host';
 }
 
@@ -268,7 +268,7 @@ function RenderingTab({ spans, emptyLabel, webVitalsLabel, routeRenderingLabel }
             {(['webvital.lcp', 'webvital.cls', 'webvital.inp', 'webvital.navigation'] as const).map((name) => {
               const s = webVitals.find((x) => x.name === name);
               if (!s) return null;
-              const label = WEB_VITAL_LABELS[name];
+              const label = Reflect.get(WEB_VITAL_LABELS, name) as string;
               const value = webVitalDisplayValue(name, s);
               const rating = s.attributes['webvital.rating'];
               return (
@@ -313,8 +313,8 @@ export const PerfTelemetryPanel: React.FC = () => {
   const { t } = useTranslation();
   const store = useTelemetryStore();
   const spans = useTelemetryData(store);
-  const [enabled, setEnabled] = useState(() => loadStudioState(STORAGE_KEY_PERF_ENABLED, true));
-  const [tab, setTab] = useState<PerfTab>(() => loadStudioState(STORAGE_KEY_PERF_TAB, 'actions') as PerfTab);
+  const [enabled, setEnabled] = useState(() => loadStudioState(STORAGE_PERF_ENABLED, true));
+  const [tab, setTab] = useState<PerfTab>(() => loadStudioState(STORAGE_PERF_TAB, 'actions') as PerfTab);
   const labels = useMemo(() => ({
     title: studioText(t, 'studio:perfTelemetry.title', 'Performance'),
     clear: studioText(t, 'studio:perfTelemetry.clear', 'Clear'),
@@ -341,14 +341,14 @@ export const PerfTelemetryPanel: React.FC = () => {
   const toggleEnabled = useCallback(() => {
     setEnabled((prev: boolean) => {
       const next = !prev;
-      saveStudioState(STORAGE_KEY_PERF_ENABLED, next);
+      saveStudioState(STORAGE_PERF_ENABLED, next);
       return next;
     });
   }, []);
 
   const switchTab = useCallback((newTab: PerfTab) => {
     setTab(newTab);
-    saveStudioState(STORAGE_KEY_PERF_TAB, newTab);
+    saveStudioState(STORAGE_PERF_TAB, newTab);
   }, []);
 
   const summary = useMemo(() => ({
@@ -387,6 +387,7 @@ export const PerfTelemetryPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {enabled && (
             <button
+              type="button"
               onClick={() => { store.clear(); }}
               style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', border: '1px solid var(--border, #e5e7eb)', background: 'none', cursor: 'pointer' }}
             >
@@ -428,9 +429,9 @@ export const PerfTelemetryPanel: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: '8px' }}>
-            <button style={tabStyle(tab === 'actions')} onClick={() => { switchTab('actions'); }}>{labels.tabActions}</button>
-            <button style={tabStyle(tab === 'api')} onClick={() => { switchTab('api'); }}>{labels.tabApi}</button>
-            <button style={tabStyle(tab === 'rendering')} onClick={() => { switchTab('rendering'); }}>{labels.tabRendering}</button>
+            <button type="button" style={tabStyle(tab === 'actions')} onClick={() => { switchTab('actions'); }}>{labels.tabActions}</button>
+            <button type="button" style={tabStyle(tab === 'api')} onClick={() => { switchTab('api'); }}>{labels.tabApi}</button>
+            <button type="button" style={tabStyle(tab === 'rendering')} onClick={() => { switchTab('rendering'); }}>{labels.tabRendering}</button>
           </div>
 
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>

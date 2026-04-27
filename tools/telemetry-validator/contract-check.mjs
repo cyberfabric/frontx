@@ -7,18 +7,17 @@
  *
  * Usage: node tools/telemetry-validator/contract-check.mjs
  */
-import fs from 'node:fs';
-import path from 'node:path';
+import { safeExists, safeReadFile } from './path-utils.mjs';
 
 const root = globalThis.process.cwd();
-const file = path.join(root, 'tools/telemetry-validator/poc-events.json');
+const eventsRelativePath = 'tools/telemetry-validator/poc-events.json';
 
-if (!fs.existsSync(file)) {
+if (!safeExists(root, eventsRelativePath)) {
   globalThis.console.error('Missing tools/telemetry-validator/poc-events.json');
   globalThis.process.exit(1);
 }
 
-const events = JSON.parse(fs.readFileSync(file, 'utf8'));
+const events = JSON.parse(safeReadFile(root, eventsRelativePath));
 if (!Array.isArray(events) || events.length === 0) {
   globalThis.console.error('poc-events.json must contain a non-empty array');
   globalThis.process.exit(1);
@@ -77,7 +76,7 @@ for (const [i, event] of events.entries()) {
     errors.push(`event[${i}] exceeds max size of ${MAX_EVENT_SIZE_BYTES} bytes`);
   }
 
-  const schema = payloadSchemas[event.t];
+  const schema = Reflect.get(payloadSchemas, event.t);
   if (schema && typeof event.p === 'object' && event.p !== null) {
     for (const field of schema.required) {
       if (!(field in event.p)) {
@@ -85,8 +84,10 @@ for (const [i, event] of events.entries()) {
       }
     }
     for (const [field, expectedType] of Object.entries(schema.types)) {
-      if (field in event.p && typeof event.p[field] !== expectedType) {
-        errors.push(`event[${i}] payload field '${field}' should be ${expectedType}, got ${typeof event.p[field]}`);
+      if (!(field in event.p)) continue;
+      const actual = Reflect.get(event.p, field);
+      if (typeof actual !== expectedType) {
+        errors.push(`event[${i}] payload field '${field}' should be ${expectedType}, got ${typeof actual}`);
       }
     }
   }

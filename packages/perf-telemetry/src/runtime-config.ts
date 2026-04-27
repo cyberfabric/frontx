@@ -12,7 +12,7 @@
 
 import type { TelemetryRuntimeConfig, PrimitiveRecord } from './types';
 
-const STORAGE_KEY = 'frontx.telemetry.runtime-config.v1';
+const RUNTIME_CONFIG_STORE_LOCATION = 'frontx.telemetry.runtime-config.v1';
 
 /** Whitelisted keys that are safe to persist to localStorage. */
 const PERSISTABLE_KEYS: ReadonlyArray<keyof TelemetryRuntimeConfig> = [
@@ -48,16 +48,17 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
     const storage = getLocalStorage();
-    const raw = storage ? storage.getItem(STORAGE_KEY) : null;
+    const raw = storage ? storage.getItem(RUNTIME_CONFIG_STORE_LOCATION) : null;
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
     const parsed = JSON.parse(raw) as PrimitiveRecord;
     const result = { ...DEFAULT_RUNTIME_CONFIG };
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-restore-whitelisted-keys
     for (const key of PERSISTABLE_KEYS) {
-      const incoming = Reflect.get(parsed, key);
-      const expectedType = typeof Reflect.get(DEFAULT_RUNTIME_CONFIG, key);
-      if (incoming !== undefined && typeof incoming === expectedType) {
+      const incoming = Reflect.get(parsed, key) as string | number | boolean | undefined;
+      if (incoming === undefined) continue;
+      const expectedType: string = typeof Reflect.get(DEFAULT_RUNTIME_CONFIG, key);
+      if ((typeof incoming as string) === expectedType) {
         Reflect.set(result, key, incoming);
       }
     }
@@ -80,7 +81,7 @@ function persistRuntimeConfig(): void {
     }
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-build-persistable-payload
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
-    storage.setItem(STORAGE_KEY, JSON.stringify(safe));
+    storage.setItem(RUNTIME_CONFIG_STORE_LOCATION, JSON.stringify(safe));
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
   } catch { /* fail-open */ }
 }

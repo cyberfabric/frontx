@@ -8,41 +8,39 @@
  *
  * Usage: node tools/telemetry-validator/smoke-telemetry.mjs
  */
-import fs from 'node:fs';
 import path from 'node:path';
+import { safeExists, safeReadFile, safeReaddir } from './path-utils.mjs';
 
 const root = globalThis.process.cwd();
-const rulesPath = path.join(root, 'tools', 'telemetry-validator', 'validator-rules.json');
-const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
+const rules = JSON.parse(safeReadFile(root, 'tools/telemetry-validator/validator-rules.json'));
 const SOURCE_EXT = new Set(['.ts', '.tsx']);
 
 /**
- * Recursively collects .ts/.tsx files from a directory, skipping node_modules and dist.
- * @param {string} dir - Root directory to walk
- * @param {string[]} out - Accumulator array
- * @returns {string[]} Absolute paths of all matching source files
+ * Recursively collects .ts/.tsx files from a directory under `root`, skipping
+ * node_modules and dist. `relDir` is always resolved against `root` via
+ * safeReaddir, so callers cannot escape the repo root.
+ * @param {string} relDir - Relative directory to walk, anchored at `root`
+ * @param {string[]} out - Accumulator array of relative paths
+ * @returns {string[]}
  */
-function walk(dir, out = []) {
-  if (!fs.existsSync(dir)) return out;
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+function walk(relDir, out = []) {
+  if (!safeExists(root, relDir)) return out;
+  const entries = safeReaddir(root, relDir, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.name.startsWith('.') || entry.name === 'node_modules' || entry.name === 'dist') continue;
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) { walk(full, out); continue; }
-    if (SOURCE_EXT.has(path.extname(entry.name))) out.push(full);
+    const childRel = path.join(relDir, entry.name);
+    if (entry.isDirectory()) { walk(childRel, out); continue; }
+    if (SOURCE_EXT.has(path.extname(entry.name))) out.push(childRel);
   }
   return out;
 }
 
-// Scan app source and MFE packages
-const scanDirs = [
-  path.join(root, 'src'),
-  path.join(root, 'tools', 'telemetry-validator', 'fixtures'),
-];
+// Scan app source and MFE packages — paths are repo-relative so safeReaddir can lock them down.
+const scanDirs = ['src', 'tools/telemetry-validator/fixtures'];
 
 const files = scanDirs.flatMap((d) => walk(d));
 const routeFiles = files.filter((f) => {
-  const content = fs.readFileSync(f, 'utf8');
+  const content = safeReadFile(root, f);
   return content.includes(rules.routeSentinel);
 });
 
@@ -60,8 +58,8 @@ if (routeFiles.length === 0) {
 const errors = [];
 
 for (const file of routeFiles) {
-  const content = fs.readFileSync(file, 'utf8');
-  const rel = path.relative(root, file);
+  const content = safeReadFile(root, file);
+  const rel = file;
 
   for (const pattern of rules.requiredRoutePatterns) {
     if (!content.includes(pattern)) {

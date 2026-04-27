@@ -23,7 +23,7 @@
 import type { StoredSpan, SpanListener } from './types';
 
 /** Bumped when the registry shape changes incompatibly. */
-export const SHARED_TELEMETRY_REGISTRY_VERSION = 1;
+export const SHARED_TELEMETRY_REGISTRY_VERSION: number = 1;
 
 /** Default cap to keep the shared buffer bounded. Matches the per-runtime store. */
 const DEFAULT_MAX_SPANS = 500;
@@ -31,7 +31,7 @@ const DEFAULT_MAX_SPANS = 500;
 export const SHARED_TELEMETRY_REGISTRY_SYMBOL = Symbol.for('frontx:telemetry-registry');
 
 interface SharedTelemetryRegistryV1 {
-  readonly version: 1;
+  readonly version: number;
   spans: StoredSpan[];
   readonly listeners: Set<SpanListener>;
   readonly runtimes: Set<string>;

@@ -7,12 +7,11 @@
  *
  * Usage: node tools/telemetry-validator/telemetry-validator.mjs --mode=lint
  */
-import fs from 'node:fs';
 import path from 'node:path';
+import { safeExists, safeReadFile, safeReaddir } from './path-utils.mjs';
 
 const root = globalThis.process.cwd();
-const rulesPath = path.join(root, 'tools/telemetry-validator/validator-rules.json');
-const rules = JSON.parse(fs.readFileSync(rulesPath, 'utf8'));
+const rules = JSON.parse(safeReadFile(root, 'tools/telemetry-validator/validator-rules.json'));
 
 const modeArg = globalThis.process.argv.find((arg) => arg.startsWith('--mode='));
 const mode = modeArg ? modeArg.split('=')[1] : 'lint';
@@ -23,53 +22,46 @@ const SKIP_DIRS = new Set(['.git', 'node_modules', 'dist', 'build', '.next']);
 const SKIP_PATHS = ['packages/perf-telemetry', 'tools/telemetry-validator'];
 
 /**
- * Recursively collects source files from a directory, skipping node_modules, dist, and telemetry internals.
- * @param {string} dir - Root directory to walk
- * @param {string[]} out - Accumulator array
- * @returns {string[]} Absolute paths of all matching source files
+ * Recursively collects source files from a repo-relative directory, skipping
+ * node_modules, dist, and telemetry internals. Paths are anchored at `root`
+ * via safeReaddir so callers cannot traverse outside the repo.
+ * @param {string} relDir - Repo-relative directory to walk
+ * @param {string[]} out - Accumulator of repo-relative paths
+ * @returns {string[]}
  */
-function walk(dir, out = []) {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+function walk(relDir, out = []) {
+  const entries = safeReaddir(root, relDir, { withFileTypes: true });
   for (const entry of entries) {
     if (entry.name.startsWith('.')) continue;
-    const full = path.join(dir, entry.name);
+    const childRel = path.join(relDir, entry.name);
     if (entry.isDirectory()) {
       if (SKIP_DIRS.has(entry.name)) continue;
-      if (SKIP_PATHS.some((skip) => full.includes(skip))) continue;
-      walk(full, out);
+      if (SKIP_PATHS.some((skip) => childRel.includes(skip))) continue;
+      walk(childRel, out);
       continue;
     }
-    if (SOURCE_EXT.has(path.extname(entry.name))) out.push(full);
+    if (SOURCE_EXT.has(path.extname(entry.name))) out.push(childRel);
   }
   return out;
 }
 
-/**
- * Returns the path of `file` relative to the project root for readable error messages.
- * @param {string} file
- * @returns {string}
- */
-function rel(file) {
-  return path.relative(root, file);
-}
-
-// Scan src/ and workspace packages for consumer code
+// Scan src/ and workspace packages for consumer code (repo-relative paths only).
 const scanDirs = [
-  path.join(root, 'src'),
-  ...fs.readdirSync(path.join(root, 'packages')).map((p) => path.join(root, 'packages', p, 'src')),
-].filter((d) => fs.existsSync(d));
+  'src',
+  ...safeReaddir(root, 'packages').map((p) => path.join('packages', p, 'src')),
+].filter((d) => safeExists(root, d));
 
 const files = scanDirs.flatMap((d) => walk(d));
 const errors = [];
 
 for (const file of files) {
-  const content = fs.readFileSync(file, 'utf8');
+  const content = safeReadFile(root, file);
 
   // Check route sentinel
   if (content.includes(rules.routeSentinel)) {
     for (const pat of rules.requiredRoutePatterns) {
       if (!content.includes(pat)) {
-        errors.push(`${rel(file)}: missing route instrumentation pattern: ${pat}`);
+        errors.push(`${file}: missing route instrumentation pattern: ${pat}`);
       }
     }
   }
@@ -78,7 +70,7 @@ for (const file of files) {
   if (content.includes(rules.criticalActionSentinel)) {
     for (const pat of rules.requiredActionPatterns) {
       if (!content.includes(pat)) {
-        errors.push(`${rel(file)}: missing critical action instrumentation pattern: ${pat}`);
+        errors.push(`${file}: missing critical action instrumentation pattern: ${pat}`);
       }
     }
   }
@@ -86,12 +78,13 @@ for (const file of files) {
   // Check each line for raw first-party fetch without wrapper (per-occurrence, not per-file)
   const lines = content.split('\n');
   for (let lineNum = 0; lineNum < lines.length; lineNum++) {
-    const line = lines[lineNum];
+    const line = Reflect.get(lines, lineNum);
+    if (typeof line !== 'string') continue;
     const hasForbidden = rules.forbiddenFirstPartyFetchPatterns.some((p) => line.includes(p));
     if (hasForbidden) {
       const hasWrapper = rules.allowedApiWrapperPatterns.some((p) => line.includes(p));
       if (!hasWrapper) {
-        errors.push(`${rel(file)}:${lineNum + 1}: raw first-party fetch detected without instrumented wrapper`);
+        errors.push(`${file}:${lineNum + 1}: raw first-party fetch detected without instrumented wrapper`);
       }
     }
   }

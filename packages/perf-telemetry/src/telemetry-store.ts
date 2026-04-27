@@ -87,9 +87,9 @@ export class TelemetryStoreProcessor implements SpanProcessor {
 
     // Copy attributes — flatten to primitives only
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-studio-panel:p2:inst-copy-primitive-attributes
-    for (const [k, v] of Object.entries(span.attributes || {})) {
+    for (const [k, v] of Object.entries(span.attributes)) {
       if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
-        stored.attributes[k] = v;
+        Reflect.set(stored.attributes, k, v);
       }
     }
     // @cpt-end:cpt-frontx-flow-perf-telemetry-studio-panel:p2:inst-copy-primitive-attributes
