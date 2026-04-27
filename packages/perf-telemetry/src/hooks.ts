@@ -381,41 +381,43 @@ export function useWebVitals(routeId: string, enabled = true) {
       observers.push(lcpObserver);
     } catch { /* not supported */ }
 
+    // CLS state and reporter are declared at useEffect body root so the
+    // function declaration is not nested inside a `try` block (Codacy
+    // "Move function declaration to function body root"). The observer
+    // setup inside the `try` only references them.
+    const clsState = { value: 0, reported: false };
+    function reportCLS(): void {
+      if (clsState.reported) return;
+      clsState.reported = true;
+      if (clsState.value <= 0) return;
+      const parentCtx = getActionParentContext(performance.now(), routeId);
+      const span = tracer.startSpan('webvital.cls', {
+        attributes: {
+          'route.id': routeId,
+          'telemetry.breakdown.kind': 'frontend.webvitals',
+          'webvital.name': 'CLS',
+          'webvital.value': round2(clsState.value),
+          'webvital.rating': rateWebVital(clsState.value, 0.1, 0.25),
+        },
+      }, parentCtx);
+      span.end();
+    }
+
     try {
-      let clsValue = 0;
-      let clsReported = false;
       const clsObserver = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.startTime < mountTs) continue;
           const layoutEntry = entry as PerformanceEntry & { hadRecentInput?: boolean; value?: number };
-          if (!layoutEntry.hadRecentInput) clsValue += layoutEntry.value || 0;
+          if (!layoutEntry.hadRecentInput) clsState.value += layoutEntry.value || 0;
         }
       });
       clsObserver.observe({ type: 'layout-shift', buffered: true });
       observers.push(clsObserver);
-
-      function reportCLS(): void {
-        if (clsReported) return;
-        clsReported = true;
-        if (clsValue > 0) {
-          const parentCtx = getActionParentContext(performance.now(), routeId);
-          const span = tracer.startSpan('webvital.cls', {
-            attributes: {
-              'route.id': routeId,
-              'telemetry.breakdown.kind': 'frontend.webvitals',
-              'webvital.name': 'CLS',
-              'webvital.value': round2(clsValue),
-              'webvital.rating': rateWebVital(clsValue, 0.1, 0.25),
-            },
-          }, parentCtx);
-          span.end();
-        }
-      }
       document.addEventListener('visibilitychange', reportCLS, { once: true });
       // On unmount: report accumulated CLS then remove listener
       clsCleanup = () => {
         document.removeEventListener('visibilitychange', reportCLS);
-        if (!clsReported) reportCLS();
+        if (!clsState.reported) reportCLS();
       };
     } catch { /* not supported */ }
 
