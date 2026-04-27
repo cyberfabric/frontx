@@ -12,7 +12,7 @@
 
 import type { TelemetryRuntimeConfig, PrimitiveRecord } from './types';
 
-const STORAGE_KEY = 'hai3.telemetry.runtime-config.v1';
+const STORAGE_KEY = 'frontx.telemetry.runtime-config.v1';
 
 /** Whitelisted keys that are safe to persist to localStorage. */
 const PERSISTABLE_KEYS: ReadonlyArray<keyof TelemetryRuntimeConfig> = [
@@ -33,6 +33,13 @@ const DEFAULT_RUNTIME_CONFIG: TelemetryRuntimeConfig = {
   abBucketSeed: '',
 };
 
+/** Resolve `localStorage` defensively; returns null off-browser / when access throws. */
+function getLocalStorage(): Storage | null {
+  try {
+    return typeof localStorage === 'undefined' ? null : localStorage;
+  } catch { return null; }
+}
+
 let runtimeConfig = loadRuntimeConfig();
 const listeners = new Set<() => void>();
 
@@ -40,15 +47,18 @@ const listeners = new Set<() => void>();
 function loadRuntimeConfig(): TelemetryRuntimeConfig {
   try {
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
-    const raw = globalThis.localStorage?.getItem(STORAGE_KEY);
+    const storage = getLocalStorage();
+    const raw = storage ? storage.getItem(STORAGE_KEY) : null;
     if (!raw) return { ...DEFAULT_RUNTIME_CONFIG };
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-load-persisted-config
     const parsed = JSON.parse(raw) as PrimitiveRecord;
     const result = { ...DEFAULT_RUNTIME_CONFIG };
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-restore-whitelisted-keys
     for (const key of PERSISTABLE_KEYS) {
-      if (key in parsed && typeof parsed[key] === typeof DEFAULT_RUNTIME_CONFIG[key]) {
-        (result as PrimitiveRecord)[key] = parsed[key];
+      const incoming = Reflect.get(parsed, key);
+      const expectedType = typeof Reflect.get(DEFAULT_RUNTIME_CONFIG, key);
+      if (incoming !== undefined && typeof incoming === expectedType) {
+        Reflect.set(result, key, incoming);
       }
     }
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-restore-whitelisted-keys
@@ -61,22 +71,23 @@ function loadRuntimeConfig(): TelemetryRuntimeConfig {
 /** Persists only whitelisted non-PII keys to localStorage. */
 function persistRuntimeConfig(): void {
   try {
-    if (!globalThis.localStorage) return;
+    const storage = getLocalStorage();
+    if (!storage) return;
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-build-persistable-payload
     const safe: PrimitiveRecord = {};
     for (const key of PERSISTABLE_KEYS) {
-      safe[key] = runtimeConfig[key];
+      Reflect.set(safe, key, Reflect.get(runtimeConfig, key));
     }
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-build-persistable-payload
     // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
-    globalThis.localStorage.setItem(STORAGE_KEY, JSON.stringify(safe));
+    storage.setItem(STORAGE_KEY, JSON.stringify(safe));
     // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-write-persisted-config
   } catch { /* fail-open */ }
 }
 
 // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-notify-subscribers
 function notify(): void {
-  listeners.forEach((listener) => listener());
+  listeners.forEach((listener) => { listener(); });
 }
 // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-notify-subscribers
 
@@ -89,7 +100,7 @@ export function getTelemetryRuntimeConfig(): TelemetryRuntimeConfig {
 export function subscribeTelemetryRuntimeConfig(listener: () => void): () => void {
   // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-subscribe-runtime-config
   listeners.add(listener);
-  return () => listeners.delete(listener);
+  return () => { listeners.delete(listener); };
   // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-subscribe-runtime-config
 }
 

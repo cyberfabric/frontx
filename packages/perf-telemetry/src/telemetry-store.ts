@@ -49,7 +49,7 @@ function hrTimeToMs(hrTime: [number, number]): number {
 }
 
 function statusCode(span: ReadableSpan): 'ok' | 'error' | 'unset' {
-  const code = span.status?.code;
+  const code = span.status.code;
   if (code === 2) return 'error';
   if (code === 1) return 'ok';
   return 'unset';

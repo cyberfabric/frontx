@@ -99,9 +99,9 @@ function flattenPayload(payload: Record<string, PayloadValue>, prefix = ''): Rec
     const attrKey = prefix ? `${prefix}.${key}` : key;
     if (value === null || value === undefined) continue;
     if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
-      result[attrKey] = value;
+      Reflect.set(result, attrKey, value);
     } else if (Array.isArray(value)) {
-      result[attrKey] = JSON.stringify(value);
+      Reflect.set(result, attrKey, JSON.stringify(value));
     } else if (typeof value === 'object') {
       Object.assign(result, flattenPayload(value as Record<string, PayloadValue>, attrKey));
     }

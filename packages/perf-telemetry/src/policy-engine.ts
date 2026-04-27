@@ -38,7 +38,8 @@ function deepFreeze<T>(value: T): Readonly<T> {
 /** Returns a cryptographically secure random float in [0, 1). Uses globalThis for Node/JSDOM compat. */
 // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-check-crypto-rng
 function hasCryptoRandomValues(): boolean {
-  return typeof globalThis.crypto?.getRandomValues === 'function';
+  if (typeof globalThis.crypto === 'undefined') return false;
+  return typeof globalThis.crypto.getRandomValues === 'function';
 }
 
 function cryptoRandom(): number {
@@ -227,7 +228,7 @@ export class PolicyEngine {
   /** Returns true if the given feature toggle is enabled and the kill switch is inactive. */
   isFeatureEnabled(feature: keyof CollectionPolicy['featureToggles']): boolean {
     if (this.currentPolicy.killSwitch.active) return false;
-    return this.currentPolicy.featureToggles[feature];
+    return Boolean(Reflect.get(this.currentPolicy.featureToggles, feature));
   }
 
   /** Returns the configured batch flush interval in milliseconds. */

@@ -89,7 +89,9 @@ export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
         if (_mod.isOtelInitialized()) {
           _mod.flushOtel()
             .catch(() => undefined)
-            .finally(() => _mod?.shutdownOtel().catch(() => { /* fail-open */ }));
+            .finally(() => {
+              _mod?.shutdownOtel().catch(() => { /* fail-open */ });
+            });
         }
       } catch {
         // Fail-open

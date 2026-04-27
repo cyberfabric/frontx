@@ -132,8 +132,12 @@ function groupByRuntime(spans: StoredSpan[]): Map<string, StoredSpan[]> {
   const m = new Map<string, StoredSpan[]>();
   for (const s of spans) {
     const r = spanRuntime(s);
-    if (!m.has(r)) m.set(r, []);
-    m.get(r)!.push(s);
+    const bucket = m.get(r);
+    if (bucket) {
+      bucket.push(s);
+    } else {
+      m.set(r, [s]);
+    }
   }
   return m;
 }
@@ -195,8 +199,12 @@ function ApiTab({ spans, emptyLabel, callsLabel, avgLabel, errorsLabel }: Readon
       const method = String(s.attributes['http.method'] || 'GET');
       const runtime = spanRuntime(s);
       const key = `${runtime} | ${method} ${url}`;
-      if (!map.has(key)) map.set(key, []);
-      map.get(key)!.push(s);
+      const bucket = map.get(key);
+      if (bucket) {
+        bucket.push(s);
+      } else {
+        map.set(key, [s]);
+      }
     }
     return Array.from(map.entries())
       .map(([key, calls]) => {
@@ -379,7 +387,7 @@ export const PerfTelemetryPanel: React.FC = () => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           {enabled && (
             <button
-              onClick={() => store.clear()}
+              onClick={() => { store.clear(); }}
               style={{ fontSize: '10px', padding: '2px 6px', borderRadius: '3px', border: '1px solid var(--border, #e5e7eb)', background: 'none', cursor: 'pointer' }}
             >
               {labels.clear}
@@ -420,9 +428,9 @@ export const PerfTelemetryPanel: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: '8px' }}>
-            <button style={tabStyle(tab === 'actions')} onClick={() => switchTab('actions')}>{labels.tabActions}</button>
-            <button style={tabStyle(tab === 'api')} onClick={() => switchTab('api')}>{labels.tabApi}</button>
-            <button style={tabStyle(tab === 'rendering')} onClick={() => switchTab('rendering')}>{labels.tabRendering}</button>
+            <button style={tabStyle(tab === 'actions')} onClick={() => { switchTab('actions'); }}>{labels.tabActions}</button>
+            <button style={tabStyle(tab === 'api')} onClick={() => { switchTab('api'); }}>{labels.tabApi}</button>
+            <button style={tabStyle(tab === 'rendering')} onClick={() => { switchTab('rendering'); }}>{labels.tabRendering}</button>
           </div>
 
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
