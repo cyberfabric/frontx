@@ -44,6 +44,10 @@ import {
 } from './action-scope';
 import { getClientInfo } from './client-info';
 import { TelemetryStoreProcessor } from './telemetry-store';
+import {
+  acquireSharedTelemetryRegistry,
+  releaseSharedTelemetryRegistry,
+} from './shared-telemetry-registry';
 
 // ─── Module state ────────────────────────────────────────────────────────────
 
@@ -52,6 +56,7 @@ let _sessionId: string | null = null;
 let _initialized = false;
 let _visibilityHandler: (() => void) | null = null;
 let _disableInstrumentations: (() => void) | null = null;
+let _runtimeId: string | null = null;
 
 function generateSessionId(): string {
   // Use cryptographically secure random when available (all modern browsers)
@@ -315,9 +320,11 @@ export function initOtel(config: OtelConfig): void {
     // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-build-export-pipeline
 
     // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-tracer-provider
+    _runtimeId = `${config.serviceName}@${getSessionId()}`;
+    acquireSharedTelemetryRegistry(_runtimeId);
     _provider = new WebTracerProvider({
       resource,
-      spanProcessors: [new HAI3SpanProcessor(), new TelemetryStoreProcessor(), exportGateProcessor],
+      spanProcessors: [new HAI3SpanProcessor(), new TelemetryStoreProcessor(_runtimeId), exportGateProcessor],
     });
 
     _provider.register({
@@ -416,6 +423,10 @@ export async function shutdownOtel(): Promise<void> {
     _provider = null;
     _initialized = false;
     // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
+  }
+  if (_runtimeId) {
+    releaseSharedTelemetryRegistry(_runtimeId);
+    _runtimeId = null;
   }
   trace.disable();
   context.disable();

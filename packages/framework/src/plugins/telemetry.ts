@@ -1,9 +1,12 @@
 // @cpt-dod:cpt-hai3-dod-perf-telemetry-fail-open:p1
 /**
- * Telemetry Plugin - Performance telemetry via @hai3/perf-telemetry
+ * Telemetry Plugin - Performance telemetry via @cyberfabric/perf-telemetry
  *
  * Framework Layer: L2
- * Provides: OTel initialization, API auto-instrumentation, dev panel data
+ * Provides: OTel initialization + lifecycle. The `telemetryStore` is read directly
+ * from `@cyberfabric/perf-telemetry` (which delegates to the cross-runtime
+ * `globalThis[Symbol.for('frontx:telemetry-registry')]` store) — Studio resolves
+ * it via dynamic import, not via this plugin's `provides`.
  */
 
 import type { HAI3Plugin } from '../types';
@@ -24,21 +27,20 @@ export type TelemetryPluginConfig = {
   enabled?: boolean;
 };
 
-/** Shape of the @hai3/perf-telemetry module (avoids require + unknown). */
+/** Shape of the @cyberfabric/perf-telemetry module (avoids require + unknown). */
 type PerfTelemetryModule = {
   initOtel: (config: { serviceName: string; serviceVersion: string; collectorUrl: string; environment: string; enabled: boolean }) => void;
   isOtelInitialized: () => boolean;
   flushOtel: () => Promise<void>;
   shutdownOtel: () => Promise<void>;
-  telemetryStore: Record<string, (...args: never[]) => void>;
 };
 
 /**
  * Telemetry plugin factory.
  *
- * Provides performance telemetry integration via @hai3/perf-telemetry.
- * When enabled, initializes OTel Browser SDK and registers a TelemetryStoreProcessor
- * for the dev panel.
+ * Provides performance telemetry integration via @cyberfabric/perf-telemetry.
+ * When enabled, initializes OTel Browser SDK and joins the cross-runtime
+ * shared telemetry registry so MFE child runtimes converge on the host store.
  *
  * @param config - Telemetry configuration
  * @returns Telemetry plugin
@@ -55,39 +57,29 @@ type PerfTelemetryModule = {
  * ```
  */
 export function telemetry(config?: TelemetryPluginConfig): HAI3Plugin {
-  let resolvedStore: PerfTelemetryModule['telemetryStore'] | null = null;
   let _mod: PerfTelemetryModule | null = null;
 
   return {
     name: 'telemetry',
     dependencies: [],
 
-    provides: {
-      registries: {
-        /** telemetryStore from @hai3/perf-telemetry, available after onInit. */
-        get telemetryStore() { return resolvedStore; },
-      },
-    },
-
     async onInit() {
       const enabled = config?.enabled ?? true;
       if (!enabled) return;
 
       try {
-        // Dynamic import to keep @hai3/perf-telemetry optional — cached for onDestroy
-        _mod = await import('@hai3/perf-telemetry') as PerfTelemetryModule;
+        // Dynamic import to keep @cyberfabric/perf-telemetry optional — cached for onDestroy
+        _mod = await import('@cyberfabric/perf-telemetry') as PerfTelemetryModule;
 
         _mod.initOtel({
-          serviceName: config?.serviceName ?? 'hai3-app',
+          serviceName: config?.serviceName ?? 'frontx-app',
           serviceVersion: config?.serviceVersion ?? '1.0.0',
           collectorUrl: config?.collectorUrl ?? 'http://localhost:14318',
           environment: config?.environment ?? 'development',
           enabled: true,
         });
-
-        resolvedStore = _mod.telemetryStore ?? null;
       } catch {
-        // Fail-open: if @hai3/perf-telemetry is not installed, silently skip
+        // Fail-open: if @cyberfabric/perf-telemetry is not installed, silently skip
       }
     },
 

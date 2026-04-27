@@ -1,18 +1,20 @@
-// @cpt-flow:cpt-hai3-flow-perf-telemetry-studio-panel:p2
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-studio-panel:p2
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-studio-panel:p2
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-studio-panel:p2
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-cross-runtime-registry:p1
 /**
- * PerfTelemetryPanel — Performance telemetry dev panel for HAI3 Studio
+ * PerfTelemetryPanel — Performance telemetry dev panel for FrontX Studio
  *
- * Displays live performance data from @hai3/perf-telemetry when available.
- * Shows KPI cards, action breakdown, API stats, and web vitals.
+ * Displays live performance data from @cyberfabric/perf-telemetry when available.
+ * Subscribes to the cross-runtime telemetry store (Symbol.for('frontx:telemetry-registry')
+ * on globalThis) so the host panel sees spans from host + every joined MFE runtime.
  * Only renders when the perf-telemetry package is installed.
  */
 
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
-import { useTranslation } from '@hai3/react';
+import { useTranslation } from '@cyberfabric/react';
 import { loadStudioState, saveStudioState } from '../utils/persistence';
 
-// ─── Types (from @hai3/perf-telemetry, defined here to avoid hard dependency) ─
+// ─── Types (mirrored from @cyberfabric/perf-telemetry; package is optional peer) ─
 
 interface StoredSpan {
   spanId: string;
@@ -32,10 +34,15 @@ interface TelemetryStoreApi {
   clear(): void;
 }
 
+interface PerfTelemetryModule {
+  telemetryStore?: TelemetryStoreApi;
+}
+
 // ─── Constants ──────────────────────────────────────────────────────────────
 
-const STORAGE_KEY_PERF_ENABLED = 'hai3:studio:perfTelemetry';
-const STORAGE_KEY_PERF_TAB = 'hai3:studio:perfTelemetryTab';
+const STORAGE_KEY_PERF_ENABLED = 'frontx:studio:perfTelemetry';
+const STORAGE_KEY_PERF_TAB = 'frontx:studio:perfTelemetryTab';
+const RUNTIME_ATTR = 'frontx.runtime';
 const WEB_VITAL_LABELS = {
   'webvital.lcp': 'LCP',
   'webvital.cls': 'CLS',
@@ -77,28 +84,34 @@ function studioText(t: (key: string) => string, key: string, fallback: string): 
   return value === key ? fallback : value;
 }
 
+function spanRuntime(s: StoredSpan): string {
+  const v = s.attributes[RUNTIME_ATTR];
+  return typeof v === 'string' && v.length > 0 ? v : 'host';
+}
+
 // ─── useTelemetryStore ──────────────────────────────────────────────────────
 
-/** Resolves telemetryStore via dynamic require. Fail-open: returns null if not installed. */
+// @cpt-begin:cpt-frontx-flow-perf-telemetry-studio-panel:p2:inst-resolve-store
+/** Resolves telemetryStore via dynamic import. Fail-open: returns null if not installed. */
 function useTelemetryStore(): TelemetryStoreApi | null {
   const [store, setStore] = useState<TelemetryStoreApi | null>(null);
 
   useEffect(() => {
-    try {
-      const dynamicRequire = typeof require === 'function'
-        ? require as (id: string) => { telemetryStore?: TelemetryStoreApi }
-        : undefined;
-      const mod = dynamicRequire?.('@hai3/perf-telemetry');
-      if (mod?.telemetryStore) {
-        setStore(mod.telemetryStore);
-      }
-    } catch {
-      // Not installed — panel won't render
-    }
+    let cancelled = false;
+    // Vite/tsup keep the dynamic import for the runtime; if @cyberfabric/perf-telemetry
+    // is not installed (optional peer) the import rejects and the panel hides.
+    import('@cyberfabric/perf-telemetry')
+      .then((mod: PerfTelemetryModule) => {
+        if (cancelled) return;
+        if (mod.telemetryStore) setStore(mod.telemetryStore);
+      })
+      .catch(() => { /* fail-open: package not installed; panel will not render */ });
+    return () => { cancelled = true; };
   }, []);
 
   return store;
 }
+// @cpt-end:cpt-frontx-flow-perf-telemetry-studio-panel:p2:inst-resolve-store
 
 function useTelemetryData(store: TelemetryStoreApi | null): StoredSpan[] {
   const [spans, setSpans] = useState<StoredSpan[]>([]);
@@ -113,6 +126,16 @@ function useTelemetryData(store: TelemetryStoreApi | null): StoredSpan[] {
   }, [store]);
 
   return spans;
+}
+
+function groupByRuntime(spans: StoredSpan[]): Map<string, StoredSpan[]> {
+  const m = new Map<string, StoredSpan[]>();
+  for (const s of spans) {
+    const r = spanRuntime(s);
+    if (!m.has(r)) m.set(r, []);
+    m.get(r)!.push(s);
+  }
+  return m;
 }
 
 // ─── Sub-panels ─────────────────────────────────────────────────────────────
@@ -140,12 +163,14 @@ function ActionsTab({ spans, emptyLabel }: Readonly<{ spans: StoredSpan[]; empty
         const actionName = String(span.attributes['action.name'] || span.name);
         const pct = Math.min(100, (span.durationMs / maxDuration) * 100);
         const barColor = actionBarColor(span.durationMs);
+        const runtime = spanRuntime(span);
         return (
           <div key={span.spanId} style={{ padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' }}>
               <span style={{ fontFamily: 'monospace', fontSize: '11px', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>
                 {actionName}
               </span>
+              <span style={{ fontSize: '10px', opacity: 0.6, whiteSpace: 'nowrap' }} title="runtime">{runtime}</span>
               <span style={{ fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(span.durationMs)}</span>
             </div>
             <div style={{ height: '3px', borderRadius: '2px', background: 'var(--muted, #f3f4f6)', marginTop: '4px' }}>
@@ -168,7 +193,8 @@ function ApiTab({ spans, emptyLabel, callsLabel, avgLabel, errorsLabel }: Readon
     for (const s of apiSpans) {
       const url = String(s.attributes['http.url'] || s.name);
       const method = String(s.attributes['http.method'] || 'GET');
-      const key = `${method} ${url}`;
+      const runtime = spanRuntime(s);
+      const key = `${runtime} | ${method} ${url}`;
       if (!map.has(key)) map.set(key, []);
       map.get(key)!.push(s);
     }
@@ -227,7 +253,6 @@ function RenderingTab({ spans, emptyLabel, webVitalsLabel, routeRenderingLabel }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-      {/* Web Vitals */}
       {webVitals.length > 0 && (
         <div>
           <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>{webVitalsLabel}</div>
@@ -252,16 +277,17 @@ function RenderingTab({ spans, emptyLabel, webVitalsLabel, routeRenderingLabel }
         </div>
       )}
 
-      {/* Render spans */}
       {renderSpans.length > 0 && (
         <div>
           <div style={{ fontSize: '10px', fontWeight: 700, textTransform: 'uppercase', opacity: 0.5, marginBottom: '4px' }}>{routeRenderingLabel}</div>
           {renderSpans.map((s) => {
             const signal = String(s.attributes['signal.name'] || s.name);
             const total = Number(s.attributes['render.total_ms'] || s.durationMs);
+            const runtime = spanRuntime(s);
             return (
-              <div key={s.spanId} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{signal}</span>
+              <div key={s.spanId} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+                <span style={{ fontFamily: 'monospace', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{signal}</span>
+                <span style={{ fontSize: '10px', opacity: 0.6, whiteSpace: 'nowrap' }} title="runtime">{runtime}</span>
                 <span style={{ fontWeight: 700, whiteSpace: 'nowrap' }}>{fmt(total)}</span>
               </div>
             );
@@ -290,6 +316,7 @@ export const PerfTelemetryPanel: React.FC = () => {
     spans: studioText(t, 'studio:perfTelemetry.kpis.spans', 'Spans'),
     actions: studioText(t, 'studio:perfTelemetry.kpis.actions', 'Actions'),
     errors: studioText(t, 'studio:perfTelemetry.kpis.errors', 'Errors'),
+    runtimes: studioText(t, 'studio:perfTelemetry.kpis.runtimes', 'Runtimes'),
     tabActions: studioText(t, 'studio:perfTelemetry.tabs.actions', 'Actions'),
     tabApi: studioText(t, 'studio:perfTelemetry.tabs.api', 'API'),
     tabRendering: studioText(t, 'studio:perfTelemetry.tabs.rendering', 'Rendering'),
@@ -320,9 +347,10 @@ export const PerfTelemetryPanel: React.FC = () => {
     total: spans.length,
     actions: spans.filter((s) => String(s.attributes['telemetry.breakdown.kind'] || '') === 'action.total').length,
     errors: spans.filter((s) => s.status === 'error').length,
+    runtimes: groupByRuntime(spans).size,
   }), [spans]);
 
-  // Don't render if @hai3/perf-telemetry is not installed
+  // Don't render if @cyberfabric/perf-telemetry is not installed
   if (!store) return null;
 
   const sectionStyle: React.CSSProperties = {
@@ -344,7 +372,6 @@ export const PerfTelemetryPanel: React.FC = () => {
 
   return (
     <div style={sectionStyle}>
-      {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
         <h3 style={{ fontSize: '11px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', opacity: 0.6, margin: 0 }}>
           {labels.title}
@@ -373,7 +400,6 @@ export const PerfTelemetryPanel: React.FC = () => {
 
       {enabled && (
         <>
-          {/* KPI row */}
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
             <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.spans}</div>
@@ -384,19 +410,21 @@ export const PerfTelemetryPanel: React.FC = () => {
               <div style={{ fontSize: '16px', fontWeight: 700 }}>{summary.actions}</div>
             </div>
             <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
+              <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.runtimes}</div>
+              <div style={{ fontSize: '16px', fontWeight: 700 }}>{summary.runtimes}</div>
+            </div>
+            <div style={{ flex: 1, padding: '6px 8px', borderRadius: '4px', border: '1px solid var(--border, #e5e7eb)', textAlign: 'center' }}>
               <div style={{ fontSize: '10px', opacity: 0.6 }}>{labels.errors}</div>
               <div style={{ fontSize: '16px', fontWeight: 700, color: summary.errors > 0 ? '#dc2626' : undefined }}>{summary.errors}</div>
             </div>
           </div>
 
-          {/* Tabs */}
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: '8px' }}>
             <button style={tabStyle(tab === 'actions')} onClick={() => switchTab('actions')}>{labels.tabActions}</button>
             <button style={tabStyle(tab === 'api')} onClick={() => switchTab('api')}>{labels.tabApi}</button>
             <button style={tabStyle(tab === 'rendering')} onClick={() => switchTab('rendering')}>{labels.tabRendering}</button>
           </div>
 
-          {/* Tab content */}
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
             {tab === 'actions' && <ActionsTab spans={spans} emptyLabel={labels.noActions} />}
             {tab === 'api' && <ApiTab spans={spans} emptyLabel={labels.noApi} callsLabel={labels.calls} avgLabel={labels.avg} errorsLabel={labels.apiErrors} />}
