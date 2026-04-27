@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-action-first:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-action-first:p1
 /**
  * @cyberfabric/perf-telemetry — Action-first performance telemetry for FrontX
  */

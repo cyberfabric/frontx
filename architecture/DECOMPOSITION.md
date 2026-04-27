@@ -840,7 +840,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-fr-perf-web-vitals`
   - [x] `p2` - `cpt-frontx-fr-perf-studio-panel`
   - [x] `p1` - `cpt-frontx-fr-perf-fail-open`
-  - [ ] `p1` - `cpt-frontx-fr-perf-cross-runtime-registry`
+  - [x] `p1` - `cpt-frontx-fr-perf-cross-runtime-registry`
 
 - **Design Principles Covered**:
   - Action-first correlation (no orphan spans)
@@ -858,7 +858,7 @@ The DESIGN is decomposed into 11 features aligned with package/module boundaries
 - **Design Components**:
 
   - [x] `p1` - `cpt-frontx-component-perf-telemetry`
-  - [x] `p2` - `cpt-frontx-component-studio-perf-panel`
+  - [x] `p2` - `cpt-frontx-component-studio`
 
 - **API**:
   - `useRoutePerf(routeId, navigationStartMs)`

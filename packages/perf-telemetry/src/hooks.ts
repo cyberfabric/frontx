@@ -1,10 +1,10 @@
-// @cpt-flow:cpt-hai3-flow-perf-telemetry-route-instrumentation:p1
-// @cpt-flow:cpt-hai3-flow-perf-telemetry-action-instrumentation:p1
-// @cpt-flow:cpt-hai3-flow-perf-telemetry-api-instrumentation:p1
-// @cpt-flow:cpt-hai3-flow-perf-telemetry-web-vitals:p1
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-route-render:p1
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-api:p1
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-vitals:p1
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-route-instrumentation:p1
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-action-instrumentation:p1
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-api-instrumentation:p1
+// @cpt-flow:cpt-frontx-flow-perf-telemetry-web-vitals:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-route-render:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-api:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-vitals:p1
 /**
  * Telemetry Hooks — FrontX-style instrumentation primitives
  *

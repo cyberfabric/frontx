@@ -1,6 +1,6 @@
 # Feature: Performance Telemetry
 
-- [x] `p2` - **ID**: `cpt-hai3-featstatus-perf-telemetry`
+- [x] `p2` - **ID**: `cpt-frontx-featstatus-perf-telemetry`
 
 <!-- toc -->
 
@@ -16,22 +16,26 @@
   - [Web Vitals Collection](#web-vitals-collection)
   - [Ambient Action Fallback](#ambient-action-fallback)
   - [Studio Panel Inspection](#studio-panel-inspection)
+  - [Cross-Runtime Span Convergence](#cross-runtime-span-convergence)
   - [Collector Export Toggle](#collector-export-toggle)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
   - [Scope Resolution Algorithm](#scope-resolution-algorithm)
   - [Ambient Action Lifecycle](#ambient-action-lifecycle)
   - [Span Export Gating](#span-export-gating)
+  - [Cross-Runtime Registry Acquisition](#cross-runtime-registry-acquisition)
   - [Session ID Generation](#session-id-generation)
 - [4. States (CDSL)](#4-states-cdsl)
   - [OTel SDK Lifecycle](#otel-sdk-lifecycle)
   - [Action Scope Lifecycle](#action-scope-lifecycle)
   - [Ambient Action Lifecycle](#ambient-action-lifecycle-1)
+  - [Shared Telemetry Registry Lifecycle](#shared-telemetry-registry-lifecycle)
 - [5. Definitions of Done](#5-definitions-of-done)
   - [DoD: Action-First Correlation](#dod-action-first-correlation)
   - [DoD: Route and Render Instrumentation](#dod-route-and-render-instrumentation)
   - [DoD: API Instrumentation](#dod-api-instrumentation)
   - [DoD: Web Vitals and Runtime Observers](#dod-web-vitals-and-runtime-observers)
   - [DoD: Studio Dev Panel](#dod-studio-dev-panel)
+  - [DoD: Cross-Runtime Span Convergence](#dod-cross-runtime-span-convergence)
   - [DoD: Fail-Open Guarantee](#dod-fail-open-guarantee)
 - [6. Acceptance Criteria](#6-acceptance-criteria)
 - [Additional Context](#additional-context)
@@ -44,7 +48,7 @@
 
 <!-- /toc -->
 
-- [x] `p2` - `cpt-hai3-feature-perf-telemetry`
+- [x] `p2` - `cpt-frontx-feature-perf-telemetry`
 
 ---
 
@@ -68,15 +72,15 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### 1.3 Actors
 
-- `cpt-hai3-actor-developer` — Developer instrumenting screens with hooks and inspecting the Studio panel
-- `cpt-hai3-actor-runtime` — Browser runtime executing the OpenTelemetry Browser SDK and HAI3 span processing pipeline
-- `cpt-hai3-actor-framework-plugin` — `telemetry()` plugin initializing OTel in the framework lifecycle
-- `cpt-hai3-actor-studio-user` — Developer using the Studio panel to inspect live performance telemetry
+- `cpt-frontx-actor-developer` — Developer instrumenting screens with hooks and inspecting the Studio panel
+- `cpt-frontx-actor-runtime` — Browser runtime executing the OpenTelemetry Browser SDK and HAI3 span processing pipeline
+- `cpt-frontx-actor-framework-plugin` — `telemetry()` plugin initializing OTel in the framework lifecycle
+- `cpt-frontx-actor-studio-user` — Developer using the Studio panel to inspect live performance telemetry
 
 ### 1.4 References
 
-- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-hai3-feature-perf-telemetry`
-- ADR: `cpt-hai3-adr-action-first-telemetry`
+- Decomposition: [DECOMPOSITION.md](../../DECOMPOSITION.md) — `cpt-frontx-feature-perf-telemetry`
+- ADR: `cpt-frontx-adr-action-first-telemetry`
 - AI Target: `.ai/targets/PERF_TELEMETRY.md`
 - Data Contracts: `.ai/references/telemetry/data-contracts.md`
 - Privacy: `.ai/references/telemetry/privacy-and-governance.md`
@@ -87,9 +91,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Route Instrumentation
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-route-instrumentation`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-route-instrumentation`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Frontend Dev adds `useRoutePerf(routeId, navigationStartMs)` to a screen component — `inst-add-route-perf`
 2. [x] `p1` - On mount, hook calls `setCurrentRouteId(routeId)` to update ambient context — `inst-set-route-id`
@@ -102,9 +106,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Action Instrumentation
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-action-instrumentation`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-action-instrumentation`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Frontend Dev wraps critical work with `useTelemetryAction(actionName, { routeId })` — `inst-create-action-hook`
 2. [x] `p1` - On invocation, `runTelemetryAction` creates root span with `telemetry.breakdown.kind: action.total` — `inst-create-action-span`
@@ -117,9 +121,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### API Auto-Instrumentation
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-api-instrumentation`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-api-instrumentation`
 
-**Actors**: `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - OTel `FetchInstrumentation` auto-instruments all `fetch()` calls — `inst-auto-fetch`
 2. [x] `p1` - `HAI3SpanProcessor.onStart()` injects `action.name` from `findRelatedActionScope()` — `inst-inject-action`
@@ -130,9 +134,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Web Vitals Collection
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-web-vitals`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-web-vitals`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - Frontend Dev adds `useWebVitals(routeId)` to screen — `inst-add-web-vitals`
 2. [x] `p1` - Hook creates PerformanceObservers for LCP, CLS, INP, Navigation timing — `inst-create-observers`
@@ -144,9 +148,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Ambient Action Fallback
 
-- [x] `p1` - **ID**: `cpt-hai3-flow-perf-telemetry-ambient-fallback`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-ambient-fallback`
 
-**Actors**: `cpt-hai3-actor-runtime`
+**Actors**: `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - `findRelatedActionScope(atMs, routeId)` searches active scopes (sorted by recency) — `inst-search-active`
 2. [x] `p1` - **IF** no active scope found **THEN** search recent scopes within 2500ms follow-up window — `inst-search-recent`
@@ -158,9 +162,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Studio Panel Inspection
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-studio-panel`
+- [x] `p2` - **ID**: `cpt-frontx-flow-perf-telemetry-studio-panel`
 
-**Actors**: `cpt-hai3-actor-developer`, `cpt-hai3-actor-studio-user`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-studio-user`
 
 1. [x] `p2` - `TelemetryStoreProcessor` captures every completed span in-memory (max 500) — `inst-store-capture`
 2. [x] `p2` - `PerfTelemetryPanel` subscribes to store changes via `telemetryStore.subscribe()` — `inst-panel-subscribe`
@@ -173,9 +177,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Cross-Runtime Span Convergence
 
-- [ ] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-cross-runtime-registry`
+- [x] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-cross-runtime-registry`
 
-**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-mfe-runtime`
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] `p1` - On `initOtel(config)` the SDK derives a `runtimeId` from `serviceName + sessionId` — `inst-derive-runtime-id`
 2. [x] `p1` - SDK calls `acquireSharedTelemetryRegistry(runtimeId)` which idempotently registers the runtime on `globalThis[Symbol.for('frontx:telemetry-registry')]` — `inst-acquire-registry`
@@ -188,9 +192,9 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Collector Export Toggle
 
-- [x] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-export-toggle`
+- [x] `p2` - **ID**: `cpt-frontx-flow-perf-telemetry-export-toggle`
 
-**Actors**: `cpt-hai3-actor-developer`
+**Actors**: `cpt-frontx-actor-developer`
 
 1. [x] `p2` - `ExportGateSpanProcessor` wraps `BatchSpanProcessor` — `inst-wrap-batch`
 2. [x] `p2` - `onEnd(span)`: **IF** `exportToCollector` is false **THEN** drop span (local store still captures it) — `inst-gate-export`
@@ -202,7 +206,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Scope Resolution Algorithm
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-scope-resolution`
+- [x] `p1` - **ID**: `cpt-frontx-algo-perf-telemetry-scope-resolution`
 
 **Input**: `atMs: number` (timestamp), `routeId?: string`
 **Output**: `ActionScope | undefined`
@@ -221,7 +225,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Ambient Action Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-algo-perf-telemetry-ambient-lifecycle`
+- [x] `p1` - **ID**: `cpt-frontx-algo-perf-telemetry-ambient-lifecycle`
 
 ```text
 1. IF _ambientScope exists AND routeId matches THEN RETURN existing
@@ -235,7 +239,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Span Export Gating
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-export-gating`
+- [x] `p2` - **ID**: `cpt-frontx-algo-perf-telemetry-export-gating`
 
 ```text
 1. ExportGateSpanProcessor.onEnd(span):
@@ -248,7 +252,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Cross-Runtime Registry Acquisition
 
-- [ ] `p1` - **ID**: `cpt-frontx-algo-perf-telemetry-cross-runtime-registry`
+- [x] `p1` - **ID**: `cpt-frontx-algo-perf-telemetry-cross-runtime-registry`
 
 **Input**: `runtimeId: string`
 **Output**: shared `SharedTelemetryRegistryV1` accessible via `globalThis[Symbol.for('frontx:telemetry-registry')]`
@@ -283,7 +287,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### Session ID Generation
 
-- [x] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-session-id`
+- [x] `p2` - **ID**: `cpt-frontx-algo-perf-telemetry-session-id`
 
 ```text
 1. IF _sessionId cached THEN RETURN cached
@@ -300,7 +304,7 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ### OTel SDK Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-sdk-lifecycle`
+- [x] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-sdk-lifecycle`
 
 ```text
 [uninitialized] --initOtel()--> [initialized]
@@ -312,7 +316,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Action Scope Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-action-scope`
+- [x] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-action-scope`
 
 ```text
 [idle] --beginActionScope()--> [active] (in activeScopes map)
@@ -324,7 +328,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Ambient Action Lifecycle
 
-- [x] `p1` - **ID**: `cpt-hai3-state-perf-telemetry-ambient-action`
+- [x] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-ambient-action`
 
 ```text
 [none] --ensureAmbientAction(routeId)--> [active for routeId]
@@ -336,7 +340,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Shared Telemetry Registry Lifecycle
 
-- [ ] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-shared-registry`
+- [x] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-shared-registry`
 
 ```text
 [unparked] --first runtime acquireSharedTelemetryRegistry(id)--> [parked, retainers=1]
@@ -355,7 +359,7 @@ Guards:
 
 ### DoD: Action-First Correlation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-action-first`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-action-first`
 
 - [x] `p1` - Every span has `action.name` attribute (verified in Datadog APM) — `inst-every-span-has-action`
 - [x] `p1` - `HAI3SpanProcessor.onStart()` injects action correlation on every span — `inst-processor-injects`
@@ -364,7 +368,7 @@ Guards:
 
 ### DoD: Route and Render Instrumentation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-route-render`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-route-render`
 
 - [x] `p1` - `useRoutePerf` emits `route.navigation` span with navigation timing — `inst-route-nav-span`
 - [x] `p1` - `useDoneRendering` emits `<routeId>.ready` span with double-rAF paint measurement — `inst-done-rendering`
@@ -372,7 +376,7 @@ Guards:
 
 ### DoD: API Instrumentation
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-api`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-api`
 
 - [x] `p1` - `FetchInstrumentation` auto-instruments all fetch calls — `inst-auto-fetch`
 - [x] `p1` - `instrumentedFetch` creates manual spans with `telemetry.breakdown.kind: backend.api` — `inst-manual-fetch`
@@ -380,7 +384,7 @@ Guards:
 
 ### DoD: Web Vitals and Runtime Observers
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-vitals`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-vitals`
 
 - [x] `p1` - LCP, CLS, INP, Navigation timing captured as spans — `inst-capture-vitals`
 - [x] `p1` - Long tasks (>50ms) captured via PerformanceObserver — `inst-long-tasks`
@@ -389,7 +393,7 @@ Guards:
 
 ### DoD: Studio Dev Panel
 
-- [x] `p2` - **ID**: `cpt-hai3-dod-perf-telemetry-studio-panel`
+- [x] `p2` - **ID**: `cpt-frontx-dod-perf-telemetry-studio-panel`
 
 - [x] `p2` - `PerfTelemetryPanel` renders inside Studio `ControlPanel` — `inst-panel-in-studio`
 - [x] `p2` - Panel only renders when `@cyberfabric/perf-telemetry` is installed — `inst-conditional-render`
@@ -399,7 +403,7 @@ Guards:
 
 ### DoD: Cross-Runtime Span Convergence
 
-- [ ] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-cross-runtime-registry`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-cross-runtime-registry`
 
 - [x] `p1` - `globalThis[Symbol.for('frontx:telemetry-registry')]` is the single source of truth for `StoredSpan`s across runtimes — `inst-single-store`
 - [x] `p1` - `acquireSharedTelemetryRegistry` / `releaseSharedTelemetryRegistry` are paired with `initOtel` / `shutdownOtel` and idempotent per `runtimeId` — `inst-paired-lifecycle`
@@ -409,7 +413,7 @@ Guards:
 
 ### DoD: Fail-Open Guarantee
 
-- [x] `p1` - **ID**: `cpt-hai3-dod-perf-telemetry-fail-open`
+- [x] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-fail-open`
 
 - [x] `p1` - Every telemetry operation wrapped in try/catch — `inst-try-catch`
 - [x] `p1` - `ExportGateSpanProcessor` silently drops spans when export disabled — `inst-gate-drop`

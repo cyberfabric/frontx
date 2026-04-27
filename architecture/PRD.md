@@ -38,7 +38,8 @@
   - [5.18 Microfrontend Plugin](#518-microfrontend-plugin)
   - [5.19 Screensets Workflow](#519-screensets-workflow)
   - [5.20 Request Lifecycle & Data Management](#520-request-lifecycle--data-management)
-  - [5.21 Documentation](#521-documentation)
+  - [5.21 Performance Telemetry](#521-performance-telemetry)
+  - [5.22 Documentation](#522-documentation)
 - [6. Non-Functional Requirements](#6-non-functional-requirements)
   - [6.1 NFR Inclusions](#61-nfr-inclusions)
   - [6.2 NFR Exclusions](#62-nfr-exclusions)
@@ -1104,7 +1105,75 @@ A single FrontX project MUST support multiple independent production screensets 
 
 **Rationale**: MFEs render in separate React roots, so they cannot share the cache through React-context inheritance alone. The `queryCache()` plugin owns the shared TanStack `QueryClient` and makes it available to `HAI3Provider` through internal app wiring. The restricted `QueryCache` interface prevents uncontrolled cross-MFE cache tampering. Cache key derivation from `baseURL` gives MFEs natural opt-in/opt-out control over shared caching.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-runtime`
-### 5.21 Documentation
+### 5.21 Performance Telemetry
+
+#### Action-First Span Correlation
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-action-first-correlation`
+
+`@cyberfabric/perf-telemetry` MUST guarantee every span has an `action.name` attribute. Resolution order: active action scope, recent action scope (within a 2500ms window), then ambient action fallback (`<routeId>.ambient`). The `HAI3SpanProcessor.onStart` injects `action.name` and route attributes on every span.
+
+**Rationale**: Orphan spans break per-action breakdown in Datadog APM. The three-tier correlation guarantees no orphan spans.
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
+
+#### Route Instrumentation
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-route-instrumentation`
+
+The package MUST expose `useRoutePerf(routeId, navigationStartMs)` and `useDoneRendering(signalName, { dataReady })` hooks emitting `route.navigation` and `<routeId>.ready` spans with double-rAF paint timing. A 10s timeout fallback ends the render span if `dataReady` never fires.
+
+**Actors**: `cpt-frontx-actor-developer`
+
+#### Action Instrumentation
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-action-instrumentation`
+
+The package MUST expose `useTelemetryAction(actionName, { routeId })` (and `runTelemetryAction` for non-React contexts) that wraps work in an action span (`telemetry.breakdown.kind: action.total`), registers the scope via `beginActionScope`, propagates OTel context to child work, and ends the scope on completion or error.
+
+**Actors**: `cpt-frontx-actor-developer`
+
+#### API Instrumentation
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-api-instrumentation`
+
+The package MUST auto-instrument `fetch` via `FetchInstrumentation`, expose `instrumentedFetch(url, meta, init)` for explicit `backend.api` spans, and exclude OTel collector URLs from instrumentation (`/v1/traces`, `/v1/metrics`, `/v1/logs`).
+
+**Actors**: `cpt-frontx-actor-runtime`
+
+#### Web Vitals Collection
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-web-vitals`
+
+The package MUST expose `useWebVitals(routeId)` capturing LCP, CLS, INP and Navigation timing as spans (`telemetry.breakdown.kind: frontend.webvitals`), plus `useLongTaskObserver` (>50ms) and `useResourceTimingObserver`. All observer spans MUST be parented to the active or ambient action.
+
+**Actors**: `cpt-frontx-actor-runtime`
+
+#### Studio Dev Panel
+
+- [x] `p2` - **ID**: `cpt-frontx-fr-perf-studio-panel`
+
+The Studio package MUST render a `PerfTelemetryPanel` section showing total spans, action count, error count, and three tabs (Actions / API / Rendering). The panel MUST resolve `@cyberfabric/perf-telemetry` via dynamic `import()` (optional peer dep) and render nothing when not installed.
+
+**Actors**: `cpt-frontx-actor-studio-user`
+
+#### Fail-Open Guarantee
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-fail-open`
+
+Every telemetry operation MUST be wrapped in fail-soft error handling so telemetry failures never crash business flows. Disabling the OTel collector MUST NOT affect application behavior. The `ExportGateSpanProcessor` MUST silently drop spans when `exportToCollector` is false.
+
+**Actors**: `cpt-frontx-actor-runtime`
+
+#### Cross-Runtime Span Convergence
+
+- [x] `p1` - **ID**: `cpt-frontx-fr-perf-cross-runtime-registry`
+
+Multiple bundle instances of `@cyberfabric/perf-telemetry` (host + MFE child runtimes) MUST converge on a single `telemetryStore` parked at `globalThis[Symbol.for('frontx:telemetry-registry')]` so the Studio panel sees spans from all participating runtimes. The registry MUST be versioned (`SHARED_TELEMETRY_REGISTRY_VERSION = 1`); incompatible parked values MUST fall back to a private buffer instead of crashing. `initOtel` retains the registry per-runtime; `shutdownOtel` releases symmetrically and resets the registry when the last retainer leaves. Each `StoredSpan` MUST carry `attributes['frontx.runtime']` so the panel can group host vs. child spans.
+
+**Rationale**: MFE child runtimes evaluate `@cyberfabric/perf-telemetry` in their own blob-isolated module scope; without a shared `globalThis` registry the host panel only sees host spans. Mirrors the precedent established by `sharedFetchCache` in `@cyberfabric/api`.
+**Actors**: `cpt-frontx-actor-runtime`, `cpt-frontx-actor-studio-user`
+
+### 5.22 Documentation
 
 #### Documentation Requirements
 

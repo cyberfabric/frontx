@@ -1,5 +1,7 @@
 // @cpt-flow:cpt-frontx-flow-perf-telemetry-cross-runtime-registry:p1
 // @cpt-algo:cpt-frontx-algo-perf-telemetry-cross-runtime-registry:p1
+// @cpt-state:cpt-frontx-state-perf-telemetry-shared-registry:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-cross-runtime-registry:p1
 /**
  * Shared telemetry registry for cross-runtime span aggregation.
  *

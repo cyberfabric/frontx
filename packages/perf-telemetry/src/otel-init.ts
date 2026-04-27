@@ -1,6 +1,6 @@
-// @cpt-state:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1
-// @cpt-algo:cpt-hai3-algo-perf-telemetry-export-gating:p2
-// @cpt-algo:cpt-hai3-algo-perf-telemetry-session-id:p2
+// @cpt-state:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1
+// @cpt-algo:cpt-frontx-algo-perf-telemetry-export-gating:p2
+// @cpt-algo:cpt-frontx-algo-perf-telemetry-session-id:p2
 /**
  * OpenTelemetry Browser SDK initialization — action-first telemetry
  *
@@ -61,42 +61,42 @@ let _runtimeId: string | null = null;
 function generateSessionId(): string {
   // Use cryptographically secure random when available (all modern browsers)
   if (globalThis.crypto?.randomUUID) {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-random-uuid
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-random-uuid
     return globalThis.crypto.randomUUID();
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-random-uuid
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-random-uuid
   }
   // Fallback: getRandomValues always exists on Crypto interface
   if (globalThis.crypto) {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-random-values
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-random-values
     const bytes = new Uint8Array(16);
     globalThis.crypto.getRandomValues(bytes);
     return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-random-values
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-random-values
   }
   // Last resort: timestamp-based (non-cryptographic, acceptable for telemetry session IDs)
-  // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-timestamp-fallback
+  // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-timestamp-fallback
   return `${Date.now()}-${performance.now().toString(36)}`;
-  // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-timestamp-fallback
+  // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-timestamp-fallback
 }
 
 function getSessionId(): string {
   if (_sessionId) return _sessionId;
   try {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-read-storage
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-read-storage
     const stored = sessionStorage.getItem('otel_session_id');
     if (stored) {
       _sessionId = stored;
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-read-storage
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-read-storage
     } else {
-      // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-generate-and-store
+      // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-generate-and-store
       _sessionId = generateSessionId();
       sessionStorage.setItem('otel_session_id', _sessionId);
-      // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-generate-and-store
+      // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-generate-and-store
     }
   } catch { /* fail-open: sessionStorage may be unavailable (private browsing) */
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-storage-fallback
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-storage-fallback
     _sessionId = generateSessionId();
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-session-id:p2:inst-session-storage-fallback
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-storage-fallback
   }
   return _sessionId;
 }
@@ -136,23 +136,23 @@ class ExportGateSpanProcessor implements SpanProcessor {
   constructor(private readonly delegate: SpanProcessor) {}
   onStart(_span: Span, _parentContext: Context): void {}
   onEnd(span: ReadableSpan): void {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-span-on-end
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-span-on-end
     if (!_getRuntimeConfig().exportToCollector) return;
     this.delegate.onEnd(span);
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-span-on-end
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-span-on-end
   }
   async shutdown(): Promise<void> {
     // Gate shutdown to prevent flushing buffered spans when export is disabled
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-shutdown
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-shutdown
     if (!_getRuntimeConfig().exportToCollector) return;
     await this.delegate.shutdown();
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-shutdown
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-shutdown
   }
   async forceFlush(): Promise<void> {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-force-flush
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-force-flush
     if (!_getRuntimeConfig().exportToCollector) return;
     await this.delegate.forceFlush();
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-gate-force-flush
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-gate-force-flush
   }
 }
 
@@ -185,7 +185,7 @@ function applySpanActionContext(span: Span, currentRouteId: string): void {
   const lookupRouteId = typeof attributes?.['route.id'] === 'string' ? attributes['route.id'] : currentRouteId;
 
   if (typeof existingActionName === 'string' && existingActionName.length > 0) {
-    // @cpt-begin:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
+    // @cpt-begin:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
     const spanContext = span.spanContext();
     if (existingScopeSpanId.length === 0) {
       span.setAttribute('action.scope_span_id', spanContext.spanId);
@@ -196,25 +196,25 @@ function applySpanActionContext(span: Span, currentRouteId: string): void {
     if (typeof attributes?.['route.id'] !== 'string') {
       span.setAttribute('route.id', lookupRouteId);
     }
-    // @cpt-end:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
+    // @cpt-end:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-preserve-explicit-action-context
     return;
   }
 
   // Guarantee every non-root span belongs to an action (ambient fallback)
   const relatedAction = findRelatedActionScope(performance.now(), lookupRouteId);
   if (relatedAction) {
-    // @cpt-begin:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-apply-related-action-context
+    // @cpt-begin:cpt-frontx-flow-perf-telemetry-ambient-fallback:p1:inst-apply-related-action-context
     span.setAttribute('action.name', relatedAction.actionName);
     span.setAttribute('action.scope_span_id', relatedAction.spanId);
     span.setAttribute('action.scope_trace_id', relatedAction.traceId);
     span.setAttribute('route.id', relatedAction.routeId);
-    // @cpt-end:cpt-hai3-flow-perf-telemetry-ambient-fallback:p1:inst-apply-related-action-context
+    // @cpt-end:cpt-frontx-flow-perf-telemetry-ambient-fallback:p1:inst-apply-related-action-context
     return;
   }
 
-  // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
+  // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
   span.setAttribute('route.id', lookupRouteId);
-  // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
+  // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
 }
 
 function cleanupPartialInit(): void {
@@ -264,10 +264,10 @@ function applySpanRuntimeConfig(span: Span, cfg: TelemetryRuntimeConfig): void {
  */
 class HAI3SpanProcessor implements SpanProcessor {
   onStart(span: Span): void {
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-base-span-attributes
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-base-span-attributes
     span.setAttribute('session.id', getSessionId());
     span.setAttribute('app.origin', globalThis.window?.location?.origin ?? 'unknown');
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-base-span-attributes
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-base-span-attributes
 
     const runtimeConfig = _getRuntimeConfig();
     const currentRouteId = _currentRouteId;
@@ -287,15 +287,15 @@ class HAI3SpanProcessor implements SpanProcessor {
 // ─── Initialization ──────────────────────────────────────────────────────────
 
 export function initOtel(config: OtelConfig): void {
-  // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-guard-init
+  // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-guard-init
   if (_initialized || !config.enabled) return;
-  // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-guard-init
+  // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-guard-init
 
   // All setup in try block — _initialized only set on full success
   try {
     const appOrigin = globalThis.window?.location?.origin ?? 'unknown';
 
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-build-otel-resource
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-build-otel-resource
     const resource = new Resource({
       [ATTR_SERVICE_NAME]: config.serviceName,
       [ATTR_SERVICE_VERSION]: config.serviceVersion,
@@ -303,9 +303,9 @@ export function initOtel(config: OtelConfig): void {
       'session.id': getSessionId(),
       'app.origin': appOrigin,
     });
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-build-otel-resource
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-build-otel-resource
 
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-build-export-pipeline
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-build-export-pipeline
     const exporter = new OTLPTraceExporter({
       url: `${config.collectorUrl}/v1/traces`,
     });
@@ -317,9 +317,9 @@ export function initOtel(config: OtelConfig): void {
       exportTimeoutMillis: 30000,
     });
     const exportGateProcessor = new ExportGateSpanProcessor(batchProcessor);
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-build-export-pipeline
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-build-export-pipeline
 
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-tracer-provider
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-tracer-provider
     _runtimeId = `${config.serviceName}@${getSessionId()}`;
     acquireSharedTelemetryRegistry(_runtimeId);
     _provider = new WebTracerProvider({
@@ -330,19 +330,19 @@ export function initOtel(config: OtelConfig): void {
     _provider.register({
       contextManager: new ZoneContextManager(),
     });
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-tracer-provider
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-tracer-provider
 
     // Register ambient tracer so orphan spans always get an action parent
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-ambient-tracer
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-ambient-tracer
     setAmbientTracer(() => trace.getTracer('hai3-ambient'));
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-ambient-tracer
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-ambient-tracer
 
     // Auto-instrumentations — only propagate trace headers to same-origin requests
     // Use split+map+join instead of replace(/g) to satisfy SonarCloud S7781
     const escapeForRegex = (s: string) => s.split('').map((c) => '.+?^${}()|[]\\'.includes(c) ? `\\${c}` : c).join('');
     // Match exact origin followed by path separator or end — prevents lookalike host matches
     const corsPattern = appOrigin === 'unknown' ? [] : [new RegExp(`^${escapeForRegex(appOrigin)}(/|$)`)];
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-auto-instrumentations
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-auto-instrumentations
     _disableInstrumentations = registerInstrumentations({
       instrumentations: [
         new FetchInstrumentation({
@@ -357,30 +357,30 @@ export function initOtel(config: OtelConfig): void {
         }),
       ],
     });
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-auto-instrumentations
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-auto-instrumentations
 
     // Flush on page hide — visibilitychange on document per spec
     // Handler captured for cleanup in shutdownOtel()
     if (globalThis.document) {
-      // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-visibility-flush
+      // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-visibility-flush
       _visibilityHandler = () => {
         if (globalThis.document.visibilityState === 'hidden') {
           _provider?.forceFlush().catch(() => { /* fail-open */ });
         }
       };
       globalThis.document.addEventListener('visibilitychange', _visibilityHandler);
-      // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-register-visibility-flush
+      // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-register-visibility-flush
     }
 
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-mark-sdk-initialized
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-mark-sdk-initialized
     _initialized = true;
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-mark-sdk-initialized
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-mark-sdk-initialized
   } catch {
     // Fail-open: clean up partial init to allow retry
-    // @cpt-begin:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
+    // @cpt-begin:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
     cleanupPartialInit();
     return;
-    // @cpt-end:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
+    // @cpt-end:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-reset-partial-init
   }
 
   try {
@@ -408,21 +408,21 @@ export function isOtelInitialized(): boolean {
 
 export async function shutdownOtel(): Promise<void> {
   if (_visibilityHandler && globalThis.document) {
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-remove-visibility-handler
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-remove-visibility-handler
     globalThis.document.removeEventListener('visibilitychange', _visibilityHandler);
     _visibilityHandler = null;
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-remove-visibility-handler
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-remove-visibility-handler
   }
   _disableInstrumentations?.();
   _disableInstrumentations = null;
   endAmbientAction();
   clearAmbientTracer();
   if (_provider) {
-    // @cpt-begin:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
+    // @cpt-begin:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
     await _provider.shutdown();
     _provider = null;
     _initialized = false;
-    // @cpt-end:cpt-hai3-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
+    // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-shutdown-provider
   }
   if (_runtimeId) {
     releaseSharedTelemetryRegistry(_runtimeId);
@@ -434,9 +434,9 @@ export async function shutdownOtel(): Promise<void> {
 
 export async function flushOtel(): Promise<void> {
   if (_provider) {
-    // @cpt-begin:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-force-flush-provider
+    // @cpt-begin:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-force-flush-provider
     await _provider.forceFlush();
-    // @cpt-end:cpt-hai3-algo-perf-telemetry-export-gating:p2:inst-force-flush-provider
+    // @cpt-end:cpt-frontx-algo-perf-telemetry-export-gating:p2:inst-force-flush-provider
   }
 }
 
@@ -446,13 +446,13 @@ export async function runFrontendWork<T>(
   work: () => Promise<T> | T
 ): Promise<T> {
   const tracer = getTracer('hai3-frontend-work');
-  // @cpt-begin:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-resolve-work-parent-context
+  // @cpt-begin:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-resolve-work-parent-context
   const routeId = typeof attributes['route.id'] === 'string'
     ? attributes['route.id']
     : _currentRouteId;
   const parentContext = getTelemetryParentContext(routeId, performance.now()) || context.active();
-  // @cpt-end:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-resolve-work-parent-context
-  // @cpt-begin:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-start-frontend-work-span
+  // @cpt-end:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-resolve-work-parent-context
+  // @cpt-begin:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-start-frontend-work-span
   const span = tracer.startSpan(workName, {
     attributes: {
       'work.name': workName,
@@ -460,22 +460,22 @@ export async function runFrontendWork<T>(
       ...attributes,
     },
   }, parentContext);
-  // @cpt-end:cpt-hai3-dod-perf-telemetry-action-first:p1:inst-start-frontend-work-span
+  // @cpt-end:cpt-frontx-dod-perf-telemetry-action-first:p1:inst-start-frontend-work-span
 
   try {
     return await context.with(trace.setSpan(parentContext, span), () => Promise.resolve(work()));
   } catch (error) {
-    // @cpt-begin:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-mark-frontend-work-error
+    // @cpt-begin:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-mark-frontend-work-error
     span.setStatus({
       code: SpanStatusCode.ERROR,
       message: error instanceof Error ? error.message : String(error),
     });
-    // @cpt-end:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-mark-frontend-work-error
+    // @cpt-end:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-mark-frontend-work-error
     throw error;
   } finally {
-    // @cpt-begin:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-end-frontend-work-span
+    // @cpt-begin:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-end-frontend-work-span
     span.end();
-    // @cpt-end:cpt-hai3-dod-perf-telemetry-fail-open:p1:inst-end-frontend-work-span
+    // @cpt-end:cpt-frontx-dod-perf-telemetry-fail-open:p1:inst-end-frontend-work-span
   }
 }
 

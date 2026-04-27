@@ -1,4 +1,4 @@
-// @cpt-dod:cpt-hai3-dod-perf-telemetry-fail-open:p1
+// @cpt-dod:cpt-frontx-dod-perf-telemetry-fail-open:p1
 /**
  * Telemetry Plugin - Performance telemetry via @cyberfabric/perf-telemetry
  *
