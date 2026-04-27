@@ -59,7 +59,10 @@ let _disableInstrumentations: (() => void) | null = null;
 let _runtimeId: string | null = null;
 
 function generateSessionId(): string {
-  const cryptoApi = typeof globalThis.crypto === 'undefined' ? null : globalThis.crypto;
+  // Reflect.get on globalThis lets us treat `crypto` as optionally present
+  // off-browser (Node 18 / older runners) without `typeof` checks Sonar
+  // rejects (typescript:S7741) or direct comparisons TS narrows to truthy.
+  const cryptoApi = Reflect.get(globalThis, 'crypto') as Crypto | undefined ?? null;
   // Use cryptographically secure random when available (all modern browsers)
   if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
     // @cpt-begin:cpt-frontx-algo-perf-telemetry-session-id:p2:inst-session-random-uuid
@@ -120,11 +123,15 @@ const _runtimeConfig: TelemetryRuntimeConfig = {
   abBucketSeed: '',
 };
 
+function defaultRuntimeConfigGetter(): TelemetryRuntimeConfig {
+  return _runtimeConfig;
+}
+
+let _getRuntimeConfig: () => TelemetryRuntimeConfig = defaultRuntimeConfigGetter;
+
 export function setRuntimeConfigProvider(getter: () => TelemetryRuntimeConfig): void {
   _getRuntimeConfig = getter;
 }
-
-let _getRuntimeConfig: () => TelemetryRuntimeConfig = () => _runtimeConfig;
 
 // ─── Span Processors ────────────────────────────────────────────────────────
 
@@ -218,15 +225,15 @@ function applySpanActionContext(span: Span, currentRouteId: string): void {
   // @cpt-end:cpt-frontx-state-perf-telemetry-sdk-lifecycle:p1:inst-attach-current-route-id
 }
 
-/** Resolve `document` defensively; returns null in non-browser runtimes. */
+/** Resolve `globalThis.document` defensively; returns null in non-browser runtimes. */
 function getDocument(): Document | null {
-  return typeof document === 'undefined' ? null : document;
+  return Reflect.get(globalThis, 'document') as Document | undefined ?? null;
 }
 
-/** Resolve `window.location.origin` defensively; returns 'unknown' off-browser. */
+/** Resolve `globalThis.window.location.origin` defensively; returns 'unknown' off-browser. */
 function resolveAppOrigin(): string {
-  if (typeof window === 'undefined') return 'unknown';
-  return window.location.origin;
+  const win = Reflect.get(globalThis, 'window') as Window | undefined;
+  return win?.location.origin ?? 'unknown';
 }
 
 function cleanupPartialInit(): void {

@@ -76,8 +76,25 @@ function detectDeviceType(ua: string): string {
   return 'desktop';
 }
 
+/** `globalThis`-keyed lookup so off-browser runtimes (Node 18, JSDOM) skip gracefully. */
+function getNavigator(): NavigatorWithConnection | null {
+  return Reflect.get(globalThis, 'navigator') as NavigatorWithConnection | undefined ?? null;
+}
+function getWindow(): Window | null {
+  return Reflect.get(globalThis, 'window') as Window | undefined ?? null;
+}
+function getScreen(): Screen | null {
+  return Reflect.get(globalThis, 'screen') as Screen | undefined ?? null;
+}
+function getDocument(): Document | null {
+  return Reflect.get(globalThis, 'document') as Document | undefined ?? null;
+}
+function getIntl(): typeof Intl | null {
+  return Reflect.get(globalThis, 'Intl') as typeof Intl | undefined ?? null;
+}
+
 function parseUserAgent(): { browser: string; browserVersion: string; os: string; osVersion: string; deviceType: string } {
-  const ua = typeof navigator === 'undefined' ? '' : navigator.userAgent;
+  const ua = getNavigator()?.userAgent ?? '';
   const { browser, browserVersion } = detectBrowser(ua);
   const { os, osVersion } = detectOS(ua);
   return { browser, browserVersion, os, osVersion, deviceType: detectDeviceType(ua) };
@@ -85,7 +102,9 @@ function parseUserAgent(): { browser: string; browserVersion: string; os: string
 
 function getWebGLInfo(): { renderer: string; vendor: string } {
   try {
-    const canvas = document.createElement('canvas');
+    const doc = getDocument();
+    if (!doc) return { renderer: 'unknown', vendor: 'unknown' };
+    const canvas = doc.createElement('canvas');
     const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
     if (gl && gl instanceof WebGLRenderingContext) {
       const ext = gl.getExtension('WEBGL_debug_renderer_info');
@@ -100,6 +119,55 @@ function getWebGLInfo(): { renderer: string; vendor: string } {
   return { renderer: 'unknown', vendor: 'unknown' };
 }
 
+function resolveTimezone(): string {
+  const intl = getIntl();
+  if (!intl) return 'unknown';
+  try {
+    return intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch { return 'unknown'; }
+}
+
+function resolveConnection(nav: NavigatorWithConnection | null) {
+  return nav?.connection ?? nav?.mozConnection ?? nav?.webkitConnection;
+}
+
+function buildBasicAttrs(): ClientAttributes {
+  const { browser, browserVersion, os, osVersion, deviceType } = parseUserAgent();
+  const conn = resolveConnection(getNavigator());
+  return {
+    'client.browser.name': browser,
+    'client.browser.version': browserVersion,
+    'client.os.name': os,
+    'client.os.version': osVersion,
+    'client.device.type': deviceType,
+    'client.connection.type': String(conn?.effectiveType ?? 'unknown'),
+  };
+}
+
+function buildDebugAttrs(basic: ClientAttributes): ClientAttributes {
+  const nav = getNavigator();
+  const conn = resolveConnection(nav);
+  const scr = getScreen();
+  const win = getWindow();
+  const gl = getWebGLInfo();
+  return {
+    ...basic,
+    'client.language': nav?.language ?? 'unknown',
+    'client.timezone': resolveTimezone(),
+    'client.screen.width': scr ? scr.width : 0,
+    'client.screen.height': scr ? scr.height : 0,
+    'client.screen.pixel_ratio': win ? win.devicePixelRatio : 1,
+    'client.viewport.width': win ? win.innerWidth : 0,
+    'client.viewport.height': win ? win.innerHeight : 0,
+    'client.cpu_cores': nav?.hardwareConcurrency ?? 0,
+    'client.touch_support': win !== null && 'ontouchstart' in win,
+    'client.connection.downlink_mbps': Number(conn?.downlink ?? 0),
+    'client.connection.rtt_ms': Number(conn?.rtt ?? 0),
+    'client.webgl_renderer': gl.renderer,
+    'client.webgl_vendor': gl.vendor,
+  };
+}
+
 // ─── Public API ─────────────────────────────────────────────────────────────
 
 let _cachedBasic: ClientAttributes | null = null;
@@ -111,46 +179,14 @@ export function getClientInfo(includeDebugData = false): ClientAttributes {
   if (!includeDebugData && _cachedBasic) return _cachedBasic;
 
   try {
-    const { browser, browserVersion, os, osVersion, deviceType } = parseUserAgent();
-    const nav: NavigatorWithConnection | null = typeof navigator === 'undefined' ? null : navigator as NavigatorWithConnection;
-    const conn = nav?.connection ?? nav?.mozConnection ?? nav?.webkitConnection;
-
-    // Basic attributes — always included (low cardinality)
-    const attrs: ClientAttributes = {
-      'client.browser.name': browser,
-      'client.browser.version': browserVersion,
-      'client.os.name': os,
-      'client.os.version': osVersion,
-      'client.device.type': deviceType,
-      'client.connection.type': String(conn?.effectiveType ?? 'unknown'),
-    };
-
-    // High-cardinality attributes — only when debug data is enabled
-    if (includeDebugData) {
-      const scr = typeof screen === 'undefined' ? null : screen;
-      const win = typeof window === 'undefined' ? null : window;
-      const gl = getWebGLInfo();
-      const debugAttrs: ClientAttributes = {
-        ...attrs,
-        'client.language': nav?.language ?? 'unknown',
-        'client.timezone': typeof Intl === 'undefined' ? 'unknown' : Intl.DateTimeFormat().resolvedOptions().timeZone,
-        'client.screen.width': scr ? scr.width : 0,
-        'client.screen.height': scr ? scr.height : 0,
-        'client.screen.pixel_ratio': win ? win.devicePixelRatio : 1,
-        'client.viewport.width': win ? win.innerWidth : 0,
-        'client.viewport.height': win ? win.innerHeight : 0,
-        'client.cpu_cores': nav?.hardwareConcurrency ?? 0,
-        'client.touch_support': win !== null && 'ontouchstart' in win,
-        'client.connection.downlink_mbps': Number(conn?.downlink ?? 0),
-        'client.connection.rtt_ms': Number(conn?.rtt ?? 0),
-        'client.webgl_renderer': gl.renderer,
-        'client.webgl_vendor': gl.vendor,
-      };
-      _cachedFull = debugAttrs;
-      return debugAttrs;
+    const basic = buildBasicAttrs();
+    if (!includeDebugData) {
+      _cachedBasic = basic;
+      return basic;
     }
-    _cachedBasic = attrs;
-    return attrs;
+    const debug = buildDebugAttrs(basic);
+    _cachedFull = debug;
+    return debug;
   } catch { /* fail-open: return empty attrs if fingerprinting fails */
     return {};
   }

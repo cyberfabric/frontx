@@ -394,7 +394,7 @@ export function useWebVitals(routeId: string, enabled = true) {
       clsObserver.observe({ type: 'layout-shift', buffered: true });
       observers.push(clsObserver);
 
-      const reportCLS = () => {
+      function reportCLS(): void {
         if (clsReported) return;
         clsReported = true;
         if (clsValue > 0) {
@@ -410,7 +410,7 @@ export function useWebVitals(routeId: string, enabled = true) {
           }, parentCtx);
           span.end();
         }
-      };
+      }
       document.addEventListener('visibilitychange', reportCLS, { once: true });
       // On unmount: report accumulated CLS then remove listener
       clsCleanup = () => {
@@ -552,7 +552,8 @@ function rateWebVital(value: number, good: number, poor: number): string {
 /** Strips query string and hash from a URL to prevent cardinality explosion and data leakage. */
 function normalizeUrlForSpan(url: string): string {
   try {
-    const baseOrigin = typeof window === 'undefined' ? 'http://localhost' : window.location.origin;
+    const win = Reflect.get(globalThis, 'window') as Window | undefined;
+    const baseOrigin = win?.location.origin ?? 'http://localhost';
     const parsed = new URL(url, baseOrigin);
     // Return origin + pathname only (no query, no hash)
     return parsed.origin === 'null' ? parsed.pathname : `${parsed.origin}${parsed.pathname}`;

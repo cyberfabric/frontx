@@ -54,11 +54,9 @@ function readRegistry(): SharedTelemetryRegistryV1 | undefined {
   // Symbol-keyed reflection avoids string-key computed access that Codacy's
   // generic-object-injection-sink rule flags; Reflect.get accepts a Symbol key.
   const value = Reflect.get(globalThis, SHARED_TELEMETRY_REGISTRY_SYMBOL) as SharedTelemetryRegistryV1 | undefined;
-  if (!value || value.version !== SHARED_TELEMETRY_REGISTRY_VERSION) {
-    // Fail-soft: if a foreign / older shape is parked at the symbol, leave it
-    // alone and fall back to a private registry by returning undefined here.
-    return undefined;
-  }
+  // Fail-soft: if a foreign / older shape is parked at the symbol, leave it
+  // alone and fall back to a private registry by returning undefined here.
+  if (value?.version !== SHARED_TELEMETRY_REGISTRY_VERSION) return undefined;
   return value;
 }
 

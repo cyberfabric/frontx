@@ -35,16 +35,20 @@ function deepFreeze<T>(value: T): Readonly<T> {
   return Object.freeze(value);
 }
 
-/** Returns a cryptographically secure random float in [0, 1). Uses globalThis for Node/JSDOM compat. */
+/** Returns the `Crypto` instance via globalThis when present, null otherwise (Node/JSDOM compat). */
+function getCryptoApi(): Crypto | null {
+  return Reflect.get(globalThis, 'crypto') as Crypto | undefined ?? null;
+}
+
+/** Returns a cryptographically secure random float in [0, 1). */
 // @cpt-begin:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-check-crypto-rng
 function hasCryptoRandomValues(): boolean {
-  if (typeof globalThis.crypto === 'undefined') return false;
-  return typeof globalThis.crypto.getRandomValues === 'function';
+  return typeof getCryptoApi()?.getRandomValues === 'function';
 }
 
 function cryptoRandom(): number {
   const array = new Uint32Array(1);
-  globalThis.crypto.getRandomValues(array);
+  getCryptoApi()?.getRandomValues(array);
   return array[0] / 4294967296; // 2^32
 }
 // @cpt-end:cpt-frontx-flow-perf-telemetry-export-toggle:p2:inst-check-crypto-rng

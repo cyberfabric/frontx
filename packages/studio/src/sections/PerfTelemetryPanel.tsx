@@ -89,6 +89,19 @@ function spanRuntime(s: StoredSpan): string {
   return typeof v === 'string' && v.length > 0 ? v : 'host';
 }
 
+function buildTabStyle(active: boolean): React.CSSProperties {
+  return {
+    padding: '4px 8px',
+    fontSize: '11px',
+    fontWeight: active ? 700 : 400,
+    background: 'none',
+    border: 'none',
+    borderBottom: active ? '2px solid var(--primary, #3b82f6)' : '2px solid transparent',
+    cursor: 'pointer',
+    opacity: active ? 1 : 0.6,
+  };
+}
+
 // ─── useTelemetryStore ──────────────────────────────────────────────────────
 
 // @cpt-begin:cpt-frontx-flow-perf-telemetry-studio-panel:p2:inst-resolve-store
@@ -367,17 +380,6 @@ export const PerfTelemetryPanel: React.FC = () => {
     marginTop: '12px',
   };
 
-  const tabStyle = (active: boolean): React.CSSProperties => ({
-    padding: '4px 8px',
-    fontSize: '11px',
-    fontWeight: active ? 700 : 400,
-    background: 'none',
-    border: 'none',
-    borderBottom: active ? '2px solid var(--primary, #3b82f6)' : '2px solid transparent',
-    cursor: 'pointer',
-    opacity: active ? 1 : 0.6,
-  });
-
   return (
     <div style={sectionStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
@@ -429,9 +431,9 @@ export const PerfTelemetryPanel: React.FC = () => {
           </div>
 
           <div style={{ display: 'flex', borderBottom: '1px solid var(--border, #e5e7eb)', marginBottom: '8px' }}>
-            <button type="button" style={tabStyle(tab === 'actions')} onClick={() => { switchTab('actions'); }}>{labels.tabActions}</button>
-            <button type="button" style={tabStyle(tab === 'api')} onClick={() => { switchTab('api'); }}>{labels.tabApi}</button>
-            <button type="button" style={tabStyle(tab === 'rendering')} onClick={() => { switchTab('rendering'); }}>{labels.tabRendering}</button>
+            <button type="button" style={buildTabStyle(tab === 'actions')} onClick={() => { switchTab('actions'); }}>{labels.tabActions}</button>
+            <button type="button" style={buildTabStyle(tab === 'api')} onClick={() => { switchTab('api'); }}>{labels.tabApi}</button>
+            <button type="button" style={buildTabStyle(tab === 'rendering')} onClick={() => { switchTab('rendering'); }}>{labels.tabRendering}</button>
           </div>
 
           <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
