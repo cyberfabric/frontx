@@ -52,7 +52,7 @@
 
 ### 1.1 Overview
 
-Performance Telemetry is an L1 SDK package (`@hai3/perf-telemetry`) providing action-first browser telemetry via the OpenTelemetry Browser SDK. It guarantees every span belongs to a named action through a three-tier correlation engine: active action scope, recent action scope, and ambient action fallback.
+Performance Telemetry is an L1 SDK package (`@cyberfabric/perf-telemetry`) providing action-first browser telemetry via the OpenTelemetry Browser SDK. It guarantees every span belongs to a named action through a three-tier correlation engine: active action scope, recent action scope, and ambient action fallback.
 
 Problem: Without structured telemetry, diagnosing slow user actions requires 2-4 hours of manual reproduction. Orphan spans in standard OTel setups make per-action breakdown impossible.
 
@@ -171,6 +171,21 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ---
 
+### Cross-Runtime Span Convergence
+
+- [ ] `p1` - **ID**: `cpt-frontx-flow-perf-telemetry-cross-runtime-registry`
+
+**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-mfe-runtime`
+
+1. [x] `p1` - On `initOtel(config)` the SDK derives a `runtimeId` from `serviceName + sessionId` — `inst-derive-runtime-id`
+2. [x] `p1` - SDK calls `acquireSharedTelemetryRegistry(runtimeId)` which idempotently registers the runtime on `globalThis[Symbol.for('frontx:telemetry-registry')]` — `inst-acquire-registry`
+3. [x] `p1` - `TelemetryStoreProcessor.onEnd(span)` appends the converted `StoredSpan` (tagged with `frontx.runtime`) into the shared buffer via `appendSharedSpan` — `inst-append-shared`
+4. [x] `p1` - `telemetryStore.subscribe(fn)` and `telemetryStore.getSpans()` delegate to the shared buffer so Studio sees host + child runtime spans — `inst-subscribe-shared`
+5. [x] `p1` - `shutdownOtel()` calls `releaseSharedTelemetryRegistry(runtimeId)`; the registry resets when the last retainer leaves — `inst-release-registry`
+6. [x] `p1` - All registry I/O is fail-soft (try/catch with no-op on errors) so a malformed parked symbol cannot crash the host — `inst-fail-soft`
+
+---
+
 ### Collector Export Toggle
 
 - [x] `p2` - **ID**: `cpt-hai3-flow-perf-telemetry-export-toggle`
@@ -231,6 +246,41 @@ Success criteria: Every span in Datadog APM has `action.name`. A developer can s
 
 ---
 
+### Cross-Runtime Registry Acquisition
+
+- [ ] `p1` - **ID**: `cpt-frontx-algo-perf-telemetry-cross-runtime-registry`
+
+**Input**: `runtimeId: string`
+**Output**: shared `SharedTelemetryRegistryV1` accessible via `globalThis[Symbol.for('frontx:telemetry-registry')]`
+
+```text
+1. host = globalThis as Host
+2. parked = host[SHARED_TELEMETRY_REGISTRY_SYMBOL]
+3. IF parked AND parked.version === SHARED_TELEMETRY_REGISTRY_VERSION THEN
+     registry = parked
+4. ELSE IF parked === undefined THEN
+     registry = createRegistry(); host[SHARED_TELEMETRY_REGISTRY_SYMBOL] = registry
+5. ELSE
+     // foreign / older shape parked: fail-soft to a private fallback registry,
+     // do NOT overwrite the parked value (other runtimes may still depend on it)
+     registry = createRegistry()  // returned but not parked
+6. IF registry.runtimes already contains runtimeId THEN RETURN (idempotent)
+7. registry.runtimes.add(runtimeId); registry.retainers += 1
+8. RETURN
+```
+
+**Release counterpart** (`releaseSharedTelemetryRegistry(runtimeId)`):
+```text
+1. registry = readRegistry()
+2. IF !registry OR !registry.runtimes.delete(runtimeId) THEN RETURN
+3. registry.retainers = max(0, registry.retainers - 1)
+4. IF registry.retainers === 0 THEN
+     registry.spans = []; registry.listeners.clear()
+     delete host[SHARED_TELEMETRY_REGISTRY_SYMBOL]
+```
+
+---
+
 ### Session ID Generation
 
 - [x] `p2` - **ID**: `cpt-hai3-algo-perf-telemetry-session-id`
@@ -284,6 +334,23 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ---
 
+### Shared Telemetry Registry Lifecycle
+
+- [ ] `p1` - **ID**: `cpt-frontx-state-perf-telemetry-shared-registry`
+
+```text
+[unparked] --first runtime acquireSharedTelemetryRegistry(id)--> [parked, retainers=1]
+[parked, retainers=N] --acquireSharedTelemetryRegistry(otherId)--> [parked, retainers=N+1]
+[parked, retainers=N] --releaseSharedTelemetryRegistry(id)--> [parked, retainers=N-1]
+[parked, retainers=1] --releaseSharedTelemetryRegistry(lastId)--> [unparked]
+Guards:
+  - acquire is idempotent per runtimeId (no double-count)
+  - release for an unknown runtimeId is a no-op
+  - foreign / older versioned values are NOT overwritten; runtimes fall back to a private registry
+```
+
+---
+
 ## 5. Definitions of Done
 
 ### DoD: Action-First Correlation
@@ -325,10 +392,20 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 - [x] `p2` - **ID**: `cpt-hai3-dod-perf-telemetry-studio-panel`
 
 - [x] `p2` - `PerfTelemetryPanel` renders inside Studio `ControlPanel` — `inst-panel-in-studio`
-- [x] `p2` - Panel only renders when `@hai3/perf-telemetry` is installed — `inst-conditional-render`
+- [x] `p2` - Panel only renders when `@cyberfabric/perf-telemetry` is installed — `inst-conditional-render`
 - [x] `p2` - KPI cards show total spans, actions, errors — `inst-kpi-cards`
 - [x] `p2` - Tabs: Actions (duration bars), API (grouped stats), Rendering (web vitals + render times) — `inst-tabs`
 - [x] `p2` - Enable/disable toggle persisted to localStorage — `inst-persist-toggle`
+
+### DoD: Cross-Runtime Span Convergence
+
+- [ ] `p1` - **ID**: `cpt-frontx-dod-perf-telemetry-cross-runtime-registry`
+
+- [x] `p1` - `globalThis[Symbol.for('frontx:telemetry-registry')]` is the single source of truth for `StoredSpan`s across runtimes — `inst-single-store`
+- [x] `p1` - `acquireSharedTelemetryRegistry` / `releaseSharedTelemetryRegistry` are paired with `initOtel` / `shutdownOtel` and idempotent per `runtimeId` — `inst-paired-lifecycle`
+- [x] `p1` - Each `StoredSpan` carries `attributes['frontx.runtime']` so Studio can group spans by host vs. child MFE runtime — `inst-runtime-tag`
+- [x] `p1` - Registry has a versioned shape (`SHARED_TELEMETRY_REGISTRY_VERSION = 1`); incompatible versions fall back to a private buffer instead of crashing — `inst-version-guard`
+- [x] `p1` - All registry operations are fail-soft (try/catch with no-op on error) — `inst-fail-soft-registry`
 
 ### DoD: Fail-Open Guarantee
 
@@ -348,8 +425,8 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 4. **AC-4**: Web Vitals (LCP, CLS, INP) appear as spans with rating badges.
 5. **AC-5**: Studio dev panel shows live span data (Actions, API, Rendering tabs).
 6. **AC-6**: Stopping the OTel Collector does not break any application functionality.
-7. **AC-7**: `@hai3/perf-telemetry` has zero `@hai3` dependencies (L1 SDK).
-8. **AC-8**: Build: `npm run build --workspace=@hai3/perf-telemetry` succeeds.
+7. **AC-7**: `@cyberfabric/perf-telemetry` has zero `@hai3` dependencies (L1 SDK).
+8. **AC-8**: Build: `npm run build --workspace=@cyberfabric/perf-telemetry` succeeds.
 
 ---
 
@@ -357,7 +434,7 @@ Guard: initOtel() is idempotent (no-op if already initialized)
 
 ### Package Layer
 
-`@hai3/perf-telemetry` is L1 SDK — zero `@hai3` dependencies. All OpenTelemetry packages are peer dependencies installed by the consuming app.
+`@cyberfabric/perf-telemetry` is L1 SDK — zero `@hai3` dependencies. All OpenTelemetry packages are peer dependencies installed by the consuming app.
 
 ### Data Flow
 

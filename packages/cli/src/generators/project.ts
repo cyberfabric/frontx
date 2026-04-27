@@ -53,7 +53,6 @@ export interface ProjectGeneratorInput {
 };
 
 const NO_UIKIT_UTILS_TEMPLATE = 'src/app/lib/utils.no-uikit.ts';
-const APP_LIB_UTILS_PATH = path.join('src', 'app', 'lib', 'utils.ts');
 const NO_UIKIT_UTILS_CONTENT = `type ClassInput = string | false | null | undefined;
 
 export function cn(...inputs: ClassInput[]) {

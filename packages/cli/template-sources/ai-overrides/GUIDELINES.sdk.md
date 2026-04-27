@@ -56,7 +56,7 @@
 - NO @cyberfabric dependencies in SDK packages.
 
 ## BLOCKLIST
-- Ad-hoc telemetry or tracking code (use @hai3/perf-telemetry for official performance telemetry).
+- Ad-hoc telemetry or tracking code (use @cyberfabric/perf-telemetry for official performance telemetry).
 - "as unknown as" type casts.
 - unknown in public type definitions.
 - eslint-disable comments.

@@ -1,7 +1,7 @@
 {
-  "name": "@hai3/perf-telemetry",
-  "version": "0.4.0-alpha.0",
-  "description": "Action-first performance telemetry for HAI3 — OpenTelemetry Browser SDK integration",
+  "name": "@cyberfabric/perf-telemetry",
+  "version": "0.2.0-alpha.2",
+  "description": "Action-first performance telemetry for FrontX — OpenTelemetry Browser SDK integration",
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",
@@ -57,7 +57,7 @@
     "access": "public"
   },
   "keywords": [
-    "hai3",
+    "frontx",
     "telemetry",
     "opentelemetry",
     "performance",
@@ -67,6 +67,6 @@
     "web-vitals",
     "typescript"
   ],
-  "author": "HAI3",
+  "author": "Cyber Fabric",
   "license": "Apache-2.0"
 }

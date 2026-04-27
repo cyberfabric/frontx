@@ -1,9 +1,9 @@
 <!-- @standalone -->
-# Performance Telemetry Target Rules (@hai3/perf-telemetry)
+# Performance Telemetry Target Rules (@cyberfabric/perf-telemetry)
 
 ## AI WORKFLOW (REQUIRED)
 1) Summarize 3-6 rules from this file before making changes.
-2) STOP if you create new telemetry hook implementations outside @hai3/perf-telemetry. Using hooks (useRoutePerf, useTelemetryAction, etc.) in app screens is required.
+2) STOP if you create new telemetry hook implementations outside @cyberfabric/perf-telemetry. Using hooks (useRoutePerf, useTelemetryAction, etc.) in app screens is required.
 
 ## SCOPE
 - Package: `packages/perf-telemetry/`
@@ -45,7 +45,7 @@ const onSubmit = () => runSubmit(async () => {
 ```
 
 ## STOP CONDITIONS
-- Adding telemetry hooks outside @hai3/perf-telemetry.
+- Adding telemetry hooks outside @cyberfabric/perf-telemetry.
 - Modifying action-scope.ts or otel-init.ts without reading this file.
 - Adding @hai3 dependencies to this package.
 

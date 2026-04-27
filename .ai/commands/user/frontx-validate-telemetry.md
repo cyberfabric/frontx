@@ -1,5 +1,5 @@
 <!-- @standalone -->
-# hai3:validate-telemetry - Run Telemetry Validation
+# frontx:validate-telemetry - Run Telemetry Validation
 
 ## AI WORKFLOW (REQUIRED)
 1) Follow `.ai/GUIDELINES.md` as the single source of truth.

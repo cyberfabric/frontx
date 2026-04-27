@@ -100,7 +100,7 @@ export default defineConfig({
             return 'frontx-core';
           }
           // Split perf-telemetry source into telemetry chunk
-          if (id.includes('@hai3/perf-telemetry')) {
+          if (id.includes('@cyberfabric/perf-telemetry')) {
             return 'hai3-telemetry';
           }
           // Split React and React DOM

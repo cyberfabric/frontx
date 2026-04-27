@@ -6,7 +6,7 @@
 // @cpt-dod:cpt-hai3-dod-perf-telemetry-api:p1
 // @cpt-dod:cpt-hai3-dod-perf-telemetry-vitals:p1
 /**
- * Telemetry Hooks — HAI3-style instrumentation primitives
+ * Telemetry Hooks — FrontX-style instrumentation primitives
  *
  * Action-first: every span belongs to a named action.
  * These hooks work with any React 18+ app.

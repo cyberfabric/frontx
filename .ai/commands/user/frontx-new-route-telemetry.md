@@ -1,5 +1,5 @@
 <!-- @standalone -->
-# hai3:new-route-telemetry - Add Telemetry to Route
+# frontx:new-route-telemetry - Add Telemetry to Route
 
 ## PREREQUISITES (CRITICAL - STOP IF FAILED)
 FORBIDDEN: Adding telemetry without reading .ai/targets/PERF_TELEMETRY.md first.
@@ -24,7 +24,7 @@ FORBIDDEN: Orphan spans (every span MUST have action.name).
 ## REQUIRED IMPORTS
 
 ```tsx
-import { useRoutePerf, useDoneRendering, useWebVitals } from '@hai3/perf-telemetry';
+import { useRoutePerf, useDoneRendering, useWebVitals } from '@cyberfabric/perf-telemetry';
 ```
 
 ## PATTERN

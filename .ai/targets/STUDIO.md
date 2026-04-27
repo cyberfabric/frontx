@@ -64,12 +64,12 @@
 
 ## PERFORMANCE TELEMETRY PANEL
 - PerfTelemetryPanel is an optional section in ControlPanel.
-- Uses dynamic require('@hai3/perf-telemetry') — renders nothing if not installed.
+- Uses dynamic require('@cyberfabric/perf-telemetry') — renders nothing if not installed.
 - EXCEPTION to event-driven persistence: subscribes to telemetryStore (read-only external API, not a state mutation).
 - EXCEPTION to inline styles rule: Studio injects its own CSS, cannot rely on host Tailwind pipeline.
 - Types duplicated locally (StoredSpan, TelemetryStoreApi) to avoid hard dependency.
 - Panel state persisted via standard saveStudioState/loadStudioState utilities.
-- FORBIDDEN: Direct import of @hai3/perf-telemetry at module level (must be dynamic/conditional).
+- FORBIDDEN: Direct import of @cyberfabric/perf-telemetry at module level (must be dynamic/conditional).
 
 ## PRE-DIFF CHECKLIST
 - [ ] No Redux or custom store for Studio; UI state uses React state or context.

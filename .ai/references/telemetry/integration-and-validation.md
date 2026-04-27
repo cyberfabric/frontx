@@ -2,7 +2,7 @@
 
 ## Integration contract
 
-Keep the existing HAI3 frontend APIs from @hai3/perf-telemetry:
+Keep the existing HAI3 frontend APIs from @cyberfabric/perf-telemetry:
 
 - `useRoutePerf`
 - `useDoneRendering`

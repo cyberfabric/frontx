@@ -1,4 +1,4 @@
-# ADR 0017: Action-First Performance Telemetry
+# ADR 0020: Action-First Performance Telemetry
 
 <!-- toc -->
 
@@ -17,17 +17,17 @@
 
 <!-- /toc -->
 
-**ID**: `cpt-hai3-adr-action-first-telemetry`
+**ID**: `cpt-frontx-adr-action-first-telemetry`
 
 ## Context and Problem Statement
-HAI3 applications need frontend performance observability for diagnosing slow user interactions, API bottlenecks, and rendering issues. Standard OpenTelemetry Browser SDK instrumentation produces orphan spans (spans without a logical grouping), making per-action performance breakdown impossible. How should we instrument the frontend to guarantee 100% span correlation while maintaining fail-open semantics?
+FrontX applications need frontend performance observability for diagnosing slow user interactions, API bottlenecks, and rendering issues. Standard OpenTelemetry Browser SDK instrumentation produces orphan spans (spans without a logical grouping), making per-action performance breakdown impossible. How should we instrument the frontend to guarantee 100% span correlation while maintaining fail-open semantics?
 
 ## Decision Drivers
 - Every span must belong to a named action for per-action % breakdown
 - Telemetry must never crash application business flows (fail-open)
 - Vendor-neutral instrumentation (avoid lock-in)
 - Local dev visibility without requiring a collector
-- L1 SDK (zero @hai3 deps) for broad reusability
+- L1 SDK (zero @cyberfabric deps) for broad reusability
 
 ## Considered Options
 
@@ -38,19 +38,20 @@ HAI3 applications need frontend performance observability for diagnosing slow us
 
 ## Decision Outcome
 
-Chosen option: **Action-first OTel with ambient fallback**, because it provides 100% span correlation through a three-tier resolution algorithm (active scope, recent scope within 2500ms window, ambient fallback) while maintaining vendor-neutral OTel instrumentation and fail-open semantics.
+Chosen option: **Action-first OTel with ambient fallback**, because it provides 100% span correlation across all runtimes that join the shared `globalThis` telemetry registry, through a three-tier resolution algorithm (active scope, recent scope within 2500ms window, ambient fallback) while maintaining vendor-neutral OTel instrumentation and fail-open semantics.
 
-The system is implemented as `@hai3/perf-telemetry` (L1 SDK, zero @hai3 deps) with a framework plugin and Studio dev panel. Backend path: Browser -> OTLP/HTTP -> OTel Collector (Docker) -> Datadog APM.
+The system is implemented as `@cyberfabric/perf-telemetry` (L1 SDK, zero @cyberfabric deps) with a framework plugin and Studio dev panel. Backend path: Browser -> OTLP/HTTP -> OTel Collector (Docker) -> Datadog APM.
 
 ### Consequences
 
 #### Positive
 
-- 100% span correlation — no orphan spans in Datadog APM
+- 100% span correlation across runtimes joined to the shared registry — no orphan spans in Datadog APM for those runtimes
 - Per-action performance breakdown (Backend API % + Frontend % + Runtime % + Rendering %)
 - Fail-open design — telemetry errors never crash business flows
 - Local dev visibility via Studio panel without requiring a collector
-- L1 SDK — usable by any React app, not just HAI3
+- L1 SDK — usable by any React app, not just FrontX
+- Cross-runtime convergence: MFE child runtimes join a host-owned `telemetryStore` via `Symbol.for('frontx:telemetry-registry')` on `globalThis`, so Studio sees spans from all participating runtimes (precedent: `sharedFetchCache`)
 
 #### Negative
 

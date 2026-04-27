@@ -1,6 +1,6 @@
 // @cpt-dod:cpt-hai3-dod-perf-telemetry-action-first:p1
 /**
- * @hai3/perf-telemetry — Action-first performance telemetry for HAI3
+ * @cyberfabric/perf-telemetry — Action-first performance telemetry for FrontX
  */
 
 export { TelemetryProvider, useTelemetryContext } from './TelemetryProvider';
@@ -45,6 +45,17 @@ export {
   telemetryStore,
   TelemetryStoreProcessor,
 } from './telemetry-store';
+export {
+  SHARED_TELEMETRY_REGISTRY_SYMBOL,
+  SHARED_TELEMETRY_REGISTRY_VERSION,
+  acquireSharedTelemetryRegistry,
+  releaseSharedTelemetryRegistry,
+  appendSharedSpan,
+  getSharedSpans,
+  subscribeSharedSpans,
+  clearSharedSpans,
+  peekSharedTelemetryRegistry,
+} from './shared-telemetry-registry';
 export {
   getTelemetryRuntimeConfig,
   subscribeTelemetryRuntimeConfig,

@@ -26,7 +26,7 @@ export const ControlPanel: React.FC = () => {
         </div>
       </div>
 
-      {/* Performance Telemetry (renders only when @hai3/perf-telemetry is installed) */}
+      {/* Performance Telemetry (renders only when @cyberfabric/perf-telemetry is installed) */}
       <PerfTelemetryPanel />
     </div>
   );

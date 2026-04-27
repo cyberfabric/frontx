@@ -1,5 +1,5 @@
 <!-- @standalone -->
-# hai3:instrument-action-telemetry - Instrument Critical Action
+# frontx:instrument-action-telemetry - Instrument Critical Action
 
 ## PREREQUISITES (CRITICAL - STOP IF FAILED)
 FORBIDDEN: Adding telemetry without reading .ai/targets/PERF_TELEMETRY.md first.
@@ -20,7 +20,7 @@ FORBIDDEN: Orphan spans (every span MUST have action.name).
 ## REQUIRED IMPORTS
 
 ```tsx
-import { useTelemetryAction } from '@hai3/perf-telemetry';
+import { useTelemetryAction } from '@cyberfabric/perf-telemetry';
 ```
 
 ## PATTERN

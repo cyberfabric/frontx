@@ -1,8 +1,8 @@
-# @hai3/perf-telemetry
+# @cyberfabric/perf-telemetry
 
-> Action-first performance telemetry for HAI3 using OpenTelemetry Browser SDK. Every span belongs to a named action.
+> Action-first performance telemetry for FrontX using OpenTelemetry Browser SDK. Every span belongs to a named action.
 
-Part of the HAI3 SDK Layer (L1) - can be used independently without other @hai3 packages. Peer dependencies on @opentelemetry/* and react.
+Part of the FrontX SDK Layer (L1) - can be used independently without other @cyberfabric packages. Peer dependencies on @opentelemetry/* and react.
 
 ## Core API
 

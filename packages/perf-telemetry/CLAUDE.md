@@ -1,10 +1,10 @@
-# @hai3/perf-telemetry
+# @cyberfabric/perf-telemetry
 
 L1 SDK for action-first performance telemetry using the OpenTelemetry Browser SDK.
 
 ## SDK Layer
 
-This package is part of the **SDK Layer (L1)** — zero `@hai3` dependencies. It can be consumed by any HAI3 MFE or third-party React app. All OpenTelemetry packages are peer dependencies; the host app installs them.
+This package is part of the **SDK Layer (L1)** — zero `@cyberfabric` dependencies. It can be consumed by any FrontX MFE or third-party React app. All OpenTelemetry packages are peer dependencies; the host app installs them.
 
 ## Key Principle
 
@@ -32,7 +32,7 @@ No span may appear in the trace backend without `action.name`.
 ### React
 
 ```typescript
-import { TelemetryProvider, useTelemetryContext } from '@hai3/perf-telemetry';
+import { TelemetryProvider, useTelemetryContext } from '@cyberfabric/perf-telemetry';
 
 // Wrap root
 <TelemetryProvider serviceName="my-app" collectorUrl="https://otel.example.com" environment="production">
@@ -54,7 +54,7 @@ import {
   useWebVitals,           // Observes LCP, CLS, INP, TTFB
   useLongTaskObserver,    // Observes longtask entries
   useResourceTimingObserver, // Observes resource timing entries
-} from '@hai3/perf-telemetry';
+} from '@cyberfabric/perf-telemetry';
 
 // Route screen pattern
 function MyScreen() {
@@ -82,7 +82,7 @@ import {
   shutdownOtel,           // Shutdown SDK
   isOtelInitialized,      // Check init state
   getOtelSessionId,       // Get stable session ID
-} from '@hai3/perf-telemetry';
+} from '@cyberfabric/perf-telemetry';
 ```
 
 ### Action Scope (advanced)
@@ -102,13 +102,13 @@ import {
   endRouteUiScope,          // End and retrieve a render scope
   getActiveRouteUiScope,    // Inspect active render scope for a route
   getRouteUiParentContext,  // Get OTel Context parented to the active uiSpan
-} from '@hai3/perf-telemetry';
+} from '@cyberfabric/perf-telemetry';
 ```
 
 ### Dev Tools Store
 
 ```typescript
-import { telemetryStore, TelemetryStoreProcessor } from '@hai3/perf-telemetry';
+import { telemetryStore, TelemetryStoreProcessor } from '@cyberfabric/perf-telemetry';
 
 // Register in OTel provider
 spanProcessors: [new TelemetryStoreProcessor(), ...otherProcessors]
@@ -132,7 +132,7 @@ import type {
   RouteUiScope,
   StoredSpan,
   SpanListener,
-} from '@hai3/perf-telemetry';
+} from '@cyberfabric/perf-telemetry';
 ```
 
 ## Peer Dependencies
@@ -158,7 +158,7 @@ react >=18.0.0
 
 ```tsx
 // 1. app root — wrap with provider
-import { TelemetryProvider } from '@hai3/perf-telemetry';
+import { TelemetryProvider } from '@cyberfabric/perf-telemetry';
 
 export function AppRoot() {
   return (
@@ -175,7 +175,7 @@ export function AppRoot() {
 }
 
 // 2. inject runtime config after auth
-import { setRuntimeConfigProvider } from '@hai3/perf-telemetry';
+import { setRuntimeConfigProvider } from '@cyberfabric/perf-telemetry';
 
 setRuntimeConfigProvider(() => ({
   exportToCollector: runtimeConfig.telemetryEnabled,

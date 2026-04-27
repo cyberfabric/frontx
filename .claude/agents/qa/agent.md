@@ -85,7 +85,7 @@ Read and scan the implementation for violations that automated tools miss.
 - `unknown` in public type definitions — BLOCK
 - `eslint-disable`, `eslint-disable-next-line`, `eslint-disable-line` — BLOCK
 - Barrel exports that hide real imports — BLOCK
-- Ad-hoc telemetry or tracking code (official @hai3/perf-telemetry is allowed) — BLOCK
+- Ad-hoc telemetry or tracking code (official @cyberfabric/perf-telemetry is allowed) — BLOCK
 - Manual state sync or prop drilling (see EVENTS.md) — BLOCK
 - Native helpers where lodash equivalents exist for non-trivial operations — BLOCK
 

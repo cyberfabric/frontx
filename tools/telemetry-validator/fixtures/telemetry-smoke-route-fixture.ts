@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { useDoneRendering, useRoutePerf } from '@hai3/perf-telemetry';
+import { useDoneRendering, useRoutePerf } from '@cyberfabric/perf-telemetry';
 
 export function TelemetrySmokeRouteFixture(): null {
   const routeSentinel = '@telemetry-route';
