@@ -35,24 +35,25 @@ export function createThemeRegistry(): ThemeRegistry {
   function applyCSSVariables(variables: Record<string, string>): void {
     if (typeof document === 'undefined') return;
 
-    let styleEl = document.getElementById('hai3-theme-vars') as HTMLStyleElement | null;
-    if (!styleEl) {
+    const existing = document.getElementById('hai3-theme-vars');
+    let styleEl: HTMLStyleElement;
+    if (existing instanceof HTMLStyleElement) {
+      styleEl = existing;
+    } else {
+      existing?.remove();
       styleEl = document.createElement('style');
       styleEl.id = 'hai3-theme-vars';
       document.head.appendChild(styleEl);
     }
 
-    const entries = Object.entries(variables);
-    if (entries.length === 0) {
-      styleEl.replaceChildren();
-      return;
-    }
+    const sheet = styleEl.sheet!;
+    while (sheet.cssRules.length > 0) sheet.deleteRule(0);
 
-    // Inline replace strips </style> sequences to prevent CSS injection from external theme sources.
-    const varLines = entries
-      .map(([key, value]) => `  ${key.replace(/<\/style/gi, '')}: ${value.replace(/<\/style/gi, '')};`)
-      .join('\n');
-    styleEl.replaceChildren(document.createTextNode(`:root {\n${varLines}\n}`));
+    const entries = Object.entries(variables);
+    if (entries.length === 0) return;
+
+    const decls = entries.map(([key, value]) => `${key}: ${value}`).join('; ');
+    sheet.insertRule(`:root { ${decls} }`, 0);
   }
 
   return {
