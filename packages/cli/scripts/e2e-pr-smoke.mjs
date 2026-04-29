@@ -1,5 +1,6 @@
 // @cpt-flow:cpt-frontx-flow-cli-tooling-e2e-pr:p1
 // @cpt-dod:cpt-frontx-dod-cli-tooling-e2e-pr:p1
+import fs from 'node:fs';
 import path from 'path';
 import process from 'node:process';
 import { CLI_ENTRY, createHarness, shouldSkipInstall } from './e2e-lib.mjs';
@@ -147,6 +148,25 @@ try {
   harness.assertPathExists(path.join(demoMfeRoot, 'vitest.config.ts'));
   harness.assertPathExists(path.join(demoMfeRoot, 'src', 'screens', 'home', 'HomeScreen.test.tsx'));
   // @cpt-end:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-files
+
+  // Assert MFE template generates en-only locale by default.
+  // frontx create copies _blank-mfe template into demo-mfe/ in the generated app.
+  const mfeI18nDir = path.join(
+    projectRoot,
+    'src',
+    'mfe_packages',
+    'demo-mfe',
+    'src',
+    'screens',
+    'home',
+    'i18n'
+  );
+  harness.assertPathExists(mfeI18nDir);
+  const localeFiles = fs.readdirSync(mfeI18nDir).filter((f) => f.endsWith('.json'));
+  harness.assert(
+    localeFiles.length === 1 && localeFiles[0] === 'en.json',
+    `MFE template must generate only en.json by default, found: ${localeFiles.join(', ')}`
+  );
 
   // @cpt-begin:cpt-frontx-flow-cli-tooling-e2e-pr:p1:inst-e2e-pr-assert-engines
   const packageJson = harness.readJson(path.join(projectRoot, 'package.json'), {

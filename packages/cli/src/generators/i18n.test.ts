@@ -1,0 +1,113 @@
+import { describe, it } from 'vitest';
+import assert from 'node:assert/strict';
+import { generateI18nStubs, generateTranslationLoader } from './i18n.js';
+
+void describe('generateI18nStubs', () => {
+  void it('generates only en.json by default', () => {
+    const files = generateI18nStubs({ basePath: 'i18n', translations: { title: 'Hello' } });
+    assert.equal(files.length, 1);
+    assert.equal(files[0].path, 'i18n/en.json');
+    assert.equal(files[0].content, '{\n  "title": "Hello"\n}\n');
+  });
+
+  void it('generates only the requested locales when locales is provided', () => {
+    const files = generateI18nStubs({
+      basePath: 'src/i18n',
+      translations: { title: 'Hello' },
+      locales: ['en', 'de'],
+    });
+    assert.equal(files.length, 2);
+    const paths = files.map((f) => f.path);
+    assert.ok(paths.includes('src/i18n/en.json'), 'en.json must be present');
+    assert.ok(paths.includes('src/i18n/de.json'), 'de.json must be present');
+  });
+
+  void it('does NOT generate non-requested languages', () => {
+    const files = generateI18nStubs({
+      basePath: 'i18n',
+      translations: {},
+      locales: ['en'],
+    });
+    const paths = files.map((f) => f.path);
+    assert.ok(!paths.some((p) => p.includes('de.json')), 'de.json must not be generated');
+    assert.ok(!paths.some((p) => p.includes('fr.json')), 'fr.json must not be generated');
+    assert.ok(!paths.some((p) => p.includes('zh.json')), 'zh.json must not be generated');
+  });
+
+  void it('each generated file contains the translation content', () => {
+    const translations = { save: 'Save', cancel: 'Cancel' };
+    const files = generateI18nStubs({ basePath: 'i18n', translations, locales: ['en', 'fr'] });
+    for (const file of files) {
+      const parsed = JSON.parse(file.content);
+      assert.deepEqual(parsed, translations);
+    }
+  });
+
+  void it('throws for unknown locale', () => {
+    assert.throws(
+      () => generateI18nStubs({ basePath: 'i18n', translations: {}, locales: ['en', 'zz'] }),
+      /unknown locale.*zz/
+    );
+  });
+
+  void it('deduplicates repeated locales', () => {
+    const files = generateI18nStubs({ basePath: 'i18n', translations: { k: 'v' }, locales: ['en', 'en'] });
+    assert.equal(files.length, 1, 'en must appear exactly once');
+  });
+
+  void it('prepends en when caller passes explicit locales without en', () => {
+    const files = generateI18nStubs({ basePath: 'i18n', translations: { k: 'v' }, locales: ['de'] });
+    const paths = files.map((f) => f.path);
+    assert.equal(files.length, 2);
+    assert.equal(paths[0], 'i18n/en.json', 'en.json must be the first generated stub');
+    assert.ok(paths.includes('i18n/de.json'), 'de.json must be generated');
+  });
+});
+
+void describe('generateTranslationLoader', () => {
+  void it('generates loader with only en by default', () => {
+    const result = generateTranslationLoader('./i18n');
+    assert.ok(result.includes("Language.English"), 'English must be present');
+    assert.ok(result.includes("import('./i18n/en.json')"), 'en.json import must be present');
+    assert.ok(!result.includes('German'), 'German must NOT be present by default');
+    assert.ok(!result.includes('French'), 'French must NOT be present by default');
+  });
+
+  void it('generates loader with only the specified locales', () => {
+    const result = generateTranslationLoader('./i18n', ['en', 'de']);
+    assert.ok(result.includes('Language.English'));
+    assert.ok(result.includes("import('./i18n/en.json')"));
+    assert.ok(result.includes('Language.German'));
+    assert.ok(result.includes("import('./i18n/de.json')"));
+    assert.ok(!result.includes('French'), 'French must NOT be present');
+  });
+
+  void it('wraps result in I18nRegistry.createLoader()', () => {
+    const result = generateTranslationLoader('./i18n');
+    assert.ok(result.startsWith('I18nRegistry.createLoader({'));
+    assert.ok(result.endsWith('})'));
+  });
+
+  void it('throws for unknown locale', () => {
+    assert.throws(
+      () => generateTranslationLoader('./i18n', ['en', 'xx']),
+      /unknown locale.*xx/
+    );
+  });
+
+  void it('deduplicates repeated locales', () => {
+    const result = generateTranslationLoader('./i18n', ['en', 'en']);
+    const matches = result.match(/Language\.English/g) ?? [];
+    assert.equal(matches.length, 1, 'en must appear exactly once');
+  });
+
+  void it('prepends en when caller passes explicit locales without en', () => {
+    const result = generateTranslationLoader('./i18n', ['de']);
+    assert.ok(result.includes('Language.English'), 'English entry must be present');
+    assert.ok(result.includes("import('./i18n/en.json')"), 'en.json import must be present');
+    assert.ok(result.includes('Language.German'));
+    const englishIdx = result.indexOf('Language.English');
+    const germanIdx = result.indexOf('Language.German');
+    assert.ok(englishIdx < germanIdx, 'English must precede German in the loader');
+  });
+});

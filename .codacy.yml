@@ -1,0 +1,8 @@
+---
+exclude_paths:
+  # CLI E2E harness uses dynamic fs.existsSync/readdirSync against generated
+  # project paths — Codacy flags this as "non-literal fs argument", but those
+  # paths are constructed from the harness-controlled temp workspace. Scoped
+  # narrowly so future scripts (copy-templates, generate-versions, etc.) stay
+  # under static analysis.
+  - 'packages/cli/scripts/e2e-*.mjs'
