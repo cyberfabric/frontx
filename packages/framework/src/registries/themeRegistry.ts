@@ -49,11 +49,12 @@ export function createThemeRegistry(): ThemeRegistry {
     const sheet = styleEl.sheet!;
     while (sheet.cssRules.length > 0) sheet.deleteRule(0);
 
-    const entries = Object.entries(variables);
-    if (entries.length === 0) return;
-
-    const decls = entries.map(([key, value]) => `${key}: ${value}`).join('; ');
-    sheet.insertRule(`:root { ${decls} }`, 0);
+    const parts: string[] = [];
+    for (const [key, value] of Object.entries(variables)) {
+      parts.push(`${key}: ${value}`);
+    }
+    if (parts.length === 0) return;
+    sheet.insertRule(`:root { ${parts.join('; ')} }`, 0);
   }
 
   return {
