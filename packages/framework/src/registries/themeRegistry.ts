@@ -46,7 +46,8 @@ export function createThemeRegistry(): ThemeRegistry {
       document.head.appendChild(styleEl);
     }
 
-    const sheet = styleEl.sheet!;
+    const sheet = styleEl.sheet;
+    if (!sheet) return;
     while (sheet.cssRules.length > 0) sheet.deleteRule(0);
 
     const parts: string[] = [];
