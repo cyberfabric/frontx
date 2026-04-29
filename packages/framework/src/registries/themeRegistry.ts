@@ -48,7 +48,9 @@ export function createThemeRegistry(): ThemeRegistry {
       return;
     }
 
-    const varLines = entries.map(([key, value]) => `  ${key}: ${value};`).join('\n');
+    // Strip </style> sequences to prevent CSS injection if values ever come from external sources.
+    const safe = (s: string) => s.replace(/<\/style/gi, '');
+    const varLines = entries.map(([key, value]) => `  ${safe(key)}: ${safe(value)};`).join('\n');
     styleEl.textContent = `:root {\n${varLines}\n}`;
   }
 
