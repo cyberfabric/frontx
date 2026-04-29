@@ -44,14 +44,15 @@ export function createThemeRegistry(): ThemeRegistry {
 
     const entries = Object.entries(variables);
     if (entries.length === 0) {
-      styleEl.textContent = '';
+      styleEl.replaceChildren();
       return;
     }
 
-    // Strip </style> sequences to prevent CSS injection if values ever come from external sources.
-    const safe = (s: string) => s.replace(/<\/style/gi, '');
-    const varLines = entries.map(([key, value]) => `  ${safe(key)}: ${safe(value)};`).join('\n');
-    styleEl.textContent = `:root {\n${varLines}\n}`;
+    // Inline replace strips </style> sequences to prevent CSS injection from external theme sources.
+    const varLines = entries
+      .map(([key, value]) => `  ${key.replace(/<\/style/gi, '')}: ${value.replace(/<\/style/gi, '')};`)
+      .join('\n');
+    styleEl.replaceChildren(document.createTextNode(`:root {\n${varLines}\n}`));
   }
 
   return {
