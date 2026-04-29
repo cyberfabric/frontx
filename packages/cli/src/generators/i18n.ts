@@ -5,8 +5,11 @@ import { ALL_LANGUAGES, LANGUAGE_ENUM_MAP } from './utils.js';
 const DEFAULT_LOCALES = ['en'];
 
 /**
- * Validate and deduplicate locales against ALL_LANGUAGES.
- * Throws if any locale is not supported.
+ * Validate, deduplicate, and ensure `en` fallback in locales.
+ * Throws if any locale is not supported in LANGUAGE_ENUM_MAP.
+ * `en` is the mandatory fallback locale: it is prepended when a caller
+ * passes explicit locales without `en`, so generated stubs and loaders
+ * always cover the runtime fallback path.
  */
 function normalizeLocales(locales: string[], callerName: string): string[] {
   const known = new Set(Object.keys(LANGUAGE_ENUM_MAP));
@@ -17,8 +20,11 @@ function normalizeLocales(locales: string[], callerName: string): string[] {
       `Supported locales: ${ALL_LANGUAGES.join(', ')}`
     );
   }
-  // Deduplicate while preserving order
-  return [...new Set(locales)];
+  const normalized = [...new Set(locales)];
+  if (!normalized.includes('en')) {
+    normalized.unshift('en');
+  }
+  return normalized;
 }
 
 /**

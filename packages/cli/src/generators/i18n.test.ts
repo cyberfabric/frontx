@@ -54,6 +54,14 @@ void describe('generateI18nStubs', () => {
     const files = generateI18nStubs({ basePath: 'i18n', translations: { k: 'v' }, locales: ['en', 'en'] });
     assert.equal(files.length, 1, 'en must appear exactly once');
   });
+
+  void it('prepends en when caller passes explicit locales without en', () => {
+    const files = generateI18nStubs({ basePath: 'i18n', translations: { k: 'v' }, locales: ['de'] });
+    const paths = files.map((f) => f.path);
+    assert.equal(files.length, 2);
+    assert.equal(paths[0], 'i18n/en.json', 'en.json must be the first generated stub');
+    assert.ok(paths.includes('i18n/de.json'), 'de.json must be generated');
+  });
 });
 
 void describe('generateTranslationLoader', () => {
@@ -91,5 +99,15 @@ void describe('generateTranslationLoader', () => {
     const result = generateTranslationLoader('./i18n', ['en', 'en']);
     const matches = result.match(/Language\.English/g) ?? [];
     assert.equal(matches.length, 1, 'en must appear exactly once');
+  });
+
+  void it('prepends en when caller passes explicit locales without en', () => {
+    const result = generateTranslationLoader('./i18n', ['de']);
+    assert.ok(result.includes('Language.English'), 'English entry must be present');
+    assert.ok(result.includes("import('./i18n/en.json')"), 'en.json import must be present');
+    assert.ok(result.includes('Language.German'));
+    const englishIdx = result.indexOf('Language.English');
+    const germanIdx = result.indexOf('Language.German');
+    assert.ok(englishIdx < germanIdx, 'English must precede German in the loader');
   });
 });

@@ -60,7 +60,8 @@
 - FORBIDDEN: Hardcoded i18n values in entity data.
 - DETECT: grep -rn "t(.*new_.*)" src/screensets/*/
 
-## LOCALIZATION RULES
+## HOST LOCALIZATION RULES (legacy `src/screensets/**`)
+- SCOPE: Host-only screensets under `src/screensets/**`. MFE screensets follow `## MFE LOCALIZATION RULES` below.
 - REQUIRED: Two-tier system: screenset-level and screen-level translations.
 - REQUIRED: Screenset-level: localization: TranslationLoader in config.
 - REQUIRED: Screen-level: useScreenTranslations(screensetId, screenId, loader).
