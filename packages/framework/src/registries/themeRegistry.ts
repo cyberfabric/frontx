@@ -15,8 +15,6 @@ import type { ThemeRegistry, ThemeConfig } from '../types';
 export function createThemeRegistry(): ThemeRegistry {
   const themes = new Map<string, ThemeConfig>();
   let currentThemeId: string | null = null;
-  /** Track CSS property names set by the previous theme so they can be cleared on switch */
-  let previousVarKeys: string[] = [];
 
   // Subscription support for React
   const subscribers = new Set<() => void>();
@@ -30,27 +28,28 @@ export function createThemeRegistry(): ThemeRegistry {
   }
 
   /**
-   * Clear previous theme vars and apply new CSS custom properties to :root
+   * Write theme CSS custom properties into a managed <style> element in <head>.
+   * Using a stylesheet rule instead of inline styles allows Shadow DOM :host rules
+   * and user CSS to override theme variables, which inline style.setProperty() blocks.
    */
   function applyCSSVariables(variables: Record<string, string>): void {
     if (typeof document === 'undefined') return;
 
-    const root = document.documentElement;
-
-    // Clear previous theme vars that are not in the new set
-    const newKeys = Object.keys(variables);
-    for (const key of previousVarKeys) {
-      if (!(key in variables)) {
-        root.style.removeProperty(key);
-      }
+    let styleEl = document.getElementById('hai3-theme-vars') as HTMLStyleElement | null;
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'hai3-theme-vars';
+      document.head.appendChild(styleEl);
     }
 
-    // Apply each CSS variable
-    for (const [key, value] of Object.entries(variables)) {
-      root.style.setProperty(key, value);
+    const entries = Object.entries(variables);
+    if (entries.length === 0) {
+      styleEl.textContent = '';
+      return;
     }
 
-    previousVarKeys = newKeys;
+    const varLines = entries.map(([key, value]) => `  ${key}: ${value};`).join('\n');
+    styleEl.textContent = `:root {\n${varLines}\n}`;
   }
 
   return {
