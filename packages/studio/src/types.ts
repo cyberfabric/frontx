@@ -62,5 +62,4 @@ export const STORAGE_KEYS = {
   THEME: `${STORAGE_PREFIX}theme`,
   LANGUAGE: `${STORAGE_PREFIX}language`,
   MOCK_ENABLED: `${STORAGE_PREFIX}mockEnabled`,
-  ACTIVE_PACKAGE_ID: `${STORAGE_PREFIX}activePackageId`,
 } as const;

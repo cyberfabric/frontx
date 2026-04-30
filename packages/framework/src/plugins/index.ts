@@ -33,6 +33,7 @@ export {
   // MFE slice and selectors
   selectExtensionState,
   selectRegisteredExtensions,
+  selectMountedExtension,
   selectExtensionError,
   // Types
   type MfeState,

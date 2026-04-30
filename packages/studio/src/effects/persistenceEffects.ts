@@ -55,14 +55,6 @@ export const initPersistenceEffects = (): (() => void) => {
     saveStudioState(STORAGE_KEYS.MOCK_ENABLED, payload.enabled);
   });
 
-  // GTS Package selection (Studio-only event)
-  const activePackageSubscription = eventBus.on(
-    StudioEvents.ActivePackageChanged,
-    ({ activePackageId }) => {
-      saveStudioState(STORAGE_KEYS.ACTIVE_PACKAGE_ID, activePackageId);
-    }
-  );
-
   // Return cleanup function to unsubscribe all listeners
   return () => {
     positionSubscription.unsubscribe();
@@ -71,7 +63,6 @@ export const initPersistenceEffects = (): (() => void) => {
     themeSubscription.unsubscribe();
     languageSubscription.unsubscribe();
     mockSubscription.unsubscribe();
-    activePackageSubscription.unsubscribe();
   };
 };
 // @cpt-end:cpt-frontx-algo-studio-devtools-persistence-init:p1:inst-1

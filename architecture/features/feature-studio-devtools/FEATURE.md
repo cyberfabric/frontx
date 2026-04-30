@@ -19,7 +19,6 @@
   - [Theme Change](#theme-change)
   - [Language Change](#language-change)
   - [API Mock Mode Toggle](#api-mock-mode-toggle)
-  - [GTS Package Selection](#gts-package-selection)
   - [Settings Restore on Mount](#settings-restore-on-mount)
   - [Viewport Position Clamping](#viewport-position-clamping)
   - [Conditional Loading and Production Exclusion](#conditional-loading-and-production-exclusion)
@@ -28,7 +27,6 @@
   - [Default Position Derivation](#default-position-derivation)
   - [Persistence Initialization](#persistence-initialization)
   - [localStorage Read/Write with Error Guard](#localstorage-readwrite-with-error-guard)
-  - [GTS Package Restore Validation](#gts-package-restore-validation)
   - [Event Routing for Dual Draggable Elements](#event-routing-for-dual-draggable-elements)
   - [Dropdown Portal Management](#dropdown-portal-management)
 - [4. States (CDSL)](#4-states-cdsl)
@@ -213,26 +211,6 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 
 ---
 
-### GTS Package Selection
-
-- [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-gts-package`
-
-**Actors**: `cpt-frontx-actor-studio-user`
-
-1. [ ] `p1` - Studio User opens GTS package dropdown in `MfePackageSelector` — `inst-open-pkg-dropdown`
-2. [ ] `p1` - Dropdown lists all registered packages from `useRegisteredPackages()` — `inst-load-packages`
-3. [ ] `p1` - **IF** only one package is registered, dropdown trigger is disabled — `inst-single-pkg-disabled`
-4. [ ] `p1` - Studio User selects a package — `inst-select-pkg`
-5. [ ] `p1` - Retrieve all extensions for the selected package via `registry.getExtensionsForPackage(packageId)` — `inst-get-extensions`
-6. [ ] `p1` - Filter extensions to those with `domain === HAI3_SCREEN_DOMAIN` and `isScreenExtension()` — `inst-filter-screen-ext`
-7. [ ] `p1` - **IF** no screen extensions exist **RETURN** warning logged, no further action — `inst-no-screen-ext`
-8. [ ] `p1` - Sort screen extensions by `presentation.order` ascending — `inst-sort-extensions`
-9. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` targeting `HAI3_SCREEN_DOMAIN` for the first extension — `inst-mount-ext`
-10. [ ] `p1` - Emit `studio/activePackageChanged` with `{ activePackageId }` — `inst-emit-pkg-changed`
-11. [ ] `p1` - Persistence effect subscribes to `studio/activePackageChanged`; writes `activePackageId` to `hai3:studio:activePackageId` — `inst-persist-pkg`
-
----
-
 ### Settings Restore on Mount
 
 - [x] `p1` - **ID**: `cpt-frontx-flow-studio-devtools-restore-settings`
@@ -246,13 +224,6 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 5. [ ] `p1` - **IF** value is a non-empty string, emit `i18n/language/changed` with `{ language }` — `inst-restore-lang`
 6. [ ] `p1` - Read `hai3:studio:mockEnabled` from localStorage — `inst-read-mock`
 7. [ ] `p1` - **IF** value is a boolean, emit `mock/toggle` with `{ enabled }` — `inst-restore-mock`
-8. [ ] `p1` - `RestoreGtsPackageOnMount` component obtains `mfeRegistry` from `useHAI3()` — `inst-get-registry`
-9. [ ] `p1` - Read `hai3:studio:activePackageId` from localStorage — `inst-read-pkg-id`
-10. [ ] `p1` - **IF** no `activePackageId` stored OR registry unavailable **RETURN** without action — `inst-no-restore-pkg`
-11. [ ] `p1` - Retrieve screen extensions for the persisted package and sort by `presentation.order` — `inst-restore-sort-ext`
-12. [ ] `p1` - **IF** no screen extensions found, skip restore silently — `inst-no-ext-skip`
-13. [ ] `p1` - Call `registry.executeActionsChain()` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` for the first extension — `inst-restore-mount`
-14. [ ] `p1` - **TRY** — on any error during GTS package restore, catch and skip; application remains in current state — `inst-restore-catch`
 
 ---
 
@@ -326,8 +297,7 @@ Called once when `StudioProvider` mounts via `initPersistenceEffects()`:
 4. [ ] `p1` - Subscribe `theme/changed` → write payload `themeId` to `hai3:studio:theme` — `inst-sub-theme`
 5. [ ] `p1` - Subscribe `i18n/language/changed` → write payload `language` to `hai3:studio:language` — `inst-sub-lang`
 6. [ ] `p1` - Subscribe `mock/toggle` → write payload `enabled` to `hai3:studio:mockEnabled` — `inst-sub-mock`
-7. [ ] `p1` - Subscribe `studio/activePackageChanged` → write payload `activePackageId` to `hai3:studio:activePackageId` — `inst-sub-pkg`
-8. [ ] `p1` - **RETURN** cleanup function that calls `.unsubscribe()` on all seven subscriptions — `inst-return-cleanup`
+7. [ ] `p1` - **RETURN** cleanup function that calls `.unsubscribe()` on all six subscriptions — `inst-return-cleanup`
 
 ---
 
@@ -343,23 +313,6 @@ All reads and writes to localStorage use guarded utilities:
 4. [ ] `p1` - **IF** item is null, **RETURN** `defaultValue` — `inst-load-null`
 5. [ ] `p1` - Parse JSON; **RETURN** parsed value — `inst-load-parse`
 6. [ ] `p1` - **CATCH** any parse error → log warning, **RETURN** `defaultValue` — `inst-load-catch`
-
----
-
-### GTS Package Restore Validation
-
-- [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-restore-gts-validation`
-
-Executed once when `mfeRegistry` first becomes available:
-
-1. [ ] `p1` - Load `activePackageId` from localStorage — `inst-val-load-id`
-2. [ ] `p1` - **IF** `activePackageId` is null, empty, or not a string **RETURN** — `inst-val-empty-id`
-3. [ ] `p1` - Call `registry.getExtensionsForPackage(activePackageId)` — `inst-val-get-ext`
-4. [ ] `p1` - Filter results: keep only extensions where `domain === HAI3_SCREEN_DOMAIN` AND `isScreenExtension(ext)` is true — `inst-val-filter`
-5. [ ] `p1` - **IF** filtered list is empty **RETURN** (package may have been removed) — `inst-val-no-ext`
-6. [ ] `p1` - Sort by `presentation.order` ascending (treat undefined as 0) — `inst-val-sort`
-7. [ ] `p1` - Execute actions chain to mount `screenExtensions[0]` — `inst-val-mount`
-8. [ ] `p1` - **TRY/CATCH** the mount call — on failure, silently skip — `inst-val-catch`
 
 ---
 
@@ -385,7 +338,7 @@ Prevents dropdowns from being clipped by the glassmorphic panel's `backdrop-filt
 1. [ ] `p1` - `StudioPanel` renders a `<div>` with `z-[99999]`, `fixed` positioning, and `pointer-events-none` as a portal container — `inst-portal-div`
 2. [ ] `p1` - On mount, `StudioPanel` registers the portal container with `StudioContext` via `setPortalContainer(ref.current)` — `inst-register-portal`
 3. [ ] `p1` - On unmount, `StudioPanel` clears the portal container via `setPortalContainer(null)` — `inst-clear-portal`
-4. [ ] `p1` - `ThemeSelector`, `LanguageSelector`, and `MfePackageSelector` each read `portalContainer` from `useStudioContext()` — `inst-read-portal`
+4. [ ] `p1` - `ThemeSelector` and `LanguageSelector` each read `portalContainer` from `useStudioContext()` — `inst-read-portal`
 5. [ ] `p1` - Each dropdown passes `container={portalContainer}` to `DropdownMenuContent` and adds `className="z-[99999] pointer-events-auto"` — `inst-set-container`
 
 ---
@@ -471,20 +424,18 @@ Applies independently to both `StudioPanel` and `CollapsedButton` draggables:
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-studio-devtools-control-panel`
 
-`ControlPanel` renders four sections vertically: `MfePackageSelector`, `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Controls use Studio local UI (`packages/studio/src/uikit/`) or project-chosen components. Dropdowns render inside the high-z-index portal container to prevent clipping by the panel's `backdrop-filter` stacking context.
+`ControlPanel` renders three sections vertically: `ApiModeToggle`, `ThemeSelector`, `LanguageSelector`. Controls use Studio local UI (`packages/studio/src/uikit/`) or project-chosen components. Dropdowns render inside the high-z-index portal container to prevent clipping by the panel's `backdrop-filter` stacking context.
 
 **Implementation details**:
 - `ThemeSelector`: reads `useTheme()`, uses `DropdownMenu` / `DropdownButton` with `ButtonVariant.Outline`; formats names with `upperFirst` word-split on `-`
 - `LanguageSelector`: reads `useTranslation()`; lists all 36 `SUPPORTED_LANGUAGES`; defaults to `LanguageDisplayMode.Native`; appends `(RTL)` for right-to-left languages
 - `ApiModeToggle`: reads Redux mock state via `useAppSelector`; dispatches `toggleMockMode()`; uses UIKit `Switch`
-- `MfePackageSelector`: reads `useRegisteredPackages()` and `useActivePackage()`; disabled when `packages.length <= 1`; mounts first screen extension by `presentation.order` via `registry.executeActionsChain()`
 - All dropdown `DropdownMenuContent` elements receive `container={portalContainer}` and `className="z-[99999] pointer-events-auto"`
 
 **Implements**:
 - `cpt-frontx-flow-studio-devtools-theme-change`
 - `cpt-frontx-flow-studio-devtools-language-change`
 - `cpt-frontx-flow-studio-devtools-mock-toggle`
-- `cpt-frontx-flow-studio-devtools-gts-package`
 - `cpt-frontx-algo-studio-devtools-portal-management`
 
 **Covers (PRD)**:
@@ -505,9 +456,8 @@ All Studio control panel settings (theme, language, mock mode, active GTS packag
 
 **Implementation details**:
 - Storage keys under prefix `hai3:studio:` — see `STORAGE_KEYS` in `packages/studio/src/types.ts`
-- `initPersistenceEffects()` registers seven event subscriptions in `StudioProvider` mount effect; returns cleanup
+- `initPersistenceEffects()` registers six event subscriptions in `StudioProvider` mount effect; returns cleanup
 - `useRestoreStudioSettings()` runs once on mount; emits `theme/changed`, `i18n/language/changed`, `mock/toggle` if values exist
-- `useRestoreGtsPackage(registry)` runs once when registry becomes available; calls `executeActionsChain` with error guard
 - `StudioProvider` initializes `collapsed` state from `loadStudioState(STORAGE_KEYS.COLLAPSED, false)`
 - `useDraggable` initializes position from `loadStudioState(storageKey, getDefaultPosition())`
 - `useResizable` initializes size from `loadStudioState(STORAGE_KEYS.SIZE, { width: 400, height: 500 })`
@@ -517,7 +467,6 @@ All Studio control panel settings (theme, language, mock mode, active GTS packag
 - `cpt-frontx-flow-studio-devtools-restore-settings`
 - `cpt-frontx-algo-studio-devtools-persistence-init`
 - `cpt-frontx-algo-studio-devtools-localStorage-guard`
-- `cpt-frontx-algo-studio-devtools-restore-gts-validation`
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-studio-persistence`
@@ -634,7 +583,6 @@ All localStorage keys use the prefix `hai3:studio:`. Current keys defined in `ST
 | `hai3:studio:theme` | `string` — theme ID |
 | `hai3:studio:language` | `string` — language code |
 | `hai3:studio:mockEnabled` | `boolean` — mock API enabled state |
-| `hai3:studio:activePackageId` | `string` — active GTS package ID |
 
 ### Studio Event Namespace
 

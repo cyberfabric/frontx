@@ -20,14 +20,6 @@ export interface ButtonPositionChangedPayload {
 }
 
 /**
- * Payload when user selects a GTS Package in the control panel.
- * Used for persistence only; framework does not subscribe.
- */
-export interface ActivePackageChangedPayload {
-  activePackageId: string;
-}
-
-/**
  * Studio Event Names
  * Namespace: studio/
  */
@@ -35,7 +27,6 @@ export const StudioEvents = {
   PositionChanged: 'studio/positionChanged',
   SizeChanged: 'studio/sizeChanged',
   ButtonPositionChanged: 'studio/buttonPositionChanged',
-  ActivePackageChanged: 'studio/activePackageChanged',
 } as const;
 
 /**
@@ -47,6 +38,5 @@ declare module '@cyberfabric/state' {
     'studio/positionChanged': PositionChangedPayload;
     'studio/sizeChanged': SizeChangedPayload;
     'studio/buttonPositionChanged': ButtonPositionChangedPayload;
-    'studio/activePackageChanged': ActivePackageChangedPayload;
   }
 }

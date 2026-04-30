@@ -39,7 +39,6 @@ describe('initPersistenceEffects', () => {
     handlers.get('theme/changed')?.({ themeId: 'midnight' });
     handlers.get('i18n/language/changed')?.({ language: 'ar' });
     handlers.get('mock/toggle')?.({ enabled: true });
-    handlers.get(StudioEvents.ActivePackageChanged)?.({ activePackageId: 'hai3.demo' });
 
     expect(saveStudioState).toHaveBeenNthCalledWith(1, STORAGE_KEYS.POSITION, { x: 1, y: 2 });
     expect(saveStudioState).toHaveBeenNthCalledWith(2, STORAGE_KEYS.SIZE, { width: 320, height: 400 });
@@ -47,7 +46,6 @@ describe('initPersistenceEffects', () => {
     expect(saveStudioState).toHaveBeenNthCalledWith(4, STORAGE_KEYS.THEME, 'midnight');
     expect(saveStudioState).toHaveBeenNthCalledWith(5, STORAGE_KEYS.LANGUAGE, 'ar');
     expect(saveStudioState).toHaveBeenNthCalledWith(6, STORAGE_KEYS.MOCK_ENABLED, true);
-    expect(saveStudioState).toHaveBeenNthCalledWith(7, STORAGE_KEYS.ACTIVE_PACKAGE_ID, 'hai3.demo');
 
     cleanup();
 
@@ -58,7 +56,6 @@ describe('initPersistenceEffects', () => {
       'theme/changed',
       'i18n/language/changed',
       'mock/toggle',
-      StudioEvents.ActivePackageChanged,
     ]));
 
     for (const eventName of [
@@ -68,7 +65,6 @@ describe('initPersistenceEffects', () => {
       'theme/changed',
       'i18n/language/changed',
       'mock/toggle',
-      StudioEvents.ActivePackageChanged,
     ] satisfies EventName[]) {
       expect(subscriptions.get(eventName)?.unsubscribe).toHaveBeenCalledTimes(1);
     }

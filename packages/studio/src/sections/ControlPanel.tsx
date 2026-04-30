@@ -1,7 +1,6 @@
 // @cpt-dod:cpt-frontx-dod-studio-devtools-control-panel:p1
 import React from 'react';
 import { useTranslation } from '@cyberfabric/react';
-import { MfePackageSelector } from './MfePackageSelector';
 import { ThemeSelector } from './ThemeSelector';
 import { LanguageSelector } from './LanguageSelector';
 import { ApiModeToggle } from './ApiModeToggle';
@@ -18,7 +17,6 @@ export const ControlPanel: React.FC = () => {
         </h3>
 
         <div className="space-y-3">
-          <MfePackageSelector />
           <ApiModeToggle />
           <ThemeSelector />
           <LanguageSelector />

@@ -5,15 +5,15 @@
  * Uses local shadcn/ui Sidebar components for proper styling and collapsible behavior.
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   useAppSelector,
   useHAI3,
-  useActivePackage,
+  useDomainExtensions,
+  selectMountedExtension,
   eventBus,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SCREEN_DOMAIN,
-  type Extension,
   type MenuState,
   type ScreenExtension,
 } from '@cyberfabric/react';
@@ -38,37 +38,13 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   const menuState = useAppSelector((state) => state['layout/menu'] as MenuState | undefined);
   const app = useHAI3();
   const { mfeRegistry } = app;
-  const activePackage = useActivePackage();
 
   const collapsed = menuState?.collapsed ?? false;
 
-  // Extension-driven menu state — filtered by active GTS package
-  const [extensions, setExtensions] = useState<ScreenExtension[]>([]);
-  const [mountedId, setMountedId] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (!mfeRegistry) return;
-
-    const refresh = () => {
-      let screenExts: ScreenExtension[];
-      if (activePackage) {
-        const packageExts = mfeRegistry.getExtensionsForPackage(activePackage);
-        screenExts = packageExts.filter(
-          (ext: Extension) => ext.domain === HAI3_SCREEN_DOMAIN && 'presentation' in ext
-        ) as ScreenExtension[];
-      } else {
-        screenExts = mfeRegistry.getExtensionsForDomain(HAI3_SCREEN_DOMAIN) as ScreenExtension[];
-      }
-      const sorted = screenExts
-        .sort((a, b) => (a.presentation.order ?? 999) - (b.presentation.order ?? 999));
-      setExtensions(sorted);
-      setMountedId(mfeRegistry.getMountedExtension(HAI3_SCREEN_DOMAIN));
-    };
-
-    refresh();
-    const interval = setInterval(refresh, 500);
-    return () => clearInterval(interval);
-  }, [mfeRegistry, activePackage]);
+  const extensions = useDomainExtensions(HAI3_SCREEN_DOMAIN) as ScreenExtension[];
+  const activeExtensionId = useAppSelector(
+    (state) => selectMountedExtension(state, HAI3_SCREEN_DOMAIN)
+  );
 
   const handleToggleCollapse = () => {
     eventBus.emit('layout/menu/collapsed', { collapsed: !collapsed });
@@ -84,7 +60,6 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
           payload: { subject: extensionId },
         },
       });
-      setMountedId(extensionId);
     },
     [mfeRegistry]
   );
@@ -104,25 +79,25 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
         <SidebarMenu>
           {extensions.length === 0 ? (
             <div className="px-3 py-4 text-sm text-muted-foreground">
-              No screens yet. Create a screenset with <code className="rounded bg-muted px-1.5 py-0.5 font-mono text-xs">hai3 screenset create</code> or add MFE packages.
+              No screen extensions registered.
             </div>
           ) : (
-            extensions.map((ext) => {
-              const isActive = ext.id === mountedId;
-              const pres = ext.presentation;
+            extensions.map((extension) => {
+              const { label, icon } = extension.presentation;
+              const isActive = extension.id === activeExtensionId;
               return (
-                <SidebarMenuItem key={ext.id}>
+                <SidebarMenuItem key={extension.id}>
                   <SidebarMenuButton
                     isActive={isActive}
-                    onClick={() => handleMenuItemClick(ext.id)}
-                    tooltip={collapsed ? pres.label : undefined}
+                    onClick={() => handleMenuItemClick(extension.id)}
+                    tooltip={collapsed ? label : undefined}
                   >
-                    {pres.icon && (
+                    {icon && (
                       <SidebarMenuIcon>
-                        <Icon icon={pres.icon} className="w-4 h-4" />
+                        <Icon icon={icon} className="w-4 h-4" />
                       </SidebarMenuIcon>
                     )}
-                    <span>{pres.label}</span>
+                    <span>{label}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               );

@@ -22,8 +22,6 @@
   - [Subscribe to Shared Property from MFE](#subscribe-to-shared-property-from-mfe)
   - [Request Host Action from MFE](#request-host-action-from-mfe)
   - [Observe Domain Extensions](#observe-domain-extensions)
-  - [Observe Registered Packages](#observe-registered-packages)
-  - [Observe Active Screen Package](#observe-active-screen-package)
   - [Provide MFE Context to Child Extension](#provide-mfe-context-to-child-extension)
   - [Access the FrontX App Instance Directly](#access-the-frontx-app-instance-directly)
 - [3. Processes / Business Logic (CDSL)](#3-processes--business-logic-cdsl)
@@ -254,34 +252,6 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 
 ---
 
-### Observe Registered Packages
-
-- [x] `p1` - **ID**: `cpt-frontx-flow-react-bindings-use-registered-packages`
-
-**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
-
-1. [x] - `p1` - Developer calls `useRegisteredPackages()` inside a component wrapped by `HAI3Provider` - `inst-call-registered-packages`
-2. [x] - `p1` - Hook reads `app.mfeRegistry`; throws if absent - `inst-guard-registry-packages`
-3. [x] - `p1` - Hook subscribes to `app.store` changes via `useSyncExternalStore` - `inst-subscribe-store-packages`
-4. [x] - `p1` - Snapshot function calls `registry.getRegisteredPackages()`, joins with comma as cache key; RETURN cached list when unchanged - `inst-diff-packages`
-
----
-
-### Observe Active Screen Package
-
-- [x] `p1` - **ID**: `cpt-frontx-flow-react-bindings-use-active-package`
-
-**Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
-
-1. [x] - `p1` - Developer calls `useActivePackage()` inside a component wrapped by `HAI3Provider` - `inst-call-active-package`
-2. [x] - `p1` - Hook reads `app.mfeRegistry`; throws if absent - `inst-guard-registry-active`
-3. [x] - `p1` - Hook subscribes to `app.store` changes via `useSyncExternalStore` - `inst-subscribe-store-active`
-4. [x] - `p1` - Snapshot function calls `registry.getMountedExtension(HAI3_SCREEN_DOMAIN)` - `inst-get-mounted-extension`
-5. [x] - `p1` - IF no extension mounted THEN RETURN `undefined` - `inst-return-undefined-active`
-6. [x] - `p1` - IF extension mounted THEN call `extractGtsPackage(extensionId)` and RETURN result, using cached value when unchanged - `inst-extract-package`
-
----
-
 ### Provide MFE Context to Child Extension
 
 - [x] `p1` - **ID**: `cpt-frontx-flow-react-bindings-mfe-provider`
@@ -355,7 +325,7 @@ Guards that throw when MFE-scoped hooks are used outside their required context.
 
 1. [x] - `p1` - `useMfeBridge()`, `useMfeContext()`, `useSharedProperty()`, `useHostAction()` MUST throw a descriptive error if called outside a `MfeProvider` ancestor - `inst-throw-no-mfe-context`
 2. [x] - `p1` - `useFrontX()` MUST throw a descriptive error if called outside a `HAI3Provider` ancestor - `inst-throw-no-hai3-context`
-3. [x] - `p1` - `useDomainExtensions()`, `useRegisteredPackages()`, `useActivePackage()` MUST throw if `app.mfeRegistry` is not present, directing developers to add the `microfrontends()` plugin - `inst-throw-no-registry`
+3. [x] - `p1` - `useDomainExtensions()` MUST throw if `app.mfeRegistry` is not present, directing developers to add the `microfrontends()` plugin - `inst-throw-no-registry`
 
 ---
 
@@ -581,12 +551,10 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-react-bindings-observation-hooks`
 
-`useDomainExtensions(domainId)`, `useRegisteredPackages()`, and `useActivePackage()` subscribe to `app.store` changes via `useSyncExternalStore`. All three require `app.mfeRegistry` (throw if absent). All three use ref-based snapshot caching to return referentially stable arrays, preventing re-renders when the underlying data has not changed. `useActivePackage` extracts the GTS package string from the currently mounted screen extension via `extractGtsPackage`.
+`useDomainExtensions(domainId)` subscribes to `app.store` changes via `useSyncExternalStore`. It requires `app.mfeRegistry` (throws if absent) and uses ref-based snapshot caching to return a referentially stable array, preventing re-renders when the underlying data has not changed.
 
 **Implements**:
 - `cpt-frontx-flow-react-bindings-use-domain-extensions`
-- `cpt-frontx-flow-react-bindings-use-registered-packages`
-- `cpt-frontx-flow-react-bindings-use-active-package`
 - `cpt-frontx-algo-react-bindings-stable-snapshots`
 
 **Covers (PRD)**:
@@ -649,7 +617,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 - [x]`ExtensionDomainSlot` shows loading state during mount, transitions to mounted container on success, shows error UI on failure, relies on `queryCache()` / `queryCacheShared()` shared-client reuse for host cache reuse, and dispatches unmount on cleanup only for domains that support explicit unmount
 - [x]`useSharedProperty` re-renders MFE component when host updates the subscribed property
 - [x]`useHostAction` sends an `ActionsChain` to the host bridge; errors are logged to console, not thrown
-- [x]`useDomainExtensions`, `useRegisteredPackages`, `useActivePackage` all throw descriptive errors when `microfrontends()` plugin is absent
+- [x]`useDomainExtensions` throws a descriptive error when `microfrontends()` plugin is absent
 - [x]All three observation hooks return referentially stable arrays when the underlying data has not changed
 - [x]MFE-scoped hooks throw descriptive errors when called outside `MfeProvider`
 - [x]`useFrontX` throws descriptive error when called outside `HAI3Provider`

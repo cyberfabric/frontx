@@ -11,8 +11,6 @@ export {
   useSharedProperty,
   useHostAction,
   useDomainExtensions,
-  useRegisteredPackages,
-  useActivePackage,
 } from './hooks';
 export { ThemeAwareReactLifecycle } from './ThemeAwareReactLifecycle';
 export { RefContainerProvider } from './components/RefContainerProvider';

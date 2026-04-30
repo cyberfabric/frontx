@@ -3,11 +3,11 @@
 // @cpt-dod:cpt-frontx-dod-studio-devtools-persistence:p1
 // @cpt-dod:cpt-frontx-dod-studio-devtools-conditional-loading:p1
 import React, { createContext, useContext, useState, useCallback, useEffect, ReactNode } from 'react';
-import { I18nRegistry, Language, i18nRegistry, useHAI3 } from '@cyberfabric/react';
+import { I18nRegistry, Language, i18nRegistry } from '@cyberfabric/react';
 import { saveStudioState, loadStudioState } from './utils/persistence';
 import { STORAGE_KEYS } from './types';
 import { initPersistenceEffects } from './effects/persistenceEffects';
-import { useRestoreStudioSettings, useRestoreGtsPackage } from './hooks/useRestoreStudioSettings';
+import { useRestoreStudioSettings } from './hooks/useRestoreStudioSettings';
 
 /**
  * Studio Translation Loader
@@ -68,15 +68,6 @@ interface StudioContextValue {
 
 const StudioContext = createContext<StudioContextValue | undefined>(undefined);
 
-/**
- * Runs GTS Package restore when registry is available.
- * Must be mounted inside StudioProvider and under HAI3Provider (useHAI3).
- */
-const RestoreGtsPackageOnMount: React.FC = () => {
-  const app = useHAI3();
-  useRestoreGtsPackage(app.mfeRegistry);
-  return null;
-};
 
 export const useStudioContext = () => {
   const context = useContext(StudioContext);
@@ -124,7 +115,6 @@ export const StudioProvider: React.FC<StudioProviderProps> = ({ children }) => {
         setPortalContainer,
       }}
     >
-      <RestoreGtsPackageOnMount />
       {children}
     </StudioContext.Provider>
   );
