@@ -15,8 +15,8 @@ This package contains the VitePress-based documentation site for FrontX, coverin
 
 ### Prerequisites
 
-- Node.js >= 25.1.0
-- npm >= 11.6.0
+- Node.js >= 24.14.0
+- npm >= 10.0.0
 
 ### Setup
 
