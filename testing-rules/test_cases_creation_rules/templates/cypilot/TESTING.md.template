@@ -1,0 +1,181 @@
+# Cypilot Testing Integration
+
+This document bridges Cypilot FEATURE specifications with the BDD test framework (Playwright + playwright-bdd).
+
+## Overview
+
+Every Cypilot FEATURE that modifies UI **MUST** include automated E2E tests. Tests are generated from `FEATURE.md` requirements using `/testing:spec-to-tests`.
+
+## Workflow
+
+```
+1. /cypilot-plan
+   └─> Creates phased plan from FEATURE spec
+   └─> Includes testing phase
+
+2. /cypilot-generate
+   └─> Implements feature from FEATURE spec
+   └─> Generates BDD tests from FEATURE.md
+   └─> Runs tests to verify
+
+3. Tests remain in tests/ and src/mfe_packages/*/tests/
+```
+
+## Test Artifacts from FEATURE Spec
+
+For each Cypilot `FEATURE.md`, the following test artifacts are created:
+
+### 1. Feature File
+**Location:** `src/mfe_packages/{mfeName}/tests/{screenId}.feature`
+
+**Source:** Actor Flows (Section 2), Definitions of Done (Section 5), Acceptance Criteria (Section 6) from `FEATURE.md`
+
+**Format:**
+```gherkin
+@feature:{feature-name} @flow:{cpt-hai3-flow-id}
+Feature: {Capability Name}
+
+  Scenario: {Scenario Name}
+    Given {precondition}
+    When {action}
+    Then {verification}
+```
+
+### 2. Page Object Methods
+**Location:** `tests/ui/pages/{screen-id}-page.ts`
+
+**Source:** UI interactions implied by Actor Flows and Acceptance Criteria
+
+**Pattern:** Actions only (`click*`, `get*`, `fill*`)
+
+### 3. Step Definitions
+**Location:** `tests/steps/{section}.steps.ts`
+
+**Source:** Gherkin steps from feature file
+
+**Pattern:**
+- `When()` → call page object methods
+- `Then()` → assertions + verification
+
+### 4. Locators
+**Location:** `tests/ui/locators.ts`
+
+**Source:** qa-class attributes from React components (added via `/testing:locators`)
+
+### 5. Fixtures
+**Location:** `tests/fixtures/fixtures.ts`
+
+**Source:** Page object registration via `test.extend()`
+
+## Testing Phase Template
+
+When running `/cypilot-generate` for UI features, include this testing phase:
+
+```markdown
+## E2E Testing
+- [ ] Generate feature file from FEATURE.md
+- [ ] Add page object methods to tests/ui/pages/{screen-id}-page.ts
+- [ ] Add step definitions to tests/steps/{section}.steps.ts
+- [ ] Register page object fixtures in tests/fixtures/fixtures.ts
+- [ ] Add qa-class attributes to components (if needed)
+- [ ] Run tests: npx bddgen && npx playwright test --project=chromium
+```
+
+## FEATURE Requirements → Test Coverage
+
+| FEATURE Section | Test Artifact | Tool |
+|-----------------|---------------|------|
+| Actor Flows (Section 2) | `@flow:{cpt-id}` tag + Gherkin scenarios | `/testing:spec-to-tests` |
+| Definitions of Done (Section 5) | `@dod:{cpt-id}` tag + verification scenarios | `/testing:spec-to-tests` |
+| Acceptance Criteria (Section 6) | `@feature:{name}` + `@acceptance` tags | `/testing:spec-to-tests` |
+| UI interactions | Page object methods | `/testing:spec-to-tests` |
+| Component selectors | Locator constants + qa-class | `/testing:locators` |
+
+## Example: Studio DevTools
+
+### Input: `architecture/features/feature-studio-devtools/FEATURE.md`
+
+**Actor Flow:**
+```markdown
+### Drag Panel to New Position
+- [x] `p1` - **ID**: `cpt-hai3-flow-studio-devtools-drag-panel`
+1. [x] - `p1` - Developer presses and holds the panel header - `inst-press-header`
+2. [x] - `p1` - Developer drags the panel to a new in-viewport position - `inst-drag-to-position`
+```
+
+**Acceptance Criteria:**
+```markdown
+- [x] Studio panel renders as a fixed glassmorphic overlay in development mode
+- [x] Panel can be dragged to any in-viewport position
+```
+
+### Output: Test Artifacts
+
+**Feature:** `src/mfe_packages/demo-mfe/tests/studio-devtools.feature`
+```gherkin
+@feature:studio-devtools @acceptance
+Scenario: Studio panel renders in development mode
+  Given the application is running in development mode
+  Then the Studio panel should be visible as a fixed overlay
+
+@feature:studio-devtools @flow:cpt-hai3-flow-studio-devtools-drag-panel
+Scenario: Studio panel can be dragged
+  Given the Studio panel is visible
+  When I drag the panel header to a new position
+  Then the panel should move to the new position
+```
+
+**Page Object:** `tests/ui/pages/studio-devtools-page.ts`
+```typescript
+export class StudioDevtoolsPage extends BasePage {
+  async dragPanelTo(x: number, y: number): Promise<void> {
+    await this.dragElement(STUDIO_DEVTOOLS.PANEL_HEADER, x, y);
+  }
+}
+```
+
+**Step:** `tests/steps/studio-devtools.steps.ts`
+```typescript
+Then('the Studio panel should be visible as a fixed overlay', async ({ studioDevtoolsPage }) => {
+  const isVisible = await studioDevtoolsPage.isPanelVisible();
+  expect(isVisible).toBe(true);
+});
+```
+
+## Automation
+
+### During `/cypilot-generate`
+
+After completing implementation tasks, automatically:
+
+1. Check if FEATURE.md contains UI requirements (keywords: "screen", "menu", "table", "button", "panel", "component")
+2. If yes, run `/testing:spec-to-tests` with the FEATURE path
+3. Mark testing tasks as completed after test generation
+
+### Manual Override
+
+Skip test generation with:
+```markdown
+<!-- SKIP_TEST_GENERATION: API-only change -->
+```
+in the FEATURE spec or phase plan.
+
+## Validation
+
+Before merging:
+
+```bash
+# Run generated tests
+npx bddgen && npx playwright test --project=chromium
+
+# Check coverage matches FEATURE spec
+grep -n "Scenario:" src/mfe_packages/{mfeName}/tests/*.feature
+```
+
+All Actor Flows and Acceptance Criteria must have corresponding test scenarios.
+
+## References
+
+- Testing skills: `.claude/commands/testing/`
+- Testing rules: `testing-rules/`
+- Cypilot FEATURE specs: `architecture/features/*/FEATURE.md`
