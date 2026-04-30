@@ -5,8 +5,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
+import { MfeRegistry } from '../../../src/mfe/runtime/MfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import {
@@ -17,7 +17,7 @@ import {
 import { TestContainerProvider, makeMfeHandlerDouble, type TestDoubleMfeHandler } from '../../../__test-utils__';
 
 describe('Dynamic Registration', () => {
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let typeSystem: GtsPlugin;
 
@@ -63,7 +63,7 @@ describe('Dynamic Registration', () => {
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
     });
     mockContainerProvider = new TestContainerProvider();
@@ -73,8 +73,8 @@ describe('Dynamic Registration', () => {
   });
 
   describe('factory', () => {
-    it('should return an instance of abstract ScreensetsRegistry', () => {
-      expect(registry).toBeInstanceOf(ScreensetsRegistry);
+    it('should return an instance of abstract MfeRegistry', () => {
+      expect(registry).toBeInstanceOf(MfeRegistry);
     });
   });
 
@@ -170,7 +170,7 @@ describe('Dynamic Registration', () => {
         })
       ).resolves.toBeUndefined();
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[MfeRegistry] Actions chain failed:');
       expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
       errorSpy.mockRestore();
     });
@@ -187,7 +187,7 @@ describe('Dynamic Registration', () => {
         load: vi.fn().mockResolvedValue(mockLifecycle),
       });
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -242,7 +242,7 @@ describe('Dynamic Registration', () => {
         load: vi.fn().mockResolvedValue(mockLifecycle),
       });
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -290,7 +290,7 @@ describe('Dynamic Registration', () => {
 
     it('should auto-load if not loaded (19.5.10)', async () => {
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -349,14 +349,14 @@ describe('Dynamic Registration', () => {
         })
       ).resolves.toBeUndefined();
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[MfeRegistry] Actions chain failed:');
       expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
       errorSpy.mockRestore();
     });
 
     it('should keep extension registered and bundle loaded after unmount (19.5.12)', async () => {
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -425,7 +425,7 @@ describe('Dynamic Registration', () => {
 
     it('should unmount MFE if mounted (19.5.3)', async () => {
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-map-runtime-coordinator';
 import type { RuntimeConnection, RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
@@ -59,14 +59,14 @@ const testExtension: Extension = {
   entry: testEntry.id,
 };
 
-function getInternalCoordinator(registry: DefaultScreensetsRegistry): RuntimeCoordinator {
+function getInternalCoordinator(registry: DefaultMfeRegistry): RuntimeCoordinator {
   return Reflect.get(registry, 'coordinator') as RuntimeCoordinator;
 }
 
 describe('Runtime Coordinator Integration - Task 8.4.8', () => {
   describe('Registry coordinator wiring', () => {
     it('creates a WeakMapRuntimeCoordinator internally', () => {
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 
@@ -77,7 +77,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
       const typeSystem = new GtsPlugin();
       typeSystem.register(testEntry);
 
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [
           makeMfeHandlerDouble({
@@ -124,7 +124,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
   describe('Coordinator encapsulation', () => {
     it('should not pollute window global scope', () => {
-      new DefaultScreensetsRegistry({
+      new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 
@@ -137,7 +137,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
   });
   describe('Registry lifecycle cleanup', () => {
     it('should clean up coordinator on registry disposal', () => {
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 
@@ -155,7 +155,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
   describe('WeakMapRuntimeCoordinator standalone unit tests', () => {
     it('should register and retrieve runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 
@@ -177,7 +177,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
     it('should unregister runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 
@@ -196,7 +196,7 @@ describe('Runtime Coordinator Integration - Task 8.4.8', () => {
 
     it('should support multiple simultaneous runtime connections', () => {
       const coordinator = new WeakMapRuntimeCoordinator();
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem: createMockTypeSystemPlugin(),
       });
 

@@ -68,7 +68,7 @@ export type DomainLifecycleTriggerCallback = (domainId: string, stageId: string)
  * - Query methods for domains and extensions
  *
  * Key Benefits:
- * - Dependency Inversion: ScreensetsRegistry depends on abstraction
+ * - Dependency Inversion: MfeRegistry depends on abstraction
  * - Testability: Can inject mock managers for testing
  * - Encapsulation: Storage mechanism is hidden in concrete class
  */

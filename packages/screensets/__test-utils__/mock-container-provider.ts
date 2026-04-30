@@ -7,7 +7,7 @@
 import { vi } from 'vitest';
 import { ContainerProvider } from '../src/mfe/runtime/container-provider';
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
 /**
  * Test ContainerProvider for tests.
@@ -16,7 +16,7 @@ import { ContainerProvider } from '../src/mfe/runtime/container-provider';
  * via a Vitest mock function.
  */
 export class TestContainerProvider extends ContainerProvider {
-  // @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mock-container-provider
+  // @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mock-container-provider
   public readonly mockContainer: Element;
   public readonly releaseContainerMock = vi.fn<(extensionId: string) => void>();
 
@@ -34,7 +34,7 @@ export class TestContainerProvider extends ContainerProvider {
   releaseContainer(extensionId: string): void {
     this.releaseContainerMock(extensionId);
   }
-  // @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mock-container-provider
+  // @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mock-container-provider
 }
 
 export { TestContainerProvider as MockContainerProvider };

@@ -44,8 +44,8 @@ export function MfeScreenContainer() {
     });
   }, [app]);
 
-  const screenExtensions = bootstrapped && app.screensetsRegistry
-    ? (app.screensetsRegistry.getExtensionsForDomain(screenDomain.id) as ScreenExtension[])
+  const screenExtensions = bootstrapped && app.mfeRegistry
+    ? (app.mfeRegistry.getExtensionsForDomain(screenDomain.id) as ScreenExtension[])
     : [];
 
   // Reactively track the currently mounted screen extension ID.
@@ -55,8 +55,8 @@ export function MfeScreenContainer() {
     [app.store]
   );
   const getMountedScreenExtension = useCallback(
-    () => app.screensetsRegistry?.getMountedExtension(screenDomain.id),
-    [app.screensetsRegistry]
+    () => app.mfeRegistry?.getMountedExtension(screenDomain.id),
+    [app.mfeRegistry]
   );
   const activeExtensionId = useSyncExternalStore(
     subscribe,
@@ -74,9 +74,9 @@ export function MfeScreenContainer() {
 
   return (
     <div className="flex-1 overflow-auto" data-mfe-screen-container>
-      {resolvedExtensionId && app.screensetsRegistry ? (
+      {resolvedExtensionId && app.mfeRegistry ? (
         <ExtensionDomainSlot
-          registry={app.screensetsRegistry}
+          registry={app.mfeRegistry}
           domainId={screenDomain.id}
           extensionId={resolvedExtensionId}
           containerRef={containerRef}

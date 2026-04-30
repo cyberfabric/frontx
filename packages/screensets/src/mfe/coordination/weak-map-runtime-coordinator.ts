@@ -21,7 +21,7 @@ import { RuntimeCoordinator, type RuntimeConnection } from './types';
  * When a container element is garbage collected, the WeakMap entry is automatically
  * cleaned up by the JavaScript engine.
  *
- * This is the default coordinator implementation used by ScreensetsRegistry.
+ * This is the default coordinator implementation used by MfeRegistry.
  * It is NOT exported from the package - only the abstract RuntimeCoordinator is exported.
  *
  * @internal

@@ -75,7 +75,7 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-sdk-layer-deps` | Strict layer dependency graph enforced by `dependency-cruiser` rules: L3→L2→L1 only |
 | `cpt-frontx-fr-sdk-plugin-arch` | `createHAI3()` builder at L2 with `use()` chaining; each plugin receives `HAI3PluginContext` |
 | `cpt-frontx-fr-sdk-action-pattern` | All mutations flow through `createAction()` → eventBus dispatch → effect handler → Redux reducer |
-| `cpt-frontx-fr-mfe-dynamic-registration` | Runtime MFE registration via `screensetsRegistryFactory.build()` with handler injection |
+| `cpt-frontx-fr-mfe-dynamic-registration` | Runtime MFE registration via `mfeRegistryFactory.build()` with handler injection |
 | `cpt-frontx-fr-blob-fresh-eval` | Blob URL isolation: each MFE bundle fetched, rewritten, and evaluated in a fresh blob context |
 | `cpt-frontx-fr-blob-import-rewriting` | Import specifiers in MFE bundles rewritten to blob URLs via `importRewriter` before evaluation; `import.meta.url` references rewritten to the real base URL |
 | `cpt-frontx-fr-dataflow-no-redux` | MFEs use internal `useReducer`/`useState`; no access to host Redux store |
@@ -105,8 +105,8 @@ Requirements that significantly influence architecture decisions.
 | `cpt-frontx-fr-mfe-ext-domain` | `ExtensionDomain` type defines id, sharedProperties, actions, extensionsActions, defaultActionTimeout, lifecycleStages, extensionsLifecycleStages, and optional extensionsTypeId |
 | `cpt-frontx-fr-mfe-shared-property` | `SharedProperty` type with `id: string` and `value: unknown`; constants are GTS type IDs |
 | `cpt-frontx-fr-mfe-action-types` | `Action` and `ActionsChain` types enable chain-based MFE action execution with fallback support; action `type` values are GTS schema type IDs (trailing `~`); extension references in payloads use `subject` field |
-| `cpt-frontx-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
-| `cpt-frontx-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `screensetsRegistry.updateSharedProperty()` |
+| `cpt-frontx-fr-mfe-theme-propagation` | `themes()` plugin propagates theme changes to all MFE extensions via `mfeRegistry.updateSharedProperty()` |
+| `cpt-frontx-fr-mfe-i18n-propagation` | `i18n()` plugin propagates language changes to all MFE extensions via `mfeRegistry.updateSharedProperty()` |
 | `cpt-frontx-fr-blob-no-revoke` | Blob URLs kept alive for page lifetime; `URL.revokeObjectURL()` never called after `import()` resolves |
 | `cpt-frontx-fr-blob-source-cache` | In-memory cache of fetched source text keyed by chunk URL; at most one network fetch per chunk across all loads |
 | `cpt-frontx-fr-blob-recursive-chain` | MFE handler recursively creates blob URLs for chunk and all static dependencies |
@@ -429,7 +429,7 @@ Defines the contract between the host application and microfrontend extensions. 
 
 ##### Responsibility scope
 
-- **Screen-set registry**: `screensetsRegistryFactory` for registering/querying screen-sets with handler injection
+- **Screen-set registry**: `mfeRegistryFactory` for registering/querying screen-sets with handler injection
 - **MFE type contracts**: Entry types (component, screen, extension), domain declarations, shared property schemas, action schema type definitions (GTS schema type IDs with trailing `~`; payloads use `subject` for extension references)
 - **Blob URL isolation**: Fetches MFE bundles, rewrites import specifiers to blob URLs, caches source text, manages per-load import maps
 - **Import rewriting**: Transforms bare import specifiers for all declared shared dependencies (both `@cyberfabric/*` and third-party) in MFE bundles to blob URL references for runtime resolution
@@ -553,7 +553,7 @@ Bridges the framework layer to React 19, providing the provider tree, hooks, and
 - **Service descriptors**: Service descriptors are the only sanctioned source of query keys and cache metadata. `BaseApiService` descriptors feed `useApiQuery()`, `useApiMutation()`, and `QueryCache` directly, so per-domain query key factories and `queryOptions()` are no longer part of the public model.
 - **MFE rendering**: `ExtensionDomainSlot` drives host-side mount/unmount for domain content, while `RefContainerProvider` lets the framework resolve the same DOM node that React renders. Host bootstrap registers domains/extensions/shared properties and returns screen extensions for route selection; the host screen container renders `ExtensionDomainSlot`, and MFE roots join the same `queryCache()`-owned host `QueryClient` via `queryCacheShared()` without leaking cache metadata into L1 contracts. MFEs still render inside Shadow DOM and do not inherit host React context directly.
 - **Error boundaries**: Per-MFE error boundaries preventing extension failures from crashing the host
-- **Initialization sequence**: Orchestrates `themeRegistry → screensetsRegistryFactory.build() → domain registration → HAI3Provider`
+- **Initialization sequence**: Orchestrates `themeRegistry → mfeRegistryFactory.build() → domain registration → HAI3Provider`
 
 ##### Responsibility boundaries
 
@@ -663,16 +663,33 @@ interface EventBus {
 }
 ```
 
-- [x] `p1` - **ID**: `cpt-frontx-interface-screenset-registry`
-- **Contract**: cpt-frontx-contract-screenset-registry
-- **Technology**: TypeScript interface
-- **Location**: `packages/screensets/src/registry.ts`
+- [x] `p1` - **ID**: `cpt-frontx-interface-mfe-registry`
+- **Contract**: cpt-frontx-contract-mfe-registry
+- **Technology**: TypeScript abstract class
+- **Location**: `packages/screensets/src/mfe/runtime/MfeRegistry.ts`
 
 ```typescript
-interface ScreensetsRegistry {
-  register(screenSet: ScreenSetDefinition): void;
-  get(name: string): ScreenSetDefinition | undefined;
-  getAll(): ScreenSetDefinition[];
+abstract class MfeRegistry {
+  abstract readonly typeSystem: TypeSystemPlugin;
+  abstract registerDomain(domain: ExtensionDomain, containerProvider: ContainerProvider, options?: RegisterDomainOptions): void;
+  abstract unregisterDomain(domainId: string): Promise<void>;
+  abstract registerExtension(extension: Extension): Promise<void>;
+  abstract unregisterExtension(extensionId: string): Promise<void>;
+  abstract updateSharedProperty(propertyId: string, value: unknown): void;
+  abstract getDomainProperty(domainId: string, propertyTypeId: string): unknown;
+  abstract executeActionsChain(chain: ActionsChain): Promise<void>;
+  abstract triggerLifecycleStage(extensionId: string, stageId: string): Promise<void>;
+  abstract triggerDomainLifecycleStage(domainId: string, stageId: string): Promise<void>;
+  abstract triggerDomainOwnLifecycleStage(domainId: string, stageId: string): Promise<void>;
+  abstract getExtension(extensionId: string): Extension | undefined;
+  abstract getDomain(domainId: string): ExtensionDomain | undefined;
+  abstract getExtensionsForDomain(domainId: string): Extension[];
+  abstract getMountedExtension(domainId: string): string | undefined;
+  abstract getRegisteredPackages(): string[];
+  abstract getExtensionsForPackage(packageId: string): Extension[];
+  abstract getParentBridge(extensionId: string): ParentMfeBridge | null;
+  abstract setTheme(cssVars: Record<string, string>): void;
+  abstract dispose(): void;
 }
 ```
 
@@ -828,7 +845,7 @@ The CLI package exposes a command-and-generated-files contract to scaffolded pro
 | Interface | Package | Description |
 |-----------|---------|-------------|
 | `cpt-frontx-interface-state` | `@cyberfabric/state` | Event-driven state management with EventBus, Redux-backed store, dynamic slice registration, and type-safe module augmentation |
-| `cpt-frontx-interface-screensets` | `@cyberfabric/screensets` | MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
+| `cpt-frontx-interface-screensets` | `@cyberfabric/screensets` | MFE type system, MfeRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants |
 | `cpt-frontx-interface-api` | `@cyberfabric/api` | Protocol-agnostic API layer with REST and SSE protocols, plugin chain, mock mode, type guards, endpoint/stream descriptors |
 | `cpt-frontx-interface-i18n` | `@cyberfabric/i18n` | 36-language i18n registry, locale-aware formatters, RTL support, language metadata |
 | `cpt-frontx-interface-framework` | `@cyberfabric/framework` | Plugin architecture with `createHAI3()` builder, presets, layout domain slices, effect coordination, re-exports all L1 APIs |
@@ -848,7 +865,7 @@ The CLI package exposes a command-and-generated-files contract to scaffolded pro
 | Source Package | Target Package | Interface Used | Purpose |
 |----------------|----------------|----------------|----------|
 | `@cyberfabric/framework` | `@cyberfabric/state` | Store, EventBus, Action, Effect APIs | State management and event-driven communication |
-| `@cyberfabric/framework` | `@cyberfabric/screensets` | ScreensetsRegistry, MFE contracts | MFE registration and lifecycle management |
+| `@cyberfabric/framework` | `@cyberfabric/screensets` | MfeRegistry, MFE contracts | MFE registration and lifecycle management |
 | `@cyberfabric/framework` | `@cyberfabric/api` | ApiService factory, protocol registry | API service initialization and protocol adapter setup |
 | `@cyberfabric/framework` | `@cyberfabric/i18n` | i18n init, namespace loader, formatters | Internationalization setup and language management |
 | `@cyberfabric/react` | `@cyberfabric/framework` | Builder output, plugin context, layout slices | Provider tree construction and hook bindings |
@@ -925,11 +942,11 @@ sequenceDiagram
     App->>Builder: .build()
     Builder->>Plugin: plugin.init(context)
     Plugin->>Registry: registerSlice(), registerEffect()
-    Plugin->>Registry: screensetsRegistry.register()
+    Plugin->>Registry: mfeRegistry.register()
     Builder-->>App: { store, config, registries }
     App->>Provider: <HAI3Provider config={...}>
     Provider->>Registry: themeRegistry init
-    Provider->>Registry: screensetsRegistryFactory.build()
+    Provider->>Registry: mfeRegistryFactory.build()
     Provider-->>App: Application rendered
 ```
 
@@ -1172,7 +1189,7 @@ Packages are versioned independently within the `0.x` major. Each package can be
 **Initialization Sequence Detail**: The initialization follows a strict order to ensure registries are populated before consumers access them:
 
 1. `themeRegistry` — theme tokens resolved
-2. `screensetsRegistryFactory.build()` — screen-set definitions with MFE handlers wired
+2. `mfeRegistryFactory.build()` — screen-set definitions with MFE handlers wired
 3. Domain registration — domain plugins register `ContainerProviders` for their screen-sets
 4. Extension registration — MFE extensions registered and loaded
 5. `HAI3Provider` mounts — React tree renders with all contexts available

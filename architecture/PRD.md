@@ -99,7 +99,7 @@ FrontX solves these by enforcing a proven architectural model with four isolated
 | Shared Property | Observable value broadcast to all extensions (e.g., theme, language). Propagated by owning plugin. |
 | Studio | Standalone dev tools overlay (theme selector, language picker, API mode toggle, floating panel). Only loaded in `import.meta.env.DEV`. |
 | UI Kit | Component library: per-project choice at creation (local components, shadcn, or third-party). |
-| Registry | Self-registering singleton (ScreensetsRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
+| Registry | Self-registering singleton (MfeRegistry, ThemeRegistry, I18nRegistry, ApiRegistry). Updated dynamically at runtime. |
 | GTS | Global Type System — schema-based validation for MFE shared properties and action chains. |
 | CDSL | Cypilot Domain-Specific Language for describing flows, algorithms, and states in FEATURE specs. |
 | Shell | The host application code that defines a screenset's layout structure and shell-level features. Owned by the screenset — freely modifiable without constraints. |
@@ -255,7 +255,7 @@ src/                -- Demo host application + MFE packages
 ### 4.1 In Scope
 
 - State management — EventBus pub/sub, Redux-backed store with dynamic slice registration, effect system
-- MFE runtime — ScreensetsRegistry, extension lifecycle, actions chain mediation, domain management, GTS validation
+- MFE runtime — MfeRegistry, extension lifecycle, actions chain mediation, domain management, GTS validation
 - API communication — REST and SSE protocols, plugin chain, mock mode, retry with exponential backoff
 - Internationalization — 36 languages, RTL support, namespace-based translations, lazy loading, locale-aware formatters
 - Plugin architecture — Composable plugins, presets (full, minimal, headless)
@@ -320,7 +320,7 @@ The system MUST use consistent FrontX Flux terminology: Action (emits events), E
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-sdk-screensets-package`
 
-`@cyberfabric/screensets` MUST export `LayoutDomain` enum, MFE type system (`MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension`, `ExtensionDomain`, `SharedProperty`, `Action`, `ActionsChain`), `ScreensetsRegistry`, `MfeHandler`, `MfeBridgeFactory`, and action/property constants. It MUST have ZERO `@cyberfabric/*` dependencies.
+`@cyberfabric/screensets` MUST export `LayoutDomain` enum, MFE type system (`MfeEntry`, `MfeEntryMF`, `Extension`, `ScreenExtension`, `ExtensionDomain`, `SharedProperty`, `Action`, `ActionsChain`), `MfeRegistry`, `MfeHandler`, `MfeBridgeFactory`, and action/property constants. It MUST have ZERO `@cyberfabric/*` dependencies.
 
 **Rationale**: MFE contracts must be consumable without pulling in framework or React.
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-microfrontend`
@@ -537,7 +537,7 @@ The system MUST support dynamic registration of MFE extensions and domains at ru
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-theme-propagation`
 
-The `themes()` plugin MUST call `screensetsRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` in its `theme/changed` event handler, wrapped in try/catch.
+The `themes()` plugin MUST call `mfeRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` in its `theme/changed` event handler, wrapped in try/catch.
 
 **Rationale**: Theme changes must propagate to all MFE extensions. Owned by themes plugin, not microfrontends.
 **Actors**: `cpt-frontx-actor-framework-plugin`
@@ -546,7 +546,7 @@ The `themes()` plugin MUST call `screensetsRegistry?.updateSharedProperty(HAI3_S
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-mfe-i18n-propagation`
 
-The `i18n()` plugin MUST call `screensetsRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` in its `i18n/language/changed` event handler, wrapped in try/catch.
+The `i18n()` plugin MUST call `mfeRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` in its `i18n/language/changed` event handler, wrapped in try/catch.
 
 **Rationale**: Language changes must propagate to all MFE extensions. Owned by i18n plugin, not microfrontends.
 **Actors**: `cpt-frontx-actor-framework-plugin`
@@ -693,7 +693,7 @@ When multiple MFEs are loaded concurrently, each load's shared dependency resolu
 
 - [x] `p1` - **ID**: `cpt-frontx-fr-broadcast-write-api`
 
-`ScreensetsRegistry` MUST provide `updateSharedProperty(propertyId, value)` as the sole write method. `updateDomainProperty()` and `updateDomainProperties()` MUST NOT exist.
+`MfeRegistry` MUST provide `updateSharedProperty(propertyId, value)` as the sole write method. `updateDomainProperty()` and `updateDomainProperties()` MUST NOT exist.
 
 **Rationale**: Shared properties have global semantics — one value across all declaring domains.
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`
@@ -1333,7 +1333,7 @@ Non-production screensets MUST NOT be included in the production build's module 
 
 **Type**: TypeScript ES module
 **Stability**: stable
-**Description**: MFE type system, ScreensetsRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants.
+**Description**: MFE type system, MfeRegistry, MfeHandler, MfeBridge, Shadow DOM utilities, GTS validation plugin, action/property constants.
 **Breaking Change Policy**: Major version bump required.
 
 #### @cyberfabric/api

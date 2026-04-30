@@ -8,7 +8,7 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-algo:cpt-frontx-algo-screenset-registry-operation-serialization:p1
+// @cpt-algo:cpt-frontx-algo-mfe-registry-operation-serialization:p1
 
 /**
  * Operation serializer for per-entity concurrency control.
@@ -34,7 +34,7 @@ export class OperationSerializer {
    * @param operation - Operation function to execute
    * @returns Promise resolving to operation result
    */
-  // @cpt-begin:cpt-frontx-algo-screenset-registry-operation-serialization:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-mfe-registry-operation-serialization:p1:inst-1
   async serializeOperation<T>(
     entityId: string,
     operation: () => Promise<T>
@@ -61,7 +61,7 @@ export class OperationSerializer {
       }
     }
   }
-  // @cpt-end:cpt-frontx-algo-screenset-registry-operation-serialization:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-mfe-registry-operation-serialization:p1:inst-1
 
   /**
    * Clear all operation queues.

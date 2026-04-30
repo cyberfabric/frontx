@@ -1,12 +1,12 @@
 import type { FederationSharedMap } from '../src/mfe/handler/federation-types';
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
 type GlobalWithFederation = typeof globalThis & {
   __federation_shared__?: FederationSharedMap;
 };
 
-// @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-federation-shared-scope
+// @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-federation-shared-scope
 function accessFederationSharedScope(
   value?: FederationSharedMap
 ): FederationSharedMap | undefined {
@@ -31,4 +31,4 @@ export function clearFederationSharedScope(): void {
   const federationHost = globalThis as GlobalWithFederation;
   delete federationHost.__federation_shared__;
 }
-// @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-federation-shared-scope
+// @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-federation-shared-scope

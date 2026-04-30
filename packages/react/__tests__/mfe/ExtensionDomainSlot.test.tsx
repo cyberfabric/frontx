@@ -49,9 +49,9 @@ describe('ExtensionDomainSlot', () => {
   it('mounts via registry.executeActionsChain when app has no queryCache plugin', async () => {
     const app = buildAppWithoutQueryCache();
 
-    const registry = app.screensetsRegistry;
+    const registry = app.mfeRegistry;
     if (!registry) {
-      throw new Error('expected screensetsRegistry');
+      throw new Error('expected mfeRegistry');
     }
 
     const extensionId = 'gts.hai3.mfes.ext.extension.v1~hai3.test.extension_domain_slot.ext.v1';
@@ -97,9 +97,9 @@ describe('ExtensionDomainSlot', () => {
       .build();
     apps.push(app);
 
-    const registry = app.screensetsRegistry;
+    const registry = app.mfeRegistry;
     if (!registry) {
-      throw new Error('expected screensetsRegistry');
+      throw new Error('expected mfeRegistry');
     }
 
     const extensionId = 'gts.hai3.mfes.ext.extension.v1~hai3.test.extension_domain_slot.qc.v1';
@@ -137,9 +137,9 @@ describe('ExtensionDomainSlot', () => {
 
   it('keeps the mount host rendered while the extension is loading', async () => {
     const app = buildAppWithoutQueryCache();
-    const registry = app.screensetsRegistry;
+    const registry = app.mfeRegistry;
     if (!registry) {
-      throw new Error('expected screensetsRegistry');
+      throw new Error('expected mfeRegistry');
     }
 
     const extensionId = 'gts.hai3.mfes.ext.extension.v1~hai3.test.extension_domain_slot.loading.v1';

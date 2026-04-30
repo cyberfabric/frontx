@@ -54,7 +54,7 @@ Chosen option: "Replace per-domain API with single `updateSharedProperty(propert
 
 ### Confirmation
 
-`updateSharedProperty()` is present on `ScreensetsRegistry` in `packages/screensets/src/registry.ts`. Theme propagation logic is in `packages/framework/src/plugins/themes/`. Language propagation logic is in `packages/framework/src/plugins/i18n/`. GTS validation uses ephemeral chained instance IDs in the validation effects files in those same directories.
+`updateSharedProperty()` is present on `MfeRegistry` in `packages/screensets/src/mfe/runtime/MfeRegistry.ts`. Theme propagation logic is in `packages/framework/src/plugins/themes/`. Language propagation logic is in `packages/framework/src/plugins/i18n/`. GTS validation uses ephemeral chained instance IDs in the validation effects files in those same directories.
 
 ## Pros and Cons of the Options
 

@@ -122,12 +122,12 @@ The options object avoids parameter proliferation: `onInitError` handles async i
 ## Traceability
 
 - **DESIGN**: [DESIGN.md](../DESIGN.md)
-- **Feature**: [feature-screenset-registry/FEATURE.md](../features/feature-screenset-registry/FEATURE.md)
+- **Feature**: [feature-mfe-registry/FEATURE.md](../features/feature-mfe-registry/FEATURE.md)
 - **Feature**: [feature-mfe-isolation/FEATURE.md](../features/feature-mfe-isolation/FEATURE.md)
 
 This decision directly addresses the following requirements or design elements:
 
 * `cpt-frontx-interface-child-mfe-bridge` — `registerActionHandler` signature changes to include `actionTypeId` parameter; abstract class replaces interface
 * `cpt-frontx-seq-extension-action-delivery` — mediator resolves handler by `(target, actionType)` pair instead of just `target`
-* `cpt-frontx-flow-screenset-registry-register-domain` — `registerDomain` removes `customActionHandler` parameter; per-type registration is explicit
-* `cpt-frontx-flow-screenset-registry-register-extension-handler` — `bridge.registerActionHandler(actionTypeId, handler)` is the per-type registration API
+* `cpt-frontx-flow-mfe-registry-register-domain` — `registerDomain` removes `customActionHandler` parameter; per-type registration is explicit
+* `cpt-frontx-flow-mfe-registry-register-extension-handler` — `bridge.registerActionHandler(actionTypeId, handler)` is the per-type registration API

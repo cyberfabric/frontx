@@ -56,12 +56,12 @@ export type {
 
 // Runtime (includes factory)
 export {
-  ScreensetsRegistry,
-  ScreensetsRegistryFactory,
-  screensetsRegistryFactory,
+  MfeRegistry,
+  MfeRegistryFactory,
+  mfeRegistryFactory,
   ContainerProvider,
 } from './runtime';
-export type { ScreensetsRegistryConfig, RegisterDomainOptions } from './runtime';
+export type { MfeRegistryConfig, RegisterDomainOptions } from './runtime';
 
 // Handler Types and Abstract Classes (concrete implementations are internal)
 export {
@@ -87,6 +87,6 @@ export {
 export { extractGtsPackage } from './gts';
 
 // NOTE: Shared Properties Provider and Runtime Coordination
-// are INTERNAL implementation details of ScreensetsRegistry and are NOT publicly exported.
+// are INTERNAL implementation details of MfeRegistry and are NOT publicly exported.
 // These are encapsulated within the registry class per SOLID principles.
 // If you need these for internal development or testing, import directly from the source files.

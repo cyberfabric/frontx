@@ -247,7 +247,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] - `p1` - Developer calls `useDomainExtensions(domainId)` inside a component wrapped by `HAI3Provider` - `inst-call-domain-extensions`
-2. [x] - `p1` - Hook reads `app.screensetsRegistry` from `HAI3Context`; throws if registry is absent (requires `microfrontends()` plugin) - `inst-guard-registry`
+2. [x] - `p1` - Hook reads `app.mfeRegistry` from `HAI3Context`; throws if registry is absent (requires `microfrontends()` plugin) - `inst-guard-registry`
 3. [x] - `p1` - Hook subscribes to `app.store` changes via `useSyncExternalStore` - `inst-subscribe-store`
 4. [x] - `p1` - On each store notification, snapshot function calls `registry.getExtensionsForDomain(domainId)` and compares extension IDs to cached value - `inst-diff-extensions`
 5. [x] - `p1` - RETURN cached extension array when IDs are unchanged; RETURN new array reference only when IDs differ (prevents spurious re-renders) - `inst-stable-reference`
@@ -261,7 +261,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] - `p1` - Developer calls `useRegisteredPackages()` inside a component wrapped by `HAI3Provider` - `inst-call-registered-packages`
-2. [x] - `p1` - Hook reads `app.screensetsRegistry`; throws if absent - `inst-guard-registry-packages`
+2. [x] - `p1` - Hook reads `app.mfeRegistry`; throws if absent - `inst-guard-registry-packages`
 3. [x] - `p1` - Hook subscribes to `app.store` changes via `useSyncExternalStore` - `inst-subscribe-store-packages`
 4. [x] - `p1` - Snapshot function calls `registry.getRegisteredPackages()`, joins with comma as cache key; RETURN cached list when unchanged - `inst-diff-packages`
 
@@ -274,7 +274,7 @@ Success criteria: Developers can wrap their application with `<HAI3Provider>`, a
 **Actors**: `cpt-frontx-actor-developer`, `cpt-frontx-actor-runtime`
 
 1. [x] - `p1` - Developer calls `useActivePackage()` inside a component wrapped by `HAI3Provider` - `inst-call-active-package`
-2. [x] - `p1` - Hook reads `app.screensetsRegistry`; throws if absent - `inst-guard-registry-active`
+2. [x] - `p1` - Hook reads `app.mfeRegistry`; throws if absent - `inst-guard-registry-active`
 3. [x] - `p1` - Hook subscribes to `app.store` changes via `useSyncExternalStore` - `inst-subscribe-store-active`
 4. [x] - `p1` - Snapshot function calls `registry.getMountedExtension(HAI3_SCREEN_DOMAIN)` - `inst-get-mounted-extension`
 5. [x] - `p1` - IF no extension mounted THEN RETURN `undefined` - `inst-return-undefined-active`
@@ -355,7 +355,7 @@ Guards that throw when MFE-scoped hooks are used outside their required context.
 
 1. [x] - `p1` - `useMfeBridge()`, `useMfeContext()`, `useSharedProperty()`, `useHostAction()` MUST throw a descriptive error if called outside a `MfeProvider` ancestor - `inst-throw-no-mfe-context`
 2. [x] - `p1` - `useFrontX()` MUST throw a descriptive error if called outside a `HAI3Provider` ancestor - `inst-throw-no-hai3-context`
-3. [x] - `p1` - `useDomainExtensions()`, `useRegisteredPackages()`, `useActivePackage()` MUST throw if `app.screensetsRegistry` is not present, directing developers to add the `microfrontends()` plugin - `inst-throw-no-registry`
+3. [x] - `p1` - `useDomainExtensions()`, `useRegisteredPackages()`, `useActivePackage()` MUST throw if `app.mfeRegistry` is not present, directing developers to add the `microfrontends()` plugin - `inst-throw-no-registry`
 
 ---
 
@@ -581,7 +581,7 @@ All five MFE-scoped hooks (`useMfeBridge`, `useMfeContext`, `useSharedProperty`,
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-react-bindings-observation-hooks`
 
-`useDomainExtensions(domainId)`, `useRegisteredPackages()`, and `useActivePackage()` subscribe to `app.store` changes via `useSyncExternalStore`. All three require `app.screensetsRegistry` (throw if absent). All three use ref-based snapshot caching to return referentially stable arrays, preventing re-renders when the underlying data has not changed. `useActivePackage` extracts the GTS package string from the currently mounted screen extension via `extractGtsPackage`.
+`useDomainExtensions(domainId)`, `useRegisteredPackages()`, and `useActivePackage()` subscribe to `app.store` changes via `useSyncExternalStore`. All three require `app.mfeRegistry` (throw if absent). All three use ref-based snapshot caching to return referentially stable arrays, preventing re-renders when the underlying data has not changed. `useActivePackage` extracts the GTS package string from the currently mounted screen extension via `extractGtsPackage`.
 
 **Implements**:
 - `cpt-frontx-flow-react-bindings-use-domain-extensions`

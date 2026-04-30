@@ -36,7 +36,7 @@ export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
 ): Promise<ScreenExtension[]> {
-  const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef);
+  const mfeRegistry = await bootstrapMfeDomains(app, screenContainerRef);
 
   if (MFE_MANIFESTS.length === 0) {
     console.warn(
@@ -53,18 +53,18 @@ export async function bootstrapMFE(
     // type system can validate entry references to these schemas at registration time.
     if (config.schemas) {
       for (const schema of config.schemas) {
-        screensetsRegistry.typeSystem.registerSchema(schema);
+        mfeRegistry.typeSystem.registerSchema(schema);
       }
     }
 
-    screensetsRegistry.typeSystem.register(config.manifest);
+    mfeRegistry.typeSystem.register(config.manifest);
 
     for (const entry of config.entries) {
-      screensetsRegistry.typeSystem.register({ ...entry, manifest: config.manifest });
+      mfeRegistry.typeSystem.register({ ...entry, manifest: config.manifest });
     }
 
     for (const extension of config.extensions) {
-      await screensetsRegistry.registerExtension(extension);
+      await mfeRegistry.registerExtension(extension);
     }
 
     screenExtensions.push(...config.extensions.filter(isScreenExtension));

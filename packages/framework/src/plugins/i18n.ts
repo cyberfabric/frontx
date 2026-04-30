@@ -75,7 +75,7 @@ export function i18n(): HAI3Plugin {
         async (payload: SetLanguagePayload) => {
           await i18nRegistry.setLanguage(payload.language as Language);
           try {
-            app.screensetsRegistry?.updateSharedProperty(
+            app.mfeRegistry?.updateSharedProperty(
               HAI3_SHARED_PROPERTY_LANGUAGE,
               payload.language
             );

@@ -96,38 +96,38 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
       .build();
     apps.push(app);
 
-    if (!app.screensetsRegistry) {
-      throw new Error('Expected screensetsRegistry');
+    if (!app.mfeRegistry) {
+      throw new Error('Expected mfeRegistry');
     }
-    const screensetsRegistry = app.screensetsRegistry;
+    const mfeRegistry = app.mfeRegistry;
 
     // Store registered extensions for getExtensionsForDomain mock
     const registeredExtensions = new Map<string, Extension>();
 
     // Mock registerExtension to bypass validation, dispatch action, and track
-    const origRegisterDomain = screensetsRegistry.registerDomain.bind(screensetsRegistry);
-    screensetsRegistry.registerDomain = ((
+    const origRegisterDomain = mfeRegistry.registerDomain.bind(mfeRegistry);
+    mfeRegistry.registerDomain = ((
       domain: ExtensionDomain,
       containerProvider: ContainerProvider,
-      options?: Parameters<typeof screensetsRegistry.registerDomain>[2]
+      options?: Parameters<typeof mfeRegistry.registerDomain>[2]
     ) => {
       origRegisterDomain(domain, containerProvider, options);
-    }) as typeof screensetsRegistry.registerDomain;
+    }) as typeof mfeRegistry.registerDomain;
 
-    screensetsRegistry.registerExtension = vi.fn(async (ext: Extension) => {
+    mfeRegistry.registerExtension = vi.fn(async (ext: Extension) => {
       registeredExtensions.set(ext.id, ext);
       // Dispatch any action to trigger store subscribers
       app.store.dispatch({ type: 'mfe/setExtensionRegistered', payload: { extensionId: ext.id } });
     });
 
-    screensetsRegistry.unregisterExtension = vi.fn(async (extId: string) => {
+    mfeRegistry.unregisterExtension = vi.fn(async (extId: string) => {
       registeredExtensions.delete(extId);
       // Dispatch any action to trigger store subscribers
       app.store.dispatch({ type: 'mfe/setExtensionUnregistered', payload: { extensionId: extId } });
     });
 
     // Mock getExtensionsForDomain to return from our tracked map
-    screensetsRegistry.getExtensionsForDomain = vi.fn((domainId: string) => {
+    mfeRegistry.getExtensionsForDomain = vi.fn((domainId: string) => {
       return Array.from(registeredExtensions.values()).filter(e => e.domain === domainId);
     });
 
@@ -144,10 +144,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should return extensions for the specified domain', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
       const testContainerProvider2 = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
-      await app.screensetsRegistry!.registerExtension(sidebarExtension1);
+      app.mfeRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
+      await app.mfeRegistry!.registerExtension(sidebarExtension1);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
@@ -158,14 +158,14 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should update when extension is registered', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
       expect(result.current).toHaveLength(0);
 
       await act(async () => {
-        await app.screensetsRegistry!.registerExtension(sidebarExtension1);
+        await app.mfeRegistry!.registerExtension(sidebarExtension1);
       });
 
       await waitFor(() => {
@@ -180,15 +180,15 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should update when extension is unregistered', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
-      await app.screensetsRegistry!.registerExtension(sidebarExtension1);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      await app.mfeRegistry!.registerExtension(sidebarExtension1);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
       expect(result.current).toHaveLength(1);
 
       await act(async () => {
-        await app.screensetsRegistry!.unregisterExtension(sidebarExtension1.id);
+        await app.mfeRegistry!.unregisterExtension(sidebarExtension1.id);
       });
 
       await waitFor(() => {
@@ -201,13 +201,13 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should only return extensions for the specified domain', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
       const testContainerProvider2 = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
+      app.mfeRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
 
-      await app.screensetsRegistry!.registerExtension(sidebarExtension1);
-      await app.screensetsRegistry!.registerExtension(sidebarExtension2);
-      await app.screensetsRegistry!.registerExtension(popupExtension);
+      await app.mfeRegistry!.registerExtension(sidebarExtension1);
+      await app.mfeRegistry!.registerExtension(sidebarExtension2);
+      await app.mfeRegistry!.registerExtension(popupExtension);
 
       const { result: sidebarResult } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
       const { result: popupResult } = renderHook(() => useDomainExtensions(popupDomainId), { wrapper: buildWrapper(app) });
@@ -223,11 +223,11 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should not re-render when extensions in other domains change but list is same', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
       const testContainerProvider2 = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
+      app.mfeRegistry!.registerDomain(mockPopupDomain, testContainerProvider2);
 
-      await app.screensetsRegistry!.registerExtension(sidebarExtension1);
+      await app.mfeRegistry!.registerExtension(sidebarExtension1);
 
       const renderSpy = vi.fn();
       const { result } = renderHook(
@@ -239,7 +239,7 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
       );
 
       await act(async () => {
-        await app.screensetsRegistry!.registerExtension(popupExtension);
+        await app.mfeRegistry!.registerExtension(popupExtension);
       });
 
       await waitFor(() => {
@@ -256,10 +256,10 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should return all current extensions for domain', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
 
-      await app.screensetsRegistry!.registerExtension(sidebarExtension1);
-      await app.screensetsRegistry!.registerExtension(sidebarExtension2);
+      await app.mfeRegistry!.registerExtension(sidebarExtension1);
+      await app.mfeRegistry!.registerExtension(sidebarExtension2);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
@@ -271,7 +271,7 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should return empty array for domain with no extensions', () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
@@ -283,14 +283,14 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
     it('should re-render when extensions change', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockSidebarDomain, testContainerProvider);
 
       const { result } = renderHook(() => useDomainExtensions(sidebarDomainId), { wrapper: buildWrapper(app) });
 
       expect(result.current).toHaveLength(0);
 
       await act(async () => {
-        await app.screensetsRegistry!.registerExtension(sidebarExtension1);
+        await app.mfeRegistry!.registerExtension(sidebarExtension1);
       });
 
       await waitFor(() => {
@@ -298,7 +298,7 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
       });
 
       await act(async () => {
-        await app.screensetsRegistry!.registerExtension(sidebarExtension2);
+        await app.mfeRegistry!.registerExtension(sidebarExtension2);
       });
 
       await waitFor(() => {
@@ -306,7 +306,7 @@ describe('useDomainExtensions hook - Phase 21.7', () => {
       });
 
       await act(async () => {
-        await app.screensetsRegistry!.unregisterExtension(sidebarExtension1.id);
+        await app.mfeRegistry!.unregisterExtension(sidebarExtension1.id);
       });
 
       await waitFor(() => {

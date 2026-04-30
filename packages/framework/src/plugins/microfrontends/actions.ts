@@ -17,31 +17,31 @@ import {
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
   type Extension,
-  type ScreensetsRegistry,
+  type MfeRegistry,
 } from '@cyberfabric/screensets';
 
 // ============================================================================
 // Module-Level Registry Reference
 // ============================================================================
 
-let screensetsRegistry: ScreensetsRegistry | null = null;
+let mfeRegistry: MfeRegistry | null = null;
 
 /**
- * Set the MFE-enabled ScreensetsRegistry reference.
+ * Set the MFE-enabled MfeRegistry reference.
  * Called during plugin initialization.
  */
-export function setMfeRegistry(registry: ScreensetsRegistry): void {
-  screensetsRegistry = registry;
+export function setMfeRegistry(registry: MfeRegistry): void {
+  mfeRegistry = registry;
 }
 
 /**
  * Helper to resolve domain ID for an extension.
  */
 function resolveDomainId(extensionId: string): string {
-  if (!screensetsRegistry) {
+  if (!mfeRegistry) {
     throw new Error('MFE registry not initialized. Call setMfeRegistry() before using lifecycle actions.');
   }
-  const extension = screensetsRegistry.getExtension(extensionId);
+  const extension = mfeRegistry.getExtension(extensionId);
   if (!extension) {
     throw new Error(`Extension '${extensionId}' is not registered. Register it before calling lifecycle actions.`);
   }
@@ -94,7 +94,7 @@ export function loadExtension(extensionId: string): void {
   const domainId = resolveDomainId(extensionId);
 
   // Call executeActionsChain fire-and-forget (no await)
-  screensetsRegistry!.executeActionsChain({
+  mfeRegistry!.executeActionsChain({
     action: {
       type: HAI3_ACTION_LOAD_EXT,
       target: domainId,
@@ -125,7 +125,7 @@ export function mountExtension(extensionId: string): void {
   const domainId = resolveDomainId(extensionId);
 
   // Call executeActionsChain fire-and-forget (no await)
-  screensetsRegistry!.executeActionsChain({
+  mfeRegistry!.executeActionsChain({
     action: {
       type: HAI3_ACTION_MOUNT_EXT,
       target: domainId,
@@ -152,7 +152,7 @@ export function mountExtension(extensionId: string): void {
 // @cpt-begin:cpt-frontx-flow-framework-composition-mfe-lifecycle:p1:inst-3
 export function unmountExtension(extensionId: string): void {
   const domainId = resolveDomainId(extensionId);
-  const domain = screensetsRegistry!.getDomain(domainId);
+  const domain = mfeRegistry!.getDomain(domainId);
   if (domain === undefined) {
     throw new Error(
       `MFE unmount failed: domain '${domainId}' is not registered (extension '${extensionId}'). Register the domain before unmounting.`
@@ -168,7 +168,7 @@ export function unmountExtension(extensionId: string): void {
   }
 
   // Call executeActionsChain fire-and-forget (no await)
-  screensetsRegistry!.executeActionsChain({
+  mfeRegistry!.executeActionsChain({
     action: {
       type: HAI3_ACTION_UNMOUNT_EXT,
       target: domainId,

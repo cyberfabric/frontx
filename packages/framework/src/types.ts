@@ -231,7 +231,7 @@ export interface PluginLifecycle {
  *   },
  *   onInit(app) {
  *     // Initialize MFE registry
- *     app.screensetsRegistry = screensetsRegistryFactory.create(...);
+ *     app.mfeRegistry = mfeRegistryFactory.create(...);
  *   },
  * };
  * ```
@@ -359,11 +359,11 @@ export interface ThemeRegistry {
 }
 
 /**
- * MFE-enabled ScreensetsRegistry (optional)
+ * MFE-enabled MfeRegistry (optional)
  * When the microfrontends plugin is used, this registry is available.
  * It provides MFE capabilities: registerDomain(), registerExtension(), etc.
  */
-export type MfeScreensetsRegistry = import('@cyberfabric/screensets').ScreensetsRegistry;
+export type MfeMfeRegistry = import('@cyberfabric/screensets').MfeRegistry;
 
 /**
  * FrontX App Runtime Extensions
@@ -395,8 +395,8 @@ export interface HAI3AppRuntimeExtensions {
  * app.actions.mountExtension(extensionId);
  *
  * // Access MFE registry (if microfrontends plugin is used)
- * if (app.screensetsRegistry) {
- *   app.screensetsRegistry.registerDomain(myDomain, containerProvider);
+ * if (app.mfeRegistry) {
+ *   app.mfeRegistry.registerDomain(myDomain, containerProvider);
  * }
  * ```
  */
@@ -416,8 +416,8 @@ export interface HAI3App extends HAI3AppRuntimeExtensions {
   /** I18n registry */
   i18nRegistry: I18nRegistry;
 
-  /** MFE-enabled ScreensetsRegistry (optional, provided by microfrontends plugin) */
-  screensetsRegistry?: MfeScreensetsRegistry;
+  /** MFE-enabled MfeRegistry (optional, provided by microfrontends plugin) */
+  mfeRegistry?: MfeMfeRegistry;
 
   /** All registered actions (type-safe via FrontXActions interface) */
   actions: HAI3Actions;

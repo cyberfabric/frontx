@@ -74,7 +74,7 @@ const StudioContext = createContext<StudioContextValue | undefined>(undefined);
  */
 const RestoreGtsPackageOnMount: React.FC = () => {
   const app = useHAI3();
-  useRestoreGtsPackage(app.screensetsRegistry);
+  useRestoreGtsPackage(app.mfeRegistry);
   return null;
 };
 

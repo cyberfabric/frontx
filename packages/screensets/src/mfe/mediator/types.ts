@@ -62,11 +62,11 @@ export abstract class ActionHandler {
    * @returns Promise that resolves when action is handled
    */
   abstract handleAction(
-    
+
     actionTypeId: string,
-   
+
     payload: Record<string, unknown> | undefined
-  
+
   ): Promise<void>;
 }
 
@@ -88,16 +88,16 @@ export abstract class ActionHandler {
  * - Handle timeouts with fallback execution
  *
  * Key Benefits:
- * - Dependency Inversion: ScreensetsRegistry depends on abstraction, not concrete implementation
+ * - Dependency Inversion: MfeRegistry depends on abstraction, not concrete implementation
  * - Testability: Can inject mock mediators for testing
  * - Encapsulation: Execution logic is hidden in concrete class
  *
  * @example
  * ```typescript
- * class ScreensetsRegistry {
+ * class MfeRegistry {
  *   private readonly mediator: ActionsChainsMediator;
  *
- *   constructor(config: ScreensetsRegistryConfig) {
+ *   constructor(config: MfeRegistryConfig) {
  *     this.mediator = new ActionsChainsMediator(config.typeSystem, this);
  *   }
  * }

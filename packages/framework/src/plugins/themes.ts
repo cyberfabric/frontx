@@ -73,9 +73,9 @@ export function themes(): HAI3Plugin {
         try {
           const themeConfig = themeRegistry.get(payload.themeId);
           if (themeConfig) {
-            app.screensetsRegistry?.setTheme(themeConfig.variables);
+            app.mfeRegistry?.setTheme(themeConfig.variables);
           }
-          app.screensetsRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, payload.themeId);
+          app.mfeRegistry?.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, payload.themeId);
         } catch (error) {
           console.error('[HAI3] Failed to propagate theme to MFE domains', error);
           eventBus.emit('theme/propagation/failed', { themeId: payload.themeId, error });
@@ -86,7 +86,7 @@ export function themes(): HAI3Plugin {
       const themes = themeRegistry.getAll();
       if (themes.length > 0) {
         themeRegistry.apply(themes[0].id);
-        app.screensetsRegistry?.setTheme(themes[0].variables);
+        app.mfeRegistry?.setTheme(themes[0].variables);
       }
     },
     onDestroy() {

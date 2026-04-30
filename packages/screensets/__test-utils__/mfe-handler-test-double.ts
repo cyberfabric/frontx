@@ -7,9 +7,9 @@ import { MfeBridgeFactory, MfeHandler } from '../src/mfe/handler/types';
 import type { ChildMfeBridge, MfeEntryLifecycle } from '../src/mfe/handler/types';
 import type { MfeEntry } from '../src/mfe/types';
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
-// @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mfe-handler-test-double
+// @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mfe-handler-test-double
 class TestNoopBridgeFactory extends MfeBridgeFactory<ChildMfeBridge> {
   create(): ChildMfeBridge {
     throw new Error('Test double: bridge factory should not be used in this suite');
@@ -56,4 +56,4 @@ export function makeMfeHandlerDouble(options: {
     options.load
   );
 }
-// @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mfe-handler-test-double
+// @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mfe-handler-test-double

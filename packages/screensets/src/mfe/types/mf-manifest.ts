@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-mfmanifest-type:p1
-// @cpt-dod:cpt-frontx-dod-screenset-registry-mfmanifest-schema-update:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-mfmanifest-schema-update:p1
 
 /**
  * Asset file lists for a module or shared dependency.

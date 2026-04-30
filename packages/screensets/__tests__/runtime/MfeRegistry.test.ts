@@ -1,42 +1,42 @@
 /**
- * ScreensetsRegistry Tests
+ * MfeRegistry Tests
  *
- * Tests for Phase 4: ScreensetsRegistry with Plugin
+ * Tests for Phase 4: MfeRegistry with Plugin
  */
 
 import { describe, it, expect, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../src/mfe/runtime/DefaultScreensetsRegistry';
-import type { ScreensetsRegistryConfig } from '../../src/mfe/runtime/config';
+import { DefaultMfeRegistry } from '../../src/mfe/runtime/DefaultMfeRegistry';
+import type { MfeRegistryConfig } from '../../src/mfe/runtime/config';
 import type { TypeSystemPlugin } from '../../src/mfe/plugins/types';
 import type { MfeHandler } from '../../src/mfe/handler/types';
 import type { ExtensionDomain, Action, ActionsChain } from '../../src/mfe/types';
 import { TestContainerProvider, createMockTypeSystemPlugin } from '../../__test-utils__';
 
-describe('ScreensetsRegistry - Phase 4', () => {
-  const createTestConfig = (): ScreensetsRegistryConfig => ({
+describe('MfeRegistry - Phase 4', () => {
+  const createTestConfig = (): MfeRegistryConfig => ({
     typeSystem: createMockTypeSystemPlugin(),
   });
 
   describe('4.1 Runtime Configuration', () => {
     it('should create registry with required typeSystem parameter', () => {
       const config = createTestConfig();
-      const registry = new DefaultScreensetsRegistry(config);
+      const registry = new DefaultMfeRegistry(config);
       expect(registry).toBeDefined();
       expect(registry.typeSystem).toBe(config.typeSystem);
     });
 
     it('should throw error if typeSystem is missing', () => {
-      const invalidConfig = {} as ScreensetsRegistryConfig;
-      expect(() => new DefaultScreensetsRegistry(invalidConfig)).toThrow(
-        'ScreensetsRegistry requires a TypeSystemPlugin'
+      const invalidConfig = {} as MfeRegistryConfig;
+      expect(() => new DefaultMfeRegistry(invalidConfig)).toThrow(
+        'MfeRegistry requires a TypeSystemPlugin'
       );
     });
 
     it('should accept optional debug flag', () => {
-      const registryConfig: ScreensetsRegistryConfig = {
+      const registryConfig: MfeRegistryConfig = {
         typeSystem: createMockTypeSystemPlugin(),
       };
-      const registry = new DefaultScreensetsRegistry(registryConfig);
+      const registry = new DefaultMfeRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
 
@@ -46,19 +46,19 @@ describe('ScreensetsRegistry - Phase 4', () => {
         handledBaseTypeId: 'gts.hai3.screensets.mfe.entry.v1~',
         load: async () => ({ lifecycle: {} as unknown, entry: {} as unknown, unload: () => {} }),
       } as unknown as MfeHandler;
-      const registryConfig: ScreensetsRegistryConfig = {
+      const registryConfig: MfeRegistryConfig = {
         typeSystem: createMockTypeSystemPlugin(),
         mfeHandlers: [mockHandler],
       };
-      const registry = new DefaultScreensetsRegistry(registryConfig);
+      const registry = new DefaultMfeRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
   });
 
-  describe('4.2 ScreensetsRegistry Core with Plugin', () => {
+  describe('4.2 MfeRegistry Core with Plugin', () => {
     it('should store plugin reference as readonly typeSystem', () => {
       const config = createTestConfig();
-      const registry = new DefaultScreensetsRegistry(config);
+      const registry = new DefaultMfeRegistry(config);
       expect(registry.typeSystem).toBe(config.typeSystem);
       expect(registry.typeSystem.name).toBe('MockPlugin');
       expect(registry.typeSystem.version).toBe('1.0.0');
@@ -72,19 +72,19 @@ describe('ScreensetsRegistry - Phase 4', () => {
         load: async () => ({ lifecycle: {} as unknown, entry: {} as unknown, unload: () => {} }),
       };
 
-      const registryConfig: ScreensetsRegistryConfig = {
+      const registryConfig: MfeRegistryConfig = {
         typeSystem: createMockTypeSystemPlugin(),
         mfeHandlers: [mockHandler as unknown as MfeHandler],
       };
 
-      const registry = new DefaultScreensetsRegistry(registryConfig);
+      const registry = new DefaultMfeRegistry(registryConfig);
       expect(registry).toBeDefined();
     });
   });
 
   describe('4.3 Type ID Validation via Plugin', () => {
     it('should validate domain type ID via plugin before registration', () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
 
       const validDomain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',
@@ -103,7 +103,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
     });
 
     it('should validate action type ID via plugin before chain execution', async () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
       const mockContainerProvider = new TestContainerProvider();
 
       // Register domain with the action in its supported actions
@@ -135,7 +135,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
       // Type ID validation IS implemented in ActionsChainsMediator.executeChainRecursive
       // (lines 156-162). This test is skipped because it tests error handling with
       // invalid type IDs, which is covered by other validation tests in the suite.
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
 
       const invalidAction: Action = {
         type: 'invalid-type-id', // Missing required format
@@ -148,7 +148,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
       await expect(registry.executeActionsChain(chain)).resolves.toBeUndefined();
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[MfeRegistry] Actions chain failed:');
       expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
       errorSpy.mockRestore();
     });
@@ -156,7 +156,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
   describe('4.4 Payload Validation via Plugin', () => {
     it('should validate payload via plugin before delivery', async () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -203,11 +203,11 @@ describe('ScreensetsRegistry - Phase 4', () => {
         }),
       };
 
-      const registryConfig: ScreensetsRegistryConfig = {
+      const registryConfig: MfeRegistryConfig = {
         typeSystem: failingPlugin,
       };
 
-      const registry = new DefaultScreensetsRegistry(registryConfig);
+      const registry = new DefaultMfeRegistry(registryConfig);
 
       const actionWithInvalidPayload: Action = {
         type: 'gts.hai3.screensets.ext.action.v1~test.action.v1~',
@@ -221,13 +221,13 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
       await expect(registry.executeActionsChain(chain)).resolves.toBeUndefined();
       expect(errorSpy).toHaveBeenCalledTimes(1);
-      expect(errorSpy.mock.calls[0]?.[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(errorSpy.mock.calls[0]?.[0]).toContain('[MfeRegistry] Actions chain failed:');
       expect(String(errorSpy.mock.calls[0]?.[1])).toMatch(/validation failed/i);
       errorSpy.mockRestore();
     });
 
     it('should allow actions without payload', async () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
 
       // Register domain with the action in its supported actions
       const domain: ExtensionDomain = {
@@ -257,7 +257,7 @@ describe('ScreensetsRegistry - Phase 4', () => {
 
   describe('Registry Disposal', () => {
     it('should dispose registry and clean up resources', () => {
-      const registry = new DefaultScreensetsRegistry(createTestConfig());
+      const registry = new DefaultMfeRegistry(createTestConfig());
 
       const domain: ExtensionDomain = {
         id: 'gts.hai3.screensets.ext.domain.v1~test.domain.v1~',

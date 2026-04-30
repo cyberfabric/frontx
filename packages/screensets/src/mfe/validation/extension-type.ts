@@ -13,7 +13,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-algo:cpt-frontx-algo-screenset-registry-extension-type-validation:p1
+// @cpt-algo:cpt-frontx-algo-mfe-registry-extension-type-validation:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { Extension } from '../types/extension';
@@ -32,7 +32,7 @@ import { ExtensionTypeError } from '../errors';
  * @throws ExtensionTypeError if domain requires `extensionsTypeId` and the
  *   extension's type does not derive from it.
  */
-// @cpt-begin:cpt-frontx-algo-screenset-registry-extension-type-validation:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-mfe-registry-extension-type-validation:p1:inst-1
 export function validateExtensionType(
   plugin: TypeSystemPlugin,
   domain: ExtensionDomain,
@@ -45,4 +45,4 @@ export function validateExtensionType(
     throw new ExtensionTypeError(extension.id, domain.extensionsTypeId);
   }
 }
-// @cpt-end:cpt-frontx-algo-screenset-registry-extension-type-validation:p1:inst-1
+// @cpt-end:cpt-frontx-algo-mfe-registry-extension-type-validation:p1:inst-1

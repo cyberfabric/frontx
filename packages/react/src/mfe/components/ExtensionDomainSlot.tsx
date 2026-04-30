@@ -15,7 +15,7 @@ import type { RefObject } from 'react';
 import {
   type ActionsChain,
   type ParentMfeBridge,
-  type ScreensetsRegistry,
+  type MfeRegistry,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_ACTION_UNMOUNT_EXT,
 } from '@cyberfabric/framework';
@@ -27,7 +27,7 @@ export interface ExtensionDomainSlotProps {
   /**
    * The screensets registry instance
    */
-  registry: ScreensetsRegistry;
+  registry: MfeRegistry;
 
   /**
    * The domain ID for this slot

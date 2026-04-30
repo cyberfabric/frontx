@@ -183,7 +183,7 @@ class HAI3AppBuilderImpl implements HAI3AppBuilder {
       themeRegistry: aggregated.registries.themeRegistry as ThemeRegistry,
       apiRegistry: apiRegistry,
       i18nRegistry: aggregated.registries.i18nRegistry as HAI3App['i18nRegistry'],
-      screensetsRegistry: aggregated.registries.screensetsRegistry as HAI3App['screensetsRegistry'],
+      mfeRegistry: aggregated.registries.mfeRegistry as HAI3App['mfeRegistry'],
       actions: aggregated.actions as HAI3Actions,
       destroy: () => this.destroyApp(orderedPlugins, app),
     };

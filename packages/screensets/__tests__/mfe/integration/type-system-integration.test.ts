@@ -1,21 +1,21 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
-import type { ScreensetsRegistry } from '../../../src/mfe/runtime';
+import type { MfeRegistry } from '../../../src/mfe/runtime';
 import { HAI3_SCREEN_EXTENSION_TYPE } from '../../../src/mfe/constants';
 
 // This suite exercises the GTS type-system plugin wired into
-// DefaultScreensetsRegistry entirely in-memory — no real DOM, no network,
+// DefaultMfeRegistry entirely in-memory — no real DOM, no network,
 // no external MFE processes.  "Integration" here means the registry and plugin
 // interact end-to-end, not that it is a browser/E2E test.
-describe('In-memory type-system integration (DefaultScreensetsRegistry + GTS plugin)', () => {
-  let runtime: ScreensetsRegistry;
+describe('In-memory type-system integration (DefaultMfeRegistry + GTS plugin)', () => {
+  let runtime: MfeRegistry;
   let typeSystem: GtsPlugin;
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    runtime = new DefaultScreensetsRegistry({
+    runtime = new DefaultMfeRegistry({
       typeSystem,
     });
   });
@@ -98,7 +98,7 @@ describe('In-memory type-system integration (DefaultScreensetsRegistry + GTS plu
         isTypeOf: (typeId: string, baseTypeId: string) => typeSystem.isTypeOf(typeId, baseTypeId),
       };
 
-      const customRuntime = new DefaultScreensetsRegistry({
+      const customRuntime = new DefaultMfeRegistry({
         typeSystem: customPlugin,
       });
 

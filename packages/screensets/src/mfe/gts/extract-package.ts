@@ -15,7 +15,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-algo:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1
+// @cpt-algo:cpt-frontx-algo-mfe-registry-gts-package-discovery:p1
 
 /**
  * Extract the GTS package identifier from a GTS entity ID.
@@ -52,7 +52,7 @@
  * // Returns: 'hai3.demo'
  * ```
  */
-// @cpt-begin:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1:inst-1
+// @cpt-begin:cpt-frontx-algo-mfe-registry-gts-package-discovery:p1:inst-1
 export function extractGtsPackage(entityId: string): string {
   // Validation 1: Entity ID must contain at least one '~' delimiter
   if (!entityId.includes('~')) {
@@ -93,4 +93,4 @@ export function extractGtsPackage(entityId: string): string {
   // Step 3: Return the first two dot-segments joined by '.'
   return `${dotSegments[0]}.${dotSegments[1]}`;
 }
-// @cpt-end:cpt-frontx-algo-screenset-registry-gts-package-discovery:p1:inst-1
+// @cpt-end:cpt-frontx-algo-mfe-registry-gts-package-discovery:p1:inst-1

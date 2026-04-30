@@ -3,7 +3,7 @@
  *
  * Verifies that theme/changed and i18n/language/changed events propagate
  * shared properties via themes() and i18n() plugins calling updateSharedProperty
- * on the screensetsRegistry. Propagation is no longer owned by microfrontends().
+ * on the mfeRegistry. Propagation is no longer owned by microfrontends().
  *
  * @packageDocumentation
  * @vitest-environment jsdom
@@ -54,8 +54,8 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         variables: { '--color-bg': 'hsl(var(--primary))' },
       });
 
-      const setThemeSpy = vi.spyOn(app.screensetsRegistry!, 'setTheme');
-      const updateSpy = vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty');
+      const setThemeSpy = vi.spyOn(app.mfeRegistry!, 'setTheme');
+      const updateSpy = vi.spyOn(app.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('theme/changed', { themeId: 'dark' });
 
@@ -72,7 +72,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+      vi.spyOn(app.mfeRegistry!, 'updateSharedProperty').mockImplementation(() => {
         throw new Error('GTS validation failed');
       });
 
@@ -91,7 +91,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       apps.push(app);
 
       const propagationError = new Error('GTS validation failed');
-      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+      vi.spyOn(app.mfeRegistry!, 'updateSharedProperty').mockImplementation(() => {
         throw propagationError;
       });
 
@@ -118,7 +118,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       // Register a theme so apply() has something to work with
       app.themeRegistry.register({ id: 'dark', name: 'Dark', variables: {} });
 
-      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+      vi.spyOn(app.mfeRegistry!, 'updateSharedProperty').mockImplementation(() => {
         throw new Error('GTS validation failed');
       });
 
@@ -152,7 +152,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(secondApp);
 
-      const updateSpy = vi.spyOn(secondApp.screensetsRegistry!, 'updateSharedProperty');
+      const updateSpy = vi.spyOn(secondApp.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('theme/changed', { themeId: 'dark' });
 
@@ -171,7 +171,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      const updateSpy = vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty');
+      const updateSpy = vi.spyOn(app.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('i18n/language/changed', { language: 'de' });
 
@@ -193,7 +193,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+      vi.spyOn(app.mfeRegistry!, 'updateSharedProperty').mockImplementation(() => {
         throw new Error('GTS validation failed');
       });
 
@@ -236,7 +236,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       apps.push(app);
 
       const propagationError = new Error('GTS validation failed');
-      vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty').mockImplementation(() => {
+      vi.spyOn(app.mfeRegistry!, 'updateSharedProperty').mockImplementation(() => {
         throw propagationError;
       });
 
@@ -273,7 +273,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(secondApp);
 
-      const updateSpy = vi.spyOn(secondApp.screensetsRegistry!, 'updateSharedProperty');
+      const updateSpy = vi.spyOn(secondApp.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('i18n/language/changed', { language: 'de' });
 
@@ -284,9 +284,9 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
     });
   });
 
-  describe('soft dependency: screensetsRegistry undefined (no microfrontends plugin)', () => {
-    it('themes() plugin works correctly and applies theme when screensetsRegistry is absent', () => {
-      // Build without microfrontends plugin — screensetsRegistry will be undefined
+  describe('soft dependency: mfeRegistry undefined (no microfrontends plugin)', () => {
+    it('themes() plugin works correctly and applies theme when mfeRegistry is absent', () => {
+      // Build without microfrontends plugin — mfeRegistry will be undefined
       const app = createHAI3()
         .use(screensets())
         .use(effects())
@@ -294,7 +294,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      expect(app.screensetsRegistry).toBeUndefined();
+      expect(app.mfeRegistry).toBeUndefined();
 
       // Register a theme so apply() has something to work with
       app.themeRegistry.register({ id: 'dark', name: 'Dark', variables: {} });
@@ -309,8 +309,8 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
       expect(applySpy).toHaveBeenCalledWith('dark');
     });
 
-    it('i18n() plugin works correctly and sets language when screensetsRegistry is absent', async () => {
-      // Build without microfrontends plugin — screensetsRegistry will be undefined
+    it('i18n() plugin works correctly and sets language when mfeRegistry is absent', async () => {
+      // Build without microfrontends plugin — mfeRegistry will be undefined
       const app = createHAI3()
         .use(screensets())
         .use(effects())
@@ -318,7 +318,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      expect(app.screensetsRegistry).toBeUndefined();
+      expect(app.mfeRegistry).toBeUndefined();
 
       const setLanguageSpy = vi.spyOn(app.i18nRegistry, 'setLanguage');
 
@@ -355,7 +355,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      const updateSpy = vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty');
+      const updateSpy = vi.spyOn(app.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('theme/changed', { themeId: 'dark' });
 
@@ -372,7 +372,7 @@ describe('Theme and Language Propagation - decouple-domain-contracts', () => {
         .build();
       apps.push(app);
 
-      const updateSpy = vi.spyOn(app.screensetsRegistry!, 'updateSharedProperty');
+      const updateSpy = vi.spyOn(app.mfeRegistry!, 'updateSharedProperty');
 
       eventBus.emit('i18n/language/changed', { language: 'de' });
       await Promise.resolve();

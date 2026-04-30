@@ -246,7 +246,7 @@ Success criteria: A developer can toggle theme, language, and API mock mode in u
 5. [ ] `p1` - **IF** value is a non-empty string, emit `i18n/language/changed` with `{ language }` — `inst-restore-lang`
 6. [ ] `p1` - Read `hai3:studio:mockEnabled` from localStorage — `inst-read-mock`
 7. [ ] `p1` - **IF** value is a boolean, emit `mock/toggle` with `{ enabled }` — `inst-restore-mock`
-8. [ ] `p1` - `RestoreGtsPackageOnMount` component obtains `screensetsRegistry` from `useHAI3()` — `inst-get-registry`
+8. [ ] `p1` - `RestoreGtsPackageOnMount` component obtains `mfeRegistry` from `useHAI3()` — `inst-get-registry`
 9. [ ] `p1` - Read `hai3:studio:activePackageId` from localStorage — `inst-read-pkg-id`
 10. [ ] `p1` - **IF** no `activePackageId` stored OR registry unavailable **RETURN** without action — `inst-no-restore-pkg`
 11. [ ] `p1` - Retrieve screen extensions for the persisted package and sort by `presentation.order` — `inst-restore-sort-ext`
@@ -350,7 +350,7 @@ All reads and writes to localStorage use guarded utilities:
 
 - [x] `p1` - **ID**: `cpt-frontx-algo-studio-devtools-restore-gts-validation`
 
-Executed once when `screensetsRegistry` first becomes available:
+Executed once when `mfeRegistry` first becomes available:
 
 1. [ ] `p1` - Load `activePackageId` from localStorage — `inst-val-load-id`
 2. [ ] `p1` - **IF** `activePackageId` is null, empty, or not a string **RETURN** — `inst-val-empty-id`

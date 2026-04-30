@@ -1,4 +1,4 @@
-# Feature: Screenset Registry & Contracts
+# Feature: MFE Registry & Contracts
 
 <!-- artifact-version: 1.5 -->
 
@@ -35,7 +35,7 @@
   - [Extension Mount State](#extension-mount-state)
   - [Registry Factory Cache State](#registry-factory-cache-state)
 - [5. Definitions of Done](#5-definitions-of-done)
-  - [ScreensetsRegistry Public Contract](#screensetsregistry-public-contract)
+  - [MfeRegistry Public Contract](#mferegistry-public-contract)
   - [MFE Type Contracts](#mfe-type-contracts)
   - [GTS-Based Validation](#gts-based-validation)
   - [MFE Schema Registration](#mfe-schema-registration)
@@ -50,18 +50,18 @@
 
 <!-- /toc -->
 
-- [x] `p1` - **ID**: `cpt-frontx-featstatus-screenset-registry`
+- [x] `p1` - **ID**: `cpt-frontx-featstatus-mfe-registry`
 
-- [x] `p2` - `cpt-frontx-feature-screenset-registry`
+- [x] `p2` - `cpt-frontx-feature-mfe-registry`
 ---
 
 ## 1. Feature Context
 
 ### 1.1 Overview
 
-The Screenset Registry & Contracts feature provides the foundational contract layer between host applications and microfrontend extensions in FrontX. It defines all TypeScript type contracts for the MFE type system, implements the `ScreensetsRegistry` runtime facade, and manages the lifecycle of extension domains and extensions through a GTS-validated registration pipeline.
+The MFE Registry & Contracts feature provides the foundational contract layer between host applications and microfrontend extensions in FrontX. It defines all TypeScript type contracts for the MFE type system, implements the `MfeRegistry` runtime facade, and manages the lifecycle of extension domains and extensions through a GTS-validated registration pipeline.
 
-The feature is a pure TypeScript L1 SDK package (`@cyberfabric/screensets`) with zero `@cyberfabric/*` inter-dependencies. It exports abstract classes (`ScreensetsRegistry`, `ScreensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`), all MFE TypeScript interfaces, action/property constants, and the `TypeSystemPlugin` interface that decouples the registry from any specific type system implementation.
+The feature is a pure TypeScript L1 SDK package (`@cyberfabric/screensets`) with zero `@cyberfabric/*` inter-dependencies. It exports abstract classes (`MfeRegistry`, `MfeRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`), all MFE TypeScript interfaces, action/property constants, and the `TypeSystemPlugin` interface that decouples the registry from any specific type system implementation.
 
 The registry acts as the central runtime authority: it owns domain and extension state, enforces multi-step validation on registration, serializes concurrent operations per entity, mediates action chain execution, and manages the parent/child MFE bridge lifecycle.
 
@@ -109,14 +109,14 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Register Extension Domain
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-register-domain`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-register-domain`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-gts-plugin`
 
-1. - [x] `p1` - Host app obtains a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build(config)` - `inst-obtain-registry`
+1. - [x] `p1` - Host app obtains a `MfeRegistry` instance via `mfeRegistryFactory.build(config)` - `inst-obtain-registry`
 2. - [x] `p1` - Host app calls `registry.registerDomain(domain, containerProvider, options?)` where `options` is `{ onInitError?: (error: Error) => void; actionHandlers?: Record<string, ActionHandler> }` - `inst-call-register-domain`
-3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-domain-validation` — IF GTS validation fails the underlying `typeSystem.register(domain)` call throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); IF a lifecycle hook references an unsupported stage RETURN `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
-4. - [x] `p1` - Registry determines domain semantics via `cpt-frontx-algo-screenset-registry-domain-semantics` - `inst-determine-semantics`
+3. - [x] `p1` - Registry runs `cpt-frontx-algo-mfe-registry-domain-validation` — IF GTS validation fails the underlying `typeSystem.register(domain)` call throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); IF a lifecycle hook references an unsupported stage RETURN `UnsupportedLifecycleStageError` - `inst-run-domain-validation`
+4. - [x] `p1` - Registry determines domain semantics via `cpt-frontx-algo-mfe-registry-domain-semantics` - `inst-determine-semantics`
 5. - [x] `p1` - Registry registers individual `ActionHandler` class instances per lifecycle action type (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) with the mediator via `mediator.registerHandler(domainId, actionTypeId, handler)` — one call per action type; each handler is a small class extending `ActionHandler`, not a closure; no monolithic `ExtensionLifecycleActionHandler` switch class is constructed; IF `options.actionHandlers` is provided, each entry is also registered via `mediator.registerHandler(domainId, actionTypeId, handler)` - `inst-register-action-handlers`
 6. - [x] `p1` - Registry stores domain state (properties Map, extensions Set, propertySubscribers Map, mountedExtension undefined) - `inst-store-domain-state`
 7. - [x] `p1` - Registry fires-and-forgets the `init` lifecycle stage for the domain; errors routed to `options.onInitError` callback if provided, otherwise logged to console.error - `inst-trigger-domain-init`
@@ -124,21 +124,21 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Register Extension at Runtime
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-register-extension`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-register-extension`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-gts-plugin`
 
 1. - [x] `p1` - Caller invokes `await registry.registerExtension(extension)` at any point during app lifecycle - `inst-call-register-extension`
 2. - [x] `p1` - Operation is serialized per `extension.id` via `OperationSerializer` — concurrent calls for the same extension ID are queued - `inst-serialize-per-id`
-3. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-extension-validation` — IF any step fails RETURN the appropriate typed error - `inst-run-extension-validation`
+3. - [x] `p1` - Registry runs `cpt-frontx-algo-mfe-registry-extension-validation` — IF any step fails RETURN the appropriate typed error - `inst-run-extension-validation`
 4. - [x] `p1` - Registry stores `ExtensionState` (bridge null, loadState `idle`, mountState `unmounted`) and adds extension to domain's extensions Set - `inst-store-extension-state`
-5. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-gts-package-discovery` to track GTS package; if `extension.id` is not a valid GTS ID the error is silently swallowed - `inst-track-gts-package`
+5. - [x] `p1` - Registry runs `cpt-frontx-algo-mfe-registry-gts-package-discovery` to track GTS package; if `extension.id` is not a valid GTS ID the error is silently swallowed - `inst-track-gts-package`
 6. - [x] `p1` - Registry triggers the `init` lifecycle stage for the extension - `inst-trigger-extension-init`
 7. - [x] `p1` - Promise resolves when init lifecycle completes - `inst-return-resolved`
 
 ### Unregister Extension
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-unregister-extension`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-unregister-extension`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`
 
@@ -153,7 +153,7 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Unregister Domain
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-unregister-domain`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-unregister-domain`
 
 **Actors**: `cpt-frontx-actor-host-app`
 
@@ -167,7 +167,7 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Execute Actions Chain
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-execute-chain`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-execute-chain`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
 
@@ -187,7 +187,7 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Register Extension Action Handler
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-register-extension-handler`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-register-extension-handler`
 
 **Actors**: `cpt-frontx-actor-microfrontend`, `cpt-frontx-actor-framework-plugin`
 
@@ -198,18 +198,18 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Update Shared Property
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-update-shared-property`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-update-shared-property`
 
 **Actors**: `cpt-frontx-actor-framework-plugin`, `cpt-frontx-actor-gts-plugin`
 
 1. - [x] `p1` - Caller invokes `registry.updateSharedProperty(propertyId, value)` (synchronous) - `inst-call-update-property`
-2. - [x] `p1` - Registry runs `cpt-frontx-algo-screenset-registry-shared-property-broadcast` - `inst-run-broadcast-algo`
+2. - [x] `p1` - Registry runs `cpt-frontx-algo-mfe-registry-shared-property-broadcast` - `inst-run-broadcast-algo`
 3. - [x] `p1` - IF GTS validation fails, RETURN throw — no domain receives the update - `inst-throw-on-invalid`
 4. - [x] `p1` - FOR EACH domain that declares `propertyId` in its `sharedProperties`: store the raw value and notify all subscribers - `inst-propagate-to-domains`
 
 ### Query Registry State
 
-- [x] `p2` - **ID**: `cpt-frontx-flow-screenset-registry-query`
+- [x] `p2` - **ID**: `cpt-frontx-flow-mfe-registry-query`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`
 
@@ -219,12 +219,12 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Build Registry via Factory
 
-- [x] `p1` - **ID**: `cpt-frontx-flow-screenset-registry-factory-build`
+- [x] `p1` - **ID**: `cpt-frontx-flow-mfe-registry-factory-build`
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-framework-plugin`
 
-1. - [x] `p1` - Caller invokes `screensetsRegistryFactory.build({ typeSystem, mfeHandlers? })` - `inst-call-build`
-2. - [x] `p1` - IF no instance is cached: factory creates a `DefaultScreensetsRegistry`, caches it along with the config, and returns it - `inst-create-and-cache`
+1. - [x] `p1` - Caller invokes `mfeRegistryFactory.build({ typeSystem, mfeHandlers? })` - `inst-call-build`
+2. - [x] `p1` - IF no instance is cached: factory creates a `DefaultMfeRegistry`, caches it along with the config, and returns it - `inst-create-and-cache`
 3. - [x] `p1` - IF instance is already cached AND the provided `typeSystem` differs from the cached one: RETURN throw with config mismatch message - `inst-throw-mismatch`
 4. - [x] `p1` - IF instance is cached AND `typeSystem` matches: RETURN the cached instance - `inst-return-cached`
 5. - [x] `p1` - IF `mfeHandlers` are provided, handlers are sorted by descending `priority` before being stored - `inst-sort-handlers`
@@ -235,26 +235,26 @@ Success criteria: A host application can register a domain and extension, execut
 
 ### Extension Registration Validation Pipeline
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-extension-validation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-extension-validation`
 
 1. - [x] `p1` - `typeSystem.register(extension)` registers and schema-validates the extension in a single call; IF the instance does not conform to its GTS schema `register()` throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); the throw is the authoritative "invalid" signal — the caller cannot rely on the entity having been accepted, and a subsequent successful `register()` with the same deterministic id supersedes the failed attempt - `inst-register-gts`
 2. - [x] `p1` - Resolve the `ExtensionDomainState` for `extension.domain` — IF domain not registered RETURN throw with descriptive message - `inst-check-domain-exists`
 3. - [x] `p1` - Resolve the `MfeEntry` for `extension.entry` from existing extension states or from `typeSystem.getSchema(entryId)` — IF not found RETURN throw with descriptive message - `inst-resolve-entry`
-4. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-contract-matching` — IF invalid RETURN throw with the collected contract error list - `inst-run-contract-matching`
-5. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-extension-type-validation` — IF invalid RETURN throw `ExtensionTypeError` - `inst-run-type-validation`
+4. - [x] `p1` - Run `cpt-frontx-algo-mfe-registry-contract-matching` — IF invalid RETURN throw with the collected contract error list - `inst-run-contract-matching`
+5. - [x] `p1` - Run `cpt-frontx-algo-mfe-registry-extension-type-validation` — IF invalid RETURN throw `ExtensionTypeError` - `inst-run-type-validation`
 6. - [x] `p1` - Validate lifecycle hooks reference only stages listed in `domain.extensionsLifecycleStages` — IF invalid RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-lifecycle-hooks`
-7. - [x] `p1` - Run `cpt-frontx-algo-screenset-registry-handler-resolution` — IF handlers are registered and none match the entry type, RETURN throw `EntryTypeNotHandledError` - `inst-validate-entry-type`
+7. - [x] `p1` - Run `cpt-frontx-algo-mfe-registry-handler-resolution` — IF handlers are registered and none match the entry type, RETURN throw `EntryTypeNotHandledError` - `inst-validate-entry-type`
 
 ### Domain Registration Validation
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-domain-validation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-domain-validation`
 
 1. - [x] `p1` - `typeSystem.register(domain)` registers and schema-validates the domain in a single call; IF the instance does not conform to its GTS schema `register()` throws with a rich diagnostic message (instance JSON, resolved schema JSON, failure reason); the throw is the authoritative "invalid" signal — the caller cannot rely on the entity having been accepted, and a subsequent successful `register()` with the same deterministic id supersedes the failed attempt - `inst-register-domain-gts`
 2. - [x] `p1` - Validate that all `LifecycleHook` entries in `domain.lifecycle` (if present) reference only stages listed in `domain.lifecycleStages` — IF any hook references an unsupported stage RETURN throw `UnsupportedLifecycleStageError` - `inst-validate-domain-lifecycle-hooks`
 
 ### Contract Matching
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-contract-matching`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-contract-matching`
 
 This algorithm enforces three subset rules. All errors are collected before returning so the full set of violations is reported at once.
 
@@ -265,16 +265,16 @@ This algorithm enforces three subset rules. All errors are collected before retu
 
 ### Extension Type Hierarchy Validation
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-extension-type-validation`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-extension-type-validation`
 
-Schema-level extension validation is handled by `typeSystem.register(extension)` in the extension registration pipeline (step 1 of `cpt-frontx-algo-screenset-registry-extension-validation`). This algorithm only performs the remaining type-hierarchy check against the domain's `extensionsTypeId`; it assumes the extension is already registered and schema-valid.
+Schema-level extension validation is handled by `typeSystem.register(extension)` in the extension registration pipeline (step 1 of `cpt-frontx-algo-mfe-registry-extension-validation`). This algorithm only performs the remaining type-hierarchy check against the domain's `extensionsTypeId`; it assumes the extension is already registered and schema-valid.
 
 1. - [x] `p1` - IF `domain.extensionsTypeId` is not set RETURN (no type hierarchy requirement) - `inst-skip-if-no-type-id`
 2. - [x] `p1` - `typeSystem.isTypeOf(extension.id, domain.extensionsTypeId)` — IF false THROW `ExtensionTypeError(extension.id, domain.extensionsTypeId)` - `inst-check-type-hierarchy`
 
 ### Shared Property GTS Validation and Broadcast
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-shared-property-broadcast`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-shared-property-broadcast`
 
 1. - [x] `p1` - Collect all domains whose `sharedProperties` array includes `propertyId` — IF no domains match RETURN (silent no-op) - `inst-collect-matching-domains`
 2. - [x] `p1` - Construct a deterministic ephemeral GTS instance ID: `${propertyId}hai3.mfes.comm.runtime.v1` — this ID is deterministic so repeated calls overwrite the previous ephemeral instance, preventing store growth - `inst-construct-ephemeral-id`
@@ -284,7 +284,7 @@ Schema-level extension validation is handled by `typeSystem.register(extension)`
 
 ### GTS Package Auto-Discovery
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-gts-package-discovery`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-gts-package-discovery`
 
 GTS packages are extracted from extension IDs automatically — there is no explicit package registration API.
 
@@ -295,7 +295,7 @@ GTS packages are extracted from extension IDs automatically — there is no expl
 
 ### Entry Type Handler Resolution
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-handler-resolution`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-handler-resolution`
 
 1. - [x] `p1` - IF no handlers are registered in the registry, RETURN (skip validation — early registration before handler setup is allowed; loading will fail later at runtime) - `inst-skip-if-no-handlers`
 2. - [x] `p1` - FOR EACH registered handler: call `typeSystem.isTypeOf(entryTypeId, handler.handledBaseTypeId)` using the registry's own `typeSystem` — the handler does not perform this check itself - `inst-check-can-handle`
@@ -304,7 +304,7 @@ GTS packages are extracted from extension IDs automatically — there is no expl
 
 ### Operation Serialization
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-operation-serialization`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-operation-serialization`
 
 All mutating operations on a given entity are queued per entity ID to prevent concurrent modification races.
 
@@ -315,7 +315,7 @@ All mutating operations on a given entity are queued per entity ID to prevent co
 
 ### Domain Semantics Determination
 
-- [x] `p1` - **ID**: `cpt-frontx-algo-screenset-registry-domain-semantics`
+- [x] `p1` - **ID**: `cpt-frontx-algo-mfe-registry-domain-semantics`
 
 Determines whether a domain uses `swap` or `toggle` mount semantics based on its declared actions.
 
@@ -329,7 +329,7 @@ Determines whether a domain uses `swap` or `toggle` mount semantics based on its
 
 ### Extension Load State
 
-- [x] `p1` - **ID**: `cpt-frontx-state-screenset-registry-extension-load`
+- [x] `p1` - **ID**: `cpt-frontx-state-mfe-registry-extension-load`
 
 Tracks whether an extension's bundle has been fetched and initialized.
 
@@ -340,7 +340,7 @@ Tracks whether an extension's bundle has been fetched and initialized.
 
 ### Extension Mount State
 
-- [x] `p1` - **ID**: `cpt-frontx-state-screenset-registry-extension-mount`
+- [x] `p1` - **ID**: `cpt-frontx-state-mfe-registry-extension-mount`
 
 Tracks whether an extension's React tree is rendered into a domain container.
 
@@ -352,9 +352,9 @@ Tracks whether an extension's React tree is rendered into a domain container.
 
 ### Registry Factory Cache State
 
-- [x] `p1` - **ID**: `cpt-frontx-state-screenset-registry-factory-cache`
+- [x] `p1` - **ID**: `cpt-frontx-state-mfe-registry-factory-cache`
 
-Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
+Tracks the singleton caching state of `DefaultMfeRegistryFactory`.
 
 1. - [x] `p1` - **FROM** `empty` **TO** `cached` **WHEN** `factory.build(config)` is called for the first time — instance and config are stored - `inst-empty-to-cached`
 2. - [x] `p1` - **FROM** `cached` **TO** `cached` **WHEN** `factory.build(config)` is called again with the same `typeSystem` reference — cached instance is returned - `inst-cached-same-config`
@@ -364,20 +364,20 @@ Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
 
 ## 5. Definitions of Done
 
-### ScreensetsRegistry Public Contract
+### MfeRegistry Public Contract
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-registry-contract`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-registry-contract`
 
-`ScreensetsRegistry` is exported as an abstract class. All external consumers hold references of type `ScreensetsRegistry` — never the concrete `DefaultScreensetsRegistry`. The abstract class exposes: `typeSystem` (readonly), `registerDomain`, `unregisterDomain`, `registerExtension`, `unregisterExtension`, `updateSharedProperty`, `getDomainProperty`, `executeActionsChain`, `triggerLifecycleStage`, `triggerDomainLifecycleStage`, `triggerDomainOwnLifecycleStage`, `getExtension`, `getDomain`, `getExtensionsForDomain`, `getMountedExtension`, `getRegisteredPackages`, `getExtensionsForPackage`, `getParentBridge`, `dispose`. `loadExtension`, `mountExtension`, and `unmountExtension` are NOT public — all lifecycle operations go through `executeActionsChain`.
+`MfeRegistry` is exported as an abstract class. All external consumers hold references of type `MfeRegistry` — never the concrete `DefaultMfeRegistry`. The abstract class exposes: `typeSystem` (readonly), `registerDomain`, `unregisterDomain`, `registerExtension`, `unregisterExtension`, `updateSharedProperty`, `getDomainProperty`, `executeActionsChain`, `triggerLifecycleStage`, `triggerDomainLifecycleStage`, `triggerDomainOwnLifecycleStage`, `getExtension`, `getDomain`, `getExtensionsForDomain`, `getMountedExtension`, `getRegisteredPackages`, `getExtensionsForPackage`, `getParentBridge`, `dispose`. `loadExtension`, `mountExtension`, and `unmountExtension` are NOT public — all lifecycle operations go through `executeActionsChain`.
 
 **Implements**:
-- `cpt-frontx-flow-screenset-registry-register-domain`
-- `cpt-frontx-flow-screenset-registry-register-extension`
-- `cpt-frontx-flow-screenset-registry-unregister-extension`
-- `cpt-frontx-flow-screenset-registry-unregister-domain`
-- `cpt-frontx-flow-screenset-registry-execute-chain`
-- `cpt-frontx-flow-screenset-registry-update-shared-property`
-- `cpt-frontx-flow-screenset-registry-query`
+- `cpt-frontx-flow-mfe-registry-register-domain`
+- `cpt-frontx-flow-mfe-registry-register-extension`
+- `cpt-frontx-flow-mfe-registry-unregister-extension`
+- `cpt-frontx-flow-mfe-registry-unregister-domain`
+- `cpt-frontx-flow-mfe-registry-execute-chain`
+- `cpt-frontx-flow-mfe-registry-update-shared-property`
+- `cpt-frontx-flow-mfe-registry-query`
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-screensets-package`
@@ -390,7 +390,7 @@ Tracks the singleton caching state of `DefaultScreensetsRegistryFactory`.
 
 ### MFE Type Contracts
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-type-contracts`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-type-contracts`
 
 All MFE TypeScript interfaces are defined with the correct shapes as derived from source code and architecture artifacts:
 
@@ -441,7 +441,7 @@ All MFE TypeScript interfaces are defined with the correct shapes as derived fro
 
 ### GTS-Based Validation
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-gts-validation`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-gts-validation`
 
 All registration and dispatch paths perform GTS-native validation. Schema validation is the responsibility of `typeSystem.register(entity)` itself: `register()` registers the instance and validates it against its resolved schema in a single call. IF validation fails, `register()` throws a plain `Error` whose message carries rich diagnostics (instance JSON, resolved schema JSON, and the failure reason); the throw is the authoritative "invalid" signal, and a subsequent successful `register()` with the same deterministic id supersedes a failed attempt. Callers do not need to run a separate validation step.
 
@@ -453,11 +453,11 @@ All registration and dispatch paths perform GTS-native validation. Schema valida
 - Schema-validation failures surface as plain `Error` instances (thrown from `register()`); registry-level invariants (type hierarchy, lifecycle stage subset, handler resolution) surface as typed exceptions: `ExtensionTypeError`, `UnsupportedLifecycleStageError`, `EntryTypeNotHandledError`
 
 **Implements**:
-- `cpt-frontx-algo-screenset-registry-extension-validation`
-- `cpt-frontx-algo-screenset-registry-domain-validation`
-- `cpt-frontx-algo-screenset-registry-contract-matching`
-- `cpt-frontx-algo-screenset-registry-extension-type-validation`
-- `cpt-frontx-algo-screenset-registry-shared-property-broadcast`
+- `cpt-frontx-algo-mfe-registry-extension-validation`
+- `cpt-frontx-algo-mfe-registry-domain-validation`
+- `cpt-frontx-algo-mfe-registry-contract-matching`
+- `cpt-frontx-algo-mfe-registry-extension-type-validation`
+- `cpt-frontx-algo-mfe-registry-shared-property-broadcast`
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-mfe-dynamic-registration`
@@ -468,7 +468,7 @@ All registration and dispatch paths perform GTS-native validation. Schema valida
 
 ### MFE Schema Registration
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfe-schema-registration`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-mfe-schema-registration`
 
 `mfe.json` is the single validatable per-package contract describing all entries, extensions, and schemas under one GTS package. It has two states:
 
@@ -498,7 +498,7 @@ The host application's generation script (`scripts/generate-mfe-manifests.ts`) a
 
 ### MfManifest GTS Schema and Type Update
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mfmanifest-schema-update`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-mfmanifest-schema-update`
 
 The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (registered as `gts://gts.hai3.mfes.mfe.mf_manifest.v1~`) are updated to include build-time fields: `metaData` (extracted from `mf-manifest.json` by the plugin — includes `publicPath`, `remoteEntry`, `name`, `buildInfo`, `globalName`) at the manifest level, and `chunkPath: string` / `version: string` / `unwrapKey: string | null` on each shared dependency entry (produced by the `frontx-mf-gts` Vite plugin from standalone ESM builds). The `GtsPlugin` registers `mf_manifest.v1.json` as a first-class schema alongside all other built-in schemas. All runtime code (`MfeHandlerMF`, `ManifestCache`, `MfeBridgeFactory`) works with the `MfManifest` TypeScript interface and never imports or inspects GTS JSON schemas directly. The GTS layer is the validation boundary; the TypeScript interface is the runtime contract.
 
@@ -511,7 +511,7 @@ The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (
 
 ### Shared Property Broadcast
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-shared-property-broadcast`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-shared-property-broadcast`
 
 `updateSharedProperty(propertyId, value)` is the only write method for shared properties. `updateDomainProperty()` and `updateDomainProperties()` do not exist. The method:
 - Silently no-ops if no registered domains declare the property
@@ -521,8 +521,8 @@ The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (
 - Known property constants are `HAI3_SHARED_PROPERTY_THEME = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~'` and `HAI3_SHARED_PROPERTY_LANGUAGE = 'gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.language.v1~'`. Their derived GTS schemas are registered at the application layer, not bundled in the SDK.
 
 **Implements**:
-- `cpt-frontx-flow-screenset-registry-update-shared-property`
-- `cpt-frontx-algo-screenset-registry-shared-property-broadcast`
+- `cpt-frontx-flow-mfe-registry-update-shared-property`
+- `cpt-frontx-algo-mfe-registry-shared-property-broadcast`
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-mfe-shared-property`
@@ -535,9 +535,9 @@ The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (
 
 ### MFE Handler Injection
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-handler-injection`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-handler-injection`
 
-`ScreensetsRegistryConfig` has `typeSystem: TypeSystemPlugin` (required) and `mfeHandlers?: MfeHandler[]` (optional). If handlers are provided, they are stored sorted by descending `priority`. `MfeHandler` is an abstract class with `handledBaseTypeId: string`, `priority: number`, `bridgeFactory`, and abstract `load(entry)`. The handler does NOT hold a `typeSystem` reference and does NOT have a `canHandle()` method — the registry performs handler resolution directly using its own `typeSystem.isTypeOf(entryTypeId, handler.handledBaseTypeId)`. `MfeBridgeFactory` is an abstract class with `create(domainId, entryTypeId, instanceId)` and `dispose(bridge)`.
+`MfeRegistryConfig` has `typeSystem: TypeSystemPlugin` (required) and `mfeHandlers?: MfeHandler[]` (optional). If handlers are provided, they are stored sorted by descending `priority`. `MfeHandler` is an abstract class with `handledBaseTypeId: string`, `priority: number`, `bridgeFactory`, and abstract `load(entry)`. The handler does NOT hold a `typeSystem` reference and does NOT have a `canHandle()` method — the registry performs handler resolution directly using its own `typeSystem.isTypeOf(entryTypeId, handler.handledBaseTypeId)`. `MfeBridgeFactory` is an abstract class with `create(domainId, entryTypeId, instanceId)` and `dispose(bridge)`.
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-screensets-package`
@@ -548,7 +548,7 @@ The `MfManifest` TypeScript interface and the GTS schema `mf_manifest.v1.json` (
 
 ### ActionsChainsMediator Contract
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-mediator-contract`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-mediator-contract`
 
 `ActionsChainsMediator` is exported as an abstract class. Handler storage uses a unified two-level map: `Map<targetId, Map<actionTypeId, ActionHandler>>`. A single `registerHandler(targetId, actionTypeId, handler)` API covers both domain-side and extension-side registration. `ActionHandler` is an abstract class with a single `abstract handleAction(actionTypeId: string, payload: Record<string, unknown> | undefined): Promise<void>` method — consistent with all other public contracts in the package. The `CustomActionHandler` type and any `ActionHandlerFn` alias are removed. Mediator resolution uses `(target, actionType)` pair, not just `target`. Domain-side lifecycle handlers are small classes extending `ActionHandler` (one per lifecycle action type), not closures.
 
@@ -557,8 +557,8 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 **Runtime action declaration validation**: before resolving and invoking a handler, the mediator validates that the action's `type` is declared by the target entry. For extension-targeted actions, it resolves the extension, locates the entry that owns the extension, and requires that the entry's `actions` array (the list of action types the entry is capable of receiving and executing) contain the action type. `domainActions` is NOT consulted at runtime — it captures the action types the parent domain must support for the entry to be injectable, and is enforced at registration time via contract matching Rule 3, not at dispatch time. Undeclared actions fail the chain with a recorded error `Action type '{type}' is not declared by target entry '{entryId}'`. Infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) target domains, not extensions, so this check does not apply to them. Combined with scoped bootstrap schema registration, this ensures the `actions` array on entries is a live runtime contract — not a dead declaration only consulted at registration time.
 
 **Implements**:
-- `cpt-frontx-flow-screenset-registry-execute-chain`
-- `cpt-frontx-flow-screenset-registry-register-extension-handler`
+- `cpt-frontx-flow-mfe-registry-execute-chain`
+- `cpt-frontx-flow-mfe-registry-register-extension-handler`
 
 **Covers (DESIGN)**:
 - `cpt-frontx-component-screensets`
@@ -566,7 +566,7 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 ### TypeSystemPlugin Interface
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-type-system-plugin`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-type-system-plugin`
 
 `TypeSystemPlugin` is a plain TypeScript interface (not a class) with:
 - `name: string` and `version: string` (readonly)
@@ -587,13 +587,13 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 ### Factory-with-Cache Pattern
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-factory-cache`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-factory-cache`
 
-`ScreensetsRegistryFactory` is an abstract class with a single abstract method `build(config: ScreensetsRegistryConfig): ScreensetsRegistry`. `DefaultScreensetsRegistryFactory` is the concrete implementation — it is marked `@internal` and not exported from the public barrel. The exported singleton `screensetsRegistryFactory` is an instance of `DefaultScreensetsRegistryFactory`. After the first `build()` call the instance is cached; subsequent calls with the same `typeSystem` reference return the cached instance; calls with a different `typeSystem` reference throw. Construction verifies all thirteen first-class GTS schemas are present in the plugin.
+`MfeRegistryFactory` is an abstract class with a single abstract method `build(config: MfeRegistryConfig): MfeRegistry`. `DefaultMfeRegistryFactory` is the concrete implementation — it is marked `@internal` and not exported from the public barrel. The exported singleton `mfeRegistryFactory` is an instance of `DefaultMfeRegistryFactory`. After the first `build()` call the instance is cached; subsequent calls with the same `typeSystem` reference return the cached instance; calls with a different `typeSystem` reference throw. Construction verifies all thirteen first-class GTS schemas are present in the plugin.
 
 **Implements**:
-- `cpt-frontx-flow-screenset-registry-factory-build`
-- `cpt-frontx-state-screenset-registry-factory-cache`
+- `cpt-frontx-flow-mfe-registry-factory-build`
+- `cpt-frontx-state-mfe-registry-factory-cache`
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-screensets-package`
@@ -605,9 +605,9 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 ### Layer and Build Constraints
 
-- [x] `p1` - **ID**: `cpt-frontx-dod-screenset-registry-layer-constraints`
+- [x] `p1` - **ID**: `cpt-frontx-dod-mfe-registry-layer-constraints`
 
-`@cyberfabric/screensets` has zero `@cyberfabric/*` entries in `dependencies` or `devDependencies`. No `import 'react'` or any React API appears in `packages/screensets/src/`. The package output is ESM-only (`"type": "module"`, `format: ['esm']` in tsup config). All source compiles with `"strict": true`. `LayoutDomain` enum and all action/property constants are exported from the main barrel. Concrete runtime classes (`DefaultScreensetsRegistry`, `DefaultScreensetsRegistryFactory`) are not exported from the main barrel — only abstract base classes are public.
+`@cyberfabric/screensets` has zero `@cyberfabric/*` entries in `dependencies` or `devDependencies`. No `import 'react'` or any React API appears in `packages/screensets/src/`. The package output is ESM-only (`"type": "module"`, `format: ['esm']` in tsup config). All source compiles with `"strict": true`. `LayoutDomain` enum and all action/property constants are exported from the main barrel. Concrete runtime classes (`DefaultMfeRegistry`, `DefaultMfeRegistryFactory`) are not exported from the main barrel — only abstract base classes are public.
 
 **Covers (PRD)**:
 - `cpt-frontx-fr-sdk-flat-packages`
@@ -625,8 +625,8 @@ Domain-side: `registerDomain()` registers three handlers (one per lifecycle acti
 
 ## 6. Acceptance Criteria
 
-- [x] `screensetsRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `ScreensetsRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
-- [x] `screensetsRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
+- [x] `mfeRegistryFactory.build({ typeSystem: gtsPlugin })` returns a `MfeRegistry` instance and subsequent calls with the same `typeSystem` return the same instance
+- [x] `mfeRegistryFactory.build({ typeSystem: differentPlugin })` after an initial build throws a config mismatch error
 - [x] `registerDomain(domain, containerProvider, options?)` propagates the plain `Error` thrown by `typeSystem.register(domain)` when the domain fails GTS schema validation (message carries instance JSON, schema JSON, and the failure reason), and throws `UnsupportedLifecycleStageError` when a lifecycle hook references a stage not in `domain.lifecycleStages`; `options.onInitError` receives init lifecycle errors; `options.actionHandlers` entries are registered per action type with the mediator
 - [x] `registerExtension` propagates the plain `Error` thrown by `typeSystem.register(extension)` on schema validation failure, throws an `Error` with the collected contract error list on contract-matching failure, and throws `ExtensionTypeError`, `UnsupportedLifecycleStageError`, or `EntryTypeNotHandledError` at the appropriate validation step
 - [x] Contract matching enforces all three subset rules and excludes infrastructure lifecycle actions from Rule 3

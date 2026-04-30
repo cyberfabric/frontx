@@ -8,7 +8,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import {
@@ -19,7 +19,7 @@ import {
 import { TestContainerProvider } from '../../../__test-utils__';
 
 describe('GTS Package Tracking - Phase 39.6', () => {
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let typeSystem: GtsPlugin;
 
@@ -79,7 +79,7 @@ describe('GTS Package Tracking - Phase 39.6', () => {
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
     });
     mockContainerProvider = new TestContainerProvider();

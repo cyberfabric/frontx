@@ -6,7 +6,7 @@
  * its dependencies (serializer, mount manager, container provider) via constructor.
  *
  * These replace the anonymous closures that were previously registered in
- * DefaultScreensetsRegistry.registerDomain() (ADR 0018).
+ * DefaultMfeRegistry.registerDomain() (ADR 0018).
  *
  * @packageDocumentation
  * @internal

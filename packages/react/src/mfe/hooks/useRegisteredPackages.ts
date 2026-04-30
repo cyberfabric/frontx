@@ -29,7 +29,7 @@ import { useHAI3 } from '../../HAI3Context';
  * This hook uses `useSyncExternalStore` with `app.store.subscribe`, which
  * fires on any Redux dispatch. Since `registerExtension()` dispatches to
  * the mfe store slice, the subscription WILL trigger when packages change.
- * The `getSnapshot` function calls `screensetsRegistry.getRegisteredPackages()`
+ * The `getSnapshot` function calls `mfeRegistry.getRegisteredPackages()`
  * which reads the private `packages` Map. This works because every package
  * map mutation (in registerExtension/unregisterExtension) is always
  * accompanied by a store dispatch in the same serializer callback.
@@ -58,7 +58,7 @@ import { useHAI3 } from '../../HAI3Context';
 // @cpt-begin:cpt-frontx-dod-react-bindings-observation-hooks:p1:inst-call-registered-packages
 export function useRegisteredPackages(): string[] {
   const app = useHAI3();
-  const registry = app.screensetsRegistry;
+  const registry = app.mfeRegistry;
 
   // @cpt-begin:cpt-frontx-flow-react-bindings-use-registered-packages:p1:inst-guard-registry-packages
   // @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-registry

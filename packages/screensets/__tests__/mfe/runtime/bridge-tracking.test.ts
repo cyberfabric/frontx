@@ -1,5 +1,5 @@
 /**
- * Tests for Bridge Tracking in ScreensetsRegistry
+ * Tests for Bridge Tracking in MfeRegistry
  *
  * Verifies:
  * - Bridge lifecycle is managed by registry
@@ -10,20 +10,20 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { MfeRegistry } from '../../../src/mfe/runtime';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { TestContainerProvider } from '../../../__test-utils__';
 
 
-describe('ScreensetsRegistry - Bridge Tracking', () => {
-  let registry: ScreensetsRegistry;
+describe('MfeRegistry - Bridge Tracking', () => {
+  let registry: MfeRegistry;
   let typeSystem: GtsPlugin;
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
     });
   });

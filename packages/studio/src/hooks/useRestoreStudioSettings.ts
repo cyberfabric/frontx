@@ -6,7 +6,7 @@ import {
   eventBus,
   HAI3_ACTION_MOUNT_EXT,
   HAI3_SCREEN_DOMAIN,
-  type ScreensetsRegistry,
+  type MfeRegistry,
   type Extension,
   type ScreenExtension,
 } from '@cyberfabric/react';
@@ -52,7 +52,7 @@ export const useRestoreStudioSettings = (): void => {
  * Mounts the persisted package's first screen extension.
  */
 // @cpt-begin:cpt-frontx-algo-studio-devtools-restore-gts-validation:p1:inst-1
-export const useRestoreGtsPackage = (registry: ScreensetsRegistry | null | undefined): void => {
+export const useRestoreGtsPackage = (registry: MfeRegistry | null | undefined): void => {
   const restoredRef = useRef(false);
 
   useEffect(() => {

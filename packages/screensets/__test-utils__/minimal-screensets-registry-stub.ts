@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-import { ScreensetsRegistry } from '../src/mfe/runtime/ScreensetsRegistry';
+import { MfeRegistry } from '../src/mfe/runtime/MfeRegistry';
 import type {
   Extension,
   ExtensionDomain,
@@ -7,21 +7,21 @@ import type {
 } from '../src/mfe/types';
 import type { ParentMfeBridge } from '../src/mfe/handler/types';
 import type { ContainerProvider } from '../src/mfe/runtime/container-provider';
-import type { RegisterDomainOptions } from '../src/mfe/runtime/ScreensetsRegistry';
+import type { RegisterDomainOptions } from '../src/mfe/runtime/MfeRegistry';
 import { createMockTypeSystemPlugin } from './mock-type-system-plugin';
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
 /**
  * Placeholder registry reference for mount-manager tests that only thread the
  * object into a mock runtime coordinator.
  */
-// @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-minimal-registry-stub
-export function createMinimalScreensetsRegistryStub(): ScreensetsRegistry {
-  return new MinimalScreensetsRegistryStub();
+// @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-minimal-registry-stub
+export function createMinimalMfeRegistryStub(): MfeRegistry {
+  return new MinimalMfeRegistryStub();
 }
 
-class MinimalScreensetsRegistryStub extends ScreensetsRegistry {
+class MinimalMfeRegistryStub extends MfeRegistry {
   readonly typeSystem = createMockTypeSystemPlugin();
 
   registerDomain = vi.fn(
@@ -80,4 +80,4 @@ class MinimalScreensetsRegistryStub extends ScreensetsRegistry {
 
   dispose = vi.fn(() => undefined);
 }
-// @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-minimal-registry-stub
+// @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-minimal-registry-stub

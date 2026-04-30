@@ -1,20 +1,20 @@
 /**
  * Query Methods Tests (Phase 19.1b)
  *
- * Tests for ScreensetsRegistry query methods:
+ * Tests for MfeRegistry query methods:
  * - getExtension
  * - getDomain
  * - getExtensionsForDomain
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, ScreenExtension } from '../../../src/mfe/types';
 import { TestContainerProvider } from '../../../__test-utils__';
 
-describe('ScreensetsRegistry Query Methods', () => {
-  let registry: DefaultScreensetsRegistry;
+describe('MfeRegistry Query Methods', () => {
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let typeSystem: GtsPlugin;
 
@@ -52,7 +52,7 @@ describe('ScreensetsRegistry Query Methods', () => {
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
     });
     mockContainerProvider = new TestContainerProvider();

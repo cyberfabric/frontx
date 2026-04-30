@@ -152,7 +152,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 2. [ ] `p1` - Action emits `theme/changed` event on the event bus - `inst-emit-theme-changed`
 3. [ ] `p1` - The `themes` plugin's `onInit` handler receives the event - `inst-themes-plugin-handler`
 4. [ ] `p1` - Handler calls `themeRegistry.apply(themeId)` to update the in-process theme - `inst-apply-theme`
-5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` to broadcast to all MFE domains - `inst-broadcast-theme`
+5. [ ] `p1` - **TRY** call `mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, themeId)` to broadcast to all MFE domains - `inst-broadcast-theme`
 6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate theme to MFE domains"` without re-throwing - `inst-catch-theme-error`
 
 ### Language Change and MFE Propagation
@@ -165,7 +165,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 2. [ ] `p1` - Action emits `i18n/language/changed` event on the event bus - `inst-emit-lang-changed`
 3. [ ] `p1` - The `i18n` plugin's `onInit` handler receives the event - `inst-i18n-plugin-handler`
 4. [ ] `p1` - Handler calls `i18nRegistry.setLanguage(language)` asynchronously - `inst-set-language`
-5. [ ] `p1` - **TRY** call `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` to broadcast to all MFE domains - `inst-broadcast-lang`
+5. [ ] `p1` - **TRY** call `mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, language)` to broadcast to all MFE domains - `inst-broadcast-lang`
 6. [ ] `p1` - **CATCH** log error `"[FrontX] Failed to propagate language to MFE domains"` without re-throwing - `inst-catch-lang-error`
 
 ### MFE Extension Registration
@@ -177,7 +177,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 1. [ ] `p1` - Host calls `app.actions.registerExtension(extension)` - `inst-call-register-ext`
 2. [ ] `p1` - Action emits `mfe/registerExtensionRequested` event on the event bus - `inst-emit-register-event`
 3. [ ] `p1` - MFE effects handler receives the event; dispatches `setExtensionRegistering` to the MFE slice - `inst-dispatch-registering`
-4. [ ] `p1` - **TRY** handler calls `screensetsRegistry.registerExtension(extension)` - `inst-call-registry-register`
+4. [ ] `p1` - **TRY** handler calls `mfeRegistry.registerExtension(extension)` - `inst-call-registry-register`
 5. [ ] `p1` - On success: dispatch `setExtensionRegistered` to the MFE slice - `inst-dispatch-registered`
 6. [ ] `p1` - **CATCH** dispatch `setExtensionError` with error message to the MFE slice - `inst-dispatch-register-error`
 
@@ -188,7 +188,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-microfrontend`
 
 1. [ ] `p1` - Host calls `app.actions.loadExtension(extensionId)` - `inst-call-load-ext`
-2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `screensetsRegistry.executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~` — fire-and-forget - `inst-execute-load-chain`
+2. [ ] `p1` - Action resolves the domain ID from the registered extension; calls `mfeRegistry.executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.load_ext.v1~` — fire-and-forget - `inst-execute-load-chain`
 3. [ ] `p1` - Host calls `app.actions.mountExtension(extensionId)` - `inst-call-mount-ext`
 4. [ ] `p1` - Action resolves domain ID; calls `executeActionsChain` with `gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~` - `inst-execute-mount-chain`
 5. [ ] `p1` - On successful mount completion, dispatch `setExtensionMounted({ domainId, subject })` to the MFE slice - `inst-dispatch-mounted`
@@ -202,7 +202,7 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 
 **Actors**: `cpt-frontx-actor-host-app`, `cpt-frontx-actor-gts-plugin`, `cpt-frontx-actor-microfrontend`
 
-1. [ ] `p1` - A framework plugin (or host) calls `screensetsRegistry.updateSharedProperty(propertyId, value)` - `inst-call-update-sp`
+1. [ ] `p1` - A framework plugin (or host) calls `mfeRegistry.updateSharedProperty(propertyId, value)` - `inst-call-update-sp`
 2. [ ] `p1` - Registry performs GTS validation via algorithm `cpt-frontx-algo-framework-composition-gts-validation` — BEFORE any propagation - `inst-validate-sp`
 3. [ ] `p1` - **IF** validation fails **RETURN** throw error with validation details; property is NOT stored and NOT propagated - `inst-sp-validation-fail`
 4. [ ] `p1` - **FOR EACH** registered domain whose `sharedProperties` array includes `propertyId`: propagate the validated value to all domain subscribers - `inst-broadcast-sp`
@@ -303,8 +303,8 @@ Enable host applications to compose a fully-wired FrontX framework instance by a
 Tracked in `state.mfe.registrationStates[extensionId]`.
 
 1. [ ] `p1` - **FROM** `unregistered` **TO** `registering` **WHEN** `registerExtension` action is dispatched - `inst-to-registering`
-2. [ ] `p1` - **FROM** `registering` **TO** `registered` **WHEN** `screensetsRegistry.registerExtension()` resolves successfully - `inst-to-registered`
-3. [ ] `p1` - **FROM** `registering` **TO** `error` **WHEN** `screensetsRegistry.registerExtension()` throws - `inst-to-error`
+2. [ ] `p1` - **FROM** `registering` **TO** `registered` **WHEN** `mfeRegistry.registerExtension()` resolves successfully - `inst-to-registered`
+3. [ ] `p1` - **FROM** `registering` **TO** `error` **WHEN** `mfeRegistry.registerExtension()` throws - `inst-to-error`
 4. [ ] `p1` - **FROM** `registered` **TO** `unregistered` **WHEN** `unregisterExtension` action succeeds - `inst-to-unregistered`
 5. [ ] `p1` - **FROM** any state **TO** `error` **WHEN** `unregisterExtension` throws - `inst-unreg-error`
 
@@ -432,7 +432,7 @@ The framework provides an event-driven API for configuring tenant, language, the
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-propagation`
 
-When the host changes theme or language, the respective plugin propagates the new value to all registered MFE domains by calling `screensetsRegistry.updateSharedProperty()` with the appropriate shared property constant. Errors from the registry call are caught and logged; they never crash the host application. On initialization, the `themes()` plugin applies the first registered theme; the `i18n()` plugin loads English translations in the background.
+When the host changes theme or language, the respective plugin propagates the new value to all registered MFE domains by calling `mfeRegistry.updateSharedProperty()` with the appropriate shared property constant. Errors from the registry call are caught and logged; they never crash the host application. On initialization, the `themes()` plugin applies the first registered theme; the `i18n()` plugin loads English translations in the background.
 
 **Shared property constants**:
 - `HAI3_SHARED_PROPERTY_THEME` (`gts.hai3.mfes.comm.shared_property.v1~hai3.mfes.comm.theme.v1~`)
@@ -457,7 +457,7 @@ When the host changes theme or language, the respective plugin propagates the ne
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-mfe-plugin`
 
-The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `ScreensetsRegistry` instance via `screensetsRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.screensetsRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the FrontX actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
+The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `typeSystem: TypeSystemPlugin` and optional `mfeHandlers: MfeHandler[]`. It builds a `MfeRegistry` instance via `mfeRegistryFactory.build({ typeSystem: config.typeSystem, mfeHandlers: config.mfeHandlers })` — the plugin does NOT import or hardcode any specific `TypeSystemPlugin` implementation. It exposes the registry as `app.mfeRegistry`. It registers the `mfe` Redux slice tracking per-extension registration state (`unregistered` | `registering` | `registered` | `error`) and per-domain mount state. It wires MFE lifecycle actions (`loadExtension`, `mountExtension`, `unmountExtension`, `registerExtension`, `unregisterExtension`) into the FrontX actions map. The plugin intercepts `executeActionsChain` completions for mount/unmount to dispatch Redux slice updates.
 
 **Domain constants** (GTS instance IDs):
 - `HAI3_SCREEN_DOMAIN` — main content area
@@ -485,7 +485,7 @@ The `microfrontends()` plugin accepts `MicrofrontendsConfig` with required `type
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-framework-composition-shared-property`
 
-`ScreensetsRegistry.updateSharedProperty(propertyId, value)` is the sole write path for shared property values. The implementation validates the value against the GTS-derived schema before any propagation. Validation is performed by `typeSystem.register({ id: ephemeralId, value })` — a single call that registers the ephemeral instance AND validates it against the schema derived from the chained instance ID — where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. If the value does not conform to the schema, `register()` throws a plain `Error` with a rich diagnostic (instance JSON, resolved schema JSON, failure reason) and no domain receives the update. Only domains whose `sharedProperties` array includes `propertyId` receive the update. No matching domains is a silent no-op. The deprecated `updateDomainProperty()` and `updateDomainProperties()` methods do NOT exist on the abstract class or implementation.
+`MfeRegistry.updateSharedProperty(propertyId, value)` is the sole write path for shared property values. The implementation validates the value against the GTS-derived schema before any propagation. Validation is performed by `typeSystem.register({ id: ephemeralId, value })` — a single call that registers the ephemeral instance AND validates it against the schema derived from the chained instance ID — where `ephemeralId = "${propertyTypeId}hai3.mfes.comm.runtime.v1"`. If the value does not conform to the schema, `register()` throws a plain `Error` with a rich diagnostic (instance JSON, resolved schema JSON, failure reason) and no domain receives the update. Only domains whose `sharedProperties` array includes `propertyId` receive the update. No matching domains is a silent no-op. The deprecated `updateDomainProperty()` and `updateDomainProperties()` methods do NOT exist on the abstract class or implementation.
 
 **Implements**:
 - `cpt-frontx-flow-framework-composition-shared-property-broadcast`
@@ -530,7 +530,7 @@ All presets are exported from `@cyberfabric/framework`. The `presets` object col
 
 `@cyberfabric/framework` re-exports the public API of all four L1 packages so that consumers can import from a single entry point. Re-exported symbols include:
 - From `@cyberfabric/state`: `eventBus`, `createStore`, `getStore`, `registerSlice`, `hasSlice`, `createSlice`, and all related types
-- From `@cyberfabric/screensets`: `ScreensetsRegistry`, `screensetsRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
+- From `@cyberfabric/screensets`: `MfeRegistry`, `mfeRegistryFactory`, `MfeHandler`, `MfeBridgeFactory`, `LayoutDomain`, action/property constants, type contracts
 - From `@cyberfabric/api`: `apiRegistry`, `BaseApiService`, `RestProtocol`, `SseProtocol`, mock plugins, type guards, `StreamDescriptor`, `StreamStatus`
 - From `@cyberfabric/i18n`: `i18nRegistry`, `Language`, `SUPPORTED_LANGUAGES`, all formatters
 
@@ -561,16 +561,16 @@ The framework does NOT export `createAction` to consumers; actions are handwritt
 
 ## 6. Acceptance Criteria
 
-- [x] `createHAI3().use(pluginA()).use(pluginB()).build()` produces a `HAI3App` with `store`, `themeRegistry`, `i18nRegistry`, `apiRegistry`, `screensetsRegistry`, and `actions` all populated
+- [x] `createHAI3().use(pluginA()).use(pluginB()).build()` produces a `HAI3App` with `store`, `themeRegistry`, `i18nRegistry`, `apiRegistry`, `mfeRegistry`, and `actions` all populated
 - [x] Plugin dependency ordering is enforced: if `pluginB` declares `dependencies: ['pluginA']`, `pluginA.onInit` is always called before `pluginB.onInit` regardless of `.use()` call order
 - [x] Registering the same plugin name twice results in only one plugin in the resolved list (second is silently ignored)
 - [x] A circular dependency between two plugins throws an error during `.build()`
-- [x] `app.actions.changeTheme({ themeId: 'dark' })` calls `themeRegistry.apply('dark')` AND calls `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` when the `microfrontends()` plugin is registered
-- [x] Errors thrown by `screensetsRegistry.updateSharedProperty()` in theme/language propagation are caught and logged; the host application continues without crash
-- [x] `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'invalid-theme')` throws a GTS validation error; no domain subscriber receives the value
-- [x] `screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` propagates to all domains declaring the property; domains not declaring it receive no update
+- [x] `app.actions.changeTheme({ themeId: 'dark' })` calls `themeRegistry.apply('dark')` AND calls `mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` when the `microfrontends()` plugin is registered
+- [x] Errors thrown by `mfeRegistry.updateSharedProperty()` in theme/language propagation are caught and logged; the host application continues without crash
+- [x] `mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'invalid-theme')` throws a GTS validation error; no domain subscriber receives the value
+- [x] `mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, 'dark')` propagates to all domains declaring the property; domains not declaring it receive no update
 - [x] `app.actions.registerExtension(ext)` transitions `state.mfe.registrationStates[ext.id]` from `'unregistered'` → `'registering'` → `'registered'`
-- [x] A failing `screensetsRegistry.registerExtension()` call transitions state to `'error'` with the error message recorded
+- [x] A failing `mfeRegistry.registerExtension()` call transitions state to `'error'` with the error message recorded
 - [x] `app.actions.mountExtension(extensionId)` after successful execution sets `state.mfe.mountedExtensions[domainId]` to the extension's `subject` reference
 - [x] `normalizeBase('/console/')` returns `'/console'`; `normalizeBase('')` returns `'/'`; `normalizeBase('console')` returns `'/console'`
 - [x] `stripBase('/console/dashboard', '/console')` returns `'/dashboard'`; `stripBase('/admin/x', '/console')` returns `null`; `stripBase('/console-admin', '/console')` returns `null`

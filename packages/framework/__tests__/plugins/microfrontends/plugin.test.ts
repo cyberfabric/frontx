@@ -24,20 +24,20 @@ import {
 import { eventBus, resetStore } from '@cyberfabric/state';
 import {
   HAI3_ACTION_MOUNT_EXT,
-  screensetsRegistryFactory,
+  mfeRegistryFactory,
   type Extension,
-  type ScreensetsRegistry,
+  type MfeRegistry,
 } from '@cyberfabric/screensets';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import type { HAI3App } from '../../../src/types';
 
 /**
- * The Phase 13 mount-sync suites only exercise a handful of ScreensetsRegistry
+ * The Phase 13 mount-sync suites only exercise a handful of MfeRegistry
  * methods. We stub exactly those surfaces to keep the test scaffolding honest
- * instead of blanket-casting to ScreensetsRegistry.
+ * instead of blanket-casting to MfeRegistry.
  */
 type MountSyncRegistry = Pick<
-  ScreensetsRegistry,
+  MfeRegistry,
   | 'typeSystem'
   | 'executeActionsChain'
   | 'getMountedExtension'
@@ -45,11 +45,11 @@ type MountSyncRegistry = Pick<
   | 'unregisterExtension'
 >;
 
-function asScreensetsRegistry(stub: MountSyncRegistry): ScreensetsRegistry {
+function asMfeRegistry(stub: MountSyncRegistry): MfeRegistry {
   // This is the only cast we allow: the factory.build() signature returns
-  // ScreensetsRegistry and the production code paths we exercise rely only on
+  // MfeRegistry and the production code paths we exercise rely only on
   // the MountSyncRegistry subset.
-  return stub as unknown as ScreensetsRegistry;
+  return stub as unknown as MfeRegistry;
 }
 
 describe('microfrontends plugin - Phase 13', () => {
@@ -121,8 +121,8 @@ describe('microfrontends plugin - Phase 13', () => {
         entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
       };
 
-      const registry = app.screensetsRegistry;
-      if (!registry) throw new Error('expected screensetsRegistry');
+      const registry = app.mfeRegistry;
+      if (!registry) throw new Error('expected mfeRegistry');
       vi.spyOn(registry, 'getExtension').mockReturnValue(testExtension);
       const spy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
 
@@ -158,8 +158,8 @@ describe('microfrontends plugin - Phase 13', () => {
         entry: 'gts.hai3.mfes.mfe.entry.v1~test.app.test.entry.v1',
       };
 
-      const registry = app.screensetsRegistry;
-      if (!registry) throw new Error('expected screensetsRegistry');
+      const registry = app.mfeRegistry;
+      if (!registry) throw new Error('expected mfeRegistry');
       vi.spyOn(registry, 'getExtension').mockReturnValue(testExtension);
       vi.spyOn(registry, 'getDomain').mockReturnValue(undefined);
       const chainSpy = vi.spyOn(registry, 'executeActionsChain').mockResolvedValue(undefined);
@@ -236,7 +236,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
+      vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -248,7 +248,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const domainId = 'gts.hai3.mfes.ext.domain.v1~test.app.test.domain.v1';
       const requestedExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.ext.v1';
 
-      await app.screensetsRegistry?.executeActionsChain({
+      await app.mfeRegistry?.executeActionsChain({
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: domainId,
@@ -274,7 +274,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
+      vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -287,7 +287,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const requestedExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.ext.v1';
       const fallbackExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.fallback.ext.v1';
 
-      await app.screensetsRegistry?.executeActionsChain({
+      await app.mfeRegistry?.executeActionsChain({
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: domainId,
@@ -322,7 +322,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
+      vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -336,7 +336,7 @@ describe('microfrontends plugin - Phase 13', () => {
       const rootExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.root.v1';
       const nextExtensionId = 'gts.hai3.mfes.ext.extension.v1~test.app.requested.next.v1';
 
-      await app.screensetsRegistry?.executeActionsChain({
+      await app.mfeRegistry?.executeActionsChain({
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: rootDomainId,
@@ -374,7 +374,7 @@ describe('microfrontends plugin - Phase 13', () => {
         unregisterExtension: vi.fn().mockResolvedValue(undefined),
       };
 
-      vi.spyOn(screensetsRegistryFactory, 'build').mockReturnValue(asScreensetsRegistry(fakeRegistry));
+      vi.spyOn(mfeRegistryFactory, 'build').mockReturnValue(asMfeRegistry(fakeRegistry));
 
       const app = createHAI3()
         .use(screensets())
@@ -391,7 +391,7 @@ describe('microfrontends plugin - Phase 13', () => {
         notificationCount += 1;
       });
 
-      await app.screensetsRegistry?.executeActionsChain({
+      await app.mfeRegistry?.executeActionsChain({
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: rootDomainId,
@@ -424,8 +424,8 @@ describe('microfrontends plugin - Phase 13', () => {
         .build();
       apps.push(app);
 
-      const registry = app.screensetsRegistry;
-      if (!registry) throw new Error('expected screensetsRegistry');
+      const registry = app.mfeRegistry;
+      if (!registry) throw new Error('expected mfeRegistry');
       const registerSpy = vi
         .spyOn(registry, 'registerExtension')
         .mockResolvedValue(undefined);
@@ -450,8 +450,8 @@ describe('microfrontends plugin - Phase 13', () => {
         .use(microfrontends({ typeSystem: gtsPlugin }))
         .build();
 
-      const registry = app.screensetsRegistry;
-      if (!registry) throw new Error('expected screensetsRegistry');
+      const registry = app.mfeRegistry;
+      if (!registry) throw new Error('expected mfeRegistry');
       const registerSpy = vi
         .spyOn(registry, 'registerExtension')
         .mockResolvedValue(undefined);

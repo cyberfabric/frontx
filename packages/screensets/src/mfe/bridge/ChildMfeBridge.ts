@@ -1,5 +1,5 @@
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-load:p1
-// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-mfe-registry-execute-chain:p1
 /**
  * Child MFE Bridge Implementation
  *
@@ -246,20 +246,20 @@ export class ChildMfeBridgeImpl extends ChildMfeBridge {
    * @param handler - The ActionHandler instance to invoke
    * @throws Error if the callback was not wired by the bridge factory (programming error)
    */
-  // @cpt-begin:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-mfe-registry-register-extension-handler:p1:inst-1
   registerActionHandler(actionTypeId: string, handler: ActionHandler): void {
     if (!this.registerActionHandlerCallback) {
       throw new Error('registerActionHandler callback not wired');
     }
     this.registerActionHandlerCallback(actionTypeId, handler);
   }
-  // @cpt-end:cpt-frontx-flow-screenset-registry-register-extension-handler:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-mfe-registry-register-extension-handler:p1:inst-1
 
   /**
    * INTERNAL: Register a child domain for cross-runtime action forwarding.
    * This is a concrete-only method used by child MFEs that define their own domains.
    *
-   * When a child MFE registers its own domains in a child ScreensetsRegistry,
+   * When a child MFE registers its own domains in a child MfeRegistry,
    * it should call this method to enable the parent's mediator to route actions
    * to those domains through the bridge transport.
    *
@@ -295,14 +295,14 @@ export class ChildMfeBridgeImpl extends ChildMfeBridge {
    * @returns Promise resolving when execution is complete
    * @throws {NoActionsChainHandlerError} If no handler is registered
    */
-  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
   handleParentActionsChain(chain: ActionsChain): Promise<void> {
     if (this.actionsChainHandler === null) {
       throw new NoActionsChainHandlerError(this.instanceId);
     }
     return this.actionsChainHandler(chain);
   }
-  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
 
   /**
    * INTERNAL: Cleanup method called by bridge factory.

@@ -7,7 +7,7 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import { TestContainerProvider } from '../../../__test-utils__';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
@@ -19,7 +19,7 @@ import {
 
 describe('Phase 41 Regression Tests', () => {
   let gtsPlugin: GtsPlugin;
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
 
@@ -66,7 +66,7 @@ describe('Phase 41 Regression Tests', () => {
   beforeEach(() => {
     gtsPlugin = new GtsPlugin();
 
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem: gtsPlugin,
     });
 
@@ -154,7 +154,7 @@ describe('Phase 41 Regression Tests', () => {
       // Assert console.error was called with failure message
       expect(consoleErrorSpy).toHaveBeenCalled();
       const errorCall = consoleErrorSpy.mock.calls[0];
-      expect(errorCall[0]).toContain('[ScreensetsRegistry] Actions chain failed:');
+      expect(errorCall[0]).toContain('[MfeRegistry] Actions chain failed:');
     });
 
     it('should not throw when actions chain fails', async () => {

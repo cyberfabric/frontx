@@ -17,7 +17,7 @@ import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../sr
 import type { ActionsChain, ExtensionDomain, MfeEntry } from '../../../src/mfe/types';
 import { ActionHandler } from '../../../src/mfe/mediator';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import {
   HAI3_ACTION_LOAD_EXT,
   HAI3_ACTION_MOUNT_EXT,
@@ -129,7 +129,7 @@ function createMockPlugin(): TypeSystemPlugin {
 describe('ActionsChainsMediator - Phase 9', () => {
   let plugin: TypeSystemPlugin;
   let mediator: DefaultActionsChainsMediator;
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: MockContainerProvider;
   /**
    * Stub store for MfeEntry lookup used by runtime action declaration validation.
@@ -141,7 +141,7 @@ describe('ActionsChainsMediator - Phase 9', () => {
 
   beforeEach(() => {
     plugin = createMockPlugin();
-    registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
+    registry = new DefaultMfeRegistry({ typeSystem: plugin });
     mockContainerProvider = new MockContainerProvider();
     extensionEntries = new Map();
     mediator = new DefaultActionsChainsMediator({
@@ -463,10 +463,10 @@ describe('ActionsChainsMediator - Phase 9', () => {
         },
       };
 
-      const failingRegistry = new DefaultScreensetsRegistry({ typeSystem: failingPlugin });
+      const failingRegistry = new DefaultMfeRegistry({ typeSystem: failingPlugin });
       const failingMediator = new DefaultActionsChainsMediator({
         typeSystem: failingPlugin,
-        getDomainState: (domainId) => (failingRegistry as DefaultScreensetsRegistry).getDomainState(domainId),
+        getDomainState: (domainId) => (failingRegistry as DefaultMfeRegistry).getDomainState(domainId),
         getExtensionEntry: () => undefined,
       });
 

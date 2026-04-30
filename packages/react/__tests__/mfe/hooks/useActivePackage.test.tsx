@@ -72,30 +72,30 @@ describe('useActivePackage hook - Phase 39.6', () => {
       .build();
     apps.push(app);
 
-    if (!app.screensetsRegistry) {
-      throw new Error('Expected screensetsRegistry');
+    if (!app.mfeRegistry) {
+      throw new Error('Expected mfeRegistry');
     }
-    const screensetsRegistry = app.screensetsRegistry;
+    const mfeRegistry = app.mfeRegistry;
 
     // Track mounted extension for screen domain
     let mountedExtensionId: string | undefined;
 
     // Mock registerExtension to bypass validation
-    const origRegisterDomain = screensetsRegistry.registerDomain.bind(screensetsRegistry);
-    screensetsRegistry.registerDomain = ((
+    const origRegisterDomain = mfeRegistry.registerDomain.bind(mfeRegistry);
+    mfeRegistry.registerDomain = ((
       domain: ExtensionDomain,
       containerProvider: ContainerProvider,
-      options?: Parameters<typeof screensetsRegistry.registerDomain>[2]
+      options?: Parameters<typeof mfeRegistry.registerDomain>[2]
     ) => {
       origRegisterDomain(domain, containerProvider, options);
-    }) as typeof screensetsRegistry.registerDomain;
+    }) as typeof mfeRegistry.registerDomain;
 
-    screensetsRegistry.registerExtension = vi.fn(async (_ext: Extension) => {
+    mfeRegistry.registerExtension = vi.fn(async (_ext: Extension) => {
       // No-op for this test, just need to bypass validation
     });
 
     // Mock mount/unmount to track state and dispatch
-    screensetsRegistry.executeActionsChain = vi.fn(async (chain) => {
+    mfeRegistry.executeActionsChain = vi.fn(async (chain) => {
       const action = chain.action;
       if (action.type === 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~') {
         const payload = action.payload as { subject: string };
@@ -112,7 +112,7 @@ describe('useActivePackage hook - Phase 39.6', () => {
     });
 
     // Mock getMountedExtension to return from our tracked state
-    screensetsRegistry.getMountedExtension = vi.fn((domainId: string) => {
+    mfeRegistry.getMountedExtension = vi.fn((domainId: string) => {
       if (domainId === HAI3_SCREEN_DOMAIN) {
         return mountedExtensionId;
       }
@@ -132,10 +132,10 @@ describe('useActivePackage hook - Phase 39.6', () => {
     it('39.6.14 should return GTS package of mounted screen extension', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
 
       // Mount demo extension
-      await app.screensetsRegistry!.executeActionsChain({
+      await app.mfeRegistry!.executeActionsChain({
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
@@ -151,7 +151,7 @@ describe('useActivePackage hook - Phase 39.6', () => {
     it('39.6.14 should return undefined when no screen extension is mounted', () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
 
       const { result } = renderHook(() => useActivePackage(), { wrapper: buildWrapper(app) });
 
@@ -161,14 +161,14 @@ describe('useActivePackage hook - Phase 39.6', () => {
     it('should update when screen extension is mounted', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
 
       const { result } = renderHook(() => useActivePackage(), { wrapper: buildWrapper(app) });
 
       expect(result.current).toBeUndefined();
 
       await act(async () => {
-        await app.screensetsRegistry!.executeActionsChain({
+        await app.mfeRegistry!.executeActionsChain({
           action: {
             type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
@@ -185,10 +185,10 @@ describe('useActivePackage hook - Phase 39.6', () => {
     it('should update when screen extension is unmounted', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
 
       // Mount demo extension
-      await app.screensetsRegistry!.executeActionsChain({
+      await app.mfeRegistry!.executeActionsChain({
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
@@ -201,7 +201,7 @@ describe('useActivePackage hook - Phase 39.6', () => {
       expect(result.current).toBe('hai3.demo');
 
       await act(async () => {
-        await app.screensetsRegistry!.executeActionsChain({
+        await app.mfeRegistry!.executeActionsChain({
           action: {
             type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
@@ -218,10 +218,10 @@ describe('useActivePackage hook - Phase 39.6', () => {
     it('should update when different screen extension is mounted', async () => {
       const app = buildApp();
       const testContainerProvider = new TestContainerProvider();
-      app.screensetsRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
+      app.mfeRegistry!.registerDomain(mockScreenDomain, testContainerProvider);
 
       // Mount demo extension
-      await app.screensetsRegistry!.executeActionsChain({
+      await app.mfeRegistry!.executeActionsChain({
         action: {
           type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
           target: HAI3_SCREEN_DOMAIN,
@@ -235,7 +235,7 @@ describe('useActivePackage hook - Phase 39.6', () => {
 
       await act(async () => {
         // Unmount demo
-        await app.screensetsRegistry!.executeActionsChain({
+        await app.mfeRegistry!.executeActionsChain({
           action: {
             type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.unmount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,
@@ -244,7 +244,7 @@ describe('useActivePackage hook - Phase 39.6', () => {
         });
 
         // Mount other
-        await app.screensetsRegistry!.executeActionsChain({
+        await app.mfeRegistry!.executeActionsChain({
           action: {
             type: 'gts.hai3.mfes.comm.action.v1~hai3.mfes.ext.mount_ext.v1~',
             target: HAI3_SCREEN_DOMAIN,

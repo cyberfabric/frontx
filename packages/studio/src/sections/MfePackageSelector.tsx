@@ -44,13 +44,13 @@ export const MfePackageSelector: React.FC<MfePackageSelectorProps> = ({
   className = '',
 }) => {
   const app = useHAI3();
-  const registry = app.screensetsRegistry;
+  const registry = app.mfeRegistry;
   const { portalContainer } = useStudioContext();
   const { t } = useTranslation();
   const packages = useRegisteredPackages();
   const activePackage = useActivePackage();
 
-  // Early return guard: screensetsRegistry is optional on HAI3App
+  // Early return guard: mfeRegistry is optional on HAI3App
   if (!registry) {
     return null;
   }
