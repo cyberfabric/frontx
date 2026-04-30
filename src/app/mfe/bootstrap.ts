@@ -18,7 +18,7 @@ import type {
   MfManifest,
   MfeEntryMF,
   JSONSchema,
-  ScreensetsRegistry,
+  MfeRegistry,
 } from '@cyberfabric/react';
 import { bootstrapMfeDomains } from '@cyberfabric/react';
 
@@ -47,7 +47,7 @@ function isScreenExtension(extension: Extension): extension is ScreenExtension {
     typeof presentation.route === 'string';
 }
 
-// @cpt-begin:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+// @cpt-begin:cpt-frontx-dod-mfe-registry-mfe-schema-registration:p1:inst-1
 /**
  * Scoped schema registration: only register schemas whose $id matches an action ID
  * declared by at least one entry in this package. Orphan schemas (not referenced by
@@ -64,7 +64,7 @@ function collectDeclaredActionIds(entries: MfeEntryMF[]): Set<string> {
 }
 
 function registerScopedSchemas(
-  registry: ScreensetsRegistry,
+  registry: MfeRegistry,
   schemas: JSONSchema[],
   declaredActionIds: Set<string>,
 ): void {
@@ -78,10 +78,10 @@ function registerScopedSchemas(
     }
   }
 }
-// @cpt-end:cpt-frontx-dod-screenset-registry-mfe-schema-registration:p1:inst-1
+// @cpt-end:cpt-frontx-dod-mfe-registry-mfe-schema-registration:p1:inst-1
 
 async function registerMfePackage(
-  registry: ScreensetsRegistry,
+  registry: MfeRegistry,
   config: MfeManifestConfig,
 ): Promise<void> {
   if (config.schemas) {
@@ -116,7 +116,7 @@ export async function bootstrapMFE(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
 ): Promise<ScreenExtension[]> {
-  const screensetsRegistry = await bootstrapMfeDomains(app, screenContainerRef);
+  const mfeRegistry = await bootstrapMfeDomains(app, screenContainerRef);
 
   if (MFE_MANIFESTS.length === 0) {
     console.warn(
@@ -128,7 +128,7 @@ export async function bootstrapMFE(
   const manifests = MFE_MANIFESTS as MfeManifestConfig[];
   const screenExtensions: ScreenExtension[] = [];
   for (const config of manifests) {
-    await registerMfePackage(screensetsRegistry, config);
+    await registerMfePackage(mfeRegistry, config);
     screenExtensions.push(...config.extensions.filter(isScreenExtension));
   }
 

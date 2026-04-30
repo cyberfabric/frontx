@@ -1,6 +1,6 @@
-// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
-// @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
-// @cpt-dod:cpt-frontx-dod-screenset-registry-mediator-contract:p1
+// @cpt-flow:cpt-frontx-flow-mfe-registry-execute-chain:p1
+// @cpt-algo:cpt-frontx-algo-mfe-registry-handler-resolution:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-mediator-contract:p1
 /**
  * Default Actions Chains Mediator Implementation
  *
@@ -33,7 +33,7 @@ const DEFAULT_CHAIN_TIMEOUT = 120000;
  * Handles action chain execution with success/failure branching, timeout management,
  * and per-(targetId, actionTypeId) handler registration.
  *
- * This is the default mediator implementation used by ScreensetsRegistry.
+ * This is the default mediator implementation used by MfeRegistry.
  * It is NOT exported from the package - only the abstract ActionsChainsMediator is exported.
  *
  * @internal
@@ -46,7 +46,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
 
   /**
    * Callback to get domain state for target resolution.
-   * Injected during construction to avoid dependency on full ScreensetsRegistry.
+   * Injected during construction to avoid dependency on full MfeRegistry.
    */
   private readonly getDomainState: (domainId: string) => ExtensionDomainState | undefined;
 
@@ -104,7 +104,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param options - Optional per-request execution options
    * @returns Promise resolving to chain result
    */
-  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
   async executeActionsChain(
     chain: ActionsChain,
     options?: ChainExecutionOptions
@@ -139,7 +139,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
       };
     }
   }
-  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
 
   /**
    * Execute a chain recursively with success/failure branching.
@@ -169,7 +169,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
     // Invalid actions throw directly from register().
     this.typeSystem.register(action);
 
-    // @cpt-begin:feature-screenset-registry:inst-validate-entry-declaration
+    // @cpt-begin:feature-mfe-registry:inst-validate-entry-declaration
     // Runtime entry declaration validation (second layer, after GTS schema validation).
     // GTS alone enforces schema/target shape; this layer enforces per-entry opt-in:
     // the target entry must declare the action.type in its `actions` — the set of
@@ -191,7 +191,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
         }
       }
     }
-    // @cpt-end:feature-screenset-registry:inst-validate-entry-declaration
+    // @cpt-end:feature-mfe-registry:inst-validate-entry-declaration
 
     // Execute the action with timeout
     try {
@@ -310,7 +310,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
    * @param actionTypeId - The action type ID
    * @returns The action handler function, or undefined if not found
    */
-  // @cpt-begin:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
+  // @cpt-begin:cpt-frontx-algo-mfe-registry-handler-resolution:p1:inst-1
   private resolveHandler(targetId: string, actionTypeId: string): ActionHandler | undefined {
     // Check per-(target, actionType) handler first
     const targetHandlers = this.actionHandlers.get(targetId);
@@ -324,7 +324,7 @@ export class DefaultActionsChainsMediator extends ActionsChainsMediator {
     // Fall back to catch-all handler (used for child domain forwarding via bridge transport)
     return this.catchAllHandlers.get(targetId);
   }
-  // @cpt-end:cpt-frontx-algo-screenset-registry-handler-resolution:p1:inst-1
+  // @cpt-end:cpt-frontx-algo-mfe-registry-handler-resolution:p1:inst-1
 
   /**
    * Resolve the timeout for an action.

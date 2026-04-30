@@ -8,13 +8,13 @@
  * - Automatic garbage collection with WeakMap
  * - Proper registration/lookup/unregistration
  *
- * NOTE: This tests the coordinator directly. Integration with ScreensetsRegistry
+ * NOTE: This tests the coordinator directly. Integration with MfeRegistry
  * is tested in Phase 19.3 (mountExtension/unmountExtension).
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { MfeRegistry } from '../../../src/mfe/runtime';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ParentMfeBridge } from '../../../src/mfe/handler/types';
 import { RuntimeCoordinator, type RuntimeConnection } from '../../../src/mfe/coordination/types';
@@ -22,7 +22,7 @@ import { WeakMapRuntimeCoordinator } from '../../../src/mfe/coordination/weak-ma
 
 describe('Runtime Coordination', () => {
   let container: HTMLDivElement;
-  let mockRuntime: ScreensetsRegistry;
+  let mockRuntime: MfeRegistry;
   let mockBridge: ParentMfeBridge;
   let testEntryTypeId: string;
   let coordinator: RuntimeCoordinator;
@@ -41,7 +41,7 @@ describe('Runtime Coordination', () => {
     container = document.createElement('div');
 
     // Create mock runtime
-    mockRuntime = new DefaultScreensetsRegistry({
+    mockRuntime = new DefaultMfeRegistry({
       typeSystem,
     });
 
@@ -320,8 +320,8 @@ describe('Runtime Coordination', () => {
       const container1 = document.createElement('div');
       const container2 = document.createElement('div');
 
-      const runtime1 = new DefaultScreensetsRegistry({ typeSystem });
-      const runtime2 = new DefaultScreensetsRegistry({ typeSystem });
+      const runtime1 = new DefaultMfeRegistry({ typeSystem });
+      const runtime2 = new DefaultMfeRegistry({ typeSystem });
 
       const entryTypeId1 = 'gts.hai3.mfes.mfe.entry.v1~test.entry1.v1';
       const entryTypeId2 = 'gts.hai3.mfes.mfe.entry.v1~test.entry2.v1';
@@ -357,26 +357,26 @@ describe('Runtime Coordination', () => {
     });
   });
 
-  describe('ScreensetsRegistry integration', () => {
+  describe('MfeRegistry integration', () => {
     it('should use coordinator from config', () => {
       const customCoordinator = new WeakMapRuntimeCoordinator();
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem,
         coordinator: customCoordinator,
       });
 
       // Verify registry was created successfully
-      expect(registry).toBeInstanceOf(ScreensetsRegistry);
+      expect(registry).toBeInstanceOf(MfeRegistry);
       expect(registry.typeSystem).toBe(typeSystem);
     });
 
     it('should default to WeakMapRuntimeCoordinator if not provided', () => {
-      const registry = new DefaultScreensetsRegistry({
+      const registry = new DefaultMfeRegistry({
         typeSystem,
       });
 
       // Verify registry was created successfully
-      expect(registry).toBeInstanceOf(ScreensetsRegistry);
+      expect(registry).toBeInstanceOf(MfeRegistry);
       expect(registry.typeSystem).toBe(typeSystem);
     });
   });

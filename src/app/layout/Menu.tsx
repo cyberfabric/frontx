@@ -37,7 +37,7 @@ export interface MenuProps {
 export const Menu: React.FC<MenuProps> = ({ children }) => {
   const menuState = useAppSelector((state) => state['layout/menu'] as MenuState | undefined);
   const app = useHAI3();
-  const { screensetsRegistry } = app;
+  const { mfeRegistry } = app;
   const activePackage = useActivePackage();
 
   const collapsed = menuState?.collapsed ?? false;
@@ -47,28 +47,28 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
   const [mountedId, setMountedId] = useState<string | undefined>();
 
   useEffect(() => {
-    if (!screensetsRegistry) return;
+    if (!mfeRegistry) return;
 
     const refresh = () => {
       let screenExts: ScreenExtension[];
       if (activePackage) {
-        const packageExts = screensetsRegistry.getExtensionsForPackage(activePackage);
+        const packageExts = mfeRegistry.getExtensionsForPackage(activePackage);
         screenExts = packageExts.filter(
           (ext: Extension) => ext.domain === HAI3_SCREEN_DOMAIN && 'presentation' in ext
         ) as ScreenExtension[];
       } else {
-        screenExts = screensetsRegistry.getExtensionsForDomain(HAI3_SCREEN_DOMAIN) as ScreenExtension[];
+        screenExts = mfeRegistry.getExtensionsForDomain(HAI3_SCREEN_DOMAIN) as ScreenExtension[];
       }
       const sorted = screenExts
         .sort((a, b) => (a.presentation.order ?? 999) - (b.presentation.order ?? 999));
       setExtensions(sorted);
-      setMountedId(screensetsRegistry.getMountedExtension(HAI3_SCREEN_DOMAIN));
+      setMountedId(mfeRegistry.getMountedExtension(HAI3_SCREEN_DOMAIN));
     };
 
     refresh();
     const interval = setInterval(refresh, 500);
     return () => clearInterval(interval);
-  }, [screensetsRegistry, activePackage]);
+  }, [mfeRegistry, activePackage]);
 
   const handleToggleCollapse = () => {
     eventBus.emit('layout/menu/collapsed', { collapsed: !collapsed });
@@ -76,8 +76,8 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
 
   const handleMenuItemClick = useCallback(
     async (extensionId: string) => {
-      if (!screensetsRegistry) return;
-      await screensetsRegistry.executeActionsChain({
+      if (!mfeRegistry) return;
+      await mfeRegistry.executeActionsChain({
         action: {
           type: HAI3_ACTION_MOUNT_EXT,
           target: HAI3_SCREEN_DOMAIN,
@@ -86,7 +86,7 @@ export const Menu: React.FC<MenuProps> = ({ children }) => {
       });
       setMountedId(extensionId);
     },
-    [screensetsRegistry]
+    [mfeRegistry]
   );
 
   return (

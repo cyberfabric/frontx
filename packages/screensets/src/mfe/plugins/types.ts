@@ -6,7 +6,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-frontx-dod-screenset-registry-type-system-plugin:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-type-system-plugin:p1
 
 /**
  * JSON Schema type (simplified for type system plugin interface)
@@ -52,9 +52,9 @@ export interface JSONSchema {
  * @example
  * ```typescript
  * // Using the GTS plugin (default)
- * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
+ * import { mfeRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
- * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);
  * ```
  */

@@ -18,7 +18,7 @@ import type { ChildMfeBridge, MfeEntryLifecycle } from '../../../src/mfe/handler
 import type { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
 import {
   TestContainerProvider,
-  createMinimalScreensetsRegistryStub,
+  createMinimalMfeRegistryStub,
   makeMfeHandlerDouble,
 } from '../../../__test-utils__';
 import {
@@ -112,7 +112,7 @@ describe('DefaultMountManager — mount context forwarding', () => {
       coordinator,
       triggerLifecycle: vi.fn().mockResolvedValue(undefined),
       executeActionsChain: vi.fn().mockResolvedValue(undefined),
-      hostRuntime: createMinimalScreensetsRegistryStub(),
+      hostRuntime: createMinimalMfeRegistryStub(),
       registerCatchAllActionHandler: vi.fn(),
       unregisterCatchAllActionHandler: vi.fn(),
       registerExtensionActionHandler: vi.fn(),

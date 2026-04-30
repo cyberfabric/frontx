@@ -3,7 +3,7 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import { DomainValidationError } from '../../../src/mfe/errors';
@@ -22,11 +22,11 @@ function invalidExtensionDomainFixtureForValidation(): ExtensionDomain {
 
 describe('Domain Registration', () => {
   const plugin = new GtsPlugin();
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
 
   beforeEach(() => {
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem: plugin,
     });
     mockContainerProvider = new TestContainerProvider();

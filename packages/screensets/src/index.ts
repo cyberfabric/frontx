@@ -22,7 +22,7 @@
  * ];
  * ```
  */
-// @cpt-dod:cpt-frontx-dod-screenset-registry-layer-constraints:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-layer-constraints:p1
 
 // ============================================================================
 // Layout Domain Enum
@@ -88,14 +88,14 @@ export {
   HAI3_SHARED_PROPERTY_LANGUAGE,
 } from './mfe';
 
-// MFE Runtime (ScreensetsRegistry - the MFE-enabled registry)
+// MFE Runtime (MfeRegistry - the MFE-enabled registry)
 export {
-  ScreensetsRegistry,
-  ScreensetsRegistryFactory,
-  screensetsRegistryFactory,
+  MfeRegistry,
+  MfeRegistryFactory,
+  mfeRegistryFactory,
   ContainerProvider,
 } from './mfe';
-export type { ScreensetsRegistryConfig, RegisterDomainOptions } from './mfe';
+export type { MfeRegistryConfig, RegisterDomainOptions } from './mfe';
 
 // Shadow DOM Utilities
 export { createShadowRoot, injectCssVariables } from './mfe';

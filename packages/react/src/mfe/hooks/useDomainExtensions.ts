@@ -47,7 +47,7 @@ import type { Extension } from '@cyberfabric/framework';
 // @cpt-begin:cpt-frontx-dod-react-bindings-observation-hooks:p1:inst-call-domain-extensions
 export function useDomainExtensions(domainId: string): Extension[] {
   const app = useHAI3();
-  const registry = app.screensetsRegistry;
+  const registry = app.mfeRegistry;
 
   // @cpt-begin:cpt-frontx-flow-react-bindings-use-domain-extensions:p1:inst-guard-registry
   // @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-registry

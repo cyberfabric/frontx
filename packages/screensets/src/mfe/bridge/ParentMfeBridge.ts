@@ -1,5 +1,5 @@
 // @cpt-flow:cpt-frontx-flow-mfe-isolation-load:p1
-// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-mfe-registry-execute-chain:p1
 /**
  * Parent MFE Bridge Implementation
  *
@@ -64,18 +64,18 @@ export class ParentMfeBridgeImpl extends ParentMfeBridge {
    * @returns Promise resolving when execution is complete
    * @throws {BridgeDisposedError} If bridge has been disposed
    */
-  // @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-begin:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
   async sendActionsChain(chain: ActionsChain): Promise<void> {
     if (this.disposed) {
       throw new BridgeDisposedError(this.instanceId);
     }
     return this.childBridge.handleParentActionsChain(chain);
   }
-  // @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+  // @cpt-end:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
 
   /**
    * Register a handler for actions sent from the child MFE to the host.
-   * This is called by ScreensetsRegistry to connect the bridge to the mediator.
+   * This is called by MfeRegistry to connect the bridge to the mediator.
    *
    * @param callback - Handler for child actions
    */
@@ -87,7 +87,7 @@ export class ParentMfeBridgeImpl extends ParentMfeBridge {
   }
 
   /**
-   * Called by ScreensetsRegistry when a domain property is updated.
+   * Called by MfeRegistry when a domain property is updated.
    * Forwards the update to the child bridge.
    *
    * @param propertyTypeId - Type ID of the property

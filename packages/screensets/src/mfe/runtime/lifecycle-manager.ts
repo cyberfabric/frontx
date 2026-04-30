@@ -31,7 +31,7 @@ export type ActionChainExecutor = (chain: ActionsChain) => Promise<void>;
  * - Execute lifecycle hook action chains
  *
  * Key Benefits:
- * - Dependency Inversion: ScreensetsRegistry depends on abstraction
+ * - Dependency Inversion: MfeRegistry depends on abstraction
  * - Testability: Can inject mock managers for testing
  * - Encapsulation: Execution logic is hidden in concrete class
  */

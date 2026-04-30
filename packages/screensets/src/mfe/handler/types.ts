@@ -6,8 +6,8 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
-// @cpt-dod:cpt-frontx-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-type-contracts:p1
 // @cpt-dod:cpt-frontx-dod-mfe-isolation-child-bridge-contract:p1
 
 import type { MfeEntry, ActionsChain, SharedProperty } from '../types';

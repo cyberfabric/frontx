@@ -5,7 +5,7 @@
 - [1. Overview](#1-overview)
 - [2. Entries](#2-entries)
   - [2.1 State Management ⏳ HIGH](#21-state-management--high)
-  - [2.2 Screenset Registry & Contracts ⏳ HIGH](#22-screenset-registry--contracts--high)
+  - [2.2 MFE Registry & Contracts ⏳ HIGH](#22-mfe-registry--contracts--high)
   - [2.3 MFE Blob URL Isolation ⏳ HIGH](#23-mfe-blob-url-isolation--high)
   - [2.4 API Communication ⏳ HIGH](#24-api-communication--high)
   - [2.5 Internationalization Infrastructure ⏳ HIGH](#25-internationalization-infrastructure--high)
@@ -102,16 +102,16 @@ The DESIGN is decomposed into 13 features aligned with package/module boundaries
 - **Data**:
   - N/A (client-side library)
 
-### 2.2 [Screenset Registry & Contracts](feature-screenset-registry/) ⏳ HIGH
+### 2.2 [MFE Registry & Contracts](feature-mfe-registry/) ⏳ HIGH
 
-- [x] `p1` - **ID**: `cpt-frontx-feature-screenset-registry`
+- [x] `p1` - **ID**: `cpt-frontx-feature-mfe-registry`
 
 - **Purpose**: Defines the contract between host application and microfrontend extensions. Manages the screen-set registry, MFE type contracts (entry types, domain declarations, shared property schemas, action types), and auto-discovery via Vite glob imports.
 
 - **Depends On**: None
 
 - **Scope**:
-  - `screensetsRegistryFactory` for registering/querying screen-sets
+  - `mfeRegistryFactory` for registering/querying screen-sets
   - MFE entry type definitions (component, screen, extension)
   - Extension domain declarations and shared property schemas
   - MFE action type definitions
@@ -158,9 +158,11 @@ The DESIGN is decomposed into 13 features aligned with package/module boundaries
   - [x] `p1` - `cpt-frontx-component-screensets`
 
 - **API**:
-  - `screensetsRegistryFactory.build()`
-  - `screensetsRegistry.register()` / `.get()` / `.getAll()`
-  - `updateSharedProperty()`
+  - `mfeRegistryFactory.build(config)`
+  - `registerDomain(domain, containerProvider)`
+  - `registerExtension(extension)`
+  - `executeActionsChain(chain)`
+  - `updateSharedProperty(propertyId, value)`
 
 - **Sequences**:
   - None (registry is data infrastructure; sequences use it but are owned by other features)
@@ -174,7 +176,7 @@ The DESIGN is decomposed into 13 features aligned with package/module boundaries
 
 - **Purpose**: Implements per-MFE JavaScript isolation through blob URL evaluation. Each MFE bundle is fetched, its import specifiers rewritten to blob URLs, and evaluated in a fresh module scope. This ensures each MFE has its own module-level state (EventBus, store) independent of the host and other MFEs.
 
-- **Depends On**: `cpt-frontx-feature-screenset-registry`
+- **Depends On**: `cpt-frontx-feature-mfe-registry`
 
 - **Scope**:
   - Blob URL creation from fetched source text
@@ -369,7 +371,7 @@ The DESIGN is decomposed into 13 features aligned with package/module boundaries
 
 - **Purpose**: Composes L1 SDK packages into a cohesive application framework through the plugin architecture. Provides the builder API, plugin system, layout orchestration, configuration management, microfrontends lifecycle plugin, shared property bridge with GTS validation, and theme/i18n propagation to MFEs.
 
-- **Depends On**: `cpt-frontx-feature-state-management`, `cpt-frontx-feature-screenset-registry`, `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-i18n-infrastructure`
+- **Depends On**: `cpt-frontx-feature-state-management`, `cpt-frontx-feature-mfe-registry`, `cpt-frontx-feature-api-communication`, `cpt-frontx-feature-i18n-infrastructure`
 
 - **Scope**:
   - `createHAI3()` builder with `.use(plugin).build()` chaining
@@ -879,7 +881,7 @@ The DESIGN is decomposed into 13 features aligned with package/module boundaries
 
 ```text
 cpt-frontx-feature-state-management          (L1, no deps)
-cpt-frontx-feature-screenset-registry        (L1, no deps)
+cpt-frontx-feature-mfe-registry        (L1, no deps)
 cpt-frontx-feature-api-communication         (L1, no deps)
 cpt-frontx-feature-i18n-infrastructure       (L1, no deps)
 cpt-frontx-feature-studio-devtools           (standalone, no deps)
@@ -907,7 +909,7 @@ cpt-frontx-feature-unit-test-generation-and-agent-verification
 
 **Dependency Rationale**:
 
-- `cpt-frontx-feature-mfe-isolation` requires `cpt-frontx-feature-screenset-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
+- `cpt-frontx-feature-mfe-isolation` requires `cpt-frontx-feature-mfe-registry`: blob URL loader operates on screen-set registry entries and MFE contracts
 - `cpt-frontx-feature-framework-composition` requires all four L1 features: framework composes all SDK packages via plugin system
 - `cpt-frontx-feature-react-bindings` requires `cpt-frontx-feature-framework-composition`: React layer consumes the built framework output
 - `cpt-frontx-feature-request-lifecycle` requires `cpt-frontx-feature-api-communication` (AbortSignal and descriptors at L1), `cpt-frontx-feature-framework-composition` (`queryCache()` / `queryCacheShared()` plugins at L2), and `cpt-frontx-feature-react-bindings` (TanStack Query hooks and provider resolution at L3)

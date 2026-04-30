@@ -7,7 +7,7 @@
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { RefObject } from 'react';
-import type { HAI3App, ActionsChain, ScreensetsRegistry } from '@cyberfabric/framework';
+import type { HAI3App, ActionsChain, MfeRegistry } from '@cyberfabric/framework';
 import { bootstrapMfeDomains } from '../../src/mfe/bootstrapMfeCore';
 
 describe('bootstrapMfeDomains', () => {
@@ -27,11 +27,11 @@ describe('bootstrapMfeDomains', () => {
       updateSharedProperty: vi.fn(),
       executeActionsChain: originalExecuteActionsChain,
     } satisfies Pick<
-      ScreensetsRegistry,
+      MfeRegistry,
       'registerDomain' | 'updateSharedProperty' | 'executeActionsChain'
     >;
     const app = {
-      screensetsRegistry: registry,
+      mfeRegistry: registry,
       themeRegistry: {
         getCurrent: vi.fn().mockReturnValue({ id: 'default' }),
       },

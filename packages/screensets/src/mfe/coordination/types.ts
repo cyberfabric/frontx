@@ -8,7 +8,7 @@
  * @packageDocumentation
  */
 
-import type { ScreensetsRegistry } from '../runtime/ScreensetsRegistry';
+import type { MfeRegistry } from '../runtime/MfeRegistry';
 import type { ParentMfeBridge } from '../handler/types';
 
 /**
@@ -19,10 +19,10 @@ import type { ParentMfeBridge } from '../handler/types';
  */
 export interface RuntimeConnection {
   /**
-   * Reference to the parent (host) ScreensetsRegistry runtime.
+   * Reference to the parent (host) MfeRegistry runtime.
    * This allows MFE instances to coordinate with their parent.
    */
-  hostRuntime: ScreensetsRegistry;
+  hostRuntime: MfeRegistry;
 
   /**
    * Map of entry type IDs to their corresponding bridges.
@@ -40,16 +40,16 @@ export interface RuntimeConnection {
  * encapsulate the actual storage mechanism.
  *
  * Key Benefits:
- * - Dependency Inversion: ScreensetsRegistry depends on abstraction, not concrete implementation
+ * - Dependency Inversion: MfeRegistry depends on abstraction, not concrete implementation
  * - Testability: Can inject mock coordinators for testing
  * - Encapsulation: Storage mechanism is hidden in concrete class
  *
  * @example
  * ```typescript
- * class ScreensetsRegistry {
+ * class MfeRegistry {
  *   private readonly coordinator: RuntimeCoordinator;
  *
- *   constructor(config: ScreensetsRegistryConfig) {
+ *   constructor(config: MfeRegistryConfig) {
  *     this.coordinator = config.coordinator ?? new WeakMapRuntimeCoordinator();
  *   }
  * }

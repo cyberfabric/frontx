@@ -7,15 +7,15 @@
  * @packageDocumentation
  * @internal
  */
-// @cpt-state:cpt-frontx-state-screenset-registry-extension-load:p1
-// @cpt-state:cpt-frontx-state-screenset-registry-extension-mount:p1
+// @cpt-state:cpt-frontx-state-mfe-registry-extension-load:p1
+// @cpt-state:cpt-frontx-state-mfe-registry-extension-mount:p1
 
 import type { MfeHandler, MfeMountContext, ParentMfeBridge } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 import type { ActionHandler } from '../mediator/types';
 import type { ActionsChain } from '../types';
 import { DefaultExtensionManager } from './default-extension-manager';
-import type { ScreensetsRegistry } from './ScreensetsRegistry';
+import type { MfeRegistry } from './MfeRegistry';
 import { MountManager } from './mount-manager';
 import type { ActionChainExecutor, LifecycleTrigger } from './mount-manager';
 import { RuntimeBridgeFactory } from './runtime-bridge-factory';
@@ -25,7 +25,7 @@ import { createShadowRoot } from '../shadow';
  * Callback type for resolving the appropriate handler for an entry type.
  * The registry provides this callback, encapsulating typeSystem.isTypeOf() logic.
  */
-// @cpt-algo:cpt-frontx-algo-screenset-registry-handler-resolution:p1
+// @cpt-algo:cpt-frontx-algo-mfe-registry-handler-resolution:p1
 export type HandlerResolver = (entryTypeId: string) => MfeHandler | undefined;
 
 /**
@@ -64,7 +64,7 @@ export class DefaultMountManager extends MountManager {
   /**
    * Host runtime for RuntimeConnection registration.
    */
-  private readonly hostRuntime: ScreensetsRegistry;
+  private readonly hostRuntime: MfeRegistry;
 
   /**
    * Callback for registering catch-all action handlers (child domain forwarding).
@@ -98,7 +98,7 @@ export class DefaultMountManager extends MountManager {
     coordinator: RuntimeCoordinator;
     triggerLifecycle: LifecycleTrigger;
     executeActionsChain: ActionChainExecutor;
-    hostRuntime: ScreensetsRegistry;
+    hostRuntime: MfeRegistry;
     registerCatchAllActionHandler: (domainId: string, handler: ActionHandler) => void;
     unregisterCatchAllActionHandler: (domainId: string) => void;
     registerExtensionActionHandler: (extensionId: string, actionTypeId: string, handler: ActionHandler, domainId: string) => void;
@@ -125,7 +125,7 @@ export class DefaultMountManager extends MountManager {
    * @param extensionId - ID of the extension to load
    * @returns Promise resolving when bundle is loaded
    */
-  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-mfe-registry-extension-load:p1:inst-1
   async loadExtension(extensionId: string): Promise<void> {
     // Verify extension is registered
     const extensionState = this.extensionManager.getExtensionState(extensionId);
@@ -155,7 +155,7 @@ export class DefaultMountManager extends MountManager {
       if (!handler) {
         throw new Error(
           `No MFE handler registered that can handle entry type '${entry.id}'. ` +
-          `Provide handlers via 'mfeHandlers' in ScreensetsRegistryConfig.`
+          `Provide handlers via 'mfeHandlers' in MfeRegistryConfig.`
         );
       }
 
@@ -171,7 +171,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-frontx-state-screenset-registry-extension-load:p1:inst-1
+  // @cpt-end:cpt-frontx-state-mfe-registry-extension-load:p1:inst-1
 
   /**
    * Preload an extension bundle without mounting.
@@ -190,7 +190,7 @@ export class DefaultMountManager extends MountManager {
    * @param container - DOM element to mount into
    * @returns Promise resolving to the parent bridge
    */
-  // @cpt-begin:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-begin:cpt-frontx-state-mfe-registry-extension-mount:p1:inst-1
   async mountExtension(
     extensionId: string,
     container: Element
@@ -302,7 +302,7 @@ export class DefaultMountManager extends MountManager {
       throw error;
     }
   }
-  // @cpt-end:cpt-frontx-state-screenset-registry-extension-mount:p1:inst-1
+  // @cpt-end:cpt-frontx-state-mfe-registry-extension-mount:p1:inst-1
 
   /**
    * Unmount an extension from its container.

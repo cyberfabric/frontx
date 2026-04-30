@@ -8,7 +8,7 @@
  */
 
 import type { RefObject } from 'react';
-import type { HAI3App, ScreensetsRegistry } from '@cyberfabric/framework';
+import type { HAI3App, MfeRegistry } from '@cyberfabric/framework';
 import {
   screenDomain,
   sidebarDomain,
@@ -39,28 +39,28 @@ export class DetachedContainerProvider extends RefContainerProvider {
  *
  * @param app - HAI3 application instance
  * @param screenContainerRef - React ref pointing at the screen domain's DOM container
- * @returns the `screensetsRegistry` instance, ready for caller-specific
+ * @returns the `mfeRegistry` instance, ready for caller-specific
  *   manifest and extension registration
  */
 export async function bootstrapMfeDomains(
   app: HAI3App,
   screenContainerRef: RefObject<HTMLDivElement | null>,
-): Promise<ScreensetsRegistry> {
-  const screensetsRegistry = app.screensetsRegistry;
-  if (!screensetsRegistry) {
-    throw new Error('[MFE Bootstrap] screensetsRegistry is not available on app instance');
+): Promise<MfeRegistry> {
+  const mfeRegistry = app.mfeRegistry;
+  if (!mfeRegistry) {
+    throw new Error('[MFE Bootstrap] mfeRegistry is not available on app instance');
   }
 
   const screenContainerProvider = new RefContainerProvider(screenContainerRef);
-  screensetsRegistry.registerDomain(screenDomain, screenContainerProvider);
-  screensetsRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
-  screensetsRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
-  screensetsRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
+  mfeRegistry.registerDomain(screenDomain, screenContainerProvider);
+  mfeRegistry.registerDomain(sidebarDomain, new DetachedContainerProvider());
+  mfeRegistry.registerDomain(popupDomain, new DetachedContainerProvider());
+  mfeRegistry.registerDomain(overlayDomain, new DetachedContainerProvider());
 
   const currentThemeId = app.themeRegistry?.getCurrent()?.id ?? 'default';
-  screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
+  mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_THEME, currentThemeId);
   const derivedLanguage = app.i18nRegistry.getLanguage();
-  screensetsRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, derivedLanguage ?? 'en');
+  mfeRegistry.updateSharedProperty(HAI3_SHARED_PROPERTY_LANGUAGE, derivedLanguage ?? 'en');
 
-  return screensetsRegistry;
+  return mfeRegistry;
 }

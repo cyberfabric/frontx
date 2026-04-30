@@ -1,14 +1,14 @@
 /**
- * ScreensetsRegistry - Abstract MFE Runtime Interface
+ * MfeRegistry - Abstract MFE Runtime Interface
  *
  * Abstract class defining the public API contract for the MFE runtime.
  * External consumers ALWAYS depend on this abstraction, never on concrete implementations.
  *
- * Obtain instances via screensetsRegistryFactory.build(config).
+ * Obtain instances via mfeRegistryFactory.build(config).
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-frontx-dod-screenset-registry-registry-contract:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-registry-contract:p1
 
 import type { TypeSystemPlugin } from '../plugins/types';
 import type { ParentMfeBridge } from '../handler/types';
@@ -36,10 +36,10 @@ export interface RegisterDomainOptions {
 }
 
 /**
- * Abstract ScreensetsRegistry - public contract for the MFE runtime facade.
+ * Abstract MfeRegistry - public contract for the MFE runtime facade.
  *
  * This is the ONLY type external consumers should depend on.
- * Obtain instances via screensetsRegistryFactory.build(config).
+ * Obtain instances via mfeRegistryFactory.build(config).
  *
  * Key Responsibilities:
  * - Type validation via TypeSystemPlugin
@@ -50,14 +50,14 @@ export interface RegisterDomainOptions {
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
+ * import { mfeRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
- * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
  * registry.registerDomain(myDomain, containerProvider);
  * await registry.registerExtension(myExtension);
  * ```
  */
-export abstract class ScreensetsRegistry {
+export abstract class MfeRegistry {
   /**
    * Type System plugin instance.
    * All type validation and schema operations go through this plugin.

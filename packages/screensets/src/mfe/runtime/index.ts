@@ -1,33 +1,33 @@
 /**
- * MFE Runtime - ScreensetsRegistry Factory and Configuration
+ * MFE Runtime - MfeRegistry Factory and Configuration
  *
  * This module exports the core runtime components for the MFE system.
  *
  * Key exports:
- * - ScreensetsRegistry (abstract class) - The public API contract
- * - ScreensetsRegistryFactory (abstract class) - Factory contract
- * - screensetsRegistryFactory (singleton) - Factory instance for building registry
- * - ScreensetsRegistryConfig (interface) - Registry configuration
+ * - MfeRegistry (abstract class) - The public API contract
+ * - MfeRegistryFactory (abstract class) - Factory contract
+ * - mfeRegistryFactory (singleton) - Factory instance for building registry
+ * - MfeRegistryConfig (interface) - Registry configuration
  *
- * NOTE: DefaultScreensetsRegistry and DefaultScreensetsRegistryFactory (concrete classes)
+ * NOTE: DefaultMfeRegistry and DefaultMfeRegistryFactory (concrete classes)
  * are NOT exported. They are internal implementation details.
  *
  * @packageDocumentation
  */
 
-import { DefaultScreensetsRegistryFactory } from './DefaultScreensetsRegistryFactory';
-import type { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
+import { DefaultMfeRegistryFactory } from './DefaultMfeRegistryFactory';
+import type { MfeRegistryFactory } from './MfeRegistryFactory';
 
-export { ScreensetsRegistry } from './ScreensetsRegistry';
-export type { RegisterDomainOptions } from './ScreensetsRegistry';
-export { ScreensetsRegistryFactory } from './ScreensetsRegistryFactory';
+export { MfeRegistry } from './MfeRegistry';
+export type { RegisterDomainOptions } from './MfeRegistry';
+export { MfeRegistryFactory } from './MfeRegistryFactory';
 export { ContainerProvider } from './container-provider';
-export type { ScreensetsRegistryConfig } from './config';
+export type { MfeRegistryConfig } from './config';
 
 /**
- * Singleton ScreensetsRegistryFactory instance.
+ * Singleton MfeRegistryFactory instance.
  *
- * This is the primary way to obtain a ScreensetsRegistry instance.
+ * This is the primary way to obtain a MfeRegistry instance.
  * The factory accepts configuration (including TypeSystemPlugin) and returns
  * the registry singleton. After the first build(), subsequent calls return
  * the cached instance.
@@ -37,10 +37,10 @@ export type { ScreensetsRegistryConfig } from './config';
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
+ * import { mfeRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
- * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
  *
  * // Register a domain with container provider
  * registry.registerDomain(myDomain, containerProvider);
@@ -49,4 +49,4 @@ export type { ScreensetsRegistryConfig } from './config';
  * await registry.registerExtension(myExtension);
  * ```
  */
-export const screensetsRegistryFactory: ScreensetsRegistryFactory = new DefaultScreensetsRegistryFactory();
+export const mfeRegistryFactory: MfeRegistryFactory = new DefaultMfeRegistryFactory();

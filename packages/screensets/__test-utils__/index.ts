@@ -4,9 +4,9 @@
  * Centralized exports for all test utilities.
  */
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
-// @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-screensets-test-utils-barrel
+// @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-screensets-test-utils-barrel
 export {
   TestContainerProvider,
   TestContainerProvider as MockContainerProvider,
@@ -20,11 +20,11 @@ export {
   TEST_BASE_URL,
 } from './mock-blob-url-loader';
 export { TestDoubleMfeHandler, makeMfeHandlerDouble } from './mfe-handler-test-double';
-export { createMinimalScreensetsRegistryStub } from './minimal-screensets-registry-stub';
+export { createMinimalMfeRegistryStub } from './minimal-screensets-registry-stub';
 export {
   readFederationSharedScope,
   writeFederationSharedScope,
   clearFederationSharedScope,
 } from './federation-shared-scope';
 export { createMockTypeSystemPlugin } from './mock-type-system-plugin';
-// @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-screensets-test-utils-barrel
+// @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-screensets-test-utils-barrel

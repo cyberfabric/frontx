@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: MFE architecture (feature-mfe-registry, feature-mfe-isolation)
 date: 2025-11-19
 ---
 

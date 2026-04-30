@@ -1,18 +1,18 @@
 /**
- * ScreensetsRegistryFactory - Abstract Factory for ScreensetsRegistry
+ * MfeRegistryFactory - Abstract Factory for MfeRegistry
  *
- * Pure contract for creating ScreensetsRegistry instances.
+ * Pure contract for creating MfeRegistry instances.
  * This is a factory-with-cache pattern - the concrete implementation
  * caches the first instance and returns it on subsequent calls.
  *
  * @packageDocumentation
  */
 
-import type { ScreensetsRegistry } from './ScreensetsRegistry';
-import type { ScreensetsRegistryConfig } from './config';
+import type { MfeRegistry } from './MfeRegistry';
+import type { MfeRegistryConfig } from './config';
 
 /**
- * Abstract factory for creating the ScreensetsRegistry singleton.
+ * Abstract factory for creating the MfeRegistry singleton.
  *
  * The build() method accepts configuration and returns the registry instance.
  * After the first build(), subsequent calls return the cached instance.
@@ -22,27 +22,27 @@ import type { ScreensetsRegistryConfig } from './config';
  *
  * **Key Principles:**
  * - Pure contract (abstract class) - NO static methods
- * - NO knowledge of DefaultScreensetsRegistryFactory or DefaultScreensetsRegistry
+ * - NO knowledge of DefaultMfeRegistryFactory or DefaultMfeRegistry
  * - Concrete implementation handles caching logic
  *
  * @example
  * ```typescript
- * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
+ * import { mfeRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
- * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
  * ```
  */
-export abstract class ScreensetsRegistryFactory {
+export abstract class MfeRegistryFactory {
   /**
-   * Build a ScreensetsRegistry instance with the provided configuration.
+   * Build a MfeRegistry instance with the provided configuration.
    *
    * The concrete implementation caches the first instance and returns it
    * on subsequent calls. If the config changes between calls, the concrete
    * implementation may throw an error (config mismatch detection).
    *
    * @param config - Registry configuration (must include typeSystem)
-   * @returns The ScreensetsRegistry singleton instance
+   * @returns The MfeRegistry singleton instance
    */
-  abstract build(config: ScreensetsRegistryConfig): ScreensetsRegistry;
+  abstract build(config: MfeRegistryConfig): MfeRegistry;
 }

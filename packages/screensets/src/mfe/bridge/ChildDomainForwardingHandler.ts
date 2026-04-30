@@ -1,4 +1,4 @@
-// @cpt-flow:cpt-frontx-flow-screenset-registry-execute-chain:p1
+// @cpt-flow:cpt-frontx-flow-mfe-registry-execute-chain:p1
 /**
  * Child Domain Forwarding Handler
  *
@@ -28,7 +28,7 @@ import type { ParentMfeBridgeImpl } from './ParentMfeBridge';
  *
  * @internal
  */
-// @cpt-begin:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+// @cpt-begin:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1
 export class ChildDomainForwardingHandler extends ActionHandler {
   constructor(
     private readonly parentBridgeImpl: ParentMfeBridgeImpl,
@@ -64,4 +64,4 @@ export class ChildDomainForwardingHandler extends ActionHandler {
     await this.parentBridgeImpl.sendActionsChain(chain);
   }
 }
-// @cpt-end:cpt-frontx-flow-screenset-registry-execute-chain:p1:inst-1
+// @cpt-end:cpt-frontx-flow-mfe-registry-execute-chain:p1:inst-1

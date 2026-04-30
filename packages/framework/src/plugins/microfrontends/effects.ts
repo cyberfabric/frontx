@@ -4,7 +4,7 @@
  * Listens for MFE registration events and coordinates with runtime.
  * Handles registerExtension and unregisterExtension events.
  *
- * Registration effects update slice state and delegate to the ScreensetsRegistry
+ * Registration effects update slice state and delegate to the MfeRegistry
  * for runtime registration operations.
  */
 
@@ -21,7 +21,7 @@ import {
   setExtensionUnregistered,
   setExtensionError,
 } from './slice';
-import type { ScreensetsRegistry } from '@cyberfabric/screensets';
+import type { MfeRegistry } from '@cyberfabric/screensets';
 
 // ============================================================================
 // Effect Initialization
@@ -31,13 +31,13 @@ import type { ScreensetsRegistry } from '@cyberfabric/screensets';
  * Initialize MFE effects.
  * Call this once during app bootstrap to start listening for MFE events.
  *
- * @param screensetsRegistry - MFE-enabled registry from microfrontends plugin
+ * @param mfeRegistry - MFE-enabled registry from microfrontends plugin
  * @returns Cleanup function to unsubscribe all effects
  */
 // @cpt-begin:cpt-frontx-flow-framework-composition-mfe-registration:p1:inst-1
 // @cpt-begin:cpt-frontx-state-framework-composition-mfe-registration:p1:inst-1
 // @cpt-begin:cpt-frontx-flow-framework-composition-teardown:p2:inst-2
-export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => void {
+export function initMfeEffects(mfeRegistry: MfeRegistry): () => void {
   const store = getStore();
   const unsubscribers: Array<{ unsubscribe: () => void }> = [];
 
@@ -53,7 +53,7 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
       store.dispatch(setExtensionRegistering({ extensionId: extension.id }));
 
       // Call runtime to register extension
-      await screensetsRegistry.registerExtension(extension);
+      await mfeRegistry.registerExtension(extension);
 
       // Update state: registered
       store.dispatch(setExtensionRegistered({ extensionId: extension.id }));
@@ -74,7 +74,7 @@ export function initMfeEffects(screensetsRegistry: ScreensetsRegistry): () => vo
 
     try {
       // Call runtime to unregister extension
-      await screensetsRegistry.unregisterExtension(extensionId);
+      await mfeRegistry.unregisterExtension(extensionId);
 
       // Update state: unregistered
       store.dispatch(setExtensionUnregistered({ extensionId }));

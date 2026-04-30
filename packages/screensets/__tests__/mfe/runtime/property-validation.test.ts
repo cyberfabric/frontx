@@ -18,7 +18,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts/index';
 import type { JSONSchema } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain } from '../../../src/mfe/types';
@@ -40,7 +40,7 @@ const testPropertySchema: JSONSchema = {
 };
 
 describe('updateSharedProperty - GTS runtime validation mechanics', () => {
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let gtsPlugin: GtsPlugin;
   let testDomain: ExtensionDomain;
   let mockContainerProvider: TestContainerProvider;
@@ -53,7 +53,7 @@ describe('updateSharedProperty - GTS runtime validation mechanics', () => {
     // without requiring the application-layer derived schemas from @cyberfabric/framework.
     gtsPlugin.registerSchema(testPropertySchema);
 
-    registry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
+    registry = new DefaultMfeRegistry({ typeSystem: gtsPlugin });
     mockContainerProvider = new TestContainerProvider();
 
     testDomain = {

@@ -5,7 +5,7 @@
  *
  * @packageDocumentation
  */
-// @cpt-dod:cpt-frontx-dod-screenset-registry-type-contracts:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-type-contracts:p1
 
 import type { LifecycleHook } from './lifecycle';
 

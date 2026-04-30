@@ -175,10 +175,10 @@ export class GtsPlugin implements TypeSystemPlugin {
  *
  * @example
  * ```typescript
- * import { gtsPlugin, screensetsRegistryFactory } from '@cyberfabric/screensets';
+ * import { gtsPlugin, mfeRegistryFactory } from '@cyberfabric/screensets';
  *
  * // Build the registry with GTS plugin at application wiring time
- * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+ * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
  *
  * // Use the registry
  * registry.registerDomain(myDomain, containerProvider);

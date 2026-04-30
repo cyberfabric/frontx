@@ -21,15 +21,15 @@ import { screensets } from '../../src/plugins/screensets';
 import { microfrontends } from '../../src/plugins/microfrontends';
 import { loadLayoutDomains } from '../../src/plugins/microfrontends/gts/loader';
 import { themeSchema, languageSchema, extensionScreenSchema } from '../../src/gts';
-import type { ScreensetsRegistry } from '@cyberfabric/framework';
+import type { MfeRegistry } from '@cyberfabric/framework';
 import { TestContainerProvider } from '../../src/testing/TestContainerProvider';
 import { resetSharedQueryClient } from '../../src/testing';
 import type { HAI3App } from '../../src/types';
 
-function getAppScreensetsRegistry(app: HAI3App): ScreensetsRegistry {
-  const registry = app.screensetsRegistry;
+function getAppMfeRegistry(app: HAI3App): MfeRegistry {
+  const registry = app.mfeRegistry;
   if (!registry) {
-    throw new Error('expected screensetsRegistry on app');
+    throw new Error('expected mfeRegistry on app');
   }
   return registry;
 }
@@ -38,7 +38,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
   const [sidebarDomain, popupDomain, screenDomain, overlayDomain] = loadLayoutDomains();
   let apps: HAI3App[] = [];
   // NOTE: We deliberately reuse the module-scoped `gtsPlugin` singleton across
-  // every test in this file. The `screensetsRegistryFactory` is itself a
+  // every test in this file. The `mfeRegistryFactory` is itself a
   // process-wide singleton that caches the very first TypeSystemPlugin it was
   // built with, and rejects subsequent .build(...) calls with a *different*
   // plugin identity (even if both are named "gts"). That makes a fresh
@@ -94,25 +94,25 @@ describe('microfrontends plugin - Phase 7.9', () => {
     });
   });
 
-  describe('7.9.1 - plugin obtains screensetsRegistry from framework', () => {
-    it('provides screensetsRegistry via provides.registries', () => {
+  describe('7.9.1 - plugin obtains mfeRegistry from framework', () => {
+    it('provides mfeRegistry via provides.registries', () => {
       const plugin = microfrontends({ typeSystem });
 
       expect(plugin.provides).toBeDefined();
       expect(plugin.provides?.registries).toBeDefined();
-      expect(plugin.provides?.registries?.screensetsRegistry).toBeDefined();
+      expect(plugin.provides?.registries?.mfeRegistry).toBeDefined();
     });
 
-    it('makes screensetsRegistry available on the app object', () => {
+    it('makes mfeRegistry available on the app object', () => {
       const app = buildApp();
 
-      expect(app.screensetsRegistry).toBeDefined();
-      expect(typeof app.screensetsRegistry).toBe('object');
+      expect(app.mfeRegistry).toBeDefined();
+      expect(typeof app.mfeRegistry).toBe('object');
     });
 
-    it('exposes screensetsRegistry with MFE methods', () => {
+    it('exposes mfeRegistry with MFE methods', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       expect(typeof registry.registerDomain).toBe('function');
       expect(typeof registry.typeSystem).toBe('object');
@@ -123,7 +123,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
   describe('7.9.2 - same TypeSystemPlugin instance is propagated through layers', () => {
     it('uses the same TypeSystemPlugin instance throughout', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       expect(registry.typeSystem).toBe(typeSystem);
       expect(registry.typeSystem.version).toBe('1.0.0');
@@ -136,7 +136,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('has a consistent plugin reference across multiple calls', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       expect(registry.typeSystem).toBe(registry.typeSystem);
     });
@@ -145,7 +145,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
   describe('7.9.3 - runtime.registerDomain() works for base domains at runtime', () => {
     it('registers sidebar domain and exposes it via getDomain', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(sidebarDomain, provider);
@@ -156,7 +156,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('registers popup domain and exposes it via getDomain', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(popupDomain, provider);
@@ -166,7 +166,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('registers screen domain and exposes it via getDomain', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(screenDomain, provider);
@@ -176,7 +176,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('registers overlay domain and exposes it via getDomain', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(overlayDomain, provider);
@@ -186,7 +186,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('registers all base domains so each can be queried back', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(sidebarDomain, provider);
@@ -202,7 +202,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('returns undefined for unregistered domains', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       expect(
         registry.getDomain(
@@ -215,7 +215,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
   describe('7.9.4 - JSON schema loading works correctly', () => {
     it('loads first-class citizen schemas during plugin construction', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       const coreSchemas = [
         'gts.hai3.mfes.mfe.entry.v1~',
@@ -237,7 +237,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('validates schema availability via getSchema', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       const entrySchema = registry.typeSystem.getSchema('gts.hai3.mfes.mfe.entry.v1~');
       expect(entrySchema).toBeDefined();
@@ -250,7 +250,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('returns undefined for non-existent schemas', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
 
       const nonExistentSchema = registry.typeSystem.getSchema('gts.nonexistent.schema.v1~');
       expect(nonExistentSchema).toBeUndefined();
@@ -267,7 +267,7 @@ describe('microfrontends plugin - Phase 7.9', () => {
 
     it('validates the loaded domain instance when registered', () => {
       const app = buildApp();
-      const registry = getAppScreensetsRegistry(app);
+      const registry = getAppMfeRegistry(app);
       const provider = new TestContainerProvider();
 
       registry.registerDomain(sidebarDomain, provider);

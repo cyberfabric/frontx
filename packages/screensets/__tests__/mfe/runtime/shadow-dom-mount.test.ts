@@ -15,10 +15,10 @@ import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
 import type { ChildMfeBridge, MfeEntryLifecycle } from '../../../src/mfe/handler/types';
 import type { RuntimeCoordinator } from '../../../src/mfe/coordination/types';
-import type { ScreensetsRegistry } from '../../../src/mfe/runtime/ScreensetsRegistry';
+import type { MfeRegistry } from '../../../src/mfe/runtime/MfeRegistry';
 import {
   TestContainerProvider,
-  createMinimalScreensetsRegistryStub,
+  createMinimalMfeRegistryStub,
   makeMfeHandlerDouble,
 } from '../../../__test-utils__';
 import {
@@ -33,7 +33,7 @@ describe('Shadow DOM Mount Pipeline', () => {
   let coordinator: RuntimeCoordinator;
   let mockContainerProvider: TestContainerProvider;
   let mockLifecycle: MfeEntryLifecycle;
-  let mockHostRuntime: ScreensetsRegistry;
+  let mockHostRuntime: MfeRegistry;
   let typeSystem: GtsPlugin;
 
   const testDomain: ExtensionDomain = {
@@ -107,7 +107,7 @@ describe('Shadow DOM Mount Pipeline', () => {
     };
 
     // Create mock host runtime
-    mockHostRuntime = createMinimalScreensetsRegistryStub();
+    mockHostRuntime = createMinimalMfeRegistryStub();
 
     // Create bridge factory
     const bridgeFactory = new DefaultRuntimeBridgeFactory();

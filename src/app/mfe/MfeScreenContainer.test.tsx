@@ -40,7 +40,7 @@ describe('MfeScreenContainer', () => {
   let registeredScreenExtensions: ScreenExtension[];
   let app: {
     store: { subscribe: ReturnType<typeof vi.fn> };
-    screensetsRegistry: {
+    mfeRegistry: {
       getMountedExtension: ReturnType<typeof vi.fn>;
       getExtensionsForDomain: ReturnType<typeof vi.fn>;
     };
@@ -62,7 +62,7 @@ describe('MfeScreenContainer', () => {
           return vi.fn();
         }),
       },
-      screensetsRegistry: {
+      mfeRegistry: {
         getMountedExtension: vi.fn(() => mountedExtensionId),
         getExtensionsForDomain: vi.fn(
           (domainId: string) =>

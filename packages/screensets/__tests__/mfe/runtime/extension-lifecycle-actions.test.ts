@@ -13,7 +13,7 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import {
   HAI3_ACTION_LOAD_EXT,
@@ -26,7 +26,7 @@ import { TestContainerProvider, makeMfeHandlerDouble } from '../../../__test-uti
 
 
 describe('Extension Lifecycle Actions', () => {
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let typeSystem: GtsPlugin;
 
@@ -101,7 +101,7 @@ describe('Extension Lifecycle Actions', () => {
 
   beforeEach(() => {
     typeSystem = new GtsPlugin();
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
     });
     mockContainerProvider = new TestContainerProvider();
@@ -120,7 +120,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -171,7 +171,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -213,7 +213,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -244,7 +244,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -312,7 +312,7 @@ describe('Extension Lifecycle Actions', () => {
         load: loadMock,
       });
 
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -381,7 +381,7 @@ describe('Extension Lifecycle Actions', () => {
         load: loadMock,
       });
 
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -422,7 +422,7 @@ describe('Extension Lifecycle Actions', () => {
         priority: 100,
       });
 
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -462,7 +462,7 @@ describe('Extension Lifecycle Actions', () => {
         priority: 100,
       });
 
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -609,7 +609,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });
@@ -645,7 +645,7 @@ describe('Extension Lifecycle Actions', () => {
         handledBaseTypeId: 'gts.hai3.mfes.mfe.entry.v1~',
         priority: 100,
       });
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem,
         mfeHandlers: [mockHandler],
       });

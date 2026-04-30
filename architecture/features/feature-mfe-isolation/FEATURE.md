@@ -90,7 +90,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 - PRD: [PRD.md](../../PRD.md) — sections 5.6 (MFE Blob URL Isolation), 5.7 (MFE Build Plugin), 5.8 (MFE Internal Dataflow)
 - ADR: `cpt-frontx-adr-blob-url-mfe-isolation`
 - ADR: `cpt-frontx-adr-mf2-manifest-discovery`
-- Depends on feature: `cpt-frontx-feature-screenset-registry`
+- Depends on feature: `cpt-frontx-feature-mfe-registry`
 
 #### Non-Applicable Domains
 
@@ -119,7 +119,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 1. [x] - `p1` - Host requests load of an `MfeEntryMF` through the screensets registry — `inst-host-request-load`
 2. [x] - `p1` - `MfeHandlerMF.load()` delegates to `loadInternal()` wrapped in retry logic — `inst-retry-wrapper`
 3. [x] - `p1` - `loadInternal()` resolves the `MfManifest` from the entry's `manifest` field (inline object validated and cached, or string GTS ID looked up in ManifestCache); the manifest is a pre-registered GTS entity populated from enriched `mfe.json` at bootstrap time — it is never fetched from the network at load time; **IF** not found **RETURN** `MfeLoadError` — `inst-resolve-manifest`
-4. [x] - `p1` - Schema registration happens at bootstrap time (not per-load): the host collects action IDs declared in each entry's `actions` and `domainActions`, locates the matching schemas in package-level `config.schemas[]` (by `$id` matching action ID with `gts://` prefix), and calls `typeSystem.registerSchema(schema)` only for matched schemas. Unreferenced schemas are never registered. See screenset-registry FEATURE DoD `cpt-frontx-dod-screenset-registry-mfe-schema-registration` — `inst-register-mfe-schemas`
+4. [x] - `p1` - Schema registration happens at bootstrap time (not per-load): the host collects action IDs declared in each entry's `actions` and `domainActions`, locates the matching schemas in package-level `config.schemas[]` (by `$id` matching action ID with `gts://` prefix), and calls `typeSystem.registerSchema(schema)` only for matched schemas. Unreferenced schemas are never registered. See mfe-registry FEATURE DoD `cpt-frontx-dod-mfe-registry-mfe-schema-registration` — `inst-register-mfe-schemas`
 5. [x] - `p1` - Read expose chunk path and CSS asset paths from `entry.exposeAssets` (per-module data, set at registration time from `mf-manifest.json`'s `exposes[]`); **IF** `exposeAssets` is absent or expose chunk path is empty **RETURN** `MfeLoadError` — `inst-read-expose-assets`
 6. [x] - `p1` - `loadExposedModuleIsolated()` derives `baseUrl` from `manifest.metaData.publicPath` for chunk URL resolution — `inst-derive-base-url`
 7. [x] - `p1` - A fresh `LoadBlobState` is created with an empty `blobUrlMap` and `visited` set scoped to this load — `inst-create-load-state`
@@ -151,7 +151,7 @@ Enable multiple independently deployed MFE bundles to coexist in the same browse
 
 ### MFE-Internal Bootstrap
 
-> **Cross-reference**: The formal algorithm for bootstrap pre-registration (registering the `MfManifest` GTS entity and MFE entries before load) is described in the screenset-registry FEATURE DoD (`cpt-frontx-dod-screenset-registry-mfe-schema-registration`). That feature owns the registration protocol; this flow covers only MFE-internal state bootstrapping after the expose chunk is evaluated.
+> **Cross-reference**: The formal algorithm for bootstrap pre-registration (registering the `MfManifest` GTS entity and MFE entries before load) is described in the mfe-registry FEATURE DoD (`cpt-frontx-dod-mfe-registry-mfe-schema-registration`). That feature owns the registration protocol; this flow covers only MFE-internal state bootstrapping after the expose chunk is evaluated.
 
 - [x] `p1` - **ID**: `cpt-frontx-flow-mfe-isolation-mfe-bootstrap`
 
@@ -505,7 +505,7 @@ Key fields set by the `frontx-mf-gts` plugin (from the handler's perspective):
 - `metaData.publicPath: string` — the base URL for resolving chunk paths at runtime
 - Per-shared-dep: `chunkPath: string` — MFE-relative path to the standalone ESM (e.g., `shared/react.js`); the handler resolves against `publicPath`; `version: string` — semver version from `node_modules`; and `unwrapKey: string | null` — the export key to access the module inside the standalone ESM (`null` means `'default'` is used)
 
-> **Cross-reference**: The authoritative field listing for `MfManifest` (including `shared`, `metaData`, `exposes`, and their sub-fields) is maintained in the screenset-registry FEATURE DoD `cpt-frontx-dod-screenset-registry-mfmanifest-schema-update`. This isolation FEATURE DoD covers only the runtime handler's perspective on the type.
+> **Cross-reference**: The authoritative field listing for `MfManifest` (including `shared`, `metaData`, `exposes`, and their sub-fields) is maintained in the mfe-registry FEATURE DoD `cpt-frontx-dod-mfe-registry-mfmanifest-schema-update`. This isolation FEATURE DoD covers only the runtime handler's perspective on the type.
 
 **Implementation details**:
 - File: `packages/screensets/src/mfe/types/mf-manifest.ts`
@@ -526,7 +526,7 @@ Key fields set by the `frontx-mf-gts` plugin (from the handler's perspective):
 
 - [x] `p1` - **ID**: `cpt-frontx-dod-mfe-isolation-child-bridge-contract`
 
-`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. It is an abstract class (consistent with all other public abstractions: `MfeHandler`, `MfeBridgeFactory`, `ScreensetsRegistry`, `ActionsChainsMediator`, `RuntimeCoordinator`) — concrete implementations are `@internal`. The abstract class defines six members:
+`ChildMfeBridge` is the object passed to the MFE by the host when `MfeEntryLifecycle.mount(bridge)` is called. The MFE receives it and may use it to communicate back with the host. It is an abstract class (consistent with all other public abstractions: `MfeHandler`, `MfeBridgeFactory`, `MfeRegistry`, `ActionsChainsMediator`, `RuntimeCoordinator`) — concrete implementations are `@internal`. The abstract class defines six members:
 
 - `domainId` — the ID of the domain this extension belongs to; provided by the registry at bridge creation
 - `instanceId` — the extension instance ID; used as the routing key for extension-level action delivery
@@ -541,7 +541,7 @@ Key fields set by the `frontx-mf-gts` plugin (from the handler's perspective):
 Action target contract enforcement is two-layered: (1) **GTS schema validation** — each action schema constrains its `target` field via `x-gts-ref`; lifecycle action schemas restrict `target` to domain IDs only; custom MFE action schemas restrict `target` to specific extension IDs; the mediator validates each action instance against its schema before routing, and invalid targets are rejected by the type system. (2) **Runtime entry declaration validation** — before dispatching an extension-targeted action, the mediator confirms that the target entry's `actions` array contains the action type; undeclared actions fail the chain with an error naming the action type and entry ID. This ensures an entry receives only the actions it explicitly opts into, even when the enclosing domain supports a broader action set. Infrastructure lifecycle actions (`HAI3_ACTION_LOAD_EXT`, `HAI3_ACTION_MOUNT_EXT`, `HAI3_ACTION_UNMOUNT_EXT`) target domains, not extensions, and are exempt from this runtime check. GTS alone is NOT sufficient — schema validation enforces schema/target shape; runtime entry validation enforces per-entry opt-in.
 
 **Implements**:
-- `cpt-frontx-flow-screenset-registry-register-extension-handler`
+- `cpt-frontx-flow-mfe-registry-register-extension-handler`
 
 **Covers (DESIGN)**:
 - `cpt-frontx-interface-child-mfe-bridge`

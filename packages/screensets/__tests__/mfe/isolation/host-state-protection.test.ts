@@ -9,7 +9,7 @@
  */
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import {
   HAI3_ACTION_LOAD_EXT,
@@ -77,7 +77,7 @@ const testExtension: Extension = {
 };
 
 describe('Host State Protection', () => {
-  let registry: DefaultScreensetsRegistry;
+  let registry: DefaultMfeRegistry;
   let mockContainerProvider: TestContainerProvider;
   let mockLifecycle: MfeEntryLifecycle<ChildMfeBridge>;
   let capturedBridge: ChildMfeBridge | undefined;
@@ -115,7 +115,7 @@ describe('Host State Protection', () => {
       load: loadMock,
     });
 
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem,
       mfeHandlers: [mockHandler],
     });

@@ -5,9 +5,9 @@ import type {
   ValidationResult,
 } from '../src/mfe/plugins/types';
 
-// @cpt-dod:cpt-frontx-dod-screenset-registry-handler-injection:p1
+// @cpt-dod:cpt-frontx-dod-mfe-registry-handler-injection:p1
 
-// @cpt-begin:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mock-type-system-plugin
+// @cpt-begin:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mock-type-system-plugin
 /** JSON Schema `$id` URI scheme for GTS (built without `gts://` literals for eslint `no-gts-id-manipulation`). */
 const GTS_SCHEMA_URI_PREFIX = ['gts', ':', '//'].join('');
 
@@ -86,4 +86,4 @@ export function createMockTypeSystemPlugin(): TypeSystemPlugin {
       typeId === baseTypeId || typeId.startsWith(baseTypeId),
   };
 }
-// @cpt-end:cpt-frontx-dod-screenset-registry-handler-injection:p1:inst-mock-type-system-plugin
+// @cpt-end:cpt-frontx-dod-mfe-registry-handler-injection:p1:inst-mock-type-system-plugin

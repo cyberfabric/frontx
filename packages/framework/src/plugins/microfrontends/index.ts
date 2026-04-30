@@ -16,7 +16,7 @@
 // @cpt-dod:cpt-frontx-dod-framework-composition-shared-property:p1
 
 import {
-  screensetsRegistryFactory,
+  mfeRegistryFactory,
   type ActionsChain,
   type MfeHandler,
   type TypeSystemPlugin,
@@ -50,7 +50,7 @@ export interface MicrofrontendsConfig {
    * Handlers enable loading of specific MFE entry types (e.g., MfeEntryMF).
    *
    * If not provided, no handlers are registered. Applications must register
-   * handlers manually via screensetsRegistry API.
+   * handlers manually via mfeRegistry API.
    */
   mfeHandlers?: MfeHandler[];
 }
@@ -90,7 +90,7 @@ function collectLifecycleDomains(chain: ActionsChain): string[] {
  * **Key Principles:**
  * - Optional mfeHandlers config for handler registration
  * - NO static domain registration - domains are registered at runtime
- * - Builds screensetsRegistry with provided TypeSystemPlugin at plugin initialization
+ * - Builds mfeRegistry with provided TypeSystemPlugin at plugin initialization
  * - Same TypeSystemPlugin instance is propagated throughout
  * - Integrates MFE lifecycle with Flux data flow (actions, effects, slice)
  *
@@ -110,7 +110,7 @@ function collectLifecycleDomains(chain: ActionsChain): string[] {
  *   .build();
  *
  * // Register domains dynamically at runtime:
- * app.screensetsRegistry.registerDomain(sidebarDomain, containerProvider);
+ * app.mfeRegistry.registerDomain(sidebarDomain, containerProvider);
  *
  * // Use MFE actions:
  * app.actions.loadExtension('my.extension.v1');
@@ -121,20 +121,20 @@ function collectLifecycleDomains(chain: ActionsChain): string[] {
 // @cpt-begin:cpt-frontx-state-framework-composition-mfe-mount:p1:inst-1
 // @cpt-begin:cpt-frontx-dod-framework-composition-mfe-plugin:p1:inst-1
 export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
-  // Build the ScreensetsRegistry instance with provided TypeSystemPlugin and optional handlers
+  // Build the MfeRegistry instance with provided TypeSystemPlugin and optional handlers
   // This registry handles all MFE lifecycle: domains, extensions, actions, etc.
   // TypeSystemPlugin binding happens here at application wiring level.
-  const screensetsRegistry = screensetsRegistryFactory.build({
+  const mfeRegistry = mfeRegistryFactory.build({
     typeSystem: config.typeSystem,
     mfeHandlers: config.mfeHandlers,
   });
 
   // Wrap executeActionsChain to intercept mount/unmount completions for store dispatch
-  const originalExecuteActionsChain = screensetsRegistry.executeActionsChain.bind(screensetsRegistry);
-  screensetsRegistry.executeActionsChain = async (chain) => {
+  const originalExecuteActionsChain = mfeRegistry.executeActionsChain.bind(mfeRegistry);
+  mfeRegistry.executeActionsChain = async (chain) => {
     const lifecycleDomains = collectLifecycleDomains(chain);
     const mountedBeforeByDomain = new Map(
-      lifecycleDomains.map((domainId) => [domainId, screensetsRegistry.getMountedExtension(domainId)])
+      lifecycleDomains.map((domainId) => [domainId, mfeRegistry.getMountedExtension(domainId)])
     );
 
     await originalExecuteActionsChain(chain);
@@ -144,7 +144,7 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
       const store = getStore();
       for (const domainId of lifecycleDomains) {
         const mountedBefore = mountedBeforeByDomain.get(domainId);
-        const mountedExtensionId = screensetsRegistry.getMountedExtension(domainId);
+        const mountedExtensionId = mfeRegistry.getMountedExtension(domainId);
         if (mountedBefore === mountedExtensionId) {
           continue;
         }
@@ -167,9 +167,9 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
 
     provides: {
       registries: {
-        // Expose the MFE-enabled ScreensetsRegistry
+        // Expose the MFE-enabled MfeRegistry
         // This registry has registerDomain(), registerExtension(), etc.
-        screensetsRegistry,
+        mfeRegistry,
       },
       slices: [mfeSlice],
       // NOTE: Effects are NOT initialized via provides.effects.
@@ -187,20 +187,20 @@ export function microfrontends(config: MicrofrontendsConfig): HAI3Plugin {
 
     onInit(): void {
       // Wire the registry reference into actions module
-      setMfeRegistry(screensetsRegistry);
+      setMfeRegistry(mfeRegistry);
 
       // Initialize effects and store cleanup references
-      effectsCleanup = initMfeEffects(screensetsRegistry);
+      effectsCleanup = initMfeEffects(mfeRegistry);
 
       // Plugin is now initialized
-      // TypeSystemPlugin: bound to screensetsRegistry
+      // TypeSystemPlugin: bound to mfeRegistry
       // MFE handlers: registered via config.mfeHandlers
       // Base domains: NOT pre-registered - registered dynamically at runtime
       // MFE actions: loadExtension, mountExtension, unmountExtension available
 
       // Plugin is now ready
       // Base domains are NOT registered here - they are registered dynamically
-      // at runtime via app.screensetsRegistry.registerDomain() or actions
+      // at runtime via app.mfeRegistry.registerDomain() or actions
     },
 
     onDestroy(): void {

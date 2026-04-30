@@ -47,7 +47,7 @@ import { extractGtsPackage, HAI3_SCREEN_DOMAIN } from '@cyberfabric/framework';
 // @cpt-begin:cpt-frontx-dod-react-bindings-observation-hooks:p1:inst-call-active-package
 export function useActivePackage(): string | undefined {
   const app = useHAI3();
-  const registry = app.screensetsRegistry;
+  const registry = app.mfeRegistry;
 
   // @cpt-begin:cpt-frontx-flow-react-bindings-use-active-package:p1:inst-guard-registry-active
   // @cpt-begin:cpt-frontx-algo-react-bindings-mfe-context-guard:p1:inst-throw-no-registry

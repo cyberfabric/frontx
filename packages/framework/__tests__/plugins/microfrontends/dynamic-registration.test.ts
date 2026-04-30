@@ -25,14 +25,14 @@ import { eventBus, resetStore } from '@cyberfabric/state';
 import { gtsPlugin } from '@cyberfabric/screensets/plugins/gts';
 import type { Extension, ExtensionDomain } from '@cyberfabric/framework';
 import { TestContainerProvider } from '../../../src/testing/TestContainerProvider';
-import type { HAI3App, MfeScreensetsRegistry } from '../../../src/types';
+import type { HAI3App, MfeMfeRegistry } from '../../../src/types';
 
-function getScreensetsRegistry(app: HAI3App): MfeScreensetsRegistry {
-  if (!app.screensetsRegistry) {
-    throw new Error('Expected microfrontends plugin to provide screensetsRegistry');
+function getMfeRegistry(app: HAI3App): MfeMfeRegistry {
+  if (!app.mfeRegistry) {
+    throw new Error('Expected microfrontends plugin to provide mfeRegistry');
   }
 
-  return app.screensetsRegistry;
+  return app.mfeRegistry;
 }
 
 async function waitForExtensionState(
@@ -124,16 +124,16 @@ describe('dynamic registration - Phase 20', () => {
   describe('20.5.2 - registerExtension effect calls runtime', () => {
     it('should dispatch setExtensionRegistering and setExtensionRegistered on success', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
       // Mock runtime method
       const registerExtensionSpy = vi.fn().mockResolvedValue(undefined);
-      screensetsRegistry.registerExtension = registerExtensionSpy;
+      mfeRegistry.registerExtension = registerExtensionSpy;
 
       // First register the domain
       const testContainerProvider = new TestContainerProvider();
-      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      mfeRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Trigger action
       registerExtension(mockExtension);
@@ -150,12 +150,12 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should dispatch setExtensionError on failure', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
       // Mock runtime method to fail
       const registerExtensionSpy = vi.fn().mockRejectedValue(new Error('Registration failed'));
-      screensetsRegistry.registerExtension = registerExtensionSpy;
+      mfeRegistry.registerExtension = registerExtensionSpy;
 
       // Trigger action
       registerExtension(mockExtension);
@@ -197,12 +197,12 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should call runtime.unregisterExtension', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
       // Mock runtime method
       const unregisterExtensionSpy = vi.fn().mockResolvedValue(undefined);
-      screensetsRegistry.unregisterExtension = unregisterExtensionSpy;
+      mfeRegistry.unregisterExtension = unregisterExtensionSpy;
 
       // Trigger action
       unregisterExtension(mockExtension.id);
@@ -221,17 +221,17 @@ describe('dynamic registration - Phase 20', () => {
   describe('20.5.6 - slice state transitions', () => {
     it('should transition through registration states', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
       // Mock runtime completes on a microtask so `registering` is observable before `registered`
-      screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
+      mfeRegistry.registerExtension = vi.fn().mockImplementation(async () => {
         await Promise.resolve();
       });
 
       // Register domain first
       const testContainerProvider = new TestContainerProvider();
-      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      mfeRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Initial state
       let state = app.store.getState();
@@ -260,12 +260,12 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should return correct state for known extension', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
-      screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
+      mfeRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
       const testContainerProvider = new TestContainerProvider();
-      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      mfeRegistry.registerDomain(mockDomain, testContainerProvider);
 
       registerExtension(mockExtension);
       await waitForExtensionState(app, mockExtension.id, 'registered');
@@ -286,12 +286,12 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should return array of registered extension IDs', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
-      screensetsRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
+      mfeRegistry.registerExtension = vi.fn().mockResolvedValue(undefined);
       const testContainerProvider = new TestContainerProvider();
-      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      mfeRegistry.registerDomain(mockDomain, testContainerProvider);
 
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };
       const ext2 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext2.v1' };
@@ -314,18 +314,18 @@ describe('dynamic registration - Phase 20', () => {
 
     it('should not include unregistered or error state extensions', async () => {
       const app = createHAI3().use(screensets()).use(effects()).use(microfrontends({ typeSystem: gtsPlugin })).build();
-      const screensetsRegistry = getScreensetsRegistry(app);
+      const mfeRegistry = getMfeRegistry(app);
       apps.push(app);
 
       const testContainerProvider = new TestContainerProvider();
-      screensetsRegistry.registerDomain(mockDomain, testContainerProvider);
+      mfeRegistry.registerDomain(mockDomain, testContainerProvider);
 
       // Mock one success and one failure
       const ext1 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext1.v1' };
       const ext2 = { ...mockExtension, id: 'gts.hai3.mfes.ext.extension.v1~test.app.test.ext2.v1' };
 
       let callCount = 0;
-      screensetsRegistry.registerExtension = vi.fn().mockImplementation(async () => {
+      mfeRegistry.registerExtension = vi.fn().mockImplementation(async () => {
         callCount++;
         if (callCount === 2) {
           throw new Error('Registration failed');

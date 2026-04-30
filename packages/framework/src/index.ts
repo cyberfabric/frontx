@@ -123,7 +123,7 @@ export type {
   LoadExtPayload,
   MountExtPayload,
   UnmountExtPayload,
-  ScreensetsRegistryConfig,
+  MfeRegistryConfig,
   TypeSystemPlugin,
   // MF2 manifest types
   MfManifest,
@@ -141,9 +141,9 @@ export {
   MfeHandler,
   MfeBridgeFactory,
   ActionHandler,
-  ScreensetsRegistry,
-  ScreensetsRegistryFactory,
-  screensetsRegistryFactory,
+  MfeRegistry,
+  MfeRegistryFactory,
+  mfeRegistryFactory,
   ContainerProvider,
 } from '@cyberfabric/screensets';
 

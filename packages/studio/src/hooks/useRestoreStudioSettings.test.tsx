@@ -6,7 +6,7 @@ import {
   HAI3_SCREEN_DOMAIN,
   type Extension,
   type ScreenExtension,
-  type ScreensetsRegistry,
+  type MfeRegistry,
 } from '@cyberfabric/react';
 import { STORAGE_KEYS } from '../types';
 import { useRestoreGtsPackage, useRestoreStudioSettings } from './useRestoreStudioSettings';
@@ -21,8 +21,8 @@ const typeSystemStub = {
   isTypeOf: vi.fn(() => false),
 };
 
-function createScreensetsRegistryStub(
-  overrides: Partial<ScreensetsRegistry> = {}
+function createMfeRegistryStub(
+  overrides: Partial<MfeRegistry> = {}
 ) {
   return {
     typeSystem: typeSystemStub,
@@ -46,7 +46,7 @@ function createScreensetsRegistryStub(
     setTheme: vi.fn(),
     dispose: vi.fn(),
     ...overrides,
-  } satisfies ScreensetsRegistry;
+  } satisfies MfeRegistry;
 }
 
 vi.mock('@cyberfabric/react', () => ({
@@ -129,16 +129,16 @@ describe('useRestoreGtsPackage', () => {
       secondScreenExtension,
       firstScreenExtension,
     ];
-    const registry = createScreensetsRegistryStub({
+    const registry = createMfeRegistryStub({
       getExtensionsForPackage: vi.fn(() => extensions),
       executeActionsChain,
     });
-    const initialProps: { currentRegistry: ScreensetsRegistry | null } = {
+    const initialProps: { currentRegistry: MfeRegistry | null } = {
       currentRegistry: null,
     };
 
     const { rerender } = renderHook(
-      ({ currentRegistry }: { currentRegistry: ScreensetsRegistry | null }) => {
+      ({ currentRegistry }: { currentRegistry: MfeRegistry | null }) => {
         useRestoreGtsPackage(currentRegistry);
       },
       {
@@ -166,7 +166,7 @@ describe('useRestoreGtsPackage', () => {
     expect.assertions(2);
 
     localStorage.setItem(STORAGE_KEYS.ACTIVE_PACKAGE_ID, JSON.stringify('hai3.demo'));
-    const registry = createScreensetsRegistryStub({
+    const registry = createMfeRegistryStub({
       getExtensionsForPackage: vi.fn(() => {
         throw new Error('boom');
       }),

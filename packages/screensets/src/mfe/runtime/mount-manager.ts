@@ -37,7 +37,7 @@ export type LifecycleTrigger = (extensionId: string, stageId: string) => Promise
  * - Manage bridges and coordinator registration
  *
  * Key Benefits:
- * - Dependency Inversion: ScreensetsRegistry depends on abstraction
+ * - Dependency Inversion: MfeRegistry depends on abstraction
  * - Testability: Can inject mock managers for testing
  * - Encapsulation: Mounting logic is hidden in concrete class
  */

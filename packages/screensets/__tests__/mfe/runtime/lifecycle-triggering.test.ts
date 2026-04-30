@@ -6,8 +6,8 @@
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { MfeRegistry } from '../../../src/mfe/runtime';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import { GtsPlugin } from '../../../src/mfe/plugins/gts';
 import type { TypeSystemPlugin } from '../../../src/mfe/plugins/types';
 import type { ExtensionDomain, Extension, MfeEntry } from '../../../src/mfe/types';
@@ -19,7 +19,7 @@ import {
 import { TestContainerProvider, makeMfeHandlerDouble } from '../../../__test-utils__';
 
 describe('Lifecycle Stage Triggering', () => {
-  let registry: ScreensetsRegistry;
+  let registry: MfeRegistry;
   let plugin: TypeSystemPlugin;
   let mockContainerProvider: TestContainerProvider;
 
@@ -72,7 +72,7 @@ describe('Lifecycle Stage Triggering', () => {
     // Create fresh plugin and registry for each test
     plugin = new GtsPlugin();
 
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem: plugin,
     });
     mockContainerProvider = new TestContainerProvider();
@@ -292,7 +292,7 @@ describe('Lifecycle Stage Triggering', () => {
       });
 
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem: plugin,
         mfeHandlers: [mockHandler],
       });
@@ -331,7 +331,7 @@ describe('Lifecycle Stage Triggering', () => {
       });
 
       // Create new registry with handler in config
-      registry = new DefaultScreensetsRegistry({
+      registry = new DefaultMfeRegistry({
         typeSystem: plugin,
         mfeHandlers: [mockHandler],
       });

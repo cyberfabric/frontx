@@ -1,5 +1,5 @@
 /**
- * Tests for Domain Property Management in ScreensetsRegistry
+ * Tests for Domain Property Management in MfeRegistry
  *
  * Verifies:
  * - Shared property broadcast via updateSharedProperty
@@ -11,8 +11,8 @@
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ScreensetsRegistry } from '../../../src/mfe/runtime';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { MfeRegistry } from '../../../src/mfe/runtime';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import type { ExtensionDomain } from '../../../src/mfe/types';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 import { TestContainerProvider } from '../../../__test-utils__';
@@ -76,8 +76,8 @@ function createMockPlugin(): TypeSystemPlugin {
   };
 }
 
-describe('ScreensetsRegistry - Domain Properties', () => {
-  let registry: ScreensetsRegistry;
+describe('MfeRegistry - Domain Properties', () => {
+  let registry: MfeRegistry;
   let testDomain: ExtensionDomain;
   let mockContainerProvider: TestContainerProvider;
   const DOMAIN_ID = 'gts.hai3.mfes.ext.domain.v1~hai3.test.widget.slot.v1';
@@ -85,7 +85,7 @@ describe('ScreensetsRegistry - Domain Properties', () => {
   const USER_PROPERTY_ID = 'gts.hai3.mfes.comm.shared_property.v1~acme.auth.user.v1';
 
   beforeEach(() => {
-    registry = new DefaultScreensetsRegistry({
+    registry = new DefaultMfeRegistry({
       typeSystem: createMockPlugin(),
     });
     mockContainerProvider = new TestContainerProvider();

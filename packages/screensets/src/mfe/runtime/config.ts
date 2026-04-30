@@ -1,7 +1,7 @@
 /**
- * ScreensetsRegistry Configuration
+ * MfeRegistry Configuration
  *
- * Configuration interface for creating a ScreensetsRegistry instance.
+ * Configuration interface for creating a MfeRegistry instance.
  * The TypeSystemPlugin is required at initialization.
  *
  * @packageDocumentation
@@ -12,13 +12,13 @@ import type { MfeHandler } from '../handler/types';
 import type { RuntimeCoordinator } from '../coordination/types';
 
 /**
- * Configuration for creating a ScreensetsRegistry instance.
+ * Configuration for creating a MfeRegistry instance.
  *
  * The TypeSystemPlugin is REQUIRED at initialization - the registry cannot
  * function without it. All type validation, schema operations, and contract
  * matching depend on the plugin.
  */
-export interface ScreensetsRegistryConfig {
+export interface MfeRegistryConfig {
   /**
    * Type System plugin instance (REQUIRED).
    *
@@ -30,10 +30,10 @@ export interface ScreensetsRegistryConfig {
    *
    * @example
    * ```typescript
-   * import { screensetsRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
+   * import { mfeRegistryFactory, gtsPlugin } from '@cyberfabric/screensets';
    *
    * // Build the registry with GTS plugin at application wiring time
-   * const registry = screensetsRegistryFactory.build({ typeSystem: gtsPlugin });
+   * const registry = mfeRegistryFactory.build({ typeSystem: gtsPlugin });
    *
    * // Use the registry with container provider
    * registry.registerDomain(myDomain, containerProvider);

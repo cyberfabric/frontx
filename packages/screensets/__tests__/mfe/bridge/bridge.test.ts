@@ -11,7 +11,7 @@ import type { ActionsChain, SharedProperty, ExtensionDomain } from '../../../src
 import { ActionHandler } from '../../../src/mfe/mediator/types';
 import { NoActionsChainHandlerError, BridgeDisposedError } from '../../../src/mfe/errors';
 import { DefaultActionsChainsMediator } from '../../../src/mfe/mediator/actions-chains-mediator';
-import { DefaultScreensetsRegistry } from '../../../src/mfe/runtime/DefaultScreensetsRegistry';
+import { DefaultMfeRegistry } from '../../../src/mfe/runtime/DefaultMfeRegistry';
 import type { TypeSystemPlugin, ValidationResult, JSONSchema } from '../../../src/mfe/plugins/types';
 import { TestContainerProvider } from '../../../__test-utils__';
 
@@ -626,14 +626,14 @@ describe('Bridge Implementation', () => {
       const ACTION_TYPE = 'gts.hai3.mfes.comm.action.v1~test.custom.v1~';
 
       let plugin: TypeSystemPlugin;
-      let registry: DefaultScreensetsRegistry;
+      let registry: DefaultMfeRegistry;
       let mediator: DefaultActionsChainsMediator;
       let domain: ExtensionDomain;
       let containerProvider: TestContainerProvider;
 
       beforeEach(() => {
         plugin = createMinimalTypeSystem();
-        registry = new DefaultScreensetsRegistry({ typeSystem: plugin });
+        registry = new DefaultMfeRegistry({ typeSystem: plugin });
         containerProvider = new TestContainerProvider();
         mediator = new DefaultActionsChainsMediator({
           typeSystem: plugin,
@@ -717,14 +717,14 @@ describe('Bridge Implementation', () => {
 
       let gtsPlugin: import('../../../src/mfe/plugins/gts').GtsPlugin;
       let gtsMediator: DefaultActionsChainsMediator;
-      let gtsRegistry: DefaultScreensetsRegistry;
+      let gtsRegistry: DefaultMfeRegistry;
 
       beforeEach(async () => {
         // Use the real GtsPlugin with built-in schemas
         const { GtsPlugin } = await import('../../../src/mfe/plugins/gts');
         gtsPlugin = new GtsPlugin();
 
-        gtsRegistry = new DefaultScreensetsRegistry({ typeSystem: gtsPlugin });
+        gtsRegistry = new DefaultMfeRegistry({ typeSystem: gtsPlugin });
 
         gtsMediator = new DefaultActionsChainsMediator({
           typeSystem: gtsPlugin,
