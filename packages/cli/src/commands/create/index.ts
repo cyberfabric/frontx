@@ -167,7 +167,8 @@ export const createCommand: CommandDefinition<
   async execute(args, ctx): Promise<CreateCommandResult> {
     // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-shadcn:p2:inst-create-shadcn-1
     // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1
-    const { logger, prompt } = ctx;
+    // create command always runs interactively — prompt is guaranteed by the executor
+    const { logger, prompt } = ctx as Required<typeof ctx>;
     const projectPath = path.join(ctx.cwd, args.projectName);
     const layer = args.layer ?? 'app';
     // @cpt-end:cpt-frontx-flow-ui-libraries-choice-create-thirdparty:p2:inst-create-thirdparty-1

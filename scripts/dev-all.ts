@@ -20,52 +20,83 @@ import { dirname, join } from 'path';
 // shadowing a trusted executable, even though this script is dev-only.
 const NODE_BIN_DIR = dirname(process.execPath);
 
-const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
-
 // Packages to skip (shared libraries)
 const EXCLUDED_PACKAGES = new Set(['shared']);
 
 interface MfeInfo {
   name: string;
   port: number;
+  /** Absolute path to the root directory containing this MFE */
+  rootDir: string;
 }
 
-// Scan src/mfe_packages/ and extract port from each package's scripts
-function getMFEPackages(): MfeInfo[] {
-  if (!existsSync(MFE_PACKAGES_DIR)) {
-    return [];
-  }
-
-  const mfes: MfeInfo[] = [];
-  const entries = readdirSync(MFE_PACKAGES_DIR, { withFileTypes: true });
-
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    if (EXCLUDED_PACKAGES.has(entry.name)) continue;
-    if (entry.name.startsWith('.')) continue;
-
-    const pkgJsonPath = join(MFE_PACKAGES_DIR, entry.name, 'package.json');
-    if (!existsSync(pkgJsonPath)) continue;
-
-    try {
-      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8')) as {
-        scripts?: Record<string, string>;
-      };
-      const scripts = pkgJson.scripts ?? {};
-
-      // Try preview first (stable port source), fall back to dev
-      const portSource = scripts['preview'] ?? scripts['dev'] ?? '';
-      const portMatch = portSource.match(/--port\s+(\d+)/);
-
-      if (!portMatch) {
-        console.warn(`⚠️  Could not find --port in scripts for ${entry.name}, skipping`);
-        continue;
+/**
+ * Return the deduplicated list of MFE root directories (relative to cwd) to scan.
+ * Always starts with the legacy "src/mfe_packages".
+ * Adds mfeRoot and mfeRoots[] from frontx.config.json when present.
+ * Falls back to default on any config read/parse error.
+ */
+function getMfeRootsSync(projectCwd: string): string[] {
+  const defaults = ['src/mfe_packages'];
+  try {
+    const configPath = join(projectCwd, 'frontx.config.json');
+    if (!existsSync(configPath)) return defaults;
+    const config = JSON.parse(readFileSync(configPath, 'utf-8')) as {
+      mfeRoot?: unknown;
+      mfeRoots?: unknown;
+    };
+    const extra: string[] = [];
+    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
+    if (Array.isArray(config.mfeRoots)) {
+      for (const r of config.mfeRoots) {
+        if (typeof r === 'string' && r) extra.push(r);
       }
+    }
+    return [...new Set([...defaults, ...extra])];
+  } catch {
+    return defaults;
+  }
+}
 
-      const port = parseInt(portMatch[1], 10);
-      mfes.push({ name: entry.name, port });
-    } catch (e) {
-      console.warn(`⚠️  Failed to read package.json for ${entry.name}:`, e);
+// Scan all MFE root directories and extract port from each package's scripts
+function getMFEPackages(): MfeInfo[] {
+  const roots = getMfeRootsSync(process.cwd());
+  const mfes: MfeInfo[] = [];
+
+  for (const root of roots) {
+    const dir = join(process.cwd(), root);
+    if (!existsSync(dir)) continue;
+
+    const entries = readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      if (EXCLUDED_PACKAGES.has(entry.name)) continue;
+      if (entry.name.startsWith('.')) continue;
+
+      const pkgJsonPath = join(dir, entry.name, 'package.json');
+      if (!existsSync(pkgJsonPath)) continue;
+
+      try {
+        const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8')) as {
+          scripts?: Record<string, string>;
+        };
+        const scripts = pkgJson.scripts ?? {};
+
+        // Try preview first (stable port source), fall back to dev
+        const portSource = scripts['preview'] ?? scripts['dev'] ?? '';
+        const portMatch = portSource.match(/--port\s+(\d+)/);
+
+        if (!portMatch) {
+          console.warn(`⚠️  Could not find --port in scripts for ${entry.name}, skipping`);
+          continue;
+        }
+
+        const port = parseInt(portMatch[1], 10);
+        mfes.push({ name: entry.name, port, rootDir: dir });
+      } catch (e) {
+        console.warn(`⚠️  Failed to read package.json for ${entry.name}:`, e);
+      }
     }
   }
 
@@ -95,9 +126,10 @@ function buildPreviewCommands(mfes: MfeInfo[]): string[] {
   // Add main app
   commands.push(getMainAppCommand());
 
-  // MFE preview only (build already done in the sequential step)
+  // MFE preview only (build already done in the sequential step).
+  // Use the MFE's actual rootDir so custom-dir MFEs get the right cd path.
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && npm run preview`);
+    commands.push(`cd ${mfe.rootDir}/${mfe.name} && npm run preview`);
   }
 
   return commands;
@@ -120,7 +152,7 @@ async function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
       );
       const proc = spawn(npxPath, ['vite', 'build'], {
         stdio: 'inherit',
-        cwd: join(MFE_PACKAGES_DIR, mfe.name),
+        cwd: join(mfe.rootDir, mfe.name),
       });
       proc.on('error', reject);
       proc.on('exit', (code) => {
@@ -164,7 +196,7 @@ async function main() {
   const mfes = getMFEPackages();
 
   if (mfes.length === 0) {
-    console.log('ℹ️  No MFE packages found in src/mfe_packages/');
+    console.log('ℹ️  No MFE packages found in any configured MFE root directory.');
     console.log('Starting main app only...\n');
   } else {
     console.log(`✅ Found ${mfes.length} MFE package(s):`);

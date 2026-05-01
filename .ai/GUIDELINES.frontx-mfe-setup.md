@@ -7,8 +7,11 @@ This document describes the FrontX Microfrontend (MFE) architecture and setup re
 ## Architecture
 
 ### Directory Structure
+
+MFE packages live under `src/mfe_packages/` by default, or a custom directory specified with `--dir` (see CLI Commands below).
+
 ```
-src/mfe_packages/
+src/mfe_packages/          (default; or <custom-dir>/ when --dir is used)
 ├── demo-mfe/              (Demo/example MFE)
 └── {name}-mfe/            (New MFEs follow this pattern)
 ```
@@ -82,6 +85,20 @@ This starts:
 2. Main app Vite server (port 5173+)
 
 ### Adding a New MFE
+
+Use the CLI to scaffold a new MFE. The default parent directory is `src/mfe_packages`; use `--dir` to place the MFE elsewhere.
+
+```bash
+# Default location: src/mfe_packages/{screensetName}-mfe/
+frontx screenset create {screensetName}
+
+# Custom location: custom/mfes/{screensetName}-mfe/
+frontx screenset create {screensetName} --dir custom/mfes
+```
+
+When `--dir` points to a directory other than `src/mfe_packages` and no `mfeRoot` is saved yet, the CLI prompts whether to save that directory as the project default in `frontx.config.json`. All configured MFE roots are scanned automatically by `dev:all`, `generate:mfe-manifests`, and the type-check script.
+
+If you need to create the package manually instead:
 
 1. **Create package from template:**
    ```bash
@@ -195,7 +212,7 @@ npm run lint
 - **Template location**: `/packages/cli/template-sources/mfe-package/`
 - **Commands**: `.ai/commands/user/frontx-new-mfe.md`, `frontx-dev-all.md`
 - **Architecture**: `.ai/GUIDELINES.md`
-- **Implementation examples**: `src/mfe_packages/`
+- **Implementation examples**: `src/mfe_packages/` (default MFE root; custom roots configurable via `mfeRoot`/`mfeRoots` in `frontx.config.json`)
 
 ## Implementation Checklist
 

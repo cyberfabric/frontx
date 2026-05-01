@@ -8,7 +8,17 @@
 
 ## QUICK START
 
-For a screenset named `{screensetName}` with a new MFE:
+Use the CLI to scaffold a new MFE for a screenset named `{screensetName}`:
+
+```bash
+# Default: creates src/mfe_packages/{screensetName}-mfe/
+frontx screenset create {screensetName}
+
+# Custom directory: creates custom/mfes/{screensetName}-mfe/
+frontx screenset create {screensetName} --dir custom/mfes
+```
+
+If you prefer a manual approach instead:
 
 ```bash
 # 1. Create the MFE package in src/mfe_packages/{screensetName}-mfe/
@@ -83,7 +93,9 @@ export default new Lifecycle();
 
 ## ADDING TO dev:all COMMAND
 
-After creating the MFE:
+When you use `frontx screenset create` (with or without `--dir`), the CLI regenerates manifests automatically. The `dev:all`, `generate:mfe-manifests`, and type-check scripts discover MFEs from all configured roots (`src/mfe_packages` plus any directories saved as `mfeRoot`/`mfeRoots` in `frontx.config.json`), so no manual script edits are needed.
+
+If you created the MFE manually:
 
 1. Add dev script to root package.json:
    ```json

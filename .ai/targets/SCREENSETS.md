@@ -7,7 +7,7 @@
 3) STOP if you add manual styling, custom state management, direct slice imports, or hardcode screenset names.
 
 ## SCOPE
-- Applies to MFE screenset packages under src/mfe_packages/** (primary).
+- Applies to MFE screenset packages under src/mfe_packages/** (primary default) or a custom directory configured via `--dir`/`mfeRoot` in `frontx.config.json`.
 - Legacy: src/screensets/** (no screensets exist here after MFE conversion).
 - MFE packages may define local actions, events, slices, effects, API services, and localization.
 
@@ -74,7 +74,7 @@
 ## MFE LOCALIZATION RULES
 - REQUIRED: Subscribe to language domain property via bridge.subscribeToProperty(HAI3_SHARED_PROPERTY_LANGUAGE, callback).
 - REQUIRED: Load translations from MFE-local files using import.meta.glob pattern.
-- REQUIRED: Place translations in local i18n folders (src/mfe_packages/*/src/screens/*/i18n/).
+- REQUIRED: Place translations in local i18n folders (`<mfe-root>/*/src/screens/*/i18n/`, where `<mfe-root>` is `src/mfe_packages` by default or a custom root).
 - FORBIDDEN: I18nRegistry.createLoader (host-level API, not available in MFEs).
 - FORBIDDEN: useScreenTranslations hook from @cyberfabric/react (host-level hook with registry dependency).
 - NOTE: MFEs use the shared useScreenTranslations hook in their own shared/ directory (bridge-based).
@@ -89,7 +89,7 @@
 - DETECT: grep -rn "@/api/services" src/
 
 ## MFE API SERVICE RULES
-- REQUIRED: MFE-local API services in src/mfe_packages/*/src/api/.
+- REQUIRED: MFE-local API services in `<mfe-root>/*/src/api/` (`src/mfe_packages/*/src/api/` by default).
 - REQUIRED: Services extend BaseApiService from @cyberfabric/react.
 - REQUIRED: Register with MFE's own apiRegistry instance (from @cyberfabric/react).
 - REQUIRED: Mock plugins via this.registerPlugin() in service constructor.

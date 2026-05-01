@@ -41,6 +41,18 @@ export interface Hai3Config {
   packageManagerVersion?: string;
   /** Optional linker mode (used by yarn) */
   linkerMode?: 'node-modules' | 'pnp';
+  /**
+   * Custom parent directory for new MFE packages (relative to project root).
+   * e.g. "custom/mfes" → MFE scaffolded at custom/mfes/<name>-mfe/
+   * When absent, the legacy default "src/mfe_packages" is used.
+   */
+  mfeRoot?: string;
+  /**
+   * Registry of all MFE root directories used in this project.
+   * Populated automatically when the user confirms a new default.
+   * Used for multi-root manifest/port/type-check discovery.
+   */
+  mfeRoots?: string[];
 }
 
 /**

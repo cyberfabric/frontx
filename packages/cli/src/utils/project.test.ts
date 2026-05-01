@@ -12,6 +12,7 @@ import {
   findMonorepoRoot,
   getLocalPackageRef,
   rewriteTsconfigPackagePaths,
+  validateRelativeMfePath,
   CONFIG_FILE,
 } from './project.js';
 import type { ConfigLoadResult } from '../core/types.js';
@@ -266,6 +267,147 @@ describe('loadConfig', () => {
       message: expect.stringMatching(/not a valid npm package name/),
     });
     await fs.remove(configPath);
+  });
+
+  it('should load config with a valid mfeRoot', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoot: 'custom/mfes' }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({ ok: true, config: { frontx: true, mfeRoot: 'custom/mfes' } });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoot that is not a string', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoot: 123 }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/Invalid "mfeRoot"/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoot that is an empty string', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoot: '' }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/Invalid "mfeRoot"/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoot that is an absolute path', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoot: '/absolute/path' }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/must be a relative path/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoot containing a traversal segment', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoot: '../../etc' }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/"\.\." segments/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should load config with a valid mfeRoots array', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(
+      configPath,
+      JSON.stringify({ frontx: true, mfeRoots: ['src/mfe_packages', 'custom/mfes'] })
+    );
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: true,
+      config: { frontx: true, mfeRoots: ['src/mfe_packages', 'custom/mfes'] },
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoots that is not an array', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoots: 'src/mfe_packages' }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/Invalid "mfeRoots"/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoots array containing a non-string element', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoots: ['valid', 42] }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/Invalid "mfeRoots"/),
+    });
+    await fs.remove(configPath);
+  });
+
+  it('should return invalid for mfeRoots array containing an absolute path', async () => {
+    expect.assertions(1);
+    const configPath = path.join(tmpDir, CONFIG_FILE);
+    await fs.writeFile(configPath, JSON.stringify({ frontx: true, mfeRoots: ['/absolute'] }));
+    const result: ConfigLoadResult = await loadConfig(tmpDir);
+    expect(result).toEqual({
+      ok: false,
+      error: 'invalid',
+      message: expect.stringMatching(/must be a relative path/),
+    });
+    await fs.remove(configPath);
+  });
+});
+
+describe('validateRelativeMfePath', () => {
+  it('accepts a valid single-segment relative path', () => {
+    expect(() => validateRelativeMfePath('custom-mfes', 'mfeRoot')).not.toThrow();
+  });
+
+  it('accepts a valid multi-segment relative path', () => {
+    expect(() => validateRelativeMfePath('src/custom/mfes', 'mfeRoot')).not.toThrow();
+  });
+
+  it('throws for an absolute Unix path', () => {
+    expect(() => validateRelativeMfePath('/absolute/path', 'mfeRoot')).toThrow(/must be a relative path/);
+  });
+
+  it('throws for a Windows drive-letter path', () => {
+    expect(() => validateRelativeMfePath('C:/windows/path', 'mfeRoot')).toThrow(/must be a relative path/);
+  });
+
+  it('throws for a path with .. segment', () => {
+    expect(() => validateRelativeMfePath('../../etc', 'mfeRoot')).toThrow(/"\.\." segments/);
+  });
+
+  it('throws for a path segment with disallowed characters', () => {
+    expect(() => validateRelativeMfePath('path with spaces', 'mfeRoot')).toThrow(/disallowed characters/);
   });
 });
 

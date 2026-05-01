@@ -227,12 +227,14 @@ screensetCmd
   .command('create <name>')
   .description('Create a new MFE screenset package')
   .option('-p, --port <number>', 'MFE dev server port (auto-assigned if omitted)', parsePortOption)
+  .option('-d, --dir <path>', 'Custom parent directory for the MFE (relative to project root)')
   .action(async (name: string, options: Record<string, unknown>) => {
     const result = await executeCommand(
       screensetCreateCommand,
       {
         name,
         port: options.port as number | undefined,
+        dir: options.dir as string | undefined,
       },
       { interactive: true }
     );

@@ -19,8 +19,8 @@ export interface CommandContext {
   config: Hai3Config | null;
   /** Logger for output */
   logger: Logger;
-  /** Prompt function for user input */
-  prompt: PromptFn;
+  /** Optional prompt function for user input — injectable for testing */
+  prompt?: PromptFn;
 }
 
 /**

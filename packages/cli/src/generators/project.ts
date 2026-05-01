@@ -817,11 +817,16 @@ async function generateThemeFiles(uikit: string): Promise<GeneratedFile[]> {
 
 // @cpt-begin:cpt-frontx-dod-ui-libraries-choice-create-scaffolding:p2:inst-scaffolding-mfe-bootstrap
 function generateMfeBootstrap(uikit: string): GeneratedFile[] {
-  const initialMfePackages = uikit === 'shadcn' ? ['demo-mfe'] : [];
+  // Project generator always places the initial demo-mfe under src/mfe_packages/ (legacy default).
+  const initialPkgNames = uikit === 'shadcn' ? ['demo-mfe'] : [];
+  const initialMfeEntries = initialPkgNames.map((pkg) => ({
+    pkg,
+    relPath: `src/mfe_packages/${pkg}`,
+  }));
   return [
     {
       path: 'src/app/mfe/generated-mfe-manifests.ts',
-      content: buildMfeManifestsContent(initialMfePackages),
+      content: buildMfeManifestsContent(initialMfeEntries),
     },
   ];
 }

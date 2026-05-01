@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { existsSync, readFileSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
@@ -6,8 +7,38 @@ import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const mfeRoot = path.join(repoRoot, 'src/mfe_packages');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+/**
+ * Return the deduplicated list of MFE root directories (relative to projectCwd) to scan.
+ * Always starts with the legacy "src/mfe_packages".
+ * Adds mfeRoot and mfeRoots[] from frontx.config.json when present.
+ * Falls back to default on any config read/parse error.
+ *
+ * @param {string} projectCwd
+ * @returns {string[]}
+ */
+function getMfeRootsSync(projectCwd) {
+  const defaults = ['src/mfe_packages'];
+  try {
+    const configPath = path.join(projectCwd, 'frontx.config.json');
+    if (!existsSync(configPath)) return defaults;
+    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
+    /** @type {string[]} */
+    const extra = [];
+    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
+    if (Array.isArray(config.mfeRoots)) {
+      for (const r of config.mfeRoots) {
+        if (typeof r === 'string' && r) extra.push(r);
+      }
+    }
+    return [...new Set([...defaults, ...extra])];
+  } catch {
+    return defaults;
+  }
+}
+
+const mfeRoots = getMfeRootsSync(repoRoot).map((r) => path.join(repoRoot, r));
 
 // Per-MFE type-check timeout. Type-checking rarely takes more than a couple
 // of minutes; 15m is a generous ceiling that still catches a genuinely hung
@@ -96,34 +127,37 @@ function parseTimeoutValue(raw) {
 }
 
 async function discoverMfeProjects() {
-  const entries = await readdir(mfeRoot, { withFileTypes: true }).catch(() => []);
   const projects = [];
   const missingTypeCheckScript = [];
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
+  for (const mfeRoot of mfeRoots) {
+    const entries = await readdir(mfeRoot, { withFileTypes: true }).catch(() => []);
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const cwd = path.join(mfeRoot, entry.name);
+      const packageJsonPath = path.join(cwd, 'package.json');
+      let packageJson;
+
+      try {
+        packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+      } catch {
+        continue;
+      }
+
+      if (!packageJson?.scripts?.['type-check']) {
+        missingTypeCheckScript.push(entry.name);
+        continue;
+      }
+
+      projects.push({
+        cwd,
+        name: entry.name,
+      });
     }
-
-    const cwd = path.join(mfeRoot, entry.name);
-    const packageJsonPath = path.join(cwd, 'package.json');
-    let packageJson;
-
-    try {
-      packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
-    } catch {
-      continue;
-    }
-
-    if (!packageJson?.scripts?.['type-check']) {
-      missingTypeCheckScript.push(entry.name);
-      continue;
-    }
-
-    projects.push({
-      cwd,
-      name: entry.name,
-    });
   }
 
   return { projects, missingTypeCheckScript };

@@ -17,6 +17,12 @@ export interface ScreensetGeneratorInput {
   port: number;
   /** Absolute path of the project root */
   projectRoot: string;
+  /**
+   * Relative path from projectRoot to the parent directory where the MFE
+   * folder will be created. Defaults to "src/mfe_packages".
+   * e.g. "custom/mfes" → MFE at <projectRoot>/custom/mfes/<name>-mfe/
+   */
+  mfeParentDir?: string;
 }
 
 /**
@@ -142,33 +148,70 @@ async function readDirRecursive(
 }
 // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
 
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-get-mfe-roots
+/**
+ * Return the deduplicated list of MFE root directories (relative to project root) to scan.
+ *
+ * Always starts with the legacy "src/mfe_packages" for backwards compatibility.
+ * Adds mfeRoot and each entry from mfeRoots[] found in frontx.config.json when present.
+ * Any config read failure falls back to the default list without throwing.
+ */
+export async function getMfeRoots(projectRoot: string): Promise<string[]> {
+  const defaults = ['src/mfe_packages'];
+  try {
+    const configPath = path.join(projectRoot, 'frontx.config.json');
+    if (!(await fs.pathExists(configPath))) return defaults;
+    const config = await fs.readJson(configPath) as {
+      mfeRoot?: unknown;
+      mfeRoots?: unknown;
+    };
+    const extra: string[] = [];
+    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
+    if (Array.isArray(config.mfeRoots)) {
+      for (const r of config.mfeRoots) {
+        if (typeof r === 'string' && r) extra.push(r);
+      }
+    }
+    const all = [...defaults, ...extra];
+    return [...new Set(all)];
+  } catch {
+    return defaults;
+  }
+}
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-get-mfe-roots
+
 // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
 /**
- * Scan existing mfe_packages to find used ports
+ * Scan all MFE root directories to find used ports.
+ * Reads roots from frontx.config.json (graceful fallback to legacy src/mfe_packages).
  */
 export async function getUsedMfePorts(projectRoot: string): Promise<Set<number>> {
   const usedPorts = new Set<number>();
-  const mfePackagesDir = path.join(projectRoot, 'src', 'mfe_packages');
+  const roots = await getMfeRoots(projectRoot);
 
-  if (!(await fs.pathExists(mfePackagesDir))) {
-    return usedPorts;
-  }
+  for (const root of roots) {
+    const mfePackagesDir = path.join(projectRoot, ...root.split('/'));
 
-  const entries = await fs.readdir(mfePackagesDir, { withFileTypes: true });
+    if (!(await fs.pathExists(mfePackagesDir))) {
+      continue;
+    }
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) continue;
-    const pkgJsonPath = path.join(mfePackagesDir, entry.name, 'package.json');
-    if (await fs.pathExists(pkgJsonPath)) {
-      try {
-        const pkgJson = await fs.readJson(pkgJsonPath);
-        const devScript = pkgJson?.scripts?.dev ?? '';
-        const portMatch = devScript.match(/--port\s+(\d+)/);
-        if (portMatch) {
-          usedPorts.add(parseInt(portMatch[1], 10));
+    const entries = await fs.readdir(mfePackagesDir, { withFileTypes: true });
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const pkgJsonPath = path.join(mfePackagesDir, entry.name, 'package.json');
+      if (await fs.pathExists(pkgJsonPath)) {
+        try {
+          const pkgJson = await fs.readJson(pkgJsonPath);
+          const devScript = pkgJson?.scripts?.dev ?? '';
+          const portMatch = devScript.match(/--port\s+(\d+)/);
+          if (portMatch) {
+            usedPorts.add(parseInt(portMatch[1], 10));
+          }
+        } catch {
+          // ignore parse errors
         }
-      } catch {
-        // ignore parse errors
       }
     }
   }
@@ -193,33 +236,51 @@ export async function assignMfePort(projectRoot: string, startPort = 3001): Prom
 
 // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-regenerate-manifests
 /**
- * Regenerate generated-mfe-manifests.ts by scanning all MFE packages.
+ * Regenerate generated-mfe-manifests.ts by scanning all MFE root directories.
  *
  * This replaces the old updateBootstrap approach (which added manual registration
  * blocks to bootstrap.ts, causing double-registration with the MFE_MANIFESTS loop).
  * Now bootstrap.ts always uses the auto-generated MFE_MANIFESTS — the only thing
  * that changes when MFEs are added/removed is this generated file.
+ *
+ * Scans all roots from getMfeRoots() union {resolvedMfeParentDir}, ensuring the
+ * newly created MFE is always included even before config is persisted (Phase 5).
+ *
+ * @param resolvedMfeParentDir  Relative path to the MFE parent dir just used for generation
  */
-async function regenerateMfeManifests(projectRoot: string): Promise<void> {
-  const mfePackagesDir = path.join(projectRoot, 'src', 'mfe_packages');
+async function regenerateMfeManifests(projectRoot: string, resolvedMfeParentDir: string): Promise<void> {
   const outputFile = path.join(projectRoot, 'src', 'app', 'mfe', 'generated-mfe-manifests.ts');
 
   const EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared']);
 
-  const mfePackages: string[] = [];
-  if (await fs.pathExists(mfePackagesDir)) {
+  // Union of all known roots + the dir just used, deduped.
+  // getMfeRoots reads frontx.config.json; resolvedMfeParentDir is needed because
+  // config persistence happens in Phase 5 (after generation).
+  const configRoots = await getMfeRoots(projectRoot);
+  const allRoots = [...new Set([...configRoots, resolvedMfeParentDir])];
+
+  const mfeEntries: Array<{ pkg: string; relPath: string }> = [];
+
+  for (const root of allRoots) {
+    const mfePackagesDir = path.join(projectRoot, ...root.split('/'));
+    if (!(await fs.pathExists(mfePackagesDir))) continue;
+
     const entries = await fs.readdir(mfePackagesDir, { withFileTypes: true });
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
       if (EXCLUDED_PACKAGES.has(entry.name) || entry.name.startsWith('.')) continue;
       const mfeJsonPath = path.join(mfePackagesDir, entry.name, 'mfe.json');
       if (await fs.pathExists(mfeJsonPath)) {
-        mfePackages.push(entry.name);
+        mfeEntries.push({
+          pkg: entry.name,
+          // posix-style relative path from project root, for use in import path computation
+          relPath: `${root}/${entry.name}`,
+        });
       }
     }
   }
 
-  const content = buildMfeManifestsContent(mfePackages);
+  const content = buildMfeManifestsContent(mfeEntries);
   await fs.ensureDir(path.dirname(outputFile));
   await fs.writeFile(outputFile, content, 'utf-8');
 }
@@ -227,15 +288,33 @@ async function regenerateMfeManifests(projectRoot: string): Promise<void> {
 
 // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-build-manifests
 /**
- * Build the content of generated-mfe-manifests.ts from a list of MFE package directory names.
+ * Build the content of generated-mfe-manifests.ts from MFE entries.
  * Shared by both the screenset generator (writes to disk) and the project generator (in-memory).
+ *
+ * Import path computation (relative to src/app/mfe/generated-mfe-manifests.ts):
+ *   importPath = path.posix.relative('src/app/mfe', relPath)
+ *   where relPath = mfeParentDir + '/' + pkg
+ *
+ * Example (legacy):  relPath = 'src/mfe_packages/contacts-mfe'
+ *   → '../../mfe_packages/contacts-mfe'
+ *   import from '../../mfe_packages/contacts-mfe/mfe.json'
+ *
+ * Example (custom):  relPath = 'custom/mfes/contacts-mfe'
+ *   → '../../../custom/mfes/contacts-mfe'
+ *   import from '../../../custom/mfes/contacts-mfe/mfe.json'
  */
-export function buildMfeManifestsContent(mfePackages: string[]): string {
-  const imports = mfePackages
-    .map((pkg, idx) => `import mfe${idx} from '../../mfe_packages/${pkg}/mfe.json' with { type: 'json' };`)
+export function buildMfeManifestsContent(mfeEntries: Array<{ pkg: string; relPath: string }>): string {
+  const imports = mfeEntries
+    .map(({ relPath }, idx) => {
+      // Compute the import path relative to src/app/mfe/ (location of generated-mfe-manifests.ts)
+      const rel = path.posix.relative('src/app/mfe', relPath);
+      // Ensure the path starts with ./ or ../ as required for relative TS imports
+      const importPath = rel.startsWith('.') ? rel : `./${rel}`;
+      return `import mfe${idx} from '${importPath}/mfe.json' with { type: 'json' };`;
+    })
     .join('\n');
 
-  const registryEntries = mfePackages
+  const registryEntries = mfeEntries
     .map((_, idx) => `  mfe${idx},`)
     .join('\n');
 
@@ -691,10 +770,13 @@ export async function generateScreenset(
   input: ScreensetGeneratorInput
 ): Promise<ScreensetGeneratorOutput> {
   // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
-  const { name, port, projectRoot } = input;
+  const { name, port, projectRoot, mfeParentDir } = input;
+  // Default to legacy path so that callers without --dir or mfeRoot are byte-identical to before.
+  const resolvedMfeParentDir = mfeParentDir ?? 'src/mfe_packages';
   const nameKebab = toKebabCase(name);
   const mfeDirName = `${nameKebab}-mfe`;
-  const mfePath = path.join(projectRoot, 'src', 'mfe_packages', mfeDirName);
+  // Split on '/' so this works on both POSIX and Windows without double-sep issues.
+  const mfePath = path.join(projectRoot, ...resolvedMfeParentDir.split('/'), mfeDirName);
   // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
 
   const templatesDir = getTemplatesDir();
@@ -736,7 +818,9 @@ export async function generateScreenset(
       path: file.path,
       content: rewriteTsconfigPackagePaths(file.content, {
         useLocalPackages: false,
-        tsconfigPath: path.posix.join('src', 'mfe_packages', mfeDirName, file.path.split('\\').join('/')),
+        // Use the actual mfeParentDir so tsconfig relative refs (e.g. ../../../tsconfig.json)
+        // resolve to the correct depth for any custom parent directory.
+        tsconfigPath: path.posix.join(resolvedMfeParentDir, mfeDirName, file.path.split('\\').join('/')),
       }),
     };
   });
@@ -792,7 +876,7 @@ export async function generateScreenset(
   const writtenFiles = await writeGeneratedFiles(mfePath, outputFiles);
 
   // Regenerate generated-mfe-manifests.ts so bootstrap picks up the new MFE
-  await regenerateMfeManifests(projectRoot);
+  await regenerateMfeManifests(projectRoot, resolvedMfeParentDir);
   // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-finalize
 
   // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-7

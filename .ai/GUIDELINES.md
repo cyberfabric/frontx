@@ -33,7 +33,7 @@
 ### Other
 - packages/cli -> .ai/targets/CLI.md
 - presets/standalone, presets/monorepo -> .ai/targets/CLI.md
-- src/mfe_packages -> .ai/targets/SCREENSETS.md
+- src/mfe_packages (or a custom dir set via `--dir`/`mfeRoot`) -> .ai/targets/SCREENSETS.md
 - src/screensets -> .ai/targets/SCREENSETS.md (legacy — no screensets exist here after MFE conversion)
 - src/themes -> .ai/targets/THEMES.md
 - Styling anywhere -> .ai/targets/STYLING.md

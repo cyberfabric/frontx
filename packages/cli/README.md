@@ -18,7 +18,7 @@ Initialize new FrontX applications with complete project structure, dependency m
 
 ### Screenset Generation
 
-Create new MFE screenset packages from the framework template. Each screenset is a self-contained MFE with its own dev server port, configuration, and structure under `src/mfe_packages/`.
+Create new MFE screenset packages from the framework template. Each screenset is a self-contained MFE with its own dev server port, configuration, and structure. By default they are placed under `src/mfe_packages/`; use `--dir` to scaffold into a custom directory instead.
 
 ### Dependency Updates
 
@@ -74,15 +74,32 @@ Creates a new FrontX project or SDK layer package with the specified name.
 
 ### `frontx screenset create <name>`
 
-Creates a new MFE screenset package under `src/mfe_packages/<name>-mfe/` from the framework template.
+Creates a new MFE screenset package under `<parent-dir>/<name>-mfe/` from the framework template.
+By default `<parent-dir>` is `src/mfe_packages`; override with `--dir`.
 
 **Options:**
 - `-p, --port <number>` - MFE dev server port (auto-assigned if omitted)
+- `--dir <path>` - Custom parent directory for the MFE (relative to project root).
+  Defaults to `src/mfe_packages` when omitted.
+  Example: `--dir custom/mfes` scaffolds the MFE at `custom/mfes/<name>-mfe/`.
+
+**`--dir` validation:** must be a relative path (no leading `/` or drive letter), must not contain `..` segments, and each segment may only contain `[a-zA-Z0-9_.-]` characters.
+
+**Persistence prompt:** if `--dir` points to a directory other than `src/mfe_packages` and no `mfeRoot` is recorded in `frontx.config.json` yet, the CLI asks whether to save that directory as the project default. Confirming writes `mfeRoot` and appends to `mfeRoots[]` in `frontx.config.json`.
+
+**Multi-root discovery:** `dev:all`, `generate:mfe-manifests`, and the type-check script scan the union of `src/mfe_packages` (always), `mfeRoot`, and every entry in `mfeRoots[]` from `frontx.config.json`, deduplicated. MFEs placed in any of those locations work uniformly.
 
 **Requirements:**
 - Run from project root; name must be camelCase (e.g. `contacts`, `myDashboard`).
 
 **Generated structure:** MFE package with config, screens, i18n, events, and build setup.
+
+**`frontx.config.json` fields related to MFE directories:**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `mfeRoot` | `string` | Optional custom default parent directory for new MFEs. Set automatically when you confirm a `--dir` as default. |
+| `mfeRoots` | `string[]` | Registry of all MFE root directories used in this project, for multi-root discovery. |
 
 ### `frontx update` / `frontx update packages`
 
