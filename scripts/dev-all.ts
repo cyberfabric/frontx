@@ -13,6 +13,7 @@
 import { spawn } from 'child_process';
 import { existsSync, readdirSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
+import { getMfeRootsSync } from './lib/mfe-roots.mjs';
 
 // Resolve sibling CLIs (npm, vite via node_modules/.bin) from Node's own
 // bin directory rather than relying on PATH lookup. This avoids the
@@ -20,55 +21,62 @@ import { dirname, join } from 'path';
 // shadowing a trusted executable, even though this script is dev-only.
 const NODE_BIN_DIR = dirname(process.execPath);
 
-const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
-
 // Packages to skip (shared libraries)
 const EXCLUDED_PACKAGES = new Set(['shared']);
 
 interface MfeInfo {
   name: string;
   port: number;
+  /** Absolute path to the root directory containing this MFE */
+  rootDir: string;
 }
 
-// Scan src/mfe_packages/ and extract port from each package's scripts
-function getMFEPackages(): MfeInfo[] {
-  if (!existsSync(MFE_PACKAGES_DIR)) {
-    return [];
-  }
+// Extract --port from preview/dev script. Returns undefined if not a runnable MFE.
+function parsePortFromScripts(scripts: unknown): number | undefined {
+  if (!scripts || typeof scripts !== 'object') return undefined;
+  const s = scripts as Record<string, unknown>;
+  const previewScript = typeof s.preview === 'string' ? s.preview : '';
+  const devScript = typeof s.dev === 'string' ? s.dev : '';
+  const portMatch = previewScript.match(/--port\s+(\d+)/) ?? devScript.match(/--port\s+(\d+)/);
+  return portMatch ? parseInt(portMatch[1], 10) : undefined;
+}
 
-  const mfes: MfeInfo[] = [];
-  const entries = readdirSync(MFE_PACKAGES_DIR, { withFileTypes: true });
+// Scan one MFE root for valid MFE packages and append them to the accumulator.
+function collectMfesInRoot(rootRel: string, accumulator: MfeInfo[]): void {
+  const dir = join(process.cwd(), rootRel);
+  if (!existsSync(dir)) return;
 
+  const entries = readdirSync(dir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     if (EXCLUDED_PACKAGES.has(entry.name)) continue;
     if (entry.name.startsWith('.')) continue;
 
-    const pkgJsonPath = join(MFE_PACKAGES_DIR, entry.name, 'package.json');
+    const pkgJsonPath = join(dir, entry.name, 'package.json');
     if (!existsSync(pkgJsonPath)) continue;
 
+    let port: number | undefined;
     try {
-      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8')) as {
-        scripts?: Record<string, string>;
-      };
-      const scripts = pkgJson.scripts ?? {};
-
-      // Try preview first (stable port source), fall back to dev
-      const portSource = scripts['preview'] ?? scripts['dev'] ?? '';
-      const portMatch = portSource.match(/--port\s+(\d+)/);
-
-      if (!portMatch) {
-        console.warn(`⚠️  Could not find --port in scripts for ${entry.name}, skipping`);
-        continue;
-      }
-
-      const port = parseInt(portMatch[1], 10);
-      mfes.push({ name: entry.name, port });
+      const pkgJson = JSON.parse(readFileSync(pkgJsonPath, 'utf-8'));
+      port = parsePortFromScripts(pkgJson?.scripts);
     } catch (e) {
       console.warn(`⚠️  Failed to read package.json for ${entry.name}:`, e);
+      continue;
     }
+    if (port === undefined) {
+      console.warn(`⚠️  Could not find --port in scripts for ${entry.name}, skipping`);
+      continue;
+    }
+    accumulator.push({ name: entry.name, port, rootDir: dir });
   }
+}
 
+// Scan all MFE root directories and extract port from each package's scripts
+function getMFEPackages(): MfeInfo[] {
+  const mfes: MfeInfo[] = [];
+  for (const root of getMfeRootsSync(process.cwd())) {
+    collectMfesInRoot(root, mfes);
+  }
   return mfes;
 }
 
@@ -95,9 +103,10 @@ function buildPreviewCommands(mfes: MfeInfo[]): string[] {
   // Add main app
   commands.push(getMainAppCommand());
 
-  // MFE preview only (build already done in the sequential step)
+  // MFE preview only (build already done in the sequential step).
+  // Use the MFE's actual rootDir so custom-dir MFEs get the right cd path.
   for (const mfe of mfes) {
-    commands.push(`cd src/mfe_packages/${mfe.name} && npm run preview`);
+    commands.push(`cd ${mfe.rootDir}/${mfe.name} && npm run preview`);
   }
 
   return commands;
@@ -120,7 +129,7 @@ async function buildMfesSequentially(mfes: MfeInfo[]): Promise<void> {
       );
       const proc = spawn(npxPath, ['vite', 'build'], {
         stdio: 'inherit',
-        cwd: join(MFE_PACKAGES_DIR, mfe.name),
+        cwd: join(mfe.rootDir, mfe.name),
       });
       proc.on('error', reject);
       proc.on('exit', (code) => {
@@ -164,7 +173,7 @@ async function main() {
   const mfes = getMFEPackages();
 
   if (mfes.length === 0) {
-    console.log('ℹ️  No MFE packages found in src/mfe_packages/');
+    console.log('ℹ️  No MFE packages found in any configured MFE root directory.');
     console.log('Starting main app only...\n');
   } else {
     console.log(`✅ Found ${mfes.length} MFE package(s):`);

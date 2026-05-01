@@ -59,7 +59,8 @@ export const updateLayoutCommand: CommandDefinition<
   // @cpt-end:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-check-project-root-update-layout
 
   async execute(args, ctx): Promise<UpdateLayoutResult> {
-    const { logger, projectRoot, prompt } = ctx;
+    // update:layout always runs interactively — prompt is guaranteed by the executor
+    const { logger, projectRoot, prompt } = ctx as Required<typeof ctx>;
     const force = args.force ?? false;
 
     // @cpt-begin:cpt-frontx-flow-cli-tooling-update-layout:p2:inst-compare-layout-files

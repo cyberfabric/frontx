@@ -33,7 +33,7 @@
 ### Other
 - packages/cli -> .ai/targets/CLI.md
 - presets/standalone, presets/monorepo -> .ai/targets/CLI.md
-- src/mfe_packages -> .ai/targets/SCREENSETS.md
+- src/mfe_packages (and any configured MFE roots — `mfeRoots[]` is the registry of all known dirs in `frontx.config.json`; `mfeRoot` is the user default; `--dir` introduces new entries) -> .ai/targets/SCREENSETS.md
 - src/screensets -> .ai/targets/SCREENSETS.md (legacy — no screensets exist here after MFE conversion)
 - src/themes -> .ai/targets/THEMES.md
 - Styling anywhere -> .ai/targets/STYLING.md

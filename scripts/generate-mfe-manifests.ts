@@ -30,6 +30,7 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { getMfeRootsSync } from './lib/mfe-roots.mjs';
 
 // ---------------------------------------------------------------------------
 // Raw JSON shape types (what we read from the enriched mfe.json on disk)
@@ -152,7 +153,7 @@ interface OutMfeManifestConfig {
 
 // @cpt-begin:cpt-frontx-dod-mfe-isolation-chunk-path-type:p2:inst-1
 class ManifestGenerator {
-  private readonly mfePackagesDir: string;
+  private readonly mfePackagesDirs: string[];
   private readonly outputFile: string;
   private readonly globalBaseUrl: string | null;
 
@@ -160,38 +161,45 @@ class ManifestGenerator {
   private static readonly EXCLUDED = new Set(['.git', '.DS_Store']);
 
   constructor(
-    mfePackagesDir: string,
+    mfePackagesDirs: string | string[],
     outputFile: string,
     globalBaseUrl: string | null
   ) {
-    this.mfePackagesDir = mfePackagesDir;
+    // Accept both legacy single-dir and new multi-dir forms for backwards compat.
+    this.mfePackagesDirs = Array.isArray(mfePackagesDirs) ? mfePackagesDirs : [mfePackagesDirs];
     this.outputFile = outputFile;
     this.globalBaseUrl = globalBaseUrl;
   }
 
   run(): void {
-    const packageDirs = this.discoverPackages();
-    console.log(`Found ${packageDirs.length} MFE package(s):`);
-    packageDirs.forEach((p) => console.log(`  - ${p}`));
+    const discovered = this.discoverPackages();
+    console.log(`Found ${discovered.length} MFE package(s):`);
+    discovered.forEach(({ rootDir, name }) => console.log(`  - ${name} (in ${rootDir})`));
 
-    const configs = packageDirs.map((dir) => this.processPackage(dir));
+    const configs = discovered.map(({ rootDir, name }) => this.processPackage(rootDir, name));
     const output = this.renderOutputFile(configs);
     writeFileSync(this.outputFile, output, 'utf-8');
     console.log(`\nGenerated ${this.outputFile}`);
   }
 
-  private discoverPackages(): string[] {
-    return readdirSync(this.mfePackagesDir).filter((dir) => {
-      if (ManifestGenerator.EXCLUDED.has(dir) || dir.startsWith('.')) {
-        return false;
+  private discoverPackages(): Array<{ rootDir: string; name: string }> {
+    const result: Array<{ rootDir: string; name: string }> = [];
+    for (const mfePackagesDir of this.mfePackagesDirs) {
+      if (!existsSync(mfePackagesDir)) continue;
+      const entries = readdirSync(mfePackagesDir);
+      for (const dir of entries) {
+        if (ManifestGenerator.EXCLUDED.has(dir) || dir.startsWith('.')) continue;
+        const pkgPath = join(mfePackagesDir, dir);
+        if (existsSync(join(pkgPath, 'mfe.json'))) {
+          result.push({ rootDir: mfePackagesDir, name: dir });
+        }
       }
-      const pkgPath = join(this.mfePackagesDir, dir);
-      return existsSync(join(pkgPath, 'mfe.json'));
-    });
+    }
+    return result;
   }
 
-  private processPackage(packageDir: string): OutMfeManifestConfig {
-    const pkgPath = join(this.mfePackagesDir, packageDir);
+  private processPackage(mfePackagesDir: string, packageDir: string): OutMfeManifestConfig {
+    const pkgPath = join(mfePackagesDir, packageDir);
 
     const mfeJson = this.readEnrichedMfeJson(pkgPath, packageDir);
     const publicPath = this.resolvePublicPath(mfeJson, packageDir);
@@ -361,11 +369,11 @@ function parseArgs(argv: string[]): { baseUrl: string | null } {
 
 const { baseUrl } = parseArgs(process.argv.slice(2));
 
-const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
+const MFE_PACKAGES_DIRS = getMfeRootsSync(process.cwd()).map((r) => join(process.cwd(), r));
 const OUTPUT_FILE = join(process.cwd(), 'src/app/mfe/generated-mfe-manifests.json');
 
 try {
-  new ManifestGenerator(MFE_PACKAGES_DIR, OUTPUT_FILE, baseUrl).run();
+  new ManifestGenerator(MFE_PACKAGES_DIRS, OUTPUT_FILE, baseUrl).run();
 } catch (err) {
   console.error('Error generating MFE manifests:', err instanceof Error ? err.message : String(err));
   process.exit(1);

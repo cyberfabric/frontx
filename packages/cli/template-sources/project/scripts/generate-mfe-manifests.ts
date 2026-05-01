@@ -5,9 +5,37 @@ import { join } from 'path';
 
 // Generate MFE manifests registry
 // Generates src/app/mfe/generated-mfe-manifests.ts from all mfe.json files
-// found in src/mfe_packages/*/mfe.json
+// found in configured MFE root directories (defaults to src/mfe_packages/)
 
-const MFE_PACKAGES_DIR = join(process.cwd(), 'src/mfe_packages');
+/**
+ * Return the deduplicated list of MFE root directories (relative to cwd) to scan.
+ * Always starts with the legacy "src/mfe_packages".
+ * Adds mfeRoot and mfeRoots[] from frontx.config.json when present.
+ * Falls back to default on any config read/parse error.
+ */
+function getMfeRootsSync(projectCwd: string): string[] {
+  const defaults = ['src/mfe_packages'];
+  try {
+    const configPath = join(projectCwd, 'frontx.config.json');
+    if (!existsSync(configPath)) return defaults;
+    const config = JSON.parse(readFileSync(configPath, 'utf-8')) as {
+      mfeRoot?: unknown;
+      mfeRoots?: unknown;
+    };
+    const extra: string[] = [];
+    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
+    if (Array.isArray(config.mfeRoots)) {
+      for (const r of config.mfeRoots) {
+        if (typeof r === 'string' && r) extra.push(r);
+      }
+    }
+    return [...new Set([...defaults, ...extra])];
+  } catch {
+    return defaults;
+  }
+}
+
+const MFE_ROOTS = getMfeRootsSync(process.cwd());
 const OUTPUT_DIR = join(process.cwd(), 'src/app/mfe');
 const OUTPUT_FILE = join(OUTPUT_DIR, 'generated-mfe-manifests.ts');
 
@@ -30,55 +58,59 @@ function generateManifestRegistry(): void {
       mkdirSync(OUTPUT_DIR, { recursive: true });
     }
 
-    // Handle missing mfe_packages directory (new project, no MFEs yet)
-    if (!existsSync(MFE_PACKAGES_DIR)) {
-      console.log('ℹ️  No src/mfe_packages/ directory found. Generating empty registry.');
-      writeFileSync(OUTPUT_FILE, emptyRegistry());
-      console.log(`\n✅ Generated ${OUTPUT_FILE}`);
-      return;
-    }
-
     // Packages to exclude (templates, blanks, shared libraries)
     const EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared', '.git', '.DS_Store']);
 
-    // Find all MFE packages
-    const mfePackages = readdirSync(MFE_PACKAGES_DIR).filter((dir) => {
-      // Skip excluded packages and hidden directories
-      if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.')) {
-        return false;
-      }
+    // Collect all MFE packages across all configured root directories
+    const mfeEntries: Array<{ root: string; pkg: string }> = [];
+    for (const root of MFE_ROOTS) {
+      const mfePackagesDir = join(process.cwd(), root);
+      if (!existsSync(mfePackagesDir)) continue;
 
-      const mfeJsonPath = join(MFE_PACKAGES_DIR, dir, 'mfe.json');
-      try {
-        readFileSync(mfeJsonPath);
-        return true;
-      } catch {
-        return false;
-      }
-    });
+      const dirs = readdirSync(mfePackagesDir).filter((dir) => {
+        if (EXCLUDED_PACKAGES.has(dir) || dir.startsWith('.')) return false;
+        const mfeJsonPath = join(mfePackagesDir, dir, 'mfe.json');
+        try {
+          readFileSync(mfeJsonPath);
+          return true;
+        } catch {
+          return false;
+        }
+      });
 
-    if (mfePackages.length === 0) {
+      for (const pkg of dirs) {
+        mfeEntries.push({ root, pkg });
+      }
+    }
+
+    if (mfeEntries.length === 0) {
       console.log('ℹ️  No MFE packages found. Generating empty registry.');
       writeFileSync(OUTPUT_FILE, emptyRegistry());
       console.log(`\n✅ Generated ${OUTPUT_FILE}`);
       return;
     }
 
-    console.log(`📦 Found ${mfePackages.length} MFE package(s):`);
-    mfePackages.forEach((pkg) => {
-      console.log(`  - ${pkg}`);
+    console.log(`📦 Found ${mfeEntries.length} MFE package(s):`);
+    mfeEntries.forEach(({ root, pkg }) => {
+      console.log(`  - ${pkg} (in ${root})`);
     });
 
-    // Generate import statements
-    const imports = mfePackages
-      .map((pkg, idx) => {
-        return `import mfe${idx} from '../../mfe_packages/${pkg}/mfe.json' with { type: 'json' };`;
+    // Generate import statements using path relative to src/app/mfe/
+    const imports = mfeEntries
+      .map(({ root, pkg }, idx) => {
+        // Compute POSIX-style relative path from src/app/mfe to the MFE dir.
+        // posixRelative avoids a path.posix dependency since this template ships
+        // as a plain .ts file into generated projects that may not have path.posix available.
+        const relPath = `${root}/${pkg}`;
+        let rel = posixRelative('src/app/mfe', relPath);
+        if (!rel.startsWith('.')) rel = `./${rel}`;
+        return `import mfe${idx} from '${rel}/mfe.json' with { type: 'json' };`;
       })
       .join('\n');
 
     // Generate registry
     const registry = `export const MFE_MANIFESTS: MfeManifestConfig[] = [
-${mfePackages
+${mfeEntries
   .map((_, idx) => `  mfe${idx},`)
   .join('\n')}
 ];`;
@@ -108,6 +140,26 @@ export function getMfeManifests() {
     console.error('❌ Error generating MFE manifests:', error);
     process.exit(1);
   }
+}
+
+/**
+ * Compute a POSIX-style relative path from `from` to `to`.
+ * Both must be POSIX-style forward-slash paths.
+ */
+function posixRelative(from: string, to: string): string {
+  const fromParts = from.split('/').filter(Boolean);
+  const toParts = to.split('/').filter(Boolean);
+  let commonLen = 0;
+  while (
+    commonLen < fromParts.length &&
+    commonLen < toParts.length &&
+    fromParts[commonLen] === toParts[commonLen]
+  ) {
+    commonLen++;
+  }
+  const ups = fromParts.slice(commonLen).map(() => '..');
+  const downs = toParts.slice(commonLen);
+  return [...ups, ...downs].join('/') || '.';
 }
 
 function emptyRegistry(): string {

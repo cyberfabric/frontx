@@ -15,6 +15,7 @@ import {
   buildMfeManifestsContent,
   adaptMfeForCustomUikit,
   generateScreenset,
+  getMfeRoots,
 } from './screenset.js';
 import { getTemplatesDir } from '../core/templates.js';
 import { joinUnderRoot } from '../utils/fs.js';
@@ -163,16 +164,24 @@ describe('buildMfeManifestsContent', () => {
     expect(result).not.toContain('import mfe');
   });
 
-  it('should generate imports and registry entries for one package', () => {
-    const result = buildMfeManifestsContent(['contacts-mfe']);
+  it('legacy: default path produces ../../mfe_packages/<pkg>/mfe.json import', () => {
+    // relPath = 'src/mfe_packages/contacts-mfe'
+    // path.posix.relative('src/app/mfe', 'src/mfe_packages/contacts-mfe') → '../../mfe_packages/contacts-mfe'
+    const result = buildMfeManifestsContent([
+      { pkg: 'contacts-mfe', relPath: 'src/mfe_packages/contacts-mfe' },
+    ]);
     expect(result).toContain(
       "import mfe0 from '../../mfe_packages/contacts-mfe/mfe.json' with { type: 'json' };"
     );
     expect(result).toContain('  mfe0,');
   });
 
-  it('should generate imports and registry entries for multiple packages', () => {
-    const result = buildMfeManifestsContent(['contacts-mfe', 'dashboard-mfe', 'settings-mfe']);
+  it('should generate imports and registry entries for multiple packages (legacy path)', () => {
+    const entries = ['contacts-mfe', 'dashboard-mfe', 'settings-mfe'].map((pkg) => ({
+      pkg,
+      relPath: `src/mfe_packages/${pkg}`,
+    }));
+    const result = buildMfeManifestsContent(entries);
     expect(result).toContain(
       "import mfe0 from '../../mfe_packages/contacts-mfe/mfe.json' with { type: 'json' };"
     );
@@ -185,6 +194,31 @@ describe('buildMfeManifestsContent', () => {
     expect(result).toContain('  mfe0,');
     expect(result).toContain('  mfe1,');
     expect(result).toContain('  mfe2,');
+  });
+
+  it('custom shallow dir: produces correct relative import path without mfe_packages', () => {
+    // relPath = 'custom/mfes/contacts-mfe'
+    // path.posix.relative('src/app/mfe', 'custom/mfes/contacts-mfe') → '../../../custom/mfes/contacts-mfe'
+    const result = buildMfeManifestsContent([
+      { pkg: 'contacts-mfe', relPath: 'custom/mfes/contacts-mfe' },
+    ]);
+    expect(result).toContain(
+      "import mfe0 from '../../../custom/mfes/contacts-mfe/mfe.json' with { type: 'json' };"
+    );
+    expect(result).not.toContain('mfe_packages');
+  });
+
+  it('custom deeply-nested dir: produces correct relative import path', () => {
+    // relPath = 'apps/frontend/mfes/contacts-mfe'
+    // path.posix.relative('src/app/mfe', 'apps/frontend/mfes/contacts-mfe')
+    //   → '../../../apps/frontend/mfes/contacts-mfe'  (3 levels up: mfe → app → src)
+    const result = buildMfeManifestsContent([
+      { pkg: 'contacts-mfe', relPath: 'apps/frontend/mfes/contacts-mfe' },
+    ]);
+    expect(result).toContain(
+      "import mfe0 from '../../../apps/frontend/mfes/contacts-mfe/mfe.json' with { type: 'json' };"
+    );
+    expect(result).not.toContain('mfe_packages');
   });
 
   it('should include type imports', () => {
@@ -630,5 +664,128 @@ describe('generateScreenset() integration', () => {
     expect(manifestsContent, 'new MFE in manifests').toContain('analytics-mfe');
     expect(manifestsContent, 'pre-existing MFE in manifests').toContain('existing-mfe');
     expect(manifestsContent, '_blank-mfe excluded').not.toContain('_blank-mfe');
+  });
+
+  it('custom mfeParentDir: creates MFE at correct absolute path', async () => {
+    const projectRoot = await makeTempProject('shadcn');
+    const result = await generateScreenset({
+      name: 'orders',
+      port: 4005,
+      projectRoot,
+      mfeParentDir: 'custom/mfes',
+    });
+
+    const expectedPath = joinUnderRoot(projectRoot, 'custom', 'mfes', 'orders-mfe');
+    expect(result.mfePath, 'mfePath resolves to custom dir').toBe(expectedPath);
+    expect(await fs.pathExists(expectedPath), 'custom dir MFE created on disk').toBeTruthy();
+
+    // DR-04: vitest.mfe.base.ts always lives under src/mfe_packages/ regardless of custom dir.
+    // (mfe-shared template may not be present in test environment so we only assert vitest base.)
+    const vitestBase = joinUnderRoot(projectRoot, 'src', 'mfe_packages', 'vitest.mfe.base.ts');
+    expect(await fs.pathExists(vitestBase), 'vitest.mfe.base.ts in src/mfe_packages/').toBeTruthy();
+  });
+
+  it('custom mfeParentDir: manifest import path does not contain mfe_packages', async () => {
+    const projectRoot = await makeTempProject('shadcn');
+    await generateScreenset({
+      name: 'reports',
+      port: 4006,
+      projectRoot,
+      mfeParentDir: 'apps',
+    });
+
+    const manifestsContent = await fs.readFile(
+      joinUnderRoot(projectRoot, 'src', 'app', 'mfe', 'generated-mfe-manifests.ts'), 'utf-8',
+    );
+    expect(manifestsContent, 'import path uses custom dir').toContain('apps/reports-mfe/mfe.json');
+    expect(manifestsContent, 'import path must not contain mfe_packages').not.toContain('mfe_packages');
+  });
+
+  it('default (no mfeParentDir): behavior byte-identical to legacy src/mfe_packages path', async () => {
+    const projectRoot = await makeTempProject('shadcn');
+    const result = await generateScreenset({ name: 'legacy', port: 4007, projectRoot });
+
+    const expectedPath = joinUnderRoot(projectRoot, 'src', 'mfe_packages', 'legacy-mfe');
+    expect(result.mfePath, 'default mfePath is src/mfe_packages/').toBe(expectedPath);
+
+    const manifestsContent = await fs.readFile(
+      joinUnderRoot(projectRoot, 'src', 'app', 'mfe', 'generated-mfe-manifests.ts'), 'utf-8',
+    );
+    expect(manifestsContent).toContain("from '../../mfe_packages/legacy-mfe/mfe.json'");
+  });
+});
+
+/* ---------- getMfeRoots helper ---------- */
+
+describe('getMfeRoots', () => {
+  const tempRoots: string[] = [];
+
+  afterEach(async () => {
+    for (const root of tempRoots.splice(0)) {
+      await fs.rm(root, { recursive: true, force: true });
+    }
+  });
+
+  async function makeTempRoot(config?: Record<string, unknown>): Promise<string> {
+    const root = await fs.mkdtemp(path.join(os.tmpdir(), 'frontx-mferoots-'));
+    tempRoots.push(root);
+    if (config !== undefined) {
+      await fs.writeJSON(path.join(root, 'frontx.config.json'), config);
+    }
+    return root;
+  }
+
+  it('no config file → returns only default ["src/mfe_packages"]', async () => {
+    const root = await makeTempRoot();
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages']);
+  });
+
+  it('config with mfeRoot set → returns deduped union including mfeRoot', async () => {
+    const root = await makeTempRoot({ frontx: true, mfeRoot: 'custom/mfes' });
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages', 'custom/mfes']);
+  });
+
+  it('config with mfeRoots populated → returns deduped union of all entries', async () => {
+    const root = await makeTempRoot({
+      frontx: true,
+      mfeRoots: ['custom/mfes', 'apps/ui', 'src/mfe_packages'],
+    });
+    const result = await getMfeRoots(root);
+    // src/mfe_packages first, no duplicates
+    expect(result).toEqual(['src/mfe_packages', 'custom/mfes', 'apps/ui']);
+  });
+
+  it('config with both mfeRoot and mfeRoots → deduped union, mfeRoot included once', async () => {
+    const root = await makeTempRoot({
+      frontx: true,
+      mfeRoot: 'custom/mfes',
+      mfeRoots: ['custom/mfes', 'apps/ui'],
+    });
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages', 'custom/mfes', 'apps/ui']);
+  });
+
+  it('config with mfeRoot same as legacy → returns only ["src/mfe_packages"] (deduped)', async () => {
+    const root = await makeTempRoot({ frontx: true, mfeRoot: 'src/mfe_packages' });
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages']);
+  });
+
+  it('invalid (non-JSON) config file → falls back to default gracefully', async () => {
+    const root = await makeTempRoot();
+    await fs.writeFile(path.join(root, 'frontx.config.json'), '{ invalid json }', 'utf-8');
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages']);
+  });
+
+  it('config with mfeRoots containing non-string entries → ignores them', async () => {
+    const root = await makeTempRoot({
+      frontx: true,
+      mfeRoots: ['custom/mfes', 42, null, 'apps/ui'],
+    });
+    const result = await getMfeRoots(root);
+    expect(result).toEqual(['src/mfe_packages', 'custom/mfes', 'apps/ui']);
   });
 });

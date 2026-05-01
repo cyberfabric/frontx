@@ -1,13 +1,16 @@
 import { spawn } from 'node:child_process';
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { getMfeRootsSync } from './lib/mfe-roots.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
-const mfeRoot = path.join(repoRoot, 'src/mfe_packages');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
+
+const mfeRoots = getMfeRootsSync(repoRoot).map((r) => path.join(repoRoot, r));
 
 // Per-MFE type-check timeout. Type-checking rarely takes more than a couple
 // of minutes; 15m is a generous ceiling that still catches a genuinely hung
@@ -96,34 +99,37 @@ function parseTimeoutValue(raw) {
 }
 
 async function discoverMfeProjects() {
-  const entries = await readdir(mfeRoot, { withFileTypes: true }).catch(() => []);
   const projects = [];
   const missingTypeCheckScript = [];
 
-  for (const entry of entries) {
-    if (!entry.isDirectory()) {
-      continue;
+  for (const mfeRoot of mfeRoots) {
+    const entries = await readdir(mfeRoot, { withFileTypes: true }).catch(() => []);
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const cwd = path.join(mfeRoot, entry.name);
+      const packageJsonPath = path.join(cwd, 'package.json');
+      let packageJson;
+
+      try {
+        packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
+      } catch {
+        continue;
+      }
+
+      if (!packageJson?.scripts?.['type-check']) {
+        missingTypeCheckScript.push(entry.name);
+        continue;
+      }
+
+      projects.push({
+        cwd,
+        name: entry.name,
+      });
     }
-
-    const cwd = path.join(mfeRoot, entry.name);
-    const packageJsonPath = path.join(cwd, 'package.json');
-    let packageJson;
-
-    try {
-      packageJson = JSON.parse(await readFile(packageJsonPath, 'utf8'));
-    } catch {
-      continue;
-    }
-
-    if (!packageJson?.scripts?.['type-check']) {
-      missingTypeCheckScript.push(entry.name);
-      continue;
-    }
-
-    projects.push({
-      cwd,
-      name: entry.name,
-    });
   }
 
   return { projects, missingTypeCheckScript };
@@ -275,7 +281,7 @@ async function main() {
   }
 
   if (projects.length === 0) {
-    console.log('No MFE packages with package.json found under src/mfe_packages.');
+    console.log(`No MFE packages with package.json found in any configured MFE root (${mfeRoots.map((r) => path.relative(repoRoot, r)).join(', ')}).`);
     return;
   }
 

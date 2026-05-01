@@ -110,6 +110,75 @@ export async function findProjectRoot(
   return null;
 }
 
+/**
+ * Validate that `value` is a safe relative path suitable for use as an MFE root.
+ * Throws a descriptive error if any constraint is violated.
+ *
+ * Constraints:
+ *   - Must not be absolute (starting with `/` or a Windows drive letter).
+ *   - Must not contain a `..` path segment (directory traversal).
+ *   - Each segment must consist only of `[a-zA-Z0-9_.\-]` (kebab/snake-safe, no shell specials).
+ *
+ * The `/` character is allowed as a path separator between segments.
+ */
+export function validateRelativeMfePath(value: string, fieldName: string): void {
+  // Reject absolute Unix paths and Windows drive paths (e.g. C:\, D:/)
+  if (value.startsWith('/') || /^[A-Za-z]:[/\\]/.test(value)) {
+    throw new Error(
+      `Invalid "${fieldName}" in frontx.config.json: must be a relative path, not an absolute path.`
+    );
+  }
+  const segments = value.split('/');
+  for (const seg of segments) {
+    if (seg === '..') {
+      throw new Error(
+        `Invalid "${fieldName}" in frontx.config.json: path must not contain ".." segments.`
+      );
+    }
+    if (!/^[a-zA-Z0-9_.-]+$/.test(seg)) {
+      throw new Error(
+        `Invalid "${fieldName}" in frontx.config.json: path segment "${seg}" contains disallowed characters. Use only letters, digits, "_", ".", or "-".`
+      );
+    }
+  }
+}
+
+/** Validate the optional `uikit` field. Mutates `config.uikit` to its normalized form. */
+function validateUikitField(config: Hai3Config): void {
+  if (config.uikit === undefined) return;
+  if (typeof config.uikit !== 'string' || config.uikit === '') {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: expected a non-empty string ("shadcn", "none", or an npm package name), got ${JSON.stringify(config.uikit)}.`
+    );
+  }
+  config.uikit = normalizeUikit(config.uikit);
+  if (isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: "${config.uikit}" is not a valid npm package name.`
+    );
+  }
+}
+
+/** Validate the optional `mfeRoot` and `mfeRoots[]` fields. */
+function validateMfeRootFields(config: Hai3Config): void {
+  if (config.mfeRoot !== undefined) {
+    if (typeof config.mfeRoot !== 'string' || config.mfeRoot === '') {
+      throw new Error(`Invalid "mfeRoot" in frontx.config.json: must be a non-empty string.`);
+    }
+    validateRelativeMfePath(config.mfeRoot, 'mfeRoot');
+  }
+  if (config.mfeRoots === undefined) return;
+  if (!Array.isArray(config.mfeRoots) || !config.mfeRoots.every((r) => typeof r === 'string')) {
+    throw new Error(`Invalid "mfeRoots" in frontx.config.json: must be an array of strings.`);
+  }
+  for (const root of config.mfeRoots) {
+    if (root === '') {
+      throw new Error(`Invalid "mfeRoots" in frontx.config.json: entries must be non-empty strings.`);
+    }
+    validateRelativeMfePath(root, 'mfeRoots');
+  }
+}
+
 // @cpt-begin:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-2
 // @cpt-begin:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-7
 async function parseAndValidateConfig(configPath: string): Promise<Hai3Config> {
@@ -120,19 +189,8 @@ async function parseAndValidateConfig(configPath: string): Promise<Hai3Config> {
   } catch (err) {
     throw new Error(`Invalid JSON in ${CONFIG_FILE}: ${(err as Error).message}`);
   }
-  if (config.uikit !== undefined && (typeof config.uikit !== 'string' || config.uikit === '')) {
-    throw new Error(
-      `Invalid "uikit" value in ${CONFIG_FILE}: expected a non-empty string ("shadcn", "none", or an npm package name), got ${JSON.stringify(config.uikit)}.`
-    );
-  }
-  if (typeof config.uikit === 'string') {
-    config.uikit = normalizeUikit(config.uikit);
-  }
-  if (typeof config.uikit === 'string' && isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
-    throw new Error(
-      `Invalid "uikit" value in ${CONFIG_FILE}: "${config.uikit}" is not a valid npm package name.`
-    );
-  }
+  validateUikitField(config);
+  validateMfeRootFields(config);
   return config;
 }
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-7
