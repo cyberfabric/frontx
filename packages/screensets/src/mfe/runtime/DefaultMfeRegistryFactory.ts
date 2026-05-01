@@ -47,11 +47,11 @@ export class DefaultMfeRegistryFactory extends MfeRegistryFactory {
   build(config: MfeRegistryConfig): MfeRegistry {
     if (this.instance) {
       // Instance exists - validate config matches
-      if (config.typeSystem !== this.cachedConfig!.typeSystem) {
+      if (this.cachedConfig && config.typeSystem !== this.cachedConfig.typeSystem) {
         throw new Error(
           'MfeRegistry already built with a different TypeSystemPlugin. ' +
           'Cannot rebuild with a different configuration. ' +
-          `Expected: ${this.cachedConfig!.typeSystem.name}, ` +
+          `Expected: ${this.cachedConfig.typeSystem.name}, ` +
           `Got: ${config.typeSystem.name}`
         );
       }
