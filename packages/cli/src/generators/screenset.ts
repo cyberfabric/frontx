@@ -201,9 +201,14 @@ async function readPortFromPackageJson(pkgJsonPath: string): Promise<number | un
 /** Collect ports declared by every MFE package directly under `rootDir`. */
 async function collectPortsInRoot(rootDir: string, usedPorts: Set<number>): Promise<void> {
   if (!(await fs.pathExists(rootDir))) return;
+  // rootDir is produced by joinUnderRoot — it is asserted to be inside projectRoot
+  // and built from segments validated against a safe regex. entry.name is an OS
+  // directory entry returned by readdir and cannot contain path separators.
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
   const entries = await fs.readdir(rootDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const pkgJsonPath = path.join(rootDir, entry.name, 'package.json');
     if (!(await fs.pathExists(pkgJsonPath))) continue;
     const port = await readPortFromPackageJson(pkgJsonPath);
@@ -263,10 +268,14 @@ async function collectManifestEntriesInRoot(
 ): Promise<void> {
   const rootDir = joinUnderRoot(projectRoot, ...root.split('/'));
   if (!(await fs.pathExists(rootDir))) return;
+  // rootDir is asserted by joinUnderRoot to be inside projectRoot; entry.name is
+  // an OS directory entry returned by readdir and cannot contain path separators.
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
   const entries = await fs.readdir(rootDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
     if (MANIFEST_EXCLUDED_PACKAGES.has(entry.name) || entry.name.startsWith('.')) continue;
+    // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
     const mfeJsonPath = path.join(rootDir, entry.name, 'mfe.json');
     if (!(await fs.pathExists(mfeJsonPath))) continue;
     // posix-style relative path from project root, for use in import path computation
