@@ -148,6 +148,7 @@ async function readDirRecursive(
 }
 // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
 
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-roots-discovery
 /**
  * Read the optional `mfeRoot` / `mfeRoots[]` config fields from the project's
  * `frontx.config.json`. Returns an empty array on any failure (missing file,
@@ -182,6 +183,7 @@ export async function getMfeRoots(projectRoot: string): Promise<string[]> {
   const extra = await readConfiguredMfeRoots(projectRoot).catch(() => [] as string[]);
   return [...new Set([...defaults, ...extra])];
 }
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-mfe-roots-discovery
 
 // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
 /** Extract the `--port N` argument from a package.json `dev` script, if any. */

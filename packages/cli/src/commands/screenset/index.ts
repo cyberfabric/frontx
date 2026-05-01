@@ -89,6 +89,7 @@ export function validateDirArg(dir: string): ValidationResult {
 }
 // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-cmd-types
 
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-load-validated-config
 /**
  * Load `frontx.config.json` and assert that the required fields are present.
  * Throws with a user-facing message on any failure.
@@ -111,7 +112,9 @@ async function loadValidatedConfig(projectRoot: string): Promise<Hai3Config> {
   }
   return config;
 }
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-load-validated-config
 
+// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-register-custom-mfe-dir
 interface RegisterCustomMfeDirArgs {
   projectRoot: string;
   config: Hai3Config;
@@ -162,6 +165,7 @@ async function registerCustomMfeDir(opts: RegisterCustomMfeDirArgs): Promise<voi
     logger.info(`Saved "${resolvedMfeParentDir}" as the default MFE directory in frontx.config.json.`);
   }
 }
+// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-register-custom-mfe-dir
 
 /**
  * screenset create command implementation

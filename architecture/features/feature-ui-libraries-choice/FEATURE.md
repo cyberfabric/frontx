@@ -175,6 +175,9 @@ The UI Libraries Choice feature provides per-project UI component strategy for n
 20. [x] - `p2` - CLI generates the screenset files (screen definitions, registry entry, layout) using the resolved template - `inst-screenset-generate-6`
 21. [x] - `p2` - Ensure `src/mfe_packages/shared/` directory exists; write all generated files to the MFE package directory; regenerate `generated-mfe-manifests.ts` so bootstrap picks up the new MFE - `inst-screenset-generate-finalize`
 22. [x] - `p2` - **RETURN** fully wired screenset consistent with the project's UI kit choice - `inst-screenset-generate-7`
+23. [x] - `p2` - Provide `getMfeRoots` function that returns the deduplicated list of MFE root directories (relative to project root) to scan, always including the legacy `src/mfe_packages` plus any `mfeRoot`/`mfeRoots[]` configured in `frontx.config.json`; falls back to the legacy default on any config read error - `inst-screenset-mfe-roots-discovery`
+24. [x] - `p2` - Provide `loadValidatedConfig` helper that loads `frontx.config.json` and asserts the required `uikit` field is present and valid before generation proceeds - `inst-screenset-load-validated-config`
+25. [x] - `p2` - Provide `registerCustomMfeDir` helper that, after a successful generation in a non-default directory, registers the directory in `mfeRoots[]` for multi-root discovery and (when no default is yet stored and the caller is interactive) prompts whether to set it as `mfeRoot` for future `screenset create` calls - `inst-screenset-register-custom-mfe-dir`
 
 ### Add Shadcn Component to an Existing MFE (Manual Process)
 
