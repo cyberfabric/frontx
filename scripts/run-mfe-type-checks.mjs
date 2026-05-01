@@ -1,42 +1,14 @@
 import { spawn } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync } from 'node:fs';
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { getMfeRootsSync } from './lib/mfe-roots.mjs';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '..');
 const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
-
-/**
- * Return the deduplicated list of MFE root directories (relative to projectCwd) to scan.
- * Always starts with the legacy "src/mfe_packages".
- * Adds mfeRoot and mfeRoots[] from frontx.config.json when present.
- * Falls back to default on any config read/parse error.
- *
- * @param {string} projectCwd
- * @returns {string[]}
- */
-function getMfeRootsSync(projectCwd) {
-  const defaults = ['src/mfe_packages'];
-  try {
-    const configPath = path.join(projectCwd, 'frontx.config.json');
-    if (!existsSync(configPath)) return defaults;
-    const config = JSON.parse(readFileSync(configPath, 'utf-8'));
-    /** @type {string[]} */
-    const extra = [];
-    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
-    if (Array.isArray(config.mfeRoots)) {
-      for (const r of config.mfeRoots) {
-        if (typeof r === 'string' && r) extra.push(r);
-      }
-    }
-    return [...new Set([...defaults, ...extra])];
-  } catch {
-    return defaults;
-  }
-}
 
 const mfeRoots = getMfeRootsSync(repoRoot).map((r) => path.join(repoRoot, r));
 

@@ -30,38 +30,7 @@
 
 import { existsSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-
-// ---------------------------------------------------------------------------
-// Multi-root config helper
-// ---------------------------------------------------------------------------
-
-/**
- * Return the deduplicated list of MFE root directories (relative to cwd) to scan.
- * Always starts with the legacy "src/mfe_packages".
- * Adds mfeRoot and mfeRoots[] from frontx.config.json when present.
- * Falls back to default on any config read/parse error.
- */
-function getMfeRootsSync(projectCwd: string): string[] {
-  const defaults = ['src/mfe_packages'];
-  try {
-    const configPath = join(projectCwd, 'frontx.config.json');
-    if (!existsSync(configPath)) return defaults;
-    const config = JSON.parse(readFileSync(configPath, 'utf-8')) as {
-      mfeRoot?: unknown;
-      mfeRoots?: unknown;
-    };
-    const extra: string[] = [];
-    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
-    if (Array.isArray(config.mfeRoots)) {
-      for (const r of config.mfeRoots) {
-        if (typeof r === 'string' && r) extra.push(r);
-      }
-    }
-    return [...new Set([...defaults, ...extra])];
-  } catch {
-    return defaults;
-  }
-}
+import { getMfeRootsSync } from './lib/mfe-roots.mjs';
 
 // ---------------------------------------------------------------------------
 // Raw JSON shape types (what we read from the enriched mfe.json on disk)

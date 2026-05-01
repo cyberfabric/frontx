@@ -148,7 +148,28 @@ async function readDirRecursive(
 }
 // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-read-dir
 
-// @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-get-mfe-roots
+/**
+ * Read the optional `mfeRoot` / `mfeRoots[]` config fields from the project's
+ * `frontx.config.json`. Returns an empty array on any failure (missing file,
+ * unparseable JSON, etc.) so callers always get a deterministic shape.
+ */
+async function readConfiguredMfeRoots(projectRoot: string): Promise<string[]> {
+  const configPath = joinUnderRoot(projectRoot, 'frontx.config.json');
+  if (!(await fs.pathExists(configPath))) return [];
+  const config = (await fs.readJson(configPath)) as {
+    mfeRoot?: unknown;
+    mfeRoots?: unknown;
+  };
+  const extra: string[] = [];
+  if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
+  if (Array.isArray(config.mfeRoots)) {
+    for (const r of config.mfeRoots) {
+      if (typeof r === 'string' && r) extra.push(r);
+    }
+  }
+  return extra;
+}
+
 /**
  * Return the deduplicated list of MFE root directories (relative to project root) to scan.
  *
@@ -158,29 +179,36 @@ async function readDirRecursive(
  */
 export async function getMfeRoots(projectRoot: string): Promise<string[]> {
   const defaults = ['src/mfe_packages'];
-  try {
-    const configPath = path.join(projectRoot, 'frontx.config.json');
-    if (!(await fs.pathExists(configPath))) return defaults;
-    const config = await fs.readJson(configPath) as {
-      mfeRoot?: unknown;
-      mfeRoots?: unknown;
-    };
-    const extra: string[] = [];
-    if (typeof config.mfeRoot === 'string' && config.mfeRoot) extra.push(config.mfeRoot);
-    if (Array.isArray(config.mfeRoots)) {
-      for (const r of config.mfeRoots) {
-        if (typeof r === 'string' && r) extra.push(r);
-      }
-    }
-    const all = [...defaults, ...extra];
-    return [...new Set(all)];
-  } catch {
-    return defaults;
-  }
+  const extra = await readConfiguredMfeRoots(projectRoot).catch(() => [] as string[]);
+  return [...new Set([...defaults, ...extra])];
 }
-// @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-get-mfe-roots
 
 // @cpt-begin:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
+/** Extract the `--port N` argument from a package.json `dev` script, if any. */
+async function readPortFromPackageJson(pkgJsonPath: string): Promise<number | undefined> {
+  try {
+    const pkgJson = await fs.readJson(pkgJsonPath);
+    const devScript = pkgJson?.scripts?.dev ?? '';
+    const portMatch = devScript.match(/--port\s+(\d+)/);
+    return portMatch ? parseInt(portMatch[1], 10) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/** Collect ports declared by every MFE package directly under `rootDir`. */
+async function collectPortsInRoot(rootDir: string, usedPorts: Set<number>): Promise<void> {
+  if (!(await fs.pathExists(rootDir))) return;
+  const entries = await fs.readdir(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const pkgJsonPath = path.join(rootDir, entry.name, 'package.json');
+    if (!(await fs.pathExists(pkgJsonPath))) continue;
+    const port = await readPortFromPackageJson(pkgJsonPath);
+    if (port !== undefined) usedPorts.add(port);
+  }
+}
+
 /**
  * Scan all MFE root directories to find used ports.
  * Reads roots from frontx.config.json (graceful fallback to legacy src/mfe_packages).
@@ -188,34 +216,9 @@ export async function getMfeRoots(projectRoot: string): Promise<string[]> {
 export async function getUsedMfePorts(projectRoot: string): Promise<Set<number>> {
   const usedPorts = new Set<number>();
   const roots = await getMfeRoots(projectRoot);
-
   for (const root of roots) {
-    const mfePackagesDir = path.join(projectRoot, ...root.split('/'));
-
-    if (!(await fs.pathExists(mfePackagesDir))) {
-      continue;
-    }
-
-    const entries = await fs.readdir(mfePackagesDir, { withFileTypes: true });
-
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const pkgJsonPath = path.join(mfePackagesDir, entry.name, 'package.json');
-      if (await fs.pathExists(pkgJsonPath)) {
-        try {
-          const pkgJson = await fs.readJson(pkgJsonPath);
-          const devScript = pkgJson?.scripts?.dev ?? '';
-          const portMatch = devScript.match(/--port\s+(\d+)/);
-          if (portMatch) {
-            usedPorts.add(parseInt(portMatch[1], 10));
-          }
-        } catch {
-          // ignore parse errors
-        }
-      }
-    }
+    await collectPortsInRoot(joinUnderRoot(projectRoot, ...root.split('/')), usedPorts);
   }
-
   return usedPorts;
 }
 // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-port-scan
@@ -248,10 +251,29 @@ export async function assignMfePort(projectRoot: string, startPort = 3001): Prom
  *
  * @param resolvedMfeParentDir  Relative path to the MFE parent dir just used for generation
  */
+const MANIFEST_EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared']);
+
+/** Collect manifest-eligible MFE entries directly under one root directory. */
+async function collectManifestEntriesInRoot(
+  projectRoot: string,
+  root: string,
+  out: Array<{ pkg: string; relPath: string }>,
+): Promise<void> {
+  const rootDir = joinUnderRoot(projectRoot, ...root.split('/'));
+  if (!(await fs.pathExists(rootDir))) return;
+  const entries = await fs.readdir(rootDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    if (MANIFEST_EXCLUDED_PACKAGES.has(entry.name) || entry.name.startsWith('.')) continue;
+    const mfeJsonPath = path.join(rootDir, entry.name, 'mfe.json');
+    if (!(await fs.pathExists(mfeJsonPath))) continue;
+    // posix-style relative path from project root, for use in import path computation
+    out.push({ pkg: entry.name, relPath: `${root}/${entry.name}` });
+  }
+}
+
 async function regenerateMfeManifests(projectRoot: string, resolvedMfeParentDir: string): Promise<void> {
   const outputFile = path.join(projectRoot, 'src', 'app', 'mfe', 'generated-mfe-manifests.ts');
-
-  const EXCLUDED_PACKAGES = new Set(['_blank-mfe', 'shared']);
 
   // Union of all known roots + the dir just used, deduped.
   // getMfeRoots reads frontx.config.json; resolvedMfeParentDir is needed because
@@ -260,24 +282,8 @@ async function regenerateMfeManifests(projectRoot: string, resolvedMfeParentDir:
   const allRoots = [...new Set([...configRoots, resolvedMfeParentDir])];
 
   const mfeEntries: Array<{ pkg: string; relPath: string }> = [];
-
   for (const root of allRoots) {
-    const mfePackagesDir = path.join(projectRoot, ...root.split('/'));
-    if (!(await fs.pathExists(mfePackagesDir))) continue;
-
-    const entries = await fs.readdir(mfePackagesDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      if (EXCLUDED_PACKAGES.has(entry.name) || entry.name.startsWith('.')) continue;
-      const mfeJsonPath = path.join(mfePackagesDir, entry.name, 'mfe.json');
-      if (await fs.pathExists(mfeJsonPath)) {
-        mfeEntries.push({
-          pkg: entry.name,
-          // posix-style relative path from project root, for use in import path computation
-          relPath: `${root}/${entry.name}`,
-        });
-      }
-    }
+    await collectManifestEntriesInRoot(projectRoot, root, mfeEntries);
   }
 
   const content = buildMfeManifestsContent(mfeEntries);
@@ -776,7 +782,7 @@ export async function generateScreenset(
   const nameKebab = toKebabCase(name);
   const mfeDirName = `${nameKebab}-mfe`;
   // Split on '/' so this works on both POSIX and Windows without double-sep issues.
-  const mfePath = path.join(projectRoot, ...resolvedMfeParentDir.split('/'), mfeDirName);
+  const mfePath = joinUnderRoot(projectRoot, ...resolvedMfeParentDir.split('/'), mfeDirName);
   // @cpt-end:cpt-frontx-flow-ui-libraries-choice-screenset-generate:p2:inst-screenset-generate-1
 
   const templatesDir = getTemplatesDir();

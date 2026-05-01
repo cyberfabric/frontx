@@ -135,11 +135,47 @@ export function validateRelativeMfePath(value: string, fieldName: string): void 
         `Invalid "${fieldName}" in frontx.config.json: path must not contain ".." segments.`
       );
     }
-    if (!/^[a-zA-Z0-9_.\-]+$/.test(seg)) {
+    if (!/^[a-zA-Z0-9_.-]+$/.test(seg)) {
       throw new Error(
         `Invalid "${fieldName}" in frontx.config.json: path segment "${seg}" contains disallowed characters. Use only letters, digits, "_", ".", or "-".`
       );
     }
+  }
+}
+
+/** Validate the optional `uikit` field. Mutates `config.uikit` to its normalized form. */
+function validateUikitField(config: Hai3Config): void {
+  if (config.uikit === undefined) return;
+  if (typeof config.uikit !== 'string' || config.uikit === '') {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: expected a non-empty string ("shadcn", "none", or an npm package name), got ${JSON.stringify(config.uikit)}.`
+    );
+  }
+  config.uikit = normalizeUikit(config.uikit);
+  if (isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
+    throw new Error(
+      `Invalid "uikit" value in ${CONFIG_FILE}: "${config.uikit}" is not a valid npm package name.`
+    );
+  }
+}
+
+/** Validate the optional `mfeRoot` and `mfeRoots[]` fields. */
+function validateMfeRootFields(config: Hai3Config): void {
+  if (config.mfeRoot !== undefined) {
+    if (typeof config.mfeRoot !== 'string' || config.mfeRoot === '') {
+      throw new Error(`Invalid "mfeRoot" in frontx.config.json: must be a non-empty string.`);
+    }
+    validateRelativeMfePath(config.mfeRoot, 'mfeRoot');
+  }
+  if (config.mfeRoots === undefined) return;
+  if (!Array.isArray(config.mfeRoots) || !config.mfeRoots.every((r) => typeof r === 'string')) {
+    throw new Error(`Invalid "mfeRoots" in frontx.config.json: must be an array of strings.`);
+  }
+  for (const root of config.mfeRoots) {
+    if (root === '') {
+      throw new Error(`Invalid "mfeRoots" in frontx.config.json: entries must be non-empty strings.`);
+    }
+    validateRelativeMfePath(root, 'mfeRoots');
   }
 }
 
@@ -153,36 +189,8 @@ async function parseAndValidateConfig(configPath: string): Promise<Hai3Config> {
   } catch (err) {
     throw new Error(`Invalid JSON in ${CONFIG_FILE}: ${(err as Error).message}`);
   }
-  if (config.uikit !== undefined && (typeof config.uikit !== 'string' || config.uikit === '')) {
-    throw new Error(
-      `Invalid "uikit" value in ${CONFIG_FILE}: expected a non-empty string ("shadcn", "none", or an npm package name), got ${JSON.stringify(config.uikit)}.`
-    );
-  }
-  if (typeof config.uikit === 'string') {
-    config.uikit = normalizeUikit(config.uikit);
-  }
-  if (typeof config.uikit === 'string' && isCustomUikit(config.uikit) && !isValidPackageName(config.uikit)) {
-    throw new Error(
-      `Invalid "uikit" value in ${CONFIG_FILE}: "${config.uikit}" is not a valid npm package name.`
-    );
-  }
-  if (config.mfeRoot !== undefined) {
-    if (typeof config.mfeRoot !== 'string' || config.mfeRoot === '') {
-      throw new Error(`Invalid "mfeRoot" in frontx.config.json: must be a non-empty string.`);
-    }
-    validateRelativeMfePath(config.mfeRoot, 'mfeRoot');
-  }
-  if (config.mfeRoots !== undefined) {
-    if (!Array.isArray(config.mfeRoots) || !config.mfeRoots.every((r) => typeof r === 'string')) {
-      throw new Error(`Invalid "mfeRoots" in frontx.config.json: must be an array of strings.`);
-    }
-    for (const root of config.mfeRoots) {
-      if (root === '') {
-        throw new Error(`Invalid "mfeRoots" in frontx.config.json: entries must be non-empty strings.`);
-      }
-      validateRelativeMfePath(root, 'mfeRoots');
-    }
-  }
+  validateUikitField(config);
+  validateMfeRootFields(config);
   return config;
 }
 // @cpt-end:cpt-frontx-algo-ui-libraries-choice-uikit-resolution:p1:inst-uikit-resolution-7
