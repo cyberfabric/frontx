@@ -10,7 +10,7 @@ This document describes the FrontX Microfrontend (MFE) architecture and setup re
 
 MFE packages live under `src/mfe_packages/` by default, or a custom directory specified with `--dir` (see CLI Commands below).
 
-```
+```text
 src/mfe_packages/          (default; or <custom-dir>/ when --dir is used)
 ├── demo-mfe/              (Demo/example MFE)
 └── {name}-mfe/            (New MFEs follow this pattern)

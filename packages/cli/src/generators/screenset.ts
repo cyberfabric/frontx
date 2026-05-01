@@ -204,7 +204,7 @@ async function collectPortsInRoot(rootDir: string, usedPorts: Set<number>): Prom
   // rootDir is produced by joinUnderRoot — it is asserted to be inside projectRoot
   // and built from segments validated against a safe regex. entry.name is an OS
   // directory entry returned by readdir and cannot contain path separators.
-  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal,javascript_pathtraversal_rule-non-literal-fs-filename
   const entries = await fs.readdir(rootDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;
@@ -270,7 +270,7 @@ async function collectManifestEntriesInRoot(
   if (!(await fs.pathExists(rootDir))) return;
   // rootDir is asserted by joinUnderRoot to be inside projectRoot; entry.name is
   // an OS directory entry returned by readdir and cannot contain path separators.
-  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal
+  // nosemgrep: javascript.lang.security.audit.path-traversal.path-join-resolve-traversal.path-join-resolve-traversal,javascript_pathtraversal_rule-non-literal-fs-filename
   const entries = await fs.readdir(rootDir, { withFileTypes: true });
   for (const entry of entries) {
     if (!entry.isDirectory()) continue;

@@ -281,7 +281,7 @@ async function main() {
   }
 
   if (projects.length === 0) {
-    console.log('No MFE packages with package.json found under src/mfe_packages.');
+    console.log(`No MFE packages with package.json found in any configured MFE root (${mfeRoots.map((r) => path.relative(repoRoot, r)).join(', ')}).`);
     return;
   }
 
